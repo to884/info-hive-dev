@@ -5,7 +5,7 @@
 | 状態 | 承認 |
 | 決定日 | 2026年11月3日 |
 | 決定者 | info-hive の開発者（このリポジトリの作者） |
-| 関連 | ADR-0002、`info-hive/UPSTREAM.md`、`info-hive/docs/porting-plan.html`（方針 G、Q4） |
+| 関連 | ADR-0002、`info-hive/UPSTREAM.md`、`docs/porting-plan.html`（方針 G、Q4） |
 
 ## 背景
 
@@ -27,7 +27,7 @@ info-hive は、移植元の llm-wiki-plugin から「ホスト型 wiki」を削
 
 ## 理由
 
-- 移植元のホスト型 wiki は、Cloudflare Workers という外部のサービスの上に Wiki を置く仕組みだった。移植計画は Q4 で「提供しない」と答え、それを受けて削った。計画のレビューでは、英語前提の TypeScript の実装と仕様を保守し続ける負担も、削除に賛成する理由として挙がっていた（`info-hive/docs/agent-runs/2026-11-02-porting-plan-review/`）。ループバックのサーバーは、外部のサービスを使わず、TypeScript の実装も要らない。
+- 移植元のホスト型 wiki は、Cloudflare Workers という外部のサービスの上に Wiki を置く仕組みだった。移植計画は Q4 で「提供しない」と答え、それを受けて削った。計画のレビューでは、英語前提の TypeScript の実装と仕様を保守し続ける負担も、削除に賛成する理由として挙がっていた（`docs/agent-runs/2026-11-02-porting-plan-review/`）。ループバックのサーバーは、外部のサービスを使わず、TypeScript の実装も要らない。
 - 要件定義書の「ローカル完結」（Wiki の内容を PC の外に送らない）は、条件 1 と 2 で守られる。
 - 「ホスト型」を「HTTP サーバーを立てること」とまで広げると、ブラウザで Wiki を検索する機能や、RAG の検索結果を表示する機能が作れなくなる。`file://` で開いたページからは、ブラウザが別のローカルファイルを取得できないためである（`docs/research/llm-wiki-browse-options.md` 第6.2節）。
 
@@ -49,7 +49,7 @@ info-hive は、移植元の llm-wiki-plugin から「ホスト型 wiki」を削
 ## 参照
 
 - `info-hive/UPSTREAM.md`：削除したファイルと理由
-- `info-hive/docs/porting-plan.html`：方針 G、Q4、削除する機能の一覧
+- `docs/porting-plan.html`：方針 G、Q4、削除する機能の一覧
 - `info-hive/CHANGELOG.md`：移植元のホスト型 wiki とリーダーの機能
 - `docs/research/llm-wiki-browse-options.md`：第3.3節（方針 G の解釈案）、第6.8節（セキュリティ）
 - `llm-wiki-product-concept-and-requirements-ja.md`：ローカル完結、S-07
