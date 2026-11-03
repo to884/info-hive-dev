@@ -198,7 +198,7 @@ info-hive は、移植元の llm-wiki-plugin にあった「ホスト型 wiki」
 44. pandoc の `wikilinks_title_after_pipe` 拡張と Lua フィルタ（S）
 45. obsidian-export で wikilink を通常のリンクに直してから、任意のエンジンに渡す（W）
 46. 既存の Wiki エンジン（Wiki.js、BookStack など）へ取り込む（W）
-47. `info-hive/docs/porting-plan.html` のような、手書きの HTML と CSS の流儀にそろえる（S）
+47. `docs/porting-plan.html` のような、手書きの HTML と CSS の流儀にそろえる（S）
 
 ### リンク、メタデータ、グラフの描画
 
