@@ -69,7 +69,7 @@ info-hive が作る LLM Wiki は、YAML の frontmatter を持つ Markdown の�
 守ること：
 
 - 第 1 段階の合格の目安は、選択肢レポートの第7.2節のとおりとする。とくに、未解決リンクの一覧が `wiki_lint.py` の結果と一致すること、1,000 ページで 5 秒以内に表示できること、127.0.0.1 以外への通信が 0 件であることを確かめる。
-- コマンドを加えるときは、`info-hive/.claude-plugin/marketplace.json` のコマンドの本数、`info-hive/docs/commands.md`、`README.md`、`SKILL.md`、`CHANGELOG.md` もあわせて更新する。
+- コマンドを加えるときは、`info-hive-marketplace/.claude-plugin/marketplace.json` のコマンドの本数、`info-hive-wiki/docs/commands.md`、`README.md`、`SKILL.md`、`CHANGELOG.md` もあわせて更新する。
 
 ## 見直す条件
 

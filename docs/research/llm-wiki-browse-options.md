@@ -135,7 +135,7 @@ info-hive が作る Wiki は、YAML の frontmatter を持つ Markdown のファ
 
 ### 3.3 方針 G の解釈
 
-info-hive は、移植元の llm-wiki-plugin にあった「ホスト型 wiki」を削った（`info-hive/UPSTREAM.md`）。移植元の CHANGELOG によれば、これは Cloudflare Workers の上で動き、トークンで認証し、`/ui/<wiki>/` で読み取り専用のリーダー（フォルダツリー、検索、描画したページ、被リンク、履歴、差分）を提供するものだった。
+info-hive は、移植元の llm-wiki-plugin にあった「ホスト型 wiki」を削った（`info-hive-wiki/UPSTREAM.md`）。移植元の CHANGELOG によれば、これは Cloudflare Workers の上で動き、トークンで認証し、`/ui/<wiki>/` で読み取り専用のリーダー（フォルダツリー、検索、描画したページ、被リンク、履歴、差分）を提供するものだった。
 
 本書は、方針 G が禁じたのは「PC の外に公開して、外部のサービス上に Wiki を置くこと」だと解釈した。127.0.0.1 だけで待ち受け、PC の外からは接続できないサーバーはこれに当たらない。ユーザーは2026年11月3日に、常駐サーバーを含めて検討対象にすることを決めた。この解釈は ADR として `docs/adr/` に残すことを提案する（第7.1節）。
 
@@ -564,10 +564,10 @@ Node.js を許容しない場合に外れるのは 34（Quartz）だけで、ど
 
 コマンドを追加するときは、次のファイルもあわせて更新する。
 
-- `info-hive/.claude-plugin/marketplace.json`（「9 本の /wiki:* コマンド」の本数）
-- `info-hive/docs/commands.md`、`info-hive/README.md`、`info-hive/skills/info-hive/SKILL.md`
-- `info-hive/CHANGELOG.md`
-- `info-hive/eval/check_encoding.py`（`webbrowser` などのモジュールの検査対象）
+- `info-hive-marketplace/.claude-plugin/marketplace.json`（「9 本の /wiki:* コマンド」の本数）
+- `info-hive-wiki/docs/commands.md`、`info-hive-wiki/README.md`、`info-hive-wiki/skills/info-hive/SKILL.md`
+- `info-hive-wiki/CHANGELOG.md`
+- `info-hive-wiki/eval/check_encoding.py`（`webbrowser` などのモジュールの検査対象）
 
 ---
 
@@ -671,8 +671,8 @@ Node.js を許容しない場合に外れるのは 34（Quartz）だけで、ど
 ### リポジトリ内の資料
 
 - 要件定義書：`llm-wiki-product-concept-and-requirements-ja.md`（D-03、F-G01、S-07、O-08、O-11、第3.3節、第4.2節）
-- 移植方針と削除した機能：`info-hive/UPSTREAM.md`、`info-hive/CHANGELOG.md`
-- 既存の部品：`info-hive/skills/info-hive/scripts/wiki_text.py`、`wiki_lint.py`、`wiki_search.py`、`init_wiki.py`
+- 移植方針と削除した機能：`info-hive-wiki/UPSTREAM.md`、`info-hive-wiki/CHANGELOG.md`
+- 既存の部品：`info-hive-wiki/skills/info-hive/scripts/wiki_text.py`、`wiki_lint.py`、`wiki_search.py`、`init_wiki.py`
 - PDF の RAG の設計選択肢：`docs/research/japanese-pdf-local-rag-options.md`
 
 ---

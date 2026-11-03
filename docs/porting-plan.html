@@ -505,7 +505,7 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
       <div class="item">
         <h3>C. 名前: プラグイン名を <code>wiki</code> にし、コマンドを <code>/wiki:query</code> の形にする</h3>
         <ul>
-          <li>プラグイン名は <code>wiki</code> にする。リポジトリ名とマーケットプレイス名は <code>info-hive</code> のままにする（導入時の指定は <code>wiki@info-hive</code>）。</li>
+          <li>プラグイン名は <code>wiki</code> にする。リポジトリ名とマーケットプレイス名は <code>info-hive</code> のままにする（導入時の指定は <code>wiki@info-hive</code>）。2026-11-03 に、プラグインのリポジトリを <code>to884/info-hive-wiki</code> に移し、マーケットプレイスの定義を <code>to884/info-hive-marketplace</code> に分けた。マーケットプレイス名は <code>info-hive</code> のままである（ADR-0003）。</li>
           <li><code>commands/wiki/*.md</code> を <code>commands/*.md</code> に移し、コマンドを <code>/wiki:init</code>、<code>/wiki:query</code> などにする。移植元の README や references にある <code>/wiki:*</code> の表記がそのまま正しくなる。</li>
           <li>スキル名は <code>info-hive</code> のままにする（呼び出し名は <code>wiki:info-hive</code>）。</li>
           <li>モデルのキャッシュは <code>~/.cache/info-hive/fastembed</code>、環境変数は <code>INFO_HIVE_*</code> にする。移植元のキャッシュや設定を読んだり上書きしたりしない。</li>
@@ -807,9 +807,9 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
         <p class="phase-deps"><strong>前提:</strong> P3、P4、P5</p>
         <ul>
           <li>バージョンは v0.1.0 にする（方針 A）。タグは <code>v0.1.0</code>。</li>
-          <li>バージョンを書く場所を、サーバーと docs サイトを除いた構成（<code>plugin.json</code>、<code>marketplace.json</code> の 2 か所、CHANGELOG）に合わせて <code>CONTRIBUTING.md</code> に書き直す。</li>
+          <li>バージョンを書く場所を、<code>plugin.json</code> と CHANGELOG の 2 つに合わせて <code>CONTRIBUTING.md</code> に書き直す。マーケットプレイスの項目にはバージョンを書かない（ADR-0003）。</li>
           <li>CHANGELOG に移植元からの変更点をまとめる。削った機能（ホスト型 wiki）も書く。</li>
-          <li>Claude Code のマーケットプレイスから <code>wiki@info-hive</code> として入れられ、コマンドが <code>/wiki:*</code> の形で起動することを確かめる。</li>
+          <li>Claude Code で <code>to884/info-hive-marketplace</code> をマーケットプレイスとして追加し、<code>wiki@info-hive</code> として入れられ、コマンドが <code>/wiki:*</code> の形で起動することを確かめる。</li>
         </ul>
       </div>
     </li>

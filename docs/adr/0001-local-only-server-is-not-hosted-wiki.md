@@ -5,7 +5,7 @@
 | 状態 | 承認 |
 | 決定日 | 2026年11月3日 |
 | 決定者 | info-hive の開発者（このリポジトリの作者） |
-| 関連 | ADR-0002、`info-hive/UPSTREAM.md`、`docs/porting-plan.html`（方針 G、Q4） |
+| 関連 | ADR-0002、`info-hive-wiki/UPSTREAM.md`、`docs/porting-plan.html`（方針 G、Q4） |
 
 ## 背景
 
@@ -43,13 +43,13 @@ info-hive は、移植元の llm-wiki-plugin から「ホスト型 wiki」を削
 
 - `/wiki:browse` は、ループバックのサーバーを使う構成を採れる（ADR-0002）。
 - サーバーを作るときは、上の 3 条件を守るための対策を実装する。待ち受けのアドレスを 127.0.0.1 に固定すること、起動ごとのトークン、Host ヘッダーの確認、書き込みの API を持たないことである（`docs/research/llm-wiki-browse-options.md` 第6.8節）。
-- `info-hive/UPSTREAM.md` の方針 G の説明は変えない。移植元から削った機能の説明としては正しいためである。
+- `info-hive-wiki/UPSTREAM.md` の方針 G の説明は変えない。移植元から削った機能の説明としては正しいためである。
 - 今後、外部に公開する機能を検討するときは、本 ADR の条件に照らして判断する。条件を外れるなら、方針 G を見直す ADR を新たに書く。
 
 ## 参照
 
-- `info-hive/UPSTREAM.md`：削除したファイルと理由
+- `info-hive-wiki/UPSTREAM.md`：削除したファイルと理由
 - `docs/porting-plan.html`：方針 G、Q4、削除する機能の一覧
-- `info-hive/CHANGELOG.md`：移植元のホスト型 wiki とリーダーの機能
+- `info-hive-wiki/CHANGELOG.md`：移植元のホスト型 wiki とリーダーの機能
 - `docs/research/llm-wiki-browse-options.md`：第3.3節（方針 G の解釈案）、第6.8節（セキュリティ）
 - `llm-wiki-product-concept-and-requirements-ja.md`：ローカル完結、S-07
