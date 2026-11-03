@@ -5,25 +5,33 @@
 - コード、コマンド、パス、識別子は原文のまま書く。
 
 ## リポジトリの役割
-- このリポジトリ（`info-hive-dev`）は、`info-hive` を開発するためのリポジトリである。
-- `info-hive` は独立した Git リポジトリとして、このリポジトリのサブモジュールとして配置する。
-- `info-hive` のコンセプト、設計書、テストは、このリポジトリ（'info-hive-dev`）に置く。
-- `info-hive` には、開発に関わるファイルを置かない。
+- このリポジトリ（`info-hive-dev`）は、info-hive の Claude Code プラグインを開発するためのリポジトリである。プラグインは複数作る。
+- 次のリポジトリを、それぞれ独立した Git リポジトリとして、このリポジトリのサブモジュールに置く。
+  - `info-hive-wiki`（`to884/info-hive-wiki`）: プラグイン `wiki` の本体
+  - `info-hive-marketplace`（`to884/info-hive-marketplace`）: マーケットプレイス `info-hive` の定義。各プラグインは `<プラグイン名>@info-hive` の形で入れる。
+- プラグインごとのコンセプト、設計書、テストは、このリポジトリ（`info-hive-dev`）に置く。
+- サブモジュールのリポジトリには、開発に関わるファイルを置かない。
+- プラグインを足すときは、次の順に進める。
+  1. プラグイン用のリポジトリ `to884/info-hive-<名前>` を作り、このリポジトリのサブモジュールにする。
+  2. `info-hive-marketplace/.claude-plugin/marketplace.json` の `plugins` に項目を足す。`source` は `{"source": "github", "repo": "to884/info-hive-<名前>"}` とし、`version` は書かない。
+  3. この AGENTS.md に、そのプラグインの開発の節を足す。
 
 ## リポジトリ構成
 - エージェントスキルは `.agents/skills/` と `.claude/skills/` で管理する。
 - `skills-lock.json` には、各スキルの取得元、パス、算出済みハッシュを記録する。
-- `docs/porting-plan.html` は、`info-hive` の移植計画（方針と段階）である。
+- `docs/porting-plan.html` は、wiki プラグイン（`info-hive-wiki`）の移植計画（方針と段階）である。
 - `docs/adr/` には設計の決定を、`docs/research/` には調査レポートを、`docs/agent-runs/` には複数のエージェントに依頼した作業の記録を置く。
 - `docs/upstream/translation-hashes.txt` には、移植元から取り込んだときの日本語訳のファイルの SHA-256 を記録している。
 
-## info-hive の開発
+## wiki プラグイン（info-hive-wiki）の開発
 
-`info-hive` は、Claude Code プラグイン llm-wiki（praneybehl/llm-wiki-plugin v4.0.1）を日本語に特化して移植したものである。`info-hive` で作業する前に [docs/porting-plan.html](docs/porting-plan.html) の方針と段階を読み、それに従う。移植元との関係は [info-hive/UPSTREAM.md](info-hive/UPSTREAM.md) に記録する。
+`info-hive-wiki` は、Claude Code プラグイン llm-wiki（praneybehl/llm-wiki-plugin v4.0.1）を日本語に特化して移植したものである。`info-hive-wiki` で作業する前に [docs/porting-plan.html](docs/porting-plan.html) の方針と段階を読み、それに従う。移植元との関係は [info-hive-wiki/UPSTREAM.md](info-hive-wiki/UPSTREAM.md) に記録する。
 
 ### 名前
-- プラグイン名は `wiki`、マーケットプレイス名とスキル名は `info-hive` である。コマンドは `/wiki:<名前>` の形で起動する。
-- スキルの本体は `info-hive/skills/info-hive/` にある。コマンドからは `${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/...` で参照する。
+- プラグイン名は `wiki`、スキル名は `info-hive` である。コマンドは `/wiki:<名前>` の形で起動する。
+- マーケットプレイス名 `info-hive` の定義は、`info-hive-marketplace/.claude-plugin/marketplace.json` にある。`info-hive-wiki` にはマーケットプレイスの定義を置かない。
+- スキルの本体は `info-hive-wiki/skills/info-hive/` にある。コマンドからは `${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/...` で参照する。
+- 手元で試すときは、`claude --plugin-dir <info-hive-wiki の絶対パス>` で起動する。
 
 ### 日本語と機械が読む文字列
 - 人とエージェントが読む文章（文書、コメント、出力メッセージ）は日本語で書く。
@@ -31,13 +39,14 @@
 - ファイルの読み書きと子プロセスとの入出力は UTF-8 を明示する。Windows の既定は cp932 である。
 
 ### 移植元の修正
-- 移植元の修正を取り込んだら、[info-hive/UPSTREAM.md](info-hive/UPSTREAM.md) の表に 1 行追加する。
+- 移植元の修正を取り込んだら、[info-hive-wiki/UPSTREAM.md](info-hive-wiki/UPSTREAM.md) の表に 1 行追加する。
 - info-hive の修正を移植元に送ることはしない。
 
 ### リリース
 - この指示でいう「公開」は、Claude Code プラグイン、skills.sh ディレクトリのスキル、GitHub リリースの公開だけを指す。npm への公開は、ユーザーが明示的に求めない限り含めない。
-- ユーザーに見えるプラグインやスキルの変更は、マージ前に SemVer のバージョンを決める。バージョンは `info-hive/.claude-plugin/plugin.json`、`info-hive/.claude-plugin/marketplace.json` の 2 か所、`info-hive/CHANGELOG.md` をまとめて更新する。スキルには独自のバージョンがなく、プラグインのバージョンを引き継ぐ。
-- リリースのコミットが `info-hive` の `main` に入り、`vX.Y.Z` のタグが push され、GitHub リリースが作成され、マーケットプレイスからの導入を確かめるまでは、リリースの完了を報告しない。
+- ユーザーに見えるプラグインやスキルの変更は、マージ前に SemVer のバージョンを決める。バージョンは `info-hive-wiki/.claude-plugin/plugin.json` と `info-hive-wiki/CHANGELOG.md` をまとめて更新する。マーケットプレイスの項目にはバージョンを書かないので、`info-hive-marketplace` は直さない。スキルには独自のバージョンがなく、プラグインのバージョンを引き継ぐ。
+- マーケットプレイスは `info-hive-wiki` の main を配る。`plugin.json` の `version` を上げたコミットが main に入ると、利用者に更新が届く。
+- リリースのコミットが `info-hive-wiki` の `main` に入り、`vX.Y.Z` のタグが push され、GitHub リリースが作成され、マーケットプレイスからの導入を確かめるまでは、リリースの完了を報告しない。
 
 ## 変更時のルール
 - スキルを変更するときは対応する定義を確認し、`.agents/skills/` と `.claude/skills/` の内容を同期する。
