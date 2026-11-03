@@ -9,7 +9,7 @@
 
 | 区分 | 意味 |
 | --- | --- |
-| 確定 | 依頼で示された要件（100GB、1 秒以内、16GB 以下、10〜30GB、高精度、ローカル、拡張性、info-hive への組み込み）と、ユーザーの決定（2026年11月2日）。決定は「回答生成は Claude Code だけで行い、機密モードは設けない」「商用で利用する」「CPU のみで運用する（GPU なし）」「索引の初回構築は 1 週間まで」「デスクトップ PC で運用する」の 5 つ |
+| 確定 | 依頼で示された要件（100GB、1 秒以内、16GB 以下、10〜30GB、高精度、ローカル、拡張性、info-hive への組み込み）と、ユーザーの決定（2026年11月2〜3日）。決定は「回答生成は Claude Code だけで行い、機密モードは設けない」「商用で利用する」「CPU のみで運用する（GPU なし）」「索引の初回構築は 1 週間まで」「デスクトップ PC で運用する」「利用者に原子力・防衛関連の組織は含まれない」の 6 つ |
 | 提案 | 本書の採点にもとづく推奨。採用は未確定 |
 | 推定 | 公開値がなく、本書の計算式やほかの値からの換算で出した数値 |
 | 要確認 | 実測またはユーザーの判断が必要な事項 |
@@ -29,7 +29,7 @@
 7. **方針書の GraphRAG 不採用と、検索経路から Agent を外す方針は、採点でも支持される。**
 8. **回答の生成は Claude Code だけで行い、機密モードは設けない（2026年11月2日にユーザーが決定）。** ローカル LLM が要らないので、16GB の予算をすべて検索に使える。検索結果の上位チャンクの本文は、Claude Code を通じて PC の外へ送られる。外に送れない文書は、索引に入れないことで扱う（第7.1節）。
 9. **CPU のみで運用する（同日にユーザーが決定）。** GPU を前提にした構成 C は対象外にした。検索の 1 秒の要件は CPU 前提で試算済みなので変わらない。影響が大きいのは、索引の構築時間である（第6.7節）。
-10. **商用で利用する（同日にユーザーが決定）。** 非商用ライセンスの sarashina、jina、YomiToku などは候補から外した。推奨構成の部品は商用で使えるライセンスを選んだ。ただし、NDLOCR-Lite の付帯条件と Lindera に同梱する辞書のライセンスは確認が要る（第2.5節）。PDF のテキスト抽出は、AGPL の PyMuPDF に代えて pypdfium2 を第一候補にする。
+10. **商用で利用する（同日にユーザーが決定）。** 非商用ライセンスの sarashina、jina、YomiToku などは候補から外した。推奨構成の部品は商用で使えるライセンスを選んだ。ライセンスの確認結果は第2.5節にまとめた。Lindera の辞書はすべて商用で使える。NDLOCR-Lite の学習済みモデルは DINOv3 License の用途制限を受けるが、利用者は制限の対象に当たらない（2026年11月3日にユーザーが確認）。縦書きとスキャンの標準 OCR として使い、モデルはプラグインに同梱せず初回利用時に公式リポジトリから取得する。PDF のテキスト抽出は、AGPL の PyMuPDF に代えて pypdfium2 を第一候補にする。
 11. **PDF を 1 件ずつ手で取り込む場合は、索引に追記して更新する。** 1 件あたりの処理は数秒から 1 分程度の見込みで、1 週間の上限は事実上なくなる（推定）。代わりに、索引への反映、索引の作り直し、古い版の削除という保守の処理がときどき要る。埋め込みモデルを後から替えると全文書の埋め込み直しになるので、最初に慎重に決める（第6.8節）。
 
 推奨構成は第6.6節の「構成 B（組み込み・軽量）」である。次の作業は第7節の PoC 計測である。
@@ -105,7 +105,7 @@ PyMuPDF（AGPL-3.0）と poppler（GPL）は、商用のプラグインに組み
 | --- | --- | --- |
 | pypdfium2 | Apache-2.0 または BSD-3 | 可 |
 | pdfplumber | MIT | 可 |
-| NDLOCR-Lite | CC BY 4.0。DINOv3 由来の条件あり | **要確認**（DINOv3 由来の条件の内容） |
+| NDLOCR-Lite | コードと学習済みモデルは CC BY 4.0。レイアウト認識のモデルは DINOv3 から蒸留したもので、同梱の学習済みモデルを使うには DINOv3 License も守る必要がある | 可。用途の制限はあるが、利用者は対象に当たらない（下記） |
 | PaddleOCR、PaddleOCR-VL | Apache-2.0 | 可 |
 | Ruri v3（埋め込み） | Apache-2.0 | 可 |
 | japanese-reranker v2 系 | MIT | 可 |
@@ -114,10 +114,46 @@ PyMuPDF（AGPL-3.0）と poppler（GPL）は、商用のプラグインに組み
 | LanceDB | Apache-2.0 | 可 |
 | Qdrant | Apache-2.0 | 可 |
 | Tantivy | MIT | 可 |
-| Lindera | MIT | 本体は可。同梱する辞書（IPADIC など）のライセンスは **要確認** |
+| Lindera | 本体は MIT。辞書のライセンスは下記 | 可 |
 | SudachiPy、SudachiDict | Apache-2.0 | 可 |
 
 クレジット表記が必要なもの（CC BY 4.0 など）は、プラグインの配布物に表記を入れる。
+
+#### NDLOCR-Lite と DINOv3 License
+
+NDLOCR-Lite の README は、同梱の学習済みモデルを使う場合に DINOv3 License を守るよう求めている。DINOv3 License（2025年8月19日版）の要点は次のとおりである。
+
+| 条項 | 内容 | info-hive への影響 |
+| --- | --- | --- |
+| 利用の許諾 | 無償・非独占で、利用、複製、配布、改変、派生物の作成を許す。商用利用を禁じる条項はない | 商用で使える |
+| 再配布 | DINOv3 の成果物とその派生物を第三者に渡すときは、このライセンスの条件で渡し、写しを添える | 学習済みモデルを同梱すると、info-hive の利用者全員にこの条件が及ぶ |
+| 用途の禁止 | ITAR の対象となる活動、軍事・戦争、原子力産業とその応用、諜報、銃や違法な武器の開発・使用に使えない。制裁の対象者も使えない | 原子力や防衛に関わる組織の文書には使えない。技術文書を扱う製品なので、利用者がこれに当たる可能性がある |
+| 解析の禁止 | 構成要素をリバースエンジニアリングしない。他者にもさせない | 特になし |
+| 訴訟 | Meta を知的財産の侵害で訴えると、ライセンスが終了する。第三者からの請求について Meta を補償する | 特になし |
+| 改定 | Meta が随時改定でき、改定は直ちに効力を持つ | 条件が後から変わりうる |
+| 準拠法 | 米国カリフォルニア州法 | 特になし |
+
+利用者に原子力・防衛関連の組織は含まれない（2026年11月3日にユーザーが確認）。このため用途の禁止には当たらず、NDLOCR-Lite を縦書きとスキャンの標準 OCR として使える。
+
+判断（提案）：
+
+- 学習済みモデルはプラグインに同梱せず、初回利用時に国立国会図書館の公式リポジトリから取得する。info-hive が再配布者にならないので、再配布の条件を負わない。Meta がライセンスを改定しても、利用者は取得元で最新の条件を確かめられる。
+- 取得するときに DINOv3 License と用途の禁止を示し、利用者の同意を得る。
+- CC BY 4.0 に従い、国立国会図書館の表記を配布物と画面に残す。
+- 利用者の範囲が変わり、原子力・防衛関連の組織が加わる場合は、この判断を見直す。その場合は PaddleOCR か Tesseract で縦書きを賄う。
+
+#### Lindera の辞書
+
+Lindera は辞書ごとに別のパッケージになっており、各パッケージの NOTICE.txt に元の辞書の条件が収められている。
+
+| 辞書 | 元のデータ | ライセンス | 商用利用 | 配布するときの義務 |
+| --- | --- | --- | --- | --- |
+| SudachiDict（lindera-sudachidict） | SudachiDict 20260723 | Apache-2.0。接続表と文字定義は UniDic 由来で BSD | 可 | Apache-2.0 の写し、NOTICE、UniDic の著作権表示を添える |
+| IPADIC（lindera-ipadic） | mecab-ipadic 2.7.0-20070801 | 奈良先端科学技術大学院大学（NAIST）の免責と、ICOT Free Software の条件 | 可 | 無保証の条項（NO WARRANTY）を必ず添える |
+| UniDic（lindera-unidic） | unidic-mecab 2.1.2 | BSD-3-Clause | 可 | 著作権表示と免責を文書に含める |
+| IPADIC-NEologd（lindera-ipadic-neologd） | 不明 | Lindera の NOTICE.txt には IPADIC の条件しか載っていない。NEologd 自体の条件は確認していない | 採用しない | 該当なし |
+
+判断（提案）：第6.2節で Sudachi の正規化形を索引する方針にしたので、辞書は SudachiDict を使う。配布物には lindera-sudachidict の NOTICE.txt をそのまま同梱すれば、上の義務を満たせる。
 
 ---
 
@@ -290,7 +326,7 @@ ColBERT 系（トークンごとに 128 次元のベクトルを持つ方式）�
 
 - 1 の速度 9：PyMuPDF は 7,031 ページを 8.01 秒で処理する（約 1.1ms/ページ）。精度 4 は、スキャンと縦書きのページを取りこぼすため。
 - 3 と 4' の速度 2：OCR や VLM はページあたり秒単位で、100GB 全量では日〜週の単位になる（推定）。3 の精度は、MinerU の日本語の編集距離 0.588 が PaddleOCR-VL の 0.086 より大きく劣ることも踏まえた。
-- **選定：2。** 全ページをまず高速に検査し、文字数・CJK 比率・U+FFFD や私用領域の文字の比率・画像の被覆率・縦書きの有無を記録する。その結果で「良好なテキスト層」「文字化け」「スキャン」「縦書き」に分け、後の 3 つだけを OCR に回す。テキスト層の抽出は pypdfium2、表は pdfplumber を使う。OCR は NDLOCR-Lite（CC BY 4.0、CPU、縦書き対応）、横書きの表には PaddleOCR（Apache-2.0）を使う。pypdfium2 の速度は公開値がないので、PoC で PyMuPDF と比べて測る。
+- **選定：2。** 全ページをまず高速に検査し、文字数・CJK 比率・U+FFFD や私用領域の文字の比率・画像の被覆率・縦書きの有無を記録する。その結果で「良好なテキスト層」「文字化け」「スキャン」「縦書き」に分け、後の 3 つだけを OCR に回す。テキスト層の抽出は pypdfium2、表は pdfplumber を使う。OCR は NDLOCR-Lite（CC BY 4.0、CPU で動き、縦書きに対応）を標準にし、横書きの表には PaddleOCR（Apache-2.0）を使う。NDLOCR-Lite の学習済みモデルは同梱せず、初回利用時に公式リポジトリから取得する（第2.5節）。pypdfium2 の速度は公開値がないので、PoC で PyMuPDF と比べて測る。
 
 #### チャンク化
 
@@ -617,7 +653,7 @@ JMTEB v2 の検索スコアは、130m が 0.764、70m が 0.747、30m が 0.733 
 5. **GPU を前提にした選択肢は外す。** japanese-splade（選択肢 24）は、130m 程度の計算を全チャンクにもう一度かけることになるので対象外にする。
 6. **社内に GPU のある別の PC があれば、初回の構築だけをそこで行う手もある。** 同じ埋め込みモデルを使えば、索引はそのまま持ち込める。
 
-スキャンページの OCR（NDLOCR-Lite）も CPU で行う。CPU での速度は公開値がなく、OCR が必要なページ数にも左右されるので、PoC で測る。
+スキャンページの OCR（NDLOCR-Lite、横書きの表は PaddleOCR）も CPU で行う。CPU での速度は公開値がなく、OCR が必要なページ数にも左右されるので、PoC で測る。
 
 #### 1 週間の上限に収まるモデル
 
@@ -705,7 +741,8 @@ JMTEB v2 の検索スコアは、130m が 0.764、70m が 0.747、30m が 0.733 
 | --- | --- | --- |
 | 回答生成 | **決定済み**：Claude Code だけで行い、機密モードは設けない | 検索 API は、上位チャンクの本文と出典（文書名、章、節、ページ番号）を返す |
 | Claude Code に送ってよい資料の範囲 | 全資料を送ってよい／送れない資料がある | 上位チャンクの本文が PC の外に送られる。送れない資料がある場合は、索引に入れない。要件定義書の S-03 と O-10 と同じ判断になる |
-| 商用利用 | **決定済み**：商用で利用する | 非商用ライセンスの部品を除外した。NDLOCR-Lite の DINOv3 由来の条件と、Lindera に同梱する辞書のライセンスを確認する |
+| 商用利用 | **決定済み**：商用で利用する | 非商用ライセンスの部品を除外した。残っていたライセンスの確認も終えた（第2.5節） |
+| 利用者に原子力・防衛関連の組織が含まれるか | **決定済み**：含まれない | NDLOCR-Lite を標準の OCR として使う。利用者の範囲が変わったら見直す（第2.5節） |
 | GPU | **決定済み**：CPU のみ | 構成 C は対象外。索引の構築時間への対策を入れた（第6.7節） |
 | 索引の初回構築に許容できる日数 | **決定済み**：1 週間まで | 埋め込みを 5 日以内に終えられる最も大きいモデルを選ぶ（第6.7節） |
 | 運用する PC | **決定済み**：デスクトップ | CPU のコア数とメモリの種類（DDR4／DDR5）を確認する。構築日数の見積もりに使う |
@@ -743,14 +780,13 @@ JMTEB v2 の検索スコアは、130m が 0.764、70m が 0.747、30m が 0.733 
 - Ruri v3 の Matryoshka 対応の有無
 - 各モデルの x86 CPU でのクエリ埋め込み・リランクの実測時間
 - CPU でのチャンク埋め込みの実効速度（第6.7節の構築日数は計算量からの推定）
-- NDLOCR-Lite の CPU での処理速度
+- NDLOCR-Lite と PaddleOCR の CPU での処理速度
 - LanceDB に行を追記したときの挙動（索引に未反映の行の検索方法、optimize の効果、ほかのプロセスによる更新の見え方）
 - 数百万〜1,000 万件規模での LanceDB の日本語全文検索、Qdrant の Windows 上でのディスク再スコアの性能
 - BM25 索引のサイズとテキスト量の比
 - JMTEB v2 の総合リーダーボードの最新上位（Gradio のページを取得できなかった）
 - lindera-tantivy が Tantivy 0.27 と Lindera 6.x に追従しているか
 - pypdfium2 の抽出速度と日本語テキストの品質
-- NDLOCR-Lite のライセンスにある DINOv3 由来の条件の内容と、Lindera に同梱する辞書のライセンス
 - 運用するデスクトップ PC の CPU コア数とメモリの種類
 
 ---
@@ -819,7 +855,9 @@ JMTEB v2 の検索スコアは、130m が 0.764、70m が 0.747、30m が 0.733 
 - Docling：https://pypi.org/project/docling/
 - YomiToku：https://github.com/kotaro-kinoshita/yomitoku
 - PaddleOCR：https://github.com/PaddlePaddle/PaddleOCR 、PaddleOCR-VL 論文（日本語の編集距離）：https://arxiv.org/html/2510.14528
-- NDLOCR-Lite：https://github.com/ndl-lab/ndlocr-lite
+- NDLOCR-Lite：https://github.com/ndl-lab/ndlocr-lite 、依存ライブラリのライセンス：https://github.com/ndl-lab/ndlocr-lite/blob/master/LICENCE_DEPENDENCEIES
+- DINOv3 License：https://github.com/facebookresearch/dinov3/blob/main/LICENSE.md
+- Lindera の辞書の NOTICE：https://github.com/lindera/lindera/blob/main/lindera-sudachidict/NOTICE.txt 、https://github.com/lindera/lindera/blob/main/lindera-ipadic/NOTICE.txt 、https://github.com/lindera/lindera/blob/main/lindera-unidic/NOTICE.txt
 - Nougat：https://github.com/facebookresearch/nougat 、olmOCR：https://github.com/allenai/olmocr
 - MLLM の縦書き評価：https://arxiv.org/abs/2511.15059
 - PDF の容量とテキスト量の関係：https://arxiv.org/html/2608.16390
