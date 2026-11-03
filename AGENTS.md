@@ -20,7 +20,7 @@
 - エージェントスキルは `.agents/skills/` と `.claude/skills/` で管理する。
 - `skills-lock.json` には、各スキルの取得元、パス、算出済みハッシュを記録する。
 - `docs/porting-plan.html` は、wiki プラグイン（`info-hive-wiki`）の移植計画（方針と段階）である。
-- `docs/adr/` には設計の決定を、`docs/research/` には調査レポートを、`docs/agent-runs/` には複数のエージェントに依頼した作業の記録を置く。
+- `docs/adr/` には設計の決定を、`docs/research/` には調査レポートを、`docs/plans/` には実装の計画を、`docs/agent-runs/` には複数のエージェントに依頼した作業の記録を置く。
 - `docs/upstream/translation-hashes.txt` には、移植元から取り込んだときの日本語訳のファイルの SHA-256 を記録している。
 
 ## wiki プラグイン（info-hive-wiki）の開発

@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web ページの取り込みの実装計画</title>
+<style>
+/*
+  docs/porting-plan.html と同じ見た目にそろえる。
+  色: 地 #F5F7FA / 墨 #1B2230 / 鼠 #5B6576 / 罫 #D8DEE7 / 藍 #284E86
+  書体: 見出しは明朝、本文はゴシック、コードは等幅。OS の書体を使う。
+  レイアウト: 広い画面では左に目次を固定し、本文は 1 段。狭い画面では目次を折りたたむ。
+*/
+:root {
+  --ground: #F5F7FA;
+  --surface: #FFFFFF;
+  --ink: #1B2230;
+  --muted: #5B6576;
+  --rule: #D8DEE7;
+  --accent: #284E86;
+  --accent-soft: #E6EDF7;
+  --code-bg: #EEF1F5;
+  --sev-break: #B0362E;
+  --sev-break-bg: #F8E7E5;
+  --sev-degrade: #9A620F;
+  --sev-degrade-bg: #F7EEDC;
+  --sev-cosmetic: #5B6576;
+  --sev-cosmetic-bg: #ECEFF3;
+  --font-display: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+  --font-body: "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", "YuGothic", "Meiryo", "Noto Sans JP", sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, ui-monospace, "BIZ UDGothic", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #12161D;
+    --surface: #181D26;
+    --ink: #E3E8EF;
+    --muted: #9AA4B5;
+    --rule: #2B3340;
+    --accent: #8FB3EA;
+    --accent-soft: #1E2A3D;
+    --code-bg: #1F2530;
+    --sev-break: #F0938B;
+    --sev-break-bg: #3A1F1E;
+    --sev-degrade: #E3B566;
+    --sev-degrade-bg: #352A17;
+    --sev-cosmetic: #AEB7C6;
+    --sev-cosmetic-bg: #252B35;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #12161D;
+  --surface: #181D26;
+  --ink: #E3E8EF;
+  --muted: #9AA4B5;
+  --rule: #2B3340;
+  --accent: #8FB3EA;
+  --accent-soft: #1E2A3D;
+  --code-bg: #1F2530;
+  --sev-break: #F0938B;
+  --sev-break-bg: #3A1F1E;
+  --sev-degrade: #E3B566;
+  --sev-degrade-bg: #352A17;
+  --sev-cosmetic: #AEB7C6;
+  --sev-cosmetic-bg: #252B35;
+}
+:root[data-theme="light"] {
+  --ground: #F5F7FA;
+  --surface: #FFFFFF;
+  --ink: #1B2230;
+  --muted: #5B6576;
+  --rule: #D8DEE7;
+  --accent: #284E86;
+  --accent-soft: #E6EDF7;
+  --code-bg: #EEF1F5;
+  --sev-break: #B0362E;
+  --sev-break-bg: #F8E7E5;
+  --sev-degrade: #9A620F;
+  --sev-degrade-bg: #F7EEDC;
+  --sev-cosmetic: #5B6576;
+  --sev-cosmetic-bg: #ECEFF3;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15.5px;
+  line-height: 1.85;
+}
+a { color: var(--accent); text-underline-offset: 0.2em; }
+a:focus-visible, summary:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--code-bg);
+  padding: 0.08em 0.35em;
+  border-radius: 3px;
+  overflow-wrap: anywhere;
+}
+pre {
+  margin: 0;
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 10px 14px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+pre code { background: transparent; padding: 0; font-size: inherit; }
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.45;
+  text-wrap: balance;
+  margin: 0;
+}
+h1 { font-size: 1.9rem; letter-spacing: 0.02em; }
+h2 { font-size: 1.4rem; }
+h3 { font-size: 1.1rem; }
+h4 { font-size: 1rem; font-family: var(--font-body); font-weight: 700; }
+p, ul, ol { margin: 0; }
+ul, ol { padding-left: 1.4em; }
+li + li { margin-top: 0.3em; }
+
+.shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+@media (min-width: 1000px) {
+  .shell {
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 48px;
+    padding: 0 32px;
+  }
+}
+
+/* 目次 */
+.toc { padding: 24px 0 0; }
+.toc details { border-bottom: 1px solid var(--rule); padding-bottom: 12px; }
+.toc summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+.toc ol { list-style: none; padding: 0; margin-top: 8px; display: grid; gap: 2px; }
+.toc li + li { margin-top: 0; }
+.toc a {
+  display: block;
+  text-decoration: none;
+  color: var(--ink);
+  font-size: 0.9rem;
+  padding: 3px 8px;
+  border-left: 2px solid transparent;
+}
+.toc a:hover { border-left-color: var(--accent); color: var(--accent); }
+@media (min-width: 1000px) {
+  .toc { position: sticky; top: 0; align-self: start; max-height: 100vh; overflow-y: auto; padding-top: 48px; }
+  .toc details { border-bottom: 0; }
+}
+
+main { min-width: 0; padding: 32px 0 96px; }
+@media (min-width: 1000px) { main { padding-top: 48px; } }
+.content { max-width: 46rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 64px; }
+.content > *, section > * { min-width: 0; }
+section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; scroll-margin-top: 16px; }
+section > p, section > ul, section > ol, .prose { max-width: 40em; }
+
+/* 表題部 */
+.masthead { display: grid; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--rule); }
+.eyebrow { font-size: 0.78rem; letter-spacing: 0.14em; color: var(--muted); }
+.meta {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 16px;
+  font-size: 0.88rem;
+  margin: 0;
+}
+.meta dt { color: var(--muted); }
+.meta dd { margin: 0; color: var(--ink); }
+.lede { font-size: 1.05rem; max-width: 38em; }
+
+.sec-head { display: flex; align-items: baseline; gap: 12px; }
+.sec-num { font-family: var(--font-mono); font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* 判断の区分 */
+.ledger { display: grid; gap: 12px; }
+.ledger-group { display: grid; gap: 8px; }
+.ledger-label {
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 4px;
+}
+.item {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 6px;
+}
+.item h3 { font-family: var(--font-body); font-size: 1rem; font-weight: 700; }
+.item p { font-size: 0.95rem; }
+.item .why { color: var(--muted); font-size: 0.88rem; }
+.item .src { color: var(--muted); font-size: 0.82rem; }
+
+/* 表 */
+.table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; line-height: 1.65; }
+caption { text-align: left; padding: 10px 12px; font-weight: 700; caption-side: top; border-bottom: 1px solid var(--rule); }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+tr:last-child td { border-bottom: 0; }
+thead th { font-size: 0.78rem; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; background: var(--ground); white-space: nowrap; }
+td.loc { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); min-width: 13em; }
+td.nowrap { white-space: nowrap; }
+.wide-table { min-width: 640px; }
+
+.sev {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.sev-break { color: var(--sev-break); background: var(--sev-break-bg); }
+.sev-degrade { color: var(--sev-degrade); background: var(--sev-degrade-bg); }
+.sev-cosmetic { color: var(--sev-cosmetic); background: var(--sev-cosmetic-bg); }
+
+/* 段階 */
+.phases { list-style: none; padding: 0; display: grid; }
+.phase {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr);
+  gap: 0 16px;
+  padding: 20px 0;
+  border-top: 1px solid var(--rule);
+}
+.phase + .phase { margin-top: 0; }
+.phase-id {
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  padding-top: 2px;
+}
+.phase-body { display: grid; gap: 10px; min-width: 0; }
+.phase-body h3 { font-size: 1.15rem; }
+.phase-deps { font-size: 0.85rem; color: var(--muted); }
+.phase-deps strong { color: var(--ink); font-weight: 600; }
+.phase-status {
+  justify-self: start;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+.checks { list-style: none; padding: 0; }
+.checks li { padding-left: 1.4em; position: relative; }
+.checks li::before {
+  content: "";
+  position: absolute;
+  left: 0.15em;
+  top: 0.62em;
+  width: 0.62em;
+  height: 0.62em;
+  border: 1.5px solid var(--muted);
+  border-radius: 2px;
+}
+
+/* 依存関係の図 */
+.flow-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); padding: 12px; }
+.flow-wrap svg { display: block; min-width: 600px; width: 100%; height: auto; }
+.flow-wrap .n-box { fill: var(--surface); stroke: var(--rule); stroke-width: 1.5; }
+.flow-wrap .n-box.main { stroke: var(--accent); }
+.flow-wrap text { fill: var(--ink); font-family: var(--font-body); font-size: 13px; }
+.flow-wrap .n-id { fill: var(--accent); font-family: var(--font-mono); font-size: 12px; }
+.flow-wrap .n-sub { fill: var(--muted); font-size: 11.5px; }
+.flow-wrap .edge { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+.flow-wrap .arrow { fill: var(--muted); }
+
+.callout {
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  padding: 12px 16px;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.95rem;
+}
+
+details.appendix { border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+details.appendix > summary { cursor: pointer; padding: 12px 16px; font-weight: 700; }
+details.appendix > .table-wrap { border: 0; border-top: 1px solid var(--rule); border-radius: 0; }
+
+.theme-toggle {
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 2px 10px;
+  cursor: pointer;
+  justify-self: start;
+}
+
+footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 16px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+@media print {
+  .toc, .theme-toggle { display: none; }
+  .shell { display: block; }
+  body { background: #fff; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<nav class="toc" aria-label="目次">
+  <details id="toc-details" open>
+    <summary>目次</summary>
+    <ol>
+      <li><a href="#goal">1. 目的と範囲</a></li>
+      <li><a href="#decisions">2. 前提と決めたこと</a></li>
+      <li><a href="#order">3. 全体の順序と依存</a></li>
+      <li><a href="#pr1">4. PR 1: frontmatter の引用符</a></li>
+      <li><a href="#pr2">5. PR 2: Web ページの取り込み</a></li>
+      <li><a href="#pr3">6. PR 3: 知識ページの図表</a></li>
+      <li><a href="#verify">7. 共通の確認手順</a></li>
+      <li><a href="#risks">8. リスクと未決</a></li>
+      <li><a href="#after">9. マージ後の作業</a></li>
+    </ol>
+  </details>
+</nav>
+
+<main id="top">
+<div class="content">
+
+<header class="masthead">
+  <p class="eyebrow">実装計画</p>
+  <h1>Web ページを wiki に取り込めるようにする</h1>
+  <p class="lede"><code>/wiki:ingest</code> は URL を受け付けますが、ページを取りに行く手順、翻訳、画像の扱いはまだありません。この計画は、要件定義書と ADR-0004、ADR-0005 で決めた設計を、<code>info-hive-wiki</code> への 3 つの PR に分けて実装する手順をまとめたものです。</p>
+  <dl class="meta">
+    <dt>対象</dt><dd><code>to884/info-hive-wiki</code>（プラグイン <code>wiki</code>、版は 0.1.0 のまま）</dd>
+    <dt>根拠</dt><dd>要件定義書 F-I10〜F-I15、§6.3、§6.5（F-W01〜F-W07）、AC-P18〜AC-P20。<code>docs/adr/0004-raw-holds-translated-web-pages.md</code>、<code>docs/adr/0005-wiki-figures-use-mermaid-and-svg.md</code>。<code>docs/research/web-page-ingest-brainstorm.md</code> §5</dd>
+    <dt>作成日</dt><dd>2026-11-03</dd>
+    <dt>状態</dt><dd>計画。実装はまだ始めていません。</dd>
+  </dl>
+  <button type="button" class="theme-toggle" id="theme-toggle" aria-pressed="false">表示: 自動</button>
+</header>
+
+<section id="goal" aria-labelledby="goal-h">
+  <div class="sec-head"><span class="sec-num">01</span><h2 id="goal-h">目的と範囲</h2></div>
+  <p class="prose">次の 3 つを、この順に実装します。</p>
+  <ul>
+    <li>frontmatter の文字列の値を二重引用符で囲む書式を、パーサー、書き手、lint、テンプレート、評価用コーパスに徹底する（要件 §6.3）。</li>
+    <li>URL を渡すと、Web ページの本文を Markdown にして <code>raw/</code> に保存し、日本語でなければ訳し、画像を保存して説明を添える（F-I10〜F-I15、ADR-0004）。</li>
+    <li>知識ページに図表を入れる決まりと、それに合わせた lint・検索・初期化の修正（F-W01〜F-W07、ADR-0005）。</li>
+  </ul>
+  <p class="prose">対象外は次のとおりです。<code>/wiki:browse</code> で mermaid や svg を表示すること（D-03 の注記どおり将来の作業）、JavaScript で描画されるページをスクリプトで取ること（O-15）、親リポジトリの文書の更新（<a href="#after">9 節</a>に挙げ、別に行います）。</p>
+</section>
+
+<section id="decisions" aria-labelledby="decisions-h">
+  <div class="sec-head"><span class="sec-num">02</span><h2 id="decisions-h">前提と決めたこと</h2></div>
+  <p class="prose">設計は要件定義書と ADR で決まっています。ここでは、実装の進め方として決めたことと、実装で守る規則を書きます。</p>
+
+  <div class="table-wrap">
+    <table class="wide-table">
+      <caption>進め方（2026-11-03 にユーザーと決定）</caption>
+      <thead><tr><th scope="col">項目</th><th scope="col">決定</th><th scope="col">理由</th></tr></thead>
+      <tbody>
+        <tr><td>PR の分け方</td><td>3 つの PR。引用符 → Web の取り込み → 図表の順</td><td>あとの 2 つが引用符のパーサー修正に依存する。レビューしやすい</td></tr>
+        <tr><td>版</td><td>0.1.0 のまま。初回リリース（P6）に含める</td><td>未リリースなので、CHANGELOG の <code>[Unreleased]</code> に足すだけでよい</td></tr>
+        <tr><td>この文書の置き場所</td><td><code>info-hive-dev/docs/plans/</code></td><td>開発に関わる文書はサブモジュールに置かない（AGENTS.md）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap">
+    <table class="wide-table">
+      <caption>実装で守る規則（要件と ADR から）</caption>
+      <thead><tr><th scope="col">項目</th><th scope="col">規則</th><th scope="col">出どころ</th></tr></thead>
+      <tbody>
+        <tr><td>frontmatter</td><td>文字列は配列の要素も含めて二重引用符で囲む。<code>type</code> や <code>kind</code> の固定の英語の値も囲む。<code>YYYY-MM-DD</code> の日付と数値は囲まない。日時（<code>fetched_at</code>）は文字列として囲む</td><td class="nowrap">§6.3</td></tr>
+        <tr><td>escape</td><td>値の中の <code>"</code> は <code>\"</code>、<code>\</code> は <code>\\</code>。手書きのパーサーが戻すのはこの 2 つだけにし、PyYAML と同じ結果にする</td><td class="nowrap">この計画</td></tr>
+        <tr><td>raw/ に置くもの</td><td>HTML の本文を Markdown にしたもの。日本語でなければ訳文だけ。画像と、その直後の説明</td><td class="nowrap">ADR-0004</td></tr>
+        <tr><td>原文の記録</td><td>URL、取得日時、原文 HTML の SHA-256、何に対するハッシュか、言語、訳したモデルの表示名、取得に使ったスクリプト</td><td class="nowrap">F-I11</td></tr>
+        <tr><td>取得の手段</td><td>標準ライブラリだけで書いた <code>wiki_fetch.py</code>。本文を取れないページは、ユーザーがふだん使っているブラウザをツールで操作して補う</td><td class="nowrap">F-I10、O-15</td></tr>
+        <tr><td>図の説明</td><td>画像と図表の直後に <code>&gt; &lt;モデルの表示名&gt; 補足: </code> で始まる引用ブロック。表示名は <code>Claude Fable 5.1</code> のように書き、推測しない</td><td class="nowrap">F-I14、F-W04</td></tr>
+        <tr><td>wiki の図</td><td>mermaid のコードブロックを本文に。描けない図だけ <code>wiki/assets/*.svg</code>。png は使わない。図表を作るスキルが一覧にあれば使い、なければ直接書く。スキル名は書かない</td><td class="nowrap">F-W02、F-W07</td></tr>
+        <tr><td>スクリプト</td><td>新しい補助の処理は標準ライブラリだけ。入出力は UTF-8 を明示。<code>--json</code> のキー、引数名、ログの操作名は英語</td><td class="nowrap">CONTRIBUTING.md L33、L89〜99</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="order" aria-labelledby="order-h">
+  <div class="sec-head"><span class="sec-num">03</span><h2 id="order-h">全体の順序と依存</h2></div>
+  <p class="prose">PR 1 を先にマージします。PR 2 は raw の frontmatter を引用符つきで書き、それを PR 1 のパーサーが読みます。PR 3 は lint のテストの fixture が引用符つきであることに依存します。PR 2 と PR 3 は、PR 1 のあとなら並べて進められます。</p>
+
+  <div class="flow-wrap" role="img" aria-label="PR の依存関係。PR 1 の引用符から、PR 2 の Web の取り込みと PR 3 の図表へ進む。PR 2 と PR 3 は並べて進められる。">
+    <svg viewBox="0 0 640 170" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" class="arrow"/>
+        </marker>
+      </defs>
+      <path class="edge" d="M210,75 C260,75 260,40 300,40" marker-end="url(#ah)"/>
+      <path class="edge" d="M210,95 C260,95 260,130 300,130" marker-end="url(#ah)"/>
+
+      <rect class="n-box main" x="20" y="55" width="190" height="60" rx="4"/>
+      <text class="n-id" x="32" y="76">PR 1</text><text x="32" y="96">frontmatter の引用符</text>
+      <text class="n-sub" x="32" y="110">feature/frontmatter-quoted-strings</text>
+
+      <rect class="n-box" x="300" y="10" width="320" height="60" rx="4"/>
+      <text class="n-id" x="312" y="31">PR 2</text><text x="312" y="51">Web ページの取り込み（wiki_fetch.py と手順）</text>
+      <text class="n-sub" x="312" y="65">feature/web-page-ingest</text>
+
+      <rect class="n-box" x="300" y="100" width="320" height="60" rx="4"/>
+      <text class="n-id" x="312" y="121">PR 3</text><text x="312" y="141">知識ページの図表（lint・検索・assets/）</text>
+      <text class="n-sub" x="312" y="155">feature/wiki-figures</text>
+    </svg>
+  </div>
+
+  <ol class="phases">
+    <li class="phase">
+      <span class="phase-id">PR 1</span>
+      <div class="phase-body">
+        <h3>frontmatter の引用符を徹底する</h3>
+        <p class="phase-deps"><strong>前提:</strong> なし</p>
+        <p>共通のパーサーと書き手を <code>wiki_text.py</code> に置き、lint・検索・統計がそれを使うようにします。引用符のない文字列を lint で指摘し、テンプレートと評価用コーパスを引用符つきに直します。詳細は <a href="#pr1">4 節</a>。</p>
+      </div>
+    </li>
+    <li class="phase">
+      <span class="phase-id">PR 2</span>
+      <div class="phase-body">
+        <h3>Web ページを取り込む</h3>
+        <p class="phase-deps"><strong>前提:</strong> PR 1（raw の frontmatter を引用符つきで書く）</p>
+        <p>新しいスクリプト <code>wiki_fetch.py</code> で HTML を取り、Markdown にして画像を保存します。翻訳と画像の説明はモデルが行い、その手順を <code>ingest.md</code> と <code>ingest-workflow.md</code> に書きます。詳細は <a href="#pr2">5 節</a>。</p>
+      </div>
+    </li>
+    <li class="phase">
+      <span class="phase-id">PR 3</span>
+      <div class="phase-body">
+        <h3>知識ページに図表を入れる</h3>
+        <p class="phase-deps"><strong>前提:</strong> PR 1（lint のテストの fixture）</p>
+        <p>図表の決まりを <code>page-conventions.md</code> に書き、lint のサイズ判定からフェンスの中身を除き、svg の参照先を確かめ、検索の索引からフェンスの中身を除きます。<code>init_wiki.py</code> が <code>wiki/assets/</code> を作るようにします。詳細は <a href="#pr3">6 節</a>。</p>
+      </div>
+    </li>
+  </ol>
+  <p class="prose">各 PR のマージ後に、親リポジトリ <code>info-hive-dev</code> のサブモジュールの参照を進めます（ユーザーに頼まれたとき）。</p>
+</section>
+
+<section id="pr1" aria-labelledby="pr1-h">
+  <div class="sec-head"><span class="sec-num">04</span><h2 id="pr1-h">PR 1: frontmatter の引用符</h2></div>
+  <p class="prose">ブランチは <code>feature/frontmatter-quoted-strings</code> です。今の手書きのパーサー（<code>wiki_lint.py</code> L121〜152、<code>wiki_search.py</code> L122〜152、<code>wiki_stats.py</code> L58〜71）は、引用符の中のカンマで配列を分け、行末のコメントを値に含めます。これを 1 つの共通のパーサーに置き換え、書式の決まりを文書と lint に入れます。</p>
+
+  <h3>決める規則（<code>page-conventions.md</code> に書く）</h3>
+  <ul>
+    <li>文字列の値は、配列の要素も含めて二重引用符で囲む。<code>type</code>、<code>kind</code> のような固定の英語の値も囲む。</li>
+    <li><code>YYYY-MM-DD</code> の日付と数値は囲まない。日時（<code>fetched_at</code>）は文字列として囲む。</li>
+    <li>値の中の <code>"</code> は <code>\"</code>、<code>\</code> は <code>\\</code> と書く。手書きのパーサーが戻す escape はこの 2 つだけにし、PyYAML（グラフのスクリプト）と同じ結果になるようにする。</li>
+    <li>行末の <code># コメント</code> は、引用符の外にあるときだけコメントとして捨てる。</li>
+    <li><code>graph:</code> のような入れ子は、これまでどおり手書きのパーサーは読まない（PyYAML が読む）。</li>
+  </ul>
+
+  <div class="table-wrap">
+    <table class="wide-table">
+      <caption>変更するファイル</caption>
+      <thead><tr><th scope="col">ファイル</th><th scope="col">変更</th></tr></thead>
+      <tbody>
+        <tr><td class="loc">skills/info-hive/scripts/wiki_text.py</td><td>共通のパーサー <code>parse_frontmatter_text(fm_text) -&gt; dict</code> を足す。引用符を意識した字句分割で、inline の配列を引用符の中のカンマで分けない、<code>  - </code> のブロック配列、行末コメントの除去、<code>\"</code> と <code>\\</code> の復元を行う。文字列の検査 <code>unquoted_string_keys(fm_text) -&gt; list[str]</code> を足す（<code>fullwidth_colon_keys</code> L141 と同じく frontmatter の文字列を行ごとに見る。除くのは <code>is_iso_date</code> の値、整数、<code>true</code>/<code>false</code>、空の配列、入れ子のキー）。書き手の補助 <code>format_fm_value(value) -&gt; str</code> を足す（<code>str</code> は <code>json.dumps(ensure_ascii=False)</code>、<code>list</code> は <code>["a", "b"]</code>、<code>is_iso_date</code> の文字列は囲まない）</td></tr>
+        <tr><td class="loc">wiki_lint.py</td><td><code>parse_frontmatter_raw</code>（L121〜152）の中身を共通のパーサーに置き換える。戻り値の形は変えない。指摘 <code>unquoted_strings</code>（<code>{path, keys}</code>）を足す。足す場所は、<code>collect_pages</code> の per-page 値（L196 の隣）、<code>findings</code> の初期化（L217）、<code>lint()</code> の追加（L321 付近）、<code>summary</code>（L380）、<code>render_text</code> の <code>sections</code>（L414〜431。日本語のラベルは「引用符で囲まれていない文字列」）</td></tr>
+        <tr><td class="loc">wiki_search.py</td><td><code>parse_frontmatter</code>（L122〜152）を共通のパーサーに置き換える。<code>PARSE_CACHE_SCHEMA</code>（L119）を 2 から 3 に上げる</td></tr>
+        <tr><td class="loc">wiki_stats.py</td><td><code>parse_type</code>（L58〜71）を共通のパーサーに置き換える</td></tr>
+        <tr><td class="loc">wiki_evolve_loop.py</td><td>L437〜439、L454〜455、L460〜462、L663〜664 の frontmatter の書き出しを <code>format_fm_value</code> で統一する。<code>type</code>、<code>tags</code> も引用符つきにする。<code>raw</code> の絶対パスは <code>json.dumps</code> のままでよい（<code>\\</code> の復元を共通のパーサーが行う）</td></tr>
+        <tr><td class="loc">assets/page.md.template</td><td><code>type: "&lt;source|entity|concept|synthesis&gt;"</code>。<code>title: ""</code>、<code>tags: []</code>、<code>sources: []</code> はそのまま。日付は囲まない</td></tr>
+        <tr><td class="loc">assets/SCHEMA.md.template L54〜67</td><td>「frontmatter の必須項目」に引用符の規則を 1 段落足す。アップグレードの目印の節（<code>## Retrieval</code> など）は触らない</td></tr>
+        <tr><td class="loc">references/page-conventions.md L7〜45</td><td>規則と例。L11〜20 の例を全部引用符つきに。L26〜30 の日本語入力の落とし穴に「引用符がない」を足す</td></tr>
+        <tr><td class="loc">references/ingest-workflow.md L57〜71</td><td>例を引用符つきにし、<code># 該当する場合</code> の行末コメントを本文の説明に移す</td></tr>
+        <tr><td class="loc">references/lint-workflow.md L33、L47; commands/lint.md L12</td><td>指摘 <code>unquoted_strings</code> を一覧に足す</td></tr>
+        <tr><td class="loc">commands/upgrade.md</td><td><code>.page-template.md</code> は上書きしないので、既存の wiki では手で引用符つきに直すことを伝える 1 項目を足す</td></tr>
+        <tr><td class="loc">SKILL.md L11</td><td>英語のまま残す文字列の段落に、値を引用符で囲む旨を 1 文足す</td></tr>
+        <tr><td class="loc">eval/**（wiki の fixture、約 65 ファイル）</td><td>一括で引用符つきに直す。使い捨ての変換スクリプトはスクラッチパッドに置き、コミットしない。<code>graph:</code> の入れ子は変えない。日本語のキー（<code>タイトル</code> など）の fixture は、キーはそのまま値だけ囲む</td></tr>
+        <tr><td class="loc">eval/scripts/test_lint_stats.py</td><td><code>page()</code> ヘルパー（L28〜32）を引用符つきに。テストを足す。<code>["Kingma, D."]</code> が 1 要素になる、行末コメントが落ちる、<code>\"</code> が復元される、<code>unquoted_strings</code> が出る/出ない</td></tr>
+        <tr><td class="loc">eval/scripts/test_frontmatter.py（新規）</td><td><code>wiki_text</code> の共通のパーサーと <code>format_fm_value</code> の単体テスト</td></tr>
+        <tr><td class="loc">CHANGELOG.md [Unreleased]</td><td>Changed に書式の決まりとパーサーの修正。Added に <code>unquoted_strings</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>気をつけること</h3>
+  <ul>
+    <li><code>eval/decisions/fixtures/search_golden.json</code> は、<code>wiki_search.py --no-embed</code> の stdout をバイト単位で比べます。引用符を足すだけなら値は変わりませんが、escape が入ると変わります。fixture の移行後に <code>test_decisions.py</code> を通します。</li>
+    <li><code>eval/retrieval/baselines/*.json</code> は本文と題名のトークンで決まるので、frontmatter の引用符では動きません。</li>
+    <li><code>eval/decisions/**</code> と <code>wiki_decide.py</code> に U+2014（—）を入れません（<code>test_no_em_dash_in_v4_files</code>）。</li>
+  </ul>
+
+  <h3>完了の判定</h3>
+  <ul class="checks">
+    <li>lint・検索・統計が同じパーサーを使い、<code>authors: ["Smith, J."]</code> を 1 要素として読む（AC-P19）。</li>
+    <li>引用符のない文字列が <code>unquoted_strings</code> として指摘され、評価用コーパスでは 0 件になる。</li>
+    <li>評価ループが書くページの frontmatter が、すべて引用符つきになる。</li>
+    <li>CI と同じ 11 の手順がすべて通る（<a href="#verify">7 節</a>）。</li>
+  </ul>
+</section>
+
+<section id="pr2" aria-labelledby="pr2-h">
+  <div class="sec-head"><span class="sec-num">05</span><h2 id="pr2-h">PR 2: Web ページの取り込み</h2></div>
+  <p class="prose">ブランチは <code>feature/web-page-ingest</code> です。スクリプトが取得と変換と保存を行い、モデルが雑音の削除・言語の判定・翻訳・画像の説明を行います。どちらが何をするかを分けて書きます。</p>
+
+  <h3><code>skills/info-hive/scripts/wiki_fetch.py</code>（新規、標準ライブラリだけ）</h3>
+  <pre><code>python "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_fetch.py" &lt;url&gt; \
+  --raw-root &lt;RAW_ROOT&gt; --slug &lt;スラッグ&gt; [--json] [--no-images] \
+  [--timeout 30] [--max-bytes 20971520] [--max-images 50] [--force]</code></pre>
+  <div class="table-wrap">
+    <table class="wide-table">
+      <caption>スクリプトの振る舞い</caption>
+      <thead><tr><th scope="col">段階</th><th scope="col">内容</th></tr></thead>
+      <tbody>
+        <tr><td>形</td><td><code>wiki_encoding.py</code> と同じ形にする。<code>localize_argparse</code> を使い、docstring に目的・使い方・終了コードを書く。<code>__main__</code> で標準入出力を UTF-8 にする</td></tr>
+        <tr><td>取得</td><td><code>urllib.request</code> の GET。<code>http</code>/<code>https</code> 以外は拒む。User-Agent を付ける。リダイレクトは <code>http</code>/<code>https</code> の中だけ許す。本文は charset（ヘッダー → <code>&lt;meta charset&gt;</code> → utf-8、<code>errors="replace"</code>）で復号する。<code>hashlib.sha256</code> は取得したバイト列に対して取る。エラーの扱いは <code>wiki_decide.py</code> の <code>_post</code>（L134〜161）に合わせる</td></tr>
+        <tr><td>本文の抽出</td><td><code>html.parser.HTMLParser</code> で木を作り、<code>&lt;article&gt;</code> → <code>&lt;main&gt;</code> → 文字数がもっとも多いブロックの順に本文を選ぶ。<code>nav</code>、<code>header</code>、<code>footer</code>、<code>aside</code>、<code>script</code>、<code>style</code>、<code>noscript</code>、<code>form</code>、<code>iframe</code> と、<code>role="navigation"</code> などの要素は捨てる。本文を推定したときは <code>warnings</code> に書く</td></tr>
+        <tr><td>Markdown 化</td><td>見出し（<code>&lt;h1&gt;</code> は frontmatter の <code>title</code> に移す）、段落、<code>ul</code>/<code>ol</code>、<code>blockquote</code>、<code>pre</code>/<code>code</code>（<code>class="language-*"</code> から言語名）、表（GFM の表。入れ子の表はテキストに落とす）、リンク（絶対 URL）、画像</td></tr>
+        <tr><td>画像</td><td>本文の中の <code>&lt;img&gt;</code> だけ。<code>data:</code> と 32px 以下（<code>width</code>/<code>height</code> 属性、またはダウンロード後に PNG/GIF/JPEG/WebP のヘッダーから読む）は捨てる。<code>RAW_ROOT/assets/&lt;スラッグ&gt;/&lt;スラッグ&gt;-NN.&lt;拡張子&gt;</code> に出現順で保存し、拡張子は Content-Type → URL の順で決める。本文には <code>![元の alt](assets/&lt;スラッグ&gt;/&lt;スラッグ&gt;-NN.&lt;ext&gt; "&lt;元の URL&gt;")</code> を書く。失敗した画像は <code>![元の alt](&lt;元の URL&gt;)</code> の直後に <code>（未取得）</code> を書く。保存先は <code>wiki_evolve.py</code> の <code>inside()</code>（L73）と同じ方法で <code>RAW_ROOT</code> の中に限る</td></tr>
+        <tr><td>frontmatter</td><td>PR 1 の <code>format_fm_value</code> で書く。<code>url</code>、<code>title</code>、<code>fetched_at</code>（ローカルのタイムゾーンつき ISO 8601）、<code>source_sha256</code>、<code>source_sha256_of: "html"</code>、<code>source_lang</code>（<code>&lt;html lang&gt;</code>。なければ <code>""</code>）、<code>translated_by: ""</code>（モデルが訳したら表示名を入れる。訳さなければ <code>""</code> のまま）、<code>fetched_by: "wiki_fetch.py 0.1"</code></td></tr>
+        <tr><td>再取り込み（F-I15）</td><td><code>RAW_ROOT/&lt;スラッグ&gt;.md</code> があれば、その <code>source_sha256</code> と比べる。同じなら書かずに <code>{"unchanged": true}</code> で終了コード 0。違えば書かずに終了コード 3 とし、<code>--slug &lt;スラッグ&gt;-&lt;YYYYMMDD&gt;</code> を提案する。<code>--force</code> は上書き</td></tr>
+        <tr><td><code>--json</code> の出力</td><td><code>path</code>、<code>title</code>、<code>source_sha256</code>、<code>source_lang</code>、<code>ja_ratio</code>（日本語の文字の割合。<code>wiki_encoding.py</code> L55 の <code>_japanese_ratio</code> を <code>wiki_text</code> に移して共用）、<code>images: [{path, url, alt, line}]</code>、<code>dropped_images</code>、<code>warnings</code>。モデルは <code>images</code> を見て補足を書く</td></tr>
+        <tr><td>終了コード</td><td>0 成功、1 引数やファイルのエラー、2 取得の失敗、3 既存のファイルと内容が違う</td></tr>
+        <tr><td>文字コード</td><td>書き込みは <code>encoding="utf-8"</code>、<code>newline=""</code>。<code>eval/check_encoding.py</code> を通す</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>モデル側の手順</h3>
+  <div class="table-wrap">
+    <table class="wide-table">
+      <caption>変更するファイル（手順と文書）</caption>
+      <thead><tr><th scope="col">ファイル</th><th scope="col">変更</th></tr></thead>
+      <tbody>
+        <tr><td class="loc">commands/ingest.md</td><td>引数が URL のときの枝を足す。<code>wiki_fetch.py</code> を実行 → <code>--json</code> の <code>ja_ratio</code> と <code>source_lang</code> で言語を決める → 雑音を削る → 日本語でなければ段落ごとに訳し、<code>translated_by</code> に表示名を <code>str_replace</code> で入れる → <code>images</code> の各画像を見て直後に <code>&gt; &lt;表示名&gt; 補足: </code> を書く → 以降は既存の手順 3 以降。スクリプトが本文を取れないときは、ユーザーがふだん使っているブラウザをツールで操作して本文を取り、<code>source_sha256_of: "dom"</code> で記録する</td></tr>
+        <tr><td class="loc">references/ingest-workflow.md 手順 1</td><td>「Web の記事は <code>.md</code> で保存する（Obsidian Web Clipper…）」（L19）を <code>wiki_fetch.py</code> の手順に替える。新しい節を 3 つ足す。「Web ページの翻訳」（段落ごと。見出し・コード・URL・識別子・固有名詞の英語表記は変えない。混在は英語の部分だけ）、「画像の補足」（何の図か、軸や凡例、読み取れる数値、本文との関係を 2〜5 文。元の alt を訳して含める。装飾は捨てて記録しない。<code>&gt; &lt;表示名&gt; 補足: </code> の形式。表示名は推測しない）、「ログインが要るページ」（S-03、S-04 の共有範囲の確認）。L33 の画像の読み方は、Web の画像には補足を書くことに合わせる</td></tr>
+        <tr><td class="loc">references/page-conventions.md L113</td><td>引用の節に、Web ページの引用と根拠は訳文から取ると書く。raw の frontmatter の項目を表にする</td></tr>
+        <tr><td class="loc">references/architecture.md L9〜11</td><td>raw の説明に「Web ページは本文の Markdown（日本語でなければ訳文）と画像」を足す</td></tr>
+        <tr><td class="loc">SKILL.md</td><td><code>description</code>（L3〜4）に「この URL を wiki に取り込んで」を足す（1024 文字未満を保つ）。L80 の <code>raw/assets/</code> を「ソースのスラッグごとのフォルダー」に。L126〜128 の取り込みの概要。L165 のスクリプト一覧に <code>wiki_fetch.py</code></td></tr>
+        <tr><td class="loc">assets/SCHEMA.md.template L11</td><td><code>raw/assets/&lt;ソースのスラッグ&gt;/</code></td></tr>
+        <tr><td class="loc">README.md L218; docs/commands.md L30〜38; docs/workflows.md L26</td><td>手順と一覧を更新する</td></tr>
+        <tr><td class="loc">commands/upgrade.md</td><td>既存の wiki に移行作業は要らないこと、<code>raw/assets/</code> は <code>init_wiki.py</code> がすでに作ることを 1 項目で伝える</td></tr>
+        <tr><td class="loc">eval/scripts/test_fetch.py（新規）</td><td><code>http.server</code> をスレッドで立てて fixture の HTML と画像を配り、変換、画像の保存と参照、SHA-256、frontmatter の引用符、<code>unchanged</code>、小さい画像の除外、ナビの除去、コードブロックの言語、表の変換、<code>ja_ratio</code> を確かめる。Windows（cp932）でも通す</td></tr>
+        <tr><td class="loc">CHANGELOG.md</td><td>Added に <code>wiki_fetch.py</code> と Web の取り込みの手順</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>気をつけること</h3>
+  <ul>
+    <li>本文抽出の品質はサイトで差が出ます。取り切れないときはモデルが削る前提で、<code>--json</code> の <code>warnings</code> に「本文を推定した」旨を出します。品質が足りなければ、ADR-0004 の見直し条件（<code>trafilatura</code> を <code>uv run --script</code> で固定）に進みます。</li>
+    <li>画像の大きさは、依存を足さずにヘッダーから読みます。読めない形式は属性だけで判断します。</li>
+    <li><code>translated_by</code> の表示名は、スクリプトには書けません。モデルが訳したあとに <code>str_replace</code> で入れる手順を <code>ingest.md</code> に書きます。</li>
+    <li>別版の命名（O-14）は、この PR の <code>--slug &lt;スラッグ&gt;-&lt;YYYYMMDD&gt;</code> の提案で仮に決めます。要件定義書の O-14 は、PR のあとに親リポジトリで「決定」に直します。</li>
+  </ul>
+
+  <h3>完了の判定</h3>
+  <ul class="checks">
+    <li>英語の Web ページを取り込むと、<code>RAW_ROOT</code> に日本語の訳文が保存され、frontmatter に <code>url</code>、<code>fetched_at</code>、<code>source_sha256</code>、<code>translated_by</code> がそろう（AC-P18）。</li>
+    <li>本文の画像が <code>RAW_ROOT/assets/&lt;スラッグ&gt;/</code> に保存され、各画像の直後に <code>&gt; &lt;表示名&gt; 補足: </code> の説明がある（AC-P18）。</li>
+    <li>同じ URL を再投入しても、内容が同じなら新しいファイルを作らない（AC-P18、F-I15）。</li>
+    <li>英語のページ 3 本と日本語のページ 3 本で <code>/wiki:ingest &lt;URL&gt;</code> を試し、訳文の品質、画像の補足、根拠の照合を確かめた。</li>
+    <li>CI と同じ 11 の手順と <code>test_fetch.py</code> がすべて通る。</li>
+  </ul>
+</section>
+
+<section id="pr3" aria-labelledby="pr3-h">
+  <div class="sec-head"><span class="sec-num">06</span><h2 id="pr3-h">PR 3: 知識ページの図表</h2></div>
+  <p class="prose">ブランチは <code>feature/wiki-figures</code> です。決まりは <code>page-conventions.md</code> に書き、lint と検索と初期化をそれに合わせます。<code>/wiki:browse</code> での表示は含めません。</p>
+
+  <div class="table-wrap">
+    <table class="wide-table">
+      <caption>変更するファイル</caption>
+      <thead><tr><th scope="col">ファイル</th><th scope="col">変更</th></tr></thead>
+      <tbody>
+        <tr><td class="loc">references/page-conventions.md</td><td>新しい節「図表」。F-W01〜F-W07 の内容。mermaid のブロックを本文に、描けない図だけ <code>assets/&lt;ページのスラッグ&gt;-NN.svg</code>、比較は表、直後に <code>&gt; &lt;表示名&gt; 補足: </code>、文字は日本語、png は使わない、Web の svg は写さない、図表を作るスキルが一覧にあれば使い、なければ直接書く（スキル名は書かない）。画像の参照は標準の <code>![alt](path)</code> を使い、<code>![[...]]</code> は使わない</td></tr>
+        <tr><td class="loc">references/ingest-workflow.md 手順 5、6; references/query-workflow.md</td><td>図表で説明できるときは図表を足す、と 1 文ずつ（synthesis の保存にも）</td></tr>
+        <tr><td class="loc">SKILL.md</td><td>本文の構成の説明に図表の 1 文。ディレクトリの木（L68〜82）に <code>wiki/assets/</code></td></tr>
+        <tr><td class="loc">init_wiki.py L43</td><td><code>SUBDIRS</code> に <code>assets</code> を足す。既存なら skip されるので <code>--upgrade</code> でも冪等</td></tr>
+        <tr><td class="loc">assets/SCHEMA.md.template L7〜11</td><td>「置き場所」に <code>wiki/assets/</code>（知識ページが参照する svg）を足す</td></tr>
+        <tr><td class="loc">wiki_text.py</td><td><code>strip_fences_and_images(body) -&gt; str</code> を足す。フェンス（<code>```</code>、<code>~~~</code>）の中身と、<code>![...](...)</code> の行を除く</td></tr>
+        <tr><td class="loc">wiki_lint.py</td><td>サイズの判定（L182、L192、L299〜304）を、<code>strip_fences_and_images(body)</code> に対する <code>char_count</code> と行数にする。<code>SKIP_TOP_LEVEL_DIRS</code>（L107）に <code>assets</code> を足す。<code>IMAGE_RE</code>（<code>!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)</code>）で相対パスの画像を集め、ファイルがなければ指摘 <code>missing_assets</code>（<code>{from_path, target}</code>）。<code>--suggest-pages</code>（L347〜378）の走査対象を <code>strip_fences_and_images</code> のあとにする。<code>![[...]]</code> は wikilink として扱われリンク切れになるので、lint は変えず、文書で標準の書き方を指示する</td></tr>
+        <tr><td class="loc">wiki_search.py</td><td><code>collect_sections</code>（L402）の検索対象のテキストから、フェンスの中身と画像の行を除く（<code>split_sections</code> のフェンス処理 L378〜384 を使う）。snippet はそのまま。<code>PARSE_CACHE_SCHEMA</code> を 3 から 4 に上げる。<code>section_content_hash</code> が検索対象のテキストを含むので、ベクトルは自動で作り直される</td></tr>
+        <tr><td class="loc">wiki_stats.py</td><td>大きいページの文字数・行数も同じ関数で数える</td></tr>
+        <tr><td class="loc">.gitattributes</td><td><code>*.svg text eol=lf</code></td></tr>
+        <tr><td class="loc">references/lint-workflow.md; commands/lint.md; commands/stats.md</td><td><code>missing_assets</code> と、サイズの数え方の変更</td></tr>
+        <tr><td class="loc">commands/upgrade.md</td><td><code>wiki/assets/</code> が <code>--upgrade</code> で作られることを伝える</td></tr>
+        <tr><td class="loc">eval/scripts/test_lint_stats.py</td><td>フェンスの行がサイズに入らない、<code>missing_assets</code> が出る/出ない、<code>assets/</code> の中の <code>.md</code> が無視される</td></tr>
+        <tr><td class="loc">eval/retrieval/test_search_contracts.py</td><td>フェンスの中身がトークンにならない</td></tr>
+        <tr><td class="loc">CHANGELOG.md</td><td>Changed にサイズの数え方。Added に <code>missing_assets</code> と <code>wiki/assets/</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>気をつけること</h3>
+  <ul>
+    <li><code>eval/retrieval/corpus</code> と <code>ja/corpus</code> にフェンスがあれば、索引の内容が変わり、<code>run_eval.py --gate --baseline</code> の数値が動きます。実行して 0.05 の許容を超えるなら、理由を書いて baseline を作り直します。</li>
+    <li><code>/wiki:browse</code> での mermaid と <code>wiki/assets/</code> の表示は、この PR に含めません（ADR-0005、D-03）。</li>
+  </ul>
+
+  <h3>完了の判定</h3>
+  <ul class="checks">
+    <li>図表を含む知識ページで、図は mermaid か svg で、直後に説明があり、svg は <code>wiki/assets/</code> に置かれてリンクが解決する（AC-P20）。</li>
+    <li>mermaid の行がページの大きさの判定に含まれない（AC-P20）。</li>
+    <li>参照先のない svg が <code>missing_assets</code> として指摘される。</li>
+    <li><code>init_wiki.py</code> と <code>--upgrade</code> が <code>wiki/assets/</code> を作る。</li>
+    <li>CI と同じ 11 の手順がすべて通る。</li>
+  </ul>
+</section>
+
+<section id="verify" aria-labelledby="verify-h">
+  <div class="sec-head"><span class="sec-num">07</span><h2 id="verify-h">共通の確認手順</h2></div>
+  <p class="prose">各 PR で、マージの前に次を行います。</p>
+  <ol>
+    <li>手元の Windows で CI と同じ 11 の手順を実行する。<code>compileall</code>、<code>check_encoding</code>、<code>eval/retrieval</code> と <code>eval/scripts</code> の unittest、<code>test_link_resolution</code>、<code>test_evolution</code>、<code>test_loop</code>、<code>test_adapters</code>、<code>run_eval --gate --baseline</code>（en、ja）、<code>test_decisions</code>。venv は <code>/c/Works/info-hive-venv/Scripts/python.exe</code>、<code>PYTHONIOENCODING=utf-8</code>。</li>
+    <li><code>claude plugin validate .</code> と <code>claude --plugin-dir &lt;info-hive-wiki&gt; plugin list</code> を実行し、<code>wiki</code> が読み込まれることを確かめる。</li>
+    <li>書いた日本語の文書を natural-japanese の lint（<code>--genre tech</code>）にかける。</li>
+    <li><code>CONTRIBUTING.md</code> の PR のチェックリスト（L113〜）を満たす。<code>SKILL.md</code> の <code>description</code> は 1024 文字未満。</li>
+    <li>PR 2 は、英語のページ 3 本と日本語のページ 3 本を、実際に <code>/wiki:ingest &lt;URL&gt;</code> で取り込んで試す（ユーザーの環境で <code>--plugin-dir</code> を使う）。</li>
+    <li>コミットは git-conventions に従う（<code>feat(lint): …</code> など。日本語の説明、終止形か過去形）。PR の説明は「何を変えたか」「なぜ」「どう確かめたか」。</li>
+  </ol>
+</section>
+
+<section id="risks" aria-labelledby="risks-h">
+  <div class="sec-head"><span class="sec-num">08</span><h2 id="risks-h">リスクと未決</h2></div>
+  <div class="table-wrap">
+    <table class="wide-table">
+      <thead><tr><th scope="col">項目</th><th scope="col">影響</th><th scope="col">扱い</th></tr></thead>
+      <tbody>
+        <tr><td>本文抽出の品質</td><td><span class="sev sev-degrade">劣化</span></td><td>モデルが雑音を削る前提にする。足りなければ ADR-0004 の見直し条件へ</td></tr>
+        <tr><td>JavaScript で描画されるページ</td><td><span class="sev sev-degrade">劣化</span></td><td>PR 2 では手順だけ（ユーザーのブラウザをツールで操作）。頻度を見て O-15 を決める</td></tr>
+        <tr><td>別版の命名（O-14）</td><td><span class="sev sev-cosmetic">見た目</span></td><td>PR 2 で <code>&lt;スラッグ&gt;-&lt;YYYYMMDD&gt;</code> を仮に採る。親リポジトリの要件定義書を PR 後に更新</td></tr>
+        <tr><td><code>search_golden.json</code> のバイト一致</td><td><span class="sev sev-break">壊れる</span></td><td>PR 1 の fixture 移行後に <code>test_decisions.py</code> で確かめる。escape を含む値を fixture に入れない</td></tr>
+        <tr><td>baseline の数値</td><td><span class="sev sev-degrade">劣化</span></td><td>PR 3 でフェンスを除いたとき。許容 0.05 を超えたら理由つきで作り直す</td></tr>
+        <tr><td><code>translated_by</code> の入れ忘れ</td><td><span class="sev sev-cosmetic">見た目</span></td><td>raw は lint の対象外なので検出できない。<code>ingest.md</code> の手順で念を押す</td></tr>
+        <tr><td>既存の wiki の <code>.page-template.md</code></td><td><span class="sev sev-cosmetic">見た目</span></td><td><code>init_wiki.py</code> は上書きしない。<code>upgrade.md</code> で手直しを案内する</td></tr>
+        <tr><td>手書きのパーサーと PyYAML の差</td><td><span class="sev sev-break">壊れる</span></td><td>戻す escape を <code>\"</code> と <code>\\</code> の 2 つに限り、両方のパーサーで同じ値になることを <code>test_frontmatter.py</code> で確かめる</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="after" aria-labelledby="after-h">
+  <div class="sec-head"><span class="sec-num">09</span><h2 id="after-h">マージ後の作業（親リポジトリ）</h2></div>
+  <ul>
+    <li>各 PR のあとに、<code>info-hive-dev</code> のサブモジュール <code>info-hive-wiki</code> の参照を進める（ユーザーに頼まれたとき）。</li>
+    <li>要件定義書の O-14 を決定に直す。</li>
+    <li><code>docs/porting-plan.html</code> の P6 の完了条件に、Web の取り込みの受け入れ条件（AC-P18〜AC-P20）を足すかを決める。</li>
+    <li>この計画の「状態」を更新する。</li>
+  </ul>
+</section>
+
+<footer>
+  <p>この計画は、<code>info-hive-wiki</code> の main（<code>56ef31c</code>、2026-11-03）を調べた結果に基づきます。行番号はその時点のものです。検討の経過は <code>docs/research/web-page-ingest-brainstorm.md</code> にあります。</p>
+</footer>
+
+</div>
+</main>
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById("theme-toggle");
+  var states = ["auto", "light", "dark"];
+  var labels = { auto: "表示: 自動", light: "表示: 明るい", dark: "表示: 暗い" };
+  var current = "auto";
+  try { current = localStorage.getItem("plan-theme") || "auto"; } catch (e) {}
+  function apply(s) {
+    current = s;
+    if (s === "auto") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", s);
+    btn.textContent = labels[s];
+    btn.setAttribute("aria-pressed", s === "auto" ? "false" : "true");
+  }
+  apply(states.indexOf(current) >= 0 ? current : "auto");
+  btn.addEventListener("click", function () {
+    var next = states[(states.indexOf(current) + 1) % states.length];
+    apply(next);
+    try { localStorage.setItem("plan-theme", next); } catch (e) {}
+  });
+  // 狭い画面では目次を閉じた状態で始める
+  var toc = document.getElementById("toc-details");
+  if (window.matchMedia && !window.matchMedia("(min-width: 1000px)").matches) toc.removeAttribute("open");
+})();
+</script>
+</body>
+</html>
