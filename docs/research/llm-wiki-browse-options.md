@@ -4,6 +4,7 @@
 対象：info-hive に追加する閲覧コマンド（仮称 `/wiki:browse`）
 位置づけ：`llm-wiki-product-concept-and-requirements-ja.md`（以下「要件定義書」）の D-03（VS Code + Foam）と、info-hive の移植方針 G（ホスト型 wiki は提供しない）への入力
 手法：brainstorm-diverge-converge（発散 → クラスタ → 収束）
+改訂：2026年11月3日、候補の事実を一次資料（公式文書、公式リポジトリ、PyPI など）で確かめ、採点と記述を更新した
 
 本書の記述は次の区分に従う。
 
@@ -21,10 +22,10 @@
 
 ## 1. 結論の要約
 
-1. **推奨は「必要なときだけ起動するローカル専用サーバー」である（構成 B）。** `/wiki:browse` が Python のサーバーを 127.0.0.1 で起動し、既定のブラウザで開く。Markdown はリクエストのたびに HTML に変換し、ファイルには書き出さない。一定時間操作がなければサーバーは自分で終了する。採点した 6 つの軸のすべてで、この構成に入る選択肢が 1 位になった（第6.2節）。
+1. **推奨は「必要なときだけ起動するローカル専用サーバー」である（構成 B）。** `/wiki:browse` が Python のサーバーを 127.0.0.1 で起動し、既定のブラウザで開く。Markdown はリクエストのたびに HTML に変換し、ファイルには書き出さない。一定時間操作がなければサーバーは自分で終了する。採点した 6 つの軸のすべてで、この構成に入る選択肢が 1 位になった（第6.2節）。Claude Code は終了時にバックグラウンドの処理を止めるので、サーバーはセッションの間だけ動くものとして設計する。
 2. **Markdown の変換は markdown-it-py に任せ、wikilink の解決は既存のスクリプトと同じ規則を使う。** info-hive の `wiki_lint.py` と `wiki_search.py` には、NFC 正規化、大文字小文字の区別、`[[dir/slug]]`、`[[slug#見出し]]`、`[[slug|別名]]` を扱う `resolve_link()` がすでにある。閲覧画面が別の規則でリンクを解決すると、lint では通るのに画面ではリンク切れになる、といった食い違いが起きる。描画側は既存の関数を共通モジュールに切り出して使う。
-3. **静的サイト生成器（Quartz、MkDocs など）をそのまま使う構成は次点にした。** 画面の完成度は高い。一方で、frontmatter の日本語の別名キー（`タイトル` など）、型付きグラフ、`wiki_search.py` の検索結果は解釈できない。合わせるには生成器側の改造が要る。Material for MkDocs は 2025年11月の 9.7.0 を最後に新機能の追加を止め、保守のみの状態にある。
-4. **全文検索は、ブラウザ側の検索ライブラリではなく `wiki_search.py` をサーバー経由で呼ぶ。** `/wiki:query` と同じ BM25 と埋め込みの検索になり、日本語の bigram 分割もそのまま使える。将来 PDF の RAG 検索を加えるときも、同じ API に検索元を加えればよい。Pagefind などの静的索引は、`file://` では読み込めないため、サーバーなしで使える利点がない。
+3. **静的サイト生成器（Quartz、MkDocs など）をそのまま使う構成は次点にした。** 画面の完成度は高い。一方で、frontmatter の日本語の別名キー（`タイトル` など）、型付きグラフ、`wiki_search.py` の検索結果は解釈できない。合わせるには生成器側の改造が要る。Material for MkDocs は 2025年11月の 9.7.0 を最後に新機能の追加を止め、修正だけを2027年5月5日まで続けると告知している。最新の 9.8.0 は Python 3.11 以上を要求する。Quartz は2026年3月に v5.0.0 になり、設定の形式が変わった。
+4. **全文検索は、ブラウザ側の検索ライブラリではなく `wiki_search.py` をサーバー経由で呼ぶ。** `/wiki:query` と同じ BM25 と埋め込みの検索になり、日本語の bigram 分割もそのまま使える。将来 PDF の RAG 検索を加えるときも、同じ API に検索元を加えればよい。Pagefind などの静的索引も、索引をブラウザが取得する仕組みなので `file://` では動かず、サーバーが要る。Pagefind で日本語を索引に入れるには、別配布の extended 版も要る。
 5. **静的 HTML の書き出し（構成 A）は、同じ変換部品で出せる副機能にする。** サーバーを立てられない環境や、ほかの人に渡すときに使う。この場合、検索とグラフの機能は縮小する。
 6. **日本語の表示崩れは、ブラウザ任せにせず CSS と URL の規則で防ぐ。** `lang="ja"`、OS 標準の日本語フォントの並び、`line-break: strict` などの禁則指定、URL の NFC 正規化と UTF-8 のパーセントエンコードを既定にする。フォント名やポート番号は既定値として扱い、仕様には書かない。
 7. **閲覧専用にし、編集は VS Code と Foam に残す。** 要件定義書の D-03 と F-G01 を置き換えるのではなく、読むための補助として位置づける。書き込みの API を持たないので、S-07（リンクを自動実行しない）とも矛盾しない。
@@ -106,7 +107,7 @@ info-hive が作る Wiki は、YAML の frontmatter を持つ Markdown のファ
 
 | 部品 | ライセンス | 商用利用 | 備考 |
 | --- | --- | --- | --- |
-| markdown-it-py、mdit-py-plugins | MIT | 可 | 新たに依存に加える |
+| markdown-it-py 4.2.0、mdit-py-plugins 0.6.1 | MIT | 可 | 新たに依存に加える。どちらも Python 3.10 以上で動く |
 | cytoscape.js | MIT | 可 | 第 2 段階で同梱する。CDN からは読まない |
 | Python 標準ライブラリ（`http.server`、`webbrowser`） | PSF | 可 | |
 | `wiki_search.py` と既存の依存（fastembed、sqlite-vec） | info-hive 既存 | 可 | 新たな依存ではない |
@@ -184,7 +185,7 @@ info-hive は、移植元の llm-wiki-plugin にあった「ホスト型 wiki」
 31. Sphinx と MyST-Parser（S）
 32. Pelican（S）
 33. comrak など Rust 製パーサーの Python バインディング（S）
-34. Quartz 4。Obsidian 互換で、グラフ、被リンク、検索を内蔵する（S）
+34. Quartz（2026年3月から v5）。Obsidian 互換で、グラフ、被リンク、検索を内蔵する（S）
 35. VitePress（移植元がドキュメントサイトに使っていた）（S）
 36. Docsify。ビルドせず、ブラウザが Markdown を取得して描く（S）
 37. Docusaurus（S）
@@ -307,52 +308,55 @@ info-hive は、移植元の llm-wiki-plugin にあった「ホスト型 wiki」
 | 順位 | No. | 選択肢 | 局 | 日 | 拡 | 依 | W | ラ | 体 | 保 | 加重合計 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 3 | 必要なときだけ起動するローカルサーバー | 8 | 8 | 9 | 9 | 8 | 10 | 7 | 7 | 150 |
-| 2 | 4 | 常駐するローカルサーバー | 8 | 8 | 10 | 7 | 7 | 10 | 7 | 6 | 146 |
-| 3 | 1 | 静的 HTML を `file://` で開く | 9 | 8 | 5 | 9 | 9 | 10 | 7 | 8 | 144 |
-| 4 | 16 | pywebview の専用ウィンドウ | 10 | 8 | 8 | 5 | 8 | 9 | 7 | 6 | 142 |
-| 5 | 7 | VS Code の拡張機能 | 10 | 8 | 7 | 5 | 9 | 9 | 7 | 5 | 140 |
+| 2 | 1 | 静的 HTML を `file://` で開く | 9 | 8 | 5 | 9 | 9 | 10 | 7 | 8 | 144 |
+| 3 | 4 | 常駐するローカルサーバー | 8 | 8 | 10 | 6 | 7 | 10 | 6 | 6 | 142 |
+| 4 | 16 | pywebview の専用ウィンドウ | 10 | 8 | 8 | 4 | 8 | 9 | 7 | 6 | 140 |
+| 4 | 7 | VS Code の拡張機能 | 10 | 8 | 7 | 5 | 9 | 9 | 7 | 5 | 140 |
 | 6 | 9 | desktop のブラウザペイン | 8 | 8 | 8 | 8 | 8 | 9 | 6 | 5 | 139 |
 | 7 | 5 | VS Code と Foam へ案内する | 10 | 7 | 4 | 8 | 9 | 8 | 5 | 8 | 131 |
-| 8 | 8 | Obsidian で開く | 9 | 8 | 6 | 4 | 9 | 6 | 7 | 8 | 129 |
+| 8 | 8 | Obsidian で開く | 9 | 8 | 6 | 4 | 9 | 6 | 6 | 8 | 127 |
+| 9 | 11 | ターミナルに整形して出す | 10 | 5 | 3 | 8 | 6 | 9 | 4 | 8 | 116 |
 | 9 | 21 | Claude がその場で生成する | 3 | 7 | 5 | 10 | 9 | 10 | 4 | 5 | 116 |
-| 10 | 11 | ターミナルに整形して出す | 10 | 4 | 3 | 8 | 6 | 9 | 4 | 8 | 113 |
 | 11 | 13 | PDF に書き出す | 9 | 6 | 2 | 5 | 7 | 8 | 4 | 7 | 106 |
 
 - 3 と 4 の局が 8 なのは、ポートを開くので、同じ PC のほかのプロセスから接続できるためである。第6.8節の対策で補う。
 - 3 の拡が 9 なのは、検索 API、RAG の結果、複数 Wiki の切り替えをサーバー側に加えられるためである。4 はファイル変更の監視まで持つので 10 にした。
-- 1 の拡が 5 なのは、`file://` ではブラウザが別ファイルの取得を制限するため、検索索引を読めず、`wiki_search.py` も呼べないためである。
-- 3 の依が 9 なのは、`http.server` と `webbrowser` が標準ライブラリにあるためである。4 は監視のための処理と常駐の管理が増えるので 7 にした。
+- 1 の拡が 5 なのは、`file://` で開いたページから、ブラウザが別のローカルファイルの取得を許さないためである。MDN によれば、`file://` のページの出所は不透明なもの（opaque origin）として扱われるのが一般的で、Firefox も 68 から同じフォルダのファイルを読めなくした。検索索引を別ファイルで持てず、`wiki_search.py` も呼べない。
+- 3 の依が 9 なのは、`http.server` と `webbrowser` が標準ライブラリにあるためである。
+- 4 の依と体が 6 なのは、Claude Code から起動したバックグラウンドの処理が、Claude Code の終了時に止められるためである。公式文書によれば、macOS と Linux では setsid で切り離したプロセスも止められる。セッションをまたいで常駐させるには、OS の自動起動などの別の起動経路を利用者に用意してもらう必要がある。Windows での扱いは公式文書に書かれていない（要確認）。
+- 16 の依が 4 なのは、Windows では pythonnet と .NET Framework 4.0 以上が、Chromium 系の描画には WebView2 ランタイムが要り、Linux では Qt か GTK のどちらかを利用者が選んで入れる必要があるためである。
 - 21 の局が 3 なのは、Wiki の本文をモデルに渡して HTML を作るため、表示のたびに内容が PC の外へ出るためである。
-- 11 の日が 4 なのは、全角文字の幅と表の罫線が端末とフォントに左右され、崩れやすいためである。
+- 11 の日が 5 なのは、rich は全角文字の幅を 2 として数えるが、幅の決まらない文字の扱いや表の罫線のそろい方が、端末とフォントに左右されるためである。
 - 13 の拡が 2 なのは、リンクをたどる、検索する、といった操作がほとんどできないためである。
-- 8 のラが 6 なのは、Obsidian は2025年2月から仕事でも無料になったが、ソースが公開されておらず、プラグインに同梱できないためである。
+- 8 のラが 6 なのは、Obsidian は2025年2月20日から商用を含むすべての用途で無料になったが、ソースが公開されておらず、プラグインに同梱できないためである。体が 6 なのは、`obsidian://open?path=` で開けるのが登録済みの保管庫の中のファイルで、最初に利用者が Wiki のフォルダを保管庫として登録する必要があるためである。未登録のフォルダを開けるかは未確認である。
 
-**選定：No.3。** 4 との差は 4 点で、常駐させるかどうかは起動の既定値で決められる。既定は「必要なときに起動し、操作がなければ終了」にし、常駐は設定で選べるようにする（第6.9節）。1 は第 3 位だが、同じ変換部品で書き出せるので、副機能として残す。9 は 3 の URL を desktop のペインで開く使い方で、追加の実装はほぼ要らない。
+**選定：No.3。** 2 位の 1 とは 6 点、3 位の 4 とは 8 点の差がある。1 は同じ変換部品で書き出せるので、副機能として残す。4 の常駐は、Claude Code の終了とともにサーバーが止まるので、`/wiki:browse` だけでは実現できない。既定は「必要なときに起動し、操作がなければ終了」にし、常駐させる方法は利用者の要望が出てから検討する（第6.9節）。9 は 3 の URL を desktop のペインで開く使い方で、追加の実装はほぼ要らない。公式文書によれば、ブラウザペインは 127.0.0.1 などのローカルの URL を開ける。
 
 #### 変換エンジン
 
 | 順位 | No. | 選択肢 | 局 | 日 | 拡 | 依 | W | ラ | 体 | 保 | 加重合計 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 23 | markdown-it-py | 10 | 8 | 9 | 8 | 9 | 10 | 7 | 8 | 157 |
-| 2 | 24 | Python-Markdown | 10 | 7 | 7 | 8 | 9 | 9 | 7 | 8 | 146 |
-| 2 | 25 | mistune 3 | 10 | 7 | 7 | 9 | 9 | 9 | 7 | 6 | 146 |
-| 4 | 34 | Quartz 4 | 9 | 6 | 7 | 3 | 7 | 9 | 9 | 7 | 129 |
-| 5 | 29 | MkDocs と Material for MkDocs | 9 | 6 | 6 | 6 | 8 | 9 | 8 | 3 | 128 |
-| 6 | 30 | Zensical | 9 | 5 | 6 | 7 | 7 | 9 | 8 | 4 | 126 |
-| 6 | 36 | Docsify | 8 | 6 | 5 | 8 | 9 | 9 | 6 | 5 | 126 |
-| 8 | 41 | mdBook | 9 | 6 | 4 | 6 | 8 | 8 | 6 | 8 | 121 |
-| 9 | 44 | pandoc（別プロセス） | 10 | 7 | 4 | 5 | 9 | 5 | 5 | 9 | 120 |
+| 2 | 25 | mistune 3 | 10 | 7 | 7 | 9 | 9 | 9 | 7 | 5 | 145 |
+| 3 | 24 | Python-Markdown | 10 | 7 | 7 | 7 | 9 | 9 | 7 | 8 | 144 |
+| 4 | 34 | Quartz（v5） | 9 | 6 | 7 | 3 | 7 | 9 | 9 | 7 | 129 |
+| 5 | 36 | Docsify | 8 | 6 | 5 | 8 | 9 | 9 | 6 | 7 | 128 |
+| 6 | 30 | Zensical | 9 | 6 | 6 | 6 | 7 | 9 | 8 | 4 | 127 |
+| 7 | 29 | MkDocs と Material for MkDocs | 9 | 6 | 6 | 5 | 8 | 9 | 8 | 2 | 125 |
+| 8 | 44 | pandoc（別プロセス） | 10 | 7 | 4 | 5 | 9 | 5 | 5 | 9 | 120 |
+| 9 | 41 | mdBook | 9 | 5 | 4 | 6 | 8 | 8 | 6 | 8 | 118 |
 
-- 23 の拡が 9 なのは、トークン列を経由して描画するので、wikilink、見出し ID、メタ欄などの規則を後から加えやすいためである。MIT で、front_matter のプラグインがある。wikilink のプラグインは見つからなかったので、自前の規則を書く前提にした。
-- 24 の日が 7 なのは、標準の WikiLinks 拡張の正規表現が `[\w0-9_ -]+` で、`|`、`#`、`/` を含むリンクに一致しないためである。置き換えが要る。
-- 25 の保が 6 なのは、開発の中心が 1 人であるためである。
-- 34 の依が 3 なのは、Node.js 22 以上と npm が要り（文書の写しによる。公式サイトでは未確認）、Quartz のリポジトリを複製して使う形だからである。体が 9 なのは、グラフ、被リンク、ポップアップ、検索が最初から揃っているためである。日が 6 なのは、日本語検索の扱いを確認できず（未確認）、frontmatter の日本語の別名キーも解釈しないためである。
-- 29 の保が 3 なのは、Material for MkDocs が 9.7.0（2025年11月11日）を最後に新機能の追加を止め、重大な不具合と安全性の修正だけを少なくとも 12 か月続けると告知しているためである。MkDocs 2.0 は 1.x と互換性がない。日が 6 なのは、日本語検索が lunr の言語拡張に頼り、過去に日本語で索引が初期化できない不具合が報告されているためである。フォントの既定は Google Fonts から読み込むので、無効にする設定が要る。
-- 30 は MIT だが、まだアルファ版で、日本語検索の扱いは未確認である。
-- 41 の拡が 4 なのは、`SUMMARY.md` で章立てを決める本の形式で、Wiki のようにページが網状につながる構造に合わないためである。wikilink はプリプロセッサが要り、適したものを確認できなかった。
-- 44 のラが 5 なのは、GPL で同梱できず、利用者に別途導入してもらう必要があるためである。保が 9 なのは、長く保守され、wikilink の拡張が 3.0 から本体にあるためである。
+- 23 の拡が 9 なのは、トークン列を経由して描画するので、wikilink、見出し ID、メタ欄などの規則を後から加えやすいためである。markdown-it-py 4.2.0（2026年5月7日）と mdit-py-plugins 0.6.1 はどちらも MIT で、Python 3.10 以上で動く。mdit-py-plugins には front_matter と anchors のプラグインがあるが、wikilink のプラグインはない。PyPI でも、Python 版の wikilink プラグインで広く使われているものは見つからなかった。front_matter は YAML の中身を解析しないので、pyyaml の安全な読み込みと組み合わせる。注意点として、引数なしの `MarkdownIt()` は commonmark の設定になり、生の HTML をそのまま出力する。公式の安全性の文書は、信頼できない入力には `js-default` の設定を勧めている。
+- 24 の依が 7 なのは、最新の 3.11 系が Python 3.11 以上を要求し、info-hive の前提（3.10 以上）で使うには旧版に固定する必要があるためである。日が 7 なのは、標準の WikiLinks 拡張の正規表現が `[\w0-9_ -]+` で、`|`、`#`、`/` を含むリンクに一致しないためである。置き換えが要る。
+- 25 の保が 5 なのは、開発の中心が 1 人で、作者が後継の Markdown パーサー（Wenmode）を公開しているためである。mistune 自体の更新は続いている（3.4.0、2026年10月19日）。wikilink と front matter のプラグインはない。
+- 34 の依が 3 なのは、Node.js 22 以上と npm 10.9.2 以上が要り（v5 の package.json）、Quartz のリポジトリを複製して使う形だからである。体が 9 なのは、グラフ、被リンク、ポップアップ、検索が最初から揃っているためである。日が 6 なのは次の 3 点による。検索は FlexSearch で、日本語は 1 文字ずつのトークンとして照合する（v4 のソースで確認。v5 は未確認）。wikilink の照合は大文字小文字を区別せず、区別する info-hive の規則と食い違う。frontmatter の日本語の別名キーも解釈しない。v5 にはフォントを手元に置く設定があり、外部への通信なしで動かせる。
+- 36 の保が 7 なのは、v5.1.0（2026年10月30日）が出ていて更新が続いているためである。wikilink のプラグインは見つからなかった。
+- 30 の日が 6 なのは、v0.0.52 から日本語の検索に対応した（言語に応じた分割）ためである。依が 6 なのは Python 3.11 以上を要求するためで、保が 4 なのは最新の v0.0.74（2026年10月30日）でもアルファ版であるためである。wikilink に対応するかは未確認である。
+- 29 の保が 2 なのは、Material for MkDocs が 9.7.0（2025年11月11日）を最後に新機能の追加を止め、重大な不具合と安全性の修正だけを2027年5月5日まで続けると告知しているためである。Material のブログによれば、MkDocs 2.0 はプラグインの仕組みをなくし、既存のプロジェクトを移す手段もない。Material は MkDocs 2.0 では動かない。依が 5 なのは、最新の 9.8.0 が Python 3.11 以上を要求するためである。日が 6 なのは、日本語の分割をブラウザ側の TinySegmenter で行い、過去に日本語で索引が初期化できない不具合が報告されているためである。フォントの既定は Google Fonts から読み込むので、無効にする設定が要る。
+- 44 のラが 5 なのは、GPL v2 以降で同梱できず、利用者に別途導入してもらう必要があるためである。保が 9 なのは、長く保守され（最新は 3.13）、wikilink の拡張が 3.0 から本体にあるためである。
+- 41 の日が 5 なのは、検索が空白で語を区切る前提で作られ、日本語で検索できない問題が未解決のまま残っているためである。拡が 4 なのは、`SUMMARY.md` で章立てを決める本の形式で、Wiki のようにページが網状につながる構造に合わないためである。wikilink のプリプロセッサはいくつかあるが、多くは2021〜2022年から更新されていない。
 
-**選定：No.23。** 2 位との差は 11 点ある。画面の部品（ナビゲーション、検索欄、グラフ）は自前で作ることになるが、その分 frontmatter の日本語キー、型付きグラフ、既存の検索との統合を info-hive の規則に合わせられる。
+**選定：No.23。** 2 位との差は 12 点ある。画面の部品（ナビゲーション、検索欄、グラフ）は自前で作ることになるが、その分 frontmatter の日本語キー、型付きグラフ、既存の検索との統合を info-hive の規則に合わせられる。
 
 #### グラフの描画
 
@@ -390,16 +394,17 @@ info-hive は、移植元の llm-wiki-plugin にあった「ホスト型 wiki」
 | 順位 | No. | 選択肢 | 局 | 日 | 拡 | 依 | W | ラ | 体 | 保 | 加重合計 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | 75 | `wiki_search.py` をサーバー経由で呼ぶ | 10 | 8 | 10 | 8 | 8 | 10 | 7 | 9 | 159 |
-| 2 | 74 | 標準ライブラリで bigram の JSON 索引を作る | 10 | 7 | 5 | 10 | 9 | 10 | 6 | 7 | 143 |
-| 3 | 71 | Pagefind | 9 | 8 | 6 | 6 | 8 | 10 | 8 | 8 | 141 |
+| 2 | 71 | Pagefind | 9 | 9 | 6 | 6 | 8 | 10 | 8 | 8 | 144 |
+| 3 | 74 | 標準ライブラリで bigram の JSON 索引を作る | 10 | 7 | 5 | 10 | 9 | 10 | 6 | 7 | 143 |
 | 4 | 73 | MiniSearch や FlexSearch に bigram を与える | 9 | 7 | 5 | 8 | 9 | 9 | 7 | 7 | 136 |
-| 5 | 72 | lunr.js と TinySegmenter | 9 | 5 | 4 | 8 | 9 | 9 | 6 | 3 | 121 |
+| 5 | 72 | lunr.js と TinySegmenter | 9 | 5 | 4 | 8 | 9 | 7 | 6 | 5 | 119 |
 
 - 75 の拡が 10 なのは、`/wiki:query` と同じ検索結果になり、RAG の検索元や複数の Wiki を同じ API に加えられるためである。日が 8 なのは、かなと漢字の bigram 分割、日本語の被覆率のしきい値、多言語の埋め込みモデルがすでに入っているためである。体が 7 なのは、最初の検索で埋め込みモデルの読み込みに時間がかかるためである（推定）。
-- 71 の依が 6 なのは、Rust 製のバイナリを pip で取得するためである。日本語は索引の作成時に分割され、1.5 系からは検索語もブラウザの `Intl.Segmenter` で分割する。ただし `file://` では索引を取得できず、サーバーが要る点は 74 と同じである。
-- 72 の保が 3 なのは、TinySegmenter による分割の精度が低く、更新も止まっているためである（推定）。
+- 71 の日が 9 なのは、extended 版が日本語を ICU4X で分割して索引に入れ（v1.6.0、2026年11月1日）、検索語もブラウザの `Intl.Segmenter` で分割する（v1.5.0 から）ためである。依が 6 なのは、日本語には extended 版のバイナリが要り、`pagefind[extended]` で取得する必要があるためである。索引をブラウザが取得するので、`file://` では動かずサーバーが要る点は 74 と同じである。
+- 73 は、MiniSearch（MIT、7.2.0）が独自の分割関数を `tokenize` に渡せることを文書に書いている。FlexSearch（Apache-2.0）は CJK 用の設定を持つ。
+- 72 のラが 7 なのは、lunr-languages が MPL 1.1 であるためである。更新は続いている（1.24.0、2026年11月1日）が、日本語の分割は TinySegmenter のままで、精度は低い（推定）。
 
-**選定：No.75。** 2 位と 16 点の差がある。74 は、静的 HTML を書き出す副機能で、検索索引をページに埋め込む方法として使う（`file://` でも動くよう、別ファイルにせず HTML に含める）。
+**選定：No.75。** 2 位と 15 点の差がある。74 は、静的 HTML を書き出す副機能で、検索索引をページに埋め込む方法として使う（`file://` でも動くよう、別ファイルにせず HTML に含める）。
 
 #### 書き出し先
 
@@ -431,7 +436,7 @@ info-hive は、移植元の llm-wiki-plugin にあった「ホスト型 wiki」
 
 どの変更でも 1 位は変わらなかった。差が小さいのは次の 2 か所である。
 
-- **表示経路の 3、4、1（6 点の範囲）**：3 と 4 と 1 は利用者体験の点が同じなので、体験の重みを変えても差は 4 点と 6 点のまま変わらない。拡張性の重みを下げると 4（常駐）は 3 位に下がる。起動の既定を「必要なときだけ」にするか「常駐」にするかは、PoC での使い勝手で決めてよい。
+- **表示経路の 3、1、4（8 点の範囲）**：拡張性の重みを 2 に下げると、3 と 1 の差は 2 点に縮む。1 は拡張性が低いので、その重みが下がると差が詰まる。それでも順位は変わらない。4（常駐）は依存の軽さと利用者体験が低いので、どの重みでも 3 を上回らない。
 - **グラフの 52 と 54（2 点差）**：差は利用者体験の 1 点だけから来ており、体験の重みを上げると差は 3 点に広がる。自前で描く量の差も考えると、52 を選ぶ判断は変わらない。
 
 Node.js を許容しない場合に外れるのは 34（Quartz）だけで、どの軸の 1 位にも影響しない。Pagefind は pip で取得でき、cytoscape.js はファイルを同梱するだけなので、Node.js は要らない。
@@ -452,7 +457,7 @@ Node.js を許容しない場合に外れるのは 34（Quartz）だけで、ど
 
 | 項目 | 構成 A：静的 HTML | 構成 B：ローカルサーバー（推奨） | 構成 C：既製の静的サイト生成器 |
 | --- | --- | --- | --- |
-| 部品 | 23、48〜51、57、58、62、64、67〜70、74、81、1 | 23、48〜51、52（第 2 段階）、57、58、62、64、67〜70、75、82、3、9 | Quartz 4（34）または MkDocs と Material（29）、その開発用サーバー |
+| 部品 | 23、48〜51、57、58、62、64、67〜70、74、81、1 | 23、48〜51、52（第 2 段階）、57、58、62、64、67〜70、75、82、3、9 | Quartz v5（34）または MkDocs と Material（29）、その開発用サーバー |
 | 実行環境の依存 | Python、uv、markdown-it-py | 構成 A と同じ。検索には既存の fastembed と sqlite-vec を使う | Node.js 22 以上と npm（Quartz）、または MkDocs 一式 |
 | 日本語 | CSS と URL の規則は B と同じ。検索は bigram の簡易検索 | CSS と URL の規則に加え、`wiki_search.py` の日本語処理を使える | 生成器の既定に従う。日本語の別名キーは解釈しない |
 | 日本語の全文検索 | 簡易（74） | `/wiki:query` と同じ検索（75） | 生成器の検索（日本語の精度は未確認） |
@@ -461,13 +466,13 @@ Node.js を許容しない場合に外れるのは 34（Quartz）だけで、ど
 | 複数 Wiki | Wiki ごとに書き出す | 1 つのサーバーで切り替える | Wiki ごとにサイトを作る |
 | 起動から最初の表示まで | 1,000 ページで数秒〜十数秒（推定） | 1,000 ページで数秒以内（推定）。最初の検索は埋め込みモデルの読み込みで数秒〜十数秒（推定） | 1,000 ページのビルドで数十秒（推定） |
 | 実装の量 | Python 600〜900 行と CSS（推定） | Python 1,000〜1,500 行と JavaScript、CSS 300〜500 行（推定） | 変換と設定のスクリプト 200〜400 行。ただし日本語キーと型付きグラフは生成器の改造が別に要る（推定） |
-| 主なリスク | `file://` の制約で機能が限られる | 自前の画面を保守する負担。ポートを開くことへの対策 | 生成器の保守状況への依存（Material は保守のみの状態） |
+| 主なリスク | `file://` の制約で機能が限られる | 自前の画面を保守する負担。ポートを開くことへの対策。サーバーは Claude Code のセッションの間だけ動く | 生成器の変化への依存。Quartz は v5 で設定の形式が変わり、Material は保守のみの状態にある |
 
 ### 6.6 推奨、次点、保留
 
 **推奨：構成 B。** 6 つの軸のすべてで 1 位の選択肢がこの構成に入る。拡張の 4 方向（日本語検索、グラフ、RAG、複数 Wiki）をすべてサーバー側に加えられる。新しく加える依存は markdown-it-py（と第 2 段階の cytoscape.js）だけである。構成 A は B の変換部品で作れるので、`--static` のような副機能として B に含める。
 
-**次点：構成 C（Quartz 4）。** Node.js を許容したので候補に残る。グラフ、被リンク、ポップアップが最初から揃い、画面の完成度は最も高い。PoC で B の画面の作り込みが想定より重かった場合に、比較のため試す。その場合も、日本語の別名キーをそろえる前処理と、`wiki_search.py` との連携は自前で書く必要がある。
+**次点：構成 C（Quartz）。** Node.js を許容したので候補に残る。グラフ、被リンク、ポップアップが最初から揃い、画面の完成度は最も高い。PoC で B の画面の作り込みが想定より重かった場合に、比較のため試す。その場合も、日本語の別名キーをそろえる前処理と、`wiki_search.py` との連携は自前で書く必要がある。wikilink の照合で大文字小文字を区別しない点も、info-hive の規則に合わせる必要がある。
 
 **保留：**
 
@@ -484,11 +489,11 @@ Node.js を許容しない場合に外れるのは 34（Quartz）だけで、ど
 | --- | --- | --- |
 | 言語の指定 | `<html lang="ja">` を必ず付ける | ブラウザが日本語のフォントと禁則を選ぶ手がかりになる |
 | フォント | OS 標準の日本語フォントを並べる（例：Windows は Yu Gothic UI と Meiryo、macOS は Hiragino Sans、Linux は Noto Sans CJK JP）。等幅は欧文の等幅フォントの後に日本語のゴシックを置く | 外部から読み込まない。フォント名は既定値で、仕様にはしない |
-| 禁則と折り返し | `line-break: strict`、`word-break: normal`、`overflow-wrap: anywhere` | 行頭の句読点や閉じ括弧を避けつつ、長い URL やコードがはみ出さないようにする。`word-break: break-all` は日本語の語の途中でも折れるので使わない |
-| 和欧間の空き | `text-autospace` を対応するブラウザでだけ適用する | Chrome 140、Safari 18.4、Firefox 145 から対応する。対応しないブラウザでは無視される |
-| 文節での改行 | `word-break: auto-phrase` は既定にしない | 実験的な機能で、対応するブラウザが限られる。見出しにだけ試す余地はある |
+| 禁則と折り返し | `line-break: strict`、`word-break: normal`、`overflow-wrap: anywhere` | 行頭の句読点や閉じ括弧を避けつつ、長い URL やコードがはみ出さないようにする。`word-break: break-all` は日本語の語の途中でも折れるので使わない。`line-break: strict` は Chrome 25、Firefox 69、Safari 8 から使える |
+| 和欧間の空き | `text-autospace` を対応するブラウザでだけ適用する | Chrome と Edge は 140、Safari は 18.4、Firefox は 145 から対応する。Chrome が対応する値は `normal` と `no-autospace` だけである。対応しないブラウザでは無視される |
+| 文節での改行 | `word-break: auto-phrase` は既定にしない | 実験的な機能で、対応するのは Chrome と Edge の 119 以降だけである。Firefox は対応せず、Safari は試験版だけで動く。Chrome が対応する言語は日本語だけである。見出しにだけ試す余地はある |
 | URL | ページの rel_path を NFC にそろえ、UTF-8 でパーセントエンコードする | macOS が NFD で保存したファイル名とも一致させる。既存のリンク解決と同じ正規化 |
-| 見出し ID | 日本語のまま NFC にそろえ、重複したら連番を付ける | `[[slug#見出し]]` の解決規則と合わせる |
+| 見出し ID | 日本語のまま NFC にそろえ、重複したら連番を付ける。mdit-py-plugins の anchors に独自の slug 関数を渡して実現する | `[[slug#見出し]]` の解決規則と合わせる。anchors の既定の slug は小文字化と記号の削除を行うので、そのままでは規則が食い違う |
 | 大文字小文字 | 経路の解決はページの一覧で行い、ファイルシステムに問い合わせない | Wiki は大文字小文字を区別し、NTFS は区別しない。その差で別のページが開くのを防ぐ |
 | frontmatter | `canonical_meta()` で日本語の別名キーを英語にそろえてから描く。タグは NFKC にそろえる | lint や検索と同じ解釈にする |
 | 文字コード | ファイルは UTF-8 を明示して読む。標準出力には ASCII の URL だけを出す | Windows の既定（cp932）で文字化けやエラーが起きないようにする |
@@ -502,21 +507,22 @@ Node.js を許容しない場合に外れるのは 34（Quartz）だけで、ど
 | 起動ごとのトークン | 推測できない文字列を URL に含め、持たない要求は拒否する。同じ PC のほかの利用者や、ブラウザで開いた別のページからの要求を防ぐ |
 | Host ヘッダーの確認 | `127.0.0.1` と `localhost` 以外の Host を拒否し、DNS リバインディングを防ぐ |
 | 返すファイルの範囲 | ページの一覧にある rel_path だけを返す。任意のパスを解決せず、ディレクトリの一覧も出さない |
-| 生の HTML | Markdown に書かれた生の HTML はエスケープする。markdown-it-py の html オプションを無効にする |
+| 生の HTML | Markdown に書かれた生の HTML はエスケープする。markdown-it-py は引数なしだと生の HTML を出力するので、`js-default` の設定を使うか、html オプションの無効化を明示する |
 | 外部への通信 | Content-Security-Policy で、同じ出所以外からの読み込みを禁じる。ローカル完結を仕組みで守る |
 | 書き込み | 書き込みの API を作らない |
-| 原資料へのリンク | `sources:` の原資料はパスを表示し、コピーできるようにする。http のページから `file://` のリンクはブラウザが開かないことが多い（要確認）。OS にファイルを開かせる API は S-07 と衝突するので作らない |
-| サーバーの実装 | `http.server` は Python の公式文書で本番には勧められず、基本的な安全確認しか行わないとされている。外部に公開しない前提で使い、上の対策を自前で加える |
+| 原資料へのリンク | `sources:` の原資料はパスを表示し、コピーできるようにする。Firefox は http のページから `file://` へのリンクを既定で開かない（Mozilla の管理者向け文書）。Chrome と Edge も開かないと報告されている（公式文書は未確認）。OS にファイルを開かせる API は S-07 と衝突するので作らない |
+| サーバーの実装 | `http.server` は Python の公式文書で本番には勧められず、基本的な安全確認しか行わないとされている。コマンドラインから起動すると既定ですべてのインターフェースで待ち受け、`SimpleHTTPRequestHandler` はシンボリックリンクをたどってフォルダの外のファイルも返す。既製のハンドラは使わず、`ThreadingHTTPServer`（3.7 以降）に 127.0.0.1 を明示して渡し、自前のハンドラで上の対策を行う |
 | 終了 | 操作がない状態が続いたら終了する。`/wiki:browse --stop` でも止められる |
 
 ### 6.9 起動と再生成
 
-- `/wiki:browse` は、サーバーを別のプロセスとして切り離して起動し、URL を表示してすぐに戻る。Claude Code のコマンドが終わるまで待たされないようにするためである。Windows と POSIX で切り離し方が違う（要確認）。
+- `/wiki:browse` は、サーバーを別のプロセスとして切り離して起動し、URL を表示してすぐに戻る。Claude Code のコマンドが終わるまで待たされないようにするためである。切り離し方は OS で違う。Windows では `subprocess` の `DETACHED_PROCESS`、`CREATE_NEW_PROCESS_GROUP`、`CREATE_NO_WINDOW` を組み合わせ、POSIX では `start_new_session=True` を使う。
+- Claude Code は終了時にバックグラウンドの処理を止め、macOS と Linux では setsid で切り離したプロセスも止める（公式文書）。サーバーはセッションの間だけ動くものとして設計し、セッションが終わったら止まってよいものとする。
 - 起動したサーバーのプロセス ID、ポート、トークンをユーザーキャッシュに記録する。2 回目以降の呼び出しでは、生きているサーバーを再利用し、指定したページの URL だけを開く。
 - ページの変換結果はメモリに置き、ファイルの更新時刻が変わったページだけを変換し直す。被リンクとグラフは、どれかのページが変わったときに作り直す。
-- 常駐させる場合は、無操作での終了を無効にする設定を加える。ファイルの監視は、まず要求のたびに更新時刻を確かめる方式にし、外部ライブラリを使った監視は必要になってから加える。
+- 常駐させる場合は、Claude Code ではなく OS の自動起動から起動し、無操作での終了を無効にする設定を加える。ファイルの監視は、まず要求のたびに更新時刻を確かめる方式にし、外部ライブラリを使った監視は必要になってから加える。
 - 複数の Wiki は、URL に Wiki の識別子を含めて切り替える（例：`/w/<wiki-id>/<rel_path>`）。別の Wiki への相対リンクは、起動時に渡した Wiki の中にあれば解決し、なければ外部の参照として示す。
-- Claude desktop を使っている場合は、Claude が URL をブラウザペインで開ける。CLI の利用者は既定のブラウザで開く。どちらでもない環境（SSH 先など）では、URL を表示するだけにする。
+- Claude desktop を使っている場合は、Claude が URL をブラウザペインで開ける。公式文書によれば、ブラウザペインは 127.0.0.1 などのローカルの URL を開ける。CLI の利用者は既定のブラウザで開く。どちらでもない環境（SSH 先など）では、URL を表示するだけにする。
 
 ---
 
@@ -528,7 +534,7 @@ Node.js を許容しない場合に外れるのは 34（Quartz）だけで、ど
 | --- | --- | --- |
 | 構成 | **提案**：構成 B（構成 A を副機能として含む）／構成 C（Quartz）を先に試す | 実装の量と、画面の完成度 |
 | 方針 G の解釈 | **決定済み**：ローカルサーバーを検討対象に含める。ADR に残すかを決める | 移植方針と要件定義書の記述 |
-| 起動の既定 | 必要なときだけ起動し、無操作で終了／常駐 | 常駐の場合、PC の起動時にどう立ち上げるかが別に要る |
+| 起動の既定 | 必要なときだけ起動し、無操作で終了／常駐 | 常駐の場合、Claude Code の終了とともに止まらないよう、OS の自動起動から起動する仕組みが要る |
 | D-03 の改訂 | 閲覧の補助として `/wiki:browse` を追記する／しない | 要件定義書の D-03、F-G01、AC-D02 |
 | 対応 OS | Windows だけ／Windows・macOS・Linux（O-11） | Linux を含めると、Noto Sans JP の同梱（65）を検討する |
 | 段階の順序 | 第7.2節の順／検索を先に作る | 最初に使えるようになる機能 |
@@ -565,17 +571,19 @@ Node.js を許容しない場合に外れるのは 34（Quartz）だけで、ど
 
 ## 8. 本書で確認できなかったこと
 
-- markdown-it-py と mdit-py-plugins の最新版（二次資料では mdit-py-plugins 0.6.1 だが、PyPI で未確認）と、wikilink のプラグインの有無
-- Quartz 4 の日本語検索の精度と分割の方式
-- Zensical の日本語検索の扱いと、Windows での動作
-- Pagefind の現行版で `pagefind[extended]` が日本語の索引に必要かどうか
-- MiniSearch のライセンス（MIT とみられるが未確認）
-- mdBook で Obsidian 形式の wikilink を扱えるプリプロセッサの有無
-- pandoc のライセンスの正確な版（GPL とみられるが、LICENSE ファイルで未確認）
-- pywebview と Textual のライセンス（BSD と MIT とみられるが未確認）
-- http で開いたページから `file://` のリンクを開けるかどうか（ブラウザごとの挙動）
-- VS Code の CLI から Markdown のプレビューを直接開く方法（公式の手段は見つからなかった）
-- Windows でサーバーを Claude Code のコマンドから切り離して起動する方法と、その後の終了の扱い
+改訂時に一次資料で確かめた結果、残った未確認の事項は次のとおりである。
+
+- Quartz v5 の検索の実装。日本語を 1 文字ずつ照合する方式は v4 のソースで確かめた
+- Quartz の日本語のファイル名での wikilink の解決
+- Zensical が wikilink に対応するかどうか
+- Docsify が `file://` で動かないことの公式の記述。公式文書はサーバーでの起動だけを案内している
+- Chrome と Edge が、http のページから `file://` へのリンクを開かないことの公式の記述
+- Pagefind が `file://` で動かないことの公式の記述。索引の取得に失敗する報告（issue #482）はある
+- Claude Code の終了時に、Windows で切り離したプロセスも止められるかどうか
+- `obsidian://open?path=` で未登録のフォルダを保管庫として開けるかどうか
+- Foam が VS Code 標準のプレビューで wikilink をリンクとして描くかどうか（文書の該当ページを取得できなかった）
+- VS Code の CLI や `vscode://` の URI から Markdown のプレビューを直接開く公式の方法。調べた範囲では存在しない
+- MkDocs 2.0 の仕様。根拠は Material for MkDocs のブログで、MkDocs の公式の発表は確かめていない
 - 検証環境の VS Code と Foam の有無
 - 第6.5節の起動時間と実装の量（いずれも推定で、PoC で測る）
 
@@ -634,6 +642,30 @@ Node.js を許容しない場合に外れるのは 34（Quartz）だけで、ど
 - pywebview の WebView2 対応（#521）：https://github.com/r0x0r/pywebview/issues/521
 - Textual の MarkdownViewer：https://textual.textualize.io/widgets/markdown_viewer/
 
+### 改訂時に確かめた一次資料
+
+確認日はすべて2026年11月3日。
+
+- markdown-it-py（PyPI）：https://pypi.org/project/markdown-it-py/ 、既定の設定：https://raw.githubusercontent.com/executablebooks/markdown-it-py/master/markdown_it/presets/default.py 、安全性：https://markdown-it-py.readthedocs.io/en/latest/security.html
+- mdit-py-plugins（PyPI）：https://pypi.org/pypi/mdit-py-plugins/json 、プラグインの一覧：https://mdit-py-plugins.readthedocs.io/en/latest/ 、anchors：https://raw.githubusercontent.com/executablebooks/mdit-py-plugins/master/mdit_py_plugins/anchors/index.py
+- Python-Markdown（PyPI）：https://pypi.org/pypi/markdown/json 、ライセンス：https://raw.githubusercontent.com/Python-Markdown/markdown/master/LICENSE.md 、WikiLinks：https://python-markdown.github.io/extensions/wikilinks/
+- mistune（PyPI）：https://pypi.org/project/mistune/ 、プラグイン：https://mistune.lepture.com/en/latest/plugins.html
+- pandoc のライセンス：https://raw.githubusercontent.com/jgm/pandoc/main/COPYRIGHT 、3.0 のリリース：https://github.com/jgm/pandoc/releases/tag/3.0
+- pywebview（PyPI）：https://pypi.org/project/pywebview/ 、導入：https://pywebview.flowrl.com/guide/installation.html
+- Textual のライセンス：https://raw.githubusercontent.com/Textualize/textual/main/LICENSE 、rich の文字幅：https://raw.githubusercontent.com/Textualize/rich/master/rich/cells.py
+- Quartz の package.json（v5）：https://raw.githubusercontent.com/jackyzha0/quartz/v5/package.json 、検索：https://quartz.jzhao.xyz/features/full-text-search 、wikilink：https://quartz.jzhao.xyz/features/wikilinks 、設定：https://quartz.jzhao.xyz/configuration
+- Material for MkDocs の保守の告知：https://squidfunk.github.io/mkdocs-material/blog/2025/11/11/insiders-now-free-for-everyone/ 、MkDocs 2.0：https://squidfunk.github.io/mkdocs-material/blog/2026/02/18/mkdocs-2.0 、変更履歴：https://squidfunk.github.io/mkdocs-material/changelog/
+- Zensical（PyPI）：https://pypi.org/pypi/zensical/json 、日本語の検索（v0.0.52）：https://github.com/zensical/zensical/releases/tag/v0.0.52 、互換性：https://zensical.org/compatibility/
+- mdBook の日本語の検索の問題：https://github.com/rust-lang/mdBook/issues/2052
+- Obsidian URI：https://obsidian.md/help/Extending+Obsidian/Obsidian+URI
+- Pagefind の多言語対応：https://pagefind.app/docs/multilingual/ 、Python API：https://pagefind.app/docs/py-api/ 、リリース：https://github.com/CloudCannon/pagefind/releases 、`file://` での失敗の報告：https://github.com/CloudCannon/pagefind/issues/482
+- Firefox の `file://` へのリンクの制限：https://firefox-admin-docs.mozilla.org/reference/policies/localfilelinks/
+- 同一出所ポリシーと `file://`（MDN）：https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy 、Firefox 68 の修正：https://www.mozilla.org/en-US/security/advisories/mfsa2019-21/
+- Chrome の日本語向けの CSS 機能：https://developer.chrome.com/blog/css-i18n-features
+- VS Code のコマンドライン：https://code.visualstudio.com/docs/editor/command-line 、Markdown：https://code.visualstudio.com/docs/languages/markdown
+- Python `subprocess`：https://docs.python.org/3/library/subprocess.html 、`http.server`：https://docs.python.org/3/library/http.server.html 、`webbrowser`：https://docs.python.org/3/library/webbrowser.html
+- Claude Code のバックグラウンドの処理：https://code.claude.com/docs/en/interactive-mode
+
 ### リポジトリ内の資料
 
 - 要件定義書：`llm-wiki-product-concept-and-requirements-ja.md`（D-03、F-G01、S-07、O-08、O-11、第3.3節、第4.2節）
@@ -655,7 +687,7 @@ Node.js を許容しない場合に外れるのは 34（Quartz）だけで、ど
 | クラスタの質 | 4 | 7 つのクラスタに、それぞれ決めることを書いた。C4 は番号が連続していない |
 | クラスタの範囲 | 4 | 4〜8 の範囲で重なりが少ない。C7 は採点しない保留の集まり |
 | 評価基準の明確さ | 5 | 8 基準に重みと定義を付け、依頼の 3 要件とユーザーの決定から重みを決めた |
-| 採点の厳密さ | 4 | 全候補を全基準で採点し、極端な点に根拠を書き、感度分析を行った。多くの点数は実測でなく判断である |
+| 採点の厳密さ | 4 | 全候補を全基準で採点し、極端な点に根拠を書き、感度分析を行った。ライセンス、版、対応状況は一次資料で確かめた。多くの点数は実測でなく判断である |
 | 選定の質 | 5 | 各軸で 1 位を選んだ理由と、2 段階にした軸の理由、構成の比較、次点と保留を書いた |
 | 実行可能性 | 4 | 段階ごとの作業と合格の目安を示した。担当者と期日は決めていない |
 | 過程の健全さ | 5 | 発散では除外せず、必須条件による除外は第2.4節で行った |
