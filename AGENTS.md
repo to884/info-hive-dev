@@ -8,6 +8,7 @@
 - このリポジトリ（`info-hive-dev`）は、info-hive の Claude Code プラグインを開発するためのリポジトリである。プラグインは複数作る。
 - 次のリポジトリを、それぞれ独立した Git リポジトリとして、このリポジトリのサブモジュールに置く。
   - `info-hive-wiki`（`to884/info-hive-wiki`）: プラグイン `wiki` の本体
+  - `info-hive-rag`（`to884/info-hive-rag`）: プラグイン `rag` の本体
   - `info-hive-marketplace`（`to884/info-hive-marketplace`）: マーケットプレイス `info-hive` の定義。各プラグインは `<プラグイン名>@info-hive` の形で入れる。
 - プラグインごとのコンセプト、設計書、テストは、このリポジトリ（`info-hive-dev`）に置く。
 - サブモジュールのリポジトリには、開発に関わるファイルを置かない。
@@ -47,6 +48,21 @@
 - ユーザーに見えるプラグインやスキルの変更は、マージ前に SemVer のバージョンを決める。バージョンは `info-hive-wiki/.claude-plugin/plugin.json` と `info-hive-wiki/CHANGELOG.md` をまとめて更新する。マーケットプレイスの項目にはバージョンを書かないので、`info-hive-marketplace` は直さない。スキルには独自のバージョンがなく、プラグインのバージョンを引き継ぐ。
 - マーケットプレイスは `info-hive-wiki` の main を配る。`plugin.json` の `version` を上げたコミットが main に入ると、利用者に更新が届く。
 - リリースのコミットが `info-hive-wiki` の `main` に入り、`vX.Y.Z` のタグが push され、GitHub リリースが作成され、マーケットプレイスからの導入を確かめるまでは、リリースの完了を報告しない。
+
+## rag プラグイン（info-hive-rag）の開発
+
+`info-hive-rag` は、プラグイン `wiki@info-hive` に依存し、RAG（検索拡張生成）を扱う Claude Code プラグインである。現在は初期構成のみで、機能、スキル、コマンドは今後追加する。
+
+### 名前と配置
+- プラグイン名は `rag`、導入名は `rag@info-hive` である。コマンドを追加するときは `/rag:<名前>` の形にする。
+- プラグインの本体はサブモジュール `info-hive-rag/` に置く。コンセプト、設計書、テストは開発用のリポジトリ `info-hive-dev` に置く。
+- マーケットプレイスの定義は `info-hive-marketplace/.claude-plugin/marketplace.json` に置く。`info-hive-rag` には置かない。
+- 依存先は `info-hive-rag/.claude-plugin/plugin.json` の `dependencies` に `wiki@info-hive` として宣言する。`wiki` を導入し、有効にした状態で使う。
+- 手元で試すときは、`claude --plugin-dir <info-hive-wiki の絶対パス> --plugin-dir <info-hive-rag の絶対パス>` で両プラグインを読み込む。
+
+### 日本語とバージョン
+- 人とエージェントが読む文章は日本語で書き、ファイルの読み書きと子プロセスとの入出力は UTF-8 を明示する。機械が読むキーや識別子は英語のままにする。
+- バージョンは `info-hive-rag/.claude-plugin/plugin.json` で管理し、変更を `info-hive-rag/CHANGELOG.md` に記録する。マーケットプレイスの項目には `version` を書かない。
 
 ## 変更時のルール
 - スキルを変更するときは対応する定義を確認し、`.agents/skills/` と `.claude/skills/` の内容を同期する。
