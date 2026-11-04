@@ -1,0 +1,662 @@
+[
+  {
+    "id": "p001",
+    "kind": "概念",
+    "query": "Databricksのworkflow通知にはどの2種類があり、どの粒度の状態を伝える？",
+    "expected": [
+      "sample-9:p1"
+    ],
+    "sample": 9,
+    "page": 1,
+    "evidence": "There are two types of notifications that can be sent from within a particular workflow"
+  },
+  {
+    "id": "p002",
+    "kind": "概念",
+    "query": "DLT event logにはパイプラインに関するどんな記録が蓄積される？",
+    "expected": [
+      "sample-9:p2"
+    ],
+    "sample": 9,
+    "page": 2,
+    "evidence": "The event log contains a history of all events that pertain to a particular \r\nDLT pipeline."
+  },
+  {
+    "id": "p003",
+    "kind": "API",
+    "query": "event_log() TVFには入力として何を指定できる？",
+    "expected": [
+      "sample-9:p3"
+    ],
+    "sample": 9,
+    "page": 3,
+    "evidence": "a fully qualified table name of a pipeline dataset or a pipeline \r\nID as an argument."
+  },
+  {
+    "id": "p004",
+    "kind": "SQL",
+    "query": "特定データセットのDLTイベントログを取得するビュー例ではevent_log()に何を渡す？",
+    "expected": [
+      "sample-9:p4"
+    ],
+    "sample": 9,
+    "page": 4,
+    "evidence": "provide \r\na fully-qualified table name as an argument to the function."
+  },
+  {
+    "id": "p005",
+    "kind": "手順",
+    "query": "データ品質JSONを解析し期待値ごとに行を作るSQL関数は？",
+    "expected": [
+      "sample-9:p5"
+    ],
+    "sample": 9,
+    "page": 5,
+    "evidence": "from_json() SQL function to parse the serialized JSON string"
+  },
+  {
+    "id": "p006",
+    "kind": "SQL",
+    "query": "合格率と失敗率の集計例では結果をどの項目でGROUP BYする？",
+    "expected": [
+      "sample-9:p6"
+    ],
+    "sample": 9,
+    "page": 6,
+    "evidence": "avg_fail_rate\r\nFROM\r\n  taxi_trip_pipeline_data_quality_vw\r\nGROUP BY\r\n  timestamp,\r\n  dataset;"
+  },
+  {
+    "id": "p007",
+    "kind": "概念",
+    "query": "結合列にNULLが急増すると下流BIレポートにどんな影響が出うる？",
+    "expected": [
+      "sample-9:p7"
+    ],
+    "sample": 9,
+    "page": 7,
+    "evidence": "a \r\nsudden ingestion of null values on a joined column might have on downstream reports"
+  },
+  {
+    "id": "p008",
+    "kind": "概念",
+    "query": "Lakehouse Monitoringのmonitor object作成時、監視対象以外に何が作られる？",
+    "expected": [
+      "sample-9:p8"
+    ],
+    "sample": 9,
+    "page": 8,
+    "evidence": "the monitor object will create two \r\nadditional tables inside your lakehouse"
+  },
+  {
+    "id": "p009",
+    "kind": "概念",
+    "query": "Lakehouse Monitorで設定できる3つのprofile typeは何？",
+    "expected": [
+      "sample-9:p9"
+    ],
+    "sample": 9,
+    "page": 9,
+    "evidence": "There are three monitor profile types that can be created:"
+  },
+  {
+    "id": "p010",
+    "kind": "数値",
+    "query": "スマートサーモスタットの合成データ例では行数とpartition数をいくつに設定する？",
+    "expected": [
+      "sample-9:p10"
+    ],
+    "sample": 9,
+    "page": 10,
+    "evidence": " rows=10000,\r\n            partitions=4)\r"
+  },
+  {
+    "id": "p011",
+    "kind": "手順",
+    "query": "Databricks UIでmonitor作成を開始するにはDelta tableのどのタブを開く？",
+    "expected": [
+      "sample-9:p11"
+    ],
+    "sample": 9,
+    "page": 11,
+    "evidence": "data quality tab that is appropriately titled Quality."
+  },
+  {
+    "id": "p012",
+    "kind": "手順",
+    "query": "スケジュール未設定のmonitorでメトリクス収集を起動する操作は？",
+    "expected": [
+      "sample-9:p12"
+    ],
+    "sample": 9,
+    "page": 12,
+    "evidence": "click on \r\nthe Refresh metrics button to manually trigger a metrics collection."
+  },
+  {
+    "id": "p013",
+    "kind": "数値",
+    "query": "DLT frameworkはretriable errorを検知するとpipeline updateを既定で何回再試行する？",
+    "expected": [
+      "sample-9:p13"
+    ],
+    "sample": 9,
+    "page": 13,
+    "evidence": "retries a pipeline \r\nupdate twice if it detects a retriable error."
+  },
+  {
+    "id": "p014",
+    "kind": "ファイル名",
+    "query": "Webhook通知の実習で入力データを作るnotebookのファイル名は？",
+    "expected": [
+      "sample-9:p14"
+    ],
+    "sample": 9,
+    "page": 14,
+    "evidence": "led 04a-IoT Device Data Generator.py, an"
+  },
+  {
+    "id": "p015",
+    "kind": "数値",
+    "query": "長時間実行通知の例ではworkflowの最大durationを何分にする？",
+    "expected": [
+      "sample-9:p15"
+    ],
+    "sample": 9,
+    "page": 15,
+    "evidence": "dd a maximum duration of 120 minutes to "
+  },
+  {
+    "id": "p016",
+    "kind": "結果",
+    "query": "実行時間が閾値を超えたworkflowはどうなり、Webhookにどのstatusが届く？",
+    "expected": [
+      "sample-9:p16"
+    ],
+    "sample": 9,
+    "page": 16,
+    "evidence": "our workflow will be stopped and a notification message with a status message of Timed \r\nOut"
+  },
+  {
+    "id": "p017",
+    "kind": "概念",
+    "query": "本書が紹介するF#はどのようなプログラミング言語？",
+    "expected": [
+      "sample-4:p25"
+    ],
+    "sample": 4,
+    "page": 25,
+    "evidence": "F# is an open-source, cross-platform, functional-first programming language"
+  },
+  {
+    "id": "p018",
+    "kind": "歴史",
+    "query": "F#開発はいつ始まり、当初どのプラットフォーム上でML的な言語設計を実現しようとした？",
+    "expected": [
+      "sample-4:p26"
+    ],
+    "sample": 4,
+    "page": 26,
+    "evidence": "F# began in 2002, when Don Syme and others decided to ensure that the \"ML\" approach"
+  },
+  {
+    "id": "p019",
+    "kind": "ツール",
+    "query": "第2章ではF# Interactiveを何に使うツールと説明している？",
+    "expected": [
+      "sample-4:p27"
+    ],
+    "sample": 4,
+    "page": 27,
+    "evidence": "a tool you can use to interactively evaluate F# \r\nexpressions and declarations"
+  },
+  {
+    "id": "p020",
+    "kind": "概念",
+    "query": "F#のunits of measureは数値データにどんな利点を与える？",
+    "expected": [
+      "sample-4:p28"
+    ],
+    "sample": 4,
+    "page": 28,
+    "evidence": "use \r\nunits of measure in F# to give strong typing to numeric data"
+  },
+  {
+    "id": "p021",
+    "kind": "用語",
+    "query": "computation expressionsの別名として示されている用語は？",
+    "expected": [
+      "sample-4:p29"
+    ],
+    "sample": 4,
+    "page": 29,
+    "evidence": "computation \r\nexpressions (also called workflows)"
+  },
+  {
+    "id": "p022",
+    "kind": "比較",
+    "query": "C++/C#/Java経験者がF#で慣れるのに時間がかかる要素は？",
+    "expected": [
+      "sample-4:p30"
+    ],
+    "sample": 4,
+    "page": 30,
+    "evidence": "functional programming, type inference, and F# type parameters take \r\na while to get used to."
+  },
+  {
+    "id": "p023",
+    "kind": "ツール",
+    "query": "F# Interactiveの実行ファイル名として何が挙げられている？",
+    "expected": [
+      "sample-4:p31"
+    ],
+    "sample": 4,
+    "page": 31,
+    "evidence": "F# Interactive ( fsi. exe \r\nor fsharpi),"
+  },
+  {
+    "id": "p024",
+    "kind": "手順",
+    "query": "Windows環境ではF# Interactiveをどこから起動する？",
+    "expected": [
+      "sample-4:p32"
+    ],
+    "sample": 4,
+    "page": 32,
+    "evidence": "run fsi. exe from a developer command prompt"
+  },
+  {
+    "id": "p025",
+    "kind": "数値",
+    "query": "showWordCountのHumpty例で単語数はいくつ？",
+    "expected": [
+      "sample-4:p33"
+    ],
+    "sample": 4,
+    "page": 33,
+    "evidence": "\";; \r\n--> 5 words in the text \r\n-- > o d"
+  },
+  {
+    "id": "p026",
+    "kind": "概念",
+    "query": "初期化後のlocal valueを変更するためには何を明示する？",
+    "expected": [
+      "sample-4:p34"
+    ],
+    "sample": 4,
+    "page": 34,
+    "evidence": "unless the local is explicitly marked as mutable"
+  },
+  {
+    "id": "p027",
+    "kind": "型",
+    "query": "option型が表す値の存在と不在はそれぞれ何で示す？",
+    "expected": [
+      "sample-4:p35"
+    ],
+    "sample": 4,
+    "page": 35,
+    "evidence": "A value of the given type or the special value None"
+  },
+  {
+    "id": "p028",
+    "kind": "関数",
+    "query": "splitAtSpaces関数は文字列をどう処理する？",
+    "expected": [
+      "sample-4:p36"
+    ],
+    "sample": 4,
+    "page": 36,
+    "evidence": "breaks the given text into words, splitting at spaces."
+  },
+  {
+    "id": "p029",
+    "kind": "数値",
+    "query": "例でpowerOfFour 3の評価結果はいくつ？",
+    "expected": [
+      "sample-4:p37"
+    ],
+    "sample": 4,
+    "page": 37,
+    "evidence": "\n> powerOfFour 3;; \r\nval it: int= 81 \r\nI"
+  },
+  {
+    "id": "p030",
+    "kind": "概念",
+    "query": "値の名前がscope外になっても元の値自体はどうなる？",
+    "expected": [
+      "sample-4:p38"
+    ],
+    "sample": 4,
+    "page": 38,
+    "evidence": "Outscoping a value doesn't change the original value"
+  },
+  {
+    "id": "p031",
+    "kind": "関数",
+    "query": "List.distinctは文字列リストにどんな処理をする？",
+    "expected": [
+      "sample-4:p39"
+    ],
+    "sample": 4,
+    "page": 39,
+    "evidence": "convert the given words to a list where all the words are distinct."
+  },
+  {
+    "id": "p032",
+    "kind": "概念",
+    "query": "F#はfunctionalに加えてどのプログラミングスタイルを持つ？",
+    "expected": [
+      "sample-4:p40"
+    ],
+    "sample": 4,
+    "page": 40,
+    "evidence": "F# is both a functional language and an object-oriented \r\none."
+  },
+  {
+    "id": "p033",
+    "kind": "型",
+    "query": "site1の例で推論されたtuple型と値は？",
+    "expected": [
+      "sample-4:p41"
+    ],
+    "sample": 4,
+    "page": 41,
+    "evidence": "val sitel string * int (\"www.cnn.com\", 10)"
+  },
+  {
+    "id": "p034",
+    "kind": "概念",
+    "query": "複数の戻り値や引数を扱う用途によく使われるF#の構造は？",
+    "expected": [
+      "sample-4:p42"
+    ],
+    "sample": 4,
+    "page": 42,
+    "evidence": "Tuples are often used to return multiple values from functions"
+  },
+  {
+    "id": "p035",
+    "kind": "出力",
+    "query": "printfnのn suffixは出力に何を行わせる？",
+    "expected": [
+      "sample-4:p43"
+    ],
+    "sample": 4,
+    "page": 43,
+    "evidence": "The \"n\" suffix in printfn indicates that a new line is started"
+  },
+  {
+    "id": "p036",
+    "kind": "手順",
+    "query": "F#のHTTP例ではresponse本文をどのメソッドで読み切る？",
+    "expected": [
+      "sample-4:p44"
+    ],
+    "sample": 4,
+    "page": 44,
+    "evidence": "am) \r\nlet html= reader.ReadToEnd() \r\nres"
+  },
+  {
+    "id": "p037",
+    "kind": "名前解決",
+    "query": "同名識別子が複数open namespaceにあるとき、どちらが優先される？",
+    "expected": [
+      "sample-4:p45"
+    ],
+    "sample": 4,
+    "page": 45,
+    "evidence": "preferring the most recently opened if there is any ambiguity."
+  },
+  {
+    "id": "p038",
+    "kind": "概念",
+    "query": "F#においてmethodとはどのような操作？",
+    "expected": [
+      "sample-4:p46"
+    ],
+    "sample": 4,
+    "page": 46,
+    "evidence": "Named operations associated with types or values."
+  },
+  {
+    "id": "p039",
+    "kind": "IDE",
+    "query": "IDEでライブラリ識別子の説明を確認する簡単な方法は？",
+    "expected": [
+      "sample-4:p47"
+    ],
+    "sample": 4,
+    "page": 47,
+    "evidence": "hovering your mouse over the identifiers in your source code."
+  },
+  {
+    "id": "p040",
+    "kind": "ファイル名",
+    "query": "Paketの依存関係を記述するファイル名は何？",
+    "expected": [
+      "sample-4:p48"
+    ],
+    "sample": 4,
+    "page": 48,
+    "evidence": "n a file called paket. dependencies \r\nin"
+  },
+  {
+    "id": "p041",
+    "kind": "数値",
+    "query": "speciesSortedの結果でPlantの件数はいくつ？",
+    "expected": [
+      "sample-4:p49"
+    ],
+    "sample": 4,
+    "page": 49,
+    "evidence": "nt) list= \r\n[(\"Plant\", 13); (\"Bird\", 11)"
+  },
+  {
+    "id": "p042",
+    "kind": "ネットワーク",
+    "query": "例示されたWeb serverは初期状態でどこからアクセスできる？",
+    "expected": [
+      "sample-4:p50"
+    ],
+    "sample": 4,
+    "page": 50,
+    "evidence": " only accessible to your local machine ("
+  },
+  {
+    "id": "p043",
+    "kind": "コード",
+    "query": "HTMLテーブルの行生成例ではcategoryとcountを何の関数に渡す？",
+    "expected": [
+      "sample-4:p51"
+    ],
+    "sample": 4,
+    "page": 51,
+    "evidence": "yield sprintf \"<tr><td>%sc/td><td>%dc/td><ltr>\" category count"
+  },
+  {
+    "id": "p044",
+    "kind": "概念",
+    "query": "F#の関数型プログラミング章が扱う主要要素を挙げて。",
+    "expected": [
+      "sample-4:p52"
+    ],
+    "sample": 4,
+    "page": 52,
+    "evidence": "simple types and function values, \r\npattern matching, lists, and options."
+  },
+  {
+    "id": "p045",
+    "kind": "演算子",
+    "query": "算術演算子はどの基本数値型でoverloadされる？",
+    "expected": [
+      "sample-4:p53"
+    ],
+    "sample": 4,
+    "page": 53,
+    "evidence": "all \r\nbasic numeric types, including int and float/ double."
+  },
+  {
+    "id": "p046",
+    "kind": "型変換",
+    "query": "F#の数値型間変換は暗黙か明示か？",
+    "expected": [
+      "sample-4:p54"
+    ],
+    "sample": 4,
+    "page": 54,
+    "evidence": "conversions between different numeric types must be made \r\nexplicitly."
+  },
+  {
+    "id": "p047",
+    "kind": "文字列",
+    "query": "文字列を直接変更しようとした例で発生するエラーは？",
+    "expected": [
+      "sample-4:p55"
+    ],
+    "sample": 4,
+    "page": 55,
+    "evidence": "810: Property 'Chars' cannot be set \r\nTh"
+  },
+  {
+    "id": "p048",
+    "kind": "数値",
+    "query": "factorial関数の例で入力5に対する結果はいくつ？",
+    "expected": [
+      "sample-4:p56"
+    ],
+    "sample": 4,
+    "page": 56,
+    "evidence": "\r\n> factorial S;; \r\nval it: int= 120 \r\nT"
+  },
+  {
+    "id": "p049",
+    "kind": "設計",
+    "query": "既存関数でパターンを表現できる場合、明示的再帰をどうするのが推奨？",
+    "expected": [
+      "sample-4:p57"
+    ],
+    "sample": 4,
+    "page": 57,
+    "evidence": "you \r\nshould typically avoid explicit recursion if an existing function captures the pattern"
+  },
+  {
+    "id": "p050",
+    "kind": "概念",
+    "query": "この章では問題解決のアイデアをどんな状態まで具体化する方法を扱う？",
+    "expected": [
+      "sample-3:p2"
+    ],
+    "sample": 3,
+    "page": 2,
+    "evidence": "るために考えたアイデアを、実践可能な状態へと具現化して\r\nいくための考え方を紹介"
+  },
+  {
+    "id": "p051",
+    "kind": "概念",
+    "query": "本文は競争優位性がある状態をどのように定義している？",
+    "expected": [
+      "sample-3:p3"
+    ],
+    "sample": 3,
+    "page": 3,
+    "evidence": "他社が真似できない経営資源を持っていて、\r\nその資源を活かすことができる状態にある"
+  },
+  {
+    "id": "p052",
+    "kind": "戦略",
+    "query": "既存顧客に新製品を提供する成長戦略は何と呼ばれる？",
+    "expected": [
+      "sample-3:p7"
+    ],
+    "sample": 3,
+    "page": 7,
+    "evidence": "略を考える］：既存の顧客に対して新製品を提供する戦略を考えます。\r\n例：既存商品"
+  },
+  {
+    "id": "p053",
+    "kind": "数値・性能",
+    "query": "Harris 80C86 CMOSの典型的な動作電力は、同等のNMOS/bipolarシステムと比べてどの程度？",
+    "expected": [
+      "sample-2:p346"
+    ],
+    "sample": 2,
+    "page": 346,
+    "evidence": "typical operating power of less than 10% of the equivalent NMOS/bipolar system."
+  },
+  {
+    "id": "p054",
+    "kind": "手順",
+    "query": "ポジショニングマップの軸には顧客のどんな要素を選ぶ？",
+    "expected": [
+      "sample-3:p13"
+    ],
+    "sample": 3,
+    "page": 13,
+    "evidence": "かべることや重要視する要素を2つピックアップし、軸にしまし\r\nょう。左の例では、"
+  },
+  {
+    "id": "p055",
+    "kind": "概念",
+    "query": "戦略に対して戦術とはどのような方策？",
+    "expected": [
+      "sample-3:p14"
+    ],
+    "sample": 3,
+    "page": 14,
+    "evidence": "合に、その戦略を実行するため\r\nに局所的に考える方策が「戦術」です。具体的には、"
+  },
+  {
+    "id": "p056",
+    "kind": "概念",
+    "query": "本書ではビジネスモデルをどう定義している？",
+    "expected": [
+      "sample-3:p15"
+    ],
+    "sample": 3,
+    "page": 15,
+    "evidence": "、ここでは「顧客に\r\n対して継続的に価値を提供していくための仕組み」とします。\r"
+  },
+  {
+    "id": "p057",
+    "kind": "数値",
+    "query": "スキルシェアサービス案の価値提案における手数料はいくら？",
+    "expected": [
+      "sample-3:p16"
+    ],
+    "sample": 3,
+    "page": 16,
+    "evidence": "業\r\nVP f\r\n価値提案\r\n手数料0円のスキル\r\nシエーアサービス\r\nスキル保"
+  },
+  {
+    "id": "p058",
+    "kind": "概念",
+    "query": "AIDMAが表す購買プロセスとは何を可視化する枠組み？",
+    "expected": [
+      "sample-3:p20"
+    ],
+    "sample": 3,
+    "page": 20,
+    "evidence": "1つです。\r\n商品やサービスの認知から購買に至るまでのプロセスを、「Attent"
+  },
+  {
+    "id": "p059",
+    "kind": "概念",
+    "query": "ガントチャートとはどのような形式の表か？",
+    "expected": [
+      "sample-3:p22"
+    ],
+    "sample": 3,
+    "page": 22,
+    "evidence": "ト」とは、プロジェクト管理やタスク管理の場面で用いられる棒グラフ状のタ\r\nスクー"
+  },
+  {
+    "id": "p060",
+    "kind": "比較",
+    "query": "バックキャスティングは未来と現在のどちらを起点に考える？",
+    "expected": [
+      "sample-3:p36"
+    ],
+    "sample": 3,
+    "page": 36,
+    "evidence": "クキャスティングとは、目標\r\nとする未来を先に描いた状態で、そ\r\nの未来を起点に"
+  }
+]
