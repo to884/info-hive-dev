@@ -9,5 +9,6 @@ info-hive の設計で決めたことと、その理由を残す。1 つの判�
 | [0003](0003-split-marketplace-repo.md) | マーケットプレイスをプラグインと別のリポジトリに置く | 承認 | 2026年11月3日 |
 | [0004](0004-raw-holds-translated-web-pages.md) | Web ページは訳文と図の説明を raw に置き、原文は出所とハッシュで記録する | 承認 | 2026年11月3日 |
 | [0005](0005-wiki-figures-use-mermaid-and-svg.md) | 知識ページの図は mermaid を本文に書き、svg は wiki/assets/ に置く | 承認 | 2026年11月3日 |
+| [0006](0006-daily-journal-is-separate-plugin.md) | 日々の記録は wiki と別のプラグイン `log` にする | 承認 | 2026年11月3日 |
 
 各 ADR には、状態、決定日、決定者、関連を表で書き、続けて背景、決定、理由、検討した選択肢、影響、参照を書く。判断を変えるときは元の ADR を書き換えず、新しい ADR を書いて、元の ADR の状態を「置き換え済み」にする。
