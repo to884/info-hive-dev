@@ -51,7 +51,7 @@
 
 ## rag プラグイン（info-hive-rag）の開発
 
-`info-hive-rag` は、プラグイン `wiki@info-hive` に依存し、RAG（検索拡張生成）を扱う Claude Code プラグインである。現在は初期構成のみで、機能、スキル、コマンドは今後追加する。
+`info-hive-rag` は、プラグイン `wiki@info-hive` に依存し、RAG（検索拡張生成）を扱う Claude Code プラグインである。PDF の登録、抽出、OCR、埋め込み、索引化を永続ジョブとして処理し、MCP の次回接続時に未完了ジョブを再開する。
 
 ### 名前と配置
 - プラグイン名は `rag`、導入名は `rag@info-hive` である。コマンドを追加するときは `/rag:<名前>` の形にする。
@@ -59,6 +59,8 @@
 - マーケットプレイスの定義は `info-hive-marketplace/.claude-plugin/marketplace.json` に置く。`info-hive-rag` には置かない。
 - 依存先は `info-hive-rag/.claude-plugin/plugin.json` の `dependencies` に `wiki@info-hive` として宣言する。`wiki` を導入し、有効にした状態で使う。
 - 手元で試すときは、`claude --plugin-dir <info-hive-wiki の絶対パス> --plugin-dir <info-hive-rag の絶対パス>` で両プラグインを読み込む。
+- wiki の PDF 取り込みから MCP の `register_pdf` を明示的に呼ぶ。`queued` は受付済みであり、索引化完了ではない。原本は移動・複製せず参照する。
+- ジョブの台帳は `scripts/rag_jobs.py`、接続中だけ動く子ワーカーは `scripts/rag_worker.py` にある。テストは親リポジトリの `tests/rag/` に置く。
 
 ### 日本語とバージョン
 - 人とエージェントが読む文章は日本語で書き、ファイルの読み書きと子プロセスとの入出力は UTF-8 を明示する。機械が読むキーや識別子は英語のままにする。

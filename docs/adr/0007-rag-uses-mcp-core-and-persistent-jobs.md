@@ -49,6 +49,8 @@ wiki の登録処理から明示的にジョブを作るため、単なる PDF �
 
 ## 影響と未決事項
 
+以下は採用日（2026年11月3日）の状態である。翌日の追加依頼で行った検証は、参照先の PoC 検証記録に残す。
+
 この決定で確定するのは全体構成である。
 ワーカーを MCP と同じプロセスに置くか子プロセスにするか、ジョブの保存方式、モデルの保持と共有は、詳細設計と PoC の対象として残す。
 MCP Tasks の採否も未決とする。
@@ -61,6 +63,8 @@ LanceDB、Qdrant、埋め込みモデル、OCR の比較 PoC は未実施であ�
 
 ## 参照
 
+- [PDF 取り込みと永続ジョブの統合検証](../research/rag-pdf-job-integration-2026-11-04/README.md)：追加依頼による製品修正と、実 OCR・埋め込み・Claude Code を使った検証。子ワーカーで検索と索引化を処理する。
+- [2026年11月4日の PoC 検証記録](../research/rag-poc-2026-11-04/README.md)：追加依頼で実施した結果。本 ADR の採用時点の記述と、検証後の状態を区別する。
 - [実行方式の比較](../research/rag-execution-architecture/brainstorm-diverge-converge.md)：24 案の発散、分類、採点、構成と検証計画。
 - [日本語 PDF 向けローカル RAG の調査](../research/japanese-pdf-local-rag-options.md)：性能目標、原資料の参照、逐次取り込み、候補の PoC 計画。
 - 2026年11月3日のユーザー指示：「MCP＋共通コア＋永続ジョブ の案を採用する。記録にとどめる」。

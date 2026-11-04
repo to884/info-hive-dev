@@ -1,0 +1,245 @@
+{
+  "run_dir": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438",
+  "config": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\config.json",
+  "wiki": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki",
+  "command_ingest": {
+    "returncode": 0,
+    "seconds": 15.519683900056407,
+    "tools": [
+      {
+        "name": "ToolSearch",
+        "input": {
+          "query": "rag register_pdf",
+          "max_results": 5
+        }
+      },
+      {
+        "name": "Read",
+        "input": {
+          "file_path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki\\SCHEMA.md"
+        }
+      },
+      {
+        "name": "mcp__plugin_rag_rag__register_pdf",
+        "input": {
+          "wiki_root": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki",
+          "source": "C:\\Works\\info-hive-dev\\.rag-poc-data\\j1793757198\\references\\日本語の再開検証.pdf",
+          "source_page": "sources/日本語の再開検証.md",
+          "title": "日本語の再開検証"
+        }
+      }
+    ],
+    "result": "`register_pdf` が取り込みを受け付けました。まだ `queued` で、OCR も索引化も始まっていません。\n\n- **ジョブ ID**: `1bbde4c1e1fdb4f38ae222bf4f23df8e0c86e0e98bcbfc0c5190c91e32a398f5`\n- **状態**: `queued`(フェーズは「受付」、試行 0 回)\n- **ソース**: `日本語の再開検証.pdf`(86,689 バイト)\n- **要約ページの予定パス**: `sources/日本語の再開検証.md`\n- **対象 wiki**: `C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki`\n\nご指示どおり、ここで止めています。\n\n- **しなかったこと**: 原本を `RAW_ROOT` にコピーしていません。要約ページも作っていません。`index.md` と `log.md` も更新していません。\n- **完了の扱い**: 未完了なので、wiki への取り込みが終わったとも索引化済みとも報告できません。\n- **続きの手順**: 次に rag の MCP に接続したときに、未完了のジョブが自動で再開されます。続きは `job_status` で確認してください。`completed` になってから、抽出された Markdown を読んで要約ページを作ります。",
+    "is_error": false,
+    "mcp_servers": [
+      {
+        "name": "plugin:rag:rag",
+        "status": "pending",
+        "source": "plugin"
+      },
+      {
+        "name": "claude.ai Claude Docs",
+        "status": "connected",
+        "source": "claudeai"
+      },
+      {
+        "name": "claude.ai Figma",
+        "status": "pending",
+        "source": "claudeai"
+      }
+    ]
+  },
+  "after_first_exit": {
+    "job_id": "1bbde4c1e1fdb4f38ae222bf4f23df8e0c86e0e98bcbfc0c5190c91e32a398f5",
+    "status": "paused"
+  },
+  "natural_language_resume": {
+    "returncode": 0,
+    "seconds": 250.1118932000827,
+    "tools": [
+      {
+        "name": "ToolSearch",
+        "input": {
+          "query": "rag job_status",
+          "max_results": 10
+        }
+      },
+      {
+        "name": "Skill",
+        "input": {
+          "skill": "wiki:info-hive"
+        }
+      },
+      {
+        "name": "Read",
+        "input": {
+          "file_path": "C:\\Works\\info-hive-dev\\info-hive-wiki\\skills\\info-hive\\references\\ingest-workflow.md"
+        }
+      },
+      {
+        "name": "mcp__plugin_rag_rag__job_status",
+        "input": {
+          "wiki_root": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki",
+          "job_id": "1bbde4c1e1fdb4f38ae222bf4f23df8e0c86e0e98bcbfc0c5190c91e32a398f5",
+          "wait_seconds": 30
+        }
+      },
+      {
+        "name": "mcp__plugin_rag_rag__job_status",
+        "input": {
+          "wiki_root": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki",
+          "job_id": "1bbde4c1e1fdb4f38ae222bf4f23df8e0c86e0e98bcbfc0c5190c91e32a398f5",
+          "wait_seconds": 30
+        }
+      },
+      {
+        "name": "mcp__plugin_rag_rag__job_status",
+        "input": {
+          "wiki_root": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki",
+          "job_id": "1bbde4c1e1fdb4f38ae222bf4f23df8e0c86e0e98bcbfc0c5190c91e32a398f5",
+          "wait_seconds": 30
+        }
+      },
+      {
+        "name": "mcp__plugin_rag_rag__job_status",
+        "input": {
+          "wiki_root": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki",
+          "job_id": "1bbde4c1e1fdb4f38ae222bf4f23df8e0c86e0e98bcbfc0c5190c91e32a398f5",
+          "wait_seconds": 30
+        }
+      },
+      {
+        "name": "mcp__plugin_rag_rag__job_status",
+        "input": {
+          "wiki_root": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki",
+          "job_id": "1bbde4c1e1fdb4f38ae222bf4f23df8e0c86e0e98bcbfc0c5190c91e32a398f5",
+          "wait_seconds": 30
+        }
+      },
+      {
+        "name": "mcp__plugin_rag_rag__job_status",
+        "input": {
+          "wiki_root": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki",
+          "job_id": "1bbde4c1e1fdb4f38ae222bf4f23df8e0c86e0e98bcbfc0c5190c91e32a398f5",
+          "wait_seconds": 30
+        }
+      },
+      {
+        "name": "mcp__plugin_rag_rag__job_status",
+        "input": {
+          "wiki_root": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki",
+          "job_id": "1bbde4c1e1fdb4f38ae222bf4f23df8e0c86e0e98bcbfc0c5190c91e32a398f5",
+          "wait_seconds": 30
+        }
+      },
+      {
+        "name": "Read",
+        "input": {
+          "file_path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\data\\wikis\\93f3e556c73823021e788b71\\extracted\\266e1ee169ebef975cdef73a344c526953529d6126a5db93141108c4e74abe29\\document.md",
+          "limit": 300
+        }
+      },
+      {
+        "name": "Bash",
+        "input": {
+          "command": "cd \"C:/Works/info-hive-dev/.rag-poc-data/c1793757438/project/wiki\" && ls && cat index.md log.md && ls sources && head -40 SCHEMA.md"
+        }
+      },
+      {
+        "name": "Read",
+        "input": {
+          "file_path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\data\\wikis\\93f3e556c73823021e788b71\\extracted\\266e1ee169ebef975cdef73a344c526953529d6126a5db93141108c4e74abe29\\document.md",
+          "offset": 300
+        }
+      },
+      {
+        "name": "Read",
+        "input": {
+          "file_path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki\\index.md"
+        }
+      },
+      {
+        "name": "Read",
+        "input": {
+          "file_path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki\\log.md"
+        }
+      },
+      {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki\\sources\\日本語の再開検証.md",
+          "content": "---\ntype: \"source\"\ntitle: \"日本語の再開検証\"\nauthors: []\nraw: \"fixture:日本語の再開検証.pdf\"\nrag_job_id: \"1bbde4c1e1fdb4f38ae222bf4f23df8e0c86e0e98bcbfc0c5190c91e32a398f5\"\ningested: 2026-11-04\ncreated: 2026-11-04\nupdated: 2026-11-04\ntags: [\"検証\", \"rag\", \"永続ジョブ\"]\nentities: []\nconcepts: []\nsources: [\"fixture:日本語の再開検証.pdf\"]\n---\n\n# 日本語の再開検証\n\n永続ジョブによる PDF 取り込みと中断からの再開を確かめるための、42 ページの検証用資料（自作）。原本は複製せず、名前付き参照 `fixture:日本語の再開検証.pdf` で参照する。\n\n## 構成\n\n- p. 1〜40: 「永続ジョブの検証：第 N 章」。各ページが同じ 4 文を繰り返す（章番号だけが違う）。\n- p. 41: 見出し「日本語の検索検証」。原本は複製しないこと、進捗を保存して再開することを述べる。\n- p. 42: p. 41 と同じ趣旨の文。行の途中で改行が入っており（「再 / 開します」）、抽出時の折り返しが残っている。\n\n## 主な内容（p. 1〜40 に共通）\n\n- 原本を変更せずに参照し、ページごとに抽出結果を保存する（例: p. 1）。\n- 中断した処理は、保存済みのページと埋め込みバッチから再開する（例: p. 1）。\n- 受付と索引化の完了を区別し、途中の索引は検索に公開しない（例: p. 1）。\n- 再開識別子は「おおたか」。出典にはページ番号を付ける（p. 1〜40 のすべて）。\n\n## 取り込みの結果\n\nrag のジョブは `completed`（状態 `indexed`）。42 ページ、42 チャンク。再開識別子「おおたか」で検索できるかは、`rag:search` で別途確かめる。\n\n## 関係するページ\n\n関係するエンティティ・コンセプトのページは、まだ作っていない。内容が繰り返しの検証文で、独立させる価値のある概念がないため。\n"
+        }
+      },
+      {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki\\index.md",
+          "content": "# 検証用 wiki\n\n## ソース\n\n- [[日本語の再開検証]] — 永続ジョブの取り込みと中断後の再開を確かめる 42 ページの自作検証用 PDF。再開識別子は「おおたか」。\n"
+        }
+      },
+      {
+        "name": "Write",
+        "input": {
+          "file_path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\c1793757438\\project\\wiki\\log.md",
+          "content": "# 操作記録\n\n## [2026-11-04] ingest | 日本語の再開検証\n   追加: sources/日本語の再開検証.md（rag ジョブ 1bbde4c1…98bcbfc0c5190c91e32a398f5、42 ページ・42 チャンクを索引化）。更新: index.md。原本はコピーしていない。\n"
+        }
+      }
+    ],
+    "result": "「日本語の再開検証.pdf」の取り込みが完了しました。ジョブは `completed`(`indexed`)で、42 ページ・42 チャンクを索引化しています。`job_status` は `wait_seconds=30` で待ち、約 8 回の呼び出しで完了しました。最後は「埋め込み」の段階が長引きました。\n\n- **`sources/日本語の再開検証.md`(新規):** 抽出 Markdown(42 ページ分)をすべて読んで要約を書きました。frontmatter に `raw: \"fixture:日本語の再開検証.pdf\"` と `rag_job_id` を入れています。\n- **資料の内容:**\n  - p.1〜40 は、章番号だけが違う同じ 4 文の繰り返しです。内容は、原本を変更せず参照すること、中断したら保存済みのページと埋め込みバッチから再開すること、受付と索引化の完了を区別すること、再開識別子は「おおたか」であることです。\n  - p.41 と p.42 は「原本は複製しません。進捗を保存して再開します。」という趣旨で、p.42 は抽出時の折り返しで行の途中に改行が入っています。\n- **`index.md`:** ソースを 1 行で追加しました。\n- **`log.md`:** `## [2026-11-04] ingest | 日本語の再開検証` を追記しました。\n- **原本のコピー:** していません。\n\n内容が繰り返しの検証文だったので、エンティティやコンセプトのページは作っていません。「おおたか」で検索して当たるかは `rag:search` では確かめていません。",
+    "is_error": false,
+    "mcp_servers": [
+      {
+        "name": "plugin:rag:rag",
+        "status": "pending",
+        "source": "plugin"
+      },
+      {
+        "name": "claude.ai Claude Docs",
+        "status": "connected",
+        "source": "claudeai"
+      },
+      {
+        "name": "claude.ai Figma",
+        "status": "connected",
+        "source": "claudeai"
+      }
+    ]
+  },
+  "source_pages": [
+    "sources\\日本語の再開検証.md"
+  ],
+  "raw_pdf_copies": [],
+  "original_unchanged": true,
+  "final_job": {
+    "status": "completed",
+    "attempts": 2
+  },
+  "checks": [
+    {
+      "name": "wiki_command_calls_register_pdf",
+      "passed": true
+    },
+    {
+      "name": "first_exit_keeps_unfinished_job",
+      "passed": true
+    },
+    {
+      "name": "next_session_completes_same_job",
+      "passed": true
+    },
+    {
+      "name": "source_page_has_reference_and_job",
+      "passed": true
+    },
+    {
+      "name": "wiki_index_and_log_updated",
+      "passed": true
+    },
+    {
+      "name": "original_not_copied_or_changed",
+      "passed": true
+    }
+  ],
+  "verification_status": "passed"
+}
