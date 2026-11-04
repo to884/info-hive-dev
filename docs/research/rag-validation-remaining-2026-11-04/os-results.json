@@ -1,0 +1,53 @@
+{
+  "date": "2026-11-04",
+  "scope": ["windows", "linux"],
+  "macos": "excluded_by_user",
+  "os_power_cut": "excluded_by_user",
+  "os_restart_performed": false,
+  "restart_commands_executed": false,
+  "windows": {
+    "unit_tests": 11,
+    "unit_tests_passed": true
+  },
+  "linux": {
+    "distribution": "Ubuntu 24.04 / WSL 2",
+    "python": "3.12.3",
+    "torch": "2.8.0+cpu",
+    "unit_tests": 11,
+    "unit_tests_passed": true,
+    "unit_test_seconds": 5.739,
+    "evidence": "linux/unit.log。新しい独立環境で11件成功。旧環境の11件成功はlinux/unit-initial-environment.logに保持。",
+    "subsequent_startup_attempts": 4,
+    "subsequent_startup_error": "Wsl/Service/CreateInstance/ERROR_TIMEOUT",
+    "recovered_after_user_start": true,
+    "systemd_user_session_warning": true,
+    "environment_repair": "Pygments の source code string cannot contain null bytes を検出し、同じ2.21.0を再導入。",
+    "initial_mcp_pipeline_ocr_resume": "timeout_after_ocr_resume_before_first_embedding_batch",
+    "mcp_pipeline_ocr_resume": "passed_in_clean_environment",
+    "mcp_pipeline_completed_checks": 18,
+    "mcp_pipeline_passed_checks": 18,
+    "mcp_pipeline_evidence": "linux/pipeline-results.json",
+    "environment_diagnosis": "linux/environment-failure.json",
+    "environment_failure_evidence": [
+      "単独の import torch でも SIGSEGV を観測。",
+      "Transformers の METADATA が空。",
+      "別の新規環境でも uv の配置が os error 2 で失敗。"
+    ],
+    "environment_rebuild_status": "serial_install_completed_real_import_and_11_unit_tests_passed",
+    "environment_rebuild_install_seconds_approx": 885,
+    "mcp_pipeline_retest": "passed",
+    "uv_controls_during_full_build": {
+      "passed": false,
+      "cancel_seconds": 8.006466379999893,
+      "required_seconds_less_than": 2,
+      "evidence": "linux/controls-during-build-results.json"
+    },
+    "uv_controls_retest": "passed_after_full_measurement_completed",
+    "uv_controls_passed_checks": 5,
+    "uv_controls_cancel_seconds": 0.04156481399999734,
+    "uv_controls_evidence": "linux/controls-results.json",
+    "unexpected_wsl_restart_suspected": true,
+    "wsl_restart_cause": "unknown",
+    "restart_attempted": false
+  }
+}

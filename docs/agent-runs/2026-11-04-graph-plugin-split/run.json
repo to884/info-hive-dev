@@ -1,0 +1,144 @@
+{
+  "run_id": "2026-11-04-graph-plugin-split",
+  "slug": "graph-plugin-split",
+  "created": "2026-11-04T14:59:12",
+  "mode": "analysis",
+  "base_commit": "8ff1ba60acb2c14ba7e389e529d25ec3feba4d58",
+  "timeout_s": 3600,
+  "effort": {
+    "run": "high",
+    "review": "high",
+    "synthesis": "medium"
+  },
+  "agents": {
+    "C": {
+      "vendor": "codex",
+      "model": "gpt-6.1-sol",
+      "label": "GPT-6.1 Sol",
+      "status": {
+        "run": "ok",
+        "review": "ok"
+      },
+      "session_id": "01a1a525-6baf-7673-a3c7-e0d5e2d78537",
+      "errors": {
+        "run": "",
+        "review": ""
+      },
+      "resumed": {
+        "run": false,
+        "review": true
+      }
+    },
+    "D": {
+      "vendor": "codex",
+      "model": "gpt-6-astra",
+      "label": "GPT-6 Astra",
+      "status": {
+        "run": "ok",
+        "review": "ok"
+      },
+      "session_id": "01a1a525-6baf-78c2-8ba1-d9c35b403cb8",
+      "errors": {
+        "run": "",
+        "review": ""
+      },
+      "resumed": {
+        "run": false,
+        "review": true
+      }
+    }
+  },
+  "synthesis": {
+    "vendor": "codex",
+    "model": "gpt-6.1-sol",
+    "label": "gpt-6.1-sol",
+    "status": "ok",
+    "error": ""
+  },
+  "claude": {
+    "permission_mode": {
+      "analysis": "auto",
+      "implement": "auto"
+    },
+    "allowed_tools": {
+      "analysis": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebFetch",
+        "WebSearch",
+        "Bash(git log:*)",
+        "Bash(git show:*)",
+        "Bash(git diff:*)",
+        "Bash(git blame:*)",
+        "Bash(git status:*)",
+        "Bash(git ls-files:*)"
+      ],
+      "implement": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebFetch",
+        "WebSearch",
+        "Bash(git log:*)",
+        "Bash(git show:*)",
+        "Bash(git diff:*)",
+        "Bash(git blame:*)",
+        "Bash(git status:*)",
+        "Bash(git ls-files:*)",
+        "Edit",
+        "Write",
+        "MultiEdit",
+        "NotebookEdit",
+        "Bash(git:*)"
+      ]
+    }
+  },
+  "codex": {
+    "sandbox": {
+      "analysis": "read-only",
+      "implement": "workspace-write"
+    }
+  },
+  "usage": {
+    "D": {
+      "run": {
+        "input_tokens": 3051766,
+        "cached_input_tokens": 2866304,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 13245,
+        "reasoning_output_tokens": 2792
+      },
+      "review": {
+        "input_tokens": 4340713,
+        "cached_input_tokens": 4123264,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 17899,
+        "reasoning_output_tokens": 3650
+      }
+    },
+    "C": {
+      "run": {
+        "input_tokens": 2971019,
+        "cached_input_tokens": 2776832,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 15953,
+        "reasoning_output_tokens": 5114
+      },
+      "review": {
+        "input_tokens": 4062707,
+        "cached_input_tokens": 3832960,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 22029,
+        "reasoning_output_tokens": 7432
+      }
+    },
+    "synthesis": {
+      "input_tokens": 49043,
+      "cached_input_tokens": 13440,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 2454,
+      "reasoning_output_tokens": 82
+    }
+  }
+}

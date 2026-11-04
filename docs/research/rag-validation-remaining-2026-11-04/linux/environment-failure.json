@@ -1,0 +1,35 @@
+{
+  "scope": "読み取り専用のLinux MCP環境診断。製品コードは変更していない。",
+  "run": "j1793771251",
+  "primary_evidence": [
+    {
+      "command": "wsl.exe -d Ubuntu-24.04 -- bash -lc 'export OMP_NUM_THREADS=2; /home/ubuntu/.cache/info-hive-validation/venv/bin/python -c \"import torch; print(123)\"; echo after-import'",
+      "observed": "Pythonが Segmentation fault (core dumped) を出力し、後続の after-import が表示された。",
+      "exit_code": {
+        "outer_shell_observed": 0,
+        "python": "直接の終了コードは採取していない。SIGSEGVを観測。慣例的な139は推定値で、観測値ではない。"
+      }
+    },
+    {
+      "package_evidence": {
+        "torch": "2.8.0+cpu",
+        "sentence_transformers": "5.7.0",
+        "transformers": "package directoryあり。transformers-5.22.1.dist-info/METADATA が0 byteで、配布メタデータのVersionを取得できない。",
+        "pygments": "2.21.0",
+        "numpy": "2.5.4",
+        "pypdfium2": "5.14.0"
+      },
+      "interpretation": "torch import時のSIGSEGVと空のtransformers METADATAを主証拠とする。venvにpip moduleがない点はuv venvの既定動作と整合するため、破損証拠には数えない。"
+    },
+    {
+      "oom_and_resource_evidence": "診断時のMemAvailableは約15.5 GB、cgroup memory.maxはmax、memory.eventsのoom/oom_kill等は全て0。読めたdmesgにOOM記録なし。Qdrant smokeプロセスは元のMCP試験消失後に確認され、同時実行の証拠なし。"
+    },
+    {
+      "worker_evidence": "MCP試験中、埋め込み0/42・attempts 5・空worker.logのままworker PIDが入れ替わった。dmesgにはld-linux-x86-64.so.2内のPython SIGSEGV記録が複数あるが、各PIDとrag workerの対応は確定していない。親監視なしの単独torch importでも再現したため、POSIX stdin監視を原因とは断定しない。"
+    },
+    {
+      "wsl_restart_observation": "14:59頃に試験関連プロセスが消失し、その後の観測でPID 1のuptimeが新しく、dmesg/journaldにunclean shutdown・journal置換の記録があった。WSLインスタンスの不意な再起動を示唆するが、発生原因は不明。診断者はshutdown/restartを実行していない。親からは15:14起動のfresh setup用 wsl.exe が無出力で待機中との報告があり、WSL立上り遅延または不安定さの可能性もある。"
+    }
+  ],
+  "actions": "既存試験プロセスを停止せず、製品コード・OS設定・旧venvを変更していない。SQLiteをmode=roで参照した際に0 byteのWALと32 KBのSHM sidecarが観測されたため、削除していない。"
+}

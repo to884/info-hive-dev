@@ -1,0 +1,144 @@
+{
+  "run_fingerprint": "580d14f3c912bfd2c43b367306481bcfe5dd719bd33190ae1216d41839458e97",
+  "index_state": {
+    "table_version": 377,
+    "indices": [
+      {
+        "name": "generation_idx",
+        "type": "Bitmap",
+        "columns": [
+          "generation"
+        ]
+      },
+      {
+        "name": "terms_idx",
+        "type": "FTS",
+        "columns": [
+          "terms"
+        ]
+      },
+      {
+        "name": "vector_idx",
+        "type": "IvfSq",
+        "columns": [
+          "vector"
+        ]
+      }
+    ]
+  },
+  "corpus": {
+    "pdf_files": 914,
+    "source_bytes": 105364301333,
+    "pages": 249670,
+    "chunks": 761915,
+    "positive_queries": 60,
+    "negative_queries": 12,
+    "forced_answer_chunks": 0,
+    "ocr_included": false,
+    "source_extraction_complete": true
+  },
+  "profiles": [
+    {
+      "profile": "off",
+      "rerank_limit": 8,
+      "queries": 72,
+      "positive_queries": 60,
+      "negative_queries": 12,
+      "cold_start_seconds": 17.54972629994154,
+      "warm_p50_ms": 560.867749969475,
+      "warm_p95_ms": 678.8217249792069,
+      "warm_max_ms": 726.9274001009762,
+      "recall_at_30": 0.725,
+      "ndcg_at_10": 0.3512648580217646,
+      "aggregate_peak_rss_bytes": 1775374336,
+      "cpu_threads": 4,
+      "rayon_threads": 4,
+      "search_device": "cpu",
+      "mcp_transport_included": true,
+      "query_tokenization_included": true,
+      "generation_included": false
+    },
+    {
+      "profile": "tiny-int8",
+      "rerank_limit": 8,
+      "queries": 72,
+      "positive_queries": 60,
+      "negative_queries": 12,
+      "cold_start_seconds": 17.409142600139603,
+      "warm_p50_ms": 735.3299999376759,
+      "warm_p95_ms": 953.9970750221984,
+      "warm_max_ms": 1234.005100093782,
+      "recall_at_30": 0.725,
+      "ndcg_at_10": 0.40987295427731213,
+      "aggregate_peak_rss_bytes": 2216390656,
+      "cpu_threads": 4,
+      "rayon_threads": 4,
+      "search_device": "cpu",
+      "mcp_transport_included": true,
+      "query_tokenization_included": true,
+      "generation_included": false,
+      "abstention": {
+        "threshold": -3.2763004302978516,
+        "development": {
+          "tp": 29,
+          "fp": 0,
+          "fn": 2,
+          "tn": 6,
+          "f1": 0.9666666666666667
+        },
+        "heldout": {
+          "tp": 27,
+          "fp": 2,
+          "fn": 2,
+          "tn": 4,
+          "f1": 0.9310344827586207
+        },
+        "negative_kind": "absent_identifier",
+        "scope": "不在識別子12問のみ。一般的な正解なし質問へは一般化しない。"
+      }
+    },
+    {
+      "profile": "xsmall-int8",
+      "rerank_limit": 8,
+      "queries": 72,
+      "positive_queries": 60,
+      "negative_queries": 12,
+      "cold_start_seconds": 18.91277899988927,
+      "warm_p50_ms": 1191.1348501453176,
+      "warm_p95_ms": 1396.5008050668985,
+      "warm_max_ms": 1510.2178000379354,
+      "recall_at_30": 0.725,
+      "ndcg_at_10": 0.44831982108910273,
+      "aggregate_peak_rss_bytes": 2254299136,
+      "cpu_threads": 4,
+      "rayon_threads": 4,
+      "search_device": "cpu",
+      "mcp_transport_included": true,
+      "query_tokenization_included": true,
+      "generation_included": false,
+      "abstention": {
+        "threshold": -4.53073787689209,
+        "development": {
+          "tp": 27,
+          "fp": 0,
+          "fn": 4,
+          "tn": 6,
+          "f1": 0.9310344827586207
+        },
+        "heldout": {
+          "tp": 22,
+          "fp": 2,
+          "fn": 7,
+          "tn": 4,
+          "f1": 0.8301886792452831
+        },
+        "negative_kind": "absent_identifier",
+        "scope": "不在識別子12問のみ。一般的な正解なし質問へは一般化しない。"
+      }
+    }
+  ],
+  "builder_processes_suspended_during_timing": 0,
+  "human_approved_pdf_queries": 60,
+  "memory_measurement": "50ms 間隔の親子プロセス RSS 合計の最大標本値。共有ページの重複を含み、瞬間ピークは保証しない。",
+  "metric_definition": "上位30チャンク内の正解ページ再現率、およびページ重複除去後の上位10ページ nDCG。"
+}

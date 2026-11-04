@@ -1,0 +1,88 @@
+{
+  "run_dir": "D:\\Users\\toshiki\\AppData\\Local\\info-hive\\rag-poc\\2026-11-04\\protocol-1793754158264071900",
+  "checks": [
+    {
+      "name": "P0_same_job_core_cli_mcp",
+      "passed": true,
+      "submit_ms": 37.04460011795163,
+      "status_p50_ms": 3.1221499666571617,
+      "status_p95_ms": 3.9338998030871153,
+      "status": "queued"
+    },
+    {
+      "name": "P0_acceptance_not_completion",
+      "passed": true
+    },
+    {
+      "name": "P0_sync_mcp_same_job_and_completion",
+      "passed": true,
+      "synchronous_ms": 1984.4810001086444
+    },
+    {
+      "name": "P1_concurrent_duplicate_submit",
+      "passed": true
+    },
+    {
+      "name": "P1_wiki_isolation",
+      "passed": true
+    },
+    {
+      "name": "P1_thread_unpublished_partial",
+      "passed": true,
+      "checkpoint": 2
+    },
+    {
+      "name": "P1_thread_forced_kill_resume",
+      "passed": true,
+      "attempts": 2,
+      "initial_checkpoint": 2,
+      "published_pages": 10,
+      "killed_processes_gone": true
+    },
+    {
+      "name": "P1_thread_cancel_not_resumed",
+      "passed": true
+    },
+    {
+      "name": "P1_child_unpublished_partial",
+      "passed": true,
+      "checkpoint": 2
+    },
+    {
+      "name": "P1_child_forced_kill_resume",
+      "passed": true,
+      "attempts": 2,
+      "initial_checkpoint": 2,
+      "published_pages": 10,
+      "killed_processes_gone": true
+    },
+    {
+      "name": "P1_child_cancel_not_resumed",
+      "passed": true
+    },
+    {
+      "name": "P1_failed_generation_preserves_previous",
+      "passed": true
+    },
+    {
+      "name": "P1_retry_after_failure",
+      "passed": true
+    },
+    {
+      "name": "P1_source_unchanged",
+      "passed": true
+    },
+    {
+      "name": "P2_product_bridge_present",
+      "passed": false,
+      "note": "静的な接続有無の検査。Claude Code の実セッション E2E の代用にはしない。"
+    },
+    {
+      "name": "P2_current_product_pdf_ingest",
+      "passed": false,
+      "response": [
+        "Error executing tool ingest_pdf: 'PdfPage' object does not support the context manager protocol"
+      ]
+    }
+  ]
+}

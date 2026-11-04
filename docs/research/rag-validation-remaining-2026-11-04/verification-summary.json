@@ -1,0 +1,99 @@
+{
+  "date": "2026-11-04",
+  "verification_run_status": "completed",
+  "all_candidates_accepted": false,
+  "os_scope": [
+    "windows",
+    "linux"
+  ],
+  "excluded_by_user": [
+    "os_power_cut",
+    "macos"
+  ],
+  "os_shutdown_or_restart_commands_executed": false,
+  "functional_checks": {
+    "windows_unit_tests": 11,
+    "linux_unit_tests": 11,
+    "multiple_mcp_sessions": {
+      "passed": 13,
+      "evidence": "concurrency-results.json"
+    },
+    "windows_uv_controls": {
+      "passed": 5,
+      "evidence": "controls-results.json"
+    },
+    "retrieval_configuration": {
+      "passed": 4,
+      "evidence": "retrieval-config-results.json"
+    },
+    "linux_pdf_pipeline": {
+      "passed": 18,
+      "evidence": "linux/pipeline-results.json"
+    },
+    "linux_uv_controls": {
+      "passed": 5,
+      "evidence": "linux/controls-results.json"
+    }
+  },
+  "source": {
+    "local_pdf_files": 914,
+    "source_bytes": 105364301333,
+    "unique_documents": 905,
+    "unique_pages": 245346,
+    "chunks": 761915,
+    "source_size_or_mtime_changes": 0
+  },
+  "full_index": {
+    "native_text_only": true,
+    "document_embedding_device": "cuda",
+    "query_device": "cpu",
+    "model": "cl-nagoya/ruri-v3-130m",
+    "vector_index": "IVF_SQ",
+    "generation_index": "BITMAP",
+    "bytes": 4020889435,
+    "construction_sampled_peak_rss_bytes": 5581062144
+  },
+  "full_mcp_profiles": [
+    {
+      "profile": "off",
+      "p95_ms": 678.8217249792069,
+      "p95_below_1000ms": true,
+      "page_recall_at_30": 0.725,
+      "ndcg_at_10": 0.3512648580217646,
+      "aggregate_peak_rss_bytes": 1775374336
+    },
+    {
+      "profile": "tiny-int8",
+      "p95_ms": 953.9970750221984,
+      "p95_below_1000ms": true,
+      "page_recall_at_30": 0.725,
+      "ndcg_at_10": 0.40987295427731213,
+      "aggregate_peak_rss_bytes": 2216390656
+    },
+    {
+      "profile": "xsmall-int8",
+      "p95_ms": 1396.5008050668985,
+      "p95_below_1000ms": false,
+      "page_recall_at_30": 0.725,
+      "ndcg_at_10": 0.44831982108910273,
+      "aggregate_peak_rss_bytes": 2254299136
+    }
+  ],
+  "ann": {
+    "nprobes": 128,
+    "refine_factor": 4,
+    "exact_top30_id_recall": 0.9648148148148148,
+    "native_ann_p95_ms": 23.186305083800107
+  },
+  "limitations": [
+    "全量のOCR候補22335ページは処理していない。規模検証では抽出済みテキストと文書ベクトルを投入した。",
+    "全量ANNと世代索引は補助コードで作成。製品の自動作成・継続更新を含む全資料の取り込みE2Eは未検証。",
+    "CPUによる全量の文書埋め込み時間は測っていない。",
+    "承認済み60問の正解ラベルは4文書由来で、全資料に対する網羅的な関連判定ではない。",
+    "xsmallは今回の全量MCP検索でもp95が1秒を超えた。",
+    "OCRの段組み・表の読み順、数式の誤認、縦書きの偽陽性、一般的な正解なし質問の棄却が残る。",
+    "WindowsでのQdrant binary量子化は設定受理まで。Linuxの1k API試験では実payload生成を確認したが、大規模品質は未検証。",
+    "Linuxの旧環境破損とキャンセル遅延の初回失敗を保持。独立環境と負荷の異なる再試験で機能試験を完了した。",
+    "検証用ストレージの削除は自動承認レビューがblocked by policyとして拒否したため保持した。"
+  ]
+}

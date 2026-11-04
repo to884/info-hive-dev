@@ -1,0 +1,163 @@
+{
+  "rows": 100000,
+  "dimension": 512,
+  "source": "実資料の自動分割から得た埋め込み。完了した先頭 id のスナップショット。",
+  "source_extraction_complete": false,
+  "query_kind": "32保存ベクトルと32微小ノイズ付き保存ベクトル。日本語質問の関連性評価ではない。",
+  "exact_baseline": "同じ保存 FP32 配列の cosine 全件検索上位30",
+  "profiles": [
+    {
+      "index": "IVF_PQ",
+      "vector_dtype": "float32",
+      "num_partitions": 316,
+      "build_seconds": 369.36380579997785,
+      "raw_table_bytes": 205620268,
+      "table_and_index_bytes": 213997702,
+      "peak_process_rss_bytes": 1010245632,
+      "measurements": [
+        {
+          "nprobes": 8,
+          "refine_factor": 4,
+          "ef": null,
+          "ann_recall_at_30": 0.9453125,
+          "p50_ms": 15.973850036971271,
+          "p95_ms": 35.88057503802698,
+          "max_ms": 87.14459999464452
+        },
+        {
+          "nprobes": 32,
+          "refine_factor": 4,
+          "ef": null,
+          "ann_recall_at_30": 0.9755208333333334,
+          "p50_ms": 10.268100071698427,
+          "p95_ms": 12.915425049141048,
+          "max_ms": 16.492299968376756
+        },
+        {
+          "nprobes": 128,
+          "refine_factor": 4,
+          "ef": null,
+          "ann_recall_at_30": 0.9817708333333334,
+          "p50_ms": 18.201950006186962,
+          "p95_ms": 28.482774994336065,
+          "max_ms": 42.21690003760159
+        }
+      ]
+    },
+    {
+      "index": "IVF_PQ",
+      "vector_dtype": "float16",
+      "num_partitions": 316,
+      "build_seconds": 959.6126812000293,
+      "raw_table_bytes": 103220378,
+      "table_and_index_bytes": 111012087,
+      "peak_process_rss_bytes": 1010245632,
+      "measurements": [
+        {
+          "nprobes": 8,
+          "refine_factor": 4,
+          "ef": null,
+          "ann_recall_at_30": 0.9427083333333333,
+          "p50_ms": 17.006350099109113,
+          "p95_ms": 25.451299932319664,
+          "max_ms": 53.94809995777905
+        },
+        {
+          "nprobes": 32,
+          "refine_factor": 4,
+          "ef": null,
+          "ann_recall_at_30": 0.9786458333333334,
+          "p50_ms": 14.627399970777333,
+          "p95_ms": 37.36724505433809,
+          "max_ms": 75.1775000244379
+        },
+        {
+          "nprobes": 128,
+          "refine_factor": 4,
+          "ef": null,
+          "ann_recall_at_30": 0.9848958333333334,
+          "p50_ms": 18.842749996110797,
+          "p95_ms": 20.985845138784494,
+          "max_ms": 22.897099843248725
+        }
+      ]
+    },
+    {
+      "index": "IVF_SQ",
+      "vector_dtype": "float32",
+      "num_partitions": 316,
+      "build_seconds": 311.5201520998962,
+      "raw_table_bytes": 205620268,
+      "table_and_index_bytes": 258273806,
+      "peak_process_rss_bytes": 1010245632,
+      "measurements": [
+        {
+          "nprobes": 8,
+          "refine_factor": 4,
+          "ef": null,
+          "ann_recall_at_30": 0.9473958333333333,
+          "p50_ms": 16.32419996894896,
+          "p95_ms": 25.05769988056271,
+          "max_ms": 56.468000169843435
+        },
+        {
+          "nprobes": 32,
+          "refine_factor": 4,
+          "ef": null,
+          "ann_recall_at_30": 0.9885416666666667,
+          "p50_ms": 9.442949900403619,
+          "p95_ms": 14.615615166258065,
+          "max_ms": 17.459100112318993
+        },
+        {
+          "nprobes": 128,
+          "refine_factor": 4,
+          "ef": null,
+          "ann_recall_at_30": 0.9973958333333333,
+          "p50_ms": 9.229949908331037,
+          "p95_ms": 11.347249848768115,
+          "max_ms": 14.636700041592121
+        }
+      ]
+    },
+    {
+      "index": "IVF_HNSW_SQ",
+      "vector_dtype": "float32",
+      "num_partitions": 316,
+      "build_seconds": 227.6333107999526,
+      "raw_table_bytes": 205620268,
+      "table_and_index_bytes": 270743235,
+      "peak_process_rss_bytes": 1010245632,
+      "measurements": [
+        {
+          "nprobes": 8,
+          "refine_factor": 4,
+          "ef": 120,
+          "ann_recall_at_30": 0.953125,
+          "p50_ms": 10.458500008098781,
+          "p95_ms": 17.573470075149086,
+          "max_ms": 74.16680012829602
+        },
+        {
+          "nprobes": 32,
+          "refine_factor": 4,
+          "ef": 120,
+          "ann_recall_at_30": 0.9911458333333334,
+          "p50_ms": 15.350849949754775,
+          "p95_ms": 66.53253007680172,
+          "max_ms": 120.86080014705658
+        },
+        {
+          "nprobes": 128,
+          "refine_factor": 4,
+          "ef": 120,
+          "ann_recall_at_30": 0.9984375000000001,
+          "p50_ms": 12.778750038705766,
+          "p95_ms": 17.514529975596812,
+          "max_ms": 22.254199953749776
+        }
+      ]
+    }
+  ],
+  "run_dir": "C:\\Works\\info-hive-dev\\.rag-poc-data\\full-20261104\\ann-100000-1793764075280431800"
+}
