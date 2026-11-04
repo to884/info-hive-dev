@@ -5,6 +5,8 @@
 位置づけ：`llm-wiki-product-concept-and-requirements-ja.md` の未決事項 O-12（日本語検索と規模）への入力
 手法：brainstorm-diverge-converge（発散 → クラスタ → 収束）
 
+2026年11月4日追記：[PoC 検証記録](rag-poc-2026-11-04/README.md) に、1.16 GB の実 PDF、Ruri 3 サイズ、LanceDB / Qdrant、OCR、中断と再開の実測をまとめた。本書の提案・推定と、検証済みの範囲を区別して参照する。
+
 本書の記述は次の区分に従う。
 
 | 区分 | 意味 |
