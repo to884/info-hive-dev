@@ -1,0 +1,62 @@
+[11/04/26 14:48:28] INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+[11/04/26 14:48:29] INFO     Processing request of type            server.py:733
+                             ListToolsRequest                                   
+{"name": "registration_is_short_and_persistent", "passed": true, "milliseconds": 742.7715800000101, "job_id": "10691c4d347b147532f0a05650acd620632ae2e2aadb54d73b42fd5babbe999d"}
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+{"name": "ingest_alias_deduplicates_registration", "passed": true}
+[11/04/26 14:49:01] INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+{"name": "ocr_partial_generation_not_published", "passed": true, "cached_pages": 40}
+{"name": "ocr_parent_death_stops_descendants", "passed": true, "descendants": 2}
+child process pid 1155 exit status already read:  will report returncode 255
+{"name": "ocr_job_saved_after_parent_death", "passed": true, "phase": "PDF の抽出"}
+  + Exception Group Traceback (most recent call last):
+  |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_pipeline.py", line 210, in <module>
+  |     asyncio.run(main())
+  |   File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+  |     return runner.run(main)
+  |            ^^^^^^^^^^^^^^^^
+  |   File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+  |     return self._loop.run_until_complete(task)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+  |     return future.result()
+  |            ^^^^^^^^^^^^^^^
+  |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_pipeline.py", line 167, in main
+  |     async with connect(config_file) as (session, server):
+  |   File "/usr/lib/python3.12/contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_pipeline.py", line 82, in connect
+  |     async with stdio_client(parameters) as (reader, writer):
+  |   File "/usr/lib/python3.12/contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "/home/ubuntu/.cache/info-hive-validation/venv/lib/python3.12/site-packages/mcp/client/stdio/__init__.py", line 182, in stdio_client
+  |     async with (
+  |   File "/home/ubuntu/.cache/info-hive-validation/venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 871, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "/home/ubuntu/.cache/info-hive-validation/venv/lib/python3.12/site-packages/mcp/client/stdio/__init__.py", line 189, in stdio_client
+    |     yield read_stream, write_stream
+    |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_pipeline.py", line 83, in connect
+    |     async with ClientSession(reader, writer) as session:
+    |   File "/home/ubuntu/.cache/info-hive-validation/venv/lib/python3.12/site-packages/mcp/shared/session.py", line 238, in __aexit__
+    |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/ubuntu/.cache/info-hive-validation/venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 871, in __aexit__
+    |     raise BaseExceptionGroup(
+    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_pipeline.py", line 93, in connect
+      |     yield session, server
+      |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_pipeline.py", line 172, in main
+      |     partial = await wait_until(embedding_saved, 600)
+      |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_pipeline.py", line 110, in wait_until
+      |     raise TimeoutError("進捗の待機が時間切れになりました。")
+      | TimeoutError: 進捗の待機が時間切れになりました。
+      +------------------------------------

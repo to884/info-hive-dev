@@ -1,0 +1,846 @@
+{
+  "date": "2026-11-04",
+  "scope": "small smoke only; no performance comparison",
+  "local_versions": {
+    "lancedb": "0.29.2",
+    "qdrant-client": "1.20.0"
+  },
+  "lancedb": {
+    "status": "completed",
+    "cases": [
+      {
+        "name": "ivf_pq",
+        "index_type": "IVF_PQ",
+        "rows": 1000,
+        "dimension": 512,
+        "dtype": "float",
+        "build": {
+          "status": "ok",
+          "indices": [
+            "Index(IvfPq, columns=[\"vector\"], name=\"vector_idx\")"
+          ],
+          "arguments": {
+            "metric": "cosine",
+            "num_partitions": 4,
+            "index_type": "IVF_PQ",
+            "num_sub_vectors": 64
+          }
+        },
+        "search": {
+          "status": "ok",
+          "returned": 5,
+          "nprobes": 2,
+          "options": {
+            "refine_factor": 2
+          }
+        }
+      },
+      {
+        "name": "ivf_sq",
+        "index_type": "IVF_SQ",
+        "rows": 1000,
+        "dimension": 512,
+        "dtype": "float",
+        "build": {
+          "status": "ok",
+          "indices": [
+            "Index(IvfSq, columns=[\"vector\"], name=\"vector_idx\")"
+          ],
+          "arguments": {
+            "metric": "cosine",
+            "num_partitions": 4,
+            "index_type": "IVF_SQ"
+          }
+        },
+        "search": {
+          "status": "ok",
+          "returned": 5,
+          "nprobes": 2,
+          "options": {}
+        },
+        "refine_probe": {
+          "status": "ok",
+          "returned": 5,
+          "refine_factor": 2
+        }
+      },
+      {
+        "name": "ivf_hnsw_sq",
+        "index_type": "IVF_HNSW_SQ",
+        "rows": 1000,
+        "dimension": 512,
+        "dtype": "float",
+        "build": {
+          "status": "ok",
+          "indices": [
+            "Index(IvfHnswSq, columns=[\"vector\"], name=\"vector_idx\")"
+          ],
+          "arguments": {
+            "metric": "cosine",
+            "num_partitions": 4,
+            "index_type": "IVF_HNSW_SQ",
+            "m": 16,
+            "ef_construction": 300
+          }
+        },
+        "search": {
+          "status": "ok",
+          "returned": 5,
+          "nprobes": 2,
+          "options": {
+            "ef": 20,
+            "refine_factor": 2
+          }
+        }
+      },
+      {
+        "name": "float16_ivf_sq",
+        "index_type": "IVF_SQ",
+        "rows": 1000,
+        "dimension": 512,
+        "dtype": "halffloat",
+        "build": {
+          "status": "ok",
+          "indices": [
+            "Index(IvfSq, columns=[\"vector\"], name=\"vector_idx\")"
+          ],
+          "arguments": {
+            "metric": "cosine",
+            "num_partitions": 4,
+            "index_type": "IVF_SQ"
+          }
+        },
+        "search": {
+          "status": "ok",
+          "returned": 5,
+          "nprobes": 2,
+          "options": {}
+        }
+      }
+    ]
+  },
+  "qdrant": {
+    "status": "completed",
+    "collections_sequential": true,
+    "version": "1.20.0",
+    "port": 62073,
+    "corrected_from_preflight": {
+      "setting": "hnsw_config.full_scan_threshold",
+      "rejected_value": 0,
+      "reason": "v1.20.0 requires >= 10",
+      "retry_value": 10
+    },
+    "cases": [
+      {
+        "name": "scalar_int8",
+        "dimension": 512,
+        "points": 1000,
+        "create": {
+          "status": "ok",
+          "vector_memory": "cold",
+          "quantization": {
+            "scalar": {
+              "type": "int8",
+              "memory": "pinned"
+            }
+          },
+          "indexing_threshold_kb": 10,
+          "memmap_threshold_kb": 10,
+          "full_scan_threshold_kb": 10
+        },
+        "upsert": {
+          "status": "ok",
+          "count": 1000
+        },
+        "optimizer": {
+          "status": "ok",
+          "optimizer_status": "ok",
+          "indexed_vectors_count": 1000,
+          "points_count": 1000,
+          "collection_status": "green"
+        },
+        "query": {
+          "status": "ok",
+          "returned": 5,
+          "rescore": true,
+          "oversampling": 2.0,
+          "scores_finite": true
+        },
+        "cleanup": {
+          "status": "error",
+          "error": "UnexpectedResponse: Unexpected Response: 500 (Internal Server Error)\nRaw response content:\nb'{\"status\":{\"error\":\"Service internal error: failed to rename file from C:\\\\\\\\Works\\\\\\\\info-hive-dev\\\\\\\\.rag-poc-data\\\\\\\\ann-smoke-20261104\\\\\\\\qdrant\\\\\\\\storage\\\\\\\\collections\\\\\\\\ann_smoke to C:\\\\\\\\Works\\\\\\\\info-hive-d ...'"
+        }
+      },
+      {
+        "name": "binary_1_5bit",
+        "dimension": 512,
+        "points": 1000,
+        "create": {
+          "status": "error",
+          "error": "UnexpectedResponse: Unexpected Response: 400 (Bad Request)\nRaw response content:\nb'{\"status\":{\"error\":\"Wrong input: Can\\'t create collection with name ann_smoke. Collection data already exists at C:\\\\\\\\Works\\\\\\\\info-hive-dev\\\\\\\\.rag-poc-data\\\\\\\\ann-smoke-20261104\\\\\\\\qdrant\\\\\\\\storage\\\\\\\\collect ...'"
+        },
+        "upsert": {
+          "status": "not_run"
+        },
+        "optimizer": {
+          "status": "not_run"
+        },
+        "query": {
+          "status": "not_run"
+        }
+      },
+      {
+        "name": "binary_2bit",
+        "dimension": 512,
+        "points": 1000,
+        "create": {
+          "status": "error",
+          "error": "UnexpectedResponse: Unexpected Response: 400 (Bad Request)\nRaw response content:\nb'{\"status\":{\"error\":\"Wrong input: Can\\'t create collection with name ann_smoke. Collection data already exists at C:\\\\\\\\Works\\\\\\\\info-hive-dev\\\\\\\\.rag-poc-data\\\\\\\\ann-smoke-20261104\\\\\\\\qdrant\\\\\\\\storage\\\\\\\\collect ...'"
+        },
+        "upsert": {
+          "status": "not_run"
+        },
+        "optimizer": {
+          "status": "not_run"
+        },
+        "query": {
+          "status": "not_run"
+        }
+      }
+    ],
+    "process_exit_code": 1,
+    "process_stopped": true,
+    "existing_collection_config_updates": [
+      {
+        "before": {
+          "points_count": 1000,
+          "indexed_vectors_count": 1000,
+          "optimizer_status": "ok"
+        }
+      },
+      {
+        "name": "binary_1_5bit",
+        "requested_config": {
+          "binary": {
+            "memory": "pinned",
+            "encoding": "one_and_half_bits"
+          }
+        },
+        "update": {
+          "status": "ok",
+          "accepted": true
+        },
+        "optimizer": {
+          "status": "ok",
+          "optimizer_status": "ok",
+          "indexed_vectors_count": 1000,
+          "points_count": 1000,
+          "collection_status": "yellow"
+        },
+        "actual_config": {
+          "binary": {
+            "memory": "pinned",
+            "encoding": "one_and_half_bits"
+          }
+        },
+        "query": {
+          "status": "ok",
+          "returned": 5,
+          "rescore": true,
+          "oversampling": 2.0,
+          "scores_finite": true
+        }
+      },
+      {
+        "name": "binary_2bit",
+        "requested_config": {
+          "binary": {
+            "memory": "pinned",
+            "encoding": "two_bits"
+          }
+        },
+        "update": {
+          "status": "ok",
+          "accepted": true
+        },
+        "optimizer": {
+          "status": "ok",
+          "optimizer_status": "ok",
+          "indexed_vectors_count": 1000,
+          "points_count": 1000,
+          "collection_status": "yellow"
+        },
+        "actual_config": {
+          "binary": {
+            "memory": "pinned",
+            "encoding": "two_bits"
+          }
+        },
+        "query": {
+          "status": "ok",
+          "returned": 5,
+          "rescore": true,
+          "oversampling": 2.0,
+          "scores_finite": true
+        }
+      }
+    ],
+    "update_process_stopped": true,
+    "windows_native_observation": "Server log reports filesystem type check unsupported on this platform; collection DELETE failed renaming the memory-mapped collection directory with Windows access denied (os error 5).",
+    "storage_observation": {
+      "after_initial_scalar": {
+        "file_count": 259,
+        "bytes": 901790499,
+        "extensions": {
+          ".dat": 565661100,
+          ".mmap": 268435456,
+          "extensionless": 67108864
+        }
+      },
+      "after_post_restart_inspection": {
+        "file_count": 277,
+        "bytes": 937510378
+      }
+    },
+    "cleanup_policy_rejection": {
+      "action": "recursive deletion of the generated dedicated Qdrant storage directory after process exit",
+      "reason": "exec_command automatic review rejected the command with blocked by policy",
+      "retried": false
+    },
+    "scalar_collection_delete": {
+      "status": "error",
+      "http_status": 500,
+      "detail": "failed to rename collection directory to storage/.deleted; Windows access denied (os error 5)",
+      "log": "qdrant/server.log"
+    },
+    "automatic_review_rejection": {
+      "action": "recursive deletion of the verified dedicated Qdrant storage directory",
+      "result": "exec_command rejected before execution with blocked by policy",
+      "retried": false
+    },
+    "collection_status_caveat": "再起動後300秒の待機期限までcollection_status=grey。optimizer_status=ok、indexed_vectors_count=1000/1000、17 segmentsで、queryは5件返ったが、binary量子化の実利用・構築完了の根拠にはならない。",
+    "post_restart_inspection": {
+      "port": 55157,
+      "wait_limit_seconds": 300,
+      "version": "1.20.0",
+      "collection_names": [
+        "ann_smoke"
+      ],
+      "wait_observations": [
+        {
+          "elapsed_seconds": 8.5,
+          "status": "grey",
+          "optimizer_status": "ok",
+          "points_count": 1000,
+          "indexed_vectors_count": 1000,
+          "segments_count": 17
+        }
+      ],
+      "wait_result": {
+        "condition_met": false,
+        "deadline_reached": true,
+        "waited_seconds": 300,
+        "final": {
+          "elapsed_seconds": 300,
+          "status": "grey",
+          "optimizer_status": "ok",
+          "points_count": 1000,
+          "indexed_vectors_count": 1000,
+          "segments_count": 17
+        }
+      },
+      "server_quantization_config": {
+        "params": {
+          "vectors": {
+            "size": 512,
+            "distance": "Cosine",
+            "hnsw_config": null,
+            "quantization_config": null,
+            "on_disk": null,
+            "memory": "cold",
+            "datatype": null,
+            "multivector_config": null
+          },
+          "shard_number": 1,
+          "sharding_method": null,
+          "replication_factor": 1,
+          "write_consistency_factor": 1,
+          "read_fan_out_factor": null,
+          "read_fan_out_delay_ms": null,
+          "on_disk_payload": true,
+          "payload": null,
+          "id_tracker": null,
+          "sparse_vectors": null
+        },
+        "hnsw_config": {
+          "m": 16,
+          "ef_construct": 100,
+          "full_scan_threshold": 10,
+          "max_indexing_threads": 0,
+          "on_disk": false,
+          "memory": null,
+          "payload_m": null,
+          "inline_storage": null
+        },
+        "optimizer_config": {
+          "deleted_threshold": 0.2,
+          "vacuum_min_vector_number": 1000,
+          "default_segment_number": 0,
+          "max_segment_size": null,
+          "memmap_threshold": 10,
+          "indexing_threshold": 10,
+          "flush_interval_sec": 5,
+          "max_optimization_threads": 1,
+          "prevent_unoptimized": null
+        },
+        "wal_config": {
+          "wal_capacity_mb": 32,
+          "wal_segments_ahead": 0,
+          "wal_retain_closed": 1
+        },
+        "quantization_config": {
+          "binary": {
+            "always_ram": null,
+            "memory": "pinned",
+            "encoding": "two_bits",
+            "query_encoding": null
+          }
+        },
+        "strict_mode_config": null,
+        "metadata": null
+      },
+      "query": {
+        "status": "ok",
+        "returned": 5,
+        "rescore": true,
+        "oversampling": 2.0
+      },
+      "quantized_artifact_inventory": [
+        {
+          "segment_id": "1a178e81-e4c4-4e1e-88ca-21ca6902c342",
+          "quantized_config_file": {
+            "path": "0\\segments\\1a178e81-e4c4-4e1e-88ca-21ca6902c342\\vector_storage\\quantized.config.json",
+            "bytes": 149,
+            "mtime_utc": "2026-11-04T03:12:54.137667+00:00"
+          },
+          "quantized_config": {
+            "quantization_config": {
+              "scalar": {
+                "type": "int8",
+                "memory": "pinned"
+              }
+            },
+            "vector_parameters": {
+              "dim": 512,
+              "distance_type": "Dot",
+              "invert": false,
+              "count": 128
+            }
+          },
+          "quantized_meta_file": {
+            "path": "0\\segments\\1a178e81-e4c4-4e1e-88ca-21ca6902c342\\vector_storage\\quantized.meta.json",
+            "bytes": 169,
+            "mtime_utc": "2026-11-04T03:12:54.130667+00:00"
+          },
+          "quantized_meta_summary": {
+            "keys": [
+              "actual_dim",
+              "alpha",
+              "multiplier",
+              "offset",
+              "vector_parameters"
+            ],
+            "encoding": null,
+            "actual_dim": 512,
+            "vector_stats_count": 0
+          },
+          "quantized_payload_files": [
+            {
+              "path": "0\\segments\\1a178e81-e4c4-4e1e-88ca-21ca6902c342\\vector_storage\\quantized.data",
+              "bytes": 66048,
+              "mtime_utc": "2026-11-04T03:12:54.126666+00:00"
+            }
+          ]
+        },
+        {
+          "segment_id": "35e9d20a-ef91-4f76-b278-7bf166671fa0",
+          "quantized_config_file": {
+            "path": "0\\segments\\35e9d20a-ef91-4f76-b278-7bf166671fa0\\vector_storage\\quantized.config.json",
+            "bytes": 149,
+            "mtime_utc": "2026-11-04T03:12:53.759311+00:00"
+          },
+          "quantized_config": {
+            "quantization_config": {
+              "scalar": {
+                "type": "int8",
+                "memory": "pinned"
+              }
+            },
+            "vector_parameters": {
+              "dim": 512,
+              "distance_type": "Dot",
+              "invert": false,
+              "count": 128
+            }
+          },
+          "quantized_meta_file": {
+            "path": "0\\segments\\35e9d20a-ef91-4f76-b278-7bf166671fa0\\vector_storage\\quantized.meta.json",
+            "bytes": 168,
+            "mtime_utc": "2026-11-04T03:12:53.741313+00:00"
+          },
+          "quantized_meta_summary": {
+            "keys": [
+              "actual_dim",
+              "alpha",
+              "multiplier",
+              "offset",
+              "vector_parameters"
+            ],
+            "encoding": null,
+            "actual_dim": 512,
+            "vector_stats_count": 0
+          },
+          "quantized_payload_files": [
+            {
+              "path": "0\\segments\\35e9d20a-ef91-4f76-b278-7bf166671fa0\\vector_storage\\quantized.data",
+              "bytes": 66048,
+              "mtime_utc": "2026-11-04T03:12:53.737312+00:00"
+            }
+          ]
+        },
+        {
+          "segment_id": "3b72cb11-7658-4657-a40c-ecfda5dab4f1",
+          "quantized_config_file": {
+            "path": "0\\segments\\3b72cb11-7658-4657-a40c-ecfda5dab4f1\\vector_storage\\quantized.config.json",
+            "bytes": 149,
+            "mtime_utc": "2026-11-04T03:12:52.965669+00:00"
+          },
+          "quantized_config": {
+            "quantization_config": {
+              "scalar": {
+                "type": "int8",
+                "memory": "pinned"
+              }
+            },
+            "vector_parameters": {
+              "dim": 512,
+              "distance_type": "Dot",
+              "invert": false,
+              "count": 232
+            }
+          },
+          "quantized_meta_file": {
+            "path": "0\\segments\\3b72cb11-7658-4657-a40c-ecfda5dab4f1\\vector_storage\\quantized.meta.json",
+            "bytes": 170,
+            "mtime_utc": "2026-11-04T03:12:52.958663+00:00"
+          },
+          "quantized_meta_summary": {
+            "keys": [
+              "actual_dim",
+              "alpha",
+              "multiplier",
+              "offset",
+              "vector_parameters"
+            ],
+            "encoding": null,
+            "actual_dim": 512,
+            "vector_stats_count": 0
+          },
+          "quantized_payload_files": [
+            {
+              "path": "0\\segments\\3b72cb11-7658-4657-a40c-ecfda5dab4f1\\vector_storage\\quantized.data",
+              "bytes": 119712,
+              "mtime_utc": "2026-11-04T03:12:52.954663+00:00"
+            }
+          ]
+        },
+        {
+          "segment_id": "44a6df87-79a0-4d93-947b-5eadb2436430",
+          "quantized_config_file": {
+            "path": "0\\segments\\44a6df87-79a0-4d93-947b-5eadb2436430\\vector_storage\\quantized.config.json",
+            "bytes": 149,
+            "mtime_utc": "2026-11-04T03:12:53.162057+00:00"
+          },
+          "quantized_config": {
+            "quantization_config": {
+              "scalar": {
+                "type": "int8",
+                "memory": "pinned"
+              }
+            },
+            "vector_parameters": {
+              "dim": 512,
+              "distance_type": "Dot",
+              "invert": false,
+              "count": 128
+            }
+          },
+          "quantized_meta_file": {
+            "path": "0\\segments\\44a6df87-79a0-4d93-947b-5eadb2436430\\vector_storage\\quantized.meta.json",
+            "bytes": 170,
+            "mtime_utc": "2026-11-04T03:12:53.155054+00:00"
+          },
+          "quantized_meta_summary": {
+            "keys": [
+              "actual_dim",
+              "alpha",
+              "multiplier",
+              "offset",
+              "vector_parameters"
+            ],
+            "encoding": null,
+            "actual_dim": 512,
+            "vector_stats_count": 0
+          },
+          "quantized_payload_files": [
+            {
+              "path": "0\\segments\\44a6df87-79a0-4d93-947b-5eadb2436430\\vector_storage\\quantized.data",
+              "bytes": 66048,
+              "mtime_utc": "2026-11-04T03:12:53.150048+00:00"
+            }
+          ]
+        },
+        {
+          "segment_id": "4fe40165-015e-4c68-b45e-8c6a2c295a48",
+          "quantized_config_file": {
+            "path": "0\\segments\\4fe40165-015e-4c68-b45e-8c6a2c295a48\\vector_storage\\quantized.config.json",
+            "bytes": 149,
+            "mtime_utc": "2026-11-04T03:12:53.923528+00:00"
+          },
+          "quantized_config": {
+            "quantization_config": {
+              "scalar": {
+                "type": "int8",
+                "memory": "pinned"
+              }
+            },
+            "vector_parameters": {
+              "dim": 512,
+              "distance_type": "Dot",
+              "invert": false,
+              "count": 128
+            }
+          },
+          "quantized_meta_file": {
+            "path": "0\\segments\\4fe40165-015e-4c68-b45e-8c6a2c295a48\\vector_storage\\quantized.meta.json",
+            "bytes": 168,
+            "mtime_utc": "2026-11-04T03:12:53.916520+00:00"
+          },
+          "quantized_meta_summary": {
+            "keys": [
+              "actual_dim",
+              "alpha",
+              "multiplier",
+              "offset",
+              "vector_parameters"
+            ],
+            "encoding": null,
+            "actual_dim": 512,
+            "vector_stats_count": 0
+          },
+          "quantized_payload_files": [
+            {
+              "path": "0\\segments\\4fe40165-015e-4c68-b45e-8c6a2c295a48\\vector_storage\\quantized.data",
+              "bytes": 66048,
+              "mtime_utc": "2026-11-04T03:12:53.912521+00:00"
+            }
+          ]
+        },
+        {
+          "segment_id": "9e8f8822-2db5-41fe-9613-23519f3f09c9",
+          "quantized_config_file": {
+            "path": "0\\segments\\9e8f8822-2db5-41fe-9613-23519f3f09c9\\vector_storage\\quantized.config.json",
+            "bytes": 149,
+            "mtime_utc": "2026-11-04T03:12:53.571469+00:00"
+          },
+          "quantized_config": {
+            "quantization_config": {
+              "scalar": {
+                "type": "int8",
+                "memory": "pinned"
+              }
+            },
+            "vector_parameters": {
+              "dim": 512,
+              "distance_type": "Dot",
+              "invert": false,
+              "count": 128
+            }
+          },
+          "quantized_meta_file": {
+            "path": "0\\segments\\9e8f8822-2db5-41fe-9613-23519f3f09c9\\vector_storage\\quantized.meta.json",
+            "bytes": 168,
+            "mtime_utc": "2026-11-04T03:12:53.565463+00:00"
+          },
+          "quantized_meta_summary": {
+            "keys": [
+              "actual_dim",
+              "alpha",
+              "multiplier",
+              "offset",
+              "vector_parameters"
+            ],
+            "encoding": null,
+            "actual_dim": 512,
+            "vector_stats_count": 0
+          },
+          "quantized_payload_files": [
+            {
+              "path": "0\\segments\\9e8f8822-2db5-41fe-9613-23519f3f09c9\\vector_storage\\quantized.data",
+              "bytes": 66048,
+              "mtime_utc": "2026-11-04T03:12:53.560462+00:00"
+            }
+          ]
+        },
+        {
+          "segment_id": "b9b23dc0-75df-4265-80d5-91e3023025e6",
+          "quantized_config_file": {
+            "path": "0\\segments\\b9b23dc0-75df-4265-80d5-91e3023025e6\\vector_storage\\quantized.config.json",
+            "bytes": 149,
+            "mtime_utc": "2026-11-04T03:12:53.375819+00:00"
+          },
+          "quantized_config": {
+            "quantization_config": {
+              "scalar": {
+                "type": "int8",
+                "memory": "pinned"
+              }
+            },
+            "vector_parameters": {
+              "dim": 512,
+              "distance_type": "Dot",
+              "invert": false,
+              "count": 128
+            }
+          },
+          "quantized_meta_file": {
+            "path": "0\\segments\\b9b23dc0-75df-4265-80d5-91e3023025e6\\vector_storage\\quantized.meta.json",
+            "bytes": 168,
+            "mtime_utc": "2026-11-04T03:12:53.368814+00:00"
+          },
+          "quantized_meta_summary": {
+            "keys": [
+              "actual_dim",
+              "alpha",
+              "multiplier",
+              "offset",
+              "vector_parameters"
+            ],
+            "encoding": null,
+            "actual_dim": 512,
+            "vector_stats_count": 0
+          },
+          "quantized_payload_files": [
+            {
+              "path": "0\\segments\\b9b23dc0-75df-4265-80d5-91e3023025e6\\vector_storage\\quantized.data",
+              "bytes": 66048,
+              "mtime_utc": "2026-11-04T03:12:53.360809+00:00"
+            }
+          ]
+        },
+        {
+          "segment_id": "bc45e0b1-a978-4133-8699-5d594660ca9a",
+          "quantized_config_file": {
+            "path": "0\\segments\\bc45e0b1-a978-4133-8699-5d594660ca9a\\vector_storage\\quantized.config.json",
+            "bytes": 179,
+            "mtime_utc": "2026-11-04T03:18:53.215213+00:00"
+          },
+          "quantized_config": {
+            "quantization_config": {
+              "binary": {
+                "memory": "pinned",
+                "encoding": "one_and_half_bits"
+              }
+            },
+            "vector_parameters": {
+              "dim": 512,
+              "distance_type": "Dot",
+              "invert": false
+            },
+            "storage_type": "Mutable"
+          },
+          "quantized_meta_file": {
+            "path": "0\\segments\\bc45e0b1-a978-4133-8699-5d594660ca9a\\vector_storage\\quantized.meta.json",
+            "bytes": 34438,
+            "mtime_utc": "2026-11-04T03:18:53.208212+00:00"
+          },
+          "quantized_meta_summary": {
+            "keys": [
+              "encoding",
+              "vector_parameters",
+              "vector_stats"
+            ],
+            "encoding": "OneAndHalfBits",
+            "actual_dim": null,
+            "vector_stats_count": 512
+          },
+          "quantized_payload_files": [
+            {
+              "path": "0\\segments\\bc45e0b1-a978-4133-8699-5d594660ca9a\\vector_storage\\quantized_data\\config.json",
+              "bytes": 66,
+              "mtime_utc": "2026-11-04T03:18:53.202197+00:00"
+            },
+            {
+              "path": "0\\segments\\bc45e0b1-a978-4133-8699-5d594660ca9a\\vector_storage\\quantized_data\\status.dat",
+              "bytes": 8,
+              "mtime_utc": "2026-11-04T03:18:53.199995+00:00"
+            }
+          ]
+        }
+      ],
+      "process_stopped": true,
+      "collection_status_after_wait": "grey",
+      "quantized_payload_check": {
+        "binary_metadata_found": {
+          "encoding": "OneAndHalfBits",
+          "segment_id": "bc45e0b1-a978-4133-8699-5d594660ca9a",
+          "quantized_config": {
+            "path": "0\\segments\\bc45e0b1-a978-4133-8699-5d594660ca9a\\vector_storage\\quantized.config.json",
+            "bytes": 179,
+            "mtime_utc": "2026-11-04T03:18:53.215213+00:00"
+          },
+          "quantized_meta": {
+            "path": "0\\segments\\bc45e0b1-a978-4133-8699-5d594660ca9a\\vector_storage\\quantized.meta.json",
+            "bytes": 34438,
+            "mtime_utc": "2026-11-04T03:18:53.208212+00:00",
+            "vector_stats_count": 512
+          },
+          "mutable_storage_files": [
+            {
+              "path": "0\\segments\\bc45e0b1-a978-4133-8699-5d594660ca9a\\vector_storage\\quantized_data\\config.json",
+              "bytes": 66,
+              "mtime_utc": "2026-11-04T03:18:53.202197+00:00"
+            },
+            {
+              "path": "0\\segments\\bc45e0b1-a978-4133-8699-5d594660ca9a\\vector_storage\\quantized_data\\status.dat",
+              "bytes": 8,
+              "mtime_utc": "2026-11-04T03:18:53.199995+00:00"
+            }
+          ],
+          "encoded_vector_payload_found": false
+        },
+        "binary_two_bits_artifact_found": false,
+        "interpretation": "The 1.5-bit config/meta files are present, but no encoded vector payload was found; the 2-bit encoding has no segment artifact. Neither binary build is confirmed."
+      }
+    },
+    "binary_build_verdict": {
+      "configured_collection_encoding": "two_bits",
+      "metadata_encodings_found": [
+        "one_and_half_bits"
+      ],
+      "encoded_binary_payloads_found": [],
+      "confirmed_1_5bit_build": false,
+      "confirmed_2bit_build": false,
+      "interpretation": "設定受理のみ、量子化完了未確認。1.5-bitのconfig/metaは存在するが量子化ベクトルpayloadを確認できず、2-bitのsegment artifactも見つからなかった。"
+    }
+  },
+  "notes": [
+    "製品・テストコードは変更せず、PDFも読んでいない。",
+    "LanceDBの各ケースは固定乱数1000件、512次元で確認した。",
+    "Qdrant scalar INT8は1000点のupsert、optimizer完了後の検索に成功。Windowsでcollection削除が失敗した。",
+    "設定受理のみ、量子化完了未確認。1.5-bitのconfig/metaは存在するが量子化ベクトルpayloadを確認できず、2-bitのsegment artifactも見つからなかった。",
+    "再起動後300秒の待機期限までcollection_status=grey。optimizer_status=ok、indexed_vectors_count=1000/1000、17 segmentsで、queryは5件返ったが、binary量子化の実利用・構築完了の根拠にはならない。",
+    "専用Qdrantデータの再帰削除はautomatic reviewに拒否され、再試行していない。生成storageは指定smoke directory内に保持している。",
+    "時間計測は省略しており、性能比較ではない。"
+  ]
+}

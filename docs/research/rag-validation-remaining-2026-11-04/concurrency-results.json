@@ -1,0 +1,63 @@
+{
+  "run_dir": "C:\\Works\\info-hive-dev\\.rag-poc-data\\concurrent-1793764037",
+  "checks": [
+    {
+      "name": "two_mcp_sessions_deduplicate_eight_registrations",
+      "passed": true
+    },
+    {
+      "name": "same_pdf_in_another_wiki_has_independent_job",
+      "passed": true
+    },
+    {
+      "name": "mcp_rejects_cross_wiki_job_access",
+      "passed": true
+    },
+    {
+      "name": "second_session_can_cancel_pending_job",
+      "passed": true
+    },
+    {
+      "name": "search_waits_while_indexing",
+      "passed": true
+    },
+    {
+      "name": "status_is_responsive_during_index_and_pending_search",
+      "passed": true,
+      "seconds": 0.014318800065666437
+    },
+    {
+      "name": "queued_search_reads_completed_generation",
+      "passed": true
+    },
+    {
+      "name": "only_one_model_worker_across_two_mcp_sessions",
+      "passed": true,
+      "worker_pids": [
+        82780
+      ]
+    },
+    {
+      "name": "eight_concurrent_search_requests_complete",
+      "passed": true,
+      "total_seconds": 1.2108320998959243
+    },
+    {
+      "name": "remaining_mcp_session_takes_over_worker",
+      "passed": true
+    },
+    {
+      "name": "completed_job_is_not_reexecuted_on_takeover",
+      "passed": true
+    },
+    {
+      "name": "cancelled_other_wiki_job_remains_cancelled",
+      "passed": true
+    },
+    {
+      "name": "source_pdf_unchanged",
+      "passed": true
+    }
+  ],
+  "execution": "索引化と検索は直列。要求受付と進捗確認が並行する。"
+}

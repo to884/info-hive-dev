@@ -1,0 +1,95 @@
+Downloading pyarrow (52.5MiB)
+Downloading lancedb (45.0MiB)
+Downloading sudachidict-core (73.4MiB)
+Downloading torch (175.4MiB)
+ Downloaded torch
+Downloading scipy (33.7MiB)
+ Downloaded lancedb
+Downloading numpy (16.0MiB)
+ Downloaded scipy
+Downloading transformers (12.4MiB)
+ Downloaded pyarrow
+Downloading scikit-learn (8.7MiB)
+ Downloaded transformers
+Downloading sympy (6.0MiB)
+ Downloaded scikit-learn
+Downloading hf-xet (4.1MiB)
+ Downloaded sudachidict-core
+ Downloaded numpy
+Downloading tokenizers (3.2MiB)
+Downloading pypdfium2 (3.6MiB)
+ Downloaded sympy
+ Downloaded hf-xet
+Downloading pydantic-core (2.1MiB)
+Downloading networkx (2.0MiB)
+ Downloaded tokenizers
+Downloading sudachipy (1.7MiB)
+ Downloaded pypdfium2
+Downloading pygments (1.2MiB)
+ Downloaded networkx
+ Downloaded pydantic-core
+ Downloaded sudachipy
+ Downloaded pygments
+Installed 81 packages in 1.66s
+[11/04/26 15:42:52] INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+[11/04/26 15:42:59] INFO     Processing request of type            server.py:733
+                             ListToolsRequest                                   
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+{"name": "configure_rejects_unfinished_jobs", "passed": true}
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+{"name": "long_poll_does_not_block_cancel", "passed": false, "cancel_seconds": 8.006466379999893}
+  + Exception Group Traceback (most recent call last):
+  |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_controls.py", line 79, in <module>
+  |     asyncio.run(main())
+  |   File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+  |     return runner.run(main)
+  |            ^^^^^^^^^^^^^^^^
+  |   File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+  |     return self._loop.run_until_complete(task)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+  |     return future.result()
+  |            ^^^^^^^^^^^^^^^
+  |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_controls.py", line 47, in main
+  |     async with connect(config_file, via_uv=True) as (session, _):
+  |   File "/usr/lib/python3.12/contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_pipeline.py", line 82, in connect
+  |     async with stdio_client(parameters) as (reader, writer):
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/lib/python3.12/contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "/home/ubuntu/.cache/info-hive-validation/venv-serial-20261104/lib/python3.12/site-packages/mcp/client/stdio/__init__.py", line 182, in stdio_client
+  |     async with (
+  |   File "/home/ubuntu/.cache/info-hive-validation/venv-serial-20261104/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 871, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "/home/ubuntu/.cache/info-hive-validation/venv-serial-20261104/lib/python3.12/site-packages/mcp/client/stdio/__init__.py", line 189, in stdio_client
+    |     yield read_stream, write_stream
+    |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_pipeline.py", line 83, in connect
+    |     async with ClientSession(reader, writer) as session:
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/ubuntu/.cache/info-hive-validation/venv-serial-20261104/lib/python3.12/site-packages/mcp/shared/session.py", line 238, in __aexit__
+    |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/ubuntu/.cache/info-hive-validation/venv-serial-20261104/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 871, in __aexit__
+    |     raise BaseExceptionGroup(
+    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_pipeline.py", line 93, in connect
+      |     yield session, server
+      |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_controls.py", line 57, in main
+      |     record("long_poll_does_not_block_cancel", cancel["cancellation_accepted"] and waited["status"] == "cancelled" and time.perf_counter()-started < 2,
+      |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_controls.py", line 43, in record
+      |     assert passed, name
+      |            ^^^^^^
+      | AssertionError: long_poll_does_not_block_cancel
+      +------------------------------------

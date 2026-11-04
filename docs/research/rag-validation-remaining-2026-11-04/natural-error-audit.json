@@ -1,0 +1,22 @@
+{
+  "method": "保存済み検索結果と自動分割した本文を別エージェントが読み取り専用で照合。人手の追加判定ではない。",
+  "profile": "xsmall-int8",
+  "positive_pdf_queries": 60,
+  "queries_missing_any_expected_page": 12,
+  "queries_missing_all_expected_pages": 10,
+  "queries_missing_part_of_expected_pages": ["p032", "p036"],
+  "query_hit_rate_in_top_30_chunks": 0.8333333333333334,
+  "macro_page_recall_in_top_30_chunks": 0.8166666666666667,
+  "micro_relevant_page_labels_found": 58,
+  "micro_relevant_page_labels_total": 72,
+  "all_missing_queries_with_unlabelled_support": ["p023", "p046"],
+  "all_missing_queries_without_support_in_reviewed_top_results": 8,
+  "duplicate_page_slots_across_positive_queries": 341,
+  "examples": {
+    "p029": "期待ページの powerOfFour 3 = 81 の根拠が上位結果に見つからなかった。30ページすべて異なり、重複だけでは説明できない。",
+    "p023": "期待ページ p31 は取得されなかったが、取得した p32 に fsharpi と fsi.exe の根拠があった。",
+    "p019": "上位30チャンクが23ページに分かれ、F# Interactive の用途を説明しない別章へ偏っていた。"
+  },
+  "labels_changed": false,
+  "evidence": [".rag-poc-data/natural-20261104/results-xsmall-int8.json", ".rag-poc-data/natural-20261104/corpus.json"]
+}

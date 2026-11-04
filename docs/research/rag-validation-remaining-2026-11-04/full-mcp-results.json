@@ -1,0 +1,118 @@
+{
+  "run_fingerprint": "9466c07a9aef17c7b8c20beec5a4cee60578230243ac0a8cd62fa092e84ddf5f",
+  "corpus": {
+    "pdf_files": 914,
+    "source_bytes": 105364301333,
+    "pages": 249670,
+    "chunks": 761915,
+    "positive_queries": 60,
+    "negative_queries": 12,
+    "forced_answer_chunks": 0,
+    "ocr_included": false,
+    "source_extraction_complete": true
+  },
+  "profiles": [
+    {
+      "profile": "off",
+      "rerank_limit": 8,
+      "queries": 72,
+      "positive_queries": 60,
+      "negative_queries": 12,
+      "cold_start_seconds": 54.116583300055936,
+      "warm_p50_ms": 957.7136499574408,
+      "warm_p95_ms": 1179.179874935653,
+      "warm_max_ms": 1570.2947999816388,
+      "recall_at_30": 0.725,
+      "ndcg_at_10": 0.3512648580217646,
+      "aggregate_peak_rss_bytes": 1686536192,
+      "cpu_threads": 4,
+      "rayon_threads": 4,
+      "search_device": "cpu",
+      "mcp_transport_included": true,
+      "query_tokenization_included": true,
+      "generation_included": false
+    },
+    {
+      "profile": "tiny-int8",
+      "rerank_limit": 8,
+      "queries": 72,
+      "positive_queries": 60,
+      "negative_queries": 12,
+      "cold_start_seconds": 17.143976000137627,
+      "warm_p50_ms": 1097.2078000195324,
+      "warm_p95_ms": 1338.5548699996434,
+      "warm_max_ms": 1623.8500999752432,
+      "recall_at_30": 0.725,
+      "ndcg_at_10": 0.40987295427731213,
+      "aggregate_peak_rss_bytes": 2153074688,
+      "cpu_threads": 4,
+      "rayon_threads": 4,
+      "search_device": "cpu",
+      "mcp_transport_included": true,
+      "query_tokenization_included": true,
+      "generation_included": false,
+      "abstention": {
+        "threshold": -3.2763004302978516,
+        "development": {
+          "tp": 29,
+          "fp": 0,
+          "fn": 2,
+          "tn": 6,
+          "f1": 0.9666666666666667
+        },
+        "heldout": {
+          "tp": 27,
+          "fp": 2,
+          "fn": 2,
+          "tn": 4,
+          "f1": 0.9310344827586207
+        },
+        "negative_kind": "absent_identifier",
+        "scope": "不在識別子12問のみ。一般的な正解なし質問へは一般化しない。"
+      }
+    },
+    {
+      "profile": "xsmall-int8",
+      "rerank_limit": 8,
+      "queries": 72,
+      "positive_queries": 60,
+      "negative_queries": 12,
+      "cold_start_seconds": 18.16178289987147,
+      "warm_p50_ms": 1520.1708999229595,
+      "warm_p95_ms": 2210.4798700660467,
+      "warm_max_ms": 2876.9626000430435,
+      "recall_at_30": 0.725,
+      "ndcg_at_10": 0.44831982108910273,
+      "aggregate_peak_rss_bytes": 2181156864,
+      "cpu_threads": 4,
+      "rayon_threads": 4,
+      "search_device": "cpu",
+      "mcp_transport_included": true,
+      "query_tokenization_included": true,
+      "generation_included": false,
+      "abstention": {
+        "threshold": -4.53073787689209,
+        "development": {
+          "tp": 27,
+          "fp": 0,
+          "fn": 4,
+          "tn": 6,
+          "f1": 0.9310344827586207
+        },
+        "heldout": {
+          "tp": 22,
+          "fp": 2,
+          "fn": 7,
+          "tn": 4,
+          "f1": 0.8301886792452831
+        },
+        "negative_kind": "absent_identifier",
+        "scope": "不在識別子12問のみ。一般的な正解なし質問へは一般化しない。"
+      }
+    }
+  ],
+  "builder_processes_suspended_during_timing": 0,
+  "human_approved_pdf_queries": 60,
+  "memory_measurement": "50ms 間隔の親子プロセス RSS 合計の最大標本値。共有ページの重複を含み、瞬間ピークは保証しない。",
+  "metric_definition": "上位30チャンク内の正解ページ再現率、およびページ重複除去後の上位10ページ nDCG。"
+}

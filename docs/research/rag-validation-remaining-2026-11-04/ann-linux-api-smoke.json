@@ -1,0 +1,800 @@
+{
+  "date": "2026-11-04",
+  "scope": "Qdrant 1.20.0 Linux x86_64 API smoke: three fresh collections, 1000 fixed-seed 512-dimensional vectors each.",
+  "run_id": "20261104T060254Z-55d423",
+  "release_asset": {
+    "tag": "v1.20.0",
+    "official_release_api": "https://api.github.com/repos/qdrant/qdrant/releases/tags/v1.20.0",
+    "official_asset_url": "https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-unknown-linux-gnu.tar.gz",
+    "official_api_asset_size_bytes": 33618587,
+    "downloaded_asset_size_bytes": 33618587,
+    "downloaded_size_matches_official_api": true,
+    "downloaded_asset_sha256": "2361f3df0dedfef31f5444f9f15bd15d6b4a6cba6ad952daecc5fbe3867c5ee6",
+    "binary_version_output": "qdrant 1.20.0"
+  },
+  "host": {
+    "os": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "python": "3.12.3",
+    "numpy": "2.5.4",
+    "storage_filesystem": "ext4",
+    "work_root": "/home/ubuntu/.cache/info-hive-validation/qdrant-smoke"
+  },
+  "prior_failed_attempt": {
+    "started_utc": "2026-11-04T05:54:33.750810Z",
+    "terminated_utc": "2026-11-04T05:55:33.896266Z",
+    "observed_runtime_seconds": 60.15,
+    "config_file_present_before_start": true,
+    "qdrant_logged_config_not_found": true,
+    "fallback_rest_bind": "0.0.0.0:6333",
+    "stopped_by_own_finally": true,
+    "collections_created": 0,
+    "points_upserted": 0,
+    "storage_retained": true,
+    "log_path": "/home/ubuntu/.cache/info-hive-validation/qdrant-smoke/logs/qdrant-20261104T055433Z-33efab.log",
+    "note": "初回のJSON config pathはQdrantログでnot foundとなり、既定bindにフォールバックした。API操作前に自分のプロセスを停止し、点やcollectionは作成していない。"
+  },
+  "server": {
+    "host": "127.0.0.1",
+    "port": 40012,
+    "config_path": "/home/ubuntu/.cache/info-hive-validation/qdrant-smoke/runs/20261104T060254Z-55d423/qdrant-config.yaml",
+    "config_file_validated": true,
+    "config_parser": "PyYAML safe_load 6.0.3",
+    "environment_overrides": {
+      "QDRANT__SERVICE__HOST": "127.0.0.1",
+      "QDRANT__SERVICE__HTTP_PORT": "40012",
+      "QDRANT__STORAGE__STORAGE_PATH": "/home/ubuntu/.cache/info-hive-validation/qdrant-smoke/runs/20261104T060254Z-55d423/storage",
+      "QDRANT__STORAGE__SNAPSHOTS_PATH": "/home/ubuntu/.cache/info-hive-validation/qdrant-smoke/runs/20261104T060254Z-55d423/snapshots",
+      "QDRANT__TELEMETRY_DISABLED": "true"
+    },
+    "storage_path": "/home/ubuntu/.cache/info-hive-validation/qdrant-smoke/runs/20261104T060254Z-55d423/storage",
+    "ss_loopback_bind_evidence": [
+      "LISTEN 0      128         127.0.0.1:6334       0.0.0.0:*    users:((\"qdrant\",pid=591,fd=32))",
+      "LISTEN 0      1024        127.0.0.1:40012      0.0.0.0:*    users:((\"qdrant\",pid=591,fd=25))"
+    ],
+    "loopback_bind_verified_before_api": true,
+    "startup_log_bind_lines": [
+      "2026-11-04T06:04:01.008058Z  INFO qdrant::actix: Qdrant HTTP listening on 40012",
+      "2026-11-04T06:04:01.008179Z  INFO actix_server::server: starting service: \"actix-web-service-127.0.0.1:40012\", workers: 15, listening on: 127.0.0.1:40012",
+      "2026-11-04T06:04:01.012011Z  INFO qdrant::tonic: Qdrant gRPC listening on 6334"
+    ],
+    "version": "1.20.0",
+    "pid": 591,
+    "ready": true,
+    "process_stopped": true,
+    "log_path": "/home/ubuntu/.cache/info-hive-validation/qdrant-smoke/logs/qdrant-20261104T060254Z-55d423.log",
+    "process_exit_code_after_stop": 0,
+    "timing_observation": {
+      "first_server_log_utc": "2026-11-04T06:03:02.673247Z",
+      "http_loopback_listener_log_utc": "2026-11-04T06:04:01.008179Z",
+      "first_log_to_http_listener_seconds": 58.335,
+      "shutdown_log_utc": "2026-11-04T06:07:07.202362Z",
+      "first_log_to_shutdown_seconds": 244.529,
+      "note": "Times are measured from Qdrant server log timestamps; process spawn precedes the first logged line by an unknown small interval."
+    }
+  },
+  "cases": [
+    {
+      "name": "scalar_int8",
+      "collection": "ann_scalar_int8_20261104T060254Z55d423",
+      "dimension": 512,
+      "points_expected": 1000,
+      "seed": 20261104,
+      "quantization_config_requested_at_create": {
+        "scalar": {
+          "type": "int8",
+          "memory": "pinned"
+        }
+      },
+      "create": {
+        "status": "ok",
+        "response": {
+          "result": true,
+          "status": "ok",
+          "time": 17.589063815
+        }
+      },
+      "upsert": {
+        "status": "ok",
+        "result": {
+          "operation_id": 1,
+          "status": "completed"
+        },
+        "submitted_points": 1000
+      },
+      "optimizer_wait": {
+        "status": "green",
+        "deadline_reached": false,
+        "observations": [
+          {
+            "elapsed_seconds": 0.0,
+            "status": "yellow",
+            "optimizer_status": "ok",
+            "points_count": 1000,
+            "indexed_vectors_count": 0,
+            "segments_count": 1,
+            "quantization_config": {
+              "scalar": {
+                "type": "int8",
+                "memory": "pinned"
+              }
+            }
+          },
+          {
+            "elapsed_seconds": 8.0,
+            "status": "yellow",
+            "optimizer_status": "ok",
+            "points_count": 1000,
+            "indexed_vectors_count": 0,
+            "segments_count": 2,
+            "quantization_config": {
+              "scalar": {
+                "type": "int8",
+                "memory": "pinned"
+              }
+            }
+          },
+          {
+            "elapsed_seconds": 18.0,
+            "status": "green",
+            "optimizer_status": "ok",
+            "points_count": 1000,
+            "indexed_vectors_count": 1000,
+            "segments_count": 2,
+            "quantization_config": {
+              "scalar": {
+                "type": "int8",
+                "memory": "pinned"
+              }
+            }
+          }
+        ],
+        "final": {
+          "elapsed_seconds": 18.0,
+          "status": "green",
+          "optimizer_status": "ok",
+          "points_count": 1000,
+          "indexed_vectors_count": 1000,
+          "segments_count": 2,
+          "quantization_config": {
+            "scalar": {
+              "type": "int8",
+              "memory": "pinned"
+            }
+          }
+        }
+      },
+      "artifact_inspection": {
+        "status": "ok",
+        "segment_artifacts": [
+          {
+            "segment_id": "d207f958-83f5-40de-8960-73a68aa424dc",
+            "quantized_config": {
+              "quantization_config": {
+                "scalar": {
+                  "type": "int8",
+                  "memory": "pinned"
+                }
+              },
+              "vector_parameters": {
+                "dim": 512,
+                "distance_type": "Dot",
+                "invert": false,
+                "count": 1000
+              }
+            },
+            "quantized_meta_summary": {
+              "encoding": null,
+              "keys": [
+                "actual_dim",
+                "alpha",
+                "multiplier",
+                "offset",
+                "vector_parameters"
+              ],
+              "vector_stats_count": 0
+            },
+            "files": [
+              {
+                "path": "0/segments/d207f958-83f5-40de-8960-73a68aa424dc/vector_storage/quantized.config.json",
+                "bytes": 150,
+                "mtime_utc": "2026-11-04T06:04:36.815275+00:00"
+              },
+              {
+                "path": "0/segments/d207f958-83f5-40de-8960-73a68aa424dc/vector_storage/quantized.meta.json",
+                "bytes": 169,
+                "mtime_utc": "2026-11-04T06:04:36.615297+00:00"
+              },
+              {
+                "path": "0/segments/d207f958-83f5-40de-8960-73a68aa424dc/vector_storage/quantized.data",
+                "bytes": 516000,
+                "mtime_utc": "2026-11-04T06:04:36.447315+00:00"
+              }
+            ],
+            "payload_files": [
+              {
+                "path": "0/segments/d207f958-83f5-40de-8960-73a68aa424dc/vector_storage/quantized.data",
+                "bytes": 516000,
+                "mtime_utc": "2026-11-04T06:04:36.447315+00:00"
+              }
+            ]
+          }
+        ],
+        "metadata_encodings_found": [],
+        "matching_quantization_configs": 1,
+        "encoded_payload_bytes": 516000,
+        "expected_raw_payload_bytes_approx": 512000,
+        "payload_meets_75_percent_estimate": true,
+        "collection_quantization_config": {
+          "scalar": {
+            "type": "int8",
+            "memory": "pinned"
+          }
+        },
+        "config_matches_requested": true
+      },
+      "query": {
+        "status": "ok",
+        "route": "points/query",
+        "returned": 5,
+        "rescore": true,
+        "oversampling": 2.0,
+        "scores_finite": true
+      },
+      "build_confirmed": true
+    },
+    {
+      "name": "binary_1_5bit",
+      "collection": "ann_binary_1_5bit_20261104T060254Z55d423",
+      "dimension": 512,
+      "points_expected": 1000,
+      "seed": 20261104,
+      "quantization_config_requested_at_create": {
+        "binary": {
+          "memory": "pinned",
+          "encoding": "one_and_half_bits"
+        }
+      },
+      "create": {
+        "status": "ok",
+        "response": {
+          "result": true,
+          "status": "ok",
+          "time": 47.528140341
+        }
+      },
+      "upsert": {
+        "status": "ok",
+        "result": {
+          "operation_id": 1,
+          "status": "completed"
+        },
+        "submitted_points": 1000
+      },
+      "optimizer_wait": {
+        "status": "green",
+        "deadline_reached": false,
+        "observations": [
+          {
+            "elapsed_seconds": 0.0,
+            "status": "yellow",
+            "optimizer_status": "ok",
+            "points_count": 1000,
+            "indexed_vectors_count": 0,
+            "segments_count": 1,
+            "quantization_config": {
+              "binary": {
+                "memory": "pinned",
+                "encoding": "one_and_half_bits"
+              }
+            }
+          },
+          {
+            "elapsed_seconds": 46.1,
+            "status": "yellow",
+            "optimizer_status": "ok",
+            "points_count": 1000,
+            "indexed_vectors_count": 0,
+            "segments_count": 2,
+            "quantization_config": {
+              "binary": {
+                "memory": "pinned",
+                "encoding": "one_and_half_bits"
+              }
+            }
+          },
+          {
+            "elapsed_seconds": 60.1,
+            "status": "green",
+            "optimizer_status": "ok",
+            "points_count": 1000,
+            "indexed_vectors_count": 1000,
+            "segments_count": 2,
+            "quantization_config": {
+              "binary": {
+                "memory": "pinned",
+                "encoding": "one_and_half_bits"
+              }
+            }
+          }
+        ],
+        "final": {
+          "elapsed_seconds": 60.1,
+          "status": "green",
+          "optimizer_status": "ok",
+          "points_count": 1000,
+          "indexed_vectors_count": 1000,
+          "segments_count": 2,
+          "quantization_config": {
+            "binary": {
+              "memory": "pinned",
+              "encoding": "one_and_half_bits"
+            }
+          }
+        }
+      },
+      "artifact_inspection": {
+        "status": "ok",
+        "segment_artifacts": [
+          {
+            "segment_id": "14a8e2c5-72cf-4683-9fc3-f5e238dbc60c",
+            "quantized_config": {
+              "quantization_config": {
+                "binary": {
+                  "memory": "pinned",
+                  "encoding": "one_and_half_bits"
+                }
+              },
+              "vector_parameters": {
+                "dim": 512,
+                "distance_type": "Dot",
+                "invert": false
+              },
+              "storage_type": "Mutable"
+            },
+            "quantized_meta_summary": {
+              "encoding": "OneAndHalfBits",
+              "keys": [
+                "encoding",
+                "vector_parameters",
+                "vector_stats"
+              ],
+              "vector_stats_count": 512
+            },
+            "files": [
+              {
+                "path": "0/segments/14a8e2c5-72cf-4683-9fc3-f5e238dbc60c/vector_storage/quantized.config.json",
+                "bytes": 179,
+                "mtime_utc": "2026-11-04T06:06:07.753346+00:00"
+              },
+              {
+                "path": "0/segments/14a8e2c5-72cf-4683-9fc3-f5e238dbc60c/vector_storage/quantized.meta.json",
+                "bytes": 34438,
+                "mtime_utc": "2026-11-04T06:05:59.588745+00:00"
+              },
+              {
+                "path": "0/segments/14a8e2c5-72cf-4683-9fc3-f5e238dbc60c/vector_storage/quantized_data/status.dat",
+                "bytes": 8,
+                "mtime_utc": "2026-11-04T06:05:57.449661+00:00"
+              },
+              {
+                "path": "0/segments/14a8e2c5-72cf-4683-9fc3-f5e238dbc60c/vector_storage/quantized_data/config.json",
+                "bytes": 66,
+                "mtime_utc": "2026-11-04T06:05:50.054247+00:00"
+              }
+            ],
+            "payload_files": []
+          },
+          {
+            "segment_id": "16b79f33-8df6-42b7-91f6-7ee8d3d58972",
+            "quantized_config": {
+              "quantization_config": {
+                "binary": {
+                  "memory": "pinned",
+                  "encoding": "one_and_half_bits"
+                }
+              },
+              "vector_parameters": {
+                "dim": 512,
+                "distance_type": "Dot",
+                "invert": false
+              },
+              "storage_type": "Mutable"
+            },
+            "quantized_meta_summary": {
+              "encoding": "OneAndHalfBits",
+              "keys": [
+                "encoding",
+                "vector_parameters",
+                "vector_stats"
+              ],
+              "vector_stats_count": 512
+            },
+            "files": [
+              {
+                "path": "0/segments/16b79f33-8df6-42b7-91f6-7ee8d3d58972/vector_storage/quantized.config.json",
+                "bytes": 179,
+                "mtime_utc": "2026-11-04T06:04:58.907691+00:00"
+              },
+              {
+                "path": "0/segments/16b79f33-8df6-42b7-91f6-7ee8d3d58972/vector_storage/quantized.meta.json",
+                "bytes": 34438,
+                "mtime_utc": "2026-11-04T06:04:57.461464+00:00"
+              },
+              {
+                "path": "0/segments/16b79f33-8df6-42b7-91f6-7ee8d3d58972/vector_storage/quantized_data/status.dat",
+                "bytes": 8,
+                "mtime_utc": "2026-11-04T06:05:50.054247+00:00"
+              },
+              {
+                "path": "0/segments/16b79f33-8df6-42b7-91f6-7ee8d3d58972/vector_storage/quantized_data/chunk_0.mmap",
+                "bytes": 33554400,
+                "mtime_utc": "2026-11-04T06:05:33.044549+00:00"
+              },
+              {
+                "path": "0/segments/16b79f33-8df6-42b7-91f6-7ee8d3d58972/vector_storage/quantized_data/config.json",
+                "bytes": 66,
+                "mtime_utc": "2026-11-04T06:04:52.687872+00:00"
+              }
+            ],
+            "payload_files": []
+          },
+          {
+            "segment_id": "355802c2-1de8-4a35-88a5-f64d0943a551",
+            "quantized_config": {
+              "quantization_config": {
+                "binary": {
+                  "memory": "pinned",
+                  "encoding": "one_and_half_bits"
+                }
+              },
+              "vector_parameters": {
+                "dim": 512,
+                "distance_type": "Dot",
+                "invert": false,
+                "count": 1000
+              }
+            },
+            "quantized_meta_summary": {
+              "encoding": "OneAndHalfBits",
+              "keys": [
+                "encoding",
+                "vector_parameters",
+                "vector_stats"
+              ],
+              "vector_stats_count": 512
+            },
+            "files": [
+              {
+                "path": "0/segments/355802c2-1de8-4a35-88a5-f64d0943a551/vector_storage/quantized.config.json",
+                "bytes": 167,
+                "mtime_utc": "2026-11-04T06:06:21.944836+00:00"
+              },
+              {
+                "path": "0/segments/355802c2-1de8-4a35-88a5-f64d0943a551/vector_storage/quantized.meta.json",
+                "bytes": 40067,
+                "mtime_utc": "2026-11-04T06:06:21.377172+00:00"
+              },
+              {
+                "path": "0/segments/355802c2-1de8-4a35-88a5-f64d0943a551/vector_storage/quantized.data",
+                "bytes": 96000,
+                "mtime_utc": "2026-11-04T06:06:21.153305+00:00"
+              }
+            ],
+            "payload_files": [
+              {
+                "path": "0/segments/355802c2-1de8-4a35-88a5-f64d0943a551/vector_storage/quantized.data",
+                "bytes": 96000,
+                "mtime_utc": "2026-11-04T06:06:21.153305+00:00"
+              }
+            ]
+          }
+        ],
+        "metadata_encodings_found": [
+          "OneAndHalfBits",
+          "one_and_half_bits"
+        ],
+        "matching_quantization_configs": 3,
+        "encoded_payload_bytes": 96000,
+        "expected_raw_payload_bytes_approx": 96000,
+        "payload_meets_75_percent_estimate": true,
+        "collection_quantization_config": {
+          "binary": {
+            "memory": "pinned",
+            "encoding": "one_and_half_bits"
+          }
+        },
+        "config_matches_requested": true
+      },
+      "query": {
+        "status": "ok",
+        "route": "points/query",
+        "returned": 5,
+        "rescore": true,
+        "oversampling": 2.0,
+        "scores_finite": true
+      },
+      "build_confirmed": true
+    },
+    {
+      "name": "binary_2bit",
+      "collection": "ann_binary_2bit_20261104T060254Z55d423",
+      "dimension": 512,
+      "points_expected": 1000,
+      "seed": 20261104,
+      "quantization_config_requested_at_create": {
+        "binary": {
+          "memory": "pinned",
+          "encoding": "two_bits"
+        }
+      },
+      "create": {
+        "status": "ok",
+        "response": {
+          "result": true,
+          "status": "ok",
+          "time": 15.246254955
+        }
+      },
+      "upsert": {
+        "status": "ok",
+        "result": {
+          "operation_id": 1,
+          "status": "completed"
+        },
+        "submitted_points": 1000
+      },
+      "optimizer_wait": {
+        "status": "green",
+        "deadline_reached": false,
+        "observations": [
+          {
+            "elapsed_seconds": 0.0,
+            "status": "yellow",
+            "optimizer_status": "ok",
+            "points_count": 1000,
+            "indexed_vectors_count": 0,
+            "segments_count": 1,
+            "quantization_config": {
+              "binary": {
+                "memory": "pinned",
+                "encoding": "two_bits"
+              }
+            }
+          },
+          {
+            "elapsed_seconds": 8.0,
+            "status": "yellow",
+            "optimizer_status": "ok",
+            "points_count": 1000,
+            "indexed_vectors_count": 0,
+            "segments_count": 2,
+            "quantization_config": {
+              "binary": {
+                "memory": "pinned",
+                "encoding": "two_bits"
+              }
+            }
+          },
+          {
+            "elapsed_seconds": 14.0,
+            "status": "green",
+            "optimizer_status": "ok",
+            "points_count": 1000,
+            "indexed_vectors_count": 1000,
+            "segments_count": 2,
+            "quantization_config": {
+              "binary": {
+                "memory": "pinned",
+                "encoding": "two_bits"
+              }
+            }
+          }
+        ],
+        "final": {
+          "elapsed_seconds": 14.0,
+          "status": "green",
+          "optimizer_status": "ok",
+          "points_count": 1000,
+          "indexed_vectors_count": 1000,
+          "segments_count": 2,
+          "quantization_config": {
+            "binary": {
+              "memory": "pinned",
+              "encoding": "two_bits"
+            }
+          }
+        }
+      },
+      "artifact_inspection": {
+        "status": "ok",
+        "segment_artifacts": [
+          {
+            "segment_id": "843c0a61-182c-4bf2-8b2d-dfbcbc68b574",
+            "quantized_config": {
+              "quantization_config": {
+                "binary": {
+                  "memory": "pinned",
+                  "encoding": "two_bits"
+                }
+              },
+              "vector_parameters": {
+                "dim": 512,
+                "distance_type": "Dot",
+                "invert": false
+              },
+              "storage_type": "Mutable"
+            },
+            "quantized_meta_summary": {
+              "encoding": "TwoBits",
+              "keys": [
+                "encoding",
+                "vector_parameters",
+                "vector_stats"
+              ],
+              "vector_stats_count": 512
+            },
+            "files": [
+              {
+                "path": "0/segments/843c0a61-182c-4bf2-8b2d-dfbcbc68b574/vector_storage/quantized.config.json",
+                "bytes": 170,
+                "mtime_utc": "2026-11-04T06:06:55.110561+00:00"
+              },
+              {
+                "path": "0/segments/843c0a61-182c-4bf2-8b2d-dfbcbc68b574/vector_storage/quantized.meta.json",
+                "bytes": 34431,
+                "mtime_utc": "2026-11-04T06:06:54.729591+00:00"
+              },
+              {
+                "path": "0/segments/843c0a61-182c-4bf2-8b2d-dfbcbc68b574/vector_storage/quantized_data/status.dat",
+                "bytes": 8,
+                "mtime_utc": "2026-11-04T06:06:54.456884+00:00"
+              },
+              {
+                "path": "0/segments/843c0a61-182c-4bf2-8b2d-dfbcbc68b574/vector_storage/quantized_data/config.json",
+                "bytes": 67,
+                "mtime_utc": "2026-11-04T06:06:53.839250+00:00"
+              }
+            ],
+            "payload_files": []
+          },
+          {
+            "segment_id": "8e88d1c2-9a03-4aa8-bc14-3609eac2ecbb",
+            "quantized_config": {
+              "quantization_config": {
+                "binary": {
+                  "memory": "pinned",
+                  "encoding": "two_bits"
+                }
+              },
+              "vector_parameters": {
+                "dim": 512,
+                "distance_type": "Dot",
+                "invert": false
+              },
+              "storage_type": "Mutable"
+            },
+            "quantized_meta_summary": {
+              "encoding": "TwoBits",
+              "keys": [
+                "encoding",
+                "vector_parameters",
+                "vector_stats"
+              ],
+              "vector_stats_count": 512
+            },
+            "files": [
+              {
+                "path": "0/segments/8e88d1c2-9a03-4aa8-bc14-3609eac2ecbb/vector_storage/quantized.config.json",
+                "bytes": 170,
+                "mtime_utc": "2026-11-04T06:06:41.755637+00:00"
+              },
+              {
+                "path": "0/segments/8e88d1c2-9a03-4aa8-bc14-3609eac2ecbb/vector_storage/quantized.meta.json",
+                "bytes": 34431,
+                "mtime_utc": "2026-11-04T06:06:40.616929+00:00"
+              },
+              {
+                "path": "0/segments/8e88d1c2-9a03-4aa8-bc14-3609eac2ecbb/vector_storage/quantized_data/status.dat",
+                "bytes": 8,
+                "mtime_utc": "2026-11-04T06:06:58.526077+00:00"
+              },
+              {
+                "path": "0/segments/8e88d1c2-9a03-4aa8-bc14-3609eac2ecbb/vector_storage/quantized_data/chunk_0.mmap",
+                "bytes": 33554432,
+                "mtime_utc": "2026-11-04T06:06:51.893585+00:00"
+              },
+              {
+                "path": "0/segments/8e88d1c2-9a03-4aa8-bc14-3609eac2ecbb/vector_storage/quantized_data/config.json",
+                "bytes": 67,
+                "mtime_utc": "2026-11-04T06:06:39.314395+00:00"
+              }
+            ],
+            "payload_files": []
+          },
+          {
+            "segment_id": "c1db84b7-2db7-41c6-8bfd-1d630f37f199",
+            "quantized_config": {
+              "quantization_config": {
+                "binary": {
+                  "memory": "pinned",
+                  "encoding": "two_bits"
+                }
+              },
+              "vector_parameters": {
+                "dim": 512,
+                "distance_type": "Dot",
+                "invert": false,
+                "count": 1000
+              }
+            },
+            "quantized_meta_summary": {
+              "encoding": "TwoBits",
+              "keys": [
+                "encoding",
+                "vector_parameters",
+                "vector_stats"
+              ],
+              "vector_stats_count": 512
+            },
+            "files": [
+              {
+                "path": "0/segments/c1db84b7-2db7-41c6-8bfd-1d630f37f199/vector_storage/quantized.config.json",
+                "bytes": 158,
+                "mtime_utc": "2026-11-04T06:07:01.627412+00:00"
+              },
+              {
+                "path": "0/segments/c1db84b7-2db7-41c6-8bfd-1d630f37f199/vector_storage/quantized.meta.json",
+                "bytes": 40060,
+                "mtime_utc": "2026-11-04T06:07:01.086578+00:00"
+              },
+              {
+                "path": "0/segments/c1db84b7-2db7-41c6-8bfd-1d630f37f199/vector_storage/quantized.data",
+                "bytes": 128000,
+                "mtime_utc": "2026-11-04T06:07:00.802115+00:00"
+              }
+            ],
+            "payload_files": [
+              {
+                "path": "0/segments/c1db84b7-2db7-41c6-8bfd-1d630f37f199/vector_storage/quantized.data",
+                "bytes": 128000,
+                "mtime_utc": "2026-11-04T06:07:00.802115+00:00"
+              }
+            ]
+          }
+        ],
+        "metadata_encodings_found": [
+          "TwoBits",
+          "two_bits"
+        ],
+        "matching_quantization_configs": 3,
+        "encoded_payload_bytes": 128000,
+        "expected_raw_payload_bytes_approx": 128000,
+        "payload_meets_75_percent_estimate": true,
+        "collection_quantization_config": {
+          "binary": {
+            "memory": "pinned",
+            "encoding": "two_bits"
+          }
+        },
+        "config_matches_requested": true
+      },
+      "query": {
+        "status": "ok",
+        "route": "points/query",
+        "returned": 5,
+        "rescore": true,
+        "oversampling": 2.0,
+        "scores_finite": true
+      },
+      "build_confirmed": true
+    }
+  ],
+  "constraints": [
+    "製品コードは変更していない。",
+    "サーバーはloopbackのみで接続し、自分が起動したプロセスだけをfinallyで停止。",
+    "削除・クリーンアップは実行せず、生成storageは保持。",
+    "計時は性能比較に用いず、スモーク結果のみ。"
+  ],
+  "storage_retained": true
+}
