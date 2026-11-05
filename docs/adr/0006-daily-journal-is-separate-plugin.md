@@ -4,6 +4,7 @@
 | --- | --- |
 | 状態 | 承認。保存先とノートの置き場所は ADR-0008 で置き換え済み |
 | 決定日 | 2026年11月3日 |
+| 改訂 | 2026年11月5日：日付ノートの frontmatter の例の `type: daily` を `type: "daily"` に改めた。wiki の仕様では、文字列の値を二重引用符で囲む（`SCHEMA.md.template` の 69 行目） |
 | 決定者 | info-hive の開発者（このリポジトリの作者） |
 | 関連 | `docs/research/daily-journal-methodology-options.md`（方法論の検討）、`docs/research/daily-journal-decision-matrix.md`（構成と置き場所の決定行列）、ADR-0003（プラグインごとにリポジトリを分ける） |
 
@@ -43,7 +44,7 @@ info-hive に、日々の予定、タスク、メモを記録する機能を足�
 
 ```markdown
 ---
-type: daily
+type: "daily"
 title: "2026-11-03"
 date: 2026-11-03
 tags: []
