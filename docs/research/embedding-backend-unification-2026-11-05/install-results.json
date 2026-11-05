@@ -1,0 +1,437 @@
+{
+  "python": "3.12",
+  "uv": "uv 0.12.2 (46ead6098 2026-08-05 x86_64-pc-windows-msvc)",
+  "note": "ネットワークの速さに左右される。空のキャッシュの値はダウンロードを含む。environment_bytes は uv が作った実行環境の容量",
+  "results": [
+    {
+      "configuration": "共通のみ",
+      "packages": [
+        "mcp>=1.28,<2",
+        "pypdfium2>=5,<6",
+        "sudachipy>=0.6,<0.8",
+        "sudachidict-core",
+        "pyyaml>=6,<7",
+        "filelock>=3,<5",
+        "psutil>=7,<8",
+        "numpy>=2,<3",
+        "pillow>=11,<14",
+        "onnxruntime>=1.31,<2"
+      ],
+      "runs": [
+        {
+          "run": "空のキャッシュ",
+          "seconds": 11.253664799995022,
+          "returncode": 0,
+          "stderr_tail": ""
+        },
+        {
+          "run": "同じキャッシュ",
+          "seconds": 0.8719028999912553,
+          "returncode": 0,
+          "stderr_tail": ""
+        }
+      ],
+      "cache_bytes": 731021266,
+      "environment_bytes": 359698851
+    },
+    {
+      "configuration": "現行 rag（torch + LanceDB）",
+      "packages": [
+        "mcp>=1.28,<2",
+        "pypdfium2>=5,<6",
+        "sudachipy>=0.6,<0.8",
+        "sudachidict-core",
+        "pyyaml>=6,<7",
+        "filelock>=3,<5",
+        "psutil>=7,<8",
+        "numpy>=2,<3",
+        "pillow>=11,<14",
+        "onnxruntime>=1.31,<2",
+        "sentence-transformers>=5,<6",
+        "torch==2.8.0",
+        "lancedb>=0.25,<0.30"
+      ],
+      "runs": [
+        {
+          "run": "空のキャッシュ",
+          "seconds": 93.06166950000625,
+          "returncode": 0,
+          "stderr_tail": ""
+        },
+        {
+          "run": "同じキャッシュ",
+          "seconds": 1.6394595000019763,
+          "returncode": 0,
+          "stderr_tail": ""
+        }
+      ],
+      "cache_bytes": 8058042658,
+      "environment_bytes": 4019680588
+    },
+    {
+      "configuration": "torch のみ",
+      "packages": [
+        "mcp>=1.28,<2",
+        "pypdfium2>=5,<6",
+        "sudachipy>=0.6,<0.8",
+        "sudachidict-core",
+        "pyyaml>=6,<7",
+        "filelock>=3,<5",
+        "psutil>=7,<8",
+        "numpy>=2,<3",
+        "pillow>=11,<14",
+        "onnxruntime>=1.31,<2",
+        "sentence-transformers>=5,<6",
+        "torch==2.8.0"
+      ],
+      "runs": [
+        {
+          "run": "空のキャッシュ",
+          "seconds": 75.53647439999622,
+          "returncode": 0,
+          "stderr_tail": ""
+        },
+        {
+          "run": "同じキャッシュ",
+          "seconds": 1.5394666000065627,
+          "returncode": 0,
+          "stderr_tail": ""
+        }
+      ],
+      "cache_bytes": 7558541314,
+      "environment_bytes": 3770267511
+    },
+    {
+      "configuration": "fastembed のみ",
+      "packages": [
+        "mcp>=1.28,<2",
+        "pypdfium2>=5,<6",
+        "sudachipy>=0.6,<0.8",
+        "sudachidict-core",
+        "pyyaml>=6,<7",
+        "filelock>=3,<5",
+        "psutil>=7,<8",
+        "numpy>=2,<3",
+        "pillow>=11,<14",
+        "onnxruntime>=1.31,<2",
+        "fastembed==0.8.0"
+      ],
+      "runs": [
+        {
+          "run": "空のキャッシュ",
+          "seconds": 10.302767300003325,
+          "returncode": 0,
+          "stderr_tail": ""
+        },
+        {
+          "run": "同じキャッシュ",
+          "seconds": 1.0052123999921605,
+          "returncode": 0,
+          "stderr_tail": ""
+        }
+      ],
+      "cache_bytes": 783723683,
+      "environment_bytes": 384904599
+    },
+    {
+      "configuration": "fastembed + LanceDB",
+      "packages": [
+        "mcp>=1.28,<2",
+        "pypdfium2>=5,<6",
+        "sudachipy>=0.6,<0.8",
+        "sudachidict-core",
+        "pyyaml>=6,<7",
+        "filelock>=3,<5",
+        "psutil>=7,<8",
+        "numpy>=2,<3",
+        "pillow>=11,<14",
+        "onnxruntime>=1.31,<2",
+        "fastembed==0.8.0",
+        "lancedb>=0.25,<0.30"
+      ],
+      "runs": [
+        {
+          "run": "空のキャッシュ",
+          "seconds": 12.901188600008027,
+          "returncode": 0,
+          "stderr_tail": ""
+        },
+        {
+          "run": "同じキャッシュ",
+          "seconds": 1.1314615000010235,
+          "returncode": 0,
+          "stderr_tail": ""
+        }
+      ],
+      "cache_bytes": 1282269726,
+      "environment_bytes": 633866984
+    },
+    {
+      "configuration": "fastembed + sqlite-vec",
+      "packages": [
+        "mcp>=1.28,<2",
+        "pypdfium2>=5,<6",
+        "sudachipy>=0.6,<0.8",
+        "sudachidict-core",
+        "pyyaml>=6,<7",
+        "filelock>=3,<5",
+        "psutil>=7,<8",
+        "numpy>=2,<3",
+        "pillow>=11,<14",
+        "onnxruntime>=1.31,<2",
+        "fastembed==0.8.0",
+        "sqlite-vec==0.1.9"
+      ],
+      "runs": [
+        {
+          "run": "空のキャッシュ",
+          "seconds": 9.820714799992857,
+          "returncode": 0,
+          "stderr_tail": ""
+        },
+        {
+          "run": "同じキャッシュ",
+          "seconds": 0.9278197999956319,
+          "returncode": 0,
+          "stderr_tail": ""
+        }
+      ],
+      "cache_bytes": 784389280,
+      "environment_bytes": 385196775
+    },
+    {
+      "configuration": "fastembed + Qdrant",
+      "packages": [
+        "mcp>=1.28,<2",
+        "pypdfium2>=5,<6",
+        "sudachipy>=0.6,<0.8",
+        "sudachidict-core",
+        "pyyaml>=6,<7",
+        "filelock>=3,<5",
+        "psutil>=7,<8",
+        "numpy>=2,<3",
+        "pillow>=11,<14",
+        "onnxruntime>=1.31,<2",
+        "fastembed==0.8.0",
+        "qdrant-client==1.20.0"
+      ],
+      "runs": [
+        {
+          "run": "空のキャッシュ",
+          "seconds": 10.330122499988647,
+          "returncode": 0,
+          "stderr_tail": ""
+        },
+        {
+          "run": "同じキャッシュ",
+          "seconds": 1.0371589999995194,
+          "returncode": 0,
+          "stderr_tail": ""
+        }
+      ],
+      "cache_bytes": 821347216,
+      "environment_bytes": 402211092
+    },
+    {
+      "configuration": "fastembed + usearch",
+      "packages": [
+        "mcp>=1.28,<2",
+        "pypdfium2>=5,<6",
+        "sudachipy>=0.6,<0.8",
+        "sudachidict-core",
+        "pyyaml>=6,<7",
+        "filelock>=3,<5",
+        "psutil>=7,<8",
+        "numpy>=2,<3",
+        "pillow>=11,<14",
+        "onnxruntime>=1.31,<2",
+        "fastembed==0.8.0",
+        "usearch==2.26.6"
+      ],
+      "runs": [
+        {
+          "run": "空のキャッシュ",
+          "seconds": 9.576149999993504,
+          "returncode": 0,
+          "stderr_tail": ""
+        },
+        {
+          "run": "同じキャッシュ",
+          "seconds": 0.9813386000023456,
+          "returncode": 0,
+          "stderr_tail": ""
+        }
+      ],
+      "cache_bytes": 787403515,
+      "environment_bytes": 385845484
+    },
+    {
+      "configuration": "fastembed + FAISS",
+      "packages": [
+        "mcp>=1.28,<2",
+        "pypdfium2>=5,<6",
+        "sudachipy>=0.6,<0.8",
+        "sudachidict-core",
+        "pyyaml>=6,<7",
+        "filelock>=3,<5",
+        "psutil>=7,<8",
+        "numpy>=2,<3",
+        "pillow>=11,<14",
+        "onnxruntime>=1.31,<2",
+        "fastembed==0.8.0",
+        "faiss-cpu==1.15.1"
+      ],
+      "runs": [
+        {
+          "run": "空のキャッシュ",
+          "seconds": 9.598332999987178,
+          "returncode": 0,
+          "stderr_tail": ""
+        },
+        {
+          "run": "同じキャッシュ",
+          "seconds": 0.9669127999950433,
+          "returncode": 0,
+          "stderr_tail": ""
+        }
+      ],
+      "cache_bytes": 916290982,
+      "environment_bytes": 451112521
+    },
+    {
+      "configuration": "fastembed + Chroma",
+      "packages": [
+        "mcp>=1.28,<2",
+        "pypdfium2>=5,<6",
+        "sudachipy>=0.6,<0.8",
+        "sudachidict-core",
+        "pyyaml>=6,<7",
+        "filelock>=3,<5",
+        "psutil>=7,<8",
+        "numpy>=2,<3",
+        "pillow>=11,<14",
+        "onnxruntime>=1.31,<2",
+        "fastembed==0.8.0",
+        "chromadb==1.5.9"
+      ],
+      "runs": [
+        {
+          "run": "空のキャッシュ",
+          "seconds": 20.021575100006885,
+          "returncode": 0,
+          "stderr_tail": ""
+        },
+        {
+          "run": "同じキャッシュ",
+          "seconds": 1.9631343000073684,
+          "returncode": 0,
+          "stderr_tail": ""
+        }
+      ],
+      "cache_bytes": 1140705190,
+      "environment_bytes": 556720767
+    },
+    {
+      "configuration": "fastembed + FAISS + Tantivy",
+      "packages": [
+        "mcp>=1.28,<2",
+        "pypdfium2>=5,<6",
+        "sudachipy>=0.6,<0.8",
+        "sudachidict-core",
+        "pyyaml>=6,<7",
+        "filelock>=3,<5",
+        "psutil>=7,<8",
+        "numpy>=2,<3",
+        "pillow>=11,<14",
+        "onnxruntime>=1.31,<2",
+        "fastembed==0.8.0",
+        "faiss-cpu==1.15.1",
+        "tantivy==0.27.0"
+      ],
+      "runs": [
+        {
+          "run": "空のキャッシュ",
+          "seconds": 10.909219599998323,
+          "returncode": 0,
+          "stderr_tail": ""
+        },
+        {
+          "run": "同じキャッシュ",
+          "seconds": 0.9552401999972062,
+          "returncode": 0,
+          "stderr_tail": ""
+        }
+      ],
+      "cache_bytes": 940080416,
+      "environment_bytes": 462968213
+    },
+    {
+      "configuration": "fastembed + usearch + Tantivy",
+      "packages": [
+        "mcp>=1.28,<2",
+        "pypdfium2>=5,<6",
+        "sudachipy>=0.6,<0.8",
+        "sudachidict-core",
+        "pyyaml>=6,<7",
+        "filelock>=3,<5",
+        "psutil>=7,<8",
+        "numpy>=2,<3",
+        "pillow>=11,<14",
+        "onnxruntime>=1.31,<2",
+        "fastembed==0.8.0",
+        "usearch==2.26.6",
+        "tantivy==0.27.0"
+      ],
+      "runs": [
+        {
+          "run": "空のキャッシュ",
+          "seconds": 10.64479360000405,
+          "returncode": 0,
+          "stderr_tail": ""
+        },
+        {
+          "run": "同じキャッシュ",
+          "seconds": 0.9312487999995938,
+          "returncode": 0,
+          "stderr_tail": ""
+        }
+      ],
+      "cache_bytes": 811192949,
+      "environment_bytes": 397701176
+    },
+    {
+      "configuration": "fastembed + sqlite-vec + Tantivy",
+      "packages": [
+        "mcp>=1.28,<2",
+        "pypdfium2>=5,<6",
+        "sudachipy>=0.6,<0.8",
+        "sudachidict-core",
+        "pyyaml>=6,<7",
+        "filelock>=3,<5",
+        "psutil>=7,<8",
+        "numpy>=2,<3",
+        "pillow>=11,<14",
+        "onnxruntime>=1.31,<2",
+        "fastembed==0.8.0",
+        "sqlite-vec==0.1.9",
+        "tantivy==0.27.0"
+      ],
+      "runs": [
+        {
+          "run": "空のキャッシュ",
+          "seconds": 10.16963059999398,
+          "returncode": 0,
+          "stderr_tail": ""
+        },
+        {
+          "run": "同じキャッシュ",
+          "seconds": 0.9697090999979991,
+          "returncode": 0,
+          "stderr_tail": ""
+        }
+      ],
+      "cache_bytes": 808178714,
+      "environment_bytes": 397052467
+    }
+  ]
+}

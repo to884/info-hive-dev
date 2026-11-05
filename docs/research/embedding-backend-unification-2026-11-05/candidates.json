@@ -1,0 +1,213 @@
+{
+  "rows": 10000,
+  "dimension": 512,
+  "vectors": "乱数の単位ベクトル（DB の動作確認用。精度の評価ではない）",
+  "python": "3.12.13",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "sqlite": "3.53.1",
+  "packages": {
+    "sqlite-vec": "0.1.9",
+    "lancedb": "0.29.2",
+    "qdrant-client": "1.20.0",
+    "usearch": "2.26.6",
+    "faiss-cpu": "1.15.1",
+    "chromadb": "1.5.9",
+    "fastembed": "0.8.0",
+    "sentence-transformers": "5.7.0",
+    "torch": "2.8.0+cpu",
+    "sudachipy": "0.7.0",
+    "numpy": "2.5.4"
+  },
+  "qdrant_server": "1.20.0（公式の Windows バイナリ）",
+  "natural_set_has_terms": false,
+  "natural_terms_note": "natural-20261104 の corpus.json に terms はない。M2 で Engine.tokenize と同じ Sudachi の分かち書きを作る。",
+  "excluded": [
+    {
+      "candidate": "Milvus Lite",
+      "reason": "Windows に対応しない"
+    },
+    {
+      "candidate": "Milvus standalone、Weaviate",
+      "reason": "Windows では Docker か WSL が要る"
+    },
+    {
+      "candidate": "DuckDB VSS、hnswlib",
+      "reason": "索引全体を RAM に載せる（japanese-pdf-local-rag-options.md:110）"
+    },
+    {
+      "candidate": "Typesense、Meilisearch",
+      "reason": "既存調査の除外理由（同 :108-109）"
+    },
+    {
+      "candidate": "PostgreSQL + pgvector",
+      "reason": "別のデータベースサーバーの導入と管理が要り、プラグインの配布に合わない（同 :416）"
+    }
+  ],
+  "results": [
+    {
+      "candidate": "sqlite-vec f32",
+      "variant": "f32",
+      "build_seconds": 6.056559799995739,
+      "dense_mean_ms": 22.935244999825954,
+      "recall_at_30_at_largest_knob": 1.0,
+      "lexical_hits": 30,
+      "lexical_finds_own_row": true,
+      "filter_native": true,
+      "filter_respected": true,
+      "size_bytes": 44978176,
+      "status": "ok"
+    },
+    {
+      "candidate": "sqlite-vec int8",
+      "variant": "int8",
+      "build_seconds": 1.577296400006162,
+      "dense_mean_ms": 12.00609999941662,
+      "recall_at_30_at_largest_knob": 0.9083333333333332,
+      "lexical_hits": 30,
+      "lexical_finds_own_row": true,
+      "filter_native": true,
+      "filter_respected": true,
+      "size_bytes": 29216768,
+      "status": "ok"
+    },
+    {
+      "candidate": "sqlite-vec bit+rescore",
+      "variant": "bit",
+      "build_seconds": 5.236626300000353,
+      "dense_mean_ms": 143.52533500059508,
+      "recall_at_30_at_largest_knob": 0.8600000000000001,
+      "lexical_hits": 30,
+      "lexical_finds_own_row": true,
+      "filter_native": true,
+      "filter_respected": true,
+      "size_bytes": 45887488,
+      "status": "ok"
+    },
+    {
+      "candidate": "LanceDB IVF_SQ",
+      "variant": "ivf_sq",
+      "build_seconds": 5.53322830000252,
+      "dense_mean_ms": 11.388210000586696,
+      "recall_at_30_at_largest_knob": 1.0,
+      "lexical_hits": 30,
+      "lexical_finds_own_row": true,
+      "filter_native": true,
+      "filter_respected": true,
+      "size_bytes": 58718458,
+      "status": "ok"
+    },
+    {
+      "candidate": "Qdrant HNSW f32",
+      "variant": "f32",
+      "build_seconds": 9.217058199996245,
+      "dense_mean_ms": 5.349094999837689,
+      "recall_at_30_at_largest_knob": 0.958333333333333,
+      "lexical_hits": 30,
+      "lexical_finds_own_row": true,
+      "filter_native": true,
+      "filter_respected": true,
+      "size_bytes": 458227429,
+      "status": "ok"
+    },
+    {
+      "candidate": "Qdrant HNSW SQ",
+      "variant": "sq",
+      "build_seconds": 6.435325699989335,
+      "dense_mean_ms": 2.711680000356864,
+      "recall_at_30_at_largest_knob": 0.9599999999999997,
+      "lexical_hits": 30,
+      "lexical_finds_own_row": true,
+      "filter_native": true,
+      "filter_respected": true,
+      "size_bytes": 463386929,
+      "status": "ok"
+    },
+    {
+      "candidate": "Qdrant HNSW BQ",
+      "variant": "bq",
+      "build_seconds": 5.98189110000385,
+      "dense_mean_ms": 2.681540000048699,
+      "recall_at_30_at_largest_knob": 0.2816666666666667,
+      "lexical_hits": 30,
+      "lexical_finds_own_row": true,
+      "filter_native": true,
+      "filter_respected": true,
+      "size_bytes": 525977643,
+      "status": "ok"
+    },
+    {
+      "candidate": "Qdrant local",
+      "variant": "f32",
+      "build_seconds": 36.94923649998964,
+      "dense_mean_ms": 37.45005000018864,
+      "recall_at_30_at_largest_knob": 1.0,
+      "lexical_hits": 30,
+      "lexical_finds_own_row": true,
+      "filter_native": true,
+      "filter_respected": true,
+      "size_bytes": 74207824,
+      "status": "ok"
+    },
+    {
+      "candidate": "usearch HNSW f16",
+      "variant": "f16",
+      "build_seconds": 22.699997999996413,
+      "dense_mean_ms": 12.982675000239396,
+      "recall_at_30_at_largest_knob": 0.9333333333333333,
+      "lexical_hits": 30,
+      "lexical_finds_own_row": true,
+      "filter_native": false,
+      "size_bytes": 34387072,
+      "status": "ok"
+    },
+    {
+      "candidate": "usearch HNSW i8",
+      "variant": "i8",
+      "build_seconds": 15.700900700001512,
+      "dense_mean_ms": 8.486215000448283,
+      "recall_at_30_at_largest_knob": 0.8116666666666669,
+      "lexical_hits": 30,
+      "lexical_finds_own_row": true,
+      "filter_native": false,
+      "size_bytes": 29267072,
+      "status": "ok"
+    },
+    {
+      "candidate": "FAISS IVF_SQ8",
+      "variant": "ivf_sq8",
+      "build_seconds": 1.3863358999951743,
+      "dense_mean_ms": 6.451920000108657,
+      "recall_at_30_at_largest_knob": 0.9799999999999999,
+      "lexical_hits": 30,
+      "lexical_finds_own_row": true,
+      "filter_native": false,
+      "size_bytes": 28153093,
+      "status": "ok"
+    },
+    {
+      "candidate": "FAISS HNSW",
+      "variant": "hnsw",
+      "build_seconds": 5.0869584000029135,
+      "dense_mean_ms": 5.179789999965578,
+      "recall_at_30_at_largest_knob": 0.9933333333333334,
+      "lexical_hits": 30,
+      "lexical_finds_own_row": true,
+      "filter_native": false,
+      "size_bytes": 45941071,
+      "status": "ok"
+    },
+    {
+      "candidate": "Chroma HNSW",
+      "variant": "hnsw",
+      "build_seconds": 7.8773297000007005,
+      "dense_mean_ms": 8.893874999921536,
+      "recall_at_30_at_largest_knob": 0.9266666666666665,
+      "lexical_hits": 30,
+      "lexical_finds_own_row": true,
+      "filter_native": true,
+      "filter_respected": true,
+      "size_bytes": 69121648,
+      "status": "ok"
+    }
+  ]
+}
