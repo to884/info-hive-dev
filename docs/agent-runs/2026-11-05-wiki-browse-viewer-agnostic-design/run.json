@@ -1,0 +1,408 @@
+{
+  "run_id": "2026-11-05-wiki-browse-viewer-agnostic-design",
+  "slug": "wiki-browse-viewer-agnostic-design",
+  "created": "2026-11-05T20:52:11",
+  "mode": "analysis",
+  "base_commit": "e3fdd71c6ee7c6c6fa77817e1af17c074fd53627",
+  "timeout_s": 3600,
+  "effort": {
+    "run": "high",
+    "review": "high",
+    "synthesis": "medium"
+  },
+  "agents": {
+    "A": {
+      "vendor": "claude",
+      "model": "claude-opus-5-5",
+      "label": "Claude Opus 5.5",
+      "status": {
+        "run": "ok",
+        "review": "ok"
+      },
+      "session_id": "df44eb74-9ae5-472b-97a0-11ab870d527d",
+      "errors": {
+        "run": "",
+        "review": ""
+      },
+      "resumed": {
+        "run": false,
+        "review": true
+      }
+    },
+    "B": {
+      "vendor": "claude",
+      "model": "claude-fable-5-1",
+      "label": "Claude Fable 5.1",
+      "status": {
+        "run": "ok",
+        "review": "ok"
+      },
+      "session_id": "f807d3a2-46b5-4f1c-9232-541739643155",
+      "errors": {
+        "run": "",
+        "review": ""
+      },
+      "resumed": {
+        "run": false,
+        "review": true
+      }
+    },
+    "C": {
+      "vendor": "codex",
+      "model": "gpt-6.1-sol",
+      "label": "GPT-6.1 Sol",
+      "status": {
+        "run": "ok",
+        "review": "ok"
+      },
+      "session_id": "01a1ab90-8eab-7950-bea4-5a3ab4be6855",
+      "errors": {
+        "run": "",
+        "review": ""
+      },
+      "resumed": {
+        "run": false,
+        "review": false
+      }
+    },
+    "D": {
+      "vendor": "codex",
+      "model": "gpt-6-astra",
+      "label": "GPT-6 Astra",
+      "status": {
+        "run": "ok",
+        "review": "ok"
+      },
+      "session_id": "01a1ab90-8f80-7be0-81c6-064f6431a2d4",
+      "errors": {
+        "run": "",
+        "review": ""
+      },
+      "resumed": {
+        "run": false,
+        "review": false
+      }
+    }
+  },
+  "synthesis": {
+    "vendor": "claude",
+    "model": "claude-fable-5-1",
+    "label": "Claude Fable 5.1",
+    "status": "ok",
+    "error": ""
+  },
+  "claude": {
+    "permission_mode": {
+      "analysis": "auto",
+      "implement": "auto"
+    },
+    "allowed_tools": {
+      "analysis": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebFetch",
+        "WebSearch",
+        "Bash(git log:*)",
+        "Bash(git show:*)",
+        "Bash(git diff:*)",
+        "Bash(git blame:*)",
+        "Bash(git status:*)",
+        "Bash(git ls-files:*)"
+      ],
+      "implement": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebFetch",
+        "WebSearch",
+        "Bash(git log:*)",
+        "Bash(git show:*)",
+        "Bash(git diff:*)",
+        "Bash(git blame:*)",
+        "Bash(git status:*)",
+        "Bash(git ls-files:*)",
+        "Edit",
+        "Write",
+        "MultiEdit",
+        "NotebookEdit",
+        "Bash(git:*)"
+      ]
+    }
+  },
+  "codex": {
+    "sandbox": {
+      "analysis": "read-only",
+      "implement": "workspace-write"
+    }
+  },
+  "usage": {
+    "A": {
+      "run": {
+        "total_cost_usd": 3.2197586,
+        "usage": {
+          "input_tokens": 32,
+          "cache_creation_input_tokens": 117715,
+          "cache_read_input_tokens": 1515993,
+          "output_tokens": 22690,
+          "output_tokens_details": {
+            "thinking_tokens": 10195
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 115169,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 12976,
+              "cache_read_input_tokens": 130731,
+              "cache_creation_input_tokens": 873,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 873
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      },
+      "review": {
+        "total_cost_usd": 3.9423578,
+        "usage": {
+          "input_tokens": 6,
+          "cache_creation_input_tokens": 47877,
+          "cache_read_input_tokens": 481096,
+          "output_tokens": 12167,
+          "output_tokens_details": {
+            "thinking_tokens": 4468
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 47877,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 8253,
+              "cache_read_input_tokens": 178409,
+              "cache_creation_input_tokens": 1072,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 1072
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    },
+    "B": {
+      "run": {
+        "total_cost_usd": 6.36281075,
+        "usage": {
+          "input_tokens": 260,
+          "cache_creation_input_tokens": 148466,
+          "cache_read_input_tokens": 880663,
+          "output_tokens": 25842,
+          "output_tokens_details": {
+            "thinking_tokens": 9528
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 146300,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 32,
+              "output_tokens": 74,
+              "cache_read_input_tokens": 157044,
+              "cache_creation_input_tokens": 5691,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 5691
+              },
+              "type": "message"
+            },
+            {
+              "input_tokens": 158112,
+              "output_tokens": 6275,
+              "cache_read_input_tokens": 0,
+              "cache_creation_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "type": "advisor_message",
+              "model": "claude-fable-5-1"
+            },
+            {
+              "input_tokens": 2,
+              "output_tokens": 12790,
+              "cache_read_input_tokens": 162735,
+              "cache_creation_input_tokens": 2166,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 2166,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      },
+      "review": {
+        "total_cost_usd": 8.19650275,
+        "usage": {
+          "input_tokens": 34,
+          "cache_creation_input_tokens": 50235,
+          "cache_read_input_tokens": 366608,
+          "output_tokens": 14740,
+          "output_tokens_details": {
+            "thinking_tokens": 6328
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 50235,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 32,
+              "output_tokens": 11638,
+              "cache_read_input_tokens": 203873,
+              "cache_creation_input_tokens": 9097,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 9097
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    },
+    "D": {
+      "run": {
+        "input_tokens": 1046646,
+        "cached_input_tokens": 948352,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 9946,
+        "reasoning_output_tokens": 1528
+      },
+      "review": {
+        "input_tokens": 1097651,
+        "cached_input_tokens": 1048448,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 5433,
+        "reasoning_output_tokens": 488
+      }
+    },
+    "C": {
+      "run": {
+        "input_tokens": 1631471,
+        "cached_input_tokens": 1506432,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 16071,
+        "reasoning_output_tokens": 4877
+      },
+      "review": {
+        "input_tokens": 1948282,
+        "cached_input_tokens": 1848320,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 8749,
+        "reasoning_output_tokens": 2056
+      }
+    },
+    "synthesis": {
+      "total_cost_usd": 3.43361225,
+      "usage": {
+        "input_tokens": 36,
+        "cache_creation_input_tokens": 94203,
+        "cache_read_input_tokens": 228889,
+        "output_tokens": 5220,
+        "output_tokens_details": {
+          "thinking_tokens": 904
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 92583,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 32,
+            "output_tokens": 236,
+            "cache_read_input_tokens": 103436,
+            "cache_creation_input_tokens": 5582,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 5582
+            },
+            "type": "message"
+          },
+          {
+            "input_tokens": 110157,
+            "output_tokens": 2831,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "type": "advisor_message",
+            "model": "claude-fable-5-1"
+          },
+          {
+            "input_tokens": 2,
+            "output_tokens": 3790,
+            "cache_read_input_tokens": 109018,
+            "cache_creation_input_tokens": 1620,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 1620,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard",
+        "fallback_credit": null
+      }
+    }
+  }
+}
