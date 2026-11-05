@@ -38,6 +38,8 @@ python db_bench.py --model R-130 --dataset subset
 python db_bench.py --model R-130 --dataset subset --lexical tantivy
 python lexical_bench.py --dataset full
 python db_bench.py --model R-130 --dataset full --lexical tantivy --candidates "FAISS IVF_SQ8" "usearch HNSW f16" "sqlite-vec f32"
+python rescore_rankings.py --dataset subset   # 精度の定義を直したときだけ
+python rescore_rankings.py --dataset full
 python summarize.py
 python wiki_scale.py
 python measure_install.py
@@ -50,7 +52,9 @@ python build_report.py   # JSON から HTML のレポートを作る
 
 - 検索スピード: 製品の CPU 実行系でのクエリ埋め込みの p95（`runtime-parity.json`）と、動作点での DB の p95（dense + 語彙 + RRF、1 問ごとの合計）の和。2 つの p95 の和なので、1 問ごとの合計の p95 より大きめに出る。MCP の通信の時間は含めない。
 - DB サイズ: ベクトル索引、全文索引、最小限のメタデータ（id と世代）のディスク容量。
-- 精度: 端から端までの、60 問（全量の人手承認ラベル）のページ再現率@30。
+- 精度: 端から端までの、60 問（全量の人手承認ラベル）のページ再現率@30。融合した順位の上位 30 チャンクで打ち切ってからページの重複を除き、上位 30 ページの再現率を測る（`poc/rag/remaining/evaluate_mcp.py` の `limit=30` と同じ）。
+
+2026-11-06 の PR のレビューで、最初の集計が融合した最大 400 チャンクを打ち切らずに `metric` に渡していたことが分かった。`common.metric` で先に 30 チャンクに打ち切るよう直し、`rescore_rankings.py` で保存した動作点の順位から `db-bench-*.json` の精度を計算し直し、`model_accuracy.py` を実行し直した。動作点の選び方（厳密解に対する dense の recall）は変わらない。掃引の各点と絞り込みなしの行の精度は順位を保存していないので計算し直せず、`*_before_cutoff_fix` として旧定義の値を残した。全組の値が 1〜2 問ぶん下がり、判定は変わらなかった。
 
 動作点: 各 DB のつまみ（`nprobes`、`hnsw_ef`、`expansion_search`、`nprobe`、`efSearch`、`ef_search`、sqlite-vec bit の倍率）を掃引し、厳密解に対する dense の recall@30 が 0.95 以上になる最も速い設定を選ぶ。届かなかった組は「未達」とし、3 つとも 7 点以上の判定と段階 2 の候補から外す。
 
@@ -68,7 +72,7 @@ python build_report.py   # JSON から HTML のレポートを作る
 - 段階 1 の「+ Tantivy」の組のうち、`db_bench.py --lexical tantivy` で測っていないものは、dense の実測の順位と `lexical_bench.py` の Tantivy の実測の順位を 1 問ごとに足して融合し直した値である（`measured` が「部品の実測を合成（容量は換算）」）。容量は、FTS5 の実測の容量を引いて Tantivy の容量を足した換算である。
 - HNSW のつまみの上限を 512 から 2,048 に、sqlite-vec bit の倍率を `[2, 5, 10, 20]` にした。前者は 512 で目標に届かない組があったため、後者は vec0 の KNN が k ≤ 4,096 に制限されるためである。
 - ONNX の書き出しのため、計測用の venv に `onnx==1.19.1` を入れた。
-- Tantivy の IDF を BM25（FTS5）の式にそろえた。Tantivy の IDF は `log(1 + (N - n + 0.5) / (n + 0.5))` で常に正なので、「の」「は」のような頻出語も点を稼ぐ。FTS5 の IDF は `log((N - n + 0.5) / (n + 0.5))` で、半数以上の行にある語はほぼ 0 になる。そこで、語ごとに 2 つの IDF の比を重み（`boost_query`）として掛けた。自由に選べる値はない。全量の語彙だけの再現率@30 は、そろえる前が 0.306、そろえた後が 0.456 で、FTS5 は 0.461 だった。頻出語を文書頻度で切る案（20% で 0.533）も試したが、評価の質問で値を選ぶことになるので採らなかった。そろえる前の値でも、全量の Tantivy の組は 3 つとも 7 点以上だった（usearch の組で精度 0.758）。判定は変わらず、LanceDB との差だけが変わる。
+- Tantivy の IDF を BM25（FTS5）の式にそろえた。Tantivy の IDF は `log(1 + (N - n + 0.5) / (n + 0.5))` で常に正なので、「の」「は」のような頻出語も点を稼ぐ。FTS5 の IDF は `log((N - n + 0.5) / (n + 0.5))` で、半数以上の行にある語はほぼ 0 になる。そこで、語ごとに 2 つの IDF の比を重み（`boost_query`）として掛けた。自由に選べる値はない。全量の語彙だけの再現率@30 は、そろえる前が 0.306、そろえた後が 0.456 で、FTS5 は 0.461 だった。頻出語を文書頻度で切る案（20% で 0.533）も試したが、評価の質問で値を選ぶことになるので採らなかった。そろえる前の値でも（下の打ち切り位置を直す前の定義で）、全量の Tantivy の組は 3 つとも 7 点以上だった。判定は変わらず、LanceDB との差だけが変わる。
 - 全量の Qdrant HNSW f32 は、`hnsw_ef` = 2,048 で厳密解に対する recall が 0.944 となり、目標に届かなかった。他の HNSW と同じく、つまみの上限を 4,096 に広げて測り直した。
 - E-s の全量の GPU 埋め込みは、180,224 件で CUDA のメモリ不足で止まった。`embed_models.py` に `--budget` を足し、1 バッチのトークン数の上限を 16,384 に下げて続きから再開した（`PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`）。
 - 段階 2 の候補は、DB の系統が重ならないように選んだ。自前の組（usearch、FAISS IVF_SQ8）、サーバー（Qdrant HNSW f32）、wiki に近い組（sqlite-vec f32）、現行の rag（LanceDB IVF_SQ）、現行の wiki（E-s × sqlite-vec f32 + FTS5）である。FAISS HNSW は、部分集合で FAISS IVF_SQ8 とほぼ同じ点で容量が 3 倍だったので外した。R-310 は全量を埋め込むと約 5 時間かかり、精度の差が 1〜2 問なので外した。Qdrant の SQ と BQ は全量で測っていない。

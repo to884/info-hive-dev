@@ -288,7 +288,7 @@ ul.tight li {{ margin: 2px 0; }}
 </div>
 <ul>
 <li><strong>精度を決めるのは語彙検索のエンジンで、速度と容量を決めるのはベクトルの索引である。</strong>同じ R-130 の dense でも、LanceDB の全文検索と Qdrant の BM25 は語彙だけの再現率@30 が {cur['component_recall']['lexical_only_recall_at_30']:.3f} で、Tantivy（IDF を BM25 にそろえたもの）は {rec['component_recall']['lexical_only_recall_at_30']:.3f} だった。この差がそのまま組の精度の差になった。</li>
-<li><strong>モデルは Ruri v3 に限られる。</strong>e5 系は PDF の質問で現行から 0.05 以上下がる（e5-small 0.700、e5-large 0.758、ruri-v3-130m 0.892）。Ruri v3 は ONNX に書き出せ、torch と同じ出力（cosine ≥ 0.9999998）を torch の半分の時間で出す。wiki も torch を入れずに Ruri を使える。</li>
+<li><strong>モデルは Ruri v3 に限られる。</strong>e5 系は PDF の質問で現行から 0.05 以上下がる（e5-small {models['E-s']['hybrid']['pdf']['recall_at_30']:.3f}、e5-large {models['E-l']['hybrid']['pdf']['recall_at_30']:.3f}、ruri-v3-130m {models['R-130']['hybrid']['pdf']['recall_at_30']:.3f}）。Ruri v3 は ONNX に書き出せ、torch と同じ出力（cosine ≥ 0.9999998）を torch の半分の時間で出す。wiki も torch を入れずに Ruri を使える。</li>
 <li><strong>wiki は 127.0.0.1 の MCP サーバーとして常駐させる。</strong>今の wiki は検索のたびに <code>uv run --script</code> で起動し、1 回に約 {cli["warm_cli_median_seconds"]:.1f} 秒かかる（小さい wiki の複製で測った）。常駐すれば、クエリの埋め込み（{runtimes[("R-130", "onnx-fp32")]["warm_query_p95_ms_median"]:.0f} ms）と DB を合わせて数十 ms で済む。モデルと索引は 1 つのサーバーが持ち、rag はそのサーバーに検索と索引の更新を頼む。</li>
 <li>Qdrant は全量で最も速い（{ms(qd["speed_ms"])}）が、容量が {mib(qd["size_bytes"])} と大きく、BM25 の精度も低い。サーバーのバイナリの配布と起動の管理も要る。sqlite-vec は総当たりなので全量で {ms(full_ok["R-130 × sqlite-vec f32 + Tantivy"]["speed_ms"])} かかり、rag の規模に合わない。</li>
 </ul>
@@ -304,7 +304,7 @@ ul.tight li {{ margin: 2px 0; }}
 </tbody></table>
 <p>点数は、最良の値を 10 点、閾値を 3 点として間を補間し、下限を 1 点とした（速度と容量は対数、精度は直線）。<strong>3 つとも 7 点以上の組を採り、なければ最小の点が最も高い組を採る。</strong>各 DB のクエリ時のつまみは、厳密解に対する dense の recall@30 が 0.95 に届く最も速い設定に合わせ、同じ取りこぼしの水準で速度を比べた。届かなかった組は「目標未達」とし、採用の判定から外した。</p>
 <p>計測は 2 段階で行った。段階 1 では全組を 100,682 チャンクの部分集合で測り、段階 2 では上位の組と現行の組を全量 761,915 チャンクで測った。wiki の MCP 化は必須の要件として、設計を第 13 節に書く（実装は次の作業）。導入の重さは副次の情報として添える。</p>
-<div class="note">60 問の正解ラベルは 4 文書から作ったもので、網羅的ではない。1 問の違いは再現率 0.017 にあたり、精度の 1〜2 点の差は 1 問の差と同じ程度でしかない。</div>
+<div class="note">再現率@30 は、融合した順位の上位 30 チャンクで打ち切ってからページの重複を除いて測る（既存の <code>evaluate_mcp.py</code> の <code>limit=30</code> と同じ）。PR のレビューで、最初の集計が打ち切らずに最大 400 チャンクを数えていたことが分かり、保存した動作点の順位から計算し直した。全組の値が 1〜2 問ぶん下がったが、判定は変わらない。60 問の正解ラベルは 4 文書から作ったもので、網羅的ではない。1 問の違いは再現率 0.017 にあたり、精度の 1〜2 点の差は 1 問の差と同じ程度でしかない。</div>
 </section>
 
 <section id="now">
@@ -381,7 +381,7 @@ ul.tight li {{ margin: 2px 0; }}
 <table class="data"><thead><tr><th>組</th><th class="num">語彙だけ</th><th class="num">dense だけ</th><th class="num">融合</th></tr></thead><tbody>
 {component_rows}
 </tbody></table>
-<p>現行の rag では、融合した結果（{cur["accuracy"]:.3f}）が dense だけ（{cur["component_recall"]["dense_only_recall_at_30"]:.3f}）を下回る。語彙側が弱いと、RRF で混ぜるほど順位が悪くなる。</p>
+<p>現行の rag では、融合した結果（{cur["accuracy"]:.3f}）が dense だけ（{cur["component_recall"]["dense_only_recall_at_30"]:.3f}）を下回る。語彙側が弱いと、RRF で混ぜるほど順位が悪くなる。Tantivy の組でも、融合（{rec['accuracy']:.3f}）は dense だけ（{rec['component_recall']['dense_only_recall_at_30']:.3f}）をわずかに下回った（1 問未満の差）。この評価の質問では、語彙側を混ぜる利点は確かめられていない。融合の重みや候補数の見直しは、次の検証の課題とする。</p>
 <h3>決定の流れ</h3>
 <svg viewBox="0 0 760 300" class="diagram" role="img" aria-label="採用の決定の流れ">
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#59656b"/></marker></defs>
@@ -493,7 +493,7 @@ ul.tight li {{ margin: 2px 0; }}
 <section id="lose">
 <h2>14. 失うものと代替</h2>
 <table class="data"><thead><tr><th>LanceDB で得ていたもの</th><th>代替</th></tr></thead><tbody>
-<tr><td>全文検索（native FTS）</td><td>Tantivy。精度と速度はどちらも上がる</td></tr>
+<tr><td>全文検索（native FTS）</td><td>Tantivy。語彙側の精度と速度はどちらも上がる</td></tr>
 <tr><td>世代の BITMAP 索引と絞り込み</td><td>取り込みのときに古い世代を消す。台帳（SQLite）が世代を持つ</td></tr>
 <tr><td>行とベクトルを 1 か所に持つ表</td><td>SQLite の台帳 + usearch（ベクトル）+ Tantivy（語）。3 つの更新をそろえる処理を自前で持つ。中断したときは台帳から作り直せるようにする</td></tr>
 <tr><td><code>optimize</code> による掃除</td><td>usearch の作り直し（全量で約 {rec["build_seconds"] / 60:.0f} 分）と Tantivy のマージ</td></tr>

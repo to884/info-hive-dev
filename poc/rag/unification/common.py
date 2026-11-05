@@ -60,10 +60,17 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+RESULT_LIMIT = 30
+
+
 def metric(labels, expected):
-    """poc/rag/remaining/evaluate_mcp.py の metric と同じ定義。上位 30 のページ再現率と上位 10 の nDCG。"""
+    """poc/rag/remaining/evaluate_mcp.py の metric と同じ定義。上位 30 のページ再現率と上位 10 の nDCG。
+
+    evaluate_mcp.py は limit=30 で検索した 30 チャンクを評価する。それに合わせ、先に上位 30 チャンクで打ち切ってから
+    ページの重複を除く。打ち切らずに融合した最大 400 チャンクを渡すと、31 位以降のチャンクのページも数えてしまう。
+    """
     relevant = set(expected)
-    unique = list(dict.fromkeys(labels))
+    unique = list(dict.fromkeys(labels[:RESULT_LIMIT]))
     recall = len(set(unique[:30]) & relevant) / len(relevant)
     dcg = sum((label in relevant) / math.log2(i + 2) for i, label in enumerate(unique[:10]))
     ideal = sum(1 / math.log2(i + 2) for i in range(min(len(relevant), 10)))

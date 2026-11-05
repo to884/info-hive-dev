@@ -116,7 +116,7 @@ def component_recall(dataset, combination):
     labels = {int(row[0]): f"{row[2]}:p{row[3]}" for row in full_mapping()}
     result = {}
     for side in ("lexical", "dense"):
-        values = [metric([labels[i] for i in run["ids"][:30]], q["expected"])[0] for q, run in zip(full_queries(), saved[side]) if q["expected"]]
+        values = [metric([labels[i] for i in run["ids"]], q["expected"])[0] for q, run in zip(full_queries(), saved[side]) if q["expected"]]
         result[f"{side}_only_recall_at_30"] = sum(values) / len(values)
     return result
 

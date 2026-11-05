@@ -114,7 +114,7 @@ def measure_dense(backend, knob, qvecs, allowed):
 def save_rankings(dataset, key, queries, dense_runs, lexical_runs, knob):
     folder = WORK / "rankings" / dataset
     folder.mkdir(parents=True, exist_ok=True)
-    name = key.replace(" × ", "__").replace(" ", "_").replace("+", "_")
+    name = key.replace(" × ", "__").replace(" ", "_").replace("+", "_").replace("[", "").replace("]", "")
     import json
     (folder / f"{name}.json").write_text(json.dumps({"knob": knob, "queries": [q["id"] for q in queries], "dense": dense_runs, "lexical": lexical_runs}), encoding="utf-8")
 
@@ -150,11 +150,15 @@ def main():
         if args.lexical == "tantivy" and name.startswith(native_lexical):
             continue
         suffix = " + Tantivy" if args.lexical == "tantivy" else ""
+        # 製品の実行系と違うクエリで測るときは、組の名前に実行系を入れて、製品の実行系の結果と混ぜない。
+        if runtime != PRODUCT_RUNTIME[args.model]:
+            suffix += f" [{runtime}]"
         key = f"{args.model} × {name}{suffix}"
-        if key in report["results"] and report["results"][key].get("status") == "ok":
+        saved = report["results"].get(key, {})
+        if saved.get("status") == "ok" and saved.get("query_runtime") == runtime:
             print("計測済み", key, flush=True)
             continue
-        folder = WORK / "db" / args.dataset / args.model / (name + suffix).replace(" ", "_").replace("+", "_")
+        folder = WORK / "db" / args.dataset / args.model / (name + suffix).replace(" ", "_").replace("+", "_").replace("[", "").replace("]", "")
         backend = cls(folder, MODELS[args.model]["dimension"], variant)
         record = {"model": args.model, "candidate": name, "query_runtime": runtime, "rows": len(ids), "dimension": MODELS[args.model]["dimension"],
                   "lexical_engine": "LanceDB native FTS" if name.startswith("LanceDB") else

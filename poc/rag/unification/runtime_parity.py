@@ -164,6 +164,9 @@ def main():
         write_json(WORK / f"runtime-parity/{key}__{kind}.json", run(key, kind))
         return
     import subprocess
+    # --only で絞ったときも、他の実行系の集計結果を消さない。既存の結果を (model, runtime) で読み込み、選んだものだけを差し替える。
+    previous = OUT / "runtime-parity.json"
+    merged = {(r["model"], r["runtime"]): r for r in read_json(previous)["results"]} if previous.exists() else {}
     results = []
     for key, kind in RUNTIMES:
         label = f"{key}:{kind}"
@@ -180,6 +183,10 @@ def main():
         result = read_json(target)
         results.append({**result, "status": "ok"})
         print(label, {k: result[k] for k in ("cosine_min", "query_p95_ms", "passages_per_second", "query_top30_overlap_with_gpu_queries")}, flush=True)
+    for r in results:
+        merged[(r["model"], r["runtime"])] = r
+    order = {pair: i for i, pair in enumerate(RUNTIMES)}
+    results = sorted(merged.values(), key=lambda r: order.get((r["model"], r["runtime"]), len(order)))
     write_json(OUT / "runtime-parity.json", {
         "reference": "GPU の sentence-transformers（TF32 なし）で作った同じ 300 チャンク（最長 20 件を含む）と 72 問のクエリ",
         "cpu_threads": THREADS, "fastembed_cache": "wiki の既定（~/.cache/info-hive/fastembed）。ONNX 書き出しは作業領域のキャッシュ",
