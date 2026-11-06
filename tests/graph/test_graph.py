@@ -184,6 +184,20 @@ class BrokenOntologyTests(WikiCase):
             self.assertIn("オントロジーを読めない", proc.stderr)
         self.assertFalse((self.wiki / "graph" / "graph.sqlite").exists())
 
+    def test_non_mapping_ontology_exits_2(self):
+        # []、false、0 を空のオントロジーとして通さない。
+        for text in ("[]\n", "false\n", "0\n", "- a\n"):
+            (self.wiki / "graph" / "ontology.yaml").write_text(text, encoding="utf-8")
+            for script in ("wiki_graph_extract.py", "wiki_graph_lint.py"):
+                with self.subTest(text=text, script=script):
+                    proc = run(script, self.wiki)
+                    self.assertEqual(proc.returncode, common.EXIT_BAD_ONTOLOGY, proc.stderr)
+        self.assertFalse((self.wiki / "graph" / "graph.sqlite").exists())
+
+    def test_empty_file_is_an_empty_ontology(self):
+        (self.wiki / "graph" / "ontology.yaml").write_text("", encoding="utf-8")
+        self.extract()
+
     def test_empty_sections_are_treated_as_empty(self):
         (self.wiki / "graph" / "ontology.yaml").write_text("node_types:\npredicates:\n", encoding="utf-8")
         self.extract()
@@ -349,8 +363,9 @@ class InterruptedRebuildTests(WikiCase):
     def test_killed_process_keeps_previous_db_and_next_run_cleans_up(self):
         self.extract()
         before = self.node_count()
+        jsonl_before = (self.wiki / "graph" / "nodes.jsonl").read_bytes()
         self.add_page()
-        # 後始末の処理も動かないように、DB を作っている途中でプロセスごと止める。
+        # 後始末の処理も動かないように、DB のトランザクションの途中（コミット前）でプロセスごと止める。
         code = textwrap.dedent(f"""
             import os, sqlite3, sys
             sys.path.insert(0, {str(SCRIPTS)!r})
@@ -359,23 +374,92 @@ class InterruptedRebuildTests(WikiCase):
                 conn = sqlite3.connect(db_path)
                 conn.execute("CREATE TABLE nodes (id TEXT)")
                 conn.commit()
-                conn.close()
+                conn.execute("INSERT INTO nodes VALUES ('途中')")
                 os._exit(9)
             extract.build_sqlite = killed
-            sys.argv = ["wiki_graph_extract.py", {str(self.wiki)!r}, "--formats", "sqlite"]
+            sys.argv = ["wiki_graph_extract.py", {str(self.wiki)!r}]
             extract.main()
         """)
         proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
                               encoding="utf-8", env=ENV)
         self.assertEqual(proc.returncode, 9, proc.stderr)
         self.assertEqual(self.node_count(), before)
-        leftovers = list((self.wiki / "graph").glob("graph.sqlite.*.tmp"))
-        self.assertEqual(len(leftovers), 1)
-        # 古くなった一時ファイルは、次の extract が消す。
-        old = time.time() - common.STALE_TEMP_SECONDS - 60
-        os.utime(leftovers[0], (old, old))
+        self.assertEqual((self.wiki / "graph" / "nodes.jsonl").read_bytes(), jsonl_before)
+        leftovers = self.temps()
+        self.assertIn(True, [name.endswith(".tmp") for name in leftovers], leftovers)
+        self.assertIn(True, [name.endswith("-journal") for name in leftovers], leftovers)
+        # 止まった実行の一時ファイルと -journal は、次の extract が消す。
         self.extract()
         self.assertEqual(self.node_count(), before + 1)
+        self.assertEqual(self.temps(), [])
+
+    def test_failed_sqlite_replace_keeps_every_format_old(self):
+        # graph.sqlite を最初に置き換えるので、それに失敗したら JSONL と GraphML も前のまま残る。
+        self.extract()
+        graph = self.wiki / "graph"
+        before = {name: (graph / name).read_bytes() for name in extract.OUTPUT_NAMES}
+        self.add_page()
+        pages = extract.collect_pages(self.wiki)
+        ontology = extract.read_ontology(graph / "ontology.yaml")
+        nodes, slug_to_id, aliases = extract.build_nodes(pages, ontology)
+        edges = extract.build_edges(pages, slug_to_id)
+        real = os.replace
+
+        def refuse_sqlite(src, dst):
+            if Path(dst).name == "graph.sqlite":
+                raise PermissionError("使用中")
+            return real(src, dst)
+
+        with patch.object(common.os, "replace", refuse_sqlite), patch.object(common, "REPLACE_WAIT_SECONDS", 0):
+            with self.assertRaises(PermissionError):
+                extract.write_outputs(graph, extract.DEFAULT_FORMATS, nodes, aliases, edges)
+        self.assertEqual({name: (graph / name).read_bytes() for name in extract.OUTPUT_NAMES}, before)
+        self.assertEqual(self.temps(), [])
+
+    def test_failure_while_staging_keeps_every_format_old(self):
+        self.extract()
+        graph = self.wiki / "graph"
+        before = {name: (graph / name).read_bytes() for name in extract.OUTPUT_NAMES}
+        self.add_page()
+        pages = extract.collect_pages(self.wiki)
+        ontology = extract.read_ontology(graph / "ontology.yaml")
+        nodes, slug_to_id, aliases = extract.build_nodes(pages, ontology)
+        edges = extract.build_edges(pages, slug_to_id)
+        with patch.object(extract, "write_graphml_file", side_effect=OSError("書けない")):
+            with self.assertRaises(OSError):
+                extract.write_outputs(graph, extract.DEFAULT_FORMATS, nodes, aliases, edges)
+        self.assertEqual({name: (graph / name).read_bytes() for name in extract.OUTPUT_NAMES}, before)
+        self.assertEqual(self.temps(), [])
+
+    def test_second_extract_waits_for_the_first(self):
+        # ロックを持つ extract がいるあいだ、後の extract は何も書かずに待つ。
+        self.extract()
+        graph = self.wiki / "graph"
+        before = {name: (graph / name).read_bytes() for name in extract.OUTPUT_NAMES}
+        count_before = self.node_count()
+        self.add_page()
+        with common.extract_lock(graph):
+            waiting = subprocess.Popen(
+                [sys.executable, str(SCRIPTS / "wiki_graph_extract.py"), str(self.wiki)],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=ENV,
+            )
+            time.sleep(3)
+            self.assertIsNone(waiting.poll(), "ロックを無視して先に進んだ")
+            self.assertEqual({name: (graph / name).read_bytes() for name in extract.OUTPUT_NAMES}, before)
+            with self.assertRaises(common.ExtractBusy):
+                with common.extract_lock(graph, wait_seconds=0):
+                    pass
+        out, err = waiting.communicate(timeout=60)
+        self.assertEqual(waiting.returncode, 0, err.decode("utf-8"))
+        self.assertEqual(self.node_count(), count_before + 1)
+        self.assertNotEqual((graph / "nodes.jsonl").read_bytes(), before["nodes.jsonl"])
+
+    def test_fresh_temp_of_dead_run_is_removed_under_lock(self):
+        self.extract()
+        graph = self.wiki / "graph"
+        for name in ("graph.sqlite.99999.tmp", "graph.sqlite.99999.tmp-journal", "nodes.jsonl.99999.tmp"):
+            (graph / name).write_bytes(b"x")
+        self.extract()
         self.assertEqual(self.temps(), [])
 
     def test_failed_replace_keeps_previous_db_and_removes_temp(self):
@@ -436,7 +520,8 @@ class InterruptedRebuildTests(WikiCase):
 
     def test_gitignore_template_ignores_temp_files(self):
         template = (SCRIPTS.parent / "assets" / "graph_gitignore.template").read_text(encoding="utf-8")
-        self.assertIn("*.tmp", template.splitlines())
+        for pattern in ("*.tmp", "*.tmp-*", ".extract.lock"):
+            self.assertIn(pattern, template.splitlines())
 
 
 @unittest.skipUnless(HAS_YAML, "PyYAML が要る")
@@ -457,6 +542,17 @@ class WorkspaceDefaultTests(WikiCase):
         proc = run("wiki_graph_lint.py", "--json", cwd=sub)
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(json.loads(proc.stdout)["summary"]["pages_scanned"], 4)
+
+    def test_commands_that_do_not_use_wiki_ignore_broken_workspace(self):
+        # wiki を使わない wiki_evolve.py verify-bundle は、壊れた案内のファイルがあっても読まない。
+        cwd = Path(self.temp.name) / "broken"
+        cwd.mkdir()
+        (cwd / ".info-hive.json").write_text('{"version": 1, "workspace": "missing"}', encoding="utf-8")
+        proc = run("wiki_evolve.py", "verify-bundle", cwd / "no-bundle", cwd=cwd)
+        self.assertNotIn("作業領域の設定を読めない", proc.stderr)
+        stats = run("wiki_stats.py", cwd=cwd)
+        self.assertEqual(stats.returncode, 1)
+        self.assertIn("作業領域の設定を読めない", stats.stderr)
 
 
 if __name__ == "__main__":

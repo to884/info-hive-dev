@@ -47,6 +47,9 @@ def write_files(base: Path, files: dict) -> None:
     for rel, content in files.items():
         target = base / rel
         target.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(content, dict) and set(content) == {"$hex"}:
+            target.write_bytes(bytes.fromhex(content["$hex"]))  # UTF-8 でないバイト列を置く
+            continue
         text = content if isinstance(content, str) else json.dumps(content, ensure_ascii=False, indent=2)
         target.write_bytes(text.encode("utf-8"))
 
