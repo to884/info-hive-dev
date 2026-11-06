@@ -23,7 +23,7 @@ wiki と rag は、埋め込みモデルとベクター DB をそれぞれ別に
 | 対象 | 決定 |
 | --- | --- |
 | 埋め込みモデル | `cl-nagoya/ruri-v3-130m` を ONNX fp32 で動かす。重みは `onnx-community/ruri-v3-130m-ONNX`（revision `cbd305d`）、トークナイザーは `cl-nagoya/ruri-v3-130m`（revision `e3114c6`）から取る。接頭辞はクエリが `検索クエリ: `、文書が `検索文書: `。実行系は onnxruntime（fastembed の独自モデルとして登録する） |
-| ベクトル索引 | usearch の HNSW、f16、コサイン。`connectivity` 16、`expansion_add` 256、検索時の `expansion_search` 1,024 |
+| ベクトル索引 | usearch、f16、コサイン。ベクトルが 50,000 件以下の索引は総当たりで探し、それを超える索引は HNSW（`connectivity` 16、`expansion_add` 256、検索時の `expansion_search` 1,024）で探す |
 | 語彙検索 | Tantivy の BM25 にそろえる。wiki の索引には wiki の `tokenize()`（bigram）のトークンを、rag の索引には Sudachi（SplitMode C、normalized_form）のトークンを入れる。エンジン、書き込みの規則、世代の削除は共通にし、トークンの作り方だけを索引の集まりごとに変える |
 | 融合 | RRF。k は 30、語彙の重みは 0.5、候補は片側 200 件 |
 | wiki の距離の上限 | R-130 の `max_distance` を 0.208 にする |
@@ -36,6 +36,7 @@ wiki と rag は、埋め込みモデルとベクター DB をそれぞれ別に
 
 - R-130 は wiki の en と ja の評価ゲートを通った。正例が必要とする距離の最大は 0.1992、負例の最も近い距離は 0.2164 で、そのあいだの 0.208 で偽陽性を 0 にできる。公開版の ONNX は、測定に使ったファイルと sha256 が一致した。GPU の sentence-transformers との cosine の最小は 1.0000 だった。ライセンスは apache-2.0 である。
 - usearch（M16、expansion_add 256）は、全量で DB の p95 が 34.0 ms で、FAISS IVF_SQ8（nlist 4,096）の 52.9 ms より速かった。採点の最小点は FAISS のほうが 0.3 点高い。差はすべて容量の点の差で、FAISS に替える規則（0.5 点以上の差）に届かない。
+- HNSW のグラフは作るたびに少し変わる。wiki の評価セットの 103 件の索引でも、作り直すと 32 問中 13 問で意味の検索の順位が変わり、en の MRR が 0.731 と 0.699 のあいだで揺れた。総当たりにすると揺れは 0 問になった。小さな索引では順位が決まるほうを採る（[MCP サーバーの実装の記録](../research/wiki-mcp-server-2026-11-06.md)、2026年11月6日のユーザーの判断）。境の 50,000 件は、実装の定数 `EXACT_SEARCH_LIMIT` の値である。
 - Sudachi に統一すると、ja のセクションの MRR が 0.901 から 0.849 に下がり、wiki の評価ゲートに落ちた。two-char、paraphrase、filter の種類で下がった。Tantivy に wiki の bigram を渡すと、en と ja のゲートを通り、指標は今の wiki の BM25 と小数第 3 位まで同じだった。
 - 融合の設定を k 30、重み 0.5 にすると、全量の再現率@30 が 0.758 から 0.800 に上がった。natural、wiki、全量のどのセットでも、1 問を超えて悪化しなかった。
 - Windows では、別のプロセスがメモリに写像した索引ファイルを置き換えられなかった（20 回とも PermissionError）。1 つのプロセスが持って保存・置き換えを繰り返す方式は、wiki 規模 200 回、全量 5 回でエラーがなかった。
@@ -69,6 +70,7 @@ wiki と rag は、埋め込みモデルとベクター DB をそれぞれ別に
 
 - 索引の書き手を複数のプロセスにする必要が出たとき。ADR-0012 の単一の書き手を前提にしているためである。版ごとのファイルと manifest を付け替える方式は、Windows では読み手が manifest を開いている間に置き換えが失敗したので、書き手と読み手の両方に入れ直しが要る。
 - usearch と FAISS の最小点の差が 0.5 点以上になったとき。
+- 総当たりで探す索引の検索の p95 が目安を超えたとき。`EXACT_SEARCH_LIMIT` を下げる。
 - wiki の評価ゲートで、Tantivy の構成が今の BM25 より下がったとき。
 
 ## 参照
