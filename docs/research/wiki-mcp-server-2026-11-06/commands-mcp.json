@@ -1,0 +1,273 @@
+{
+  "purpose": "コマンドがまず wiki の MCP のツールを使い、ツールがないときは CLI に戻るか",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "claude_version": "2.1.316 (Claude Code)",
+  "plugin_commit": "v0.3.0-15-g84f72f8",
+  "with_mcp": [
+    {
+      "command": "stats",
+      "prompt": "/wiki:stats D:/Users/toshiki/AppData/Local/Temp/tmpb5omfzyq/project/wiki",
+      "returncode": 0,
+      "seconds": 28.3,
+      "mcp_servers": [
+        {
+          "name": "plugin:wiki:wiki",
+          "status": "pending",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:context7:context7",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:playwright:playwright",
+          "status": "connected",
+          "source": "plugin"
+        },
+        {
+          "name": "clion",
+          "status": "failed",
+          "source": "user"
+        },
+        {
+          "name": "playwright-edge",
+          "status": "connected",
+          "source": "user"
+        },
+        {
+          "name": "claude.ai Claude Docs",
+          "status": "connected",
+          "source": "claudeai"
+        },
+        {
+          "name": "claude.ai Figma",
+          "status": "connected",
+          "source": "claudeai"
+        }
+      ],
+      "tools": [
+        "ToolSearch",
+        "mcp__plugin_wiki_wiki__stats",
+        "Glob"
+      ],
+      "bash": [],
+      "wiki_args": [
+        "D:/Users/toshiki/AppData/Local/Temp/tmpb5omfzyq/project/wiki"
+      ],
+      "succeeded": true,
+      "used_mcp": true,
+      "used_cli": false,
+      "used_other_wiki": false,
+      "answer_head": "この wiki は小規模で、スケーリングの閾値（最初は 150 ページ）にはまだ遠く、今の平らな構成のままで問題ありません。対応したほうがよい点は、リンク密度が低いことと、`index.md` がないことの 2 つです。\n\n## 概要\n\n| 項目 | 値 |\n|---|---|\n| ページ数 | 27 |\n| 行数・文字数 | 656 行・14,459 文字 |\n| リンク数 | 35（1 ページあたり平均 1.3） |\n| 種類別 | concept 13・entity 6・source 5・synthesis 3 |\n| インデックスの行数 | 0 |\n| 検索の索引 | `pending`（128 セクション、埋め込みはまだ 0 件） |\n| サーバーのコードの版 | `832abeaf6d5dadf0` |\n\n## 解釈\n\n**規模とスケーリング**\n- 27 ページなので、インデ",
+      "stderr_tail": ""
+    },
+    {
+      "command": "query",
+      "prompt": "/wiki:query D:/Users/toshiki/AppData/Local/Temp/tmpb5omfzyq/project/wiki の wiki で答えて。高輪ゲートウェイ駅は何線の駅？",
+      "returncode": 0,
+      "seconds": 26.0,
+      "mcp_servers": [
+        {
+          "name": "plugin:wiki:wiki",
+          "status": "pending",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:context7:context7",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:playwright:playwright",
+          "status": "connected",
+          "source": "plugin"
+        },
+        {
+          "name": "clion",
+          "status": "failed",
+          "source": "user"
+        },
+        {
+          "name": "playwright-edge",
+          "status": "connected",
+          "source": "user"
+        },
+        {
+          "name": "claude.ai Claude Docs",
+          "status": "connected",
+          "source": "claudeai"
+        },
+        {
+          "name": "claude.ai Figma",
+          "status": "connected",
+          "source": "claudeai"
+        }
+      ],
+      "tools": [
+        "Read",
+        "Read",
+        "Glob",
+        "ToolSearch",
+        "Read",
+        "mcp__plugin_wiki_wiki__query"
+      ],
+      "bash": [],
+      "wiki_args": [
+        "D:/Users/toshiki/AppData/Local/Temp/tmpb5omfzyq/project/wiki"
+      ],
+      "succeeded": true,
+      "used_mcp": true,
+      "used_cli": false,
+      "used_other_wiki": false,
+      "answer_head": "wiki によると、高輪ゲートウェイ駅は **JR 東日本の山手線** の駅です。\n\n- 山手線の品川駅と田町駅の間に、2020 年 3 月に開業しました [[yamanote-line]]。\n- 山手線は東京都の都心を環状に走る路線で、駅の数は 30 です [[yamanote-line]]。\n\n**wiki に書かれていないこと**\n- wiki に出てくるのは山手線だけです。ほかの路線の電車もこの駅に止まるかどうかは、wiki からは判断できません。乗り入れ路線をすべて知りたい場合は、JR 東日本の駅の案内などを取り込むと補えます。\n\n**検索について**\n- 指定の wiki には `index.md` がありませんでした。そのため、ファイル一覧から候補のページを選び、MCP のツールでも検索しました。\n- 埋め込みの索引はまだ作成中で、意味の検索はまだ使えませんでした。今回の結果",
+      "stderr_tail": ""
+    },
+    {
+      "command": "lint",
+      "prompt": "/wiki:lint D:/Users/toshiki/AppData/Local/Temp/tmpb5omfzyq/project/wiki",
+      "returncode": 0,
+      "seconds": 81.7,
+      "mcp_servers": [
+        {
+          "name": "plugin:wiki:wiki",
+          "status": "pending",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:context7:context7",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:playwright:playwright",
+          "status": "connected",
+          "source": "plugin"
+        },
+        {
+          "name": "clion",
+          "status": "failed",
+          "source": "user"
+        },
+        {
+          "name": "playwright-edge",
+          "status": "connected",
+          "source": "user"
+        },
+        {
+          "name": "claude.ai Claude Docs",
+          "status": "connected",
+          "source": "claudeai"
+        },
+        {
+          "name": "claude.ai Figma",
+          "status": "connected",
+          "source": "claudeai"
+        }
+      ],
+      "tools": [
+        "Read",
+        "ToolSearch",
+        "mcp__plugin_wiki_wiki__lint",
+        "ToolSearch",
+        "mcp__plugin_wiki_wiki__stats",
+        "mcp__plugin_wiki_wiki__list_index",
+        "Glob",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read",
+        "Read"
+      ],
+      "bash": [],
+      "wiki_args": [
+        "D:/Users/toshiki/AppData/Local/Temp/tmpb5omfzyq/project/wiki",
+        "D:/Users/toshiki/AppData/Local/Temp/tmpb5omfzyq/project/wiki",
+        "D:/Users/toshiki/AppData/Local/Temp/tmpb5omfzyq/project/wiki"
+      ],
+      "succeeded": true,
+      "used_mcp": true,
+      "used_cli": false,
+      "used_other_wiki": false,
+      "answer_head": "# wiki の lint 結果\n\n構造上の問題（リンク切れ、frontmatter、日本語特有の書式）は 0 件でした。指摘は、孤立ページ 10 件、更新の止まったページ 5 件、内容の指摘がいくつかあります。まだ何も変更していません。\n\n**最初に確認したいこと:** SCHEMA.md によると、この wiki は日本語の検索品質を測るための評価用フィクスチャです。index.md を作ったりリンクを足したりすると、索引の中身が変わり、評価の結果も変わる可能性があります。普段使う wiki として直すのか、フィクスチャとしてそのまま残すのかを先に決めてください。\n\n## 1. 構造の検出結果\n\n| # | 検出 | 修正案 |\n|---|---|---|\n| S1 | `index.md` と `log.md` がない（`list_index` の結果も空） | 種類ごとに全 27 ",
+      "stderr_tail": ""
+    }
+  ],
+  "without_mcp": [
+    {
+      "command": "stats",
+      "prompt": "/wiki:stats D:/Users/toshiki/AppData/Local/Temp/tmpb5omfzyq/project/wiki",
+      "returncode": 0,
+      "seconds": 26.7,
+      "mcp_servers": [
+        {
+          "name": "plugin:context7:context7",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:playwright:playwright",
+          "status": "connected",
+          "source": "plugin"
+        },
+        {
+          "name": "clion",
+          "status": "failed",
+          "source": "user"
+        },
+        {
+          "name": "playwright-edge",
+          "status": "connected",
+          "source": "user"
+        },
+        {
+          "name": "claude.ai Claude Docs",
+          "status": "connected",
+          "source": "claudeai"
+        },
+        {
+          "name": "claude.ai Figma",
+          "status": "connected",
+          "source": "claudeai"
+        }
+      ],
+      "tools": [
+        "Bash",
+        "Bash"
+      ],
+      "bash": [
+        "python \"D:/Users/toshiki/AppData/Local/Temp/tmpb5omfzyq/plugin-without-mcp/skills/info-hive/scripts/wiki_stats.py\" \"D:/Users/toshiki/AppData/Local/Temp/tmpb5omfzyq/project/wiki\"",
+        "cd \"D:/Users/toshiki/AppData/Local/Temp/tmpb5omfzyq/project/wiki\" && ls -la; wc -c index.md 2>&1; ls indexes 2>&1"
+      ],
+      "wiki_args": [],
+      "succeeded": true,
+      "used_mcp": false,
+      "used_cli": true,
+      "used_other_wiki": false,
+      "answer_head": "この wiki は 27 ページの小さな規模で、どのスケーリングの閾値にもまだ遠い状態です。気になる点は 2 つあります。リンク密度が目安を下回っていることと、`index.md` がないことです。\n\nMCP の `stats` ツールはこのセッションでは使えなかったため、CLI のスクリプトで集計しました。そのため、検索の索引の状態（`index`）とサーバーの版（`server`）は出ていません。\n\n## 概要\n\n| 項目 | 値 |\n|---|---|\n| ページ数 | 27（concept 13、entity 6、source 5、synthesis 3） |\n| 総文字数 | 14,459（空白を除く） |\n| 1 ページの平均 | 24 行、535 文字 |\n| 総リンク数 | 35 |\n| リンク密度 | 1 ページあたり 1.3 本 |\n| `index.md` | 存在し",
+      "stderr_tail": ""
+    }
+  ]
+}

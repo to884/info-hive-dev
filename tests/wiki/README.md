@@ -9,6 +9,7 @@
 | `run_mcp_gate.py`、`mcp_eval_search.py` | wiki の評価ゲート（`eval/retrieval/run_eval.py`）を新しい基盤で通す |
 | `bench_mcp_latency.py` | 検索の速さ（今の CLI、中継経由の MCP、直接呼び出し） |
 | `check_claude_spawn.py` | Claude Code が中継とサーバーをどう起動し、セッションの後にサーバーが残るか（`claude -p` を 1 回実行する） |
+| `check_commands_mcp.py` | コマンド（`/wiki:stats`、`/wiki:query`、`/wiki:lint`）がまず MCP のツールを使い、`.mcp.json` のないプラグインでは CLI に戻るか（`claude -p --plugin-dir` をコマンドの数だけ実行する。引数にコマンド名を渡すと、それだけを実行する） |
 | `mcp_stdio.py` | 試験用の最小の stdio の MCP クライアント |
 
 結果は `docs/research/wiki-mcp-server-2026-11-06/` に置く。
@@ -25,6 +26,7 @@ set INFO_HIVE_POC_DATA=C:\Works\info-hive-dev\.rag-poc-data
 uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/run_mcp_gate.py
 uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/bench_mcp_latency.py
 uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/check_claude_spawn.py
+uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/check_commands_mcp.py
 ```
 
 - 試験はテスト用の埋め込み（`INFO_HIVE_TEST_EMBEDDER=hash`）を使い、モデルを読み込まない。中継は `.mcp.json` と同じく `uv run --script` で起動するので、サーバーの依存を初めて取得するときは数分かかる。
