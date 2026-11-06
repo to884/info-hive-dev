@@ -16,6 +16,8 @@ from __future__ import annotations
 import json
 import os
 import platform
+import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -49,12 +51,55 @@ def find_claude() -> str:
     return claude
 
 
+# wiki のパスを最初の位置引数で受け取る CLI。wiki_search.py は --wiki で受け取る。どれも省くと ./wiki を使う。
+WIKI_POSITIONAL = {"wiki_lint.py", "wiki_stats.py", "wiki_graph_query.py", "wiki_graph_lint.py"}
+
+
+def same_path(value: str, base: Path, wiki: Path) -> bool:
+    """value（相対なら base から見たもの）が wiki と同じ場所を指すか。"""
+    path = Path(value or ".")
+    if not path.is_absolute():
+        path = base / path
+    try:
+        return os.path.normcase(str(path.resolve())) == os.path.normcase(str(wiki.resolve()))
+    except OSError:
+        return False
+
+
+def cli_targets(command: str, cwd: Path) -> list[tuple[Path, str]]:
+    """Bash のコマンドから、wiki の CLI に渡した wiki のパスを、そのときの作業ディレクトリと組にして返す。"""
+    base, found = cwd, []
+    for part in re.split(r"&&|\|\||;", command):
+        try:
+            tokens = shlex.split(part.replace("\\", "/"))
+        except ValueError:
+            continue
+        if not tokens:
+            continue
+        if tokens[0] == "cd" and len(tokens) > 1:
+            target = Path(tokens[1])
+            base = target if target.is_absolute() else base / target
+            continue
+        for i, token in enumerate(tokens):
+            name = Path(token).name
+            if name not in CLI_NAMES:
+                continue
+            rest = tokens[i + 1:]
+            if "--wiki" in rest and rest.index("--wiki") + 1 < len(rest):
+                found.append((base, rest[rest.index("--wiki") + 1]))
+            elif name in WIKI_POSITIONAL and rest and not rest[0].startswith("-"):
+                found.append((base, rest[0]))
+            else:
+                found.append((base, "wiki"))
+    return found
+
+
 def run_command(claude: str, plugin: Path, project: Path, prompt: str, env: dict, wiki: Path) -> dict:
     started = time.perf_counter()
     out = subprocess.run([claude, "-p", prompt, "--plugin-dir", str(plugin), "--allowedTools", ALLOWED,
                           "--output-format", "stream-json", "--verbose"],
                          cwd=project, capture_output=True, timeout=1800, env={**os.environ, "PYTHONUTF8": "1", **env})
-    tools, bash, wiki_args, final, mcp_servers = [], [], [], None, None
+    tools, bash, wiki_args, final, mcp_servers, result_ok = [], [], [], None, None, False
     for line in out.stdout.decode("utf-8", "replace").splitlines():
         try:
             event = json.loads(line)
@@ -73,15 +118,18 @@ def run_command(claude: str, plugin: Path, project: Path, prompt: str, env: dict
                         wiki_args.append(arguments.get("wiki"))
         if event.get("type") == "result":
             final = event.get("result")
-    target = wiki.as_posix().lower()
+            result_ok = event.get("subtype") == "success" and not event.get("is_error")
     cli_commands = [c for c in bash if any(name in c for name in CLI_NAMES)]
+    targets = [t for c in cli_commands for t in cli_targets(c, project)]
     return {"prompt": prompt, "returncode": out.returncode, "seconds": round(time.perf_counter() - started, 1),
             "mcp_servers": mcp_servers, "tools": tools, "bash": bash, "wiki_args": wiki_args,
+            # claude -p が正常に終わり、最終の回答を返したか。
+            "succeeded": out.returncode == 0 and result_ok and bool((final or "").strip()),
             "used_mcp": any(t.startswith(TOOL_PREFIX) for t in tools),
             "used_cli": bool(cli_commands),
-            # 一時ディレクトリの wiki でない場所を、ツールか CLI に渡したか。
-            "used_other_wiki": any(str(w or "").replace("\\", "/").lower() != target for w in wiki_args) or any(
-                target not in c.replace("\\", "/").lower() for c in cli_commands),
+            # 一時ディレクトリの wiki でない場所を、ツールか CLI に渡したか。相対パスは実行時の作業ディレクトリから解決する。
+            "used_other_wiki": any(not same_path(str(w or ""), project, wiki) for w in wiki_args) or any(
+                not same_path(value, base, wiki) for base, value in targets),
             "answer_head": (final or "")[:400],
             "stderr_tail": out.stderr.decode("utf-8", "replace")[-400:]}
 
@@ -125,9 +173,10 @@ def main() -> None:
 def finish(report: dict, out: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
+    runs = report["with_mcp"] + report["without_mcp"]
     ok = all(r["used_mcp"] and not r["used_cli"] for r in report["with_mcp"]) and all(
-        r["used_cli"] and not r["used_mcp"] for r in report["without_mcp"]) and not any(
-        r["used_other_wiki"] for r in report["with_mcp"] + report["without_mcp"])
+        r["used_cli"] and not r["used_mcp"] for r in report["without_mcp"]) and all(
+        r["succeeded"] and not r["used_other_wiki"] for r in runs)
     print("合格" if ok else "不合格", f"→ {out}")
     sys.exit(0 if ok else 1)
 
