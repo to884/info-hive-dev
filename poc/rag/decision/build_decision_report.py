@@ -407,7 +407,8 @@ cd poc\\rag\\decision
 </body>
 </html>
 """
-    REPORT.write_text(body, encoding="utf-8")
+    REPORT.write_text(body, encoding="utf-8", newline="
+")
     print("書き出した", REPORT)
 
 
