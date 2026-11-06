@@ -57,6 +57,7 @@ wiki の知識ページは文章だけで書かれてきた。`page-conventions.
 
 - 要件定義書に §6.5（F-W01〜F-W06）と AC-P20 を足し、D-03 に browse の将来の作業を書き添えた。
 - 実装では次を直す。`page-conventions.md` に図表の決まりを書く。`wiki_lint.py` の大きさの判定からフェンスの中身と画像の行を除き、`![alt](assets/x.svg)` の参照先の存在を確かめ、`wiki/assets/` を lint の対象から除く。`wiki_search.py` でフェンスの中身を索引から除くかを決める。`--suggest-pages` の走査から alt テキストとフェンスの中身を除く。`init_wiki.py` で `wiki/assets/` を作る。`.gitattributes` に `*.svg` を足す。
+- 2026-11-06 追記: 上の決定の表の `![説明](assets/<ページのスラッグ>-NN.svg)` は、`wiki/<種類>/` にあるページからは `wiki/<種類>/assets/` を指し、表示されない（ADR-0008 の「影響」の指摘）。実装では、ページからの相対パス `../assets/<ページのスラッグ>-NN.svg` で参照し、lint もページの位置から解決するようにした（info-hive-wiki の `feature/wiki-figures`）。svg を `wiki/assets/` に置く決定は変えていない。また、`wiki_search.py` で索引からフェンスの中身を除く変更は、wiki の MCP サーバーと検索の移行の作業に回した。
 - `/wiki:browse` の実装では、mermaid と svg は描かれない。ADR-0002 の「見直す条件」に、図の表示を足すときの判断を書く必要がある。
 
 ## 見直す条件
