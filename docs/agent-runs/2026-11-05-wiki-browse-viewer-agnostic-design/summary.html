@@ -1,0 +1,490 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>browse の中核と表示方式</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* 1 段の読み物。図と表だけ横に広がる。決定・未決・未確認を色と形で区別する */
+:root {
+  --ground: #F5F7FA;
+  --surface: #FFFFFF;
+  --ink: #1B2230;
+  --muted: #5B6576;
+  --rule: #D8DEE7;
+  --accent: #284E86;
+  --accent-soft: #E6EDF7;
+  --code-bg: #EEF1F5;
+  --open: #9A620F;
+  --open-bg: #F7EEDC;
+  --drop: #B0362E;
+  --drop-bg: #F8E7E5;
+  --ok: #2F6B4F;
+  --ok-bg: #E3F0E8;
+  --font-display: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN", "Noto Serif JP", serif;
+  --font-body: "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", "YuGothic", "Meiryo", "Noto Sans JP", sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, ui-monospace, "BIZ UDGothic", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #12161D; --surface: #181D26; --ink: #E3E8EF; --muted: #9AA4B5; --rule: #2B3340;
+    --accent: #8FB3EA; --accent-soft: #1E2A3D; --code-bg: #1F2530;
+    --open: #E3B566; --open-bg: #352A17; --drop: #F0938B; --drop-bg: #3A1F1E; --ok: #8CCBA8; --ok-bg: #1A2E24;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #12161D; --surface: #181D26; --ink: #E3E8EF; --muted: #9AA4B5; --rule: #2B3340;
+  --accent: #8FB3EA; --accent-soft: #1E2A3D; --code-bg: #1F2530;
+  --open: #E3B566; --open-bg: #352A17; --drop: #F0938B; --drop-bg: #3A1F1E; --ok: #8CCBA8; --ok-bg: #1A2E24;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.8;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 900px; margin: 0 auto; padding-block: 40px 72px; display: grid; gap: 48px; }
+section { display: grid; gap: 16px; min-width: 0; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; text-wrap: balance; line-height: 1.45; margin: 0; }
+h1 { font-size: 1.85rem; }
+h2 { font-size: 1.35rem; padding-bottom: 6px; border-bottom: 1px solid var(--rule); }
+h3 { font-size: 1.05rem; }
+p { margin: 0; max-width: 68ch; }
+ul, ol { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.muted { color: var(--muted); }
+.small { font-size: 0.86rem; }
+
+/* 見出し部 */
+header.top { display: grid; gap: 14px; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em; color: var(--muted); }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.86rem; color: var(--muted); }
+.meta b { color: var(--ink); font-weight: 600; }
+.chip { display: inline-block; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; padding: 1px 9px; border-radius: 999px; white-space: nowrap; vertical-align: 0.1em; }
+.chip.status { color: var(--accent); background: var(--accent-soft); }
+.chip.open { color: var(--open); background: var(--open-bg); }
+.chip.ok { color: var(--ok); background: var(--ok-bg); }
+.chip.drop { color: var(--drop); background: var(--drop-bg); }
+.chip.unk { color: var(--muted); border: 1px dashed var(--muted); }
+
+.lead { font-size: 1.05rem; max-width: 64ch; }
+.thesis { display: grid; gap: 10px; padding: 18px 20px; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; }
+.thesis li::marker { color: var(--accent); }
+
+/* 図 */
+.figure { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 16px; display: grid; gap: 10px; }
+.figure figcaption { font-size: 0.82rem; color: var(--muted); }
+.flow { display: grid; grid-template-columns: minmax(0, 0.8fr) 22px minmax(0, 1.25fr) 22px minmax(0, 1fr) 22px minmax(0, 1.15fr); align-items: center; gap: 0 4px; }
+.flow .node { border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; background: var(--surface); min-width: 0; display: grid; gap: 6px; }
+.flow .node-h { font-weight: 600; font-size: 0.9rem; line-height: 1.5; }
+.flow .node ul { list-style: none; padding: 0; gap: 2px; font-size: 0.82rem; line-height: 1.55; color: var(--muted); }
+.flow .node code { font-size: 0.92em; padding: 0 3px; }
+.flow .src { background: var(--code-bg); }
+.flow .core { background: var(--accent-soft); border-color: var(--accent); border-width: 1.5px; }
+.flow .core .node-h { color: var(--accent); }
+.flow .contract { border: 1.5px dashed var(--ink); }
+.flow .adapters { display: grid; gap: 8px; min-width: 0; border-left: 2px solid var(--muted); padding-left: 10px; }
+.flow .tag { font-size: 0.78rem; font-weight: 600; }
+.flow .tag.ok { color: var(--ok); }
+.flow .tag.open { color: var(--open); }
+.flow .arrow { position: relative; height: 2px; background: var(--muted); margin-right: 7px; }
+.flow .arrow::after { content: ""; position: absolute; right: -8px; top: -5px; border-left: 8px solid var(--muted); border-top: 6px solid transparent; border-bottom: 6px solid transparent; }
+@media (max-width: 760px) {
+  .flow { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .flow .arrow { width: 2px; height: 16px; margin: 0 0 9px; justify-self: center; }
+  .flow .arrow::after { right: auto; left: -5px; top: auto; bottom: -8px; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid var(--muted); border-bottom: 0; }
+}
+figure { margin: 0; }
+
+/* 契約の表 */
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--rule); }
+tr:last-child th, tr:last-child td { border-bottom: 0; }
+th { font-weight: 600; white-space: nowrap; width: 9.5em; }
+thead th { font-size: 0.8rem; color: var(--muted); background: var(--code-bg); width: auto; }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tabs button {
+  font: inherit; font-size: 0.88rem; padding: 5px 14px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--rule); background: var(--surface); color: var(--ink);
+}
+.tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 作る順序 */
+ol.steps { list-style: none; padding: 0; counter-reset: s; gap: 0; }
+ol.steps li { counter-increment: s; display: grid; grid-template-columns: 2.2em 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--rule); }
+ol.steps li:last-child { border-bottom: 0; }
+ol.steps li::before { content: counter(s); font-family: var(--font-mono); font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 50%; width: 1.9em; height: 1.9em; display: grid; place-items: center; font-size: 0.9rem; }
+ol.steps li > div { min-width: 0; }
+.keep { font-size: 0.82rem; color: var(--ok); font-weight: 600; }
+
+/* ADR-0002 との差分 */
+.diff { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.diff > div { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+
+/* 未決の事項 */
+.decisions { display: grid; gap: 12px; }
+details.dec { background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--open); border-radius: 6px; padding: 12px 16px; }
+details.dec summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; font-weight: 600; }
+details.dec summary::-webkit-details-marker { color: var(--muted); }
+details.dec summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+details.dec .num { font-family: var(--font-mono); color: var(--open); }
+details.dec .body { display: grid; gap: 10px; margin-top: 10px; }
+.opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.opt { border: 1px solid var(--rule); border-radius: 6px; padding: 10px 12px; display: grid; gap: 4px; align-content: start; font-size: 0.9rem; min-width: 0; }
+.opt.pick { border-color: var(--accent); background: var(--accent-soft); }
+.opt h4 { margin: 0; font-size: 0.92rem; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.blocker { color: var(--drop); font-weight: 600; }
+
+/* 未確認 */
+ul.unk { list-style: none; padding: 0; gap: 8px; }
+ul.unk li { display: flex; gap: 10px; align-items: baseline; }
+
+/* 批評 */
+.critique { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.critique > div { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.strike { text-decoration: line-through; text-decoration-color: var(--drop); color: var(--muted); }
+
+footer { font-size: 0.82rem; color: var(--muted); display: grid; gap: 8px; border-top: 1px solid var(--rule); padding-top: 16px; }
+
+@media (max-width: 520px) {
+  h1 { font-size: 1.5rem; }
+  th { white-space: normal; width: 6.5em; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tabs button { transition: background 120ms, color 120ms; }
+}
+</style>
+
+<main>
+  <header class="top">
+    <div class="eyebrow">info-hive-wiki · ADR-0010 草案</div>
+    <h1>/wiki:browse は、Wiki を解釈する中核と表示の方式を分ける</h1>
+    <div class="meta">
+      <span>状態 <span class="chip status">提案</span></span>
+      <span>決定日 <b>未定</b></span>
+      <span>補う ADR <b>0002</b></span>
+      <span>関連 <b>0001・0005・0007・0008・0009</b></span>
+    </div>
+    <p class="lead">閲覧の手段は、ローカル HTTP サーバー、デスクトップアプリ、静的 HTML のどれかにする。どれを採っても作り直しにならないよう、4 体のエージェントが独立に設計し、互いに敵対的にレビューした。その総括をもとにした案である。</p>
+  </header>
+
+  <section aria-labelledby="s-thesis">
+    <h2 id="s-thesis">結論</h2>
+    <div class="thesis">
+      <ul>
+        <li><b>Wiki の解釈は Python の 1 か所に置く。</b>走査、frontmatter の正規化、リンクの解決、見出し ID、被リンク、型付きの関係、Markdown の変換、診断を担う。表示の側は Markdown を解釈しない。</li>
+        <li><b>3 つの方式は、中核の出力を届けるだけの薄いアダプタにする。</b>どの方式も中核の規則を書き直さない。</li>
+        <li><b>契約は、いちばん厳しい <code>file://</code> に合わせる。</b><code>file://</code> で動く HTML なら、サーバーでもアプリでもそのまま動く。</li>
+      </ul>
+    </div>
+
+    <figure class="figure">
+      <div class="flow" role="img" aria-label="正本から中核、契約を経て、3 つのアダプタへ渡る流れ">
+        <div class="node src">
+          <div class="node-h">正本</div>
+          <ul><li>Markdown</li><li>frontmatter</li><li><code>graph/</code> の生成物</li></ul>
+        </div>
+        <div class="arrow" aria-hidden="true"></div>
+        <div class="node core">
+          <div class="node-h">中核（Python・1 か所）</div>
+          <ul>
+            <li>ページの走査と集合</li>
+            <li><code>canonical_meta()</code></li>
+            <li><code>resolve_link()</code> と <code>ambiguous</code></li>
+            <li>見出し ID と存在確認</li>
+            <li>被リンク・型付きの関係</li>
+            <li>Markdown → HTML</li>
+            <li><code>export_name()</code>・診断</li>
+          </ul>
+        </div>
+        <div class="arrow" aria-hidden="true"></div>
+        <div class="node contract">
+          <div class="node-h">契約（<code>file://</code> 基準）</div>
+          <ul>
+            <li>相対リンクだけ</li>
+            <li><code>&lt;script src&gt;</code> と <code>data/*.js</code></li>
+            <li>共有の <code>nav.js</code></li>
+            <li><code>capabilities</code>・世代</li>
+            <li>契約の版</li>
+          </ul>
+        </div>
+        <div class="arrow" aria-hidden="true"></div>
+        <div class="adapters">
+          <div class="node">
+            <div class="node-h">HTTP サーバー</div>
+            <ul><li>127.0.0.1・パス先頭のトークン</li></ul>
+            <span class="tag ok">最初に作る（構成 B）</span>
+          </div>
+          <div class="node">
+            <div class="node-h">デスクトップアプリ</div>
+            <ul><li>stdio の IPC・ポートを開かない</li></ul>
+            <span class="tag open">技術は未決</span>
+          </div>
+          <div class="node">
+            <div class="node-h">静的 HTML</div>
+            <ul><li><code>file://</code>・<code>&lt;meta&gt;</code> の CSP</li></ul>
+            <span class="tag open">書き出し先は未決</span>
+          </div>
+        </div>
+      </div>
+      <figcaption>中核の出力は 1 種類で、3 つのアダプタは届け方だけを変えて渡す。破線の枠は、どのアダプタも守る契約を表す。</figcaption>
+    </figure>
+  </section>
+
+  <section aria-labelledby="s-contract">
+    <h2 id="s-contract">契約</h2>
+    <p>3 つの方式が共通に守る規則である。表を切り替えて読む。</p>
+    <div class="tabs" role="tablist" aria-label="契約の種類">
+      <button role="tab" id="t-screen" aria-controls="p-screen" aria-selected="true">画面</button>
+      <button role="tab" id="t-data" aria-controls="p-data" aria-selected="false">データ</button>
+      <button role="tab" id="t-safe" aria-controls="p-safe" aria-selected="false">安全と閲覧専用</button>
+      <button role="tab" id="t-pass" aria-controls="p-pass" aria-selected="false">合格の条件</button>
+    </div>
+
+    <div class="table-wrap" role="tabpanel" id="p-screen" aria-labelledby="t-screen">
+      <table>
+        <tr><th>リンク</th><td>ページ間のリンクは相対の href だけで書く。同じ HTML を、<code>file://</code>、<code>http://127.0.0.1:&lt;port&gt;/&lt;token&gt;/…</code>、アプリの独自スキームのどれで開いても動かす。</td></tr>
+        <tr><th>スクリプト</th><td>classic な <code>&lt;script src&gt;</code> だけを使う。ES モジュール、<code>fetch</code>、Web Worker を前提にしない。検索の索引などは <code>data/*.js</code> として書き出す。</td></tr>
+        <tr><th>ナビゲーション</th><td>各ページに埋め込まず、共有の <code>nav.js</code> を読み込む。<code>&lt;noscript&gt;</code> で <code>index.html</code> へのリンクを残す。</td></tr>
+        <tr><th>事前に描く範囲</th><td>本文、メタ欄、被リンク、ページごとの関係表、未解決リンクは、中核が描いた HTML に含める。JavaScript を切っても読める。</td></tr>
+        <tr><th>外部への通信</th><td>しない。CDN を使わず、CSP で外部からの読み込みを禁じる。</td></tr>
+        <tr><th>トークン</th><td>サーバーのトークンは URL のパスの先頭に置く。相対リンクが自然に引き継ぐので、HTML を方式ごとに変えずに済む。</td></tr>
+        <tr><th>複数 Wiki</th><td>Wiki の識別子を URL のパス（<code>/w/&lt;wiki-id&gt;/…</code>）に含めて切り替える。ADR-0002 では拡張の方向の 1 つで、決定の行はなかった。</td></tr>
+      </table>
+    </div>
+
+    <div class="table-wrap" role="tabpanel" id="p-data" aria-labelledby="t-data" hidden>
+      <table>
+        <tr><th>ページの識別子</th><td>NFC にそろえた POSIX の相対パスから <code>.md</code> を除いたもの。出力のファイル名と URL の名前は <code>export_name()</code> だけで決める。</td></tr>
+        <tr><th>リンクの状態</th><td>解決済み、未解決、<code>ambiguous</code> を区別する。重複したスラッグへのパスのないリンクでは、どちらかへ勝手に移動しない。判定は lint の <code>duplicate_slugs</code> と同じ。</td></tr>
+        <tr><th>見出し</th><td>見出しの存在の確認を、ページの解決と別の規則にする。ID の生成（NFC、重複時の連番）も中核で決める。</td></tr>
+        <tr><th>契約の版</th><td>出力に契約の版（仮称 <code>protocol_version</code>）を持たせる。未対応の版を受け取ったアダプタは表示せずに止まる。</td></tr>
+        <tr><th>世代</th><td>世代の識別子と生成日時を持たせ、新しい世代を作り終えてから切り替える。途中の生成物を見せない。</td></tr>
+        <tr><th>能力の宣言</th><td>検索（<code>live</code>・<code>embedded</code>・<code>none</code>）、RAG、複数 Wiki、変更の反映を <code>capabilities</code> で宣言する。生成物の情報とホストの能力を分け、持ち運べる生成物に絶対パスを入れない。</td></tr>
+        <tr><th>状態の区別</th><td>「使えない」「古い」「0 件」を区別して返し、画面でも区別して示す。</td></tr>
+        <tr><th>検索の結果</th><td>方式によらず、<code>wiki_search.py --json</code> の形にそろえる。</td></tr>
+        <tr><th>Wiki のルート</th><td>スキルと同じ順で解決する（指定したパス、プロジェクトの指示、グローバルの指示、現在のプロジェクトの <code>wiki/</code>）。場所を決め打ちしない。</td></tr>
+        <tr><th>埋め込むデータ</th><td><code>&lt;/script&gt;</code>、U+2028、U+2029 などをエスケープする。</td></tr>
+      </table>
+    </div>
+
+    <div class="table-wrap" role="tabpanel" id="p-safe" aria-labelledby="t-safe" hidden>
+      <table>
+        <tr><th>共通</th><td>ADR-0001 の 3 条件と AC-D02 を 3 方式に共通の条件にする。書き込みの API を持たず、未解決リンクをクリックしてもファイルを作らない。</td></tr>
+        <tr><th>サーバー</th><td>127.0.0.1 への固定、起動ごとのトークン、Host ヘッダーの確認（ADR-0002 のまま）。</td></tr>
+        <tr><th>アプリ</th><td>ポートを開かない stdio の IPC を既定にする。外部の URL はアプリの中で開かず、確かめてから OS のブラウザに渡す（S-07）。</td></tr>
+        <tr><th>静的 HTML</th><td><code>&lt;meta&gt;</code> の CSP を付ける。書き出し先は未決。</td></tr>
+      </table>
+    </div>
+
+    <div class="table-wrap" role="tabpanel" id="p-pass" aria-labelledby="t-pass" hidden>
+      <table>
+        <tr><th>交換できること</th><td>試験用の Wiki で、3 方式のリンクの移動、被リンク、診断の結果が一致することを、実際に動かして確かめる。</td></tr>
+        <tr><th>閲覧専用</th><td>操作の前後で Wiki のファイルのハッシュが変わらないこと、外部への通信が 0 件であること（サーバーでは 127.0.0.1 以外が 0 件）を確かめる。</td></tr>
+        <tr><th>バイト一致</th><td>生成器の回帰検査にだけ使う。同じ HTML でも、基準の URL、CSP、WebView の権限で動作は変わるので、交換できることの証明には使わない。</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-order">
+    <h2 id="s-order">作る順序</h2>
+    <p>1〜3 は、どの方式に決まっても無駄にならない。</p>
+    <ol class="steps">
+      <li><div><code>resolve_link()</code> と <code>clean_link_target()</code> を共通モジュールに切り出す。今は lint と search に 1 つずつあり、NFC にそろえる順が違う。</div></li>
+      <li><div>中核、ページの HTML のテンプレート、日本語の CSS を作る。</div></li>
+      <li><div>第 1 段階（ページ、ナビゲーション、メタ欄、被リンク、関係表、未解決リンク）を、静的に描ける形で完成させる。mermaid と svg の表示は ADR-0005 のとおり含めない。</div></li>
+      <li><div>選んだ方式のアダプタを作る。最初は構成 B のサーバーとする。</div></li>
+      <li><div>検索、全体のグラフ、RAG のデータ源を足す。</div></li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="s-0002">
+    <h2 id="s-0002">ADR-0002 との関係</h2>
+    <div class="diff">
+      <div>
+        <h3>置き換える 2 行</h3>
+        <ul>
+          <li><b>作る順序</b>：共通モジュールと、静的に描ける第 1 段階を先に作る。</li>
+          <li><b>書き出し</b>：静的 HTML を副機能から、サーバー、アプリと並ぶ 1 つの方式にする。サーバーで開いたときに変換する既定の動作は変えない。</li>
+        </ul>
+      </div>
+      <div>
+        <h3>保つ行</h3>
+        <ul>
+          <li>構成 B のサーバー（最初に作るアダプタとして）</li>
+          <li>markdown-it-py による変換と、生の HTML を出さない設定</li>
+          <li>閲覧専用、ADR-0001 の対策、対応 OS</li>
+        </ul>
+        <p class="small muted">承認したら、ADR-0002 の状態を「承認（作る順序と書き出しは 0010 で置き換え済み）」に改める。本文は書き換えない。</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-open">
+    <h2 id="s-open">作者の判断が要る 6 点 <span class="chip open">未決</span></h2>
+    <p>網掛けの選択肢は総括が推した案である。1 を決めないと中核を書けない。</p>
+    <div class="decisions">
+      <details class="dec" open>
+        <summary><span class="num">1</span> 閲覧の「ページ」の集合 <span class="blocker small">最初に決める</span></summary>
+        <div class="body">
+          <p>lint と search で、ページとして扱う集合が違う。<code>wiki_lint.py</code> は最上位の <code>README.md</code> と <code>.evolution</code> を除外する（L110〜111）。<code>wiki_search.py</code> は <code>README.md</code> を除外せず、<code>.wiki-cache</code> とドットで始まる名前を除外する（L286〜289）。</p>
+          <div class="opts">
+            <div class="opt pick"><h4>lint の集合を正とする <span class="chip status">推し</span></h4><span>F-G06 が lint との一致を求めている。<code>wiki_search.py</code> の側をそろえる。</span></div>
+            <div class="opt"><h4>search の集合を正とする</h4><span>lint の結果と画面の未解決リンクが食い違う。</span></div>
+          </div>
+          <p class="small muted">あわせて、<code>index.md</code> と <code>indexes/</code> をナビゲーションの入力としてどう扱うかを決める。</p>
+        </div>
+      </details>
+
+      <details class="dec">
+        <summary><span class="num">2</span> 書き出し先</summary>
+        <div class="body">
+          <div class="opts">
+            <div class="opt"><h4><code>&lt;WIKI_ROOT&gt;/.wiki-cache/browse/</code></h4><span>1 か所で管理できる。「Wiki を変更しない」の範囲を、派生データを除くと明文化する必要がある。Wiki を OneDrive などで同期していると、生成物も同期される。</span></div>
+            <div class="opt"><h4>OS のユーザーキャッシュ</h4><span>選択肢レポートの No.81 と整合し、Wiki の中に何も足さない。場所の解決と掃除の規則が要る。</span></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="dec">
+        <summary><span class="num">3</span> 静的出力のファイル名</summary>
+        <div class="body">
+          <p>大文字小文字だけが違うページは、NTFS と APFS で同じファイルになる。どちらの案でも <code>export_name()</code> で対処する。lint にこの検査を足すかも決める。</p>
+          <div class="opts">
+            <div class="opt"><h4>読める名前＋衝突時だけ接尾辞</h4><span>受け渡しに向く。切り詰めの規則と、ページを足しても既存の URL が変わらない規則が要る。</span></div>
+            <div class="opt"><h4>すべて ASCII の ID</h4><span>OS の間の衝突を避けやすいが、URL とファイル名が読めなくなる。</span></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="dec">
+        <summary><span class="num">4</span> RAG への経路</summary>
+        <div class="body">
+          <p>rag の検索の入口は MCP だけである。ワーカーは MCP の接続中だけ動き（<code>rag_worker.py:1</code>）、<code>rag_index.py</code> の <code>Engine.search</code>（L302）には <code>argparse</code> も <code>__main__</code> もない。どの案も rag の設計の変更で、ADR-0007 の見直しになる。</p>
+          <div class="opts">
+            <div class="opt"><h4>rag に検索の CLI を足す</h4><span>呼ぶたびに torch とモデルを読み込む。ワーカーとの索引の排他も要る。</span></div>
+            <div class="opt"><h4>browse を MCP のクライアントにする</h4><span>起動の費用は避けられるが、rag の MCP サーバーの寿命に縛られる。</span></div>
+            <div class="opt"><h4>常駐の検索サービス</h4><span>ADR-0007 の「接続中だけ動く」構成を改めることになる。</span></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="dec">
+        <summary><span class="num">5</span> 静的版の検索の範囲</summary>
+        <div class="body">
+          <div class="opts">
+            <div class="opt"><h4>題名・要約・タグだけ</h4><span><code>tokenize()</code> の規則を JavaScript に二重に持たずに済む。</span></div>
+            <div class="opt"><h4>本文も bigram で検索</h4><span>Python と同じ試験データで、一致を確かめ続ける費用が残る。</span></div>
+          </div>
+        </div>
+      </details>
+
+      <details class="dec">
+        <summary><span class="num">6</span> アプリの技術</summary>
+        <div class="body">
+          <p>アプリを採るときに決める。条件は、埋め込みの Web エンジンを持ち、Windows・macOS・Linux で動き、中核を子プロセスとして起動できること。</p>
+          <div class="opts">
+            <div class="opt"><h4>Tauri 2（Rust）</h4><span>配布物が小さい。OS ごとに WebView が違い（WebView2、WKWebView、WebKitGTK）、描画がそろわない。</span></div>
+            <div class="opt"><h4>Electron（TypeScript）</h4><span>Chromium で描画がそろうが、配布物が大きい。</span></div>
+          </div>
+          <p class="small muted">日本語の表示を重く見るので、Linux の WebKitGTK での描画が分かれ目になる。アプリはプラグインではないので、別のリポジトリ（仮称 <code>to884/info-hive-viewer</code>）に置く形を想定する。sidecar は OS と CPU ごとに要り、「移植性」はソースの移植性にとどまる。</p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-unk">
+    <h2 id="s-unk">実装の前に PoC で確かめること</h2>
+    <p>どれもまだ誰も確かめていない。前提と違えば、この案を見直す。</p>
+    <ul class="unk">
+      <li><span class="chip unk">未確認</span><span><code>file://</code> で開いたページで、<code>&lt;script src&gt;</code> による別ファイルの読み込みが主要なブラウザで動く。<code>fetch</code> は移植性のある前提にできない。</span></li>
+      <li><span class="chip unk">未確認</span><span>Linux の WebKitGTK で、日本語の CSS（<code>line-break: strict</code> など）が崩れずに描ける。</span></li>
+      <li><span class="chip unk">未確認</span><span>Tauri の独自スキームの URL の形が OS で違っても、相対リンクだけで閉じた HTML がそのまま動く。</span></li>
+      <li><span class="chip unk">未確認</span><span>ナビゲーションの 1 項目が約 100 バイトに収まる。埋め込めば 1,000 ページで約 100 MB になる、という見積もりの前提である。</span></li>
+      <li><span class="chip unk">未確認</span><span>3 方式で、合格の条件の試験が通る。</span></li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="s-crit">
+    <h2 id="s-crit">批評で動いた点</h2>
+    <div class="critique">
+      <div>
+        <h3>A の論証を 1 つ削った <span class="chip drop">撤回</span></h3>
+        <p class="strike small">wiki と rag は Python の版が違うので、同じプロセスに載らない。</p>
+        <p class="small">wiki の <code>&gt;=3.10</code> と rag の <code>&gt;=3.12,&lt;3.13</code> は 3.12 で重なる。プロセスを分ける結論は「Python 以外のアプリからは import できない」という理由で残る。</p>
+      </div>
+      <div>
+        <h3>B の受け入れ条件を格下げした <span class="chip drop">格下げ</span></h3>
+        <p class="strike small">HTML がバイト単位で同じなら、3 方式を入れ替えられる。</p>
+        <p class="small">基準の URL、CSP、IPC で動作は変わる。バイト一致は回帰検査に回し、合格の条件は実際の動作で測る。</p>
+      </div>
+      <div>
+        <h3>契約に足した規則 <span class="chip ok">追加</span></h3>
+        <ul class="small">
+          <li>共有の <code>nav.js</code>（B）</li>
+          <li>データの世代（C、D）</li>
+          <li><code>ambiguous</code> なリンク（D）</li>
+          <li>見出しの確認を分ける（C）</li>
+          <li>ルートを設定から解決（C、D）</li>
+          <li>埋め込みデータのエスケープ（C）</li>
+          <li>出力のファイル名の衝突（A）</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-rej">
+    <h2 id="s-rej">採らなかった選択肢</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>選択肢</th><th>採らなかった理由</th></tr></thead>
+        <tr><th>サーバーを先に作り、ほかは後で考える</th><td>サーバーを前提にした画面は、静的版とアプリに移すときに作り直しになる。</td></tr>
+        <tr><th>SPA にし、データを JSON で取得する</th><td><code>file://</code> では JSON を取得できず、静的版だけ別の作りになる。JavaScript を切ると読めない。</td></tr>
+        <tr><th>アプリの言語で規則を書き直す</th><td>規則を 2 つの言語で保守することになる。アプリが Python を起動できない場合の最後の手段として残す。</td></tr>
+        <tr><th>ネイティブ描画の GUI（Qt など）</th><td>本文は HTML なので結局 Web エンジンが要る。日本語の CSS とナビゲーションが二重になる。</td></tr>
+        <tr><th>pywebview（Python）</th><td>中核と同じ言語である利点はあるが、OS ごとの依存が要る。試作の候補として残す。</td></tr>
+        <tr><th>HTTP サーバーを窓で開くだけの殻</th><td>ポートを開くので ADR-0001 の対策がアプリにも要る。stdio の IPC を既定にし、HTTP は予備にする。</td></tr>
+      </table>
+    </div>
+    <p class="small muted">決定行列の点と順位は既製の構成を比べたもので、自作のアプリは採点の対象に入っていない。</p>
+  </section>
+
+  <footer>
+    <p>出典：<code>docs/adr/0010-wiki-browse-separates-core-from-delivery.md</code>（草案）と、<code>docs/agent-runs/2026-11-05-wiki-browse-viewer-agnostic-design/</code> の成果、相互レビュー、総括。</p>
+    <p>エージェント：A Claude Opus 5.5、B Claude Fable 5.1、C GPT-6.1 Sol、D GPT-6 Astra。総括は Claude Fable 5.1。</p>
+    <p>コードの事実は <code>info-hive-wiki</code> 3028923 と <code>info-hive-rag</code> 3541ec4 で確かめた。</p>
+  </footer>
+</main>
+
+<script>
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  function show(tab) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+  }
+  tabs.forEach(function (t, i) {
+    t.tabIndex = i === 0 ? 0 : -1;
+    t.addEventListener('click', function () { show(t); });
+    t.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      var n = tabs[(i + d + tabs.length) % tabs.length];
+      show(n); n.focus(); e.preventDefault();
+    });
+  });
+})();
+</script>
