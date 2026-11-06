@@ -29,7 +29,21 @@ sys.path.insert(0, str(HERE))
 from mcp_stdio import RELAY, ROOT, StdioClient, relay_command  # noqa: E402
 
 CORPUS = ROOT / "info-hive-wiki/eval/retrieval/ja/corpus/wiki"
-TOOLS = {"query", "get_page", "list_index", "index_chunks"}
+SCRIPTS = ROOT / "info-hive-wiki/skills/info-hive/scripts"
+TEMPLATE = ROOT / "info-hive-wiki/skills/info-hive/assets/ontology.yaml.template"
+TOOLS = {"query", "get_page", "list_index", "lint", "stats", "graph", "index_chunks"}
+sys.path.insert(0, str(SCRIPTS))
+import wiki_graph_common  # noqa: E402
+
+
+def run_cli(*args, script: bool = False) -> dict:
+    """CLI を `--json` で実行して結果を返す。script が真なら PyYAML を使うので `uv run --script` で起動する。"""
+    command = ["uv", "run", "--quiet", "--script"] if script else [sys.executable, "-X", "utf8"]
+    out = subprocess.run([*command, *map(str, args)], capture_output=True, timeout=600,
+                         env={**os.environ, "PYTHONUTF8": "1"})
+    if out.returncode != 0:
+        raise AssertionError(out.stderr.decode("utf-8", "replace"))
+    return json.loads(out.stdout.decode("utf-8"))
 
 
 class ServerCase(unittest.TestCase):
@@ -223,6 +237,112 @@ class RelayTests(ServerCase):
             client.call("list_index", {"wiki": str(self.wiki), "name": "../SCHEMA.md"})
         with self.assertRaises(RuntimeError):
             client.call("query", {"wiki": str(self.root / "ない"), "query": "x"})
+
+
+class ScriptToolTests(ServerCase):
+    """lint、stats、graph（ADR-0012 の段階 3）。CLI の `--json` と同じ結果を返すことを確かめる。"""
+
+    def setUp(self):
+        super().setUp()
+        self.client_ = self.client()
+        self.client_.initialize()
+
+    def call(self, name, **arguments):
+        return self.client_.call(name, {"wiki": str(self.wiki), **arguments})
+
+    def build_graph(self) -> list[str]:
+        """オントロジーを置いて extract を実行し、ノード ID の一覧を返す。"""
+        (self.wiki / "graph").mkdir(exist_ok=True)
+        shutil.copyfile(TEMPLATE, self.wiki / "graph" / "ontology.yaml")
+        out = subprocess.run(["uv", "run", "--quiet", "--script", str(SCRIPTS / "wiki_graph_extract.py"),
+                              str(self.wiki)], capture_output=True, timeout=600, env={**os.environ, "PYTHONUTF8": "1"})
+        self.assertEqual(out.returncode, 0, out.stderr.decode("utf-8", "replace"))
+        lines = (self.wiki / "graph" / "nodes.jsonl").read_text(encoding="utf-8").splitlines()
+        return [json.loads(line)["id"] for line in lines if line.strip()]
+
+    def test_lint_matches_cli(self):
+        result = self.call("lint", suggest_pages=True)
+        graph = result.pop("graph")
+        self.assertEqual(result, run_cli(SCRIPTS / "wiki_lint.py", self.wiki.resolve(), "--json", "--suggest-pages"))
+        # オントロジーがない wiki では、CLI の 3 つの入口と同じ文面で disabled を返す。
+        missing = wiki_graph_common.GraphLayerDisabled(self.wiki.resolve() / "graph" / "ontology.yaml")
+        self.assertEqual(graph, {"state": "disabled", "message": wiki_graph_common.disabled_message(missing)})
+        self.assertEqual(self.call("lint", graph=False)["graph"], {"state": "skipped"})
+        # 上限を渡すと CLI の引数と同じく効く。
+        strict = self.call("lint", soft_char_cap=100, hard_char_cap=200, required_fm=["type", "title", "author"])
+        cli = run_cli(SCRIPTS / "wiki_lint.py", self.wiki.resolve(), "--json", "--soft-char-cap", "100", "--hard-char-cap",
+                      "200", "--required-fm", "type,title,author")
+        strict.pop("graph")
+        self.assertEqual(strict, cli)
+        self.assertTrue(cli["oversized_hard"] and cli["missing_frontmatter"])
+        with self.assertRaises(RuntimeError):
+            self.call("lint", soft_cap=0)
+
+    def test_lint_includes_graph_lint(self):
+        self.build_graph()
+        result = self.call("lint")
+        self.assertEqual(result["graph"]["state"], "checked")
+        self.assertEqual(result["graph"]["findings"],
+                         run_cli(SCRIPTS / "wiki_graph_lint.py", self.wiki.resolve(), "--json", script=True))
+        (self.wiki / "graph" / "ontology.yaml").write_text("node_types: [\n", encoding="utf-8")
+        broken = self.call("lint")["graph"]
+        self.assertEqual(broken["state"], "error")
+        self.assertIn("オントロジーを読めない", broken["message"])
+
+    def test_stats_matches_cli_and_reports_index(self):
+        result = self.call("stats")
+        index, server = result.pop("index"), result.pop("server")
+        cli = run_cli(SCRIPTS / "wiki_stats.py", self.wiki.resolve(), "--json")
+        self.assertEqual(result, cli)
+        self.assertEqual(cli["pages"], sum(cli["pages_by_type"].values()))
+        self.assertEqual(set(index), {"sections", "embedded", "pending", "state", "dir", "embedder", "fingerprint",
+                                      "model"})
+        self.assertGreater(index["sections"], 0)
+        self.assertEqual(index["pending"], index["sections"] - index["embedded"])
+        self.assertEqual(index["model"]["name"], "cl-nagoya/ruri-v3-130m")
+        self.assertEqual(server["version"], self.info()["version"])
+        self.assertEqual(server["pid"], self.info()["pid"])
+        # stats は埋め込みを始めない。query のあとは ready になる。
+        self.call("query", query="熱中症")
+        ends = time.monotonic() + 120
+        while self.call("stats")["index"]["state"] != "ready" and time.monotonic() < ends:
+            time.sleep(0.5)
+        self.assertEqual(self.call("stats")["index"]["state"], "ready")
+
+    def test_graph_matches_cli(self):
+        with self.assertRaises(RuntimeError) as caught:
+            self.call("graph", command="facts", about="x")
+        self.assertIn("グラフ層を導入する前の wiki", str(caught.exception))
+        ids = self.build_graph()
+        node = next(i for i in ids if i.startswith("concept:"))
+        db = self.wiki / "graph" / "graph.sqlite"
+        before = db.stat().st_mtime_ns
+        cases = [
+            ({"command": "facts", "about": node}, ["facts", "--about", node]),
+            ({"command": "neighbors", "node": node}, ["neighbors", "--node", node]),
+            ({"command": "edges", "subject": node}, ["edges", "--subject", node]),
+            ({"command": "path", "from_node": node, "to_node": ids[-1], "max_depth": 3},
+             ["path", "--from", node, "--to", ids[-1], "--max-depth", "3"]),
+        ]
+        for arguments, argv in cases:
+            with self.subTest(command=arguments["command"]):
+                self.assertEqual(self.call("graph", **arguments),
+                                 run_cli(SCRIPTS / "wiki_graph_query.py", self.wiki.resolve(), "--json", *argv))
+        # NFD で渡しても同じノードに当たる。
+        import unicodedata
+        nfd = self.call("graph", command="facts", about=unicodedata.normalize("NFD", node))
+        self.assertEqual(nfd["node"]["id"], node)
+        self.assertEqual(db.stat().st_mtime_ns, before, "問い合わせが graph.sqlite を書き換えた")
+        for arguments, message in [({"command": "facts", "about": "concept:ない"}, "ノードが見つからない"),
+                                   ({"command": "facts"}, "about が要る"),
+                                   ({"command": "path", "from_node": node}, "from と to が要る")]:
+            with self.subTest(error=message), self.assertRaises(RuntimeError) as caught:
+                self.call("graph", **arguments)
+            self.assertIn(message, str(caught.exception))
+        db.unlink()
+        with self.assertRaises(RuntimeError) as caught:
+            self.call("graph", command="facts", about=node)
+        self.assertIn("graph.sqlite が見つからない", str(caught.exception))
 
 
 class IdleTests(ServerCase):

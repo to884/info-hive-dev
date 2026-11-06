@@ -5,7 +5,7 @@
 | ファイル | 中身 |
 | --- | --- |
 | `test_wiki_index.py` | 検索の基盤（`wiki_index.py`）の試験。差分の更新、途中で止まったときのそろえ直し、Tantivy の commit のやり直し、fingerprint が変わったときの作り直し、書き手のロック、`index_chunks` の世代 |
-| `test_mcp_server.py` | サーバーと中継の試験。トークンと Host ヘッダー、127.0.0.1 だけで待ち受けること、中継を 4 つ同時に起動してもサーバーが 1 つ、中継の終了後もサーバーが残ること、サーバーが止まった後や呼び出しの途中で止まったときの接続し直し、版の違うサーバーの入れ替え、要求がないときの停止 |
+| `test_mcp_server.py` | サーバーと中継の試験。トークンと Host ヘッダー、127.0.0.1 だけで待ち受けること、中継を 4 つ同時に起動してもサーバーが 1 つ、中継の終了後もサーバーが残ること、サーバーが止まった後や呼び出しの途中で止まったときの接続し直し、版の違うサーバーの入れ替え、要求がないときの停止。ツール `lint`、`stats`、`graph` が CLI の `--json` と同じ結果を返すこと |
 | `run_mcp_gate.py`、`mcp_eval_search.py` | wiki の評価ゲート（`eval/retrieval/run_eval.py`）を新しい基盤で通す |
 | `bench_mcp_latency.py` | 検索の速さ（今の CLI、中継経由の MCP、直接呼び出し） |
 | `check_claude_spawn.py` | Claude Code が中継とサーバーをどう起動し、セッションの後にサーバーが残るか（`claude -p` を 1 回実行する） |
@@ -18,7 +18,7 @@
 依存はサーバーのスクリプトの宣言と同じ版にそろえる。Windows では一時ディレクトリが遅いドライブにあると試験が遅くなるので、`TMP` を速いドライブに向けるとよい。
 
 ```bat
-set DEPS=--with mcp==1.30.0 --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 --with fastembed==0.8.0 --with onnxruntime==1.31.1 --with psutil==7.2.2
+set DEPS=--with mcp==1.30.0 --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 --with fastembed==0.8.0 --with onnxruntime==1.31.1 --with pyyaml==6.0.3 --with psutil==7.2.2
 uv run --python 3.12 %DEPS% python -X utf8 -m unittest tests/wiki/test_wiki_index.py -v
 uv run --python 3.12 %DEPS% python -X utf8 -m unittest tests/wiki/test_mcp_server.py -v
 set INFO_HIVE_POC_DATA=C:\Works\info-hive-dev\.rag-poc-data
