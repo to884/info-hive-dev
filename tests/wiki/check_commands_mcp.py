@@ -42,6 +42,10 @@ COMMANDS = [
 ]
 ALLOWED = ",".join([f"{TOOL_PREFIX}{name}" for name in ("query", "get_page", "list_index", "lint", "stats", "graph")]
                    + ["Read", "Glob", "Grep", "Bash"])
+# マーケットプレイスから wiki@info-hive を入れていると、--plugin-dir の同じ名前のプラグインがそれを上書きし、
+# MCP のサーバーが起動されずに failed になる（Claude Code 2.1.316 で確かめた）。そのセッションのあいだだけ、
+# 入れてあるほうを無効にする。ユーザーの設定ファイルは変えない。
+SETTINGS = json.dumps({"enabledPlugins": {"wiki@info-hive": False}})
 
 
 def find_claude() -> str:
@@ -96,8 +100,8 @@ def cli_targets(command: str, cwd: Path) -> list[tuple[Path, str]]:
 
 def run_command(claude: str, plugin: Path, project: Path, prompt: str, env: dict, wiki: Path) -> dict:
     started = time.perf_counter()
-    out = subprocess.run([claude, "-p", prompt, "--plugin-dir", str(plugin), "--allowedTools", ALLOWED,
-                          "--output-format", "stream-json", "--verbose"],
+    out = subprocess.run([claude, "-p", prompt, "--plugin-dir", str(plugin), "--settings", SETTINGS,
+                          "--allowedTools", ALLOWED, "--output-format", "stream-json", "--verbose"],
                          cwd=project, capture_output=True, timeout=1800, env={**os.environ, "PYTHONUTF8": "1", **env})
     tools, bash, wiki_args, final, mcp_servers, result_ok = [], [], [], None, None, False
     for line in out.stdout.decode("utf-8", "replace").splitlines():
