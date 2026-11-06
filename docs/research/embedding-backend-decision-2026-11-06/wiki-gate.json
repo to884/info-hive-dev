@@ -1,0 +1,2264 @@
+{
+  "env": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu_threads_limit": 4,
+    "logical_cpus": 16,
+    "packages": {
+      "numpy": "2.5.4",
+      "usearch": "2.26.6",
+      "faiss-cpu": "1.15.1",
+      "tantivy": "0.27.0",
+      "fastembed": "0.8.0",
+      "onnxruntime": "1.31.1",
+      "sqlite-vec": "0.1.9",
+      "sudachipy": "0.7.0",
+      "psutil": "7.2.2",
+      "mcp": null
+    },
+    "dev_commit": "69fab02",
+    "wiki_commit": "e64765f",
+    "rag_commit": "26bebeb",
+    "poc_data": "C:\\Works\\info-hive-dev\\.rag-poc-data",
+    "gpu": {
+      "utilization_percent": 0,
+      "memory_used_mib": 2286
+    }
+  },
+  "purpose": "wiki の評価ゲートを R-130 と Sudachi で通せるか（max_distance の較正を含む）",
+  "calibration": {
+    "en": {
+      "sections": 103,
+      "positives": [
+        {
+          "id": "q01",
+          "kind": "exact",
+          "needed_max": 0.13043618202209473,
+          "needed_min": 0.13043618202209473
+        },
+        {
+          "id": "q02",
+          "kind": "exact",
+          "needed_max": 0.14525443315505981,
+          "needed_min": 0.14525443315505981
+        },
+        {
+          "id": "q03",
+          "kind": "exact",
+          "needed_max": 0.08855652809143066,
+          "needed_min": 0.08855652809143066
+        },
+        {
+          "id": "q04",
+          "kind": "exact",
+          "needed_max": 0.12643533945083618,
+          "needed_min": 0.12643533945083618
+        },
+        {
+          "id": "q05",
+          "kind": "exact",
+          "needed_max": 0.13437014818191528,
+          "needed_min": 0.13437014818191528
+        },
+        {
+          "id": "q06",
+          "kind": "exact",
+          "needed_max": 0.14340806007385254,
+          "needed_min": 0.14340806007385254
+        },
+        {
+          "id": "q07",
+          "kind": "exact",
+          "needed_max": 0.15311354398727417,
+          "needed_min": 0.15311354398727417
+        },
+        {
+          "id": "q08",
+          "kind": "exact",
+          "needed_max": 0.1360512375831604,
+          "needed_min": 0.1360512375831604
+        },
+        {
+          "id": "q09",
+          "kind": "exact",
+          "needed_max": 0.12934613227844238,
+          "needed_min": 0.12934613227844238
+        },
+        {
+          "id": "q10",
+          "kind": "exact",
+          "needed_max": 0.13832205533981323,
+          "needed_min": 0.13832205533981323
+        },
+        {
+          "id": "q11",
+          "kind": "exact",
+          "needed_max": 0.1304858922958374,
+          "needed_min": 0.1304858922958374
+        },
+        {
+          "id": "q12",
+          "kind": "paraphrase",
+          "needed_max": 0.19893896579742432,
+          "needed_min": 0.19893896579742432
+        },
+        {
+          "id": "q13",
+          "kind": "paraphrase",
+          "needed_max": 0.15611618757247925,
+          "needed_min": 0.15611618757247925
+        },
+        {
+          "id": "q14",
+          "kind": "paraphrase",
+          "needed_max": 0.16837453842163086,
+          "needed_min": 0.16837453842163086
+        },
+        {
+          "id": "q15",
+          "kind": "paraphrase",
+          "needed_max": 0.16925382614135742,
+          "needed_min": 0.16925382614135742
+        },
+        {
+          "id": "q16",
+          "kind": "paraphrase",
+          "needed_max": 0.17497193813323975,
+          "needed_min": 0.17497193813323975
+        },
+        {
+          "id": "q17",
+          "kind": "paraphrase",
+          "needed_max": 0.18796956539154053,
+          "needed_min": 0.18796956539154053
+        },
+        {
+          "id": "q18",
+          "kind": "paraphrase",
+          "needed_max": 0.14746487140655518,
+          "needed_min": 0.14746487140655518
+        },
+        {
+          "id": "q19",
+          "kind": "paraphrase",
+          "needed_max": 0.1768505573272705,
+          "needed_min": 0.1768505573272705
+        },
+        {
+          "id": "q20",
+          "kind": "paraphrase",
+          "needed_max": 0.16538488864898682,
+          "needed_min": 0.16538488864898682
+        },
+        {
+          "id": "q21",
+          "kind": "paraphrase",
+          "needed_max": 0.14905554056167603,
+          "needed_min": 0.14905554056167603
+        },
+        {
+          "id": "q22",
+          "kind": "filter",
+          "needed_max": 0.16231250762939453,
+          "needed_min": 0.14177584648132324
+        },
+        {
+          "id": "q23",
+          "kind": "filter",
+          "needed_max": 0.1951698660850525,
+          "needed_min": 0.15842831134796143
+        },
+        {
+          "id": "q24",
+          "kind": "filter",
+          "needed_max": 0.14881443977355957,
+          "needed_min": 0.14881443977355957
+        },
+        {
+          "id": "q25",
+          "kind": "filter",
+          "needed_max": 0.14883756637573242,
+          "needed_min": 0.14883756637573242
+        },
+        {
+          "id": "q26",
+          "kind": "filter",
+          "needed_max": 0.1887449026107788,
+          "needed_min": 0.1887449026107788
+        },
+        {
+          "id": "q27",
+          "kind": "filter",
+          "needed_max": 0.09788739681243896,
+          "needed_min": 0.09788739681243896
+        }
+      ],
+      "negatives": [
+        {
+          "id": "q28",
+          "nearest": 0.2277737855911255
+        },
+        {
+          "id": "q29",
+          "nearest": 0.24662888050079346
+        },
+        {
+          "id": "q30",
+          "nearest": 0.21919161081314087
+        },
+        {
+          "id": "q31",
+          "nearest": 0.23517286777496338
+        },
+        {
+          "id": "q32",
+          "nearest": 0.23514407873153687
+        }
+      ],
+      "positive_needed_max": 0.19893896579742432,
+      "positive_needed_p90": 0.18827970027923585,
+      "negative_nearest_min": 0.21919161081314087
+    },
+    "ja": {
+      "sections": 128,
+      "positives": [
+        {
+          "id": "j01",
+          "kind": "exact",
+          "needed_max": 0.10565352439880371,
+          "needed_min": 0.10565352439880371
+        },
+        {
+          "id": "j02",
+          "kind": "exact",
+          "needed_max": 0.09518033266067505,
+          "needed_min": 0.09518033266067505
+        },
+        {
+          "id": "j03",
+          "kind": "exact",
+          "needed_max": 0.11001241207122803,
+          "needed_min": 0.11001241207122803
+        },
+        {
+          "id": "j04",
+          "kind": "exact",
+          "needed_max": 0.0935521125793457,
+          "needed_min": 0.0935521125793457
+        },
+        {
+          "id": "j05",
+          "kind": "exact",
+          "needed_max": 0.10978937149047852,
+          "needed_min": 0.10978937149047852
+        },
+        {
+          "id": "j06",
+          "kind": "exact",
+          "needed_max": 0.12270891666412354,
+          "needed_min": 0.12270891666412354
+        },
+        {
+          "id": "j07",
+          "kind": "exact",
+          "needed_max": 0.10572582483291626,
+          "needed_min": 0.10572582483291626
+        },
+        {
+          "id": "j08",
+          "kind": "exact",
+          "needed_max": 0.14686894416809082,
+          "needed_min": 0.14686894416809082
+        },
+        {
+          "id": "j09",
+          "kind": "exact",
+          "needed_max": 0.18465495109558105,
+          "needed_min": 0.18465495109558105
+        },
+        {
+          "id": "j10",
+          "kind": "paraphrase",
+          "needed_max": 0.12395995855331421,
+          "needed_min": 0.12395995855331421
+        },
+        {
+          "id": "j11",
+          "kind": "paraphrase",
+          "needed_max": 0.08873754739761353,
+          "needed_min": 0.08873754739761353
+        },
+        {
+          "id": "j12",
+          "kind": "paraphrase",
+          "needed_max": 0.11676406860351562,
+          "needed_min": 0.11676406860351562
+        },
+        {
+          "id": "j13",
+          "kind": "paraphrase",
+          "needed_max": 0.11804616451263428,
+          "needed_min": 0.11804616451263428
+        },
+        {
+          "id": "j14",
+          "kind": "paraphrase",
+          "needed_max": 0.14630228281021118,
+          "needed_min": 0.14630228281021118
+        },
+        {
+          "id": "j15",
+          "kind": "paraphrase",
+          "needed_max": 0.11328649520874023,
+          "needed_min": 0.11328649520874023
+        },
+        {
+          "id": "j16",
+          "kind": "paraphrase",
+          "needed_max": 0.19922006130218506,
+          "needed_min": 0.1596611738204956
+        },
+        {
+          "id": "j17",
+          "kind": "paraphrase",
+          "needed_max": 0.10594630241394043,
+          "needed_min": 0.10594630241394043
+        },
+        {
+          "id": "j18",
+          "kind": "two-char",
+          "needed_max": 0.10224330425262451,
+          "needed_min": 0.10224330425262451
+        },
+        {
+          "id": "j19",
+          "kind": "two-char",
+          "needed_max": 0.14893591403961182,
+          "needed_min": 0.14893591403961182
+        },
+        {
+          "id": "j20",
+          "kind": "two-char",
+          "needed_max": 0.14566516876220703,
+          "needed_min": 0.11687028408050537
+        },
+        {
+          "id": "j21",
+          "kind": "two-char",
+          "needed_max": 0.1317610740661621,
+          "needed_min": 0.1317610740661621
+        },
+        {
+          "id": "j22",
+          "kind": "single-kanji",
+          "needed_max": 0.1434038281440735,
+          "needed_min": 0.1434038281440735
+        },
+        {
+          "id": "j23",
+          "kind": "single-kanji",
+          "needed_max": 0.170396625995636,
+          "needed_min": 0.170396625995636
+        },
+        {
+          "id": "j24",
+          "kind": "single-kanji",
+          "needed_max": 0.17837285995483398,
+          "needed_min": 0.17837285995483398
+        },
+        {
+          "id": "j25",
+          "kind": "mixed",
+          "needed_max": 0.09896671772003174,
+          "needed_min": 0.09896671772003174
+        },
+        {
+          "id": "j26",
+          "kind": "mixed",
+          "needed_max": 0.10074114799499512,
+          "needed_min": 0.10074114799499512
+        },
+        {
+          "id": "j27",
+          "kind": "mixed",
+          "needed_max": 0.138147234916687,
+          "needed_min": 0.0821160078048706
+        },
+        {
+          "id": "j28",
+          "kind": "mixed",
+          "needed_max": 0.10201644897460938,
+          "needed_min": 0.10201644897460938
+        },
+        {
+          "id": "j29",
+          "kind": "cross-lingual",
+          "needed_max": 0.14976835250854492,
+          "needed_min": 0.14976835250854492
+        },
+        {
+          "id": "j30",
+          "kind": "cross-lingual",
+          "needed_max": 0.14831507205963135,
+          "needed_min": 0.14831507205963135
+        },
+        {
+          "id": "j31",
+          "kind": "cross-lingual",
+          "needed_max": 0.14217054843902588,
+          "needed_min": 0.14217054843902588
+        },
+        {
+          "id": "j32",
+          "kind": "cross-lingual",
+          "needed_max": 0.16231989860534668,
+          "needed_min": 0.16231989860534668
+        },
+        {
+          "id": "j33",
+          "kind": "cross-lingual",
+          "needed_max": 0.14587068557739258,
+          "needed_min": 0.14587068557739258
+        },
+        {
+          "id": "j34",
+          "kind": "fullwidth",
+          "needed_max": 0.14610284566879272,
+          "needed_min": 0.14610284566879272
+        },
+        {
+          "id": "j35",
+          "kind": "fullwidth",
+          "needed_max": 0.1989949345588684,
+          "needed_min": 0.1989949345588684
+        },
+        {
+          "id": "j36",
+          "kind": "fullwidth",
+          "needed_max": 0.1905866265296936,
+          "needed_min": 0.1905866265296936
+        },
+        {
+          "id": "j37",
+          "kind": "long-section",
+          "needed_max": 0.1609494686126709,
+          "needed_min": 0.14107859134674072
+        },
+        {
+          "id": "j38",
+          "kind": "long-section",
+          "needed_max": 0.08312094211578369,
+          "needed_min": 0.08312094211578369
+        },
+        {
+          "id": "j39",
+          "kind": "long-section",
+          "needed_max": 0.13425028324127197,
+          "needed_min": 0.13425028324127197
+        },
+        {
+          "id": "j40",
+          "kind": "filename",
+          "needed_max": 0.1040346622467041,
+          "needed_min": 0.1040346622467041
+        },
+        {
+          "id": "j41",
+          "kind": "filename",
+          "needed_max": 0.10990774631500244,
+          "needed_min": 0.10990774631500244
+        },
+        {
+          "id": "j42",
+          "kind": "filter",
+          "needed_max": 0.18164998292922974,
+          "needed_min": 0.16124844551086426
+        },
+        {
+          "id": "j43",
+          "kind": "filter",
+          "needed_max": 0.1814718246459961,
+          "needed_min": 0.1814718246459961
+        },
+        {
+          "id": "j44",
+          "kind": "filter",
+          "needed_max": 0.14880597591400146,
+          "needed_min": 0.10308593511581421
+        },
+        {
+          "id": "j45",
+          "kind": "filter",
+          "needed_max": 0.1386227011680603,
+          "needed_min": 0.1386227011680603
+        },
+        {
+          "id": "j46",
+          "kind": "filter",
+          "needed_max": 0.1795964241027832,
+          "needed_min": 0.10224330425262451
+        },
+        {
+          "id": "j47",
+          "kind": "filter",
+          "needed_max": 0.11558693647384644,
+          "needed_min": 0.11558693647384644
+        }
+      ],
+      "negatives": [
+        {
+          "id": "j48",
+          "nearest": 0.25438839197158813
+        },
+        {
+          "id": "j49",
+          "nearest": 0.23772764205932617
+        },
+        {
+          "id": "j50",
+          "nearest": 0.23948782682418823
+        },
+        {
+          "id": "j51",
+          "nearest": 0.21638554334640503
+        },
+        {
+          "id": "j52",
+          "nearest": 0.2564299702644348
+        },
+        {
+          "id": "j53",
+          "nearest": 0.2393900752067566
+        }
+      ],
+      "positive_needed_max": 0.19922006130218506,
+      "positive_needed_p90": 0.18154308795928956,
+      "negative_nearest_min": 0.21638554334640503
+    },
+    "natural": {
+      "positives": [
+        {
+          "id": "j01",
+          "needed": 0.0949629545211792
+        },
+        {
+          "id": "j02",
+          "needed": 0.0826566219329834
+        },
+        {
+          "id": "j03",
+          "needed": 0.08585435152053833
+        },
+        {
+          "id": "j04",
+          "needed": 0.06664919853210449
+        },
+        {
+          "id": "j05",
+          "needed": 0.11304092407226562
+        },
+        {
+          "id": "j06",
+          "needed": 0.08130073547363281
+        },
+        {
+          "id": "j07",
+          "needed": 0.0987699031829834
+        },
+        {
+          "id": "j08",
+          "needed": 0.14115643501281738
+        },
+        {
+          "id": "j09",
+          "needed": 0.16774237155914307
+        },
+        {
+          "id": "j10",
+          "needed": 0.11646223068237305
+        },
+        {
+          "id": "j11",
+          "needed": 0.10088717937469482
+        },
+        {
+          "id": "j12",
+          "needed": 0.1033363938331604
+        },
+        {
+          "id": "j13",
+          "needed": 0.10119009017944336
+        },
+        {
+          "id": "j14",
+          "needed": 0.14032131433486938
+        },
+        {
+          "id": "j15",
+          "needed": 0.0935436487197876
+        },
+        {
+          "id": "j16",
+          "needed": 0.14865708351135254
+        },
+        {
+          "id": "j17",
+          "needed": 0.10627031326293945
+        },
+        {
+          "id": "j18",
+          "needed": 0.0932610034942627
+        },
+        {
+          "id": "j19",
+          "needed": 0.13577771186828613
+        },
+        {
+          "id": "j20",
+          "needed": 0.11498457193374634
+        },
+        {
+          "id": "j21",
+          "needed": 0.11213982105255127
+        },
+        {
+          "id": "j22",
+          "needed": 0.1335817575454712
+        },
+        {
+          "id": "j23",
+          "needed": 0.15301108360290527
+        },
+        {
+          "id": "j24",
+          "needed": 0.14597713947296143
+        },
+        {
+          "id": "j25",
+          "needed": 0.11861836910247803
+        },
+        {
+          "id": "j26",
+          "needed": 0.0707542896270752
+        },
+        {
+          "id": "j27",
+          "needed": 0.08053994178771973
+        },
+        {
+          "id": "j28",
+          "needed": 0.0997697114944458
+        },
+        {
+          "id": "j29",
+          "needed": 0.1468980312347412
+        },
+        {
+          "id": "j30",
+          "needed": 0.14148789644241333
+        },
+        {
+          "id": "j31",
+          "needed": 0.12718796730041504
+        },
+        {
+          "id": "j32",
+          "needed": 0.16028380393981934
+        },
+        {
+          "id": "j33",
+          "needed": 0.14126503467559814
+        },
+        {
+          "id": "j34",
+          "needed": 0.09765595197677612
+        },
+        {
+          "id": "j35",
+          "needed": 0.17102766036987305
+        },
+        {
+          "id": "j36",
+          "needed": 0.18132483959197998
+        },
+        {
+          "id": "j37",
+          "needed": 0.14927059412002563
+        },
+        {
+          "id": "j38",
+          "needed": 0.07653206586837769
+        },
+        {
+          "id": "j39",
+          "needed": 0.13708102703094482
+        },
+        {
+          "id": "j40",
+          "needed": 0.0797654390335083
+        },
+        {
+          "id": "j41",
+          "needed": 0.07716256380081177
+        },
+        {
+          "id": "j42",
+          "needed": 0.1410233974456787
+        },
+        {
+          "id": "j43",
+          "needed": 0.1622014045715332
+        },
+        {
+          "id": "j44",
+          "needed": 0.07056057453155518
+        },
+        {
+          "id": "j45",
+          "needed": 0.1325441598892212
+        },
+        {
+          "id": "j46",
+          "needed": 0.0932610034942627
+        },
+        {
+          "id": "j47",
+          "needed": 0.10102933645248413
+        }
+      ],
+      "negatives": [
+        {
+          "id": "negative-00",
+          "nearest": 0.16343015432357788
+        },
+        {
+          "id": "negative-01",
+          "nearest": 0.16007041931152344
+        },
+        {
+          "id": "negative-02",
+          "nearest": 0.16245698928833008
+        },
+        {
+          "id": "negative-03",
+          "nearest": 0.15199416875839233
+        },
+        {
+          "id": "negative-04",
+          "nearest": 0.163002610206604
+        },
+        {
+          "id": "negative-05",
+          "nearest": 0.15712541341781616
+        },
+        {
+          "id": "negative-06",
+          "nearest": 0.1600603461265564
+        },
+        {
+          "id": "negative-07",
+          "nearest": 0.15120840072631836
+        },
+        {
+          "id": "negative-08",
+          "nearest": 0.15989035367965698
+        },
+        {
+          "id": "negative-09",
+          "nearest": 0.15721863508224487
+        },
+        {
+          "id": "negative-10",
+          "nearest": 0.16075366735458374
+        },
+        {
+          "id": "negative-11",
+          "nearest": 0.15191656351089478
+        }
+      ]
+    }
+  },
+  "chosen": {
+    "max_distance": 0.208,
+    "separable": true,
+    "positive_needed_max": 0.19922006130218506,
+    "negative_nearest_min": 0.21638554334640503,
+    "range": [
+      0.19922006130218506,
+      0.21638554334640503
+    ],
+    "natural_negatives_within": 12,
+    "natural_negatives": 12,
+    "natural_positives_within": 47,
+    "natural_positives": 47
+  },
+  "gates": {
+    "e5": {
+      "en": {
+        "exit_code": 0,
+        "metrics": {
+          "page": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.8148148148148148,
+            "recall@10": 0.9259259259259259,
+            "mrr": 0.7207818930041151,
+            "fp_rate": 0.0
+          }
+        },
+        "by_kind": {
+          "page": {
+            "exact": {
+              "count": 11,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 5,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 10,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            }
+          },
+          "section": {
+            "exact": {
+              "count": 11,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 5,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 10,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            }
+          },
+          "hybrid": {
+            "exact": {
+              "count": 11,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 5,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 10,
+              "recall@5": 0.5,
+              "recall@10": 0.8,
+              "mrr": 0.2461111111111111,
+              "fp_rate": 0.0
+            }
+          }
+        },
+        "baseline": {
+          "page": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.8148148148148148,
+            "recall@10": 0.9259259259259259,
+            "mrr": 0.7207818930041151,
+            "fp_rate": 0.0
+          }
+        },
+        "baseline_failures": [],
+        "log": "| 方式    | recall@5 | recall@10 | mrr | fp_rate |\n|---------|----------|----------|----------|----------|\n| page    | 0.630 | 0.630 | 0.630 | 0.000 |\n| section | 0.630 | 0.630 | 0.630 | 0.000 |\n| hybrid  | 0.815 | 0.926 | 0.721 | 0.000 |\n\n保存した: C:/Works/info-hive-dev/.rag-poc-data/decision-20261106/wiki-gate/e5-en.json\n\nキャッシュ: 一致\nゲート: 合格（section/page と hybrid の検索品質）\n基準値: 合格（page、section、hybrid は en.json から 0.05 以内）\n"
+      },
+      "ja": {
+        "exit_code": 0,
+        "metrics": {
+          "page": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9219858156028368,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9007092198581559,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.9929078014184397,
+            "recall@10": 1.0,
+            "mrr": 0.953900709219858,
+            "fp_rate": 0.0
+          }
+        },
+        "by_kind": {
+          "page": {
+            "cross-lingual": {
+              "count": 5,
+              "recall@5": 0.8,
+              "recall@10": 0.8,
+              "mrr": 0.7,
+              "fp_rate": 0.0
+            },
+            "exact": {
+              "count": 9,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.9259259259259258,
+              "fp_rate": 0.0
+            },
+            "filename": {
+              "count": 2,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 0.9444444444444443,
+              "recall@10": 0.9444444444444443,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "fullwidth": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "long-section": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "mixed": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 6,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 8,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.875,
+              "fp_rate": 0.0
+            },
+            "single-kanji": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "two-char": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.875,
+              "fp_rate": 0.0
+            }
+          },
+          "section": {
+            "cross-lingual": {
+              "count": 5,
+              "recall@5": 0.8,
+              "recall@10": 0.8,
+              "mrr": 0.8,
+              "fp_rate": 0.0
+            },
+            "exact": {
+              "count": 9,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filename": {
+              "count": 2,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 0.9444444444444443,
+              "recall@10": 0.9444444444444443,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "fullwidth": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "long-section": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8333333333333334,
+              "fp_rate": 0.0
+            },
+            "mixed": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 6,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 8,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.875,
+              "fp_rate": 0.0
+            },
+            "single-kanji": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.611111111111111,
+              "fp_rate": 0.0
+            },
+            "two-char": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.75,
+              "fp_rate": 0.0
+            }
+          },
+          "hybrid": {
+            "cross-lingual": {
+              "count": 5,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8666666666666666,
+              "fp_rate": 0.0
+            },
+            "exact": {
+              "count": 9,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filename": {
+              "count": 2,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 0.9444444444444443,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "fullwidth": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "long-section": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "mixed": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 6,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 8,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.9375,
+              "fp_rate": 0.0
+            },
+            "single-kanji": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8333333333333334,
+              "fp_rate": 0.0
+            },
+            "two-char": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.875,
+              "fp_rate": 0.0
+            }
+          }
+        },
+        "baseline": {
+          "page": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9219858156028368,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9007092198581559,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.9929078014184397,
+            "recall@10": 1.0,
+            "mrr": 0.953900709219858,
+            "fp_rate": 0.0
+          }
+        },
+        "baseline_failures": [],
+        "log": "| 方式    | recall@5 | recall@10 | mrr | fp_rate |\n|---------|----------|----------|----------|----------|\n| page    | 0.972 | 0.972 | 0.922 | 0.000 |\n| section | 0.972 | 0.972 | 0.901 | 0.000 |\n| hybrid  | 0.993 | 1.000 | 0.954 | 0.000 |\n\n保存した: C:/Works/info-hive-dev/.rag-poc-data/decision-20261106/wiki-gate/e5-ja.json\n\nキャッシュ: 一致\nゲート: 合格（section/page と hybrid の検索品質）\n基準値: 合格（page、section、hybrid は ja.json から 0.05 以内）\n"
+      }
+    },
+    "r130": {
+      "en": {
+        "exit_code": 0,
+        "metrics": {
+          "page": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.8148148148148148,
+            "recall@10": 0.9629629629629629,
+            "mrr": 0.6978395061728394,
+            "fp_rate": 0.0
+          }
+        },
+        "by_kind": {
+          "page": {
+            "exact": {
+              "count": 11,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 5,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 10,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            }
+          },
+          "section": {
+            "exact": {
+              "count": 11,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 5,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 10,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            }
+          },
+          "hybrid": {
+            "exact": {
+              "count": 11,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 5,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 10,
+              "recall@5": 0.5,
+              "recall@10": 0.9,
+              "mrr": 0.18416666666666667,
+              "fp_rate": 0.0
+            }
+          }
+        },
+        "baseline": {
+          "page": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.8148148148148148,
+            "recall@10": 0.9259259259259259,
+            "mrr": 0.7207818930041151,
+            "fp_rate": 0.0
+          }
+        },
+        "baseline_failures": [],
+        "log": "| 方式    | recall@5 | recall@10 | mrr | fp_rate |\n|---------|----------|----------|----------|----------|\n| page    | 0.630 | 0.630 | 0.630 | 0.000 |\n| section | 0.630 | 0.630 | 0.630 | 0.000 |\n| hybrid  | 0.815 | 0.963 | 0.698 | 0.000 |\n\n保存した: C:/Works/info-hive-dev/.rag-poc-data/decision-20261106/wiki-gate/r130-en.json\n\nキャッシュ: 一致\nゲート: 合格（section/page と hybrid の検索品質）\n基準値: 合格（page、section、hybrid は en.json から 0.05 以内）\n"
+      },
+      "ja": {
+        "exit_code": 0,
+        "metrics": {
+          "page": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9219858156028368,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9007092198581559,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.9627659574468085,
+            "fp_rate": 0.0
+          }
+        },
+        "by_kind": {
+          "page": {
+            "cross-lingual": {
+              "count": 5,
+              "recall@5": 0.8,
+              "recall@10": 0.8,
+              "mrr": 0.7,
+              "fp_rate": 0.0
+            },
+            "exact": {
+              "count": 9,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.9259259259259258,
+              "fp_rate": 0.0
+            },
+            "filename": {
+              "count": 2,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 0.9444444444444443,
+              "recall@10": 0.9444444444444443,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "fullwidth": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "long-section": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "mixed": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 6,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 8,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.875,
+              "fp_rate": 0.0
+            },
+            "single-kanji": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "two-char": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.875,
+              "fp_rate": 0.0
+            }
+          },
+          "section": {
+            "cross-lingual": {
+              "count": 5,
+              "recall@5": 0.8,
+              "recall@10": 0.8,
+              "mrr": 0.8,
+              "fp_rate": 0.0
+            },
+            "exact": {
+              "count": 9,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filename": {
+              "count": 2,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 0.9444444444444443,
+              "recall@10": 0.9444444444444443,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "fullwidth": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "long-section": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8333333333333334,
+              "fp_rate": 0.0
+            },
+            "mixed": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 6,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 8,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.875,
+              "fp_rate": 0.0
+            },
+            "single-kanji": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.611111111111111,
+              "fp_rate": 0.0
+            },
+            "two-char": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.75,
+              "fp_rate": 0.0
+            }
+          },
+          "hybrid": {
+            "cross-lingual": {
+              "count": 5,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.85,
+              "fp_rate": 0.0
+            },
+            "exact": {
+              "count": 9,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filename": {
+              "count": 2,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "fullwidth": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "long-section": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8333333333333334,
+              "fp_rate": 0.0
+            },
+            "mixed": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 6,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 8,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "single-kanji": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8333333333333334,
+              "fp_rate": 0.0
+            },
+            "two-char": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            }
+          }
+        },
+        "baseline": {
+          "page": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9219858156028368,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9007092198581559,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.9929078014184397,
+            "recall@10": 1.0,
+            "mrr": 0.953900709219858,
+            "fp_rate": 0.0
+          }
+        },
+        "baseline_failures": [],
+        "log": "| 方式    | recall@5 | recall@10 | mrr | fp_rate |\n|---------|----------|----------|----------|----------|\n| page    | 0.972 | 0.972 | 0.922 | 0.000 |\n| section | 0.972 | 0.972 | 0.901 | 0.000 |\n| hybrid  | 1.000 | 1.000 | 0.963 | 0.000 |\n\n保存した: C:/Works/info-hive-dev/.rag-poc-data/decision-20261106/wiki-gate/r130-ja.json\n\nキャッシュ: 一致\nゲート: 合格（section/page と hybrid の検索品質）\n基準値: 合格（page、section、hybrid は ja.json から 0.05 以内）\n"
+      }
+    },
+    "r130-sudachi": {
+      "en": {
+        "exit_code": 0,
+        "metrics": {
+          "page": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.9629629629629629,
+            "recall@10": 1.0,
+            "mrr": 0.8524691358024691,
+            "fp_rate": 0.0
+          }
+        },
+        "by_kind": {
+          "page": {
+            "exact": {
+              "count": 11,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 5,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 10,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            }
+          },
+          "section": {
+            "exact": {
+              "count": 11,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 5,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 10,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            }
+          },
+          "hybrid": {
+            "exact": {
+              "count": 11,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 5,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 10,
+              "recall@5": 0.9,
+              "recall@10": 1.0,
+              "mrr": 0.6016666666666667,
+              "fp_rate": 0.0
+            }
+          }
+        },
+        "baseline": {
+          "page": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.8148148148148148,
+            "recall@10": 0.9259259259259259,
+            "mrr": 0.7207818930041151,
+            "fp_rate": 0.0
+          }
+        },
+        "baseline_failures": [],
+        "log": "| 方式    | recall@5 | recall@10 | mrr | fp_rate |\n|---------|----------|----------|----------|----------|\n| page    | 0.630 | 0.630 | 0.630 | 0.000 |\n| section | 0.630 | 0.630 | 0.630 | 0.000 |\n| hybrid  | 0.963 | 1.000 | 0.852 | 0.000 |\n\n保存した: C:/Works/info-hive-dev/.rag-poc-data/decision-20261106/wiki-gate/r130-sudachi-en.json\n\nキャッシュ: 一致\nゲート: 合格（section/page と hybrid の検索品質）\n基準値: 合格（page、section、hybrid は en.json から 0.05 以内）\n"
+      },
+      "ja": {
+        "exit_code": 1,
+        "metrics": {
+          "page": {
+            "recall@5": 0.9219858156028368,
+            "recall@10": 0.9219858156028368,
+            "mrr": 0.8819148936170214,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.9007092198581559,
+            "recall@10": 0.9219858156028368,
+            "mrr": 0.8492907801418441,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.9787234042553191,
+            "recall@10": 1.0,
+            "mrr": 0.9161600810536981,
+            "fp_rate": 0.0
+          }
+        },
+        "by_kind": {
+          "page": {
+            "cross-lingual": {
+              "count": 5,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8400000000000001,
+              "fp_rate": 0.0
+            },
+            "exact": {
+              "count": 9,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filename": {
+              "count": 2,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 0.8888888888888888,
+              "recall@10": 0.8888888888888888,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "fullwidth": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "long-section": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "mixed": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 6,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 8,
+              "recall@5": 0.75,
+              "recall@10": 0.75,
+              "mrr": 0.6875,
+              "fp_rate": 0.0
+            },
+            "single-kanji": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.75,
+              "fp_rate": 0.0
+            },
+            "two-char": {
+              "count": 4,
+              "recall@5": 0.75,
+              "recall@10": 0.75,
+              "mrr": 0.625,
+              "fp_rate": 0.0
+            }
+          },
+          "section": {
+            "cross-lingual": {
+              "count": 5,
+              "recall@5": 0.8,
+              "recall@10": 1.0,
+              "mrr": 0.8333333333333334,
+              "fp_rate": 0.0
+            },
+            "exact": {
+              "count": 9,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8888888888888888,
+              "fp_rate": 0.0
+            },
+            "filename": {
+              "count": 2,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 0.8888888888888888,
+              "recall@10": 0.8888888888888888,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "fullwidth": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "long-section": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8333333333333334,
+              "fp_rate": 0.0
+            },
+            "mixed": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 6,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 8,
+              "recall@5": 0.75,
+              "recall@10": 0.75,
+              "mrr": 0.6875,
+              "fp_rate": 0.0
+            },
+            "single-kanji": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.5833333333333334,
+              "fp_rate": 0.0
+            },
+            "two-char": {
+              "count": 4,
+              "recall@5": 0.75,
+              "recall@10": 0.75,
+              "mrr": 0.75,
+              "fp_rate": 0.0
+            }
+          },
+          "hybrid": {
+            "cross-lingual": {
+              "count": 5,
+              "recall@5": 0.8,
+              "recall@10": 1.0,
+              "mrr": 0.8285714285714285,
+              "fp_rate": 0.0
+            },
+            "exact": {
+              "count": 9,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.9444444444444444,
+              "fp_rate": 0.0
+            },
+            "filename": {
+              "count": 2,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "fullwidth": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "long-section": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8333333333333334,
+              "fp_rate": 0.0
+            },
+            "mixed": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 6,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 8,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8333333333333333,
+              "fp_rate": 0.0
+            },
+            "single-kanji": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "two-char": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8125,
+              "fp_rate": 0.0
+            }
+          }
+        },
+        "baseline": {
+          "page": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9219858156028368,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9007092198581559,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.9929078014184397,
+            "recall@10": 1.0,
+            "mrr": 0.953900709219858,
+            "fp_rate": 0.0
+          }
+        },
+        "baseline_failures": [
+          "section mrr 0.849 < 0.901"
+        ],
+        "log": "| 方式    | recall@5 | recall@10 | mrr | fp_rate |\n|---------|----------|----------|----------|----------|\n| page    | 0.922 | 0.922 | 0.882 | 0.000 |\n| section | 0.901 | 0.922 | 0.849 | 0.000 |\n| hybrid  | 0.979 | 1.000 | 0.916 | 0.000 |\n\n保存した: C:/Works/info-hive-dev/.rag-poc-data/decision-20261106/wiki-gate/r130-sudachi-ja.json\n\nキャッシュ: 一致\nゲート: 合格（section/page と hybrid の検索品質）\n基準値: 不合格（section mrr 0.849 < 0.901）\n"
+      }
+    }
+  },
+  "sudachi_by_kind": {
+    "en-page": {
+      "exact": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "filter": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "negative": {
+        "bigram_recall@10": 0.0,
+        "sudachi_recall@10": 0.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "paraphrase": {
+        "bigram_recall@10": 0.0,
+        "sudachi_recall@10": 0.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      }
+    },
+    "en-section": {
+      "exact": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "filter": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "negative": {
+        "bigram_recall@10": 0.0,
+        "sudachi_recall@10": 0.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "paraphrase": {
+        "bigram_recall@10": 0.0,
+        "sudachi_recall@10": 0.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      }
+    },
+    "ja-page": {
+      "cross-lingual": {
+        "bigram_recall@10": 0.8,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "exact": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "filename": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "filter": {
+        "bigram_recall@10": 0.9444444444444443,
+        "sudachi_recall@10": 0.8888888888888888,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "fullwidth": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "long-section": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "mixed": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "negative": {
+        "bigram_recall@10": 0.0,
+        "sudachi_recall@10": 0.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "paraphrase": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 0.75,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "single-kanji": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "two-char": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 0.75,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      }
+    },
+    "ja-section": {
+      "cross-lingual": {
+        "bigram_recall@10": 0.8,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "exact": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "filename": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "filter": {
+        "bigram_recall@10": 0.9444444444444443,
+        "sudachi_recall@10": 0.8888888888888888,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "fullwidth": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "long-section": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "mixed": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "negative": {
+        "bigram_recall@10": 0.0,
+        "sudachi_recall@10": 0.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "paraphrase": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 0.75,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "single-kanji": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 1.0,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      },
+      "two-char": {
+        "bigram_recall@10": 1.0,
+        "sudachi_recall@10": 0.75,
+        "bigram_fp_rate": 0.0,
+        "sudachi_fp_rate": 0.0
+      }
+    }
+  },
+  "passed": {
+    "e5": true,
+    "r130": true,
+    "r130-sudachi": false
+  },
+  "criterion": "較正で偽陽性 0 の範囲がある。--gate と --baseline（recall@10 と MRR の低下 ≤ 0.05、fp_rate の上昇 ≤ 0.05）に合格する"
+}

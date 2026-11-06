@@ -1,0 +1,49 @@
+{
+  "env": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu_threads_limit": 4,
+    "logical_cpus": 16,
+    "packages": {
+      "numpy": "2.5.4",
+      "usearch": "2.26.6",
+      "faiss-cpu": "1.15.1",
+      "tantivy": "0.27.0",
+      "fastembed": "0.8.0",
+      "onnxruntime": "1.31.1",
+      "sqlite-vec": "0.1.9",
+      "sudachipy": "0.7.0",
+      "psutil": "7.2.2",
+      "mcp": null
+    },
+    "dev_commit": "69fab02",
+    "wiki_commit": "e64765f",
+    "rag_commit": "26bebeb",
+    "poc_data": "C:\\Works\\info-hive-dev\\.rag-poc-data",
+    "gpu": {
+      "utilization_percent": 3,
+      "memory_used_mib": 2582
+    }
+  },
+  "purpose": "E7 の区間ごとの推定を、無作為の 1,000 行の実測で確かめる",
+  "results": [
+    {
+      "model": "R-130",
+      "runtime": "onnx-fp32",
+      "rows": 1000,
+      "measured_seconds": 559.1826759000251,
+      "estimated_seconds": 411.65691842072795,
+      "ratio_measured_to_estimate": 1.3583706501162713,
+      "status": "ok"
+    },
+    {
+      "model": "E-s",
+      "runtime": "fastembed-fp16",
+      "rows": 1000,
+      "measured_seconds": 140.5896236000117,
+      "estimated_seconds": 110.63528587700118,
+      "ratio_measured_to_estimate": 1.270748500223629,
+      "status": "ok"
+    }
+  ]
+}

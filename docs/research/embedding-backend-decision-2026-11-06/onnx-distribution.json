@@ -1,0 +1,92 @@
+{
+  "env": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu_threads_limit": 4,
+    "logical_cpus": 16,
+    "packages": {
+      "numpy": "2.5.4",
+      "usearch": "2.26.6",
+      "faiss-cpu": "1.15.1",
+      "tantivy": "0.27.0",
+      "fastembed": "0.8.0",
+      "onnxruntime": "1.31.1",
+      "sqlite-vec": "0.1.9",
+      "sudachipy": "0.7.0",
+      "psutil": "7.2.2",
+      "mcp": null
+    },
+    "dev_commit": "69fab02",
+    "wiki_commit": "e64765f",
+    "rag_commit": "26bebeb",
+    "poc_data": "C:\\Works\\info-hive-dev\\.rag-poc-data",
+    "gpu": {
+      "utilization_percent": 3,
+      "memory_used_mib": 2366
+    }
+  },
+  "purpose": "公開版の ONNX（onnx-community）とトークナイザ（cl-nagoya）を空のキャッシュから取得できるか",
+  "files": [
+    {
+      "repo": "onnx-community/ruri-v3-130m-ONNX",
+      "revision": "cbd305d39c17cc58375ceb29586996e7d98d48c0",
+      "file": "onnx/model.onnx",
+      "bytes": 528967348,
+      "sha256": "1b9031dd54d448c236f8534e2256fabe73fe7b20dc8770d2490f1700119f98b4",
+      "seconds": 12.731187199999113,
+      "same_as_measured": true
+    },
+    {
+      "repo": "cl-nagoya/ruri-v3-130m",
+      "revision": "e3114c6ee10dbab8b4b235fbc6dcf9dd4d5ac1a6",
+      "file": "config.json",
+      "bytes": 1324,
+      "sha256": "d1dd6fc1235582f38e4d6820d4ca5b4e8e7a118320a9e346dffec162c2793284",
+      "seconds": 0.2520797000033781,
+      "same_as_measured": true
+    },
+    {
+      "repo": "cl-nagoya/ruri-v3-130m",
+      "revision": "e3114c6ee10dbab8b4b235fbc6dcf9dd4d5ac1a6",
+      "file": "tokenizer.json",
+      "bytes": 6724873,
+      "sha256": "0a94ac9a0a02c067bdef25b72ae9f4ee33f48f552e55988d444f6d25eeb1d062",
+      "seconds": 0.27281520000542514,
+      "same_as_measured": true
+    },
+    {
+      "repo": "cl-nagoya/ruri-v3-130m",
+      "revision": "e3114c6ee10dbab8b4b235fbc6dcf9dd4d5ac1a6",
+      "file": "tokenizer_config.json",
+      "bytes": 3779,
+      "sha256": "34004511993472f15c7202074284c57788c161fb6567de164b8e0c0266f155e4",
+      "seconds": 0.1989072999858763,
+      "same_as_measured": true
+    },
+    {
+      "repo": "cl-nagoya/ruri-v3-130m",
+      "revision": "e3114c6ee10dbab8b4b235fbc6dcf9dd4d5ac1a6",
+      "file": "special_tokens_map.json",
+      "bytes": 968,
+      "sha256": "30bf8256f9a1eb3287af2a9b7940465e29a38aad4a459a3e773bb3a14bd34c0f",
+      "seconds": 0.19773020001593977,
+      "same_as_measured": true
+    }
+  ],
+  "download_seconds": 14.692473999981303,
+  "weights_bytes": 528967348,
+  "total_bytes": 535698292,
+  "licenses": {
+    "onnx-community/ruri-v3-130m-ONNX": "apache-2.0",
+    "cl-nagoya/ruri-v3-130m": "apache-2.0"
+  },
+  "parity": {
+    "texts": 300,
+    "reference": "GPU の sentence-transformers（統一の測定の vectors/parity/R-130.npy）",
+    "cosine_min": 0.9999998807907104,
+    "cosine_mean": 1.0,
+    "top30_overlap_within_parity": 1.0
+  },
+  "criterion": "全ファイルの sha256 が測定に使ったものと同じ、cosine の最小 ≥ 0.9999、上位 30 件の一致 1.0",
+  "passed": true
+}

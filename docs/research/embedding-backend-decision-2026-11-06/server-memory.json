@@ -1,0 +1,500 @@
+{
+  "env": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu_threads_limit": 4,
+    "logical_cpus": 16,
+    "packages": {
+      "numpy": "2.5.4",
+      "usearch": "2.26.6",
+      "faiss-cpu": "1.15.1",
+      "tantivy": "0.27.0",
+      "fastembed": "0.8.0",
+      "onnxruntime": "1.31.1",
+      "sqlite-vec": "0.1.9",
+      "sudachipy": "0.7.0",
+      "psutil": "7.2.2",
+      "mcp": null
+    },
+    "dev_commit": "69fab02",
+    "wiki_commit": "e64765f",
+    "rag_commit": "26bebeb",
+    "poc_data": "C:\\Works\\info-hive-dev\\.rag-poc-data",
+    "gpu": {
+      "utilization_percent": 2,
+      "memory_used_mib": 3715
+    }
+  },
+  "purpose": "常駐するサーバーのメモリ（規模 × 索引の開き方 × モデルの有無）",
+  "limits_private_gib": {
+    "wiki": 1.0,
+    "full": 2.5
+  },
+  "results": [
+    {
+      "scale": "wiki",
+      "index": "usearch-view",
+      "model": true,
+      "stages": {
+        "start": {
+          "rss": 40923136,
+          "private": 532779008,
+          "peak_wset": 45305856
+        },
+        "model_loaded": {
+          "rss": 767217664,
+          "private": 1251225600,
+          "peak_wset": 871284736
+        },
+        "index_opened": {
+          "rss": 772050944,
+          "private": 1254100992,
+          "peak_wset": 871284736
+        },
+        "lexical_opened": {
+          "rss": 773906432,
+          "private": 1254322176,
+          "peak_wset": 871284736
+        },
+        "after_queries": {
+          "rss": 885448704,
+          "private": 1260228608,
+          "peak_wset": 885448704
+        },
+        "after_longest_passages": {
+          "rss": 2142441472,
+          "private": 2718375936,
+          "peak_wset": 2239291392
+        }
+      },
+      "peak_wset_bytes": 2239291392,
+      "private_bytes": 2718375936,
+      "rss_bytes": 2142441472,
+      "status": "ok"
+    },
+    {
+      "scale": "wiki",
+      "index": "usearch-view",
+      "model": false,
+      "stages": {
+        "start": {
+          "rss": 41041920,
+          "private": 533491712,
+          "peak_wset": 45039616
+        },
+        "index_opened": {
+          "rss": 71700480,
+          "private": 561127424,
+          "peak_wset": 111214592
+        },
+        "lexical_opened": {
+          "rss": 73506816,
+          "private": 561283072,
+          "peak_wset": 111214592
+        },
+        "after_queries": {
+          "rss": 180064256,
+          "private": 564133888,
+          "peak_wset": 180064256
+        }
+      },
+      "peak_wset_bytes": 180064256,
+      "private_bytes": 564133888,
+      "rss_bytes": 180064256,
+      "status": "ok"
+    },
+    {
+      "scale": "wiki",
+      "index": "usearch-load",
+      "model": true,
+      "stages": {
+        "start": {
+          "rss": 41664512,
+          "private": 533823488,
+          "peak_wset": 45092864
+        },
+        "model_loaded": {
+          "rss": 767389696,
+          "private": 1251454976,
+          "peak_wset": 871460864
+        },
+        "index_opened": {
+          "rss": 781873152,
+          "private": 1288613888,
+          "peak_wset": 871460864
+        },
+        "lexical_opened": {
+          "rss": 783761408,
+          "private": 1288753152,
+          "peak_wset": 871460864
+        },
+        "after_queries": {
+          "rss": 886607872,
+          "private": 1294589952,
+          "peak_wset": 886607872
+        },
+        "after_longest_passages": {
+          "rss": 2143711232,
+          "private": 2752860160,
+          "peak_wset": 2240495616
+        }
+      },
+      "peak_wset_bytes": 2240495616,
+      "private_bytes": 2752860160,
+      "rss_bytes": 2143711232,
+      "status": "ok"
+    },
+    {
+      "scale": "wiki",
+      "index": "usearch-load",
+      "model": false,
+      "stages": {
+        "start": {
+          "rss": 42037248,
+          "private": 534843392,
+          "peak_wset": 45084672
+        },
+        "index_opened": {
+          "rss": 80588800,
+          "private": 594784256,
+          "peak_wset": 112214016
+        },
+        "lexical_opened": {
+          "rss": 82440192,
+          "private": 594964480,
+          "peak_wset": 112214016
+        },
+        "after_queries": {
+          "rss": 180690944,
+          "private": 597991424,
+          "peak_wset": 180690944
+        }
+      },
+      "peak_wset_bytes": 180690944,
+      "private_bytes": 597991424,
+      "rss_bytes": 180690944,
+      "status": "ok"
+    },
+    {
+      "scale": "wiki",
+      "index": "faiss",
+      "model": true,
+      "stages": {
+        "start": {
+          "rss": 42094592,
+          "private": 534220800,
+          "peak_wset": 45535232
+        },
+        "model_loaded": {
+          "rss": 767594496,
+          "private": 1251684352,
+          "peak_wset": 871673856
+        },
+        "index_opened": {
+          "rss": 792682496,
+          "private": 1677213696,
+          "peak_wset": 871673856
+        },
+        "lexical_opened": {
+          "rss": 794505216,
+          "private": 1677381632,
+          "peak_wset": 871673856
+        },
+        "after_queries": {
+          "rss": 896745472,
+          "private": 1682354176,
+          "peak_wset": 896745472
+        },
+        "after_longest_passages": {
+          "rss": 2154360832,
+          "private": 3140595712,
+          "peak_wset": 2251251712
+        }
+      },
+      "peak_wset_bytes": 2251251712,
+      "private_bytes": 3140595712,
+      "rss_bytes": 2154360832,
+      "status": "ok"
+    },
+    {
+      "scale": "wiki",
+      "index": "faiss",
+      "model": false,
+      "stages": {
+        "start": {
+          "rss": 40968192,
+          "private": 532971520,
+          "peak_wset": 45568000
+        },
+        "index_opened": {
+          "rss": 90148864,
+          "private": 979279872,
+          "peak_wset": 113569792
+        },
+        "lexical_opened": {
+          "rss": 92196864,
+          "private": 979419136,
+          "peak_wset": 113569792
+        },
+        "after_queries": {
+          "rss": 190451712,
+          "private": 981594112,
+          "peak_wset": 190451712
+        }
+      },
+      "peak_wset_bytes": 190451712,
+      "private_bytes": 981594112,
+      "rss_bytes": 190451712,
+      "status": "ok"
+    },
+    {
+      "scale": "full",
+      "index": "usearch-view",
+      "model": true,
+      "stages": {
+        "start": {
+          "rss": 41918464,
+          "private": 534134784,
+          "peak_wset": 45527040
+        },
+        "model_loaded": {
+          "rss": 741105664,
+          "private": 1224519680,
+          "peak_wset": 845750272
+        },
+        "index_opened": {
+          "rss": 903827456,
+          "private": 1275363328,
+          "peak_wset": 903827456
+        },
+        "lexical_opened": {
+          "rss": 905715712,
+          "private": 1275924480,
+          "peak_wset": 905715712
+        },
+        "after_queries": {
+          "rss": 1676783616,
+          "private": 1285820416,
+          "peak_wset": 1676783616
+        },
+        "after_longest_passages": {
+          "rss": 2934140928,
+          "private": 2745167872,
+          "peak_wset": 3030945792
+        }
+      },
+      "peak_wset_bytes": 3030945792,
+      "private_bytes": 2745167872,
+      "rss_bytes": 2934140928,
+      "status": "ok"
+    },
+    {
+      "scale": "full",
+      "index": "usearch-view",
+      "model": false,
+      "stages": {
+        "start": {
+          "rss": 40980480,
+          "private": 533106688,
+          "peak_wset": 45244416
+        },
+        "index_opened": {
+          "rss": 204242944,
+          "private": 584577024,
+          "peak_wset": 204242944
+        },
+        "lexical_opened": {
+          "rss": 205295616,
+          "private": 583180288,
+          "peak_wset": 205295616
+        },
+        "after_queries": {
+          "rss": 973512704,
+          "private": 591417344,
+          "peak_wset": 973512704
+        }
+      },
+      "peak_wset_bytes": 973512704,
+      "private_bytes": 591417344,
+      "rss_bytes": 973512704,
+      "status": "ok"
+    },
+    {
+      "scale": "full",
+      "index": "usearch-load",
+      "model": true,
+      "stages": {
+        "start": {
+          "rss": 40923136,
+          "private": 532828160,
+          "peak_wset": 45219840
+        },
+        "model_loaded": {
+          "rss": 741060608,
+          "private": 1224339456,
+          "peak_wset": 845373440
+        },
+        "index_opened": {
+          "rss": 1720369152,
+          "private": 2601566208,
+          "peak_wset": 1720369152
+        },
+        "lexical_opened": {
+          "rss": 1722343424,
+          "private": 2602102784,
+          "peak_wset": 1722343424
+        },
+        "after_queries": {
+          "rss": 1866289152,
+          "private": 2611765248,
+          "peak_wset": 1866289152
+        },
+        "after_longest_passages": {
+          "rss": 3124084736,
+          "private": 4071710720,
+          "peak_wset": 3221045248
+        }
+      },
+      "peak_wset_bytes": 3221045248,
+      "private_bytes": 4071710720,
+      "rss_bytes": 3124084736,
+      "status": "ok"
+    },
+    {
+      "scale": "full",
+      "index": "usearch-load",
+      "model": false,
+      "stages": {
+        "start": {
+          "rss": 41861120,
+          "private": 534155264,
+          "peak_wset": 45838336
+        },
+        "index_opened": {
+          "rss": 1021227008,
+          "private": 1910161408,
+          "peak_wset": 1021227008
+        },
+        "lexical_opened": {
+          "rss": 1023246336,
+          "private": 1911267328,
+          "peak_wset": 1023246336
+        },
+        "after_queries": {
+          "rss": 1163702272,
+          "private": 1917943808,
+          "peak_wset": 1163702272
+        }
+      },
+      "peak_wset_bytes": 1163702272,
+      "private_bytes": 1917943808,
+      "rss_bytes": 1163702272,
+      "status": "ok"
+    },
+    {
+      "scale": "full",
+      "index": "faiss",
+      "model": true,
+      "stages": {
+        "start": {
+          "rss": 40992768,
+          "private": 533295104,
+          "peak_wset": 44982272
+        },
+        "model_loaded": {
+          "rss": 741367808,
+          "private": 1224736768,
+          "peak_wset": 845832192
+        },
+        "index_opened": {
+          "rss": 1160122368,
+          "private": 2043957248,
+          "peak_wset": 1160122368
+        },
+        "lexical_opened": {
+          "rss": 1161965568,
+          "private": 2044604416,
+          "peak_wset": 1161965568
+        },
+        "after_queries": {
+          "rss": 1306685440,
+          "private": 2055008256,
+          "peak_wset": 1306685440
+        },
+        "after_longest_passages": {
+          "rss": 2563891200,
+          "private": 3513389056,
+          "peak_wset": 2660753408
+        }
+      },
+      "peak_wset_bytes": 2660753408,
+      "private_bytes": 3513389056,
+      "rss_bytes": 2563891200,
+      "status": "ok"
+    },
+    {
+      "scale": "full",
+      "index": "faiss",
+      "model": false,
+      "stages": {
+        "start": {
+          "rss": 42139648,
+          "private": 534253568,
+          "peak_wset": 45744128
+        },
+        "index_opened": {
+          "rss": 465461248,
+          "private": 1353994240,
+          "peak_wset": 465461248
+        },
+        "lexical_opened": {
+          "rss": 467423232,
+          "private": 1354596352,
+          "peak_wset": 467423232
+        },
+        "after_queries": {
+          "rss": 608362496,
+          "private": 1362026496,
+          "peak_wset": 608362496
+        }
+      },
+      "peak_wset_bytes": 608362496,
+      "private_bytes": 1362026496,
+      "rss_bytes": 608362496,
+      "status": "ok"
+    }
+  ],
+  "verdict": {
+    "wiki/usearch-view": {
+      "private_gib": 2.5316848754882812,
+      "peak_wset_gib": 2.0855026245117188,
+      "within_limit": false
+    },
+    "wiki/usearch-load": {
+      "private_gib": 2.563800811767578,
+      "peak_wset_gib": 2.0866241455078125,
+      "within_limit": false
+    },
+    "wiki/faiss": {
+      "private_gib": 2.924907684326172,
+      "peak_wset_gib": 2.0966415405273438,
+      "within_limit": false
+    },
+    "full/usearch-view": {
+      "private_gib": 2.5566368103027344,
+      "peak_wset_gib": 2.8227882385253906,
+      "within_limit": false
+    },
+    "full/usearch-load": {
+      "private_gib": 3.7920761108398438,
+      "peak_wset_gib": 2.9998321533203125,
+      "within_limit": false
+    },
+    "full/faiss": {
+      "private_gib": 3.2720985412597656,
+      "peak_wset_gib": 2.4780197143554688,
+      "within_limit": false
+    }
+  },
+  "criterion": "モデルありで、wiki 規模の private ≤ 1.0 GiB、全量 ≤ 2.5 GiB（提案値）"
+}

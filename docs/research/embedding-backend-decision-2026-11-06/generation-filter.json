@@ -1,0 +1,260 @@
+{
+  "env": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu_threads_limit": 4,
+    "logical_cpus": 16,
+    "packages": {
+      "numpy": "2.5.4",
+      "usearch": "2.26.6",
+      "faiss-cpu": "1.15.1",
+      "tantivy": "0.27.0",
+      "fastembed": "0.8.0",
+      "onnxruntime": "1.31.1",
+      "sqlite-vec": "0.1.9",
+      "sudachipy": "0.7.0",
+      "psutil": "7.2.2",
+      "mcp": null
+    },
+    "dev_commit": "69fab02",
+    "wiki_commit": "e64765f",
+    "rag_commit": "26bebeb",
+    "poc_data": "C:\\Works\\info-hive-dev\\.rag-poc-data",
+    "gpu": {
+      "utilization_percent": 3,
+      "memory_used_mib": 2298
+    }
+  },
+  "purpose": "世代の絞り込みと削除の費用（usearch、FAISS、Tantivy）",
+  "usearch": "C:\\Works\\info-hive-dev\\.rag-poc-data\\decision-20261106\\db-knobs\\usearch-M16-ea256.usearch",
+  "usearch_ef": 1024,
+  "faiss": "C:\\Works\\info-hive-dev\\.rag-poc-data\\decision-20261106\\db-knobs\\faiss-ivfsq8-4096-direct.faiss",
+  "faiss_lists": 4096,
+  "faiss_nprobe": 384,
+  "documents": 887,
+  "rows": 761915,
+  "unfiltered": {
+    "usearch": {
+      "dense_p95_ms": 19.511154996871483,
+      "recall_vs_exact": 0.950925925925926
+    },
+    "faiss": {
+      "dense_p95_ms": 36.69660999876214,
+      "recall_vs_exact": 0.9560185185185186
+    }
+  },
+  "filtering": [
+    {
+      "fraction_documents": 0.01,
+      "invalid_rows": 4403,
+      "usearch_postfilter": [
+        {
+          "multiplier": 1.0,
+          "fetch": 200,
+          "dense_p95_ms": 19.17478001996642,
+          "p95_increase_ms": -0.3363749769050628,
+          "recall_vs_exact_valid": 0.950925925925926,
+          "shortfall_queries": 10
+        },
+        {
+          "multiplier": 1.25,
+          "fetch": 250,
+          "dense_p95_ms": 19.44942998525221,
+          "p95_increase_ms": -0.06172501161927357,
+          "recall_vs_exact_valid": 0.950925925925926,
+          "shortfall_queries": 0
+        },
+        {
+          "multiplier": 1.5,
+          "fetch": 300,
+          "dense_p95_ms": 18.930219998583198,
+          "p95_increase_ms": -0.580934998288285,
+          "recall_vs_exact_valid": 0.950925925925926,
+          "shortfall_queries": 0
+        },
+        {
+          "multiplier": 2.0,
+          "fetch": 400,
+          "dense_p95_ms": 19.381089981470723,
+          "p95_increase_ms": -0.13006501540075988,
+          "recall_vs_exact_valid": 0.950925925925926,
+          "shortfall_queries": 0
+        },
+        {
+          "multiplier": 3.0,
+          "fetch": 600,
+          "dense_p95_ms": 19.439919989963528,
+          "p95_increase_ms": -0.07123500690795481,
+          "recall_vs_exact_valid": 0.950925925925926,
+          "shortfall_queries": 0
+        }
+      ],
+      "faiss_selector": {
+        "dense_p95_ms": 36.93810999247944,
+        "p95_increase_ms": 0.2414999937172979,
+        "recall_vs_exact_valid": 0.9564814814814816,
+        "leaked_invalid": 0
+      },
+      "usearch_smallest_ok": {
+        "multiplier": 1.25,
+        "fetch": 250,
+        "dense_p95_ms": 19.44942998525221,
+        "p95_increase_ms": -0.06172501161927357,
+        "recall_vs_exact_valid": 0.950925925925926,
+        "shortfall_queries": 0
+      }
+    },
+    {
+      "fraction_documents": 0.05,
+      "invalid_rows": 29719,
+      "usearch_postfilter": [
+        {
+          "multiplier": 1.0,
+          "fetch": 200,
+          "dense_p95_ms": 19.12557499599643,
+          "p95_increase_ms": -0.38558000087505206,
+          "recall_vs_exact_valid": 0.950925925925926,
+          "shortfall_queries": 34
+        },
+        {
+          "multiplier": 1.25,
+          "fetch": 250,
+          "dense_p95_ms": 19.009495012869593,
+          "p95_increase_ms": -0.5016599840018898,
+          "recall_vs_exact_valid": 0.950925925925926,
+          "shortfall_queries": 0
+        },
+        {
+          "multiplier": 1.5,
+          "fetch": 300,
+          "dense_p95_ms": 19.212554990372155,
+          "p95_increase_ms": -0.2986000064993277,
+          "recall_vs_exact_valid": 0.950925925925926,
+          "shortfall_queries": 0
+        },
+        {
+          "multiplier": 2.0,
+          "fetch": 400,
+          "dense_p95_ms": 18.94082002399955,
+          "p95_increase_ms": -0.5703349728719331,
+          "recall_vs_exact_valid": 0.950925925925926,
+          "shortfall_queries": 0
+        },
+        {
+          "multiplier": 3.0,
+          "fetch": 600,
+          "dense_p95_ms": 19.31448498944519,
+          "p95_increase_ms": -0.1966700074262917,
+          "recall_vs_exact_valid": 0.950925925925926,
+          "shortfall_queries": 0
+        }
+      ],
+      "faiss_selector": {
+        "dense_p95_ms": 35.91730499611003,
+        "p95_increase_ms": -0.7793050026521087,
+        "recall_vs_exact_valid": 0.9574074074074075,
+        "leaked_invalid": 0
+      },
+      "usearch_smallest_ok": {
+        "multiplier": 1.25,
+        "fetch": 250,
+        "dense_p95_ms": 19.009495012869593,
+        "p95_increase_ms": -0.5016599840018898,
+        "recall_vs_exact_valid": 0.950925925925926,
+        "shortfall_queries": 0
+      }
+    },
+    {
+      "fraction_documents": 0.2,
+      "invalid_rows": 138098,
+      "usearch_postfilter": [
+        {
+          "multiplier": 1.0,
+          "fetch": 200,
+          "dense_p95_ms": 19.299784988106698,
+          "p95_increase_ms": -0.21137000876478496,
+          "recall_vs_exact_valid": 0.9481481481481483,
+          "shortfall_queries": 70
+        },
+        {
+          "multiplier": 1.25,
+          "fetch": 250,
+          "dense_p95_ms": 19.24859999853652,
+          "p95_increase_ms": -0.2625549983349629,
+          "recall_vs_exact_valid": 0.9481481481481483,
+          "shortfall_queries": 9
+        },
+        {
+          "multiplier": 1.5,
+          "fetch": 300,
+          "dense_p95_ms": 19.653924991143867,
+          "p95_increase_ms": 0.1427699942723848,
+          "recall_vs_exact_valid": 0.9481481481481483,
+          "shortfall_queries": 1
+        },
+        {
+          "multiplier": 2.0,
+          "fetch": 400,
+          "dense_p95_ms": 19.39982500480255,
+          "p95_increase_ms": -0.11132999206893146,
+          "recall_vs_exact_valid": 0.9481481481481483,
+          "shortfall_queries": 0
+        },
+        {
+          "multiplier": 3.0,
+          "fetch": 600,
+          "dense_p95_ms": 19.372189990826882,
+          "p95_increase_ms": -0.13896500604460016,
+          "recall_vs_exact_valid": 0.9481481481481483,
+          "shortfall_queries": 0
+        }
+      ],
+      "faiss_selector": {
+        "dense_p95_ms": 32.44478500855621,
+        "p95_increase_ms": -4.251824990205932,
+        "recall_vs_exact_valid": 0.9574074074074075,
+        "leaked_invalid": 0
+      },
+      "usearch_smallest_ok": {
+        "multiplier": 2.0,
+        "fetch": 400,
+        "dense_p95_ms": 19.39982500480255,
+        "p95_increase_ms": -0.11132999206893146,
+        "recall_vs_exact_valid": 0.9481481481481483,
+        "shortfall_queries": 0
+      }
+    }
+  ],
+  "usearch_remove": {
+    "fraction_documents": 0.1,
+    "rows": 61700,
+    "load_seconds": 1.6440595000167377,
+    "remove_seconds": 0.022535700001753867,
+    "dense_p95_ms": 19.469195009151008,
+    "recall_vs_exact_remaining": 0.9527777777777777,
+    "recall_drop": -0.0018518518518517713,
+    "size_after": 700215
+  },
+  "faiss_remove": {
+    "rows": 61700,
+    "remove_seconds": 0.014400100015336648,
+    "dense_p95_ms": 34.884184994734824,
+    "recall_vs_exact_remaining": 0.9574074074074075,
+    "recall_drop": -0.001388888888888884
+  },
+  "tantivy_delete": {
+    "build_seconds": 7.710007300018333,
+    "documents": 89,
+    "rows": 61700,
+    "delete_commit_seconds": 0.014331799990031868,
+    "reload_seconds": 0.024561300000641495,
+    "merge_wait_seconds": 0.0003552999987732619,
+    "num_docs_after": 700215,
+    "expected_after": 700215
+  },
+  "criteria": {
+    "postfilter_5pct_increase_le_20ms": true,
+    "remove_10pct_drop_le_0_02": true
+  },
+  "note": "1 回目の測定は最初の構成だけ冷えた状態で測っており、増分が負になった。温めてから測り直した"
+}
