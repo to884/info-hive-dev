@@ -359,7 +359,7 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
   <h1>Web ページを wiki に取り込めるようにする</h1>
   <p class="lede"><code>/wiki:ingest</code> は URL を受け付けますが、ページを取りに行く手順、翻訳、画像の扱いはまだありません。この計画は、要件定義書と ADR-0004、ADR-0005 で決めた設計を、<code>info-hive-wiki</code> への 3 つの PR に分けて実装する手順をまとめたものです。</p>
   <dl class="meta">
-    <dt>対象</dt><dd><code>to884/info-hive-wiki</code>（プラグイン <code>wiki</code>。2026-11-06 の main は 0.2.1。PR 2 と PR 3 では版を上げず、CHANGELOG の <code>[Unreleased]</code> に書く）</dd>
+    <dt>対象</dt><dd><code>to884/info-hive-wiki</code>（プラグイン <code>wiki</code>。2026-11-06 の main は 0.2.1。版は各 PR のマージ前に決める）</dd>
     <dt>根拠</dt><dd>要件定義書 F-I10〜F-I15、§6.3、§6.5（F-W01〜F-W07）、AC-P18〜AC-P20。<code>docs/adr/0004-raw-holds-translated-web-pages.md</code>、<code>docs/adr/0005-wiki-figures-use-mermaid-and-svg.md</code>。<code>docs/research/web-page-ingest-brainstorm.md</code> §5</dd>
     <dt>作成日</dt><dd>2026-11-03</dd>
     <dt>改訂日</dt><dd>2026-11-06（前提を wiki の main <code>23ea5b1</code>、v0.2.1 に合わせた）</dd>
@@ -389,7 +389,7 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
       <thead><tr><th scope="col">項目</th><th scope="col">決定</th><th scope="col">理由</th></tr></thead>
       <tbody>
         <tr><td>PR の分け方</td><td>3 つの PR。引用符 → Web の取り込み → 図表の順</td><td>あとの 2 つが引用符のパーサー修正に依存する。レビューしやすい</td></tr>
-        <tr><td>版</td><td>PR 2 と PR 3 では <code>plugin.json</code> の版を上げず、CHANGELOG の <code>[Unreleased]</code> に書く。版はリリースのときにユーザーが決める</td><td>PR 1 は 0.1.0 に入り、wiki はすでに 0.2.1 を出している（2026-11-06 に改訂。当初は「0.1.0 のまま初回リリースに含める」としていた）</td></tr>
+        <tr><td>版</td><td>PR 2 と PR 3 は、作る段階では変更を CHANGELOG の <code>[Unreleased]</code> に書き、<code>plugin.json</code> の版を上げない。<strong>各 PR をマージする前に</strong>ユーザーが SemVer の版を決め、<code>plugin.json</code> と <code>CHANGELOG.md</code> をまとめて更新してからマージする。版を決めないままマージしない</td><td><code>AGENTS.md</code> の「ユーザーに見える変更は、マージ前に SemVer のバージョンを決める」に従う。マーケットプレイスは main を配り、<code>version</code> を上げたコミットで利用者に更新が届くので、版を上げずにマージすると更新が届かない。PR 1 は 0.1.0 に入り、wiki はすでに 0.2.1 を出している（2026-11-06 に改訂。当初は「0.1.0 のまま初回リリースに含める」としていた）</td></tr>
         <tr><td>ほかの作業との分担</td><td>同じ時期に、グラフ層の後始末と、wiki の MCP サーバーと検索の移行が進んでいる。PR 2 と PR 3 は <code>wiki_search.py</code>、<code>wiki_graph_*.py</code>、<code>graph-workflow.md</code>、<code>setup_wiki.py</code> の <code>--wiki</code> の既定、MCP サーバーのファイルに触らない。<code>wiki_text.py</code> には関数を足すだけにする</td><td>2026-11-06 の作業の分担による</td></tr>
         <tr><td>この文書の置き場所</td><td><code>info-hive-dev/docs/plans/</code></td><td>開発に関わる文書はサブモジュールに置かない（AGENTS.md）</td></tr>
       </tbody>
