@@ -359,10 +359,11 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
   <h1>Web ページを wiki に取り込めるようにする</h1>
   <p class="lede"><code>/wiki:ingest</code> は URL を受け付けますが、ページを取りに行く手順、翻訳、画像の扱いはまだありません。この計画は、要件定義書と ADR-0004、ADR-0005 で決めた設計を、<code>info-hive-wiki</code> への 3 つの PR に分けて実装する手順をまとめたものです。</p>
   <dl class="meta">
-    <dt>対象</dt><dd><code>to884/info-hive-wiki</code>（プラグイン <code>wiki</code>、版は 0.1.0 のまま）</dd>
+    <dt>対象</dt><dd><code>to884/info-hive-wiki</code>（プラグイン <code>wiki</code>。2026-11-06 の main は 0.2.1。PR 2 と PR 3 では版を上げず、CHANGELOG の <code>[Unreleased]</code> に書く）</dd>
     <dt>根拠</dt><dd>要件定義書 F-I10〜F-I15、§6.3、§6.5（F-W01〜F-W07）、AC-P18〜AC-P20。<code>docs/adr/0004-raw-holds-translated-web-pages.md</code>、<code>docs/adr/0005-wiki-figures-use-mermaid-and-svg.md</code>。<code>docs/research/web-page-ingest-brainstorm.md</code> §5</dd>
     <dt>作成日</dt><dd>2026-11-03</dd>
-    <dt>状態</dt><dd>計画。実装はまだ始めていません。</dd>
+    <dt>改訂日</dt><dd>2026-11-06（前提を wiki の main <code>23ea5b1</code>、v0.2.1 に合わせた）</dd>
+    <dt>状態</dt><dd>PR 1 は済み（wiki 0.1.0 に入った）。PR 2 と PR 3 は実装中。</dd>
   </dl>
   <button type="button" class="theme-toggle" id="theme-toggle" aria-pressed="false">表示: 自動</button>
 </header>
@@ -388,7 +389,8 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
       <thead><tr><th scope="col">項目</th><th scope="col">決定</th><th scope="col">理由</th></tr></thead>
       <tbody>
         <tr><td>PR の分け方</td><td>3 つの PR。引用符 → Web の取り込み → 図表の順</td><td>あとの 2 つが引用符のパーサー修正に依存する。レビューしやすい</td></tr>
-        <tr><td>版</td><td>0.1.0 のまま。初回リリース（P6）に含める</td><td>未リリースなので、CHANGELOG の <code>[Unreleased]</code> に足すだけでよい</td></tr>
+        <tr><td>版</td><td>PR 2 と PR 3 では <code>plugin.json</code> の版を上げず、CHANGELOG の <code>[Unreleased]</code> に書く。版はリリースのときにユーザーが決める</td><td>PR 1 は 0.1.0 に入り、wiki はすでに 0.2.1 を出している（2026-11-06 に改訂。当初は「0.1.0 のまま初回リリースに含める」としていた）</td></tr>
+        <tr><td>ほかの作業との分担</td><td>同じ時期に、グラフ層の後始末と、wiki の MCP サーバーと検索の移行が進んでいる。PR 2 と PR 3 は <code>wiki_search.py</code>、<code>wiki_graph_*.py</code>、<code>graph-workflow.md</code>、<code>setup_wiki.py</code> の <code>--wiki</code> の既定、MCP サーバーのファイルに触らない。<code>wiki_text.py</code> には関数を足すだけにする</td><td>2026-11-06 の作業の分担による</td></tr>
         <tr><td>この文書の置き場所</td><td><code>info-hive-dev/docs/plans/</code></td><td>開発に関わる文書はサブモジュールに置かない（AGENTS.md）</td></tr>
       </tbody>
     </table>
@@ -462,7 +464,7 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
       <div class="phase-body">
         <h3>知識ページに図表を入れる</h3>
         <p class="phase-deps"><strong>前提:</strong> PR 1（lint のテストの fixture）</p>
-        <p>図表の決まりを <code>page-conventions.md</code> に書き、lint のサイズ判定からフェンスの中身を除き、svg の参照先を確かめ、検索の索引からフェンスの中身を除きます。<code>init_wiki.py</code> が <code>wiki/assets/</code> を作るようにします。詳細は <a href="#pr3">6 節</a>。</p>
+        <p>図表の決まりを <code>page-conventions.md</code> に書き、lint のサイズ判定からフェンスの中身を除き、svg の参照先を確かめます。検索の索引からフェンスの中身を除く変更は、検索の移行の側に回します。<code>init_wiki.py</code> が <code>wiki/assets/</code> を作るようにします。詳細は <a href="#pr3">6 節</a>。</p>
       </div>
     </li>
   </ol>
@@ -537,13 +539,13 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
       <thead><tr><th scope="col">段階</th><th scope="col">内容</th></tr></thead>
       <tbody>
         <tr><td>形</td><td><code>wiki_encoding.py</code> と同じ形にする。<code>localize_argparse</code> を使い、docstring に目的・使い方・終了コードを書く。<code>__main__</code> で標準入出力を UTF-8 にする</td></tr>
-        <tr><td>取得</td><td><code>urllib.request</code> の GET。<code>http</code>/<code>https</code> 以外は拒む。User-Agent を付ける。リダイレクトは <code>http</code>/<code>https</code> の中だけ許す。本文は charset（ヘッダー → <code>&lt;meta charset&gt;</code> → utf-8、<code>errors="replace"</code>）で復号する。<code>hashlib.sha256</code> は取得したバイト列に対して取る。エラーの扱いは <code>wiki_decide.py</code> の <code>_post</code>（L134〜161）に合わせる</td></tr>
+        <tr><td>取得</td><td><code>urllib.request</code> の GET。<code>http</code>/<code>https</code> 以外は拒む。User-Agent を付ける。リダイレクトは <code>http</code>/<code>https</code> の中だけ許す。本文は charset（ヘッダー → <code>&lt;meta charset&gt;</code> → utf-8、<code>errors="replace"</code>）で復号する。<code>hashlib.sha256</code> は取得したバイト列に対して取る。エラーの扱いは <code>wiki_decide.py</code> の <code>_post</code> に合わせる</td></tr>
         <tr><td>本文の抽出</td><td><code>html.parser.HTMLParser</code> で木を作り、<code>&lt;article&gt;</code> → <code>&lt;main&gt;</code> → 文字数がもっとも多いブロックの順に本文を選ぶ。<code>nav</code>、<code>header</code>、<code>footer</code>、<code>aside</code>、<code>script</code>、<code>style</code>、<code>noscript</code>、<code>form</code>、<code>iframe</code> と、<code>role="navigation"</code> などの要素は捨てる。本文を推定したときは <code>warnings</code> に書く</td></tr>
         <tr><td>Markdown 化</td><td>見出し（<code>&lt;h1&gt;</code> は frontmatter の <code>title</code> に移す）、段落、<code>ul</code>/<code>ol</code>、<code>blockquote</code>、<code>pre</code>/<code>code</code>（<code>class="language-*"</code> から言語名）、表（GFM の表。入れ子の表はテキストに落とす）、リンク（絶対 URL）、画像</td></tr>
-        <tr><td>画像</td><td>本文の中の <code>&lt;img&gt;</code> だけ。<code>data:</code> と 32px 以下（<code>width</code>/<code>height</code> 属性、またはダウンロード後に PNG/GIF/JPEG/WebP のヘッダーから読む）は捨てる。<code>RAW_ROOT/assets/&lt;スラッグ&gt;/&lt;スラッグ&gt;-NN.&lt;拡張子&gt;</code> に出現順で保存し、拡張子は Content-Type → URL の順で決める。本文には <code>![元の alt](assets/&lt;スラッグ&gt;/&lt;スラッグ&gt;-NN.&lt;ext&gt; "&lt;元の URL&gt;")</code> を書く。失敗した画像は <code>![元の alt](&lt;元の URL&gt;)</code> の直後に <code>（未取得）</code> を書く。保存先は <code>wiki_evolve.py</code> の <code>inside()</code>（L73）と同じ方法で <code>RAW_ROOT</code> の中に限る</td></tr>
+        <tr><td>画像</td><td>本文の中の <code>&lt;img&gt;</code> だけ。<code>src</code> がなければ遅延読み込みの <code>data-src</code> などと <code>srcset</code> の最初の候補を使う。<code>data:</code> と 32px 以下（<code>width</code>/<code>height</code> 属性、またはダウンロード後に PNG/GIF/JPEG/WebP のヘッダーから読む）は捨てる。<code>RAW_ROOT/assets/&lt;スラッグ&gt;/&lt;スラッグ&gt;-NN.&lt;拡張子&gt;</code> に出現順で保存し、拡張子は Content-Type → URL の順で決める。本文には <code>![元の alt](assets/&lt;スラッグ&gt;/&lt;スラッグ&gt;-NN.&lt;ext&gt; "&lt;元の URL&gt;")</code> を書く。失敗した画像は <code>![元の alt](&lt;元の URL&gt;)</code> の直後に <code>（未取得）</code> を書く。保存先は <code>wiki_evolve.py</code> の <code>inside()</code> と同じ方法（<code>wiki_fetch.py</code> の中に小さな関数を書く）で <code>RAW_ROOT</code> の中に限る。<code>--slug</code> に <code>/</code>、<code>\</code>、<code>..</code> を含むものは拒む</td></tr>
         <tr><td>frontmatter</td><td>PR 1 の <code>format_fm_value</code> で書く。<code>url</code>、<code>title</code>、<code>fetched_at</code>（ローカルのタイムゾーンつき ISO 8601）、<code>source_sha256</code>、<code>source_sha256_of: "html"</code>、<code>source_lang</code>（<code>&lt;html lang&gt;</code>。なければ <code>""</code>）、<code>translated_by: ""</code>（モデルが訳したら表示名を入れる。訳さなければ <code>""</code> のまま）、<code>fetched_by: "wiki_fetch.py 0.1"</code></td></tr>
         <tr><td>再取り込み（F-I15）</td><td><code>RAW_ROOT/&lt;スラッグ&gt;.md</code> があれば、その <code>source_sha256</code> と比べる。同じなら書かずに <code>{"unchanged": true}</code> で終了コード 0。違えば書かずに終了コード 3 とし、<code>--slug &lt;スラッグ&gt;-&lt;YYYYMMDD&gt;</code> を提案する。<code>--force</code> は上書き</td></tr>
-        <tr><td><code>--json</code> の出力</td><td><code>path</code>、<code>title</code>、<code>source_sha256</code>、<code>source_lang</code>、<code>ja_ratio</code>（日本語の文字の割合。<code>wiki_encoding.py</code> L55 の <code>_japanese_ratio</code> を <code>wiki_text</code> に移して共用）、<code>images: [{path, url, alt, line}]</code>、<code>dropped_images</code>、<code>warnings</code>。モデルは <code>images</code> を見て補足を書く</td></tr>
+        <tr><td><code>--json</code> の出力</td><td><code>path</code>、<code>title</code>、<code>source_sha256</code>、<code>source_lang</code>、<code>ja_ratio</code>（かなと漢字が、かな・漢字・ラテン文字の合計に占める割合。<code>wiki_fetch.py</code> に新しく書く。<code>wiki_encoding.py</code> の <code>_japanese_ratio</code> は表示できる ASCII も数えるので、英語のページでも 1 に近くなり、言語の判定に使えない）、<code>images: [{path, url, alt, line}]</code>、<code>dropped_images</code>、<code>warnings</code>。モデルは <code>images</code> を見て補足を書く</td></tr>
         <tr><td>終了コード</td><td>0 成功、1 引数やファイルのエラー、2 取得の失敗、3 既存のファイルと内容が違う</td></tr>
         <tr><td>文字コード</td><td>書き込みは <code>encoding="utf-8"</code>、<code>newline=""</code>。<code>eval/check_encoding.py</code> を通す</td></tr>
       </tbody>
@@ -557,12 +559,12 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
       <thead><tr><th scope="col">ファイル</th><th scope="col">変更</th></tr></thead>
       <tbody>
         <tr><td class="loc">commands/ingest.md</td><td>引数が URL のときの枝を足す。<code>wiki_fetch.py</code> を実行 → <code>--json</code> の <code>ja_ratio</code> と <code>source_lang</code> で言語を決める → 雑音を削る → 日本語でなければ段落ごとに訳し、<code>translated_by</code> に表示名を <code>str_replace</code> で入れる → <code>images</code> の各画像を見て直後に <code>&gt; &lt;表示名&gt; 補足: </code> を書く → 以降は既存の手順 3 以降。スクリプトが本文を取れないときは、ユーザーがふだん使っているブラウザをツールで操作して本文を取り、<code>source_sha256_of: "dom"</code> で記録する</td></tr>
-        <tr><td class="loc">references/ingest-workflow.md 手順 1</td><td>「Web の記事は <code>.md</code> で保存する（Obsidian Web Clipper…）」（L19）を <code>wiki_fetch.py</code> の手順に替える。新しい節を 3 つ足す。「Web ページの翻訳」（段落ごと。見出し・コード・URL・識別子・固有名詞の英語表記は変えない。混在は英語の部分だけ）、「画像の補足」（何の図か、軸や凡例、読み取れる数値、本文との関係を 2〜5 文。元の alt を訳して含める。装飾は捨てて記録しない。<code>&gt; &lt;表示名&gt; 補足: </code> の形式。表示名は推測しない）、「ログインが要るページ」（S-03、S-04 の共有範囲の確認）。L33 の画像の読み方は、Web の画像には補足を書くことに合わせる</td></tr>
-        <tr><td class="loc">references/page-conventions.md L113</td><td>引用の節に、Web ページの引用と根拠は訳文から取ると書く。raw の frontmatter の項目を表にする</td></tr>
-        <tr><td class="loc">references/architecture.md L9〜11</td><td>raw の説明に「Web ページは本文の Markdown（日本語でなければ訳文）と画像」を足す</td></tr>
-        <tr><td class="loc">SKILL.md</td><td><code>description</code>（L3〜4）に「この URL を wiki に取り込んで」を足す（1024 文字未満を保つ）。L80 の <code>raw/assets/</code> を「ソースのスラッグごとのフォルダー」に。L126〜128 の取り込みの概要。L165 のスクリプト一覧に <code>wiki_fetch.py</code></td></tr>
-        <tr><td class="loc">assets/SCHEMA.md.template L11</td><td><code>raw/assets/&lt;ソースのスラッグ&gt;/</code></td></tr>
-        <tr><td class="loc">README.md L218; docs/commands.md L30〜38; docs/workflows.md L26</td><td>手順と一覧を更新する</td></tr>
+        <tr><td class="loc">references/ingest-workflow.md 手順 1</td><td>「Web の記事は <code>.md</code> で保存する（Obsidian Web Clipper…）」（「通常のソース」の段落）を <code>wiki_fetch.py</code> の手順に替える。新しい節を 3 つ足す。「Web ページの翻訳」（段落ごと。見出し・コード・URL・識別子・固有名詞の英語表記は変えない。混在は英語の部分だけ）、「画像の補足」（何の図か、軸や凡例、読み取れる数値、本文との関係を 2〜5 文。元の alt を訳して含める。装飾は捨てて記録しない。<code>&gt; &lt;表示名&gt; 補足: </code> の形式。表示名は推測しない）、「ログインが要るページ」（S-03、S-04 の共有範囲の確認）。手順 2 の画像の読み方は、Web の画像には補足を書くことに合わせる</td></tr>
+        <tr><td class="loc">references/page-conventions.md「引用の書き方」</td><td>引用の節に、Web ページの引用と根拠は訳文から取ると書く。raw の frontmatter の項目を表にする</td></tr>
+        <tr><td class="loc">references/architecture.md「raw ソース」</td><td>raw の説明に「Web ページは本文の Markdown（日本語でなければ訳文）と画像」を足す</td></tr>
+        <tr><td class="loc">SKILL.md</td><td><code>description</code> に「この URL を wiki に取り込んで」を足す（1024 文字未満を保つ。2026-11-06 は 496 文字）。ディレクトリの木の <code>raw/assets/</code> を「ソースのスラッグごとのフォルダー」に。「取り込み」の節の概要。「付属のスクリプト」の一覧に <code>wiki_fetch.py</code></td></tr>
+        <tr><td class="loc">assets/SCHEMA.md.template「置き場所」</td><td><code>raw/assets/&lt;ソースのスラッグ&gt;/</code></td></tr>
+        <tr><td class="loc">README.md（Obsidian と Web Clipper の段落）; docs/commands.md の ingest; docs/workflows.md の取り込みの手順 1</td><td>手順と一覧を更新する</td></tr>
         <tr><td class="loc">commands/upgrade.md</td><td>既存の wiki に移行作業は要らないこと、<code>raw/assets/</code> は <code>init_wiki.py</code> がすでに作ることを 1 項目で伝える</td></tr>
         <tr><td class="loc">eval/scripts/test_fetch.py（新規）</td><td><code>http.server</code> をスレッドで立てて fixture の HTML と画像を配り、変換、画像の保存と参照、SHA-256、frontmatter の引用符、<code>unchanged</code>、小さい画像の除外、ナビの除去、コードブロックの言語、表の変換、<code>ja_ratio</code> を確かめる。Windows（cp932）でも通す</td></tr>
         <tr><td class="loc">CHANGELOG.md</td><td>Added に <code>wiki_fetch.py</code> と Web の取り込みの手順</td></tr>
@@ -597,20 +599,20 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
       <caption>変更するファイル</caption>
       <thead><tr><th scope="col">ファイル</th><th scope="col">変更</th></tr></thead>
       <tbody>
-        <tr><td class="loc">references/page-conventions.md</td><td>新しい節「図表」。F-W01〜F-W07 の内容。mermaid のブロックを本文に、描けない図だけ <code>assets/&lt;ページのスラッグ&gt;-NN.svg</code>、比較は表、直後に <code>&gt; &lt;表示名&gt; 補足: </code>、文字は日本語、png は使わない、Web の svg は写さない、図表を作るスキルが一覧にあれば使い、なければ直接書く（スキル名は書かない）。画像の参照は標準の <code>![alt](path)</code> を使い、<code>![[...]]</code> は使わない</td></tr>
+        <tr><td class="loc">references/page-conventions.md</td><td>新しい節「図表」。F-W01〜F-W07 の内容。mermaid のブロックを本文に、描けない図だけ <code>wiki/assets/&lt;ページのスラッグ&gt;-NN.svg</code> に置き、ページからは <code>../assets/&lt;ページのスラッグ&gt;-NN.svg</code> で参照する（下の注を参照）、比較は表、直後に <code>&gt; &lt;表示名&gt; 補足: </code>、文字は日本語、png は使わない、Web の svg は写さない、図表を作るスキルが一覧にあれば使い、なければ直接書く（スキル名は書かない）。画像の参照は標準の <code>![alt](path)</code> を使い、<code>![[...]]</code> は使わない</td></tr>
         <tr><td class="loc">references/ingest-workflow.md 手順 5、6; references/query-workflow.md</td><td>図表で説明できるときは図表を足す、と 1 文ずつ（synthesis の保存にも）</td></tr>
-        <tr><td class="loc">SKILL.md</td><td>本文の構成の説明に図表の 1 文。ディレクトリの木（L68〜82）に <code>wiki/assets/</code></td></tr>
-        <tr><td class="loc">init_wiki.py L43</td><td><code>SUBDIRS</code> に <code>assets</code> を足す。既存なら skip されるので <code>--upgrade</code> でも冪等</td></tr>
-        <tr><td class="loc">assets/SCHEMA.md.template L7〜11</td><td>「置き場所」に <code>wiki/assets/</code>（知識ページが参照する svg）を足す</td></tr>
+        <tr><td class="loc">SKILL.md</td><td>本文の構成の説明に図表の 1 文。ディレクトリの木に <code>wiki/assets/</code></td></tr>
+        <tr><td class="loc">init_wiki.py <code>SUBDIRS</code></td><td><code>SUBDIRS</code> に <code>assets</code> を足す。既存なら skip されるので <code>--upgrade</code> でも冪等</td></tr>
+        <tr><td class="loc">assets/SCHEMA.md.template「置き場所」</td><td>「置き場所」に <code>wiki/assets/</code>（知識ページが参照する svg）を足す</td></tr>
         <tr><td class="loc">wiki_text.py</td><td><code>strip_fences_and_images(body) -&gt; str</code> を足す。フェンス（<code>```</code>、<code>~~~</code>）の中身と、<code>![...](...)</code> の行を除く</td></tr>
-        <tr><td class="loc">wiki_lint.py</td><td>サイズの判定（L182、L192、L299〜304）を、<code>strip_fences_and_images(body)</code> に対する <code>char_count</code> と行数にする。<code>SKIP_TOP_LEVEL_DIRS</code>（L107）に <code>assets</code> を足す。<code>IMAGE_RE</code>（<code>!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)</code>）で相対パスの画像を集め、ファイルがなければ指摘 <code>missing_assets</code>（<code>{from_path, target}</code>）。<code>--suggest-pages</code>（L347〜378）の走査対象を <code>strip_fences_and_images</code> のあとにする。<code>![[...]]</code> は wikilink として扱われリンク切れになるので、lint は変えず、文書で標準の書き方を指示する</td></tr>
-        <tr><td class="loc">wiki_search.py</td><td><code>collect_sections</code>（L402）の検索対象のテキストから、フェンスの中身と画像の行を除く（<code>split_sections</code> のフェンス処理 L378〜384 を使う）。snippet はそのまま。<code>PARSE_CACHE_SCHEMA</code> を 3 から 4 に上げる。<code>section_content_hash</code> が検索対象のテキストを含むので、ベクトルは自動で作り直される</td></tr>
+        <tr><td class="loc">wiki_lint.py</td><td><code>collect_pages</code> の <code>line_count</code> と <code>char_count</code>、<code>lint()</code> のサイズの判定を、<code>strip_fences_and_images(body)</code> に対する <code>char_count</code> と行数にする。<code>SKIP_TOP_LEVEL_DIRS</code> に <code>assets</code> を足す。<code>IMAGE_RE</code>（<code>!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)</code>）で相対パスの画像を集め、<strong>ページのファイルがあるディレクトリを基準に</strong>解決して、ファイルがないか wiki の外を指すときは指摘 <code>missing_assets</code>（<code>{from_path, target}</code>）を出す。<code>http</code>、<code>https</code>、<code>data:</code>、絶対パスは見ない。フェンスの中の <code>![</code> を拾わないよう、フェンスの外だけを見る。<code>--suggest-pages</code> の走査対象を <code>strip_fences_and_images</code> のあとにする。<code>![[...]]</code> は wikilink として扱われリンク切れになるので、lint は変えず、文書で標準の書き方を指示する</td></tr>
+        <tr><td class="loc">wiki_search.py</td><td><strong>この PR では触らない。</strong>検索の索引からフェンスの中身と画像の行を除く変更（<code>collect_sections</code>、<code>PARSE_CACHE_SCHEMA</code> の引き上げ）は、wiki の MCP サーバーと検索の移行（優先順位 3）の側で行う。2026-11-06 に分担を決めた</td></tr>
         <tr><td class="loc">wiki_stats.py</td><td>大きいページの文字数・行数も同じ関数で数える</td></tr>
         <tr><td class="loc">.gitattributes</td><td><code>*.svg text eol=lf</code></td></tr>
         <tr><td class="loc">references/lint-workflow.md; commands/lint.md; commands/stats.md</td><td><code>missing_assets</code> と、サイズの数え方の変更</td></tr>
         <tr><td class="loc">commands/upgrade.md</td><td><code>wiki/assets/</code> が <code>--upgrade</code> で作られることを伝える</td></tr>
         <tr><td class="loc">eval/scripts/test_lint_stats.py</td><td>フェンスの行がサイズに入らない、<code>missing_assets</code> が出る/出ない、<code>assets/</code> の中の <code>.md</code> が無視される</td></tr>
-        <tr><td class="loc">eval/retrieval/test_search_contracts.py</td><td>フェンスの中身がトークンにならない</td></tr>
+        <tr><td class="loc">eval/retrieval/test_search_contracts.py</td><td>この PR では触らない（<code>wiki_search.py</code> と同じ理由）</td></tr>
         <tr><td class="loc">CHANGELOG.md</td><td>Changed にサイズの数え方。Added に <code>missing_assets</code> と <code>wiki/assets/</code></td></tr>
       </tbody>
     </table>
@@ -618,13 +620,14 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
 
   <h3>気をつけること</h3>
   <ul>
-    <li><code>eval/retrieval/corpus</code> と <code>ja/corpus</code> にフェンスがあれば、索引の内容が変わり、<code>run_eval.py --gate --baseline</code> の数値が動きます。実行して 0.05 の許容を超えるなら、理由を書いて baseline を作り直します。</li>
+    <li><strong>svg の相対パス（ADR-0008 の「影響」）。</strong>当初の案の <code>![説明](assets/&lt;ページのスラッグ&gt;-NN.svg)</code> は、<code>wiki/concepts/x.md</code> のように <code>wiki</code> の下の階層にあるページから書くと <code>wiki/concepts/assets/</code> を指し、GitHub、VS Code、Obsidian（相対パスの設定）で画像が出ない。Markdown の相対パスはページのファイルを基準にするので、ページからは <code>../assets/&lt;ページのスラッグ&gt;-NN.svg</code> と書き、lint もページのディレクトリを基準に解決する。知識ページは <code>wiki/&lt;種類&gt;/</code> の 1 階層下にあるので、<code>../</code> は 1 つでよい。</li>
+    <li>検索の索引は変えないので、<code>run_eval.py --gate --baseline</code> の数値は動かない。索引からフェンスを除く変更は検索の移行の側で行い、baseline の扱いもそちらで決める。</li>
     <li><code>/wiki:browse</code> での mermaid と <code>wiki/assets/</code> の表示は、この PR に含めません（ADR-0005、D-03）。</li>
   </ul>
 
   <h3>完了の判定</h3>
   <ul class="checks">
-    <li>図表を含む知識ページで、図は mermaid か svg で、直後に説明があり、svg は <code>wiki/assets/</code> に置かれてリンクが解決する（AC-P20）。</li>
+    <li>図表を含む知識ページで、図は mermaid か svg で、直後に説明があり、svg は <code>wiki/assets/</code> に置かれ、<code>../assets/</code> の参照がページの位置から解決する（AC-P20）。</li>
     <li>mermaid の行がページの大きさの判定に含まれない（AC-P20）。</li>
     <li>参照先のない svg が <code>missing_assets</code> として指摘される。</li>
     <li><code>init_wiki.py</code> と <code>--upgrade</code> が <code>wiki/assets/</code> を作る。</li>
@@ -639,8 +642,8 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
     <li>手元の Windows で CI と同じ 11 の手順を実行する。<code>compileall</code>、<code>check_encoding</code>、<code>eval/retrieval</code> と <code>eval/scripts</code> の unittest、<code>test_link_resolution</code>、<code>test_evolution</code>、<code>test_loop</code>、<code>test_adapters</code>、<code>run_eval --gate --baseline</code>（en、ja）、<code>test_decisions</code>。venv は <code>/c/Works/info-hive-venv/Scripts/python.exe</code>、<code>PYTHONIOENCODING=utf-8</code>。</li>
     <li><code>claude plugin validate .</code> と <code>claude --plugin-dir &lt;info-hive-wiki&gt; plugin list</code> を実行し、<code>wiki</code> が読み込まれることを確かめる。</li>
     <li>書いた日本語の文書を natural-japanese の lint（<code>--genre tech</code>）にかける。</li>
-    <li><code>CONTRIBUTING.md</code> の PR のチェックリスト（L113〜）を満たす。<code>SKILL.md</code> の <code>description</code> は 1024 文字未満。</li>
-    <li>PR 2 は、英語のページ 3 本と日本語のページ 3 本を、実際に <code>/wiki:ingest &lt;URL&gt;</code> で取り込んで試す（ユーザーの環境で <code>--plugin-dir</code> を使う）。</li>
+    <li><code>CONTRIBUTING.md</code> の PR のチェックリストを満たす。<code>SKILL.md</code> の <code>description</code> は 1024 文字未満。</li>
+    <li>PR 2 は、英語のページ 3 本と日本語のページ 3 本を、一時的な wiki に取り込んで試す。導入済みのマーケットプレイス版ではなく、ブランチの <code>wiki_fetch.py</code> と <code>commands/ingest.md</code> の手順を使う。</li>
     <li>コミットは git-conventions に従う（<code>feat(lint): …</code> など。日本語の説明、終止形か過去形）。PR の説明は「何を変えたか」「なぜ」「どう確かめたか」。</li>
   </ol>
 </section>
@@ -655,7 +658,8 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
         <tr><td>JavaScript で描画されるページ</td><td><span class="sev sev-degrade">劣化</span></td><td>PR 2 では手順だけ（ユーザーのブラウザをツールで操作）。頻度を見て O-15 を決める</td></tr>
         <tr><td>別版の命名（O-14）</td><td><span class="sev sev-cosmetic">見た目</span></td><td>PR 2 で <code>&lt;スラッグ&gt;-&lt;YYYYMMDD&gt;</code> を仮に採る。親リポジトリの要件定義書を PR 後に更新</td></tr>
         <tr><td><code>search_golden.json</code> のバイト一致</td><td><span class="sev sev-break">壊れる</span></td><td>PR 1 の fixture 移行後に <code>test_decisions.py</code> で確かめる。escape を含む値を fixture に入れない</td></tr>
-        <tr><td>baseline の数値</td><td><span class="sev sev-degrade">劣化</span></td><td>PR 3 でフェンスを除いたとき。許容 0.05 を超えたら理由つきで作り直す</td></tr>
+        <tr><td>baseline の数値</td><td><span class="sev sev-degrade">劣化</span></td><td>PR 3 では検索の索引を変えないので動かない。フェンスを索引から除くときに、検索の移行の側で確かめる</td></tr>
+        <tr><td>PR 2 と PR 3 の衝突</td><td><span class="sev sev-cosmetic">見た目</span></td><td>どちらも main から切り、<code>CHANGELOG.md</code>、<code>SKILL.md</code>、<code>ingest-workflow.md</code>、<code>page-conventions.md</code> の別の箇所を直す。あとからマージするほうを rebase する</td></tr>
         <tr><td><code>translated_by</code> の入れ忘れ</td><td><span class="sev sev-cosmetic">見た目</span></td><td>raw は lint の対象外なので検出できない。<code>ingest.md</code> の手順で念を押す</td></tr>
         <tr><td>既存の wiki の <code>.page-template.md</code></td><td><span class="sev sev-cosmetic">見た目</span></td><td><code>init_wiki.py</code> は上書きしない。<code>upgrade.md</code> で手直しを案内する</td></tr>
         <tr><td>手書きのパーサーと PyYAML の差</td><td><span class="sev sev-break">壊れる</span></td><td>戻す escape を <code>\"</code> と <code>\\</code> の 2 つに限り、両方のパーサーで同じ値になることを <code>test_frontmatter.py</code> で確かめる</td></tr>
@@ -675,7 +679,7 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
 </section>
 
 <footer>
-  <p>この計画は、<code>info-hive-wiki</code> の main（<code>56ef31c</code>、2026-11-03）を調べた結果に基づきます。行番号はその時点のものです。検討の経過は <code>docs/research/web-page-ingest-brainstorm.md</code> にあります。</p>
+  <p>この計画は、<code>info-hive-wiki</code> の main（<code>56ef31c</code>、2026-11-03）を調べた結果に基づきます。2026-11-06 に、PR 2 と PR 3 の前提を main（<code>23ea5b1</code>、v0.2.1）に合わせて改め、行番号の代わりに関数名と節の名前で場所を示すようにしました。PR 1 の節（4 節）の行番号は、<code>56ef31c</code> の時点のものです。検討の経過は <code>docs/research/web-page-ingest-brainstorm.md</code> にあります。</p>
 </footer>
 
 </div>
