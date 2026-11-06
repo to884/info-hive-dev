@@ -48,7 +48,8 @@ jobs:
             exit 1
           fi
           echo "sha=$(git ls-tree HEAD info-hive-wiki | awk '{print $3}')" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
+      - id: checkout-wiki
+        uses: actions/checkout@v4
         with:
           repository: to884/info-hive-wiki
           ref: ${{ steps.wiki.outputs.sha }}
@@ -60,13 +61,15 @@ jobs:
           uname -a
           uv --version
           uv run --python 3.12 python -c "import platform, sys; print(platform.platform(), platform.machine(), sys.version)"
+      # 前の試験が失敗しても続けて動かす。wiki を取得できなかったときは動かさない。
       - name: 索引の試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/wiki/test_wiki_index.py -v
       - name: サーバーと中継の試験
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/wiki/test_mcp_server.py -v
       - name: 本物のモデルで評価ゲートを通す
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         env:
           INFO_HIVE_POC_DATA: ${{ runner.temp }}/poc
         run: uv run --python 3.12 $DEPS python -X utf8 tests/wiki/run_mcp_gate.py --fusion adr-0011
