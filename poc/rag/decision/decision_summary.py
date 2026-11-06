@@ -45,7 +45,8 @@ def main():
     retry = load("tantivy-commit-retry.json")
     memory = load("server-memory.json")
     relay = load("mcp-relay.json")
-    relay_variants = {name: load(f"{name}.json") for name in ("mcp-relay", "mcp-relay-quiet", "mcp-relay-quiet-json")}
+    relay_variants = {name: load(f"{name}.json") for name in ("mcp-relay", "mcp-relay-quiet", "mcp-relay-quiet-json",
+                                                                    "mcp-relay-quiet-json-asgi", "mcp-relay-quiet-json-noauth")}
     claude_job = load("claude-job-check.json")
     onnx = load("onnx-distribution.json")
     q95, q50 = query_p95()
@@ -92,7 +93,8 @@ def main():
         "E6_memory_not_favoring_faiss": not (
             any(not v["within_limit"] for k, v in memory["verdict"].items() if k.endswith("usearch-view"))
             and all(v["within_limit"] for k, v in memory["verdict"].items() if k.endswith("faiss"))),
-        "E10_relay": any(v["passed"] for v in relay_variants.values()),
+        # 認証なしの行は上乗せの下限を見るためだけのもので、合否には使わない
+        "E10_relay": any(v["passed"] for n, v in relay_variants.items() if not n.endswith("noauth")),
         # Claude Code（CLI）はサーバーをジョブに入れず、DETACHED_PROCESS の孫はセッションの後も残る
         "E10_claude_code_keeps_detached": bool(claude_job["summary"]["detached_grandchild_survives_claude"]),
         "E9_onnx": onnx["passed"],
@@ -108,7 +110,7 @@ def main():
         "E6": {"limits_private_gib": gib_limits, "with_model": memory_note,
                "summary": "モデルありの構成はどの索引でも提案値を超えた。FAISS も収まらないので索引の選択は変わらない。提案値を見直す"},
         "E10": {"overhead_parts_ms": relay_parts, "server_survived_relay_exit": relay["server_survived_relay_exit"],
-                "variants": {name: {"log_level": v.get("log_level"), "json_response": v.get("json_response"),
+                "variants": {name: {"log_level": v.get("log_level"), "json_response": v.get("json_response"), "auth": v.get("auth", "starlette"),
                                     "function_p95_ms": v["function_p95_ms"], "direct_http_p95_ms": v["direct_http"]["query_p95_ms"],
                                     "relay_p95_ms": v["relay_warm"]["query_p95_ms"], "overhead_relay_ms": v["overhead_p95_ms"]["relay"]}
                              for name, v in relay_variants.items()},
@@ -121,7 +123,8 @@ def main():
         "fusion_chosen": fusion["chosen"], "fusion_deep_best": deep["best"], "gates": gates, "overturned": [k for k, v in overturn.items() if v], "notes": notes,
         "decisions": {"date": "2026-11-06", "E7_reembed": "目安の 20 分を緩め、初回だけ時間がかかることを upgrade の案内に書く",
                       "E8_lexical": "案 2（Tantivy に wiki の bigram を登録する）を測ってから決める",
-                      "E10_relay": "上乗せをもう 1 回測る", "E10_spawn": "先に Claude Code がサーバーをジョブに入れるかを確かめる"}})
+                      "E10_relay": "上乗せをもう 1 回測る。その後、認証の書き方を変えて測る", "E10_spawn": "先に Claude Code がサーバーをジョブに入れるかを確かめる",
+                      "E8_lexical_final": "案 2: 語彙のエンジンを Tantivy にそろえ、wiki には bigram、rag には Sudachi のトークンを入れる"}})
 
 
 if __name__ == "__main__":

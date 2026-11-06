@@ -93,12 +93,12 @@ td.ng { color: var(--bad); font-weight: 700; }
 </header>
 
 <section id="tldr" class="tldr">
-<h2>1. 要約: 閾値を外れた 3 点のうち、1 点は決まり、2 点は測り直した</h2>
-<p>モデル（ruri-v3-130m の ONNX fp32）とベクトル索引（usearch HNSW f16）は、測定の結果でも変わらない。融合も残す。変えるのはパラメーターだけで、RRF を k=30、語彙の重み 0.5 にする。最初の測定では次の 3 点が計画の閾値を外れたので、計画の停止の規則に従って ADR-0011 と ADR-0012 を書く前で止めた。その後 2026-11-06 に 1 点を決め、残りの 2 点は測り直した。</p>
+<h2>1. 要約: 閾値を外れた 3 点のうち 2 点は決まり、MCP の上乗せが残る</h2>
+<p>モデル（ruri-v3-130m の ONNX fp32）とベクトル索引（usearch HNSW f16）は、測定の結果でも変わらない。融合も残す。変えるのはパラメーターだけで、RRF を k=30、語彙の重み 0.5 にする。最初の測定では次の 3 点が計画の閾値を外れたので、計画の停止の規則に従って ADR-0011 と ADR-0012 を書く前で止めた。その後 2026-11-06 に、測り直しを含めて再埋め込みの目安と語彙検索を決めた。MCP の上乗せは、測り直しても目安を超えた。</p>
 <div class="verdict">
-<div class="card ok"><div class="k">語彙検索（E8）</div><div class="v">Tantivy + bigram はゲートを通る</div><div class="small">Sudachi はセクションの MRR 0.901 → 0.849 で落ちた。Tantivy に wiki の bigram を渡すと、指標は wiki の BM25 と同じ</div></div>
+<div class="card ok"><div class="k">語彙検索（E8）</div><div class="v">Tantivy にそろえると決めた</div><div class="small">Sudachi はセクションの MRR 0.901 → 0.849 で落ちた。Tantivy に wiki の bigram を渡すと、指標は wiki の BM25 と同じ</div></div>
 <div class="card ok"><div class="k">wiki の初回の再埋め込み（E7）</div><div class="v">目安を緩めると決めた</div><div class="small">R-130、rag の長さのチャンク 8,275 件で約 77 分。目安は 20 分だった</div></div>
-<div class="card bad"><div class="k">MCP の上乗せ（E10）</div><div class="v">最良で 13.9 ms</div><div class="small">ログを止め、応答を JSON にした値。目安は 10 ms。中継の 1 段は数 ms</div></div>
+<div class="card bad"><div class="k">MCP の上乗せ（E10）</div><div class="v">最良で 12.8 ms</div><div class="small">認証なしでも 12.6 ms。目安は 10 ms。中継の 1 段は数 ms</div></div>
 <div class="card ok"><div class="k">変わらなかったもの</div><div class="v">モデル、索引、融合</div><div class="small">E9、E8（R-130）、E1、E3、E4、E5、E6</div></div>
 </div>
 <ul>
@@ -116,16 +116,16 @@ td.ng { color: var(--bad); font-weight: 700; }
 <p>目安の 20 分を緩め、初回だけ時間がかかることを upgrade の案内に書く。区間ごとの推定では、rag の長さのチャンク 8,275 件で 57 分、wiki の長さのセクションなら 24 分 だった。無作為の 1,000 行で測ると実測は推定の 1.36 倍だったので、rag の長さで約 77 分になる。wiki の長さの値にも同じ比を掛けると約 33 分だが、この比は natural の行で測ったもので、wiki のセクションでは確かめていない。1 ページの更新は 0.26 秒で、目安の 5 秒に収まる。</p>
 </div>
 <div class="opt">
-<h3>語彙検索: 案 2（Tantivy に wiki の bigram を登録する）はゲートを通った</h3>
+<h3>語彙検索: 案 2（Tantivy にそろえる）に決めた</h3>
 <p>Sudachi（SplitMode C、normalized_form）に替えると、ja のセクションの MRR が 0.901 から 0.849 に下がった。下がったのは filter、paraphrase、two-char の種類である。そこで案 2 を測った。語彙のスコアを Tantivy の BM25 で出し、トークンは wiki の bigram のまま渡す構成である。en と ja のゲートをどちらも通り、ページ・セクション・ハイブリッドの recall@10、MRR、偽陽性の割合は、wiki の BM25 と小数第 3 位まで同じだった。個々のスコアは k1（wiki 1.5、Tantivy 1.2）の違いで変わり、下位の順位が入れ替わることはあった。</p>
 <ul>
-<li>案 2（提案）: 語彙のエンジンを Tantivy にそろえ、wiki の索引には bigram、rag の索引には Sudachi のトークンを入れる。エンジンと索引の扱い（書き込みの規則、世代の削除）は 1 つにまとまり、トークンの作り方だけが索引の集まりごとに違う。</li>
-<li>案 1: wiki は今の純 Python の BM25 のまま、rag だけ Sudachi + Tantivy にする。</li>
+<li>決定（案 2）: 語彙のエンジンを Tantivy にそろえ、wiki の索引には bigram、rag の索引には Sudachi のトークンを入れる。エンジンと索引の扱い（書き込みの規則、世代の削除）は 1 つにまとまり、トークンの作り方だけが索引の集まりごとに違う。</li>
+<li>採らなかった案 1: wiki は今の純 Python の BM25 のまま、rag だけ Sudachi + Tantivy にする。</li>
 </ul>
 </div>
 <div class="opt">
-<h3>MCP の上乗せ: 測り直しても 10 ms を超えた</h3>
-<p>同じ日に 3 通りで測り直した。ログを止めても上乗せはほとんど変わらず、応答を SSE から JSON にすると 13.9 ms まで下がった。HTTP のサーバーへ直接 MCP で呼ぶだけで 10.1 ms かかり、中継の 1 段は 3.9 ms である。</p>
+<h3>MCP の上乗せ: 認証の書き方を変えても 10 ms を超えた</h3>
+<p>同じ日に 5 通りで測った。ログを止めても上乗せはほとんど変わらず、応答を SSE から JSON にすると下がった。認証を starlette の BaseHTTPMiddleware から ASGI のミドルウェアに書き直すと 12.8 ms、認証を外しても 12.6 ms だった。認証の書き方は上乗せの原因ではなく、残りの約 9 ms は Python の MCP の SDK が HTTP で 1 回の呼び出しを処理する費用である。中継の 1 段は 3.0 ms だった。</p>
 <div class="wrap"><table class="data"><thead><tr>
 <th class="">構成</th>
 <th class="num">関数 p95</th>
@@ -135,12 +135,15 @@ td.ng { color: var(--bad); font-weight: 700; }
 </tr></thead><tbody>
 <tr><td class="">ログあり、SSE</td><td class="num">2.5 ms</td><td class="num">16.3 ms</td><td class="num">19.9 ms</td><td class="num">17.5 ms</td></tr>
 <tr><td class="">ログなし、SSE</td><td class="num">2.3 ms</td><td class="num">16.0 ms</td><td class="num">19.3 ms</td><td class="num">17.0 ms</td></tr>
-<tr><td class="">ログなし、JSON の応答</td><td class="num">2.3 ms</td><td class="num">12.4 ms</td><td class="num">16.2 ms</td><td class="num">13.9 ms</td></tr>
+<tr><td class="">ログなし、JSON の応答</td><td class="num">2.4 ms</td><td class="num">11.9 ms</td><td class="num">16.0 ms</td><td class="num">13.7 ms</td></tr>
+<tr><td class="">ログなし、JSON、認証を ASGI で書く</td><td class="num">2.3 ms</td><td class="num">12.1 ms</td><td class="num">15.1 ms</td><td class="num">12.8 ms</td></tr>
+<tr><td class="">ログなし、JSON、認証なし（下限）</td><td class="num">2.5 ms</td><td class="num">11.6 ms</td><td class="num">15.0 ms</td><td class="num">12.6 ms</td></tr>
 </tbody></table></div>
+<p class="small">「ログなし、JSON の応答」は認証の比較のときにもう 1 度測り、その値で上書きしている。認証なしの行は下限を見るためだけのもので、トークンなしの要求も通る。</p>
 <ul>
-<li>案 1（提案）: 目安を「中継の 1 段 ≤ 10 ms」と読み、全体の上乗せ（約 14 ms）は記録に残して合格とする。応答は JSON にする。</li>
-<li>案 2: 試作のサーバーの認証は starlette の BaseHTTPMiddleware で書いている。これを ASGI のミドルウェアに書き直すなど、HTTP の MCP そのものの費用を減らせるかを測る。</li>
-<li>案 3: 目安の 10 ms を緩める。</li>
+<li>案 1（提案）: 目安を「中継の 1 段 ≤ 10 ms」と読み、合格とする。全体の上乗せ（約 13 ms）は Python の MCP の SDK の費用として記録に残す。応答は JSON にし、認証は ASGI のミドルウェアで書く。</li>
+<li>案 2: 中継とサーバーのあいだを MCP ではなく、軽い JSON の HTTP（内部の API）にする。外から見える MCP は stdio の中継だけになる。この構成は測っていない。</li>
+<li>案 3: 目安を 15 ms に緩める。</li>
 </ul>
 </div>
 <p class="small">E6 のメモリの提案値（wiki 規模 1.0 GiB、全量 2.5 GiB）は、モデルを読み込んだ構成ではどの索引でも超えた。FAISS も収まらないので索引の選択は変わらず、提案値のほうを見直す（§12）。</p>
@@ -193,7 +196,7 @@ td.ng { color: var(--bad); font-weight: 700; }
 <li>Windows-11-10.0.26300-SP0、Python 3.12.13、論理 CPU 16 のうち 4 スレッドに制限した。</li>
 <li>usearch 2.26.6、faiss-cpu 1.15.1、tantivy 0.27.0、onnxruntime 1.31.1、fastembed 0.8.0、sudachipy 0.7.0。E10 は mcp を入れた別の venv で測った。</li>
 <li>データは全量 761,915 チャンク（60 問）、natural 8,275 行（PDF 60 問、wiki 47 問）、wiki の評価用コーパス（en と ja）。1 問は全量で 0.017 にあたる。</li>
-<li>info-hive-dev 4d6a826、info-hive-wiki e64765f、info-hive-rag 26bebeb。</li>
+<li>info-hive-dev 1af6531、info-hive-wiki e64765f、info-hive-rag 26bebeb。</li>
 </ul>
 </section>
 
@@ -423,7 +426,7 @@ td.ng { color: var(--bad); font-weight: 700; }
 
 <section id="e11">
 <h2>14. 最終の採点（E11）: usearch が速く、FAISS が小さい</h2>
-<p>統一の測定と同じ式で採点した。速度はクエリの埋め込みの p95（ほかの仕事がない状態で測り直した 31.4 ms）、DB の p95、世代の絞り込みの増分の和。精度は統一の測定と同じ RRF k=60 の再現率@30 で、E1 の融合の設定は、どの行にも同じものを使うので、この表には含めていない。LanceDB の行は統一の測定の値である。</p>
+<p>統一の測定と同じ式で採点した。速度はクエリの埋め込みの p95（ほかの仕事がない状態で測り直した 30.6 ms）、DB の p95、世代の絞り込みの増分の和。精度は統一の測定と同じ RRF k=60 の再現率@30 で、E1 の融合の設定は、どの行にも同じものを使うので、この表には含めていない。LanceDB の行は統一の測定の値である。</p>
 <div class="wrap"><table class="data"><thead><tr>
 <th class="">構成</th>
 <th class="num">速度</th>
@@ -434,14 +437,14 @@ td.ng { color: var(--bad); font-weight: 700; }
 <th class="num">精度点</th>
 <th class="num">最小</th>
 </tr></thead><tbody>
-<tr><td class="">FAISS IVF_SQ8 nlist4096</td><td class="num">84.2 ms</td><td class="num">595 MiB</td><td class="num">0.758</td><td class="num">9.3</td><td class="num">10.0</td><td class="num">10.0</td><td class="num"><strong>9.3</strong></td></tr>
-<tr><td class="">usearch M16 ea256</td><td class="num">65.3 ms</td><td class="num">1,055 MiB</td><td class="num">0.758</td><td class="num">10.0</td><td class="num">9.0</td><td class="num">10.0</td><td class="num"><strong>9.0</strong></td></tr>
-<tr><td class="">usearch M16 ea128 (既存)</td><td class="num">74.7 ms</td><td class="num">1,055 MiB</td><td class="num">0.758</td><td class="num">9.7</td><td class="num">9.0</td><td class="num">10.0</td><td class="num"><strong>9.0</strong></td></tr>
-<tr><td class="">FAISS IVF_SQ8 nlist2048</td><td class="num">94.7 ms</td><td class="num">591 MiB</td><td class="num">0.758</td><td class="num">9.0</td><td class="num">10.0</td><td class="num">10.0</td><td class="num"><strong>9.0</strong></td></tr>
-<tr><td class="">usearch M32 ea256</td><td class="num">92.3 ms</td><td class="num">1,148 MiB</td><td class="num">0.758</td><td class="num">9.1</td><td class="num">8.8</td><td class="num">10.0</td><td class="num"><strong>8.8</strong></td></tr>
-<tr><td class="">usearch M32 ea128</td><td class="num">92.7 ms</td><td class="num">1,148 MiB</td><td class="num">0.758</td><td class="num">9.1</td><td class="num">8.8</td><td class="num">10.0</td><td class="num"><strong>8.8</strong></td></tr>
-<tr><td class="">FAISS IVF_SQ8 nlist873</td><td class="num">100 ms</td><td class="num">589 MiB</td><td class="num">0.742</td><td class="num">8.9</td><td class="num">10.0</td><td class="num">8.6</td><td class="num"><strong>8.6</strong></td></tr>
-<tr><td class="">LanceDB IVF_SQ（現行 rag、統一の測定）</td><td class="num">275 ms</td><td class="num">3,730 MiB</td><td class="num">0.725</td><td class="num">6.3</td><td class="num">6.7</td><td class="num">7.2</td><td class="num"><strong>6.3</strong></td></tr>
+<tr><td class="">FAISS IVF_SQ8 nlist4096</td><td class="num">83.5 ms</td><td class="num">595 MiB</td><td class="num">0.758</td><td class="num">9.3</td><td class="num">10.0</td><td class="num">10.0</td><td class="num"><strong>9.3</strong></td></tr>
+<tr><td class="">usearch M16 ea256</td><td class="num">64.6 ms</td><td class="num">1,055 MiB</td><td class="num">0.758</td><td class="num">10.0</td><td class="num">9.0</td><td class="num">10.0</td><td class="num"><strong>9.0</strong></td></tr>
+<tr><td class="">usearch M16 ea128 (既存)</td><td class="num">73.9 ms</td><td class="num">1,055 MiB</td><td class="num">0.758</td><td class="num">9.7</td><td class="num">9.0</td><td class="num">10.0</td><td class="num"><strong>9.0</strong></td></tr>
+<tr><td class="">FAISS IVF_SQ8 nlist2048</td><td class="num">93.9 ms</td><td class="num">591 MiB</td><td class="num">0.758</td><td class="num">9.0</td><td class="num">10.0</td><td class="num">10.0</td><td class="num"><strong>9.0</strong></td></tr>
+<tr><td class="">usearch M32 ea256</td><td class="num">91.6 ms</td><td class="num">1,148 MiB</td><td class="num">0.758</td><td class="num">9.1</td><td class="num">8.8</td><td class="num">10.0</td><td class="num"><strong>8.8</strong></td></tr>
+<tr><td class="">usearch M32 ea128</td><td class="num">91.9 ms</td><td class="num">1,148 MiB</td><td class="num">0.758</td><td class="num">9.1</td><td class="num">8.8</td><td class="num">10.0</td><td class="num"><strong>8.8</strong></td></tr>
+<tr><td class="">FAISS IVF_SQ8 nlist873</td><td class="num">99.5 ms</td><td class="num">589 MiB</td><td class="num">0.742</td><td class="num">8.9</td><td class="num">10.0</td><td class="num">8.6</td><td class="num"><strong>8.6</strong></td></tr>
+<tr><td class="">LanceDB IVF_SQ（現行 rag、統一の測定）</td><td class="num">274 ms</td><td class="num">3,730 MiB</td><td class="num">0.725</td><td class="num">6.3</td><td class="num">6.7</td><td class="num">7.2</td><td class="num"><strong>6.3</strong></td></tr>
 </tbody></table></div>
 </section>
 

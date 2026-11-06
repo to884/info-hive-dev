@@ -37,6 +37,8 @@ def main():
     parser.add_argument("--idle", type=float, default=600)
     parser.add_argument("--log-level", default="INFO")
     parser.add_argument("--json-response", action="store_true", help="SSE ではなく JSON で応答する")
+    parser.add_argument("--auth", choices=["starlette", "asgi", "none"], default="starlette",
+                        help="トークンの確認の書き方。none は上乗せの下限を測るためだけに使う")
     args = parser.parse_args()
     state = Path(args.state)
     port, token = free_port(), secrets.token_urlsafe(32)
@@ -66,8 +68,35 @@ def main():
                 return PlainTextResponse("unauthorized", status_code=401)
             return await call_next(request)
 
+    expected = f"Bearer {token}".encode("latin-1")
+
+    class AsgiGuard:
+        """BaseHTTPMiddleware を使わずに、ASGI の層で直接トークンを確かめる。"""
+
+        def __init__(self, app):
+            self.app = app
+
+        async def __call__(self, scope, receive, send):
+            if scope["type"] == "http":
+                last[0] = time.monotonic()
+                if dict(scope["headers"]).get(b"authorization") != expected:
+                    await PlainTextResponse("unauthorized", status_code=401)(scope, receive, send)
+                    return
+            await self.app(scope, receive, send)
+
+    class Touch:
+        """認証なし。最後の要求の時刻だけを記録する。"""
+
+        def __init__(self, app):
+            self.app = app
+
+        async def __call__(self, scope, receive, send):
+            if scope["type"] == "http":
+                last[0] = time.monotonic()
+            await self.app(scope, receive, send)
+
     app = mcp.streamable_http_app()
-    app.add_middleware(Guard)
+    app.add_middleware({"starlette": Guard, "asgi": AsgiGuard, "none": Touch}[args.auth])
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning", lifespan="on"))
 
     async def run():

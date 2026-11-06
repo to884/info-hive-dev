@@ -91,6 +91,7 @@ def ensure_server():
                 "--idle", os.environ.get("PROBE_IDLE", "600"), "--log-level", os.environ.get("PROBE_LOG_LEVEL", "INFO")]
         if os.environ.get("PROBE_JSON_RESPONSE") == "1":
             args.append("--json-response")
+        args += ["--auth", os.environ.get("PROBE_AUTH", "starlette")]
         proc, SPAWN["method"] = spawn(args)
         # Windows の venv の python.exe は本体を子プロセスとして起動するので、proc.pid と server.json の pid は一致しない。
         # 起動の前にロックの中で server.json を消しているので、新しく現れた server.json は今起動したサーバーのものである。

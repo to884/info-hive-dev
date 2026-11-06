@@ -197,7 +197,8 @@ def main():
     passed = report["server_survived_relay_exit"] and overhead_relay <= 10 and report["concurrent_summary"]["distinct_server_pids"] == 1 \
         and report["concurrent_summary"]["max_servers_seen"] == 1 and security_ok and report["idle_shutdown"]["servers_after_idle"] == 0
     save(os.environ.get("PROBE_OUT", "mcp-relay.json"), {"purpose": "wiki の MCP サーバー（127.0.0.1 の streamable HTTP）と stdio の中継の試作",
-                            "log_level": level, "json_response": os.environ.get("PROBE_JSON_RESPONSE") == "1", **report,
+                            "log_level": level, "json_response": os.environ.get("PROBE_JSON_RESPONSE") == "1",
+                            "auth": os.environ.get("PROBE_AUTH", "starlette"), **report,
                             "security_ok": security_ok, "passed": passed,
                             "criterion": "中継が終わってもサーバーが残る、中継の上乗せの p95 ≤ 10 ms、同時に 4 つ起動してもサーバーは 1 つ、トークンと Host の確認が効く、idle で止まる"})
 
