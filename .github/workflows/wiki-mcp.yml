@@ -1,0 +1,81 @@
+name: Wiki MCP server
+
+# wiki の MCP サーバー（info-hive-wiki）を、手元にない macOS と、Linux で確かめる。Windows は手元で確かめる。
+# - tests/wiki/test_wiki_index.py と test_mcp_server.py: テスト用の埋め込みで、索引、中継、サーバーの起動と停止
+# - tests/wiki/run_mcp_gate.py: 本物のモデル（約 530 MB）を取得して、評価ゲートを ADR-0011 の融合の設定で通す
+#
+# info-hive-wiki は private なので、読み取り専用のトークンをシークレット WIKI_READ_TOKEN に置く
+# （fine-grained PAT、対象は to884/info-hive-wiki、権限は Contents の Read-only）。
+# private のリポジトリでは macOS の 1 分が 10 分として数えられるので、動かす場面を絞る。
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - info-hive-wiki
+      - tests/wiki/**
+      - .github/workflows/wiki-mcp.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wiki-mcp-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mcp:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      PYTHONUTF8: '1'
+      DEPS: >-
+        --with mcp==1.30.0 --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0
+        --with fastembed==0.8.0 --with onnxruntime==1.31.1 --with pyyaml==6.0.3 --with psutil==7.2.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: info-hive-wiki の参照を調べる
+        id: wiki
+        env:
+          WIKI_READ_TOKEN: ${{ secrets.WIKI_READ_TOKEN }}
+        run: |
+          if [ -z "$WIKI_READ_TOKEN" ]; then
+            echo "::error::シークレット WIKI_READ_TOKEN がない。to884/info-hive-wiki を読める fine-grained PAT を置く"
+            exit 1
+          fi
+          echo "sha=$(git ls-tree HEAD info-hive-wiki | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: to884/info-hive-wiki
+          ref: ${{ steps.wiki.outputs.sha }}
+          path: info-hive-wiki
+          token: ${{ secrets.WIKI_READ_TOKEN }}
+      - uses: astral-sh/setup-uv@v6
+      - name: 環境を記録する
+        run: |
+          uname -a
+          uv --version
+          uv run --python 3.12 python -c "import platform, sys; print(platform.platform(), platform.machine(), sys.version)"
+      - name: 索引の試験
+        run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/wiki/test_wiki_index.py -v
+      - name: サーバーと中継の試験
+        if: ${{ !cancelled() }}
+        run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/wiki/test_mcp_server.py -v
+      - name: 本物のモデルで評価ゲートを通す
+        if: ${{ !cancelled() }}
+        env:
+          INFO_HIVE_POC_DATA: ${{ runner.temp }}/poc
+        run: uv run --python 3.12 $DEPS python -X utf8 tests/wiki/run_mcp_gate.py --fusion adr-0011
+      - name: 結果を残す
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: wiki-mcp-${{ matrix.os }}
+          path: |
+            docs/research/wiki-mcp-server-2026-11-06/gate.json
+            ${{ runner.temp }}/poc/wiki-mcp-20261106/data/logs/
+          if-no-files-found: ignore
