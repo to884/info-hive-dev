@@ -1,0 +1,573 @@
+{
+  "scale": "評価セットの 8,275 行（wiki の代わり）。クエリは 119 問",
+  "db_vectors": "R-130 の GPU 埋め込み（512 次元）",
+  "repeats": 3,
+  "runtimes": [
+    {
+      "model": "E-s",
+      "runtime": "fastembed-fp16",
+      "trials": [
+        {
+          "status": "ok",
+          "import_and_load_seconds": 8.60136010000133,
+          "first_query_seconds": 0.15558360000432003,
+          "cold_total_seconds": 8.75694370000565,
+          "warm_query_p95_ms": 8.341749996179713,
+          "rss_bytes": 681193472
+        },
+        {
+          "status": "ok",
+          "import_and_load_seconds": 3.080970900002285,
+          "first_query_seconds": 0.13537249999353662,
+          "cold_total_seconds": 3.2163433999958215,
+          "warm_query_p95_ms": 8.744815003592521,
+          "rss_bytes": 680972288
+        },
+        {
+          "status": "ok",
+          "import_and_load_seconds": 3.011094999994384,
+          "first_query_seconds": 0.1522337000060361,
+          "cold_total_seconds": 3.16332870000042,
+          "warm_query_p95_ms": 8.471374990040202,
+          "rss_bytes": 681836544
+        }
+      ],
+      "cold_total_seconds_median": 3.2163433999958215,
+      "warm_query_p95_ms_median": 8.471374990040202
+    },
+    {
+      "model": "R-30",
+      "runtime": "onnx-fp32",
+      "trials": [
+        {
+          "status": "ok",
+          "import_and_load_seconds": 2.556152300006943,
+          "first_query_seconds": 0.15644950000569224,
+          "cold_total_seconds": 2.712601800012635,
+          "warm_query_p95_ms": 4.659295001329155,
+          "rss_bytes": 385454080
+        },
+        {
+          "status": "ok",
+          "import_and_load_seconds": 2.414073099993402,
+          "first_query_seconds": 0.1376380000001518,
+          "cold_total_seconds": 2.551711099993554,
+          "warm_query_p95_ms": 4.630625008576317,
+          "rss_bytes": 385347584
+        },
+        {
+          "status": "ok",
+          "import_and_load_seconds": 2.4036788000084925,
+          "first_query_seconds": 0.1350732999999309,
+          "cold_total_seconds": 2.5387521000084234,
+          "warm_query_p95_ms": 4.938435007352382,
+          "rss_bytes": 385658880
+        }
+      ],
+      "cold_total_seconds_median": 2.551711099993554,
+      "warm_query_p95_ms_median": 4.659295001329155
+    },
+    {
+      "model": "R-130",
+      "runtime": "onnx-fp32",
+      "trials": [
+        {
+          "status": "ok",
+          "import_and_load_seconds": 3.6638307999965036,
+          "first_query_seconds": 0.14817620000394527,
+          "cold_total_seconds": 3.812007000000449,
+          "warm_query_p95_ms": 20.901854993280722,
+          "rss_bytes": 772665344
+        },
+        {
+          "status": "ok",
+          "import_and_load_seconds": 3.4787619999988237,
+          "first_query_seconds": 0.14910529999178834,
+          "cold_total_seconds": 3.627867299990612,
+          "warm_query_p95_ms": 21.21818500381778,
+          "rss_bytes": 773050368
+        },
+        {
+          "status": "ok",
+          "import_and_load_seconds": 3.5136786999937613,
+          "first_query_seconds": 0.1459850999963237,
+          "cold_total_seconds": 3.659663799990085,
+          "warm_query_p95_ms": 21.632924997538794,
+          "rss_bytes": 772349952
+        }
+      ],
+      "cold_total_seconds_median": 3.659663799990085,
+      "warm_query_p95_ms_median": 21.21818500381778
+    },
+    {
+      "model": "R-130",
+      "runtime": "torch-cpu",
+      "trials": [
+        {
+          "status": "ok",
+          "import_and_load_seconds": 54.24025669999537,
+          "first_query_seconds": 0.19781220000004396,
+          "cold_total_seconds": 54.438068899995415,
+          "warm_query_p95_ms": 54.40658500010613,
+          "rss_bytes": 1069170688
+        },
+        {
+          "status": "ok",
+          "import_and_load_seconds": 14.920343999998295,
+          "first_query_seconds": 0.17365009999775793,
+          "cold_total_seconds": 15.093994099996053,
+          "warm_query_p95_ms": 55.792289998498745,
+          "rss_bytes": 1070641152
+        },
+        {
+          "status": "ok",
+          "import_and_load_seconds": 15.121209000004455,
+          "first_query_seconds": 0.17254299999331124,
+          "cold_total_seconds": 15.293751999997767,
+          "warm_query_p95_ms": 55.21904000270297,
+          "rss_bytes": 1069453312
+        }
+      ],
+      "cold_total_seconds_median": 15.293751999997767,
+      "warm_query_p95_ms_median": 55.21904000270297
+    },
+    {
+      "model": "R-310",
+      "runtime": "onnx-fp32",
+      "trials": [
+        {
+          "status": "ok",
+          "import_and_load_seconds": 5.169004800001858,
+          "first_query_seconds": 0.195274600002449,
+          "cold_total_seconds": 5.364279400004307,
+          "warm_query_p95_ms": 56.95703000019421,
+          "rss_bytes": 1506562048
+        },
+        {
+          "status": "ok",
+          "import_and_load_seconds": 4.815366399998311,
+          "first_query_seconds": 0.16962099999364,
+          "cold_total_seconds": 4.984987399991951,
+          "warm_query_p95_ms": 51.4280450035585,
+          "rss_bytes": 1506230272
+        },
+        {
+          "status": "ok",
+          "import_and_load_seconds": 4.924481299996842,
+          "first_query_seconds": 0.16921249999722932,
+          "cold_total_seconds": 5.093693799994071,
+          "warm_query_p95_ms": 51.26324501252384,
+          "rss_bytes": 1506799616
+        }
+      ],
+      "cold_total_seconds_median": 5.093693799994071,
+      "warm_query_p95_ms_median": 51.4280450035585
+    }
+  ],
+  "databases": [
+    {
+      "candidate": "sqlite-vec f32",
+      "build": {
+        "status": "ok",
+        "build_seconds_without_embedding": 0.9286568000097759,
+        "size_bytes": 34369536
+      },
+      "trials": [
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.1928604999993695,
+          "warm_search_p95_ms": 51.248964996921124,
+          "knob": null,
+          "note_data_loading_seconds": 0.18524340000294615
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.19689809999545105,
+          "warm_search_p95_ms": 49.49813999628531,
+          "knob": null,
+          "note_data_loading_seconds": 0.18556169999646954
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.18258209999476094,
+          "warm_search_p95_ms": 51.76822000357788,
+          "knob": null,
+          "note_data_loading_seconds": 0.18110370000067633
+        }
+      ],
+      "cold_open_seconds_median": 0.1928604999993695,
+      "warm_search_p95_ms_median": 51.248964996921124
+    },
+    {
+      "candidate": "sqlite-vec int8",
+      "build": {
+        "status": "ok",
+        "build_seconds_without_embedding": 0.6637993000040296,
+        "size_bytes": 20185088
+      },
+      "trials": [
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.1834233999979915,
+          "warm_search_p95_ms": 44.7898599995824,
+          "knob": null,
+          "note_data_loading_seconds": 0.18561630000476725
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.19251189999340568,
+          "warm_search_p95_ms": 42.42097499445662,
+          "knob": null,
+          "note_data_loading_seconds": 0.1868811000022106
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.18554270001186524,
+          "warm_search_p95_ms": 47.921834998123806,
+          "knob": null,
+          "note_data_loading_seconds": 0.1869443999894429
+        }
+      ],
+      "cold_open_seconds_median": 0.18554270001186524,
+      "warm_search_p95_ms_median": 44.7898599995824
+    },
+    {
+      "candidate": "LanceDB IVF_SQ",
+      "build": {
+        "status": "ok",
+        "build_seconds_without_embedding": 4.94747530001041,
+        "size_bytes": 50150424
+      },
+      "trials": [
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 1.9678453000087757,
+          "warm_search_p95_ms": 22.10134499619016,
+          "knob": 40,
+          "note_data_loading_seconds": 0.18787449999945238
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 1.9304714999889256,
+          "warm_search_p95_ms": 22.02758000421454,
+          "knob": 40,
+          "note_data_loading_seconds": 0.19679370000085328
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 1.8651234999997541,
+          "warm_search_p95_ms": 25.092504997883214,
+          "knob": 40,
+          "note_data_loading_seconds": 0.18541999999433756
+        }
+      ],
+      "cold_open_seconds_median": 1.9304714999889256,
+      "warm_search_p95_ms_median": 22.10134499619016
+    },
+    {
+      "candidate": "Qdrant HNSW f32",
+      "build": {
+        "status": "ok",
+        "build_seconds_without_embedding": 5.782908099994529,
+        "size_bytes": 276821139
+      },
+      "trials": [
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 4.073169600000256,
+          "warm_search_p95_ms": 7.565645001886877,
+          "knob": 512,
+          "note_data_loading_seconds": 0.2008474999893224
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 3.999859799994738,
+          "warm_search_p95_ms": 8.771175002038945,
+          "knob": 512,
+          "note_data_loading_seconds": 0.1907262000022456
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 3.9411449000035645,
+          "warm_search_p95_ms": 8.179369998106267,
+          "knob": 512,
+          "note_data_loading_seconds": 0.18914499999664258
+        }
+      ],
+      "cold_open_seconds_median": 3.999859799994738,
+      "warm_search_p95_ms_median": 8.179369998106267
+    },
+    {
+      "candidate": "usearch HNSW f16",
+      "build": {
+        "status": "ok",
+        "build_seconds_without_embedding": 3.284724600001937,
+        "size_bytes": 24054076
+      },
+      "trials": [
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.34061210000072606,
+          "warm_search_p95_ms": 26.192430002265592,
+          "knob": 512,
+          "note_data_loading_seconds": 0.19172820000676438
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.3213010000035865,
+          "warm_search_p95_ms": 28.07615500350948,
+          "knob": 512,
+          "note_data_loading_seconds": 0.18612079999002162
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.32561620000342373,
+          "warm_search_p95_ms": 26.246395004272912,
+          "knob": 512,
+          "note_data_loading_seconds": 0.19024900000658818
+        }
+      ],
+      "cold_open_seconds_median": 0.32561620000342373,
+      "warm_search_p95_ms_median": 26.246395004272912
+    },
+    {
+      "candidate": "FAISS IVF_SQ8",
+      "build": {
+        "status": "ok",
+        "build_seconds_without_embedding": 0.8150792999949772,
+        "size_bytes": 18913005
+      },
+      "trials": [
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.4111934999964433,
+          "warm_search_p95_ms": 26.34304500097641,
+          "knob": 40,
+          "note_data_loading_seconds": 0.18628559999342542
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.3569606999953976,
+          "warm_search_p95_ms": 25.861075003194852,
+          "knob": 40,
+          "note_data_loading_seconds": 0.1910582999989856
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.34581330000946764,
+          "warm_search_p95_ms": 25.77804000247851,
+          "knob": 40,
+          "note_data_loading_seconds": 0.18305839999811724
+        }
+      ],
+      "cold_open_seconds_median": 0.3569606999953976,
+      "warm_search_p95_ms_median": 25.861075003194852
+    },
+    {
+      "candidate": "FAISS HNSW",
+      "build": {
+        "status": "ok",
+        "build_seconds_without_embedding": 0.837989399995422,
+        "size_bytes": 33614347
+      },
+      "trials": [
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.3728536999988137,
+          "warm_search_p95_ms": 23.984165000001656,
+          "knob": 512,
+          "note_data_loading_seconds": 0.18627429999469314
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.36828110000351444,
+          "warm_search_p95_ms": 24.230259992327763,
+          "knob": 512,
+          "note_data_loading_seconds": 0.18588180000369903
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 0.35821069999656174,
+          "warm_search_p95_ms": 23.94873500234097,
+          "knob": 512,
+          "note_data_loading_seconds": 0.18735550000565127
+        }
+      ],
+      "cold_open_seconds_median": 0.36828110000351444,
+      "warm_search_p95_ms_median": 23.984165000001656
+    },
+    {
+      "candidate": "Chroma HNSW",
+      "build": {
+        "status": "ok",
+        "build_seconds_without_embedding": 4.5211184000072535,
+        "size_bytes": 55204402
+      },
+      "trials": [
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 2.1723304000042845,
+          "warm_search_p95_ms": 49.71424499162821,
+          "knob": 512,
+          "note_data_loading_seconds": 0.18773809999402147
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 2.0771411000023363,
+          "warm_search_p95_ms": 50.47236499522114,
+          "knob": 512,
+          "note_data_loading_seconds": 0.18067499999597203
+        },
+        {
+          "status": "ok",
+          "cold_open_and_first_search_seconds": 2.020761299994774,
+          "warm_search_p95_ms": 48.92775000116671,
+          "knob": 512,
+          "note_data_loading_seconds": 0.18757449999975506
+        }
+      ],
+      "cold_open_seconds_median": 2.0771411000023363,
+      "warm_search_p95_ms_median": 49.71424499162821
+    }
+  ],
+  "current_wiki_cli": {
+    "wiki": "W0_Wiki の複製",
+    "markdown_files": 13,
+    "runs": [
+      {
+        "run": "初回（索引の作成を含む）",
+        "seconds": 26.32152580001275,
+        "returncode": 0
+      },
+      {
+        "run": "2 回目以降",
+        "seconds": 3.450060199989821,
+        "returncode": 0
+      },
+      {
+        "run": "2 回目以降",
+        "seconds": 3.149841500009643,
+        "returncode": 0
+      },
+      {
+        "run": "2 回目以降",
+        "seconds": 3.090912200001185,
+        "returncode": 0
+      }
+    ],
+    "warm_cli_median_seconds": 3.149841500009643
+  },
+  "concurrency": [
+    {
+      "candidate": "sqlite-vec f32",
+      "status": "ok",
+      "writer": {
+        "returncode": 0,
+        "stderr_tail": "",
+        "append_seconds": 0.05769319999672007
+      },
+      "reader_searches_during_write": 57,
+      "reader_errors": [],
+      "reader_error_count": 0,
+      "new_row_visible_without_reopen": true,
+      "new_row_visible_after_reopen": true
+    },
+    {
+      "candidate": "sqlite-vec int8",
+      "status": "ok",
+      "writer": {
+        "returncode": 0,
+        "stderr_tail": "",
+        "append_seconds": 0.060153700003866106
+      },
+      "reader_searches_during_write": 102,
+      "reader_errors": [],
+      "reader_error_count": 0,
+      "new_row_visible_without_reopen": true,
+      "new_row_visible_after_reopen": true
+    },
+    {
+      "candidate": "LanceDB IVF_SQ",
+      "status": "ok",
+      "writer": {
+        "returncode": 0,
+        "stderr_tail": "",
+        "append_seconds": 1.8966230999940308
+      },
+      "reader_searches_during_write": 495,
+      "reader_errors": [],
+      "reader_error_count": 0,
+      "new_row_visible_without_reopen": false,
+      "new_row_visible_after_reopen": true
+    },
+    {
+      "candidate": "Qdrant HNSW f32",
+      "status": "ok",
+      "writer": {
+        "returncode": 0,
+        "stderr_tail": "",
+        "append_seconds": 3.4835502000059932
+      },
+      "reader_searches_during_write": 2479,
+      "reader_errors": [],
+      "reader_error_count": 0,
+      "new_row_visible_without_reopen": true,
+      "new_row_visible_after_reopen": true
+    },
+    {
+      "candidate": "usearch HNSW f16",
+      "status": "ok",
+      "writer": {
+        "returncode": 1,
+        "stderr_tail": "\n  File \"poc\\rag\\unification\\wiki_scale.py\", line 163, in writer_worker\n    append_rows(backend, name, ids, vectors[picked], [terms[\"rows\"][i] for i in picked], [generations[i] for i in picked])\n  File \"poc\\rag\\unification\\wiki_scale.py\", line 138, in append_rows\n    index.save(str(backend.folder / \"vectors.usearch\"))\n  File \".rag-poc-data\\unification-20261105\\venv\\Lib\\site-packages\\usearch\\index.py\", line 1123, in save\n    self._compiled.save_index_to_path(os.fspath(path_or_buffer), progress)\nRuntimeError: Permission denied\n"
+      },
+      "reader_searches_during_write": 131,
+      "reader_errors": [],
+      "reader_error_count": 0,
+      "new_row_visible_without_reopen": false,
+      "new_row_visible_after_reopen": false
+    },
+    {
+      "candidate": "FAISS IVF_SQ8",
+      "status": "ok",
+      "writer": {
+        "returncode": 0,
+        "stderr_tail": "",
+        "append_seconds": 0.2371127000078559
+      },
+      "reader_searches_during_write": 262,
+      "reader_errors": [],
+      "reader_error_count": 0,
+      "new_row_visible_without_reopen": false,
+      "new_row_visible_after_reopen": true
+    },
+    {
+      "candidate": "FAISS HNSW",
+      "status": "ok",
+      "writer": {
+        "returncode": 0,
+        "stderr_tail": "",
+        "append_seconds": 0.26951959999860264
+      },
+      "reader_searches_during_write": 191,
+      "reader_errors": [],
+      "reader_error_count": 0,
+      "new_row_visible_without_reopen": false,
+      "new_row_visible_after_reopen": true
+    },
+    {
+      "candidate": "Chroma HNSW",
+      "status": "ok",
+      "writer": {
+        "returncode": 0,
+        "stderr_tail": "",
+        "append_seconds": 2.1566643999976804
+      },
+      "reader_searches_during_write": 1152,
+      "reader_errors": [],
+      "reader_error_count": 0,
+      "new_row_visible_without_reopen": false,
+      "new_row_visible_after_reopen": true
+    }
+  ]
+}
