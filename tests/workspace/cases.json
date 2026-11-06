@@ -1,0 +1,159 @@
+{
+  "note": "作業領域の設定を読む部分（ADR-0008）の一致テストの入力と期待値。wiki、log、rag の実装は、どれも同じ結果を返す。files は作業領域の一時ディレクトリに置くファイル、start は探し始めるディレクトリ、expect のパスは一時ディレクトリから見た / 区切りの相対パスである。",
+  "find": [
+    {
+      "name": "設定がなければ見つからず、wiki は ./wiki",
+      "files": {},
+      "start": "proj/src",
+      "expect": {"found": false, "wiki": "wiki"}
+    },
+    {
+      "name": "作業領域の根の設定を、下のディレクトリから見つける",
+      "files": {".info-hive/workspace.json": {"version": 1, "kind": "user"}},
+      "start": "wiki/concepts",
+      "expect": {"found": true, "root": ".", "kind": "user", "wiki": "wiki", "raw": "raw", "adr": null, "warnings": 0}
+    },
+    {
+      "name": "サブモジュールの .git で探索を止めない",
+      "files": {
+        ".info-hive/workspace.json": {"version": 1, "kind": "project", "id": "p", "dirs": {"wiki": "知識"}},
+        "code/sub/.git": "gitdir: ../../.git/modules/sub\n"
+      },
+      "start": "code/sub/src",
+      "expect": {"found": true, "root": ".", "kind": "project", "wiki": "知識", "adr": "70_ADR"}
+    },
+    {
+      "name": "案内のファイルが指す作業領域を使う",
+      "files": {
+        ".info-hive.json": {"version": 1, "workspace": "notes-ws", "log_scope": "project"},
+        "notes-ws/.info-hive/workspace.json": {"version": 1, "kind": "project", "id": "p", "dirs": {"wiki": "kb/wiki"}}
+      },
+      "start": "src",
+      "expect": {"found": true, "root": "notes-ws", "wiki": "notes-ws/kb/wiki", "raw": "notes-ws/raw"}
+    },
+    {
+      "name": "同じ階層では案内のファイルを先に見る",
+      "files": {
+        ".info-hive.json": {"version": 1, "workspace": "ws"},
+        ".info-hive/workspace.json": {"version": 1, "kind": "user"},
+        "ws/.info-hive/workspace.json": {"version": 1, "kind": "project", "id": "p"}
+      },
+      "start": ".",
+      "expect": {"found": true, "root": "ws", "kind": "project", "wiki": "ws/wiki"}
+    },
+    {
+      "name": "案内のファイルが指す作業領域に設定がなければエラー",
+      "files": {".info-hive.json": {"version": 1, "workspace": "missing"}},
+      "start": ".",
+      "expect": {"error": true}
+    },
+    {
+      "name": "dirs の .. は拒否する",
+      "files": {".info-hive/workspace.json": {"version": 1, "kind": "user", "dirs": {"wiki": "../outside"}}},
+      "start": ".",
+      "expect": {"error": true}
+    },
+    {
+      "name": "dirs の絶対パスは拒否する",
+      "files": {".info-hive/workspace.json": {"version": 1, "kind": "user", "dirs": {"wiki": "/abs/wiki"}}},
+      "start": ".",
+      "expect": {"error": true}
+    },
+    {
+      "name": "dirs の Windows の絶対パスも拒否する",
+      "files": {".info-hive/workspace.json": {"version": 1, "kind": "user", "dirs": {"raw": "C:\\raw"}}},
+      "start": ".",
+      "expect": {"error": true}
+    },
+    {
+      "name": "案内のファイルの workspace の .. は拒否する",
+      "files": {".info-hive.json": {"version": 1, "workspace": "../ws"}},
+      "start": ".",
+      "expect": {"error": true}
+    },
+    {
+      "name": "kind がなければエラー",
+      "files": {".info-hive/workspace.json": {"version": 1}},
+      "start": ".",
+      "expect": {"error": true}
+    },
+    {
+      "name": "プロジェクトに id がなければエラー",
+      "files": {".info-hive/workspace.json": {"version": 1, "kind": "project"}},
+      "start": ".",
+      "expect": {"error": true}
+    },
+    {
+      "name": "対応していない版はエラー",
+      "files": {".info-hive/workspace.json": {"version": 2, "kind": "user"}},
+      "start": ".",
+      "expect": {"error": true}
+    },
+    {
+      "name": "壊れた JSON はエラー",
+      "files": {".info-hive/workspace.json": "{\"kind\": "},
+      "start": ".",
+      "expect": {"error": true}
+    },
+    {
+      "name": "未知のキーは警告にして残す",
+      "files": {".info-hive/workspace.json": {"version": 1, "kind": "user", "future": {"x": 1}, "dirs": {"wiki": "wiki", "media": "15_Media"}}},
+      "start": ".",
+      "expect": {"found": true, "wiki": "wiki", "warnings": 2}
+    },
+    {
+      "name": "未知の役割は null でも警告だけにする",
+      "files": {".info-hive/workspace.json": {"version": 1, "kind": "user", "dirs": {"future": null}}},
+      "start": ".",
+      "expect": {"found": true, "wiki": "wiki", "warnings": 1}
+    },
+    {
+      "name": "既知の役割の null は dirs.adr だけ",
+      "files": {".info-hive/workspace.json": {"version": 1, "kind": "user", "dirs": {"raw": null}}},
+      "start": ".",
+      "expect": {"error": true}
+    },
+    {
+      "name": "UTF-8 として読めない設定はエラー",
+      "files": {".info-hive/workspace.json": {"$hex": "7b226b696e64223a2022ff227d"}},
+      "start": ".",
+      "expect": {"error": true}
+    },
+    {
+      "name": "dirs.adr は null にでき、プロジェクトでは既定で作る",
+      "files": {".info-hive/workspace.json": {"version": 1, "kind": "project", "id": "p", "dirs": {"adr": null}}},
+      "start": ".",
+      "expect": {"found": true, "adr": null, "rag": "92_RAG"}
+    },
+    {
+      "name": "BOM 付きの UTF-8 も読む",
+      "files": {".info-hive/workspace.json": "\ufeff{\"version\": 1, \"kind\": \"user\", \"dirs\": {\"wiki\": \"ウィキ\"}}"},
+      "start": ".",
+      "expect": {"found": true, "wiki": "ウィキ"}
+    }
+  ],
+  "user_home": [
+    {"name": "INFO_HIVE_HOME があればそれを使う", "env": {"INFO_HIVE_HOME": "/srv/hive"}, "expect": "/srv/hive"},
+    {"name": "なければ ~/info-hive", "env": {}, "expect": "~/info-hive"}
+  ],
+  "templates": [
+    {"template": "{year}/{month}/{year}-{month}-{day}.md", "values": {"year": "2026", "month": "11", "day": "06"}, "expect": "2026/11/2026-11-06.md"},
+    {"template": "{year}/{month}/{year}-{month}-{day}_{end_month}-{end_day}.md", "values": {"year": "2026", "month": "11", "day": "02", "end_month": "11", "end_day": "08"}, "expect": "2026/11/2026-11-02_11-08.md"},
+    {"template": "{stem}-{seq}", "values": {"stem": "2026-11-06", "seq": "01"}, "expect": "2026-11-06-01"},
+    {"template": "{year}/{week}.md", "values": {"year": "2026", "week": "45"}, "error": true},
+    {"template": "{year}-{month}.md", "values": {"year": "2026"}, "error": true}
+  ],
+  "seq": [
+    {"n": 1, "expect": "01"},
+    {"n": 99, "expect": "99"},
+    {"n": 100, "expect": "100"}
+  ],
+  "dump": [
+    {
+      "name": "キーの順序と未知のキーを保ち、2 文字の字下げと最後の改行で書く",
+      "config": {"$schema": "./workspace.schema.json", "version": 1, "kind": "project", "id": "p", "zeta": true, "dirs": {"wiki": "知識"}, "log": {}, "wiki": {}, "rag": {}},
+      "update": {"plugin": "wiki", "section": {"browse": {"port": 0}}},
+      "expect": "{\n  \"$schema\": \"./workspace.schema.json\",\n  \"version\": 1,\n  \"kind\": \"project\",\n  \"id\": \"p\",\n  \"zeta\": true,\n  \"dirs\": {\n    \"wiki\": \"知識\"\n  },\n  \"log\": {},\n  \"wiki\": {\n    \"browse\": {\n      \"port\": 0\n    }\n  },\n  \"rag\": {}\n}\n"
+    }
+  ]
+}
