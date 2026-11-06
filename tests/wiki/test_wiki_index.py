@@ -153,8 +153,70 @@ class WikiIndexTests(Base):
             try:
                 self.assertEqual(rebuilt.collection.stats()["rows"], 0)
                 self.assertGreater(rebuilt.refresh()["added"], 100)
+                # 索引を開くための情報は、作り直しても消えない。
+                self.assertTrue((rebuilt.dir / "wiki.json").is_file())
             finally:
                 rebuilt.close()
+
+    def test_failed_lexical_commit_is_repaired_before_later_writes(self):
+        """Tantivy の commit がやり直しても失敗した行は、次の書き込みの前にそろえ直す（PR のレビューの指摘）。"""
+        index = self.open_index()
+        index.refresh()
+        collection = index.collection
+        real = collection.lexical
+
+        class Broken:
+            def __getattr__(self, name):
+                return getattr(real, name)
+
+            def writer(self, *a, **k):
+                raise OSError("アクセスが拒否されました。 (os error 5)")
+
+        page = self.wiki / "concepts" / "heatstroke.md"
+        page.write_text(page.read_text(encoding="utf-8") + "\n追記した一文に珍語ほげもげを含める。\n", encoding="utf-8")
+        collection.lexical = Broken()
+        with mock.patch.object(wiki_index, "TANTIVY_RETRIES", 2), self.assertRaises(RuntimeError):
+            index.refresh()
+        collection.lexical = real
+        self.assertTrue(collection.needs_reconcile)
+        # 別のページの書き込みが成功しても、失敗した分を先にそろえ直す。
+        other = self.wiki / "concepts" / "bm25.md"
+        other.write_text(other.read_text(encoding="utf-8") + "\n別の追記。\n", encoding="utf-8")
+        index.refresh()
+        self.assertFalse(collection.needs_reconcile)
+        hits = index.search("ほげもげ", embedder=None)["results"]
+        self.assertIn("concepts/heatstroke.md", {h["rel_path"] for h in hits})
+        self.assertEqual(collection.lexical.searcher().num_docs, collection.stats()["rows"])
+        self.assertEqual(collection._meta("dirty"), "0")
+
+    def test_failed_write_keeps_dirty_marker_until_reconciled(self):
+        index = self.open_index()
+        index.refresh()
+        collection = index.collection
+        real = collection.lexical
+
+        class Broken:
+            def __getattr__(self, name):
+                return getattr(real, name)
+
+            def writer(self, *a, **k):
+                raise OSError("アクセスが拒否されました。 (os error 5)")
+
+        page = self.wiki / "concepts" / "heatstroke.md"
+        page.write_text(page.read_text(encoding="utf-8") + "\n珍語ふがふが。\n", encoding="utf-8")
+        collection.lexical = Broken()
+        with mock.patch.object(wiki_index, "TANTIVY_RETRIES", 1), self.assertRaises(RuntimeError):
+            index.refresh()
+        collection.lexical = real
+        # ベクトルを保存しても、そろえ直すまで dirty の印は残る。閉じて開き直すと、そろえ直す。
+        collection.flush()
+        self.assertEqual(collection._meta("dirty"), "1")
+        index.close()
+        reopened = self.open_index()
+        self.assertEqual(reopened.collection.lexical.searcher().num_docs, reopened.collection.stats()["rows"])
+        reopened.refresh()
+        hits = reopened.search("ふがふが", embedder=None)["results"]
+        self.assertIn("concepts/heatstroke.md", {h["rel_path"] for h in hits})
 
     def test_single_writer_per_index(self):
         self.open_index()
@@ -221,6 +283,45 @@ class ChunkTests(Base):
             store.index([self.chunk("y", "y.pdf", "税")], 1, "bigram")
         result = store.index([self.chunk("y", "y.pdf", "税")], 1, "bigram", reset=True)
         self.assertEqual((result["reset"], result["rows"]), (True, 1))
+
+    def test_concurrent_first_index_opens_collection_once(self):
+        """同じ collection に初めて 2 つ同時に書いても、両方とも成功する（PR のレビューの指摘）。"""
+        import threading
+        store = wiki_index.ChunkStore("rag-race")
+        self.addCleanup(store.close)
+        errors, results = [], []
+
+        def run(doc):
+            try:
+                results.append(store.index([self.chunk(f"{doc}#1", doc, "所得 税")], 1, "sudachi-c-normalized-v1"))
+            except Exception as exc:  # noqa: BLE001
+                errors.append(exc)
+
+        with mock.patch.object(wiki_index, "WRITER_LOCK_TIMEOUT", 2.0):
+            threads = [threading.Thread(target=run, args=(f"d{i}.pdf",)) for i in range(4)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+        self.assertFalse(errors, errors)
+        self.assertEqual(store.collection.stats()["rows"], 4)
+
+    def test_fingerprint_rebuild_keeps_collection_metadata(self):
+        """fingerprint が変わって作り直しても、再起動のあとで collection を見つけられる（PR のレビューの指摘）。"""
+        store = wiki_index.ChunkStore("rag-meta")
+        store.index([self.chunk("a#1", "a.pdf", "所得 税")], 1, "sudachi-c-normalized-v1")
+        store.close()
+        original = wiki_index.chunk_fingerprint
+        with mock.patch.object(wiki_index, "chunk_fingerprint", lambda t: {**original(t), "chunking": "v2"}):
+            rebuilt = wiki_index.ChunkStore("rag-meta")
+            self.assertEqual(rebuilt.collection.stats()["rows"], 0)
+            rebuilt.index([self.chunk("b#1", "b.pdf", "消費 税")], 1, "sudachi-c-normalized-v1")
+            rebuilt.close()
+            restarted = wiki_index.ChunkStore("rag-meta")
+            self.addCleanup(restarted.close)
+            self.assertIsNotNone(restarted.collection)
+            ids = {r["id"] for r in restarted.search("税", ["税"], embedder=None)["results"]}
+            self.assertEqual(ids, {"b#1"})
 
     def test_rejects_bad_chunks(self):
         store = wiki_index.ChunkStore("rag-test3")
