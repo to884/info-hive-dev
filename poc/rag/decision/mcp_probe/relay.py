@@ -88,7 +88,9 @@ def ensure_server():
         (STATE / "server.json").unlink(missing_ok=True)
         args = [sys.executable, "-X", "utf8", str(HERE / "server.py"), "--state", str(STATE),
                 "--index", os.environ["PROBE_INDEX"], "--queries", os.environ["PROBE_QUERIES"],
-                "--idle", os.environ.get("PROBE_IDLE", "600")]
+                "--idle", os.environ.get("PROBE_IDLE", "600"), "--log-level", os.environ.get("PROBE_LOG_LEVEL", "INFO")]
+        if os.environ.get("PROBE_JSON_RESPONSE") == "1":
+            args.append("--json-response")
         proc, SPAWN["method"] = spawn(args)
         # Windows の venv の python.exe は本体を子プロセスとして起動するので、proc.pid と server.json の pid は一致しない。
         # 起動の前にロックの中で server.json を消しているので、新しく現れた server.json は今起動したサーバーのものである。
@@ -113,7 +115,7 @@ async def lifespan(_app):
             yield {"session": session, "started_server": started, "server_pid": info["pid"]}
 
 
-relay = FastMCP("info-hive-wiki-relay", lifespan=lifespan)
+relay = FastMCP("info-hive-wiki-relay", lifespan=lifespan, log_level=os.environ.get("PROBE_LOG_LEVEL", "INFO"))
 
 
 @relay.tool()

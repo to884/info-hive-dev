@@ -147,6 +147,11 @@ async def concurrent_relays(count=4):
 
 
 def main():
+    # PROBE_LOG_LEVEL=WARNING で、測定のプロセス・中継・サーバーの INFO のログ（httpx の HTTP Request など）を止める
+    import logging
+    level = os.environ.get("PROBE_LOG_LEVEL", "INFO")
+    for name in ("", "httpx", "mcp"):
+        logging.getLogger(name).setLevel(level)
     if STATE.exists():
         kill_servers()
         shutil.rmtree(STATE, ignore_errors=True)
@@ -191,7 +196,8 @@ def main():
         and report["direct_http"]["security"]["spoofed_host"] in (400, 403, 421)
     passed = report["server_survived_relay_exit"] and overhead_relay <= 10 and report["concurrent_summary"]["distinct_server_pids"] == 1 \
         and report["concurrent_summary"]["max_servers_seen"] == 1 and security_ok and report["idle_shutdown"]["servers_after_idle"] == 0
-    save("mcp-relay.json", {"purpose": "wiki の MCP サーバー（127.0.0.1 の streamable HTTP）と stdio の中継の試作", **report,
+    save(os.environ.get("PROBE_OUT", "mcp-relay.json"), {"purpose": "wiki の MCP サーバー（127.0.0.1 の streamable HTTP）と stdio の中継の試作",
+                            "log_level": level, "json_response": os.environ.get("PROBE_JSON_RESPONSE") == "1", **report,
                             "security_ok": security_ok, "passed": passed,
                             "criterion": "中継が終わってもサーバーが残る、中継の上乗せの p95 ≤ 10 ms、同時に 4 つ起動してもサーバーは 1 つ、トークンと Host の確認が効く、idle で止まる"})
 

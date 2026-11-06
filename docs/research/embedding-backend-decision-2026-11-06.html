@@ -93,50 +93,55 @@ td.ng { color: var(--bad); font-weight: 700; }
 </header>
 
 <section id="tldr" class="tldr">
-<h2>1. 要約: 3 点が閾値を外れたので、ADR を書く前で止めた</h2>
-<p>モデル（ruri-v3-130m の ONNX fp32）とベクトル索引（usearch HNSW f16）は、測定の結果でも変わらない。融合も残す。変えるのはパラメーターだけで、RRF を k=30、語彙の重み 0.5 にする。一方、次の 3 点は計画の閾値を外れた。どれも部品の選択か ADR-0012 の形に関わるので、計画の停止の規則に従い、ADR-0011 と ADR-0012 を書く前に判断を仰ぐ。</p>
+<h2>1. 要約: 閾値を外れた 3 点のうち、1 点は決まり、2 点は測り直した</h2>
+<p>モデル（ruri-v3-130m の ONNX fp32）とベクトル索引（usearch HNSW f16）は、測定の結果でも変わらない。融合も残す。変えるのはパラメーターだけで、RRF を k=30、語彙の重み 0.5 にする。最初の測定では次の 3 点が計画の閾値を外れたので、計画の停止の規則に従って ADR-0011 と ADR-0012 を書く前で止めた。その後 2026-11-06 に 1 点を決め、残りの 2 点は測り直した。</p>
 <div class="verdict">
-<div class="card bad"><div class="k">語彙検索の統一（E8）</div><div class="v">Sudachi で ja のゲートに落ちる</div><div class="small">セクションの MRR 0.901 → 0.849（低下の上限 0.05）</div></div>
-<div class="card bad"><div class="k">wiki の初回の再埋め込み（E7）</div><div class="v">約 77 分</div><div class="small">R-130、rag の長さのチャンク 8,275 件。目安は 20 分</div></div>
-<div class="card bad"><div class="k">MCP の上乗せ（E10）</div><div class="v">17.4 ms</div><div class="small">うち中継の 1 段は 3.7 ms。目安は 10 ms</div></div>
+<div class="card ok"><div class="k">語彙検索（E8）</div><div class="v">Tantivy + bigram はゲートを通る</div><div class="small">Sudachi はセクションの MRR 0.901 → 0.849 で落ちた。Tantivy に wiki の bigram を渡すと、指標は wiki の BM25 と同じ</div></div>
+<div class="card ok"><div class="k">wiki の初回の再埋め込み（E7）</div><div class="v">目安を緩めると決めた</div><div class="small">R-130、rag の長さのチャンク 8,275 件で約 77 分。目安は 20 分だった</div></div>
+<div class="card bad"><div class="k">MCP の上乗せ（E10）</div><div class="v">最良で 13.9 ms</div><div class="small">ログを止め、応答を JSON にした値。目安は 10 ms。中継の 1 段は数 ms</div></div>
 <div class="card ok"><div class="k">変わらなかったもの</div><div class="v">モデル、索引、融合</div><div class="small">E9、E8（R-130）、E1、E3、E4、E5、E6</div></div>
 </div>
 <ul>
 <li>R-130 は wiki の en と ja のゲートを通り、<code>max_distance</code> を 0.208 にすれば偽陽性 0 にできる。ただし natural の負例 12 問はすべてこの距離の内側に入る。これは e5 でも同じで、今の wiki の限界である。</li>
-<li>usearch は全量で FAISS IVF_SQ8 より速い（DB の p95 34.0 ms 対 52.9 ms）。最小点では FAISS が 9.4 点、usearch が 9.0 点で、差の 0.4 点は容量の点だけから来る。規則（0.5 点以上の差で FAISS に替える）には届かないが、余裕は小さい。</li>
+<li>usearch は全量で FAISS IVF_SQ8 より速い（DB の p95 34.0 ms 対 52.9 ms）。最小点では FAISS が 9.3 点、usearch が 9.0 点で、差の 0.3 点は容量の点だけから来る。規則（0.5 点以上の差で FAISS に替える）には届かないが、余裕は小さい。</li>
 <li>Windows では Tantivy の commit が約 2% の割合で「アクセスが拒否されました」で失敗した。失敗した writer を使い続けると、その後の commit が成功を返しても文書が残らない（14,550 件中 2,050 件しか残らなかった）。rollback して入れ直せば失われなかったので、語彙エンジンは替えず、この規則を ADR に書く。</li>
-<li>Windows の MCP の SDK は、stdio で起動したプロセスをジョブオブジェクトに入れ、終了時にジョブごと止める。中継が起動したサーバーは、起動したセッションが終わると一緒に止まった。WMI に起動させるとジョブの外に出て、セッションをまたいで共有できた。</li>
+<li>Claude Code（CLI 2.1.316）は stdio の MCP サーバーをジョブオブジェクトに入れず、サーバーが <code>DETACHED_PROCESS</code> で起動した孫プロセスはセッションの後も残った。セッションをまたいでサーバーを共有するのに WMI は要らない。試作の測定でサーバーが止まったのは、測定に使った Python の MCP の SDK がジョブを使うためだった。</li>
 </ul>
 </section>
 
 <section id="decide">
-<h2>2. 決めてほしいこと</h2>
-<p>3 点それぞれに選択肢を挙げる。「提案」は筆者の考えで、測定で確かめた範囲を併記する。</p>
+<h2>2. 決めたことと、残る判断</h2>
 <div class="opt">
-<h3>語彙検索: Sudachi に統一すると、日本語の wiki で落ちる種類がある</h3>
-<p>Sudachi（SplitMode C、normalized_form）に替えると、ja のセクションの MRR が 0.901 から 0.849 に下がった。下がったのは filter、paraphrase、two-char の種類である。en ではハイブリッドの MRR が 0.698 から 0.852 に上がった。</p>
+<h3>再埋め込み: 目安の 20 分を緩める（決定）</h3>
+<p>目安の 20 分を緩め、初回だけ時間がかかることを upgrade の案内に書く。区間ごとの推定では、rag の長さのチャンク 8,275 件で 57 分、wiki の長さのセクションなら 24 分 だった。無作為の 1,000 行で測ると実測は推定の 1.36 倍だったので、rag の長さで約 77 分になる。wiki の長さの値にも同じ比を掛けると約 33 分だが、この比は natural の行で測ったもので、wiki のセクションでは確かめていない。1 ページの更新は 0.26 秒で、目安の 5 秒に収まる。</p>
+</div>
+<div class="opt">
+<h3>語彙検索: 案 2（Tantivy に wiki の bigram を登録する）はゲートを通った</h3>
+<p>Sudachi（SplitMode C、normalized_form）に替えると、ja のセクションの MRR が 0.901 から 0.849 に下がった。下がったのは filter、paraphrase、two-char の種類である。そこで案 2 を測った。語彙のスコアを Tantivy の BM25 で出し、トークンは wiki の bigram のまま渡す構成である。en と ja のゲートをどちらも通り、ページ・セクション・ハイブリッドの recall@10、MRR、偽陽性の割合は、wiki の BM25 と小数第 3 位まで同じだった。個々のスコアは k1（wiki 1.5、Tantivy 1.2）の違いで変わり、下位の順位が入れ替わることはあった。</p>
 <ul>
-<li>案 1（提案）: wiki は今の bigram の BM25 のまま、rag だけ Sudachi + Tantivy にする。どちらも測定済みの構成で、語彙の統一は部分的になる。</li>
-<li>案 2: エンジンは Tantivy にそろえ、wiki の索引にだけ bigram のトークナイザーを登録する。この構成は測っていないので、選ぶなら E8 のゲートを通す測定が要る。</li>
+<li>案 2（提案）: 語彙のエンジンを Tantivy にそろえ、wiki の索引には bigram、rag の索引には Sudachi のトークンを入れる。エンジンと索引の扱い（書き込みの規則、世代の削除）は 1 つにまとまり、トークンの作り方だけが索引の集まりごとに違う。</li>
+<li>案 1: wiki は今の純 Python の BM25 のまま、rag だけ Sudachi + Tantivy にする。</li>
 </ul>
 </div>
 <div class="opt">
-<h3>再埋め込み: R-130 の初回は 20 分に収まらない</h3>
-<p>区間ごとの推定では、rag の長さのチャンク 8,275 件で 57 分、wiki の長さのセクションなら 24 分 だった。無作為の 1,000 行で測ると実測は推定の 1.36 倍だったので、rag の長さで約 77 分になる。wiki の長さの値にも同じ比を掛けると約 33 分だが、この比は natural の行で測ったもので、wiki のセクションでは確かめていない。1 ページの更新は 0.26 秒で、目安の 5 秒に収まる。</p>
+<h3>MCP の上乗せ: 測り直しても 10 ms を超えた</h3>
+<p>同じ日に 3 通りで測り直した。ログを止めても上乗せはほとんど変わらず、応答を SSE から JSON にすると 13.9 ms まで下がった。HTTP のサーバーへ直接 MCP で呼ぶだけで 10.1 ms かかり、中継の 1 段は 3.9 ms である。</p>
+<div class="wrap"><table class="data"><thead><tr>
+<th class="">構成</th>
+<th class="num">関数 p95</th>
+<th class="num">HTTP の MCP p95</th>
+<th class="num">中継経由 p95</th>
+<th class="num">上乗せ</th>
+</tr></thead><tbody>
+<tr><td class="">ログあり、SSE</td><td class="num">2.5 ms</td><td class="num">16.3 ms</td><td class="num">19.9 ms</td><td class="num">17.5 ms</td></tr>
+<tr><td class="">ログなし、SSE</td><td class="num">2.3 ms</td><td class="num">16.0 ms</td><td class="num">19.3 ms</td><td class="num">17.0 ms</td></tr>
+<tr><td class="">ログなし、JSON の応答</td><td class="num">2.3 ms</td><td class="num">12.4 ms</td><td class="num">16.2 ms</td><td class="num">13.9 ms</td></tr>
+</tbody></table></div>
 <ul>
-<li>案 1（提案）: 初回は MCP サーバーが裏で埋め込み、終わるまでは BM25 だけで答える。ADR-0012 のサーバーの仕事に含められる。</li>
-<li>案 2: wiki だけ R-30 にする。推定は 10 分（補正の比は未測定）で収まるが、wiki と rag でモデルが分かれる。</li>
-<li>案 3: 目安の 20 分を緩め、初回だけ時間がかかることを upgrade の案内に書く。</li>
+<li>案 1（提案）: 目安を「中継の 1 段 ≤ 10 ms」と読み、全体の上乗せ（約 14 ms）は記録に残して合格とする。応答は JSON にする。</li>
+<li>案 2: 試作のサーバーの認証は starlette の BaseHTTPMiddleware で書いている。これを ASGI のミドルウェアに書き直すなど、HTTP の MCP そのものの費用を減らせるかを測る。</li>
+<li>案 3: 目安の 10 ms を緩める。</li>
 </ul>
-</div>
-<div class="opt">
-<h3>MCP の上乗せ: 目安の 10 ms が、何に対する値かを決める</h3>
-<p>関数の直接呼び出しの p95 は 2.4 ms、HTTP のサーバーへ直接 MCP で呼ぶと 16.1 ms、stdio の中継を通すと 19.8 ms だった。上乗せの大半（13.7 ms）は HTTP 上の MCP（JSON、uvicorn）の分で、中継の 1 段は 3.7 ms である。測ったプロセスでは httpx の INFO のログが出ていて、その分も含まれる。</p>
-<ul>
-<li>案 1（提案）: 目安を「中継の 1 段 ≤ 10 ms」と読み、合格とする。全体の上乗せの約 17 ms は記録に残す。</li>
-<li>案 2: ログを止めるなどして上乗せを減らせるかを、もう 1 回試作で測る。</li>
-</ul>
-<p>あわせて、サーバーを WMI で起動する方式を ADR-0012 に書いてよいかも確かめたい。OS のサービスとしては登録しないので ADR-0007 の条件には触れないと筆者は考えるが、ホストのジョブの外にプロセスを残すことになる。</p>
 </div>
 <p class="small">E6 のメモリの提案値（wiki 規模 1.0 GiB、全量 2.5 GiB）は、モデルを読み込んだ構成ではどの索引でも超えた。FAISS も収まらないので索引の選択は変わらず、提案値のほうを見直す（§12）。</p>
 </section>
@@ -167,6 +172,7 @@ td.ng { color: var(--bad); font-weight: 700; }
 <tr><td class="">E8</td><td class="">R-130 で wiki の評価ゲートを通る</td><td class="ok">合格</td></tr>
 <tr><td class="">E8</td><td class="">max_distance を偽陽性 0 で較正できる</td><td class="ok">合格</td></tr>
 <tr><td class="">E8</td><td class="">Sudachi に替えても ja のゲートを通る</td><td class="ng">不合格</td></tr>
+<tr><td class="">E8</td><td class="">Tantivy に wiki の bigram を渡してもゲートを通る</td><td class="ok">合格</td></tr>
 <tr><td class="">E7</td><td class="">初回の再埋め込み ≤ 20 分、1 ページの更新 ≤ 5 秒</td><td class="ng">不合格</td></tr>
 <tr><td class="">E1</td><td class="">融合が dense だけに負けない</td><td class="ok">合格</td></tr>
 <tr><td class="">E3</td><td class="">FAISS の最小点が usearch を 0.5 以上上回らない</td><td class="ok">合格</td></tr>
@@ -174,7 +180,8 @@ td.ng { color: var(--bad); font-weight: 700; }
 <tr><td class="">E5</td><td class="">Tantivy の commit の失敗から文書を失わずに回復できる</td><td class="ok">合格</td></tr>
 <tr><td class="">E4</td><td class="">世代の絞り込みの増分 ≤ 20 ms</td><td class="ok">合格</td></tr>
 <tr><td class="">E6</td><td class="">メモリの結果で FAISS に替える理由がない</td><td class="ok">合格</td></tr>
-<tr><td class="">E10</td><td class="">中継の上乗せ ≤ 10 ms、重複起動 0、防御が効く</td><td class="ng">不合格</td></tr>
+<tr><td class="">E10</td><td class="">中継の上乗せ ≤ 10 ms、重複起動 0、防御が効く（3 通りのどれか）</td><td class="ng">不合格</td></tr>
+<tr><td class="">E10</td><td class="">Claude Code のセッションが終わっても、サーバーの起動した孫が残る</td><td class="ok">合格</td></tr>
 <tr><td class="">E9</td><td class="">公開版の ONNX で同じベクトルが出る</td><td class="ok">合格</td></tr>
 </tbody></table></div>
 <p class="small">判定は <code>decision-scores.json</code> の <code>gates</code>。E6 は計画の停止の規則（usearch が上限を超え、かつ FAISS が収まるときだけ索引を替える）で判定した。</p>
@@ -186,7 +193,7 @@ td.ng { color: var(--bad); font-weight: 700; }
 <li>Windows-11-10.0.26300-SP0、Python 3.12.13、論理 CPU 16 のうち 4 スレッドに制限した。</li>
 <li>usearch 2.26.6、faiss-cpu 1.15.1、tantivy 0.27.0、onnxruntime 1.31.1、fastembed 0.8.0、sudachipy 0.7.0。E10 は mcp を入れた別の venv で測った。</li>
 <li>データは全量 761,915 チャンク（60 問）、natural 8,275 行（PDF 60 問、wiki 47 問）、wiki の評価用コーパス（en と ja）。1 問は全量で 0.017 にあたる。</li>
-<li>info-hive-dev 69fab02、info-hive-wiki e64765f、info-hive-rag 26bebeb。</li>
+<li>info-hive-dev 4d6a826、info-hive-wiki e64765f、info-hive-rag 26bebeb。</li>
 </ul>
 </section>
 
@@ -196,7 +203,8 @@ td.ng { color: var(--bad); font-weight: 700; }
 </section>
 
 <section id="e8">
-<h2>6. wiki の評価ゲート（E8）: R-130 は通り、Sudachi は ja で落ちる</h2>
+<h2>6. wiki の評価ゲート（E8）: R-130 と Tantivy + bigram は通り、Sudachi は ja で落ちる</h2>
+<p>r130-tantivy は、語彙のスコアを Tantivy の BM25 で出し、トークンは wiki の bigram のまま渡した構成（§2 の案 2）である。</p>
 <div class="wrap"><table class="data"><thead><tr>
 <th class="">構成</th>
 <th class="">コーパス</th>
@@ -212,6 +220,8 @@ td.ng { color: var(--bad); font-weight: 700; }
 <tr><td class="">r130</td><td class="">ja</td><td class="num">0.922</td><td class="num">0.901</td><td class="num">0.963</td><td class="num">1.000</td><td class="ok">合格</td></tr>
 <tr><td class="">r130-sudachi</td><td class="">en</td><td class="num">0.630</td><td class="num">0.630</td><td class="num">0.852</td><td class="num">1.000</td><td class="ok">合格</td></tr>
 <tr><td class="">r130-sudachi</td><td class="">ja</td><td class="num">0.882</td><td class="num">0.849</td><td class="num">0.916</td><td class="num">1.000</td><td class="ng">不合格</td></tr>
+<tr><td class="">r130-tantivy</td><td class="">en</td><td class="num">0.630</td><td class="num">0.630</td><td class="num">0.698</td><td class="num">0.963</td><td class="ok">合格</td></tr>
+<tr><td class="">r130-tantivy</td><td class="">ja</td><td class="num">0.922</td><td class="num">0.901</td><td class="num">0.963</td><td class="num">1.000</td><td class="ok">合格</td></tr>
 </tbody></table></div>
 <p>較正: 正例が必要とする距離の最大は 0.1992、負例の最も近い距離の最小は 0.2164 で、あいだに偽陽性 0 の範囲がある。中点の 0.208 を選んだ。natural では正例 47 / 47 問と負例 12 / 12 問が内側に入った。</p>
 <div class="wrap"><table class="data"><thead><tr>
@@ -396,23 +406,24 @@ td.ng { color: var(--bad); font-weight: 700; }
 <th class="">項目</th>
 <th class="">結果</th>
 </tr></thead><tbody>
-<tr><td class="">関数の直接呼び出し p95</td><td class="">2.4 ms</td></tr>
-<tr><td class="">HTTP のサーバーへ直接 MCP p95</td><td class="">16.1 ms</td></tr>
-<tr><td class="">stdio の中継経由 p95（サーバー起動済み）</td><td class="">19.8 ms</td></tr>
-<tr><td class="">中継の起動から initialize まで（サーバーも起動）</td><td class="">2.5 秒</td></tr>
-<tr><td class="">中継の起動から initialize まで（サーバー起動済み）</td><td class="">1.4 秒</td></tr>
-<tr><td class="">index_chunks（1,000 チャンク）</td><td class="">1.4 MiB を 48.3 ms</td></tr>
+<tr><td class="">関数の直接呼び出し p95</td><td class="">2.5 ms</td></tr>
+<tr><td class="">HTTP のサーバーへ直接 MCP p95</td><td class="">16.3 ms</td></tr>
+<tr><td class="">stdio の中継経由 p95（サーバー起動済み）</td><td class="">19.9 ms</td></tr>
+<tr><td class="">中継の起動から initialize まで（サーバーも起動）</td><td class="">2.4 秒</td></tr>
+<tr><td class="">中継の起動から initialize まで（サーバー起動済み）</td><td class="">1.2 秒</td></tr>
+<tr><td class="">index_chunks（1,000 チャンク）</td><td class="">1.4 MiB を 62.8 ms</td></tr>
 <tr><td class="">トークンなし / 違うトークン / Host の偽装</td><td class="">401 / 401 / 421</td></tr>
 <tr><td class="">中継を 4 つ同時に起動</td><td class="">サーバーは 1 つ（同時に見えた最大 1）</td></tr>
 <tr><td class="">中継の終了後もサーバーが残る</td><td class="">残った</td></tr>
 <tr><td class="">要求がなくなって 20 秒後</td><td class="">止まった</td></tr>
 </tbody></table></div>
-<p>サーバーの起動のしかたで 2 つの問題が出た。1 つ目は、venv の <code>python.exe</code> が本体を子プロセスとして起動するので、<code>Popen</code> が返す pid と、サーバーが記録した pid が一致しないこと。起動の前にロックの中で <code>server.json</code> を消し、新しく現れた <code>server.json</code> を今起動したサーバーのものとみなすようにした。2 つ目は、MCP の SDK（mcp 1.30.0）の <code>stdio_client</code> が中継を KILL_ON_JOB_CLOSE のジョブに入れること。<code>DETACHED_PROCESS</code> も <code>CREATE_BREAKAWAY_FROM_JOB</code> も、エラーにはならなかったがサーバーはジョブに残り、中継の終了とともに止まった。WMI（<code>Win32_Process.Create</code>）に起動させるとジョブの外に出た。Claude Code が stdio の MCP サーバーを同じようにジョブに入れるかは確かめていない。</p>
+<p>サーバーの起動のしかたで 2 つの問題が出た。1 つ目は、venv の <code>python.exe</code> が本体を子プロセスとして起動するので、<code>Popen</code> が返す pid と、サーバーが記録した pid が一致しないこと。起動の前にロックの中で <code>server.json</code> を消し、新しく現れた <code>server.json</code> を今起動したサーバーのものとみなすようにした。2 つ目は、MCP の SDK（mcp 1.30.0）の <code>stdio_client</code> が中継を KILL_ON_JOB_CLOSE のジョブに入れること。<code>DETACHED_PROCESS</code> も <code>CREATE_BREAKAWAY_FROM_JOB</code> も、エラーにはならなかったがサーバーはジョブに残り、中継の終了とともに止まった。WMI（<code>Win32_Process.Create</code>）に起動させるとジョブの外に出た。</p>
+<p>このジョブは、測定に使った Python の MCP の SDK のものである。Claude Code（CLI 2.1.316）でも起きるかを、標準ライブラリだけで書いた最小の MCP サーバーを <code>claude -p</code> に登録して確かめた。サーバーはジョブに入っていなかった。<code>DETACHED_PROCESS</code> で起動した孫は、claude が終わった後も残った（サーバー自身は claude とともに終わった）。Claude Code の下では、サーバーを <code>DETACHED_PROCESS</code> で起動すれば足りる。デスクトップアプリは測っていない。</p>
 </section>
 
 <section id="e11">
 <h2>14. 最終の採点（E11）: usearch が速く、FAISS が小さい</h2>
-<p>統一の測定と同じ式で採点した。速度はクエリの埋め込みの p95（ほかの仕事がない状態で測り直した 44.8 ms）、DB の p95、世代の絞り込みの増分の和。精度は統一の測定と同じ RRF k=60 の再現率@30 で、E1 の融合の設定は、どの行にも同じものを使うので、この表には含めていない。LanceDB の行は統一の測定の値である。</p>
+<p>統一の測定と同じ式で採点した。速度はクエリの埋め込みの p95（ほかの仕事がない状態で測り直した 31.4 ms）、DB の p95、世代の絞り込みの増分の和。精度は統一の測定と同じ RRF k=60 の再現率@30 で、E1 の融合の設定は、どの行にも同じものを使うので、この表には含めていない。LanceDB の行は統一の測定の値である。</p>
 <div class="wrap"><table class="data"><thead><tr>
 <th class="">構成</th>
 <th class="num">速度</th>
@@ -423,14 +434,14 @@ td.ng { color: var(--bad); font-weight: 700; }
 <th class="num">精度点</th>
 <th class="num">最小</th>
 </tr></thead><tbody>
-<tr><td class="">FAISS IVF_SQ8 nlist4096</td><td class="num">97.7 ms</td><td class="num">595 MiB</td><td class="num">0.758</td><td class="num">9.4</td><td class="num">10.0</td><td class="num">10.0</td><td class="num"><strong>9.4</strong></td></tr>
-<tr><td class="">FAISS IVF_SQ8 nlist2048</td><td class="num">108 ms</td><td class="num">591 MiB</td><td class="num">0.758</td><td class="num">9.1</td><td class="num">10.0</td><td class="num">10.0</td><td class="num"><strong>9.1</strong></td></tr>
-<tr><td class="">usearch M16 ea256</td><td class="num">78.8 ms</td><td class="num">1,055 MiB</td><td class="num">0.758</td><td class="num">10.0</td><td class="num">9.0</td><td class="num">10.0</td><td class="num"><strong>9.0</strong></td></tr>
-<tr><td class="">usearch M16 ea128 (既存)</td><td class="num">88.1 ms</td><td class="num">1,055 MiB</td><td class="num">0.758</td><td class="num">9.7</td><td class="num">9.0</td><td class="num">10.0</td><td class="num"><strong>9.0</strong></td></tr>
-<tr><td class="">usearch M32 ea256</td><td class="num">106 ms</td><td class="num">1,148 MiB</td><td class="num">0.758</td><td class="num">9.2</td><td class="num">8.8</td><td class="num">10.0</td><td class="num"><strong>8.8</strong></td></tr>
-<tr><td class="">usearch M32 ea128</td><td class="num">106 ms</td><td class="num">1,148 MiB</td><td class="num">0.758</td><td class="num">9.2</td><td class="num">8.8</td><td class="num">10.0</td><td class="num"><strong>8.8</strong></td></tr>
-<tr><td class="">FAISS IVF_SQ8 nlist873</td><td class="num">114 ms</td><td class="num">589 MiB</td><td class="num">0.742</td><td class="num">9.0</td><td class="num">10.0</td><td class="num">8.6</td><td class="num"><strong>8.6</strong></td></tr>
-<tr><td class="">LanceDB IVF_SQ（現行 rag、統一の測定）</td><td class="num">288 ms</td><td class="num">3,730 MiB</td><td class="num">0.725</td><td class="num">6.4</td><td class="num">6.7</td><td class="num">7.2</td><td class="num"><strong>6.4</strong></td></tr>
+<tr><td class="">FAISS IVF_SQ8 nlist4096</td><td class="num">84.2 ms</td><td class="num">595 MiB</td><td class="num">0.758</td><td class="num">9.3</td><td class="num">10.0</td><td class="num">10.0</td><td class="num"><strong>9.3</strong></td></tr>
+<tr><td class="">usearch M16 ea256</td><td class="num">65.3 ms</td><td class="num">1,055 MiB</td><td class="num">0.758</td><td class="num">10.0</td><td class="num">9.0</td><td class="num">10.0</td><td class="num"><strong>9.0</strong></td></tr>
+<tr><td class="">usearch M16 ea128 (既存)</td><td class="num">74.7 ms</td><td class="num">1,055 MiB</td><td class="num">0.758</td><td class="num">9.7</td><td class="num">9.0</td><td class="num">10.0</td><td class="num"><strong>9.0</strong></td></tr>
+<tr><td class="">FAISS IVF_SQ8 nlist2048</td><td class="num">94.7 ms</td><td class="num">591 MiB</td><td class="num">0.758</td><td class="num">9.0</td><td class="num">10.0</td><td class="num">10.0</td><td class="num"><strong>9.0</strong></td></tr>
+<tr><td class="">usearch M32 ea256</td><td class="num">92.3 ms</td><td class="num">1,148 MiB</td><td class="num">0.758</td><td class="num">9.1</td><td class="num">8.8</td><td class="num">10.0</td><td class="num"><strong>8.8</strong></td></tr>
+<tr><td class="">usearch M32 ea128</td><td class="num">92.7 ms</td><td class="num">1,148 MiB</td><td class="num">0.758</td><td class="num">9.1</td><td class="num">8.8</td><td class="num">10.0</td><td class="num"><strong>8.8</strong></td></tr>
+<tr><td class="">FAISS IVF_SQ8 nlist873</td><td class="num">100 ms</td><td class="num">589 MiB</td><td class="num">0.742</td><td class="num">8.9</td><td class="num">10.0</td><td class="num">8.6</td><td class="num"><strong>8.6</strong></td></tr>
+<tr><td class="">LanceDB IVF_SQ（現行 rag、統一の測定）</td><td class="num">275 ms</td><td class="num">3,730 MiB</td><td class="num">0.725</td><td class="num">6.3</td><td class="num">6.7</td><td class="num">7.2</td><td class="num"><strong>6.3</strong></td></tr>
 </tbody></table></div>
 </section>
 
@@ -443,7 +454,7 @@ td.ng { color: var(--bad); font-weight: 700; }
 <h2>16. ADR との整合</h2>
 <ul>
 <li>ADR-0001: 127.0.0.1 だけで待ち受け、起動ごとのトークンと Host の確認を入れた試作で、トークンなしは 401、Host の偽装は 421 になった。wiki を書き換える API を持たない条件 3 に当たるので、案 B のツールから ingest_source を外す。</li>
-<li>ADR-0007: サーバーは使われなければ止まり（idle で 0 になった）、OS のサービスとして登録しない。WMI での起動がこの条件の範囲かは §2 で判断を仰ぐ。</li>
+<li>ADR-0007: サーバーは使われなければ止まり（idle で 0 になった）、OS のサービスとして登録しない。Claude Code の下では <code>DETACHED_PROCESS</code> で起動すれば足り、WMI のようにホストの外からプロセスを起動する方式は使わない。</li>
 <li>ADR-0010: 未決 4（RAG の経路）に、wiki の MCP サーバーに検索と索引の更新を頼む案を加える。状態は変えない。</li>
 </ul>
 </section>

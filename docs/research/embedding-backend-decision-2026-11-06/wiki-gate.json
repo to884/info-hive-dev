@@ -16,13 +16,13 @@
       "psutil": "7.2.2",
       "mcp": null
     },
-    "dev_commit": "69fab02",
+    "dev_commit": "4d6a826",
     "wiki_commit": "e64765f",
     "rag_commit": "26bebeb",
     "poc_data": "C:\\Works\\info-hive-dev\\.rag-poc-data",
     "gpu": {
-      "utilization_percent": 0,
-      "memory_used_mib": 2286
+      "utilization_percent": 3,
+      "memory_used_mib": 3495
     }
   },
   "purpose": "wiki の評価ゲートを R-130 と Sudachi で通せるか（max_distance の較正を含む）",
@@ -2063,6 +2063,429 @@
         ],
         "log": "| 方式    | recall@5 | recall@10 | mrr | fp_rate |\n|---------|----------|----------|----------|----------|\n| page    | 0.922 | 0.922 | 0.882 | 0.000 |\n| section | 0.901 | 0.922 | 0.849 | 0.000 |\n| hybrid  | 0.979 | 1.000 | 0.916 | 0.000 |\n\n保存した: C:/Works/info-hive-dev/.rag-poc-data/decision-20261106/wiki-gate/r130-sudachi-ja.json\n\nキャッシュ: 一致\nゲート: 合格（section/page と hybrid の検索品質）\n基準値: 不合格（section mrr 0.849 < 0.901）\n"
       }
+    },
+    "r130-tantivy": {
+      "en": {
+        "exit_code": 0,
+        "metrics": {
+          "page": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.8148148148148148,
+            "recall@10": 0.9629629629629629,
+            "mrr": 0.6978395061728394,
+            "fp_rate": 0.0
+          }
+        },
+        "by_kind": {
+          "page": {
+            "exact": {
+              "count": 11,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 5,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 10,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            }
+          },
+          "section": {
+            "exact": {
+              "count": 11,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 5,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 10,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            }
+          },
+          "hybrid": {
+            "exact": {
+              "count": 11,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 5,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 10,
+              "recall@5": 0.5,
+              "recall@10": 0.9,
+              "mrr": 0.18416666666666667,
+              "fp_rate": 0.0
+            }
+          }
+        },
+        "baseline": {
+          "page": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.6296296296296297,
+            "recall@10": 0.6296296296296297,
+            "mrr": 0.6296296296296297,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.8148148148148148,
+            "recall@10": 0.9259259259259259,
+            "mrr": 0.7207818930041151,
+            "fp_rate": 0.0
+          }
+        },
+        "baseline_failures": [],
+        "log": "| 方式    | recall@5 | recall@10 | mrr | fp_rate |\n|---------|----------|----------|----------|----------|\n| page    | 0.630 | 0.630 | 0.630 | 0.000 |\n| section | 0.630 | 0.630 | 0.630 | 0.000 |\n| hybrid  | 0.815 | 0.963 | 0.698 | 0.000 |\n\n保存した: C:/Works/info-hive-dev/.rag-poc-data/decision-20261106/wiki-gate/r130-tantivy-en.json\n\nキャッシュ: 一致\nゲート: 合格（section/page と hybrid の検索品質）\n基準値: 合格（page、section、hybrid は en.json から 0.05 以内）\n"
+      },
+      "ja": {
+        "exit_code": 0,
+        "metrics": {
+          "page": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9219858156028368,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9007092198581559,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 1.0,
+            "recall@10": 1.0,
+            "mrr": 0.9627659574468085,
+            "fp_rate": 0.0
+          }
+        },
+        "by_kind": {
+          "page": {
+            "cross-lingual": {
+              "count": 5,
+              "recall@5": 0.8,
+              "recall@10": 0.8,
+              "mrr": 0.7,
+              "fp_rate": 0.0
+            },
+            "exact": {
+              "count": 9,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.9259259259259258,
+              "fp_rate": 0.0
+            },
+            "filename": {
+              "count": 2,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 0.9444444444444443,
+              "recall@10": 0.9444444444444443,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "fullwidth": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "long-section": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "mixed": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 6,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 8,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.875,
+              "fp_rate": 0.0
+            },
+            "single-kanji": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "two-char": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.875,
+              "fp_rate": 0.0
+            }
+          },
+          "section": {
+            "cross-lingual": {
+              "count": 5,
+              "recall@5": 0.8,
+              "recall@10": 0.8,
+              "mrr": 0.8,
+              "fp_rate": 0.0
+            },
+            "exact": {
+              "count": 9,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filename": {
+              "count": 2,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 0.9444444444444443,
+              "recall@10": 0.9444444444444443,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "fullwidth": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "long-section": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8333333333333334,
+              "fp_rate": 0.0
+            },
+            "mixed": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 6,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 8,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.875,
+              "fp_rate": 0.0
+            },
+            "single-kanji": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.611111111111111,
+              "fp_rate": 0.0
+            },
+            "two-char": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.75,
+              "fp_rate": 0.0
+            }
+          },
+          "hybrid": {
+            "cross-lingual": {
+              "count": 5,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.85,
+              "fp_rate": 0.0
+            },
+            "exact": {
+              "count": 9,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filename": {
+              "count": 2,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "filter": {
+              "count": 6,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "fullwidth": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "long-section": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8333333333333334,
+              "fp_rate": 0.0
+            },
+            "mixed": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "negative": {
+              "count": 6,
+              "recall@5": 0.0,
+              "recall@10": 0.0,
+              "mrr": 0.0,
+              "fp_rate": 0.0
+            },
+            "paraphrase": {
+              "count": 8,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            },
+            "single-kanji": {
+              "count": 3,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 0.8333333333333334,
+              "fp_rate": 0.0
+            },
+            "two-char": {
+              "count": 4,
+              "recall@5": 1.0,
+              "recall@10": 1.0,
+              "mrr": 1.0,
+              "fp_rate": 0.0
+            }
+          }
+        },
+        "baseline": {
+          "page": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9219858156028368,
+            "fp_rate": 0.0
+          },
+          "section": {
+            "recall@5": 0.9716312056737588,
+            "recall@10": 0.9716312056737588,
+            "mrr": 0.9007092198581559,
+            "fp_rate": 0.0
+          },
+          "hybrid": {
+            "recall@5": 0.9929078014184397,
+            "recall@10": 1.0,
+            "mrr": 0.953900709219858,
+            "fp_rate": 0.0
+          }
+        },
+        "baseline_failures": [],
+        "log": "| 方式    | recall@5 | recall@10 | mrr | fp_rate |\n|---------|----------|----------|----------|----------|\n| page    | 0.972 | 0.972 | 0.922 | 0.000 |\n| section | 0.972 | 0.972 | 0.901 | 0.000 |\n| hybrid  | 1.000 | 1.000 | 0.963 | 0.000 |\n\n保存した: C:/Works/info-hive-dev/.rag-poc-data/decision-20261106/wiki-gate/r130-tantivy-ja.json\n\nキャッシュ: 一致\nゲート: 合格（section/page と hybrid の検索品質）\n基準値: 合格（page、section、hybrid は ja.json から 0.05 以内）\n"
+      }
     }
   },
   "sudachi_by_kind": {
@@ -2258,7 +2681,94 @@
   "passed": {
     "e5": true,
     "r130": true,
-    "r130-sudachi": false
+    "r130-sudachi": false,
+    "r130-tantivy": true
   },
-  "criterion": "較正で偽陽性 0 の範囲がある。--gate と --baseline（recall@10 と MRR の低下 ≤ 0.05、fp_rate の上昇 ≤ 0.05）に合格する"
+  "criterion": "較正で偽陽性 0 の範囲がある。--gate と --baseline（recall@10 と MRR の低下 ≤ 0.05、fp_rate の上昇 ≤ 0.05）に合格する",
+  "r130-tantivy_vs_wiki_bm25": {
+    "en-page": {
+      "recall@10": {
+        "wiki_bm25": 0.6296296296296297,
+        "r130-tantivy": 0.6296296296296297
+      },
+      "mrr": {
+        "wiki_bm25": 0.6296296296296297,
+        "r130-tantivy": 0.6296296296296297
+      },
+      "fp_rate": {
+        "wiki_bm25": 0.0,
+        "r130-tantivy": 0.0
+      }
+    },
+    "en-section": {
+      "recall@10": {
+        "wiki_bm25": 0.6296296296296297,
+        "r130-tantivy": 0.6296296296296297
+      },
+      "mrr": {
+        "wiki_bm25": 0.6296296296296297,
+        "r130-tantivy": 0.6296296296296297
+      },
+      "fp_rate": {
+        "wiki_bm25": 0.0,
+        "r130-tantivy": 0.0
+      }
+    },
+    "en-hybrid": {
+      "recall@10": {
+        "wiki_bm25": 0.9629629629629629,
+        "r130-tantivy": 0.9629629629629629
+      },
+      "mrr": {
+        "wiki_bm25": 0.6978395061728394,
+        "r130-tantivy": 0.6978395061728394
+      },
+      "fp_rate": {
+        "wiki_bm25": 0.0,
+        "r130-tantivy": 0.0
+      }
+    },
+    "ja-page": {
+      "recall@10": {
+        "wiki_bm25": 0.9716312056737588,
+        "r130-tantivy": 0.9716312056737588
+      },
+      "mrr": {
+        "wiki_bm25": 0.9219858156028368,
+        "r130-tantivy": 0.9219858156028368
+      },
+      "fp_rate": {
+        "wiki_bm25": 0.0,
+        "r130-tantivy": 0.0
+      }
+    },
+    "ja-section": {
+      "recall@10": {
+        "wiki_bm25": 0.9716312056737588,
+        "r130-tantivy": 0.9716312056737588
+      },
+      "mrr": {
+        "wiki_bm25": 0.9007092198581559,
+        "r130-tantivy": 0.9007092198581559
+      },
+      "fp_rate": {
+        "wiki_bm25": 0.0,
+        "r130-tantivy": 0.0
+      }
+    },
+    "ja-hybrid": {
+      "recall@10": {
+        "wiki_bm25": 1.0,
+        "r130-tantivy": 1.0
+      },
+      "mrr": {
+        "wiki_bm25": 0.9627659574468085,
+        "r130-tantivy": 0.9627659574468085
+      },
+      "fp_rate": {
+        "wiki_bm25": 0.0,
+        "r130-tantivy": 0.0
+      }
+    }
+  }
 }

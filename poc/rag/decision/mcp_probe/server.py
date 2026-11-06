@@ -35,6 +35,8 @@ def main():
     parser.add_argument("--index", required=True)
     parser.add_argument("--queries", required=True)
     parser.add_argument("--idle", type=float, default=600)
+    parser.add_argument("--log-level", default="INFO")
+    parser.add_argument("--json-response", action="store_true", help="SSE ではなく JSON で応答する")
     args = parser.parse_args()
     state = Path(args.state)
     port, token = free_port(), secrets.token_urlsafe(32)
@@ -43,7 +45,7 @@ def main():
     index.expansion_search = 256
     qvecs = np.load(args.queries)
     last = [time.monotonic()]
-    mcp = FastMCP("info-hive-wiki-probe", host="127.0.0.1", port=port,
+    mcp = FastMCP("info-hive-wiki-probe", host="127.0.0.1", port=port, log_level=args.log_level, json_response=args.json_response,
                   transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=True,
                                                                allowed_hosts=[f"127.0.0.1:{port}"], allowed_origins=[]))
 

@@ -84,6 +84,13 @@ def main():
 
     # ---- E10 の分解 ----
     parts = final["notes"]["E10"]["overhead_parts_ms"]
+    decisions = final["decisions"]
+    claude_job = load("claude-job-check.json")
+    variants = final["notes"]["E10"]["variants"]
+    best_variant = min(variants.values(), key=lambda v: v["overhead_relay_ms"])
+    variant_label = {"mcp-relay": "ログあり、SSE", "mcp-relay-quiet": "ログなし、SSE", "mcp-relay-quiet-json": "ログなし、JSON の応答"}
+    variant_rows = [[e(variant_label[n]), ms(v["function_p95_ms"]), ms(v["direct_http_p95_ms"]), ms(v["relay_p95_ms"]),
+                     ms(v["overhead_relay_ms"])] for n, v in variants.items()]
 
     # ---- E8 ----
     g = gate["gates"]
@@ -91,6 +98,7 @@ def main():
     ja_base, ja_sudachi = g["r130"]["ja"]["metrics"], g["r130-sudachi"]["ja"]["metrics"]
     kinds = gate["sudachi_by_kind"]["ja-section"]
     worse_kinds = [k for k, v in kinds.items() if v["sudachi_recall@10"] < v["bigram_recall@10"] - 1e-9]
+    tantivy_same = all(abs(x["wiki_bm25"] - x["r130-tantivy"]) < 5e-4 for v in gate["r130-tantivy_vs_wiki_bm25"].values() for x in v.values())
 
     # ---- E1 ----
     sets = ["natural-pdf", "natural-wiki", "full-usearch", "full-sqlite-vec f32", "full-FAISS IVF_SQ8"]
@@ -170,11 +178,12 @@ def main():
 
     gate_names = {
         "E8_wiki_gate_r130": ("E8", "R-130 で wiki の評価ゲートを通る"), "E8_calibration_separable": ("E8", "max_distance を偽陽性 0 で較正できる"),
-        "E8_sudachi": ("E8", "Sudachi に替えても ja のゲートを通る"), "E7_reembed": ("E7", "初回の再埋め込み ≤ 20 分、1 ページの更新 ≤ 5 秒"),
+        "E8_sudachi": ("E8", "Sudachi に替えても ja のゲートを通る"), "E8_tantivy_bigram": ("E8", "Tantivy に wiki の bigram を渡してもゲートを通る"), "E7_reembed": ("E7", "初回の再埋め込み ≤ 20 分、1 ページの更新 ≤ 5 秒"),
         "E1_fusion_keep": ("E1", "融合が dense だけに負けない"), "E3_faiss_not_better_by_0_5": ("E3", "FAISS の最小点が usearch を 0.5 以上上回らない"),
         "E5_write_safe": ("E5", "usearch を Windows で安全に書き換えられる"), "E5_tantivy_with_retry": ("E5", "Tantivy の commit の失敗から文書を失わずに回復できる"),
         "E4_filter_ok": ("E4", "世代の絞り込みの増分 ≤ 20 ms"), "E6_memory_not_favoring_faiss": ("E6", "メモリの結果で FAISS に替える理由がない"),
-        "E10_relay": ("E10", "中継の上乗せ ≤ 10 ms、重複起動 0、防御が効く"), "E9_onnx": ("E9", "公開版の ONNX で同じベクトルが出る"),
+        "E10_relay": ("E10", "中継の上乗せ ≤ 10 ms、重複起動 0、防御が効く（3 通りのどれか）"),
+        "E10_claude_code_keeps_detached": ("E10", "Claude Code のセッションが終わっても、サーバーの起動した孫が残る"), "E9_onnx": ("E9", "公開版の ONNX で同じベクトルが出る"),
     }
     gate_rows = [[gate_names[k][0], e(gate_names[k][1]), ok_cell(v)] for k, v in gates.items()]
 
@@ -207,50 +216,45 @@ def main():
 </header>
 
 <section id="tldr" class="tldr">
-<h2>1. 要約: 3 点が閾値を外れたので、ADR を書く前で止めた</h2>
-<p>モデル（ruri-v3-130m の ONNX fp32）とベクトル索引（usearch HNSW f16）は、測定の結果でも変わらない。融合も残す。変えるのはパラメーターだけで、RRF を k={c["k"]}、語彙の重み {c["lexical_weight"]} にする。一方、次の 3 点は計画の閾値を外れた。どれも部品の選択か ADR-0012 の形に関わるので、計画の停止の規則に従い、ADR-0011 と ADR-0012 を書く前に判断を仰ぐ。</p>
+<h2>1. 要約: 閾値を外れた 3 点のうち、1 点は決まり、2 点は測り直した</h2>
+<p>モデル（ruri-v3-130m の ONNX fp32）とベクトル索引（usearch HNSW f16）は、測定の結果でも変わらない。融合も残す。変えるのはパラメーターだけで、RRF を k={c["k"]}、語彙の重み {c["lexical_weight"]} にする。最初の測定では次の 3 点が計画の閾値を外れたので、計画の停止の規則に従って ADR-0011 と ADR-0012 を書く前で止めた。その後 {e(decisions["date"])} に 1 点を決め、残りの 2 点は測り直した。</p>
 <div class="verdict">
-<div class="card bad"><div class="k">語彙検索の統一（E8）</div><div class="v">Sudachi で ja のゲートに落ちる</div><div class="small">セクションの MRR {ja_base["section"]["mrr"]:.3f} → {ja_sudachi["section"]["mrr"]:.3f}（低下の上限 0.05）</div></div>
-<div class="card bad"><div class="k">wiki の初回の再埋め込み（E7）</div><div class="v">約 {r130_natural * r130_ratio / 60:.0f} 分</div><div class="small">R-130、rag の長さのチャンク 8,275 件。目安は 20 分</div></div>
-<div class="card bad"><div class="k">MCP の上乗せ（E10）</div><div class="v">{parts["relay_p95_ms"] - parts["function_p95_ms"]:.1f} ms</div><div class="small">うち中継の 1 段は {parts["relay_hop_ms"]:.1f} ms。目安は 10 ms</div></div>
+<div class="card ok"><div class="k">語彙検索（E8）</div><div class="v">Tantivy + bigram はゲートを通る</div><div class="small">Sudachi はセクションの MRR {ja_base["section"]["mrr"]:.3f} → {ja_sudachi["section"]["mrr"]:.3f} で落ちた。Tantivy に wiki の bigram を渡すと、指標は wiki の BM25 と同じ</div></div>
+<div class="card ok"><div class="k">wiki の初回の再埋め込み（E7）</div><div class="v">目安を緩めると決めた</div><div class="small">R-130、rag の長さのチャンク 8,275 件で約 {r130_natural * r130_ratio / 60:.0f} 分。目安は 20 分だった</div></div>
+<div class="card bad"><div class="k">MCP の上乗せ（E10）</div><div class="v">最良で {best_variant["overhead_relay_ms"]:.1f} ms</div><div class="small">ログを止め、応答を JSON にした値。目安は 10 ms。中継の 1 段は数 ms</div></div>
 <div class="card ok"><div class="k">変わらなかったもの</div><div class="v">モデル、索引、融合</div><div class="small">E9、E8（R-130）、E1、E3、E4、E5、E6</div></div>
 </div>
 <ul>
 <li>R-130 は wiki の en と ja のゲートを通り、<code>max_distance</code> を {chosen["max_distance"]} にすれば偽陽性 0 にできる。ただし natural の負例 {chosen["natural_negatives_within"]} 問はすべてこの距離の内側に入る。これは e5 でも同じで、今の wiki の限界である。</li>
 <li>usearch は全量で FAISS IVF_SQ8 より速い（DB の p95 {ms(best_u["db_p95_ms"])} 対 {ms(best_f["db_p95_ms"])}）。最小点では FAISS が {best_f["score"]["minimum"]:.1f} 点、usearch が {best_u["score"]["minimum"]:.1f} 点で、差の {best_f["score"]["minimum"] - best_u["score"]["minimum"]:.1f} 点は容量の点だけから来る。規則（0.5 点以上の差で FAISS に替える）には届かないが、余裕は小さい。</li>
 <li>Windows では Tantivy の commit が約 {retry["results"][0]["error_rate"] * 100:.0f}% の割合で「アクセスが拒否されました」で失敗した。失敗した writer を使い続けると、その後の commit が成功を返しても文書が残らない（{lost_plain["docs_added"]:,} 件中 {lost_plain["docs_in_index"]:,} 件しか残らなかった）。rollback して入れ直せば失われなかったので、語彙エンジンは替えず、この規則を ADR に書く。</li>
-<li>Windows の MCP の SDK は、stdio で起動したプロセスをジョブオブジェクトに入れ、終了時にジョブごと止める。中継が起動したサーバーは、起動したセッションが終わると一緒に止まった。WMI に起動させるとジョブの外に出て、セッションをまたいで共有できた。</li>
+<li>Claude Code（CLI {e(claude_job["claude_version"].split()[0])}）は stdio の MCP サーバーをジョブオブジェクトに入れず、サーバーが <code>DETACHED_PROCESS</code> で起動した孫プロセスはセッションの後も残った。セッションをまたいでサーバーを共有するのに WMI は要らない。試作の測定でサーバーが止まったのは、測定に使った Python の MCP の SDK がジョブを使うためだった。</li>
 </ul>
 </section>
 
 <section id="decide">
-<h2>2. 決めてほしいこと</h2>
-<p>3 点それぞれに選択肢を挙げる。「提案」は筆者の考えで、測定で確かめた範囲を併記する。</p>
+<h2>2. 決めたことと、残る判断</h2>
 <div class="opt">
-<h3>語彙検索: Sudachi に統一すると、日本語の wiki で落ちる種類がある</h3>
-<p>Sudachi（SplitMode C、normalized_form）に替えると、ja のセクションの MRR が {ja_base["section"]["mrr"]:.3f} から {ja_sudachi["section"]["mrr"]:.3f} に下がった。下がったのは {e("、".join(worse_kinds))} の種類である。en ではハイブリッドの MRR が {g["r130"]["en"]["metrics"]["hybrid"]["mrr"]:.3f} から {g["r130-sudachi"]["en"]["metrics"]["hybrid"]["mrr"]:.3f} に上がった。</p>
+<h3>再埋め込み: 目安の 20 分を緩める（決定）</h3>
+<p>{e(decisions["E7_reembed"])}。区間ごとの推定では、rag の長さのチャンク 8,275 件で {minutes(r130_natural)}、wiki の長さのセクションなら {minutes(r130_wiki_scaled)} だった。無作為の 1,000 行で測ると実測は推定の {r130_ratio:.2f} 倍だったので、rag の長さで約 {r130_natural * r130_ratio / 60:.0f} 分になる。wiki の長さの値にも同じ比を掛けると約 {r130_wiki_scaled * r130_ratio / 60:.0f} 分だが、この比は natural の行で測ったもので、wiki のセクションでは確かめていない。1 ページの更新は {r130["page_update"]["seconds"]:.2f} 秒で、目安の 5 秒に収まる。</p>
+</div>
+<div class="opt">
+<h3>語彙検索: 案 2（Tantivy に wiki の bigram を登録する）はゲートを通った</h3>
+<p>Sudachi（SplitMode C、normalized_form）に替えると、ja のセクションの MRR が {ja_base["section"]["mrr"]:.3f} から {ja_sudachi["section"]["mrr"]:.3f} に下がった。下がったのは {e("、".join(worse_kinds))} の種類である。そこで案 2 を測った。語彙のスコアを Tantivy の BM25 で出し、トークンは wiki の bigram のまま渡す構成である。en と ja のゲートをどちらも通り、ページ・セクション・ハイブリッドの recall@10、MRR、偽陽性の割合は、{"wiki の BM25 と小数第 3 位まで同じだった" if tantivy_same else "wiki の BM25 と一部で違った（§6）"}。個々のスコアは k1（wiki 1.5、Tantivy 1.2）の違いで変わり、下位の順位が入れ替わることはあった。</p>
 <ul>
-<li>案 1（提案）: wiki は今の bigram の BM25 のまま、rag だけ Sudachi + Tantivy にする。どちらも測定済みの構成で、語彙の統一は部分的になる。</li>
-<li>案 2: エンジンは Tantivy にそろえ、wiki の索引にだけ bigram のトークナイザーを登録する。この構成は測っていないので、選ぶなら E8 のゲートを通す測定が要る。</li>
+<li>案 2（提案）: 語彙のエンジンを Tantivy にそろえ、wiki の索引には bigram、rag の索引には Sudachi のトークンを入れる。エンジンと索引の扱い（書き込みの規則、世代の削除）は 1 つにまとまり、トークンの作り方だけが索引の集まりごとに違う。</li>
+<li>案 1: wiki は今の純 Python の BM25 のまま、rag だけ Sudachi + Tantivy にする。</li>
 </ul>
 </div>
 <div class="opt">
-<h3>再埋め込み: R-130 の初回は 20 分に収まらない</h3>
-<p>区間ごとの推定では、rag の長さのチャンク 8,275 件で {minutes(r130_natural)}、wiki の長さのセクションなら {minutes(r130_wiki_scaled)} だった。無作為の 1,000 行で測ると実測は推定の {r130_ratio:.2f} 倍だったので、rag の長さで約 {r130_natural * r130_ratio / 60:.0f} 分になる。wiki の長さの値にも同じ比を掛けると約 {r130_wiki_scaled * r130_ratio / 60:.0f} 分だが、この比は natural の行で測ったもので、wiki のセクションでは確かめていない。1 ページの更新は {r130["page_update"]["seconds"]:.2f} 秒で、目安の 5 秒に収まる。</p>
+<h3>MCP の上乗せ: 測り直しても 10 ms を超えた</h3>
+<p>同じ日に 3 通りで測り直した。ログを止めても上乗せはほとんど変わらず、応答を SSE から JSON にすると {best_variant["overhead_relay_ms"]:.1f} ms まで下がった。HTTP のサーバーへ直接 MCP で呼ぶだけで {best_variant["direct_http_p95_ms"] - best_variant["function_p95_ms"]:.1f} ms かかり、中継の 1 段は {best_variant["relay_p95_ms"] - best_variant["direct_http_p95_ms"]:.1f} ms である。</p>
+{table(["構成", "関数 p95", "HTTP の MCP p95", "中継経由 p95", "上乗せ"], variant_rows, num=(1, 2, 3, 4))}
 <ul>
-<li>案 1（提案）: 初回は MCP サーバーが裏で埋め込み、終わるまでは BM25 だけで答える。ADR-0012 のサーバーの仕事に含められる。</li>
-<li>案 2: wiki だけ R-30 にする。推定は {minutes(by_model[("R-30", "onnx-fp32")]["estimate_natural_seconds"]["16"])}（補正の比は未測定）で収まるが、wiki と rag でモデルが分かれる。</li>
-<li>案 3: 目安の 20 分を緩め、初回だけ時間がかかることを upgrade の案内に書く。</li>
+<li>案 1（提案）: 目安を「中継の 1 段 ≤ 10 ms」と読み、全体の上乗せ（約 {best_variant["overhead_relay_ms"]:.0f} ms）は記録に残して合格とする。応答は JSON にする。</li>
+<li>案 2: 試作のサーバーの認証は starlette の BaseHTTPMiddleware で書いている。これを ASGI のミドルウェアに書き直すなど、HTTP の MCP そのものの費用を減らせるかを測る。</li>
+<li>案 3: 目安の 10 ms を緩める。</li>
 </ul>
-</div>
-<div class="opt">
-<h3>MCP の上乗せ: 目安の 10 ms が、何に対する値かを決める</h3>
-<p>関数の直接呼び出しの p95 は {parts["function_p95_ms"]:.1f} ms、HTTP のサーバーへ直接 MCP で呼ぶと {parts["direct_http_p95_ms"]:.1f} ms、stdio の中継を通すと {parts["relay_p95_ms"]:.1f} ms だった。上乗せの大半（{parts["http_mcp_ms"]:.1f} ms）は HTTP 上の MCP（JSON、uvicorn）の分で、中継の 1 段は {parts["relay_hop_ms"]:.1f} ms である。測ったプロセスでは httpx の INFO のログが出ていて、その分も含まれる。</p>
-<ul>
-<li>案 1（提案）: 目安を「中継の 1 段 ≤ 10 ms」と読み、合格とする。全体の上乗せの約 {parts["relay_p95_ms"] - parts["function_p95_ms"]:.0f} ms は記録に残す。</li>
-<li>案 2: ログを止めるなどして上乗せを減らせるかを、もう 1 回試作で測る。</li>
-</ul>
-<p>あわせて、サーバーを WMI で起動する方式を ADR-0012 に書いてよいかも確かめたい。OS のサービスとしては登録しないので ADR-0007 の条件には触れないと筆者は考えるが、ホストのジョブの外にプロセスを残すことになる。</p>
 </div>
 <p class="small">E6 のメモリの提案値（wiki 規模 1.0 GiB、全量 2.5 GiB）は、モデルを読み込んだ構成ではどの索引でも超えた。FAISS も収まらないので索引の選択は変わらず、提案値のほうを見直す（§12）。</p>
 </section>
@@ -289,10 +293,11 @@ def main():
 </section>
 
 <section id="e8">
-<h2>6. wiki の評価ゲート（E8）: R-130 は通り、Sudachi は ja で落ちる</h2>
+<h2>6. wiki の評価ゲート（E8）: R-130 と Tantivy + bigram は通り、Sudachi は ja で落ちる</h2>
+<p>r130-tantivy は、語彙のスコアを Tantivy の BM25 で出し、トークンは wiki の bigram のまま渡した構成（§2 の案 2）である。</p>
 {table(["構成", "コーパス", "ページ MRR", "セクション MRR", "ハイブリッド MRR", "ハイブリッド recall@10", "判定"],
        [[e(v), cc, f'{g[v][cc]["metrics"]["page"]["mrr"]:.3f}', f'{g[v][cc]["metrics"]["section"]["mrr"]:.3f}', f'{g[v][cc]["metrics"]["hybrid"]["mrr"]:.3f}',
-         f'{g[v][cc]["metrics"]["hybrid"]["recall@10"]:.3f}', ok_cell(g[v][cc]["exit_code"] == 0)] for v in ("e5", "r130", "r130-sudachi") for cc in ("en", "ja")],
+         f'{g[v][cc]["metrics"]["hybrid"]["recall@10"]:.3f}', ok_cell(g[v][cc]["exit_code"] == 0)] for v in ("e5", "r130", "r130-sudachi", "r130-tantivy") for cc in ("en", "ja")],
        num=(2, 3, 4, 5))}
 <p>較正: 正例が必要とする距離の最大は {chosen["positive_needed_max"]:.4f}、負例の最も近い距離の最小は {chosen["negative_nearest_min"]:.4f} で、あいだに偽陽性 0 の範囲がある。中点の {chosen["max_distance"]} を選んだ。natural では正例 {chosen["natural_positives_within"]} / {chosen["natural_positives"]} 問と負例 {chosen["natural_negatives_within"]} / {chosen["natural_negatives"]} 問が内側に入った。</p>
 {table(["種類（ja のセクション）", "bigram recall@10", "Sudachi recall@10"],
@@ -361,7 +366,8 @@ def main():
     ["中継の終了後もサーバーが残る", "残った" if relay["server_survived_relay_exit"] else "残らなかった"],
     [f'要求がなくなって {relay["idle_shutdown"]["idle_seconds"]} 秒後', ("止まった" if relay["idle_shutdown"]["servers_after_idle"] == 0 else f'{relay["idle_shutdown"]["servers_after_idle"]} つ残った')],
 ])}
-<p>サーバーの起動のしかたで 2 つの問題が出た。1 つ目は、venv の <code>python.exe</code> が本体を子プロセスとして起動するので、<code>Popen</code> が返す pid と、サーバーが記録した pid が一致しないこと。起動の前にロックの中で <code>server.json</code> を消し、新しく現れた <code>server.json</code> を今起動したサーバーのものとみなすようにした。2 つ目は、MCP の SDK（mcp 1.30.0）の <code>stdio_client</code> が中継を KILL_ON_JOB_CLOSE のジョブに入れること。<code>DETACHED_PROCESS</code> も <code>CREATE_BREAKAWAY_FROM_JOB</code> も、エラーにはならなかったがサーバーはジョブに残り、中継の終了とともに止まった。WMI（<code>Win32_Process.Create</code>）に起動させるとジョブの外に出た。Claude Code が stdio の MCP サーバーを同じようにジョブに入れるかは確かめていない。</p>
+<p>サーバーの起動のしかたで 2 つの問題が出た。1 つ目は、venv の <code>python.exe</code> が本体を子プロセスとして起動するので、<code>Popen</code> が返す pid と、サーバーが記録した pid が一致しないこと。起動の前にロックの中で <code>server.json</code> を消し、新しく現れた <code>server.json</code> を今起動したサーバーのものとみなすようにした。2 つ目は、MCP の SDK（mcp 1.30.0）の <code>stdio_client</code> が中継を KILL_ON_JOB_CLOSE のジョブに入れること。<code>DETACHED_PROCESS</code> も <code>CREATE_BREAKAWAY_FROM_JOB</code> も、エラーにはならなかったがサーバーはジョブに残り、中継の終了とともに止まった。WMI（<code>Win32_Process.Create</code>）に起動させるとジョブの外に出た。</p>
+<p>このジョブは、測定に使った Python の MCP の SDK のものである。Claude Code（CLI {e(claude_job["claude_version"].split()[0])}）でも起きるかを、標準ライブラリだけで書いた最小の MCP サーバーを <code>claude -p</code> に登録して確かめた。サーバーはジョブに入って{"いた" if claude_job["claude"]["job"]["in_job"] else "いなかった"}。<code>DETACHED_PROCESS</code> で起動した孫は、claude が終わった後も{"残った" if claude_job["summary"]["detached_grandchild_survives_claude"] else "残らなかった"}（サーバー自身は claude とともに終わった）。Claude Code の下では、サーバーを <code>DETACHED_PROCESS</code> で起動すれば足りる。デスクトップアプリは測っていない。</p>
 </section>
 
 <section id="e11">
@@ -379,7 +385,7 @@ def main():
 <h2>16. ADR との整合</h2>
 <ul>
 <li>ADR-0001: 127.0.0.1 だけで待ち受け、起動ごとのトークンと Host の確認を入れた試作で、トークンなしは 401、Host の偽装は 421 になった。wiki を書き換える API を持たない条件 3 に当たるので、案 B のツールから ingest_source を外す。</li>
-<li>ADR-0007: サーバーは使われなければ止まり（idle で 0 になった）、OS のサービスとして登録しない。WMI での起動がこの条件の範囲かは §2 で判断を仰ぐ。</li>
+<li>ADR-0007: サーバーは使われなければ止まり（idle で 0 になった）、OS のサービスとして登録しない。Claude Code の下では <code>DETACHED_PROCESS</code> で起動すれば足り、WMI のようにホストの外からプロセスを起動する方式は使わない。</li>
 <li>ADR-0010: 未決 4（RAG の経路）に、wiki の MCP サーバーに検索と索引の更新を頼む案を加える。状態は変えない。</li>
 </ul>
 </section>

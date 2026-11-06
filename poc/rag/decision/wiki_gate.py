@@ -28,6 +28,8 @@ VARIANTS = {
     "e5": {"DECISION_EMBED": "e5", "DECISION_TOKENIZER": "bigram"},
     "r130": {"DECISION_EMBED": "r130", "DECISION_TOKENIZER": "bigram"},
     "r130-sudachi": {"DECISION_EMBED": "r130", "DECISION_TOKENIZER": "sudachi"},
+    # 案 2: 語彙のエンジンだけを Tantivy にし、トークンは wiki の bigram のまま
+    "r130-tantivy": {"DECISION_EMBED": "r130", "DECISION_TOKENIZER": "bigram", "DECISION_LEXICAL": "tantivy"},
 }
 
 
@@ -104,6 +106,7 @@ def choose(calibration):
 
 
 def run_gate(run_eval, variant, max_distance):
+    os.environ.pop("DECISION_LEXICAL", None)
     os.environ.update(VARIANTS[variant], DECISION_MAX_DISTANCE=str(max_distance))
     run_eval.SCRIPT = HERE / "wiki_search_variant.py"
     out = {}
@@ -130,11 +133,31 @@ def run_gate(run_eval, variant, max_distance):
     return out
 
 
+def compare_lexical(gates, variant):
+    """bigram の wiki の BM25（r130）と variant を、ページとセクションの行（語彙だけ）とハイブリッドの行で比べる。"""
+    return {f"{s}-{m}": {k: {"wiki_bm25": gates["r130"][s]["metrics"][m][k], variant: gates[variant][s]["metrics"][m][k]}
+                         for k in ("recall@10", "mrr", "fp_rate")}
+            for s in ("en", "ja") for m in ("page", "section", "hybrid")}
+
+
+def add_variant(run_eval, variant):
+    """保存済みの wiki-gate.json に、variant のゲートだけを足す（較正は保存済みの値を使う）。"""
+    from decision_common import load
+    report = load("wiki-gate.json")
+    report.pop("env", None)
+    report["gates"][variant] = run_gate(run_eval, variant, report["chosen"]["max_distance"])
+    report["passed"][variant] = all(g["exit_code"] == 0 for g in report["gates"][variant].values())
+    report[f"{variant}_vs_wiki_bm25"] = compare_lexical(report["gates"], variant)
+    save("wiki-gate.json", report)
+
+
 def main():
     limit_threads()
     base_env()
     (DWORK / "wiki-gate").mkdir(parents=True, exist_ok=True)
     run_eval = import_run_eval()
+    if len(sys.argv) > 2 and sys.argv[1] == "--add":
+        return add_variant(run_eval, sys.argv[2])
     calibration = calibrate(run_eval)
     chosen = choose(calibration)
     print("較正", chosen, flush=True)

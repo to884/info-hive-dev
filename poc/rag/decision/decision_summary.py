@@ -45,6 +45,8 @@ def main():
     retry = load("tantivy-commit-retry.json")
     memory = load("server-memory.json")
     relay = load("mcp-relay.json")
+    relay_variants = {name: load(f"{name}.json") for name in ("mcp-relay", "mcp-relay-quiet", "mcp-relay-quiet-json")}
+    claude_job = load("claude-job-check.json")
     onnx = load("onnx-distribution.json")
     q95, q50 = query_p95()
     five = next(r for r in generation["filtering"] if r["fraction_documents"] == 0.05)
@@ -76,6 +78,8 @@ def main():
         "E8_wiki_gate_r130": wiki_gate["passed"]["r130"],
         "E8_calibration_separable": wiki_gate["chosen"]["separable"],
         "E8_sudachi": wiki_gate["passed"]["r130-sudachi"],
+        # 案 2: 語彙のエンジンだけを Tantivy にし、wiki のトークン（bigram）はそのまま
+        "E8_tantivy_bigram": wiki_gate["passed"]["r130-tantivy"],
         "E7_reembed": reembed["passed"],
         "E1_fusion_keep": not fusion["dense_beats_fusion_everywhere"],
         "E3_faiss_not_better_by_0_5": best_faiss["score"]["minimum"] < best_usearch["score"]["minimum"] + 0.5,
@@ -88,7 +92,9 @@ def main():
         "E6_memory_not_favoring_faiss": not (
             any(not v["within_limit"] for k, v in memory["verdict"].items() if k.endswith("usearch-view"))
             and all(v["within_limit"] for k, v in memory["verdict"].items() if k.endswith("faiss"))),
-        "E10_relay": relay["passed"],
+        "E10_relay": any(v["passed"] for v in relay_variants.values()),
+        # Claude Code（CLI）はサーバーをジョブに入れず、DETACHED_PROCESS の孫はセッションの後も残る
+        "E10_claude_code_keeps_detached": bool(claude_job["summary"]["detached_grandchild_survives_claude"]),
         "E9_onnx": onnx["passed"],
     }
     overturn = {name: not ok for name, ok in gates.items()}
@@ -102,13 +108,20 @@ def main():
         "E6": {"limits_private_gib": gib_limits, "with_model": memory_note,
                "summary": "モデルありの構成はどの索引でも提案値を超えた。FAISS も収まらないので索引の選択は変わらない。提案値を見直す"},
         "E10": {"overhead_parts_ms": relay_parts, "server_survived_relay_exit": relay["server_survived_relay_exit"],
+                "variants": {name: {"log_level": v.get("log_level"), "json_response": v.get("json_response"),
+                                    "function_p95_ms": v["function_p95_ms"], "direct_http_p95_ms": v["direct_http"]["query_p95_ms"],
+                                    "relay_p95_ms": v["relay_warm"]["query_p95_ms"], "overhead_relay_ms": v["overhead_p95_ms"]["relay"]}
+                             for name, v in relay_variants.items()},
                 "summary": "中継の 1 段は数 ms で、上乗せの大半は HTTP 上の MCP（JSON と uvicorn）にある"},
     }
     save("decision-scores.json", {
         "purpose": "E1〜E10 をまとめた最終の採点と、推奨が覆る条件の判定",
         "query_embedding": {"model": "R-130 onnx-fp32", "p95_ms": q95, "median_ms": q50, "note": "ほかの仕事がない状態で 72 問"},
         "rows": scored, "best_usearch": best_usearch["key"], "best_faiss": best_faiss["key"],
-        "fusion_chosen": fusion["chosen"], "fusion_deep_best": deep["best"], "gates": gates, "overturned": [k for k, v in overturn.items() if v], "notes": notes})
+        "fusion_chosen": fusion["chosen"], "fusion_deep_best": deep["best"], "gates": gates, "overturned": [k for k, v in overturn.items() if v], "notes": notes,
+        "decisions": {"date": "2026-11-06", "E7_reembed": "目安の 20 分を緩め、初回だけ時間がかかることを upgrade の案内に書く",
+                      "E8_lexical": "案 2（Tantivy に wiki の bigram を登録する）を測ってから決める",
+                      "E10_relay": "上乗せをもう 1 回測る", "E10_spawn": "先に Claude Code がサーバーをジョブに入れるかを確かめる"}})
 
 
 if __name__ == "__main__":
