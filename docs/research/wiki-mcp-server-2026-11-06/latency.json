@@ -1,0 +1,76 @@
+{
+ "purpose": "wiki の検索の速さ（今の CLI、中継経由の MCP、直接呼び出し）",
+ "env": {
+  "python": "3.12.13",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "cpu_count": 16
+ },
+ "sets": {
+  "en": {
+   "mcp_relay": {
+    "n": 96,
+    "median_ms": 30.04,
+    "p95_ms": 35.33,
+    "max_ms": 51.64
+   },
+   "direct": {
+    "n": 96,
+    "median_ms": 20.98,
+    "p95_ms": 24.15,
+    "max_ms": 25.56
+   },
+   "overhead_p95_ms": 11.18,
+   "cli_hybrid": {
+    "n": 15,
+    "median_ms": 3488.81,
+    "p95_ms": 3625.25,
+    "max_ms": 3644.23
+   },
+   "cli_lexical": {
+    "n": 15,
+    "median_ms": 205.23,
+    "p95_ms": 241.74,
+    "max_ms": 292.04
+   }
+  },
+  "ja": {
+   "mcp_relay": {
+    "n": 159,
+    "median_ms": 29.92,
+    "p95_ms": 38.01,
+    "max_ms": 43.41
+   },
+   "direct": {
+    "n": 159,
+    "median_ms": 22.28,
+    "p95_ms": 33.28,
+    "max_ms": 51.84
+   },
+   "overhead_p95_ms": 4.73,
+   "cli_hybrid": {
+    "n": 15,
+    "median_ms": 3679.12,
+    "p95_ms": 3927.2,
+    "max_ms": 3975.12
+   },
+   "cli_lexical": {
+    "n": 15,
+    "median_ms": 213.14,
+    "p95_ms": 218.32,
+    "max_ms": 240.6
+   }
+  }
+ },
+ "mcp_cold": {
+  "initialize_ms": 1687.5,
+  "tools_list_ms": 2355.9,
+  "first_query_ms": {
+   "en": 3587.9,
+   "ja": 147.6
+  },
+  "note": "initialize にサーバーの起動（依存の確認、待ち受けまで）を含む。最初の query にモデルの読み込みと、コーパス全体の初回の埋め込みを含む"
+ },
+ "server_rss_bytes": 1026019328,
+ "server_private_bytes": 1580040192,
+ "embed_threads": "onnxruntime の既定"
+}
