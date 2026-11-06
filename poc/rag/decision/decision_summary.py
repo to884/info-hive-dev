@@ -17,6 +17,13 @@ from common import OUT as UNIFICATION_OUT, full_queries, limit_threads, p95
 from summarize import scores
 
 GIB = 2 ** 30
+RELAY_LIMIT_MS = 15.0
+
+
+def relay_ok(report, limit_ms):
+    return (report["server_survived_relay_exit"] and report["overhead_p95_ms"]["relay"] <= limit_ms and report["security_ok"]
+            and report["concurrent_summary"]["distinct_server_pids"] == 1 and report["concurrent_summary"]["max_servers_seen"] == 1
+            and report["idle_shutdown"]["servers_after_idle"] == 0)
 
 
 def query_p95():
@@ -94,7 +101,9 @@ def main():
             any(not v["within_limit"] for k, v in memory["verdict"].items() if k.endswith("usearch-view"))
             and all(v["within_limit"] for k, v in memory["verdict"].items() if k.endswith("faiss"))),
         # 認証なしの行は上乗せの下限を見るためだけのもので、合否には使わない
-        "E10_relay": any(v["passed"] for n, v in relay_variants.items() if not n.endswith("noauth")),
+        # 2026-11-06 の判断で、上乗せの目安を 10 ms から 15 ms に緩めた。上乗せ以外の条件（サーバーが残る、重複 0、
+        # 防御、idle での停止）は変えない
+        "E10_relay": any(relay_ok(v, RELAY_LIMIT_MS) for n, v in relay_variants.items() if not n.endswith("noauth")),
         # Claude Code（CLI）はサーバーをジョブに入れず、DETACHED_PROCESS の孫はセッションの後も残る
         "E10_claude_code_keeps_detached": bool(claude_job["summary"]["detached_grandchild_survives_claude"]),
         "E9_onnx": onnx["passed"],
@@ -123,7 +132,8 @@ def main():
         "fusion_chosen": fusion["chosen"], "fusion_deep_best": deep["best"], "gates": gates, "overturned": [k for k, v in overturn.items() if v], "notes": notes,
         "decisions": {"date": "2026-11-06", "E7_reembed": "目安の 20 分を緩め、初回だけ時間がかかることを upgrade の案内に書く",
                       "E8_lexical": "案 2（Tantivy に wiki の bigram を登録する）を測ってから決める",
-                      "E10_relay": "上乗せをもう 1 回測る。その後、認証の書き方を変えて測る", "E10_spawn": "先に Claude Code がサーバーをジョブに入れるかを確かめる",
+                      "E10_relay": "上乗せをもう 1 回測る。その後、認証の書き方を変えて測る",
+                      "E10_relay_final": "上乗せの目安を 15 ms に緩める。応答は JSON、認証は ASGI のミドルウェアで書く", "E10_spawn": "先に Claude Code がサーバーをジョブに入れるかを確かめる",
                       "E8_lexical_final": "案 2: 語彙のエンジンを Tantivy にそろえ、wiki には bigram、rag には Sudachi のトークンを入れる"}})
 
 

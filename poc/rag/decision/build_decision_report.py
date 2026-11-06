@@ -185,7 +185,7 @@ def main():
         "E1_fusion_keep": ("E1", "融合が dense だけに負けない"), "E3_faiss_not_better_by_0_5": ("E3", "FAISS の最小点が usearch を 0.5 以上上回らない"),
         "E5_write_safe": ("E5", "usearch を Windows で安全に書き換えられる"), "E5_tantivy_with_retry": ("E5", "Tantivy の commit の失敗から文書を失わずに回復できる"),
         "E4_filter_ok": ("E4", "世代の絞り込みの増分 ≤ 20 ms"), "E6_memory_not_favoring_faiss": ("E6", "メモリの結果で FAISS に替える理由がない"),
-        "E10_relay": ("E10", "中継の上乗せ ≤ 10 ms、重複起動 0、防御が効く（3 通りのどれか）"),
+        "E10_relay": ("E10", "中継の上乗せ ≤ 15 ms（10 ms から緩めた）、重複起動 0、防御が効く"),
         "E10_claude_code_keeps_detached": ("E10", "Claude Code のセッションが終わっても、サーバーの起動した孫が残る"), "E9_onnx": ("E9", "公開版の ONNX で同じベクトルが出る"),
     }
     gate_rows = [[gate_names[k][0], e(gate_names[k][1]), ok_cell(v)] for k, v in gates.items()]
@@ -219,12 +219,12 @@ def main():
 </header>
 
 <section id="tldr" class="tldr">
-<h2>1. 要約: 閾値を外れた 3 点のうち 2 点は決まり、MCP の上乗せが残る</h2>
-<p>モデル（ruri-v3-130m の ONNX fp32）とベクトル索引（usearch HNSW f16）は、測定の結果でも変わらない。融合も残す。変えるのはパラメーターだけで、RRF を k={c["k"]}、語彙の重み {c["lexical_weight"]} にする。最初の測定では次の 3 点が計画の閾値を外れたので、計画の停止の規則に従って ADR-0011 と ADR-0012 を書く前で止めた。その後 {e(decisions["date"])} に、測り直しを含めて再埋め込みの目安と語彙検索を決めた。MCP の上乗せは、測り直しても目安を超えた。</p>
+<h2>1. 要約: 閾値を外れた 3 点を決め、ADR-0011 と ADR-0012 に残した</h2>
+<p>モデル（ruri-v3-130m の ONNX fp32）とベクトル索引（usearch HNSW f16）は、測定の結果でも変わらない。融合も残す。変えるのはパラメーターだけで、RRF を k={c["k"]}、語彙の重み {c["lexical_weight"]} にする。最初の測定では次の 3 点が計画の閾値を外れたので、計画の停止の規則に従って ADR-0011 と ADR-0012 を書く前で止めた。その後 {e(decisions["date"])} に、測り直しを含めて 3 点を決めた。決定は <a href="../adr/0011-shared-embedding-and-index-stack.md">ADR-0011</a>（技術の組）と <a href="../adr/0012-wiki-owns-local-mcp-index-server.md">ADR-0012</a>（wiki の MCP サーバー）に書いた。</p>
 <div class="verdict">
 <div class="card ok"><div class="k">語彙検索（E8）</div><div class="v">Tantivy にそろえると決めた</div><div class="small">Sudachi はセクションの MRR {ja_base["section"]["mrr"]:.3f} → {ja_sudachi["section"]["mrr"]:.3f} で落ちた。Tantivy に wiki の bigram を渡すと、指標は wiki の BM25 と同じ</div></div>
 <div class="card ok"><div class="k">wiki の初回の再埋め込み（E7）</div><div class="v">目安を緩めると決めた</div><div class="small">R-130、rag の長さのチャンク 8,275 件で約 {r130_natural * r130_ratio / 60:.0f} 分。目安は 20 分だった</div></div>
-<div class="card bad"><div class="k">MCP の上乗せ（E10）</div><div class="v">最良で {best_variant["overhead_relay_ms"]:.1f} ms</div><div class="small">認証なしでも {noauth["overhead_relay_ms"]:.1f} ms。目安は 10 ms。中継の 1 段は数 ms</div></div>
+<div class="card ok"><div class="k">MCP の上乗せ（E10）</div><div class="v">目安を 15 ms に緩めると決めた</div><div class="small">最良の構成で {best_variant["overhead_relay_ms"]:.1f} ms、認証なしでも {noauth["overhead_relay_ms"]:.1f} ms。最初の目安は 10 ms</div></div>
 <div class="card ok"><div class="k">変わらなかったもの</div><div class="v">モデル、索引、融合</div><div class="small">E9、E8（R-130）、E1、E3、E4、E5、E6</div></div>
 </div>
 <ul>
@@ -236,7 +236,7 @@ def main():
 </section>
 
 <section id="decide">
-<h2>2. 決めたことと、残る判断</h2>
+<h2>2. 決めたこと</h2>
 <div class="opt">
 <h3>再埋め込み: 目安の 20 分を緩める（決定）</h3>
 <p>{e(decisions["E7_reembed"])}。区間ごとの推定では、rag の長さのチャンク 8,275 件で {minutes(r130_natural)}、wiki の長さのセクションなら {minutes(r130_wiki_scaled)} だった。無作為の 1,000 行で測ると実測は推定の {r130_ratio:.2f} 倍だったので、rag の長さで約 {r130_natural * r130_ratio / 60:.0f} 分になる。wiki の長さの値にも同じ比を掛けると約 {r130_wiki_scaled * r130_ratio / 60:.0f} 分だが、この比は natural の行で測ったもので、wiki のセクションでは確かめていない。1 ページの更新は {r130["page_update"]["seconds"]:.2f} 秒で、目安の 5 秒に収まる。</p>
@@ -250,14 +250,13 @@ def main():
 </ul>
 </div>
 <div class="opt">
-<h3>MCP の上乗せ: 認証の書き方を変えても 10 ms を超えた</h3>
+<h3>MCP の上乗せ: 目安を 15 ms に緩める（決定）</h3>
 <p>同じ日に 5 通りで測った。ログを止めても上乗せはほとんど変わらず、応答を SSE から JSON にすると下がった。認証を starlette の BaseHTTPMiddleware から ASGI のミドルウェアに書き直すと {asgi["overhead_relay_ms"]:.1f} ms、認証を外しても {noauth["overhead_relay_ms"]:.1f} ms だった。認証の書き方は上乗せの原因ではなく、残りの約 {noauth["direct_http_p95_ms"] - noauth["function_p95_ms"]:.0f} ms は Python の MCP の SDK が HTTP で 1 回の呼び出しを処理する費用である。中継の 1 段は {asgi["relay_p95_ms"] - asgi["direct_http_p95_ms"]:.1f} ms だった。</p>
 {table(["構成", "関数 p95", "HTTP の MCP p95", "中継経由 p95", "上乗せ"], variant_rows, num=(1, 2, 3, 4))}
 <p class="small">「ログなし、JSON の応答」は認証の比較のときにもう 1 度測り、その値で上書きしている。認証なしの行は下限を見るためだけのもので、トークンなしの要求も通る。</p>
 <ul>
-<li>案 1（提案）: 目安を「中継の 1 段 ≤ 10 ms」と読み、合格とする。全体の上乗せ（約 {best_variant["overhead_relay_ms"]:.0f} ms）は Python の MCP の SDK の費用として記録に残す。応答は JSON にし、認証は ASGI のミドルウェアで書く。</li>
-<li>案 2: 中継とサーバーのあいだを MCP ではなく、軽い JSON の HTTP（内部の API）にする。外から見える MCP は stdio の中継だけになる。この構成は測っていない。</li>
-<li>案 3: 目安を 15 ms に緩める。</li>
+<li>決定: 目安を 15 ms に緩める。最良の構成（応答は JSON、認証は ASGI のミドルウェア）の {best_variant["overhead_relay_ms"]:.1f} ms で合格とする。</li>
+<li>採らなかった案: 目安を「中継の 1 段 ≤ 10 ms」と読む。中継とサーバーのあいだを MCP ではなく軽い JSON の HTTP にする（未測定）。</li>
 </ul>
 </div>
 <p class="small">E6 のメモリの提案値（wiki 規模 1.0 GiB、全量 2.5 GiB）は、モデルを読み込んだ構成ではどの索引でも超えた。FAISS も収まらないので索引の選択は変わらず、提案値のほうを見直す（§12）。</p>
