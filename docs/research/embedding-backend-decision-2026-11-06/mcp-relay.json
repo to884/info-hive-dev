@@ -1,0 +1,125 @@
+{
+  "env": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu_threads_limit": 4,
+    "logical_cpus": 16,
+    "packages": {
+      "numpy": "2.5.4",
+      "usearch": "2.26.6",
+      "faiss-cpu": null,
+      "tantivy": null,
+      "fastembed": null,
+      "onnxruntime": null,
+      "sqlite-vec": null,
+      "sudachipy": null,
+      "psutil": "7.2.2",
+      "mcp": "1.30.0"
+    },
+    "dev_commit": "4d6a826",
+    "wiki_commit": "e64765f",
+    "rag_commit": "26bebeb",
+    "poc_data": "C:\\Works\\info-hive-dev\\.rag-poc-data",
+    "gpu": {
+      "utilization_percent": 3,
+      "memory_used_mib": 3511
+    }
+  },
+  "purpose": "wiki の MCP サーバー（127.0.0.1 の streamable HTTP）と stdio の中継の試作",
+  "log_level": "INFO",
+  "json_response": false,
+  "function_p95_ms": 2.469134997227229,
+  "relay_cold": {
+    "initialize_seconds": 2.430961100006243,
+    "started_server": true,
+    "spawn_method": "wmi",
+    "server_pid": 27032,
+    "query_p95_ms": 21.50059498962946,
+    "query_median_ms": 18.582100005005486,
+    "index_chunks": {
+      "chunks": 1000,
+      "payload_bytes": 1482890,
+      "ms": 62.76870000874624,
+      "result": null
+    },
+    "relay_rss_bytes": 86839296,
+    "server_rss_bytes": 83697664
+  },
+  "relay_warm": {
+    "initialize_seconds": 1.2344656999921426,
+    "started_server": false,
+    "spawn_method": null,
+    "server_pid": 27032,
+    "query_p95_ms": 19.924955001624767,
+    "query_median_ms": 18.52915000927169,
+    "index_chunks": {
+      "chunks": 1000,
+      "payload_bytes": 1482890,
+      "ms": 58.455899998079985,
+      "result": null
+    },
+    "relay_rss_bytes": 75493376,
+    "server_rss_bytes": 84983808
+  },
+  "server_survived_relay_exit": true,
+  "direct_http": {
+    "query_p95_ms": 16.3023399974918,
+    "query_median_ms": 15.300700004445389,
+    "security": {
+      "no_token": 401,
+      "wrong_token": 401,
+      "spoofed_host": 421
+    }
+  },
+  "concurrent": [
+    {
+      "seconds": 11.881156599993119,
+      "started_server": false,
+      "server_pid": 41856,
+      "servers_seen": [
+        39272
+      ]
+    },
+    {
+      "seconds": 12.00556439999491,
+      "started_server": false,
+      "server_pid": 41856,
+      "servers_seen": [
+        39272
+      ]
+    },
+    {
+      "seconds": 11.817095299978973,
+      "started_server": true,
+      "server_pid": 41856,
+      "servers_seen": [
+        39272
+      ]
+    },
+    {
+      "seconds": 12.081433499988634,
+      "started_server": false,
+      "server_pid": 41856,
+      "servers_seen": [
+        39272
+      ]
+    }
+  ],
+  "concurrent_summary": {
+    "relays": 4,
+    "distinct_server_pids": 1,
+    "servers_started": 1,
+    "max_servers_seen": 1
+  },
+  "idle_shutdown": {
+    "idle_seconds": 20,
+    "servers_after_idle": 0
+  },
+  "overhead_p95_ms": {
+    "relay": 17.455820004397538,
+    "http": 13.83320500026457
+  },
+  "security_ok": true,
+  "passed": false,
+  "criterion": "中継が終わってもサーバーが残る、中継の上乗せの p95 ≤ 10 ms、同時に 4 つ起動してもサーバーは 1 つ、トークンと Host の確認が効く、idle で止まる"
+}

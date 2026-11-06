@@ -1,0 +1,228 @@
+{
+  "env": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu_threads_limit": 4,
+    "logical_cpus": 16,
+    "packages": {
+      "numpy": "2.5.4",
+      "usearch": "2.26.6",
+      "faiss-cpu": "1.15.1",
+      "tantivy": "0.27.0",
+      "fastembed": "0.8.0",
+      "onnxruntime": "1.31.1",
+      "sqlite-vec": "0.1.9",
+      "sudachipy": "0.7.0",
+      "psutil": "7.2.2",
+      "mcp": null
+    },
+    "dev_commit": "69fab02",
+    "wiki_commit": "e64765f",
+    "rag_commit": "26bebeb",
+    "poc_data": "C:\\Works\\info-hive-dev\\.rag-poc-data",
+    "gpu": {
+      "utilization_percent": 2,
+      "memory_used_mib": 2277
+    }
+  },
+  "purpose": "wiki 規模（8,275 セクション）の再埋め込みの時間と、1 ページの更新の時間",
+  "distribution": {
+    "natural_tokens": {
+      "count": 8275,
+      "p50": 465.0,
+      "p95": 683.0,
+      "max": 1101,
+      "buckets": {
+        "256": 2524,
+        "512": 2324,
+        "1024": 3426,
+        "2048": 1,
+        "4096": 0,
+        "1000000000": 0
+      }
+    },
+    "wiki_tokens": {
+      "count": 272,
+      "p50": 56.0,
+      "p95": 136.34999999999997,
+      "max": 579,
+      "buckets": {
+        "256": 269,
+        "512": 2,
+        "1024": 1,
+        "2048": 0,
+        "4096": 0,
+        "1000000000": 0
+      }
+    }
+  },
+  "sections_per_page_median": 5.0,
+  "results": [
+    {
+      "model": "R-130",
+      "runtime": "onnx-fp32",
+      "load_seconds": 3.353137700003572,
+      "buckets": [
+        {
+          "upper_tokens": 256,
+          "samples": 48,
+          "seconds_per_text_batch16": 0.1720211333328431,
+          "seconds_per_text_batch64": 0.18423156666661575
+        },
+        {
+          "upper_tokens": 512,
+          "samples": 48,
+          "seconds_per_text_batch16": 0.3892905666665077,
+          "seconds_per_text_batch64": 0.3931647687501633
+        },
+        {
+          "upper_tokens": 1024,
+          "samples": 48,
+          "seconds_per_text_batch16": 0.6024117645835455,
+          "seconds_per_text_batch64": 0.6558419499997399
+        },
+        {
+          "upper_tokens": 2048,
+          "samples": 1,
+          "seconds_per_text_batch16": 0.8628213999909349,
+          "seconds_per_text_batch64": 0.8487562999944203
+        },
+        {
+          "upper_tokens": 4096,
+          "samples": 0
+        },
+        {
+          "upper_tokens": 1000000000,
+          "samples": 0
+        }
+      ],
+      "best_batch": 16,
+      "estimate_natural_seconds": {
+        "16": 3403.6181443282776,
+        "64": 3626.478673841021
+      },
+      "estimate_wiki_sections_seconds": {
+        "16": 47.65467776445136,
+        "64": 51.00046292081971
+      },
+      "page_update": {
+        "sections": 5,
+        "seconds": 0.260332899983041
+      },
+      "peak_wset_bytes": 4071235584,
+      "status": "ok"
+    },
+    {
+      "model": "R-30",
+      "runtime": "onnx-fp32",
+      "load_seconds": 2.32921830000123,
+      "buckets": [
+        {
+          "upper_tokens": 256,
+          "samples": 48,
+          "seconds_per_text_batch16": 0.026960541666388355,
+          "seconds_per_text_batch64": 0.031157081250057672
+        },
+        {
+          "upper_tokens": 512,
+          "samples": 48,
+          "seconds_per_text_batch16": 0.06903630208338048,
+          "seconds_per_text_batch64": 0.07375833958334017
+        },
+        {
+          "upper_tokens": 1024,
+          "samples": 48,
+          "seconds_per_text_batch16": 0.11503666666673477,
+          "seconds_per_text_batch64": 0.1287458520831327
+        },
+        {
+          "upper_tokens": 2048,
+          "samples": 1,
+          "seconds_per_text_batch16": 0.16724879998946562,
+          "seconds_per_text_batch64": 0.1801644000224769
+        },
+        {
+          "upper_tokens": 4096,
+          "samples": 0
+        },
+        {
+          "upper_tokens": 1000000000,
+          "samples": 0
+        }
+      ],
+      "best_batch": 16,
+      "estimate_natural_seconds": {
+        "16": 622.7716420079632,
+        "64": 691.3183079036633
+      },
+      "estimate_wiki_sections_seconds": {
+        "16": 7.505494979091963,
+        "64": 8.657517387515327
+      },
+      "page_update": {
+        "sections": 5,
+        "seconds": 0.04431309999199584
+      },
+      "peak_wset_bytes": 2314944512,
+      "status": "ok"
+    },
+    {
+      "model": "E-s",
+      "runtime": "fastembed-fp16",
+      "load_seconds": 6.937281999998959,
+      "buckets": [
+        {
+          "upper_tokens": 256,
+          "samples": 48,
+          "seconds_per_text_batch16": 0.046468841666865046,
+          "seconds_per_text_batch64": 0.05408688124953187
+        },
+        {
+          "upper_tokens": 512,
+          "samples": 48,
+          "seconds_per_text_batch16": 0.13589681874994616,
+          "seconds_per_text_batch64": 0.16071051666646477
+        },
+        {
+          "upper_tokens": 1024,
+          "samples": 48,
+          "seconds_per_text_batch16": 0.1419408187496932,
+          "seconds_per_text_batch64": 0.15931201458382324
+        },
+        {
+          "upper_tokens": 2048,
+          "samples": 1,
+          "seconds_per_text_batch16": 0.10257519999868236,
+          "seconds_per_text_batch64": 0.09946580001269467
+        },
+        {
+          "upper_tokens": 4096,
+          "samples": 0
+        },
+        {
+          "upper_tokens": 1000000000,
+          "samples": 0
+        }
+      ],
+      "best_batch": 16,
+      "estimate_natural_seconds": {
+        "16": 919.5033833784898,
+        "64": 1055.9089567708736
+      },
+      "estimate_wiki_sections_seconds": {
+        "16": 12.913852864636283,
+        "64": 15.030104104040825
+      },
+      "page_update": {
+        "sections": 5,
+        "seconds": 0.07377169997198507
+      },
+      "peak_wset_bytes": 4609687552,
+      "status": "ok"
+    }
+  ],
+  "r130_initial_seconds": 3403.6181443282776,
+  "r130_page_update_seconds": 0.260332899983041,
+  "criterion": "初回 8,275 セクション ≤ 20 分、1 ページの更新 ≤ 5 秒（CPU 4 スレッド）",
+  "passed": false
+}

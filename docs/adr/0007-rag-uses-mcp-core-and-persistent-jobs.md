@@ -2,7 +2,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 承認 |
+| 状態 | 承認。モデルの保持と共有、埋め込みと索引更新の実行場所は ADR-0012 で置き換え済み |
 | 決定日 | 2026年11月3日 |
 | 決定者 | info-hive の開発者（このリポジトリの作者） |
 | 関連 | [実行方式の比較](../research/rag-execution-architecture/brainstorm-diverge-converge.md)、[日本語 PDF 向けローカル RAG の調査](../research/japanese-pdf-local-rag-options.md) |

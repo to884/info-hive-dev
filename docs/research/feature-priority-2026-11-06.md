@@ -70,6 +70,8 @@ wiki を 127.0.0.1 で待ち受ける MCP サーバーにするかどうかは�
 
 ### 2. 埋め込みとベクター DB の統一
 
+2026-11-06 に決めた。追加の測定（E1〜E11）を [統一の決定のための追加測定](embedding-backend-decision-2026-11-06.html) にまとめ、決定を [ADR-0011](../adr/0011-shared-embedding-and-index-stack.md)（埋め込み、索引、語彙検索の組）と [ADR-0012](../adr/0012-wiki-owns-local-mcp-index-server.md)（wiki の MCP サーバー）に残した。語彙検索は Sudachi への統一ではなく、Tantivy にそろえて wiki には bigram、rag には Sudachi のトークンを入れる形になった。以下は調査の時点の記述である。
+
 【記述】`docs/research/embedding-backend-unification-2026-11-05.html` は、wiki と rag の両方を ruri-v3-130m（ONNX、fp32）、usearch の HNSW（f16）、Tantivy にそろえる案を推している。
 
 | 指標（全量） | 推奨の組 | 今の rag | 今の wiki の組 |

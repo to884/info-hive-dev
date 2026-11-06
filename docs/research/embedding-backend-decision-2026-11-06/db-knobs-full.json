@@ -1,0 +1,661 @@
+{
+  "env": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu_threads_limit": 4,
+    "logical_cpus": 16,
+    "packages": {
+      "numpy": "2.5.4",
+      "usearch": "2.26.6",
+      "faiss-cpu": "1.15.1",
+      "tantivy": "0.27.0",
+      "fastembed": "0.8.0",
+      "onnxruntime": "1.31.1",
+      "sqlite-vec": "0.1.9",
+      "sudachipy": "0.7.0",
+      "psutil": "7.2.2",
+      "mcp": null
+    },
+    "dev_commit": "69fab02",
+    "wiki_commit": "e64765f",
+    "rag_commit": "26bebeb",
+    "poc_data": "C:\\Works\\info-hive-dev\\.rag-poc-data",
+    "gpu": {
+      "utilization_percent": 2,
+      "memory_used_mib": 2282
+    }
+  },
+  "purpose": "全量で usearch と FAISS IVF_SQ8 の構築時のつまみを変え、動作点を測り直す",
+  "target_dense_recall_vs_exact_at_30": 0.95,
+  "candidates_per_side": 200,
+  "lexical": "全量の Tantivy（IDF を BM25 にそろえる）を 1 度だけ測って使い回す",
+  "results": {
+    "usearch M16 ea128 (既存)": {
+      "operating_point": {
+        "knob": 2048,
+        "dense_p95_ms": 32.15685999166453,
+        "lexical_p95_ms": 16.83112501341384,
+        "db_p95_ms": 43.27898500923766,
+        "db_median_ms": 34.34334999474231,
+        "dense_recall_vs_exact_at_30": 0.9518518518518518,
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.37561525974074444
+      },
+      "target_reached": true,
+      "sweep": [
+        {
+          "knob": 256,
+          "dense_p95_ms": 8.28020500339335,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 21.972570003708825,
+          "db_median_ms": 14.292899999418296,
+          "dense_recall_vs_exact_at_30": 0.850462962962963,
+          "recall_at_30": 0.7916666666666666,
+          "ndcg_at_10": 0.3612749761335044
+        },
+        {
+          "knob": 512,
+          "dense_p95_ms": 10.069850004219916,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 24.867885009734895,
+          "db_median_ms": 16.579399976762943,
+          "dense_recall_vs_exact_at_30": 0.8972222222222224,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3636977200450578
+        },
+        {
+          "knob": 1024,
+          "dense_p95_ms": 17.501855015871115,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 30.782390001695603,
+          "db_median_ms": 22.366750024957582,
+          "dense_recall_vs_exact_at_30": 0.9143518518518517,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3720951103336899
+        },
+        {
+          "knob": 2048,
+          "dense_p95_ms": 32.15685999166453,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 43.27898500923766,
+          "db_median_ms": 34.34334999474231,
+          "dense_recall_vs_exact_at_30": 0.9518518518518518,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.37561525974074444
+        },
+        {
+          "knob": 3072,
+          "dense_p95_ms": 74.39733500359581,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 83.29504499270116,
+          "db_median_ms": 52.47140002029482,
+          "dense_recall_vs_exact_at_30": 0.9601851851851853,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.37313528957209335
+        },
+        {
+          "knob": 4096,
+          "dense_p95_ms": 64.51183998433409,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 72.38950498576743,
+          "db_median_ms": 56.905550009105355,
+          "dense_recall_vs_exact_at_30": 0.9662037037037037,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.37531745213161766
+        }
+      ],
+      "reproduction": {
+        "dense_p95_ms": 32.15685999166453,
+        "expected": 41.1,
+        "within_10_percent": false
+      },
+      "size": {
+        "vector_bytes": 893402852,
+        "lexical_bytes": 213185226
+      },
+      "path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\unification-20261105\\db\\full\\R-130\\usearch_HNSW_f16___Tantivy\\vectors.usearch",
+      "params": {
+        "connectivity": 16,
+        "expansion_add": 128
+      },
+      "build_seconds": 635.0
+    },
+    "usearch M16 ea256": {
+      "operating_point": {
+        "knob": 1024,
+        "dense_p95_ms": 21.01357499777805,
+        "lexical_p95_ms": 16.83112501341384,
+        "db_p95_ms": 33.969895004702266,
+        "db_median_ms": 25.46854999673087,
+        "dense_recall_vs_exact_at_30": 0.950925925925926,
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.3925663266388819
+      },
+      "target_reached": true,
+      "sweep": [
+        {
+          "knob": 256,
+          "dense_p95_ms": 9.286954994604457,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 23.550309988786466,
+          "db_median_ms": 15.145300014410168,
+          "dense_recall_vs_exact_at_30": 0.8731481481481481,
+          "recall_at_30": 0.7333333333333333,
+          "ndcg_at_10": 0.3666817861147636
+        },
+        {
+          "knob": 512,
+          "dense_p95_ms": 12.946599994029386,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 27.06642501289025,
+          "db_median_ms": 18.22905000881292,
+          "dense_recall_vs_exact_at_30": 0.9328703703703702,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3894625240344088
+        },
+        {
+          "knob": 1024,
+          "dense_p95_ms": 21.01357499777805,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 33.969895004702266,
+          "db_median_ms": 25.46854999673087,
+          "dense_recall_vs_exact_at_30": 0.950925925925926,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3925663266388819
+        },
+        {
+          "knob": 2048,
+          "dense_p95_ms": 37.875700010044966,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 48.22329000890022,
+          "db_median_ms": 38.4073999885004,
+          "dense_recall_vs_exact_at_30": 0.9699074074074076,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3939043134864121
+        },
+        {
+          "knob": 3072,
+          "dense_p95_ms": 51.86522999429144,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 62.28078001440736,
+          "db_median_ms": 51.1817000224255,
+          "dense_recall_vs_exact_at_30": 0.9828703703703704,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3939043134864121
+        },
+        {
+          "knob": 4096,
+          "dense_p95_ms": 68.82115499320207,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 79.08310996717773,
+          "db_median_ms": 62.975000008009374,
+          "dense_recall_vs_exact_at_30": 0.9888888888888889,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3939043134864121
+        }
+      ],
+      "build_seconds": 837.7905793999962,
+      "size": {
+        "vector_bytes": 893402852,
+        "lexical_bytes": 213185226
+      },
+      "path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\decision-20261106\\db-knobs\\usearch-M16-ea256.usearch",
+      "params": {
+        "connectivity": 16,
+        "expansion_add": 256
+      }
+    },
+    "usearch M32 ea128": {
+      "operating_point": {
+        "knob": 3072,
+        "dense_p95_ms": 50.24452499492327,
+        "lexical_p95_ms": 16.83112501341384,
+        "db_p95_ms": 61.28952500439482,
+        "db_median_ms": 47.94455000956077,
+        "dense_recall_vs_exact_at_30": 0.9611111111111111,
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.3803132322066499
+      },
+      "target_reached": true,
+      "sweep": [
+        {
+          "knob": 256,
+          "dense_p95_ms": 9.973000004538335,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 22.523329999239653,
+          "db_median_ms": 15.426849990035407,
+          "dense_recall_vs_exact_at_30": 0.7481481481481482,
+          "recall_at_30": 0.725,
+          "ndcg_at_10": 0.30659312550957646
+        },
+        {
+          "knob": 512,
+          "dense_p95_ms": 13.813515004585499,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 26.77115498081548,
+          "db_median_ms": 18.57324996672105,
+          "dense_recall_vs_exact_at_30": 0.8643518518518518,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.35087191925440653
+        },
+        {
+          "knob": 1024,
+          "dense_p95_ms": 23.509645006561186,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 35.393115018086974,
+          "db_median_ms": 24.814299977151677,
+          "dense_recall_vs_exact_at_30": 0.911111111111111,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3734769160606618
+        },
+        {
+          "knob": 2048,
+          "dense_p95_ms": 37.87318498943932,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 48.81037499872036,
+          "db_median_ms": 37.360249989433214,
+          "dense_recall_vs_exact_at_30": 0.9435185185185185,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.381157407918644
+        },
+        {
+          "knob": 3072,
+          "dense_p95_ms": 50.24452499492327,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 61.28952500439482,
+          "db_median_ms": 47.94455000956077,
+          "dense_recall_vs_exact_at_30": 0.9611111111111111,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3803132322066499
+        },
+        {
+          "knob": 4096,
+          "dense_p95_ms": 64.20303500490263,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 74.12497001059819,
+          "db_median_ms": 58.1046999868704,
+          "dense_recall_vs_exact_at_30": 0.9787037037037037,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3824953947661742
+        }
+      ],
+      "build_seconds": 451.8123516999767,
+      "size": {
+        "vector_bytes": 990722944,
+        "lexical_bytes": 213185226
+      },
+      "path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\decision-20261106\\db-knobs\\usearch-M32-ea128.usearch",
+      "params": {
+        "connectivity": 32,
+        "expansion_add": 128
+      }
+    },
+    "usearch M32 ea256": {
+      "operating_point": {
+        "knob": 2048,
+        "dense_p95_ms": 45.80859000561759,
+        "lexical_p95_ms": 16.83112501341384,
+        "db_p95_ms": 60.94062500342262,
+        "db_median_ms": 43.79379998135846,
+        "dense_recall_vs_exact_at_30": 0.9800925925925925,
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.3939043134864121
+      },
+      "target_reached": true,
+      "sweep": [
+        {
+          "knob": 256,
+          "dense_p95_ms": 11.862350012233946,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 25.239640017389323,
+          "db_median_ms": 17.112200017436408,
+          "dense_recall_vs_exact_at_30": 0.852314814814815,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.36933749739680455
+        },
+        {
+          "knob": 512,
+          "dense_p95_ms": 14.855244995851537,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 29.353889997582886,
+          "db_median_ms": 19.843949950882234,
+          "dense_recall_vs_exact_at_30": 0.9092592592592593,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3906179147331856
+        },
+        {
+          "knob": 1024,
+          "dense_p95_ms": 24.176945009094197,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 35.571040013746824,
+          "db_median_ms": 27.274749998468906,
+          "dense_recall_vs_exact_at_30": 0.924074074074074,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3925663266388819
+        },
+        {
+          "knob": 2048,
+          "dense_p95_ms": 45.80859000561759,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 60.94062500342262,
+          "db_median_ms": 43.79379998135846,
+          "dense_recall_vs_exact_at_30": 0.9800925925925925,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3939043134864121
+        },
+        {
+          "knob": 3072,
+          "dense_p95_ms": 64.946334992419,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 77.63501999725123,
+          "db_median_ms": 56.44269999174867,
+          "dense_recall_vs_exact_at_30": 0.9824074074074076,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3939043134864121
+        },
+        {
+          "knob": 4096,
+          "dense_p95_ms": 77.66847499733558,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 88.24621500680223,
+          "db_median_ms": 68.84389999322593,
+          "dense_recall_vs_exact_at_30": 0.9888888888888889,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3939043134864121
+        }
+      ],
+      "build_seconds": 918.5078967999725,
+      "size": {
+        "vector_bytes": 990722944,
+        "lexical_bytes": 213185226
+      },
+      "path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\decision-20261106\\db-knobs\\usearch-M32-ea256.usearch",
+      "params": {
+        "connectivity": 32,
+        "expansion_add": 256
+      }
+    },
+    "FAISS IVF_SQ8 nlist873": {
+      "operating_point": {
+        "knob": 128,
+        "dense_p95_ms": 54.00853500323137,
+        "lexical_p95_ms": 16.83112501341384,
+        "db_p95_ms": 68.90909000358079,
+        "db_median_ms": 55.755650013452396,
+        "dense_recall_vs_exact_at_30": 0.9523148148148147,
+        "recall_at_30": 0.7416666666666667,
+        "ndcg_at_10": 0.3824204641137595
+      },
+      "target_reached": true,
+      "sweep": [
+        {
+          "knob": 32,
+          "dense_p95_ms": 13.066779990913346,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 28.325109979778063,
+          "db_median_ms": 20.148899988271296,
+          "dense_recall_vs_exact_at_30": 0.8356481481481483,
+          "recall_at_30": 0.7083333333333334,
+          "ndcg_at_10": 0.340716383581288
+        },
+        {
+          "knob": 64,
+          "dense_p95_ms": 26.87962999334559,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 41.79279000527458,
+          "db_median_ms": 31.759899982716888,
+          "dense_recall_vs_exact_at_30": 0.9124999999999999,
+          "recall_at_30": 0.725,
+          "ndcg_at_10": 0.3500669940337983
+        },
+        {
+          "knob": 128,
+          "dense_p95_ms": 54.00853500323137,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 68.90909000358079,
+          "db_median_ms": 55.755650013452396,
+          "dense_recall_vs_exact_at_30": 0.9523148148148147,
+          "recall_at_30": 0.7416666666666667,
+          "ndcg_at_10": 0.3824204641137595
+        },
+        {
+          "knob": 192,
+          "dense_p95_ms": 82.72928999213036,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 97.45990500523476,
+          "db_median_ms": 79.18650000647176,
+          "dense_recall_vs_exact_at_30": 0.9722222222222222,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3891430041458346
+        },
+        {
+          "knob": 256,
+          "dense_p95_ms": 113.2677399989916,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 127.3500800030888,
+          "db_median_ms": 104.00469999876805,
+          "dense_recall_vs_exact_at_30": 0.9796296296296296,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3913251667053589
+        },
+        {
+          "knob": 384,
+          "dense_p95_ms": 175.23773501015967,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 190.24438501219265,
+          "db_median_ms": 158.5078500211239,
+          "dense_recall_vs_exact_at_30": 0.9856481481481482,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.4020550469202252
+        },
+        {
+          "knob": 512,
+          "dense_p95_ms": 236.96730500087142,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 252.41679499740712,
+          "db_median_ms": 213.75210001133382,
+          "dense_recall_vs_exact_at_30": 0.986574074074074,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.4020550469202252
+        }
+      ],
+      "build_seconds": 11.247930099983932,
+      "size": {
+        "vector_bytes": 404090333,
+        "lexical_bytes": 213185226
+      },
+      "path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\decision-20261106\\db-knobs\\faiss-ivfsq8-873.faiss",
+      "params": {
+        "nlist": 873
+      }
+    },
+    "FAISS IVF_SQ8 nlist2048": {
+      "operating_point": {
+        "knob": 256,
+        "dense_p95_ms": 47.57458498788765,
+        "lexical_p95_ms": 16.83112501341384,
+        "db_p95_ms": 63.284584996290505,
+        "db_median_ms": 52.930199992260896,
+        "dense_recall_vs_exact_at_30": 0.9657407407407407,
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.3905161106504682
+      },
+      "target_reached": true,
+      "sweep": [
+        {
+          "knob": 32,
+          "dense_p95_ms": 6.541765008296352,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 23.302810013410635,
+          "db_median_ms": 14.296249981271103,
+          "dense_recall_vs_exact_at_30": 0.8111111111111112,
+          "recall_at_30": 0.7333333333333333,
+          "ndcg_at_10": 0.35868662895344805
+        },
+        {
+          "knob": 64,
+          "dense_p95_ms": 13.730274999397807,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 29.898240003967658,
+          "db_median_ms": 20.314299981691875,
+          "dense_recall_vs_exact_at_30": 0.8851851851851852,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.39189918277100966
+        },
+        {
+          "knob": 128,
+          "dense_p95_ms": 24.11005000467412,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 40.7484050054336,
+          "db_median_ms": 31.07135000755079,
+          "dense_recall_vs_exact_at_30": 0.9263888888888889,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.38787918900454105
+        },
+        {
+          "knob": 192,
+          "dense_p95_ms": 35.48570998827927,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 51.42476998298662,
+          "db_median_ms": 41.92509999847971,
+          "dense_recall_vs_exact_at_30": 0.9462962962962962,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3887214084374656
+        },
+        {
+          "knob": 256,
+          "dense_p95_ms": 47.57458498788765,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 63.284584996290505,
+          "db_median_ms": 52.930199992260896,
+          "dense_recall_vs_exact_at_30": 0.9657407407407407,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3905161106504682
+        },
+        {
+          "knob": 384,
+          "dense_p95_ms": 70.1429549822933,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 85.48027000069851,
+          "db_median_ms": 74.59215002018027,
+          "dense_recall_vs_exact_at_30": 0.9745370370370369,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.39028235999664024
+        },
+        {
+          "knob": 512,
+          "dense_p95_ms": 93.90607499954058,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 109.58331500005443,
+          "db_median_ms": 96.7168000061065,
+          "dense_recall_vs_exact_at_30": 0.977314814814815,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.39486106943769755
+        }
+      ],
+      "build_seconds": 46.46376810001675,
+      "size": {
+        "vector_bytes": 406506133,
+        "lexical_bytes": 213185226
+      },
+      "path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\decision-20261106\\db-knobs\\faiss-ivfsq8-2048.faiss",
+      "params": {
+        "nlist": 2048
+      }
+    },
+    "FAISS IVF_SQ8 nlist4096": {
+      "operating_point": {
+        "knob": 384,
+        "dense_p95_ms": 36.743735017080326,
+        "lexical_p95_ms": 16.83112501341384,
+        "db_p95_ms": 52.87056999950437,
+        "db_median_ms": 41.809700007434,
+        "dense_recall_vs_exact_at_30": 0.9560185185185186,
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.3982896685032783
+      },
+      "target_reached": true,
+      "sweep": [
+        {
+          "knob": 32,
+          "dense_p95_ms": 4.01380500261439,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 20.809910025855064,
+          "db_median_ms": 12.14265002636239,
+          "dense_recall_vs_exact_at_30": 0.787962962962963,
+          "recall_at_30": 0.7166666666666667,
+          "ndcg_at_10": 0.32210067902959505
+        },
+        {
+          "knob": 64,
+          "dense_p95_ms": 7.520500000100583,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 23.83656001329655,
+          "db_median_ms": 14.955400009057485,
+          "dense_recall_vs_exact_at_30": 0.861574074074074,
+          "recall_at_30": 0.775,
+          "ndcg_at_10": 0.36804137872536574
+        },
+        {
+          "knob": 128,
+          "dense_p95_ms": 13.614895005594008,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 30.35736001911573,
+          "db_median_ms": 20.292449989938177,
+          "dense_recall_vs_exact_at_30": 0.9166666666666666,
+          "recall_at_30": 0.775,
+          "ndcg_at_10": 0.39644092132030606
+        },
+        {
+          "knob": 192,
+          "dense_p95_ms": 19.110075001663063,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 35.930735009605996,
+          "db_median_ms": 25.61045001493767,
+          "dense_recall_vs_exact_at_30": 0.935648148148148,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.40114824584862574
+        },
+        {
+          "knob": 256,
+          "dense_p95_ms": 24.874735008052085,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 41.31113501498476,
+          "db_median_ms": 30.95059999031946,
+          "dense_recall_vs_exact_at_30": 0.9444444444444444,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.39902006435059245
+        },
+        {
+          "knob": 384,
+          "dense_p95_ms": 36.743735017080326,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 52.87056999950437,
+          "db_median_ms": 41.809700007434,
+          "dense_recall_vs_exact_at_30": 0.9560185185185186,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3982896685032783
+        },
+        {
+          "knob": 512,
+          "dense_p95_ms": 49.87121500307694,
+          "lexical_p95_ms": 16.83112501341384,
+          "db_p95_ms": 65.53006500325864,
+          "db_median_ms": 53.83114998403471,
+          "dense_recall_vs_exact_at_30": 0.9662037037037039,
+          "recall_at_30": 0.7583333333333333,
+          "ndcg_at_10": 0.3932938884282459
+        }
+      ],
+      "build_seconds": 125.77399770001648,
+      "size": {
+        "vector_bytes": 410716821,
+        "lexical_bytes": 213185226
+      },
+      "path": "C:\\Works\\info-hive-dev\\.rag-poc-data\\decision-20261106\\db-knobs\\faiss-ivfsq8-4096.faiss",
+      "params": {
+        "nlist": 4096
+      }
+    }
+  }
+}

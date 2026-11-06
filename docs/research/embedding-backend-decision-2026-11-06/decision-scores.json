@@ -1,0 +1,384 @@
+{
+  "env": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu_threads_limit": 4,
+    "logical_cpus": 16,
+    "packages": {
+      "numpy": "2.5.4",
+      "usearch": "2.26.6",
+      "faiss-cpu": "1.15.1",
+      "tantivy": "0.27.0",
+      "fastembed": "0.8.0",
+      "onnxruntime": "1.31.1",
+      "sqlite-vec": "0.1.9",
+      "sudachipy": "0.7.0",
+      "psutil": "7.2.2",
+      "mcp": null
+    },
+    "dev_commit": "fd2c8c5",
+    "wiki_commit": "e64765f",
+    "rag_commit": "26bebeb",
+    "poc_data": "C:\\Works\\info-hive-dev\\.rag-poc-data",
+    "gpu": {
+      "utilization_percent": 4,
+      "memory_used_mib": 4131
+    }
+  },
+  "purpose": "E1〜E10 をまとめた最終の採点と、推奨が覆る条件の判定",
+  "query_embedding": {
+    "model": "R-130 onnx-fp32",
+    "p95_ms": 48.314695004955865,
+    "median_ms": 25.741300007211976,
+    "note": "ほかの仕事がない状態で 72 問"
+  },
+  "rows": [
+    {
+      "key": "usearch M16 ea128 (既存)",
+      "rows": 761915,
+      "speed_ms": 91.59368001419352,
+      "db_p95_ms": 43.27898500923766,
+      "filter_ms": 0.0,
+      "size_bytes": 1106588078,
+      "accuracy": 0.7583333333333333,
+      "ndcg_at_10": 0.37561525974074444,
+      "knob": 2048,
+      "dense_recall_vs_exact_at_30": 0.9518518518518518,
+      "target_reached": true,
+      "build_seconds": 635.0,
+      "ratio_score": {
+        "speed": 9.0,
+        "size": 5.6
+      },
+      "size_limit_bytes": 32212254720.0,
+      "score": {
+        "speed": 9.7,
+        "size": 9.0,
+        "accuracy": 10.0,
+        "minimum": 9.0
+      },
+      "all_high": true
+    },
+    {
+      "key": "usearch M16 ea256",
+      "rows": 761915,
+      "speed_ms": 82.28459000965813,
+      "db_p95_ms": 33.969895004702266,
+      "filter_ms": 0.0,
+      "size_bytes": 1106588078,
+      "accuracy": 0.7583333333333333,
+      "ndcg_at_10": 0.3925663266388819,
+      "knob": 1024,
+      "dense_recall_vs_exact_at_30": 0.950925925925926,
+      "target_reached": true,
+      "build_seconds": 837.7905793999962,
+      "ratio_score": {
+        "speed": 10.0,
+        "size": 5.6
+      },
+      "size_limit_bytes": 32212254720.0,
+      "score": {
+        "speed": 10.0,
+        "size": 9.0,
+        "accuracy": 10.0,
+        "minimum": 9.0
+      },
+      "all_high": true
+    },
+    {
+      "key": "usearch M32 ea128",
+      "rows": 761915,
+      "speed_ms": 109.60422000935068,
+      "db_p95_ms": 61.28952500439482,
+      "filter_ms": 0.0,
+      "size_bytes": 1203908170,
+      "accuracy": 0.7583333333333333,
+      "ndcg_at_10": 0.3803132322066499,
+      "knob": 3072,
+      "dense_recall_vs_exact_at_30": 0.9611111111111111,
+      "target_reached": true,
+      "build_seconds": 451.8123516999767,
+      "ratio_score": {
+        "speed": 7.5,
+        "size": 5.1
+      },
+      "size_limit_bytes": 32212254720.0,
+      "score": {
+        "speed": 9.2,
+        "size": 8.8,
+        "accuracy": 10.0,
+        "minimum": 8.8
+      },
+      "all_high": true
+    },
+    {
+      "key": "usearch M32 ea256",
+      "rows": 761915,
+      "speed_ms": 109.25532000837848,
+      "db_p95_ms": 60.94062500342262,
+      "filter_ms": 0.0,
+      "size_bytes": 1203908170,
+      "accuracy": 0.7583333333333333,
+      "ndcg_at_10": 0.3939043134864121,
+      "knob": 2048,
+      "dense_recall_vs_exact_at_30": 0.9800925925925925,
+      "target_reached": true,
+      "build_seconds": 918.5078967999725,
+      "ratio_score": {
+        "speed": 7.5,
+        "size": 5.1
+      },
+      "size_limit_bytes": 32212254720.0,
+      "score": {
+        "speed": 9.2,
+        "size": 8.8,
+        "accuracy": 10.0,
+        "minimum": 8.8
+      },
+      "all_high": true
+    },
+    {
+      "key": "FAISS IVF_SQ8 nlist873",
+      "rows": 761915,
+      "speed_ms": 117.22378500853665,
+      "db_p95_ms": 68.90909000358079,
+      "filter_ms": 0.0,
+      "size_bytes": 617275559,
+      "accuracy": 0.7416666666666667,
+      "ndcg_at_10": 0.3824204641137595,
+      "knob": 128,
+      "dense_recall_vs_exact_at_30": 0.9523148148148147,
+      "target_reached": true,
+      "build_seconds": 11.247930099983932,
+      "ratio_score": {
+        "speed": 7.0,
+        "size": 10.0
+      },
+      "size_limit_bytes": 32212254720.0,
+      "score": {
+        "speed": 9.0,
+        "size": 10.0,
+        "accuracy": 8.6,
+        "minimum": 8.6
+      },
+      "all_high": true
+    },
+    {
+      "key": "FAISS IVF_SQ8 nlist2048",
+      "rows": 761915,
+      "speed_ms": 111.59928000124637,
+      "db_p95_ms": 63.284584996290505,
+      "filter_ms": 0.0,
+      "size_bytes": 619691359,
+      "accuracy": 0.7583333333333333,
+      "ndcg_at_10": 0.3905161106504682,
+      "knob": 256,
+      "dense_recall_vs_exact_at_30": 0.9657407407407407,
+      "target_reached": true,
+      "build_seconds": 46.46376810001675,
+      "ratio_score": {
+        "speed": 7.4,
+        "size": 10.0
+      },
+      "size_limit_bytes": 32212254720.0,
+      "score": {
+        "speed": 9.1,
+        "size": 10.0,
+        "accuracy": 10.0,
+        "minimum": 9.1
+      },
+      "all_high": true
+    },
+    {
+      "key": "FAISS IVF_SQ8 nlist4096",
+      "rows": 761915,
+      "speed_ms": 101.18526500446023,
+      "db_p95_ms": 52.87056999950437,
+      "filter_ms": 0.0,
+      "size_bytes": 623902047,
+      "accuracy": 0.7583333333333333,
+      "ndcg_at_10": 0.3982896685032783,
+      "knob": 384,
+      "dense_recall_vs_exact_at_30": 0.9560185185185186,
+      "target_reached": true,
+      "build_seconds": 125.77399770001648,
+      "ratio_score": {
+        "speed": 8.1,
+        "size": 9.9
+      },
+      "size_limit_bytes": 32212254720.0,
+      "score": {
+        "speed": 9.4,
+        "size": 10.0,
+        "accuracy": 10.0,
+        "minimum": 9.4
+      },
+      "all_high": true
+    },
+    {
+      "key": "LanceDB IVF_SQ（現行 rag、統一の測定）",
+      "rows": 761915,
+      "speed_ms": 291.86878999171324,
+      "db_p95_ms": 243.55409498675735,
+      "filter_ms": 0.0,
+      "size_bytes": 3911313875,
+      "accuracy": 0.725,
+      "ndcg_at_10": 0.33774545862223765,
+      "knob": 128,
+      "dense_recall_vs_exact_at_30": 0.9546296296296296,
+      "target_reached": true,
+      "build_seconds": 135.8331879000034,
+      "note": "世代の絞り込みは native（費用を含む）",
+      "ratio_score": {
+        "speed": 2.8,
+        "size": 1.6
+      },
+      "size_limit_bytes": 32212254720.0,
+      "score": {
+        "speed": 6.5,
+        "size": 6.7,
+        "accuracy": 7.2,
+        "minimum": 6.5
+      },
+      "all_high": false
+    }
+  ],
+  "best_usearch": "usearch M16 ea256",
+  "best_faiss": "FAISS IVF_SQ8 nlist4096",
+  "fusion_chosen": {
+    "k": 30,
+    "lexical_weight": 0.5,
+    "candidates": 200
+  },
+  "fusion_deep_best": {
+    "candidates": 800,
+    "fusion": "minmax_a0.6",
+    "recall_at_30": 0.8083333333333333,
+    "ndcg_at_10": 0.4403796157818958,
+    "db_p95_ms": 46.2166250043083,
+    "wins": 3,
+    "losses": 0
+  },
+  "gates": {
+    "E8_wiki_gate_r130": true,
+    "E8_calibration_separable": true,
+    "E8_sudachi": false,
+    "E8_tantivy_bigram": true,
+    "E7_reembed": false,
+    "E1_fusion_keep": true,
+    "E3_faiss_not_better_by_0_5": true,
+    "E5_write_safe": true,
+    "E5_tantivy_with_retry": true,
+    "E4_filter_ok": true,
+    "E6_memory_not_favoring_faiss": true,
+    "E10_relay": true,
+    "E10_claude_code_keeps_detached": true,
+    "E9_onnx": true
+  },
+  "overturned": [
+    "E8_sudachi",
+    "E7_reembed"
+  ],
+  "notes": {
+    "E6": {
+      "limits_private_gib": {
+        "wiki": 1.0,
+        "full": 2.5
+      },
+      "with_model": {
+        "wiki/usearch-view": {
+          "private_gib": 2.5316848754882812,
+          "within_limit": false
+        },
+        "wiki/usearch-load": {
+          "private_gib": 2.563800811767578,
+          "within_limit": false
+        },
+        "wiki/faiss": {
+          "private_gib": 2.924907684326172,
+          "within_limit": false
+        },
+        "full/usearch-view": {
+          "private_gib": 2.5566368103027344,
+          "within_limit": false
+        },
+        "full/usearch-load": {
+          "private_gib": 3.7920761108398438,
+          "within_limit": false
+        },
+        "full/faiss": {
+          "private_gib": 3.2720985412597656,
+          "within_limit": false
+        }
+      },
+      "summary": "モデルありの構成はどの索引でも提案値を超えた。FAISS も収まらないので索引の選択は変わらない。提案値を見直す"
+    },
+    "E10": {
+      "overhead_parts_ms": {
+        "function_p95_ms": 2.469134997227229,
+        "direct_http_p95_ms": 16.3023399974918,
+        "relay_p95_ms": 19.924955001624767,
+        "relay_hop_ms": 3.6226150041329674,
+        "http_mcp_ms": 13.83320500026457
+      },
+      "server_survived_relay_exit": true,
+      "variants": {
+        "mcp-relay": {
+          "log_level": "INFO",
+          "json_response": false,
+          "auth": "starlette",
+          "function_p95_ms": 2.469134997227229,
+          "direct_http_p95_ms": 16.3023399974918,
+          "relay_p95_ms": 19.924955001624767,
+          "overhead_relay_ms": 17.455820004397538
+        },
+        "mcp-relay-quiet": {
+          "log_level": "WARNING",
+          "json_response": false,
+          "auth": "starlette",
+          "function_p95_ms": 2.33231999882264,
+          "direct_http_p95_ms": 16.01816499605775,
+          "relay_p95_ms": 19.327639990660828,
+          "overhead_relay_ms": 16.995319991838187
+        },
+        "mcp-relay-quiet-json": {
+          "log_level": "WARNING",
+          "json_response": true,
+          "auth": "starlette",
+          "function_p95_ms": 2.361749985720962,
+          "direct_http_p95_ms": 11.902754998300225,
+          "relay_p95_ms": 16.03782501479145,
+          "overhead_relay_ms": 13.676075029070489
+        },
+        "mcp-relay-quiet-json-asgi": {
+          "log_level": "WARNING",
+          "json_response": true,
+          "auth": "asgi",
+          "function_p95_ms": 2.331679999770131,
+          "direct_http_p95_ms": 12.11830000684131,
+          "relay_p95_ms": 15.112699996097945,
+          "overhead_relay_ms": 12.781019996327814
+        },
+        "mcp-relay-quiet-json-noauth": {
+          "log_level": "WARNING",
+          "json_response": true,
+          "auth": "none",
+          "function_p95_ms": 2.4613250134279947,
+          "direct_http_p95_ms": 11.586824987898579,
+          "relay_p95_ms": 15.039445016009267,
+          "overhead_relay_ms": 12.578120002581272
+        }
+      },
+      "summary": "中継の 1 段は数 ms で、上乗せの大半は HTTP 上の MCP（JSON と uvicorn）にある"
+    }
+  },
+  "decisions": {
+    "date": "2026-11-06",
+    "E7_reembed": "目安の 20 分を緩め、初回だけ時間がかかることを upgrade の案内に書く",
+    "E8_lexical": "案 2（Tantivy に wiki の bigram を登録する）を測ってから決める",
+    "E10_relay": "上乗せをもう 1 回測る。その後、認証の書き方を変えて測る",
+    "E10_relay_final": "上乗せの目安を 15 ms に緩める。応答は JSON、認証は ASGI のミドルウェアで書く",
+    "E10_spawn": "先に Claude Code がサーバーをジョブに入れるかを確かめる",
+    "E8_lexical_final": "案 2: 語彙のエンジンを Tantivy にそろえ、wiki には bigram、rag には Sudachi のトークンを入れる"
+  }
+}

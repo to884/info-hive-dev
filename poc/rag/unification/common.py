@@ -11,10 +11,13 @@ import unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-WORK = ROOT / ".rag-poc-data/unification-20261105"
-FULL = ROOT / ".rag-poc-data/full-20261104"
-NATURAL = ROOT / ".rag-poc-data/natural-20261104"
-MODEL_CACHE = ROOT / ".rag-poc-data/model-cache"
+# 測定データは Git の管理外にある。作業ツリー（.claude/worktrees/...）から動かすときは、
+# INFO_HIVE_POC_DATA でメインのチェックアウトの .rag-poc-data を指す。出力先（OUT）は ROOT のまま。
+POC_DATA = Path(os.environ.get("INFO_HIVE_POC_DATA", ROOT / ".rag-poc-data"))
+WORK = POC_DATA / "unification-20261105"
+FULL = POC_DATA / "full-20261104"
+NATURAL = POC_DATA / "natural-20261104"
+MODEL_CACHE = POC_DATA / "model-cache"
 OUT = ROOT / "docs/research/embedding-backend-unification-2026-11-05"
 SUBSET_ROWS = 100_000
 THREADS = 4

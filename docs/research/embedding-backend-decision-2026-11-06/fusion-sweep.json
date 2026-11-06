@@ -1,0 +1,4443 @@
+{
+  "env": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu_threads_limit": 4,
+    "logical_cpus": 16,
+    "packages": {
+      "numpy": "2.5.4",
+      "usearch": "2.26.6",
+      "faiss-cpu": "1.15.1",
+      "tantivy": "0.27.0",
+      "fastembed": "0.8.0",
+      "onnxruntime": "1.31.1",
+      "sqlite-vec": "0.1.9",
+      "sudachipy": "0.7.0",
+      "psutil": "7.2.2",
+      "mcp": null
+    },
+    "dev_commit": "69fab02",
+    "wiki_commit": "e64765f",
+    "rag_commit": "26bebeb",
+    "poc_data": "C:\\Works\\info-hive-dev\\.rag-poc-data",
+    "gpu": {
+      "utilization_percent": 2,
+      "memory_used_mib": 2367
+    }
+  },
+  "purpose": "融合の k、語彙の重み、候補数の掃引（保存済みの順位）",
+  "grid": {
+    "k": [
+      10,
+      20,
+      30,
+      60,
+      100,
+      200
+    ],
+    "lexical_weight": [
+      0.0,
+      0.25,
+      0.5,
+      0.75,
+      1.0,
+      1.5,
+      2.0
+    ],
+    "candidates": [
+      30,
+      50,
+      100,
+      200
+    ]
+  },
+  "base": {
+    "k": 60,
+    "lexical_weight": 1.0,
+    "candidates": 200
+  },
+  "reproduction": {
+    "natural-pdf": {
+      "fused": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.6288127546149831
+      },
+      "dense_only": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "lexical_only": {
+        "recall_at_30": 0.5166666666666667,
+        "ndcg_at_10": 0.38011409714824557
+      },
+      "questions": 60
+    },
+    "natural-wiki": {
+      "fused": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8893632655661222
+      },
+      "dense_only": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "lexical_only": {
+        "recall_at_30": 0.9219858156028368,
+        "ndcg_at_10": 0.830544779374088
+      },
+      "questions": 47
+    },
+    "full-usearch": {
+      "fused": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.37561525974074444
+      },
+      "dense_only": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "lexical_only": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.2437833424620482
+      },
+      "questions": 60
+    },
+    "full-sqlite-vec f32": {
+      "fused": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.3939043134864121
+      },
+      "dense_only": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "lexical_only": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.23428299135522962
+      },
+      "questions": 60
+    },
+    "full-FAISS IVF_SQ8": {
+      "fused": {
+        "recall_at_30": 0.7416666666666667,
+        "ndcg_at_10": 0.3861920372059415
+      },
+      "dense_only": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      },
+      "lexical_only": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.2378139830953824
+      },
+      "questions": 60
+    }
+  },
+  "best_on_natural": {
+    "k": 30,
+    "lexical_weight": 0.5,
+    "candidates": 200
+  },
+  "best_row": {
+    "k": 30,
+    "lexical_weight": 0.5,
+    "candidates": 200,
+    "natural-pdf": {
+      "recall_at_30": 0.9333333333333333,
+      "ndcg_at_10": 0.6881571190210364
+    },
+    "natural-wiki": {
+      "recall_at_30": 1.0,
+      "ndcg_at_10": 0.9090645804856701
+    },
+    "full-usearch": {
+      "recall_at_30": 0.8,
+      "ndcg_at_10": 0.42923586516158174
+    },
+    "full-sqlite-vec f32": {
+      "recall_at_30": 0.8166666666666667,
+      "ndcg_at_10": 0.45135794400273743
+    },
+    "full-FAISS IVF_SQ8": {
+      "recall_at_30": 0.7833333333333333,
+      "ndcg_at_10": 0.43651045461501836
+    }
+  },
+  "base_row": {
+    "k": 60,
+    "lexical_weight": 1.0,
+    "candidates": 200,
+    "natural-pdf": {
+      "recall_at_30": 0.875,
+      "ndcg_at_10": 0.6288127546149831
+    },
+    "natural-wiki": {
+      "recall_at_30": 1.0,
+      "ndcg_at_10": 0.8893632655661222
+    },
+    "full-usearch": {
+      "recall_at_30": 0.7583333333333333,
+      "ndcg_at_10": 0.37561525974074444
+    },
+    "full-sqlite-vec f32": {
+      "recall_at_30": 0.7583333333333333,
+      "ndcg_at_10": 0.3939043134864121
+    },
+    "full-FAISS IVF_SQ8": {
+      "recall_at_30": 0.7416666666666667,
+      "ndcg_at_10": 0.3861920372059415
+    }
+  },
+  "verdict": {
+    "natural-pdf": {
+      "delta_recall": 0.05833333333333335,
+      "delta_ndcg": 0.059344364406053285,
+      "one_question": 0.016666666666666666,
+      "worse_than_one_question": false,
+      "wins": 4,
+      "losses": 1
+    },
+    "natural-wiki": {
+      "delta_recall": 0.0,
+      "delta_ndcg": 0.019701314919547852,
+      "one_question": 0.02127659574468085,
+      "worse_than_one_question": false,
+      "wins": 0,
+      "losses": 0
+    },
+    "full-usearch": {
+      "delta_recall": 0.04166666666666674,
+      "delta_ndcg": 0.0536206054208373,
+      "one_question": 0.016666666666666666,
+      "worse_than_one_question": false,
+      "wins": 6,
+      "losses": 3
+    },
+    "full-sqlite-vec f32": {
+      "delta_recall": 0.05833333333333335,
+      "delta_ndcg": 0.05745363051632535,
+      "one_question": 0.016666666666666666,
+      "worse_than_one_question": false,
+      "wins": 6,
+      "losses": 2
+    },
+    "full-FAISS IVF_SQ8": {
+      "delta_recall": 0.04166666666666663,
+      "delta_ndcg": 0.05031841740907689,
+      "one_question": 0.016666666666666666,
+      "worse_than_one_question": false,
+      "wins": 6,
+      "losses": 3
+    }
+  },
+  "adopt": true,
+  "chosen": {
+    "k": 30,
+    "lexical_weight": 0.5,
+    "candidates": 200
+  },
+  "dense_beats_fusion_everywhere": false,
+  "sweep": [
+    {
+      "k": 10,
+      "lexical_weight": 0.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.25,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6890935119432614
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9128383819726589
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.42883802314969405
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.45661580092747184
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.44255678369568596
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.25,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6947968425536822
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9166094306276387
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.42895092286007913
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.45672870063785687
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.44266968340607105
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.25,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6947968425536822
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9166094306276387
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.427673258661377
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4554510364391548
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4403652473466214
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.25,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9166666666666666,
+        "ndcg_at_10": 0.6947968425536822
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9166094306276387
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.427673258661377
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4554510364391548
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4403652473466214
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.5,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8666666666666667,
+        "ndcg_at_10": 0.6926527386175708
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.911209290195162
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4187610493898441
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.44653882716762183
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4372699284154203
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.5,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8666666666666667,
+        "ndcg_at_10": 0.6875218202464204
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.915856256935974
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.41899438748904466
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.44677216526682245
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.43750326651462085
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.5,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.8833333333333333,
+        "ndcg_at_10": 0.694741192587206
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.915856256935974
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4236295346948225
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4514073124726003
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4423378332095003
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.5,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6997583591816058
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.915856256935974
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4236295346948225
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4514073124726003
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4423378332095003
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.75,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.6885340334262993
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9222112919927818
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.420402153725045
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.445544346957049
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.4362071504486084
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.75,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.6817012718352741
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9223126800081319
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.41719251475862895
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.44233470799063296
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4331089886360949
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.75,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.6922998729195086
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9223126800081319
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.42335758102041593
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4484997742524199
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4378646205451961
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 0.75,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.6929789114248801
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9223126800081319
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.42278276372967516
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.44792495696167917
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4378365982166231
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 1.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6380885600890571
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9180058611365813
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.39342021457843024
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.4184202145784302
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.41384956699917425
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 1.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6363151284757493
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9180058611365813
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.38710165820784753
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.4121016582078475
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.40402922281696335
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 1.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6512953999974974
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9180058611365813
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.3931772307145691
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4120260599407601
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.40401085080697346
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 1.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6570429624392113
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9180058611365813
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.39344701599512283
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4122958452213138
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.40401085080697346
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 1.5,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.542040043484374
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8889829628780991
+      },
+      "full-usearch": {
+        "recall_at_30": 0.725,
+        "ndcg_at_10": 0.3258645188618387
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.725,
+        "ndcg_at_10": 0.32965263091500246
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7166666666666667,
+        "ndcg_at_10": 0.32853763686704596
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 1.5,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.5448178212621518
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8886758377478492
+      },
+      "full-usearch": {
+        "recall_at_30": 0.725,
+        "ndcg_at_10": 0.32910983425740054
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.725,
+        "ndcg_at_10": 0.3330108460209494
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7166666666666667,
+        "ndcg_at_10": 0.33066050853789525
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 1.5,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.556161836195842
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8886758377478492
+      },
+      "full-usearch": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.3474541319283212
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.3464801703294743
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7333333333333333,
+        "ndcg_at_10": 0.34874816046261675
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 1.5,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.85,
+        "ndcg_at_10": 0.5573516350366555
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8886758377478492
+      },
+      "full-usearch": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.3452305396625679
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.3420744155041967
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7333333333333333,
+        "ndcg_at_10": 0.3443424056373392
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 2.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8333333333333334,
+        "ndcg_at_10": 0.4565960677139491
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8589198249320235
+      },
+      "full-usearch": {
+        "recall_at_30": 0.6694444444444444,
+        "ndcg_at_10": 0.30258620866086666
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.6861111111111111,
+        "ndcg_at_10": 0.29531936386224594
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.6944444444444444,
+        "ndcg_at_10": 0.2993813319606114
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 2.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8333333333333334,
+        "ndcg_at_10": 0.4625328541657495
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8598241967152179
+      },
+      "full-usearch": {
+        "recall_at_30": 0.675,
+        "ndcg_at_10": 0.3056868345264487
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.6916666666666667,
+        "ndcg_at_10": 0.29841998972782796
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7,
+        "ndcg_at_10": 0.2985286626133718
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 2.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.8333333333333334,
+        "ndcg_at_10": 0.47632934970932594
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8598241967152179
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7,
+        "ndcg_at_10": 0.3018902143891754
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7166666666666667,
+        "ndcg_at_10": 0.2943827882385256
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.6916666666666667,
+        "ndcg_at_10": 0.2947320424760985
+      }
+    },
+    {
+      "k": 10,
+      "lexical_weight": 2.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.8333333333333334,
+        "ndcg_at_10": 0.48650323288107805
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8598241967152179
+      },
+      "full-usearch": {
+        "recall_at_30": 0.6666666666666666,
+        "ndcg_at_10": 0.3069073809835751
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.6833333333333333,
+        "ndcg_at_10": 0.29939995483292525
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.6833333333333333,
+        "ndcg_at_10": 0.2997492090704982
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.25,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6887644737284592
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9098182406720805
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4228832219314833
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.45047839980974086
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4367737733408629
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.25,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6884513024626069
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9098182406720805
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4235082974744875
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.45110347535274503
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4373988488838671
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.25,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6978393597143503
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9019656822374307
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.424481088273744
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4520762661520016
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4383716396831236
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.25,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6978393597143503
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9019656822374307
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.424481088273744
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4520762661520016
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4386053903369516
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.5,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6756764795771772
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9105171196311018
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.42281917877442854
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4505969565522063
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.43691917021666526
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.5,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8833333333333333,
+        "ndcg_at_10": 0.6732605663638249
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9151640863719137
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.42460495853400093
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.45238273631177867
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.4385223500767174
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.5,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6911111071341037
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9151640863719137
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.4262321289267901
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.44785873593075887
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.4335894901737389
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.5,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9166666666666666,
+        "ndcg_at_10": 0.693293269693628
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9151640863719137
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.42598556692808137
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.4476121739320501
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.4333114385649901
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.75,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.85,
+        "ndcg_at_10": 0.6771183783292065
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9102859710617791
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4243374852245226
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4459427057091239
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.43587265161529687
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.75,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.85,
+        "ndcg_at_10": 0.6701587800592365
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9112172755118222
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4132443161445877
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4386211097213709
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4200923067963958
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.75,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.8666666666666667,
+        "ndcg_at_10": 0.6751417859801297
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9112172755118222
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.4298842667186354
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.4458355435276559
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.4304463059675738
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 0.75,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.8833333333333333,
+        "ndcg_at_10": 0.6869756995518301
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9112172755118222
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.42892738490779225
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.449696408822111
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.435417756078453
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 1.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6357777786915035
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9119965415435237
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.39487282723082484
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.41987282723082486
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.41287943574001545
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 1.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6342011372781423
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9110446507701002
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.3834424002618802
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4084424002618802
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.39779970917881424
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 1.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.6356085636999994
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9108115445153936
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.3996859187997694
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.41859197428305794
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.4078920569428944
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 1.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.6490648643507007
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9080258050777031
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.39843769362170955
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.41849913980377484
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.41018934824270215
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 1.5,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8333333333333334,
+        "ndcg_at_10": 0.45404870160461747
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8876121544709393
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7083333333333334,
+        "ndcg_at_10": 0.29629329939830135
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7083333333333334,
+        "ndcg_at_10": 0.29494447021767284
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7,
+        "ndcg_at_10": 0.29963085265660244
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 1.5,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8333333333333334,
+        "ndcg_at_10": 0.4640534371620332
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8795471307688988
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7166666666666667,
+        "ndcg_at_10": 0.3023452534116315
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7166666666666667,
+        "ndcg_at_10": 0.30119584372010455
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7083333333333334,
+        "ndcg_at_10": 0.29923525988269023
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 1.5,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.85,
+        "ndcg_at_10": 0.4905891644946943
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8792925526977052
+      },
+      "full-usearch": {
+        "recall_at_30": 0.725,
+        "ndcg_at_10": 0.31507115339542857
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.725,
+        "ndcg_at_10": 0.3134817428627709
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.725,
+        "ndcg_at_10": 0.31278838637857553
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 1.5,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.85,
+        "ndcg_at_10": 0.5022369458789743
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8731422372441332
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7083333333333334,
+        "ndcg_at_10": 0.31968453373365385
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.725,
+        "ndcg_at_10": 0.31809512320099625
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.725,
+        "ndcg_at_10": 0.3181101912803031
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 2.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.44534835862309724
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8567449498107733
+      },
+      "full-usearch": {
+        "recall_at_30": 0.6388888888888888,
+        "ndcg_at_10": 0.3015004148880508
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.6555555555555554,
+        "ndcg_at_10": 0.294381645829858
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.6472222222222221,
+        "ndcg_at_10": 0.30086895993206714
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 2.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.45106550956302544
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8567449498107733
+      },
+      "full-usearch": {
+        "recall_at_30": 0.625,
+        "ndcg_at_10": 0.305852879500945
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.6416666666666667,
+        "ndcg_at_10": 0.2987341104427522
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.65,
+        "ndcg_at_10": 0.30126812933213964
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 2.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.4624751045093516
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9787234042553191,
+        "ndcg_at_10": 0.8567449498107733
+      },
+      "full-usearch": {
+        "recall_at_30": 0.65,
+        "ndcg_at_10": 0.31053505541598186
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.6666666666666666,
+        "ndcg_at_10": 0.30355693590200483
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.65,
+        "ndcg_at_10": 0.30595030524717653
+      }
+    },
+    {
+      "k": 20,
+      "lexical_weight": 2.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.4692969460128444
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9787234042553191,
+        "ndcg_at_10": 0.8567449498107733
+      },
+      "full-usearch": {
+        "recall_at_30": 0.6583333333333333,
+        "ndcg_at_10": 0.3103524555164616
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.675,
+        "ndcg_at_10": 0.30337433600248453
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.6583333333333333,
+        "ndcg_at_10": 0.3057677053476563
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.25,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.673491871093956
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9091662062013036
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.42951107469307803
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4572888524708558
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.44267123025514354
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.25,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6709965372685794
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9091662062013036
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.42981704066453885
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.45759481844231664
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4429771962266043
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.25,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6927409246309656
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9091662062013036
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4295832900107109
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4512098970146796
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4373226706462815
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.25,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.69492308719049
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9091662062013036
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.42946729937833406
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4510939063823028
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.43699259050434436
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.5,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6772658901098348
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.904949125089558
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4258971980201122
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.45438340036139224
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4394955991622671
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.5,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6765842992926187
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9090645804856701
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.423732006972333
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.45221820931361306
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.4374609794808198
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.5,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6838045456615179
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9090645804856701
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.43092187455151376
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.4535547137281115
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.43873871395043246
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.5,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9333333333333333,
+        "ndcg_at_10": 0.6881571190210364
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9090645804856701
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.42923586516158174
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.45135794400273743
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.43651045461501836
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.75,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8666666666666667,
+        "ndcg_at_10": 0.6739283368515337
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.911778356334455
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4137721756775106
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4403945627565117
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.42526618020535734
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.75,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8666666666666667,
+        "ndcg_at_10": 0.6710528228426565
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9126738875990859
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.40213618031695825
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.42875856739595924
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.4137607562111369
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.75,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.8833333333333333,
+        "ndcg_at_10": 0.6661064839342693
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9126738875990859
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.42525018952792154
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.44625979479426936
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.4273100480498511
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 0.75,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6721315294468173
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9126738875990859
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.4237733855383944
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8083333333333333,
+        "ndcg_at_10": 0.4447829908047422
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.4269939087015663
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 1.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6352670183560616
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9114248306966451
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.38799126060970157
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.4129912606097016
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.40599786911889224
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 1.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6308659182688301
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9064675069577084
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.37175808681070943
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.3967580868107094
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.3861153957276435
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 1.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.6230524574451285
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9025403644730366
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.3941484864380472
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.4134223105157007
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.40325704958897646
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 1.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.6370523982468492
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9001329773929205
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.3938430215337169
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.41508839764144084
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.4052175601998473
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 1.5,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8333333333333334,
+        "ndcg_at_10": 0.4437737870637889
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8731796164562691
+      },
+      "full-usearch": {
+        "recall_at_30": 0.6694444444444444,
+        "ndcg_at_10": 0.2935219637040357
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.6861111111111111,
+        "ndcg_at_10": 0.2921731345234072
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.6861111111111111,
+        "ndcg_at_10": 0.29685951696233676
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 1.5,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8333333333333334,
+        "ndcg_at_10": 0.4537785226212046
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8734780215462622
+      },
+      "full-usearch": {
+        "recall_at_30": 0.6833333333333333,
+        "ndcg_at_10": 0.2989441825242374
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7,
+        "ndcg_at_10": 0.2975541914806813
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.6833333333333333,
+        "ndcg_at_10": 0.29583418899529607
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 1.5,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.85,
+        "ndcg_at_10": 0.4931693292262901
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8734780215462622
+      },
+      "full-usearch": {
+        "recall_at_30": 0.6916666666666667,
+        "ndcg_at_10": 0.31900411553252966
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7083333333333334,
+        "ndcg_at_10": 0.3167356664945004
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.6833333333333333,
+        "ndcg_at_10": 0.3156954872560969
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 1.5,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.85,
+        "ndcg_at_10": 0.5080224279900357
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8734780215462622
+      },
+      "full-usearch": {
+        "recall_at_30": 0.6916666666666667,
+        "ndcg_at_10": 0.3223454613509412
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7083333333333334,
+        "ndcg_at_10": 0.3212324030116888
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.6916666666666667,
+        "ndcg_at_10": 0.3201922237732853
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 2.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.5166666666666667,
+        "ndcg_at_10": 0.44461796277578297
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8574744995869694
+      },
+      "full-usearch": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.30586126945630204
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.2976308736545503
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.3030476519407941
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 2.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.4524405357736744
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8581726977823059
+      },
+      "full-usearch": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.3125017129573137
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.304271317155562
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.4666666666666667,
+        "ndcg_at_10": 0.30457853550209363
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 2.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.6083333333333333,
+        "ndcg_at_10": 0.4670091393940231
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8581726977823059
+      },
+      "full-usearch": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.3142010813799067
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.30646050007344
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.3069863284881889
+      }
+    },
+    {
+      "k": 30,
+      "lexical_weight": 2.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.6583333333333333,
+        "ndcg_at_10": 0.46836860342888303
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8581726977823059
+      },
+      "full-usearch": {
+        "recall_at_30": 0.5916666666666667,
+        "ndcg_at_10": 0.3127325194152777
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.5916666666666667,
+        "ndcg_at_10": 0.3061473288075878
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.575,
+        "ndcg_at_10": 0.3066731572223367
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.25,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6769001204728539
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9029060410956997
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.43123950249001136
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.45901728026778926
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4446610373316187
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.25,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6766663698190258
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9066770897506794
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.4297609881373233
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.45753876591510106
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.44318252297893057
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.25,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6911041957088261
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9066770897506794
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.4394004693075933
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.4611773721400604
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.4435178194760816
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.25,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6982884836814865
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9066770897506794
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.436890528316367
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.4586674311488341
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.4411069602411473
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.5,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6739283368515337
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.904462447349671
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4247855712765532
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.45256334905433093
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.43743496650317665
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.5,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6701398270958222
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9056450896362545
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.4053874822306089
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.43316526000838673
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.42278577643976095
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.5,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6697184419221917
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9056450896362545
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4200933345478261
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.4398355866013973
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.42070054009354
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.5,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9333333333333333,
+        "ndcg_at_10": 0.6704488377695059
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9032377025561382
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4243586417982338
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.4443414752038341
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4255365403761255
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.75,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8833333333333333,
+        "ndcg_at_10": 0.6739283368515337
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9080073076794754
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4137721756775106
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4403945627565117
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4230840176458331
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.75,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8833333333333333,
+        "ndcg_at_10": 0.6699923153151939
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9078199647575046
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.4002805605803927
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.42690294765939374
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.4095235544259455
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.75,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6591047516350024
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9072582615560612
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.41403182316706383
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.43261868452185825
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.411503594807497
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 0.75,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6692378639825779
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.8970905041750498
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.41041399340428397
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.4292414361111075
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.41108390848796267
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 1.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6352670183560616
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9114248306966451
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.38799126060970157
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.4129912606097016
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.40599786911889224
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 1.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6289801317227393
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9064675069577084
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.3742581837156275
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4004135744144043
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.3897708833313383
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 1.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.6185781171313461
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8988306087959003
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.3796569310882621
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.39820938430101976
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.3918977239784514
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 1.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.6288127546149831
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8893632655661222
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.37561525974074444
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.3939043134864121
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7416666666666667,
+        "ndcg_at_10": 0.3861920372059415
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 1.5,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.5166666666666667,
+        "ndcg_at_10": 0.44326302672834694
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8726079056093905
+      },
+      "full-usearch": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.29967313447784477
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.291442738676093
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.29685951696233676
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 1.5,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.45339729172495974
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8727581972901219
+      },
+      "full-usearch": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.3088393697294194
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.3020363740293691
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.4666666666666667,
+        "ndcg_at_10": 0.30073359612544587
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 1.5,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.6083333333333333,
+        "ndcg_at_10": 0.49350505585207183
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.87260210346043
+      },
+      "full-usearch": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.3480364192754754
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.3417643999336377
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.3370209175718467
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 1.5,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.6583333333333333,
+        "ndcg_at_10": 0.5154244510175452
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.87260210346043
+      },
+      "full-usearch": {
+        "recall_at_30": 0.5916666666666667,
+        "ndcg_at_10": 0.345771321539155
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.5916666666666667,
+        "ndcg_at_10": 0.3413480493802895
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.575,
+        "ndcg_at_10": 0.3356829307243165
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 2.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.5166666666666667,
+        "ndcg_at_10": 0.444107202440341
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8569027887400907
+      },
+      "full-usearch": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.30359915040969015
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.29536875460793843
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.30078553289418225
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 2.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.4542414674369538
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8572413933322627
+      },
+      "full-usearch": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.3090123620039104
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.30074080433923106
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.4666666666666667,
+        "ndcg_at_10": 0.29975119770116004
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 2.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.6083333333333333,
+        "ndcg_at_10": 0.4894802529763829
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8572413933322627
+      },
+      "full-usearch": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.3296900259728653
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.3220766319087345
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.32292223921642194
+      }
+    },
+    {
+      "k": 60,
+      "lexical_weight": 2.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.6583333333333333,
+        "ndcg_at_10": 0.49465602799894287
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8572413933322627
+      },
+      "full-usearch": {
+        "recall_at_30": 0.575,
+        "ndcg_at_10": 0.32721266931839793
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.575,
+        "ndcg_at_10": 0.3203296711015812
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.5583333333333333,
+        "ndcg_at_10": 0.321883702972771
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.25,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6793805517177671
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9024193633558126
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4309440028801061
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4587217806578839
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4435933981067296
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.25,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6786989609005509
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9037490793142341
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.4239367095312107
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.4517144873089885
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.44133500374036266
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.25,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6829314872404343
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9037490793142341
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.43036894125205233
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.45011119330562355
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4329495068581432
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.25,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6805856214747557
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9013416922341181
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.43827080670277935
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.45825364010837966
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.43923990278152364
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.5,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6739283368515337
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.904462447349671
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4247855712765532
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.45256334905433093
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.43743496650317665
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.5,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6678101527556696
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9042751044277002
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.4090429698343038
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.43682074761208156
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.42162351693815764
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.5,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6563310254216995
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9037134012262568
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.4221814653893658
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8333333333333334,
+        "ndcg_at_10": 0.4426541132902512
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.42216685868680587
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.5,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9333333333333333,
+        "ndcg_at_10": 0.6722322550123948
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.8996959592988176
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.41638147306706164
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.43593931162119937
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.41592964894031953
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.75,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6739283368515337
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9080073076794754
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.41261678497873383
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4392391720577349
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4230840176458331
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.75,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6678101527556696
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9078199647575046
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.3991713413332371
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.4257937284122381
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.40956972587756674
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.75,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6491755071993447
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.8963754389254052
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.39933196994894554
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8333333333333334,
+        "ndcg_at_10": 0.4179188313037399
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.402577459904352
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 0.75,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9333333333333333,
+        "ndcg_at_10": 0.6632987353339163
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.8946428658505902
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.3950160268883579
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.41268807889640463
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.3996534416133176
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 1.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6352670183560616
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9114248306966451
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.3876934530005748
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.4126934530005748
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.40570006150976545
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 1.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6289801317227393
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9060677138523651
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.375298362954031
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4014537536528078
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.39081106256974174
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 1.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.6161806962216995
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.890209367795707
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.37735955706836444
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.39591201028112205
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.38458318336415415
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 1.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.622674130958179
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.8825585789360134
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.371911027656598
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.3892776786687931
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7416666666666667,
+        "ndcg_at_10": 0.3786792475991394
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 1.5,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.5166666666666667,
+        "ndcg_at_10": 0.44326302672834694
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8726079056093905
+      },
+      "full-usearch": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.2972503905662914
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.2890199947645396
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.29443677305078336
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 1.5,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.45339729172495974
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8727581972901219
+      },
+      "full-usearch": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.3067297970837182
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.3000614702812039
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.4666666666666667,
+        "ndcg_at_10": 0.29862402347974465
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 1.5,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.6083333333333333,
+        "ndcg_at_10": 0.49353085405827396
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8688310548054502
+      },
+      "full-usearch": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.3324691143833794
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.3324829347128867
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.32291387302720614
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 1.5,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.6583333333333333,
+        "ndcg_at_10": 0.5207430564698112
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9716312056737588,
+        "ndcg_at_10": 0.8688310548054502
+      },
+      "full-usearch": {
+        "recall_at_30": 0.5916666666666667,
+        "ndcg_at_10": 0.33760158675949853
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.5916666666666667,
+        "ndcg_at_10": 0.33265403515601044
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.575,
+        "ndcg_at_10": 0.32728773233844255
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 2.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.5166666666666667,
+        "ndcg_at_10": 0.444107202440341
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8569027887400907
+      },
+      "full-usearch": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.30359915040969015
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.29536875460793843
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.30078553289418225
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 2.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.4520593048774295
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8570530804208223
+      },
+      "full-usearch": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.31181026651795524
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.30514193971544096
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.4666666666666667,
+        "ndcg_at_10": 0.3038870928135019
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 2.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.6083333333333333,
+        "ndcg_at_10": 0.4920944790907186
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8531259379361504
+      },
+      "full-usearch": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.34666694659577324
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.3405295961514716
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.33711170523960005
+      }
+    },
+    {
+      "k": 100,
+      "lexical_weight": 2.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.6583333333333333,
+        "ndcg_at_10": 0.5011057860353186
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8531259379361504
+      },
+      "full-usearch": {
+        "recall_at_30": 0.575,
+        "ndcg_at_10": 0.3429849997324482
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.575,
+        "ndcg_at_10": 0.33735840962358854
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.5583333333333333,
+        "ndcg_at_10": 0.3282056984912562
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6753683183482886
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9115538302629196
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4143680170932696
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4421457948710474
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.42827119113869505
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.25,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6793805517177671
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9024193633558126
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4309440028801061
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4587217806578839
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4435933981067296
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.25,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6732623676219031
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9022320204338419
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.4156878065774806
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.44346558435525835
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.4282683536813345
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.25,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6737688134176895
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9007122968558523
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4249397538349428
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.444682005888514
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.42546768632070653
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.25,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9166666666666666,
+        "ndcg_at_10": 0.6713722665361564
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.8969378100553146
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4329852441133671
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4518126868201906
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4329284789325319
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.5,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6739283368515337
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.904462447349671
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4247855712765532
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.45256334905433093
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.43743496650317665
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.5,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6678101527556696
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9042751044277002
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.40918272460971467
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.4369605023874924
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.42176327171356853
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.5,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6505134940468749
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.8923439008557138
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.42201741778093727
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8333333333333334,
+        "ndcg_at_10": 0.44175966983450843
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.42251357141381923
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.5,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9333333333333333,
+        "ndcg_at_10": 0.6632771014829151
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.8914051306510357
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.4123865005168232
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.43141336271274827
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.419051164161629
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.75,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6739283368515337
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.9080073076794754
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.41261678497873383
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7833333333333333,
+        "ndcg_at_10": 0.4392391720577349
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.4230840176458331
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.75,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6678101527556696
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9078199647575046
+      },
+      "full-usearch": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.3991713413332371
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.4257937284122381
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.40956972587756674
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.75,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.9,
+        "ndcg_at_10": 0.6487276670359564
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.8958887611855181
+      },
+      "full-usearch": {
+        "recall_at_30": 0.8166666666666667,
+        "ndcg_at_10": 0.39933196994894554
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.8333333333333334,
+        "ndcg_at_10": 0.4179188313037399
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.8,
+        "ndcg_at_10": 0.39775971279905387
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 0.75,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.9333333333333333,
+        "ndcg_at_10": 0.6464974416251058
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.893562989215177
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.3890792404365575
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.40622031608639164
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.3927456779621739
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 1.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6352670183560616
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9114248306966451
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.3876934530005748
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.4126934530005748
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.75,
+        "ndcg_at_10": 0.40570006150976545
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 1.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6289801317227393
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.9057693087623719
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.375298362954031
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7666666666666667,
+        "ndcg_at_10": 0.4014537536528078
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.39081106256974174
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 1.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.875,
+        "ndcg_at_10": 0.6161806962216995
+      },
+      "natural-wiki": {
+        "recall_at_30": 1.0,
+        "ndcg_at_10": 0.8899109627057138
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.37620416636958764
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7916666666666666,
+        "ndcg_at_10": 0.3947566195823453
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.775,
+        "ndcg_at_10": 0.38342779266537735
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 1.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.8583333333333333,
+        "ndcg_at_10": 0.6154476138577517
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9893617021276596,
+        "ndcg_at_10": 0.8723983476275382
+      },
+      "full-usearch": {
+        "recall_at_30": 0.7583333333333333,
+        "ndcg_at_10": 0.3648086550270058
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.7416666666666667,
+        "ndcg_at_10": 0.3823949415510731
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.7416666666666667,
+        "ndcg_at_10": 0.37128575014597737
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 1.5,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.5166666666666667,
+        "ndcg_at_10": 0.44326302672834694
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8726079056093905
+      },
+      "full-usearch": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.2972503905662914
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.2890199947645396
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.29443677305078336
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 1.5,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.45121512916543544
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8727581972901219
+      },
+      "full-usearch": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.3067297970837182
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.3000614702812039
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.4666666666666667,
+        "ndcg_at_10": 0.2988066233792649
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 1.5,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.6083333333333333,
+        "ndcg_at_10": 0.4911149408449217
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8688310548054502
+      },
+      "full-usearch": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.32692946506601245
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.32079211462171087
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.31606147514301214
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 1.5,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.6583333333333333,
+        "ndcg_at_10": 0.5169250957028633
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9609929078014184,
+        "ndcg_at_10": 0.8688310548054502
+      },
+      "full-usearch": {
+        "recall_at_30": 0.5916666666666667,
+        "ndcg_at_10": 0.3268813354848791
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.5916666666666667,
+        "ndcg_at_10": 0.32101897453464334
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.575,
+        "ndcg_at_10": 0.3165220857097726
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 2.0,
+      "candidates": 30,
+      "natural-pdf": {
+        "recall_at_30": 0.5166666666666667,
+        "ndcg_at_10": 0.444107202440341
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8569027887400907
+      },
+      "full-usearch": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.30359915040969015
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.29536875460793843
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.45555555555555555,
+        "ndcg_at_10": 0.30078553289418225
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 2.0,
+      "candidates": 50,
+      "natural-pdf": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.4520593048774295
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8570530804208223
+      },
+      "full-usearch": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.31181026651795524
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.475,
+        "ndcg_at_10": 0.30514193971544096
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.4666666666666667,
+        "ndcg_at_10": 0.3038870928135019
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 2.0,
+      "candidates": 100,
+      "natural-pdf": {
+        "recall_at_30": 0.6083333333333333,
+        "ndcg_at_10": 0.4912506919934135
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9290780141843971,
+        "ndcg_at_10": 0.8531259379361504
+      },
+      "full-usearch": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.33935520909179445
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.55,
+        "ndcg_at_10": 0.33321785864749276
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.5333333333333333,
+        "ndcg_at_10": 0.329486796469769
+      }
+    },
+    {
+      "k": 200,
+      "lexical_weight": 2.0,
+      "candidates": 200,
+      "natural-pdf": {
+        "recall_at_30": 0.6583333333333333,
+        "ndcg_at_10": 0.5163151990788399
+      },
+      "natural-wiki": {
+        "recall_at_30": 0.9609929078014184,
+        "ndcg_at_10": 0.8531259379361504
+      },
+      "full-usearch": {
+        "recall_at_30": 0.5916666666666667,
+        "ndcg_at_10": 0.3392276588986368
+      },
+      "full-sqlite-vec f32": {
+        "recall_at_30": 0.5916666666666667,
+        "ndcg_at_10": 0.3333652979484011
+      },
+      "full-FAISS IVF_SQ8": {
+        "recall_at_30": 0.575,
+        "ndcg_at_10": 0.32699341892346206
+      }
+    }
+  ],
+  "criterion": "full（usearch）で再現率 +2 問以上か nDCG@10 +0.02 以上、どのセットでも 1 問を超えて悪化しない"
+}

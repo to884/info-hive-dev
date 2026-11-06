@@ -1,0 +1,90 @@
+{
+  "env": {
+    "python": "3.12.13",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu_threads_limit": 4,
+    "logical_cpus": 16,
+    "packages": {
+      "numpy": "2.5.4",
+      "usearch": "2.26.6",
+      "faiss-cpu": "1.15.1",
+      "tantivy": "0.27.0",
+      "fastembed": "0.8.0",
+      "onnxruntime": "1.31.1",
+      "sqlite-vec": "0.1.9",
+      "sudachipy": "0.7.0",
+      "psutil": "7.2.2",
+      "mcp": null
+    },
+    "dev_commit": "69fab02",
+    "wiki_commit": "e64765f",
+    "rag_commit": "26bebeb",
+    "poc_data": "C:\\Works\\info-hive-dev\\.rag-poc-data",
+    "gpu": {
+      "utilization_percent": 2,
+      "memory_used_mib": 3460
+    }
+  },
+  "purpose": "Windows で Tantivy の commit が失敗したときに文書が失われるか。rollback して入れ直せば失われないか",
+  "results": [
+    {
+      "interval_seconds": 0.2,
+      "seconds": 60,
+      "recover": false,
+      "commits": 285,
+      "errors": 6,
+      "error_rate": 0.020618556701030927,
+      "retries_ok": 0,
+      "gave_up": 0,
+      "docs_in_index": 2050,
+      "docs_added": 14550,
+      "lost": 12500,
+      "messages": [
+        "ValueError: An IO error occurred: 'アクセスが拒否されました。 (os error 5)'",
+        "ValueError: Failed to open file for write: 'IoError { io_error: Os { code: 5, kind: PermissionDenied, message: \"アクセスが拒否されました。\" }, filepath: \"893c97ffb90e443bb2d"
+      ]
+    },
+    {
+      "interval_seconds": 0.2,
+      "seconds": 60,
+      "recover": true,
+      "commits": 266,
+      "errors": 4,
+      "error_rate": 0.014814814814814815,
+      "retries_ok": 4,
+      "gave_up": 0,
+      "docs_in_index": 13300,
+      "docs_added": 13300,
+      "lost": 0,
+      "messages": [
+        "ValueError: An IO error occurred: 'アクセスが拒否されました。 (os error 5)'",
+        "ValueError: Failed to open file for write: 'IoError { io_error: Os { code: 5, kind: PermissionDenied, message: \"アクセスが拒否されました。\" }, filepath: \"0464646d644849a2bf3",
+        "ValueError: Failed to open file for write: 'IoError { io_error: Os { code: 5, kind: PermissionDenied, message: \"アクセスが拒否されました。\" }, filepath: \"aef0be811c024148bdb",
+        "ValueError: Failed to open file for write: 'IoError { io_error: Os { code: 5, kind: PermissionDenied, message: \"アクセスが拒否されました。\" }, filepath: \"e40cf07a78f74c9594b"
+      ]
+    },
+    {
+      "interval_seconds": 0.0,
+      "seconds": 20,
+      "recover": true,
+      "commits": 685,
+      "errors": 13,
+      "error_rate": 0.01862464183381089,
+      "retries_ok": 13,
+      "gave_up": 0,
+      "docs_in_index": 34250,
+      "docs_added": 34250,
+      "lost": 0,
+      "messages": [
+        "ValueError: An IO error occurred: 'アクセスが拒否されました。 (os error 5)'",
+        "ValueError: Failed to open file for write: 'IoError { io_error: Os { code: 5, kind: PermissionDenied, message: \"アクセスが拒否されました。\" }, filepath: \"3fb7afec3be94a60a3d",
+        "ValueError: Failed to open file for write: 'IoError { io_error: Os { code: 5, kind: PermissionDenied, message: \"アクセスが拒否されました。\" }, filepath: \"499a65a0ede4462b8e4",
+        "ValueError: Failed to open file for write: 'IoError { io_error: Os { code: 5, kind: PermissionDenied, message: \"アクセスが拒否されました。\" }, filepath: \"8d12ae72387447adbb8",
+        "ValueError: Failed to open file for write: 'IoError { io_error: Os { code: 5, kind: PermissionDenied, message: \"アクセスが拒否されました。\" }, filepath: \"91a3597de4d743d0ae9"
+      ]
+    }
+  ],
+  "passed": true,
+  "criterion": "rollback して入れ直す 2 通りで、失われた文書 0、諦めた batch 0",
+  "note": "原因（ウイルス対策の走査など）は切り分けていない。読み手がいなくても起きる"
+}
