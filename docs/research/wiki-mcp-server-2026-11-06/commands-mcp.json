@@ -1,0 +1,244 @@
+{
+  "purpose": "コマンドがまず wiki の MCP のツールを使い、ツールがないときは CLI に戻るか",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "claude_version": "2.1.316 (Claude Code)",
+  "plugin_commit": "84f72f8",
+  "with_mcp": [
+    {
+      "command": "stats",
+      "prompt": "/wiki:stats D:/Users/toshiki/AppData/Local/Temp/tmpnohy7mb0/project/wiki",
+      "returncode": 0,
+      "seconds": 23.3,
+      "mcp_servers": [
+        {
+          "name": "plugin:wiki:wiki",
+          "status": "pending",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:context7:context7",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:playwright:playwright",
+          "status": "connected",
+          "source": "plugin"
+        },
+        {
+          "name": "clion",
+          "status": "failed",
+          "source": "user"
+        },
+        {
+          "name": "playwright-edge",
+          "status": "connected",
+          "source": "user"
+        },
+        {
+          "name": "claude.ai Claude Docs",
+          "status": "connected",
+          "source": "claudeai"
+        },
+        {
+          "name": "claude.ai Figma",
+          "status": "connected",
+          "source": "claudeai"
+        }
+      ],
+      "tools": [
+        "ToolSearch",
+        "mcp__plugin_wiki_wiki__stats",
+        "Glob"
+      ],
+      "bash": [],
+      "wiki_args": [
+        "D:/Users/toshiki/AppData/Local/Temp/tmpnohy7mb0/project/wiki"
+      ],
+      "used_mcp": true,
+      "used_cli": false,
+      "used_other_wiki": false,
+      "answer_head": "この wiki は 27 ページの小さな規模で、どのスケーリング閾値にもまだ遠いです。気になるのは、リンク密度が低いことと `index.md` がないことの 2 点です。\n\n## 統計\n\n| 項目 | 値 |\n|---|---|\n| ページ数 | 27（concept 13、entity 6、source 5、synthesis 3） |\n| 総行数 / 総文字数 | 656 行 / 14,459 字 |\n| 1 ページあたりの平均 | 24 行、535 字 |\n| リンク数 | 35（1 ページあたり平均 1.3） |\n| インデックスの行数 | 0 |\n| 検索の索引 | `pending`（128 セクションのうち埋め込み済みは 0） |\n\n- **最大のページ**：`sources/search-study-notes.md`（965 字、25 行）\n- **被リンクが多いページ",
+      "stderr_tail": ""
+    },
+    {
+      "command": "query",
+      "prompt": "/wiki:query D:/Users/toshiki/AppData/Local/Temp/tmpnohy7mb0/project/wiki の wiki で答えて。高輪ゲートウェイ駅は何線の駅？",
+      "returncode": 0,
+      "seconds": 23.3,
+      "mcp_servers": [
+        {
+          "name": "plugin:wiki:wiki",
+          "status": "pending",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:context7:context7",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:playwright:playwright",
+          "status": "connected",
+          "source": "plugin"
+        },
+        {
+          "name": "clion",
+          "status": "failed",
+          "source": "user"
+        },
+        {
+          "name": "playwright-edge",
+          "status": "connected",
+          "source": "user"
+        },
+        {
+          "name": "claude.ai Claude Docs",
+          "status": "connected",
+          "source": "claudeai"
+        },
+        {
+          "name": "claude.ai Figma",
+          "status": "connected",
+          "source": "claudeai"
+        }
+      ],
+      "tools": [
+        "Read",
+        "Read",
+        "Glob",
+        "ToolSearch",
+        "mcp__plugin_wiki_wiki__query",
+        "Read"
+      ],
+      "bash": [],
+      "wiki_args": [
+        "D:/Users/toshiki/AppData/Local/Temp/tmpnohy7mb0/project/wiki"
+      ],
+      "used_mcp": true,
+      "used_cli": false,
+      "used_other_wiki": false,
+      "answer_head": "**山手線の駅です。** wiki によると、高輪ゲートウェイ駅は 2020 年 3 月、山手線の品川駅と田町駅の間に開業しました [[yamanote-line]]。山手線は JR 東日本の路線で、[[東京都]] の都心をぐるりと回っています。\n\n- wiki に書かれているのは山手線だけです。この駅にほかの路線が通っているかどうかは載っていません。\n- この wiki には `index.md` も `indexes/` もありません。そのため、wiki のツールで検索して、出てきたページを読みました。\n- 検索したときは、意味で探す検索の準備がまだ途中でした（0/128 セクション）。結果は語句の一致で探す検索によるものです。ただし、語句の検索は wiki 全体を対象にしています。\n\n単純な事実の確認なので、synthesis ページとしては保存しません。",
+      "stderr_tail": ""
+    },
+    {
+      "command": "lint",
+      "prompt": "/wiki:lint D:/Users/toshiki/AppData/Local/Temp/tmpnohy7mb0/project/wiki",
+      "returncode": 0,
+      "seconds": 109.3,
+      "mcp_servers": [
+        {
+          "name": "plugin:wiki:wiki",
+          "status": "pending",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:context7:context7",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:playwright:playwright",
+          "status": "connected",
+          "source": "plugin"
+        },
+        {
+          "name": "clion",
+          "status": "failed",
+          "source": "user"
+        },
+        {
+          "name": "playwright-edge",
+          "status": "connected",
+          "source": "user"
+        },
+        {
+          "name": "claude.ai Claude Docs",
+          "status": "connected",
+          "source": "claudeai"
+        },
+        {
+          "name": "claude.ai Figma",
+          "status": "connected",
+          "source": "claudeai"
+        }
+      ],
+      "tools": [
+        "Read",
+        "ToolSearch",
+        "mcp__plugin_wiki_wiki__lint",
+        "ToolSearch",
+        "mcp__plugin_wiki_wiki__stats",
+        "Glob",
+        "Bash",
+        "Read"
+      ],
+      "bash": [
+        "cd \"D:/Users/toshiki/AppData/Local/Temp/tmpnohy7mb0/project/wiki\" && for f in concepts/*.md entities/*.md sources/*.md synthesis/*.md; do echo \"===== $f\"; cat \"$f\"; done; cd ..; git log --oneline | head; ls"
+      ],
+      "wiki_args": [
+        "D:/Users/toshiki/AppData/Local/Temp/tmpnohy7mb0/project/wiki",
+        "D:/Users/toshiki/AppData/Local/Temp/tmpnohy7mb0/project/wiki"
+      ],
+      "used_mcp": true,
+      "used_cli": false,
+      "used_other_wiki": false,
+      "answer_head": "lint を実行しました。リンク切れ、frontmatter の誤り、大きすぎるページ、日本語特有の書式の誤りは **0 件** です。検出されたのは孤立ページ 10 件と更新の止まったページ 5 件だけです。どのページもまだ修正していません。承認をいただいた項目から適用します。\n\n**前提として、この wiki は検索品質を測る評価用のフィクスチャです**（SCHEMA.md）。日本語の frontmatter キー、BOM、NFD のファイル名、全角英数字、句点だけで区切った長い段落、英語が多い elasticsearch の本文は意図的に入れたものなので、修正の対象から外しています。また、本文を変えると評価のベースラインが動きます。適用した後に `run_eval.py` を実行し直してください。もう一つ、このディレクトリは git の管理下にないので、変更を元に戻せません。\n\n##",
+      "stderr_tail": ""
+    }
+  ],
+  "without_mcp": [
+    {
+      "command": "stats",
+      "prompt": "/wiki:stats D:/Users/toshiki/AppData/Local/Temp/tmpnohy7mb0/project/wiki",
+      "returncode": 0,
+      "seconds": 30.1,
+      "mcp_servers": [
+        {
+          "name": "plugin:context7:context7",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:playwright:playwright",
+          "status": "connected",
+          "source": "plugin"
+        },
+        {
+          "name": "clion",
+          "status": "failed",
+          "source": "user"
+        },
+        {
+          "name": "playwright-edge",
+          "status": "connected",
+          "source": "user"
+        },
+        {
+          "name": "claude.ai Claude Docs",
+          "status": "connected",
+          "source": "claudeai"
+        },
+        {
+          "name": "claude.ai Figma",
+          "status": "connected",
+          "source": "claudeai"
+        }
+      ],
+      "tools": [
+        "Bash",
+        "Glob"
+      ],
+      "bash": [
+        "python \"D:/Users/toshiki/AppData/Local/Temp/tmpnohy7mb0/plugin-without-mcp/skills/info-hive/scripts/wiki_stats.py\" \"D:/Users/toshiki/AppData/Local/Temp/tmpnohy7mb0/project/wiki\""
+      ],
+      "wiki_args": [],
+      "used_mcp": false,
+      "used_cli": true,
+      "used_other_wiki": false,
+      "answer_head": "この wiki は 27 ページと小さく、移行は必要ありません。気になる点は、リンクが少ないことと、`index.md` がないことの 2 つです。\n\n| 項目 | 値 |\n|---|---|\n| ページ数 | 27（concept 13、entity 6、source 5、synthesis 3） |\n| 総文字数 | 14,459（空白を除く）、1 ページ平均 535 文字・24 行 |\n| リンク | 35 本、1 ページあたり 1.3 本 |\n| 最大のページ | `sources/search-study-notes.md`（965 文字、25 行） |\n| よくリンクされるページ | `消費税`、`morphological-analysis`、`invoice-system`（各 4 本） |\n\n**解釈**\n\n- **規模**：最初の閾値（インデックス分割の 150 ページ",
+      "stderr_tail": ""
+    }
+  ],
+  "plugin_commit_note": "実行を始めた時点では ee2185e に未コミットの変更があり、その内容を 84f72f8 としてコミットした"
+}
