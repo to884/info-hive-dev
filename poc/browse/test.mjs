@@ -93,6 +93,19 @@ async function rawLink(browser, base) {
   return { href, pdfRequested, consoleErrors: consoleErrors.slice(0, 3) };
 }
 
+async function longName(browser, base) {
+  // 200 バイトに切り詰めて接尾辞を付けた名前のページを、リンクから実際に開く。
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.addInitScript(PROBE);
+  await page.goto(base + encodeURI("concepts/ナレッジグラフ.html"));
+  await page.click("article a.wl:text-matches('^長い名前のページ')");
+  await page.waitForLoadState("load");
+  const p = await page.evaluate(() => window.__probe());
+  await context.close();
+  return { page: p.page, pageId: p.pageId, navLoaded: p.navLoaded };
+}
+
 function summarize(r) {
   const s = r.steps;
   return {
@@ -139,6 +152,7 @@ for (const [name, type, opts] of ENGINES) {
     } catch (e) {
       run = { browser: name, mode, error: String(e).slice(0, 500) };
     }
+    try { run.longName = await longName(browser, base); } catch (e) { run.longName = { error: String(e).slice(0, 300) }; }
     try { run.rawLink = await rawLink(browser, rawModes[mode]); } catch (e) { run.rawLink = { error: String(e).slice(0, 300) }; }
     results.runs.push(run);
   }

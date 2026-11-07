@@ -45,8 +45,19 @@ def short_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:8]
 
 
-def safe_component(part: str, page_id: str, limit: int) -> str:
-    """1 つの名前の要素を、どの OS でも作れる名前にする。読める名前を残し、必要なときだけ接尾辞を付ける。"""
+SUFFIX_RE = re.compile(r"~[0-9a-f]{8}$")
+
+
+class NameCollision(Exception):
+    """接尾辞を付けても出力のパスが重なった。上書きせずに生成を止める。"""
+
+
+def safe_component(part: str, key: str, limit: int, is_dir: bool) -> str:
+    """1 つの名前の要素を、どの OS でも作れる名前にする。読める名前を残し、必要なときだけ接尾辞を付ける。
+
+    key は、この要素までの識別子（ディレクトリならそのディレクトリのパス、ページなら識別子）。
+    接尾辞をこの key だけから決めるので、ほかのページを足しても名前は変わらない。
+    """
     changed = False
     out = []
     for ch in part:
@@ -59,23 +70,47 @@ def safe_component(part: str, page_id: str, limit: int) -> str:
     if name.rstrip(" .") != name:
         name = name.rstrip(" .")
         changed = True
-    if name.split(".")[0].upper() in WINDOWS_RESERVED:
+    if name.split(".")[0].rstrip(" ").upper() in WINDOWS_RESERVED:
+        # 接尾辞は末尾に付くので、最初の . より前が予約名のままになる。先頭に _ を付ける。
+        name = "_" + name
+        changed = True
+    if SUFFIX_RE.search(name):
+        # 元の名前が接尾辞の形で終わるときも付ける。付けた名前と元の名前が重ならないようにする。
+        changed = True
+    if is_dir and name.lower().endswith(".html"):
+        # ページ foo の出力 foo.html と、ディレクトリ foo.html が同じ場所を取り合わないようにする。
         changed = True
     # .html と接尾辞（~ と 8 桁）を足しても上限に収まるようにする。上限は UTF-8 のバイト数で数える。
     budget = limit - len(".html") - 9
     if len(name.encode("utf-8")) > budget:
-        encoded = name.encode("utf-8")[:budget]
-        name = encoded.decode("utf-8", errors="ignore")
+        name = name.encode("utf-8")[:budget].decode("utf-8", errors="ignore")
         changed = True
     if changed:
-        name = f"{name}~{short_hash(page_id)}"
+        name = f"{name}~{short_hash(key)}"
     return name
 
 
 def export_name(page_id: str, limit: int) -> str:
     """ページの識別子（NFC の POSIX の相対パスから .md を除いたもの）から、出力のパスを決める唯一の関数。"""
     parts = page_id.split("/")
-    return "/".join(safe_component(p, page_id, limit) for p in parts) + ".html"
+    out = [safe_component(p, "/".join(parts[:i + 1]) + ("/" if i < len(parts) - 1 else ""), limit,
+                          is_dir=i < len(parts) - 1)
+           for i, p in enumerate(parts)]
+    return "/".join(out) + ".html"
+
+
+def check_unique(names: dict) -> None:
+    """出力のパスが、大文字と小文字を同一視しても重ならず、ファイルとディレクトリが同じ場所を取らないことを確かめる。"""
+    files = defaultdict(list)
+    dirs = set()
+    for pid, name in names.items():
+        files[name.casefold()].append(pid)
+        parts = name.casefold().split("/")
+        dirs.update("/".join(parts[:i]) for i in range(1, len(parts)))
+    dup = {k: v for k, v in files.items() if len(v) > 1}
+    clash = sorted(set(files) & dirs)
+    if dup or clash:
+        raise NameCollision(json.dumps({"same_file": dup, "file_and_dir": clash}, ensure_ascii=False))
 
 
 def heading_id(text: str, used: dict) -> str:
@@ -126,7 +161,8 @@ class Core:
             self.slug_ids[p["slug"]].append(pid)
             self.by_path[pid] = p["slug"]
         self.out_name = self._names()
-        self.headings = {pid: self._headings(p["body"]) for pid, p in self.pages.items()}
+        self.md = MarkdownIt("commonmark", {"html": False}).enable("table")
+        self.headings = {pid: self._headings(self.md, p["body"]) for pid, p in self.pages.items()}
 
     def _names(self) -> dict:
         names = {pid: export_name(pid, self.name_limit) for pid in self.pages}
@@ -138,21 +174,19 @@ class Core:
         for group in self.case_collisions:
             for pid in group:
                 names[pid] = names[pid][:-5] + f"~{short_hash(pid)}.html"
+        check_unique(names)
         return names
 
     @staticmethod
-    def _headings(body: str) -> list:
+    def _headings(md: MarkdownIt, body: str) -> list:
+        """見出しを、描くときと同じ markdown-it の解析から取る（ATX と Setext の両方）。"""
         used = {}
         found = []
-        in_fence = False
-        for line in body.splitlines():
-            if line.startswith("```"):
-                in_fence = not in_fence
-            if in_fence:
-                continue
-            m = re.match(r"^(#{1,6})\s+(.*?)\s*#*\s*$", line)
-            if m:
-                found.append((nfc(m.group(2)), heading_id(m.group(2), used)))
+        tokens = md.parse(body)
+        for i, tok in enumerate(tokens):
+            if tok.type == "heading_open":
+                text = nfc(tokens[i + 1].content)
+                found.append((text, heading_id(text, used)))
         return found
 
     def resolve(self, raw: str) -> dict:
@@ -191,7 +225,7 @@ def render_markdown(md: MarkdownIt, body: str, heading_ids: list) -> str:
 def build(root: Path, out: Path, raw_mode: str, name_limit: int) -> dict:
     started = time.perf_counter()
     core = Core(root, name_limit)
-    md = MarkdownIt("commonmark", {"html": False}).enable("table")
+    md = core.md
     generation = hashlib.sha256(
         "".join(f"{pid}\0{p['body']}" for pid, p in core.pages.items()).encode("utf-8")).hexdigest()[:16]
     out.mkdir(parents=True, exist_ok=True)
@@ -288,9 +322,27 @@ def build(root: Path, out: Path, raw_mode: str, name_limit: int) -> dict:
         "renamed": {pid: name for pid, name in core.out_name.items() if name != pid + ".html"},
         "case_collisions": core.case_collisions, "diagnostics": diagnostics,
     }
-    (out / "data" / "build-report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2),
+    # 生成の記録は Wiki の絶対パスを含むので、出力（持ち運ぶ生成物）の中には置かず、隣に書く。
+    stale = out / "data" / "build-report.json"
+    if stale.exists():
+        stale.unlink()
+    report["absolute_path_leaks"] = scan_leaks(out, [root.as_posix(), str(root)])
+    Path(str(out) + ".build-report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2),
                                                      encoding="utf-8", newline="\n")
     return report
+
+
+def scan_leaks(out: Path, needles: list) -> list:
+    """出力の中に、Wiki のルートの絶対パスが残っていないかを調べる。"""
+    found = []
+    for path in out.rglob("*"):
+        if path.is_file():
+            text = path.read_bytes().decode("utf-8", errors="replace")
+            for n in needles:
+                if n and (n in text or n.replace("/", r"\/") in text):
+                    found.append(path.relative_to(out).as_posix())
+                    break
+    return sorted(found)
 
 
 def head(prefix: str, title: str) -> str:

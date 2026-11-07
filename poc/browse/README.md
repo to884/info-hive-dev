@@ -11,8 +11,9 @@ wiki のコードは、サブモジュールの固定版（wiki 0.6.0、`36a4089
 | --- | --- |
 | `make_fixture.py` | 試験用の Wiki を `out/fixture-wiki/` に作る。日本語と空白を含む名前、重複したスラッグ、未解決のリンク、見出しのアンカー、ext4 の上限を超える長い名前、`raw:` の絶対パスを含む |
 | `page_sets.py` | lint と search の `collect_pages()` が返すページの集合を比べる（未決 1） |
-| `gen.py` | 中核と静的 HTML の生成器の試作。lint の `collect_pages()`、`clean_link_target()`、`resolve_link()` をそのまま使う |
+| `gen.py` | 中核と静的 HTML の生成器の試作。lint の `collect_pages()`、`clean_link_target()`、`resolve_link()` をそのまま使う。生成の記録は出力の外（`<出力先>.build-report.json`）に書き、出力に Wiki のルートの絶対パスが残っていないかを調べる |
 | `static/` | 生成器が書き出す `app.js`（ナビゲーションと検索）と `style.css`（日本語の CSS） |
+| `names_check.py` | `gen.py` の `export_name()` を、Codex のレビューが挙げた反例（接尾辞の形の名前、`.html` で終わるディレクトリ、予約名）で確かめる（未決 3） |
 | `serve.py` | サーバーのアダプタの試作。127.0.0.1、パスの先頭のトークン、Host の確認、GET だけ |
 | `static-test/probe.js` | 3 方式で同じ検査をするために、ページに差し込んで状態を取り出すスクリプト |
 | `test.mjs` | 同じ出力を `file://` とサーバーで開き、Chromium、Firefox、WebKit、Edge、Chrome で同じ手順を踏む |
@@ -34,6 +35,7 @@ python -X utf8 page_sets.py out/fixture-wiki ~/info-hive/W0_Wiki
 uv run --script gen.py out/fixture-wiki out/static
 uv run --script gen.py out/fixture-wiki out/static-rawfull --raw full
 uv run --script gen.py ~/info-hive/W0_Wiki out/static-w0
+uv run --script names_check.py
 npm install && npx playwright install chromium firefox webkit
 node test.mjs
 BROWSERS=msedge node test.mjs out/results/msedge.json

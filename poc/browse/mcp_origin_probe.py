@@ -63,6 +63,7 @@ def http(port, token, origin=None, method="POST", auth=True):
 
 
 def browser_fetch(port, token):
+    (HERE / "out" / "blank.html").write_text("<!doctype html><meta charset=utf-8><title>CSP なし</title>", encoding="utf-8")
     """Playwright の Chromium で、file:// と http://127.0.0.1 のページから fetch する。トークンを知っていても通るか。"""
     script = HERE / "out" / "fetch_probe.mjs"
     script.write_text("""
@@ -81,8 +82,13 @@ const call = () => p.evaluate(async ([port, token]) => {
     return "status " + r.status;
   } catch (e) { return "error " + e; }
 }, [port, token]);
+// 生成物のページは CSP（default-src 'none'）で fetch を自分で禁じるので、CSP のないページからも呼ぶ。
 await p.goto(pathToFileURL(staticDir).href + "/index.html");
-out.file = await call();
+out.file_with_csp = await call();
+await p.goto(pathToFileURL(staticDir).href + "/../blank.html");
+out.file_without_csp = await call();
+p.on("request", (r) => { if (r.url().includes("/mcp")) out.origin_sent = r.headers()["origin"] ?? null; });
+await call();
 await p.goto(`http://127.0.0.1:${port}/`).catch(() => {});
 await b.close();
 console.log(JSON.stringify(out));
