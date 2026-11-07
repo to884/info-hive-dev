@@ -129,7 +129,7 @@ def host_claude() -> str | None:
 
 def main() -> None:
     import psutil
-    from mcp_stdio import RELAY
+    from mcp_stdio import LAUNCH
     # デスクトップアプリのセッションから動かすときは、アプリが使っている CLI と同じものを使う。
     claude = host_claude() or shutil.which("claude")
     if not claude:
@@ -147,7 +147,7 @@ def main() -> None:
         shutil.copytree(CORPUS, wiki)
         config = Path(tmp) / "mcp.json"
         config.write_text(json.dumps({"mcpServers": {"wiki": {
-            "type": "stdio", "command": "uv", "args": ["run", "--quiet", "--script", str(RELAY)],
+            "type": "stdio", "command": "uv", "args": ["run", "--quiet", "--script", str(LAUNCH)],
             "env": {"INFO_HIVE_DATA_DIR": str(data), "INFO_HIVE_TEST_EMBEDDER": "hash",
                     "INFO_HIVE_MCP_IDLE_SECONDS": "600"}}}}), encoding="utf-8")
         prompt = (f"mcp__wiki__list_index ツールを wiki={wiki.as_posix()} で 1 回だけ呼び、"
