@@ -32,7 +32,7 @@
 - プラグイン名は `wiki`、スキル名は `info-hive` である。コマンドは `/wiki:<名前>` の形で起動する。
 - マーケットプレイス名 `info-hive` の定義は、`info-hive-marketplace/.claude-plugin/marketplace.json` にある。`info-hive-wiki` にはマーケットプレイスの定義を置かない。
 - スキルの本体は `info-hive-wiki/skills/info-hive/` にある。コマンドからは `${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/...` で参照する。
-- 手元で試すときは、`claude --plugin-dir <info-hive-wiki の絶対パス>` で起動する。マーケットプレイスから `wiki@info-hive` を入れているときは、`--settings '{"enabledPlugins":{"wiki@info-hive":false}}'` も付ける。付けないと、上書きされた側の MCP のサーバーが起動されない。
+- 手元で試すときは、`claude --plugin-dir <info-hive-wiki の絶対パス>` で起動する。マーケットプレイスから `wiki@info-hive` を入れていても、`--plugin-dir` の側が優先され、その MCP のサーバーが使われる（Claude Code 2.1.316 で確かめた）。
 
 ### 日本語と機械が読む文字列
 - 人とエージェントが読む文章（文書、コメント、出力メッセージ）は日本語で書く。
@@ -58,7 +58,7 @@
 - プラグインの本体はサブモジュール `info-hive-rag/` に置く。コンセプト、設計書、テストは開発用のリポジトリ `info-hive-dev` に置く。
 - マーケットプレイスの定義は `info-hive-marketplace/.claude-plugin/marketplace.json` に置く。`info-hive-rag` には置かない。
 - 依存先は `info-hive-rag/.claude-plugin/plugin.json` の `dependencies` に `wiki@info-hive` として宣言する。`wiki` を導入し、有効にした状態で使う。
-- 手元で試すときは、`claude --plugin-dir <info-hive-wiki の絶対パス> --plugin-dir <info-hive-rag の絶対パス>` で両プラグインを読み込む。マーケットプレイスから入れたものがあれば、wiki と同じく `--settings` の `enabledPlugins` で無効にする。
+- 手元で試すときは、`claude --plugin-dir <info-hive-wiki の絶対パス> --plugin-dir <info-hive-rag の絶対パス>` で両プラグインを読み込む。マーケットプレイスから入れたものがあっても、`--plugin-dir` の側が優先される。
 - wiki の PDF 取り込みから MCP の `register_pdf` を明示的に呼ぶ。`queued` は受付済みであり、索引化完了ではない。原本は移動・複製せず参照する。
 - ジョブの台帳は `scripts/rag_jobs.py`、接続中だけ動く子ワーカーは `scripts/rag_worker.py` にある。テストは親リポジトリの `tests/rag/` に置く。
 
