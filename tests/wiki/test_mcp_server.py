@@ -433,6 +433,32 @@ class ScriptToolTests(ServerCase):
         self.assertIn("graph.sqlite が見つからない", str(caught.exception))
 
 
+class WorkspaceConfigTests(ServerCase):
+    """ツールは wiki を引数で受け取る。サーバーの cwd（データの置き場所）と wiki の上に、サーバーを起動する前から
+    壊れた作業領域の設定があっても、それを読まずに答える（ADR-0008）。"""
+
+    def test_tools_ignore_workspace_config(self):
+        config = self.root / ".info-hive" / "workspace.json"
+        config.parent.mkdir()
+        config.write_text("{", encoding="utf-8")
+        self.data.mkdir(parents=True, exist_ok=True)
+        # 同じ場所で wiki を省いた CLI は、設定を読んで止まる。
+        out = subprocess.run([sys.executable, "-X", "utf8", str(SCRIPTS / "wiki_lint.py"), "--json"], cwd=self.data,
+                             capture_output=True, timeout=120, env={**os.environ, "PYTHONUTF8": "1"})
+        self.assertEqual(out.returncode, 1)
+        self.assertIn("作業領域の設定を読めない", out.stderr.decode("utf-8", "replace"))
+        # 設定を置いてからサーバーを起動する。起動と import の時点で読んでも見つかる。
+        client = self.client()
+        client.initialize()
+        self.assertEqual({tool["name"] for tool in client.tools()}, TOOLS)
+        arguments = {"wiki": str(self.wiki)}
+        result = client.call("lint", {**arguments, "graph": False})
+        result.pop("graph")
+        self.assertEqual(result, run_cli(SCRIPTS / "wiki_lint.py", self.wiki.resolve(), "--json"))
+        self.assertGreater(client.call("stats", arguments)["pages"], 0)
+        self.assertTrue(client.call("query", {**arguments, "query": "熱中症"})["results"])
+
+
 class IdleTests(ServerCase):
     idle = "4"
 
