@@ -290,5 +290,77 @@ class JobTests(unittest.TestCase):
         self.assertEqual(config.workspace(str(self.wiki)).parent.name, "wikis-v2")
 
 
+    def test_hard_link_alias_follows_the_new_version(self):
+        alias = self.refs / "別名.pdf"
+        try:
+            os.link(self.source, alias)
+        except OSError:
+            self.skipTest("このファイルシステムはハードリンクを作れない")
+        engine = self.engine()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        self.make_pdf(alias, "Rewritten through alias")  # 同じファイルなので、資料.pdf も書き換わる
+        new = engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        self.assertNotEqual(old["sha256"], new["sha256"])
+        self.assertEqual(engine.status(str(self.wiki))["documents"], 1)
+        results = engine.search(str(self.wiki), "Rewritten checkpoint", limit=20)["results"]
+        self.assertTrue(results)
+        self.assertTrue(all(row["sha256"] == new["sha256"] for row in results))
+
+    def test_restoring_old_content_indexes_it_again(self):
+        engine = self.engine()
+        original_bytes = self.source.read_bytes()
+        first = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.make_pdf(self.source, "Second edition")
+        engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.source.write_bytes(original_bytes)
+        again = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.assertEqual(again["sha256"], first["sha256"])
+        table = engine._table(self.config.workspace(str(self.wiki)))
+        rows = table.search().where(f"doc_id = '{first['sha256']}'").limit(100).to_list()
+        self.assertEqual(len(rows), again["chunks"])
+        found = engine.search(str(self.wiki), "Persistent indexing checkpoint", limit=5)["results"]
+        self.assertTrue(found and all(row["sha256"] == first["sha256"] for row in found))
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows のリンクの扱いの試験")
+    def test_local_link_to_network_file_is_rejected(self):
+        unc = Path(r"\\server\share\本.pdf")
+        info = os.lstat(self.source)
+        with patch.object(Path, "resolve", lambda self, strict=False: unc), \
+                patch("rag_config.os.lstat", lambda path: info), \
+                patch("rag_config._network_drive", lambda path: False):
+            with self.assertRaisesRegex(ValueError, "ネットワーク"):
+                self.config.pdf_path(str(self.refs / "リンク.pdf"))
+        with patch.object(Path, "resolve", lambda self, strict=False: unc), \
+                patch("rag_config.os.lstat", lambda path: info), \
+                patch("rag_config._network_drive", lambda path: True):
+            self.assertEqual(self.config.pdf_path("Z:/本.pdf"), unc)
+
+    def test_file_swapped_after_registration_is_not_read(self):
+        import sqlite3
+        job = self.register()
+        with sqlite3.connect(self.jobs.path) as db:
+            dev, ino, size, mtime_ns = db.execute("SELECT dev,ino,size,mtime_ns FROM ingest_jobs WHERE id=?",
+                                                  (job["job_id"],)).fetchone()
+        if ino in (None, "", "0"):
+            self.skipTest("このファイルシステムはファイルの識別子を返さない")
+        # 同じ大きさと更新時刻の、別のファイルに差し替える。
+        replacement = self.refs / "差し替え.tmp"
+        replacement.write_bytes(self.source.read_bytes())
+        os.utime(replacement, ns=(mtime_ns, mtime_ns))
+        os.replace(replacement, self.source)
+        with self.assertRaisesRegex(ValueError, "登録した PDF"):
+            self.engine().ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md",
+                                     expected=(dev, ino, size, mtime_ns))
+
+    def test_failed_job_after_publication_does_not_block_configuration(self):
+        job = self.register()
+        self.jobs.claim("owner")
+        self.jobs.begin_publication(job["job_id"], "owner")
+        self.jobs.finish(job["job_id"], "owner", error="要再確認の印を書けなかった")
+        self.assertFalse(self.jobs.cancel(str(self.wiki), job["job_id"])["cancellation_accepted"])
+        self.assertFalse(self.jobs.unfinished())
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
