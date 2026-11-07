@@ -94,6 +94,8 @@ def main() -> None:
                    for m, v in result["metrics"].items()}, flush=True)
         report["runs"][name] = {"fusion": FUSIONS[name], "sets": runs,
                                 "passed": all(r["exit_code"] == 0 for r in runs.values())}
+    # 今回測った融合の設定のどれかが不合格なら、終了コード 1 で終える（CI で品質の退行を落とすため）。
+    passed = all(run["passed"] for run in report["runs"].values())
     OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / "gate.json"
     if path.exists() and args.fusion:
@@ -102,6 +104,8 @@ def main() -> None:
         report["runs"] = previous["runs"]
     path.write_text(json.dumps(report, ensure_ascii=False, indent=1) + "\n", encoding="utf-8", newline="\n")
     print("保存した:", path)
+    print("合格" if passed else "不合格")
+    sys.exit(0 if passed else 1)
 
 
 if __name__ == "__main__":

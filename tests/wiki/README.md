@@ -10,6 +10,7 @@
 | `bench_mcp_latency.py` | 検索の速さ（今の CLI、中継経由の MCP、直接呼び出し） |
 | `check_claude_spawn.py` | Claude Code が中継とサーバーをどう起動し、セッションの後にサーバーが残るか（`claude -p` を 1 回実行する） |
 | `check_commands_mcp.py` | コマンド（`/wiki:stats`、`/wiki:query`、`/wiki:lint`）がまず MCP のツールを使い、`.mcp.json` のないプラグインでは CLI に戻るか（`claude -p --plugin-dir` をコマンドの数だけ実行する。引数にコマンド名を渡すと、それだけを実行する） |
+| `check_first_run_mcp.py` | 初めて使う人の最初のセッション。uv のキャッシュとデータの置き場所を空にして `claude -p` を実行し、サーバーの依存（約 1 GB）とモデル（約 530 MB）の取得のあいだにどう振る舞うかと、用意ができたあとの 2 回目のセッションを確かめる |
 | `mcp_stdio.py` | 試験用の最小の stdio の MCP クライアント |
 
 結果は `docs/research/wiki-mcp-server-2026-11-06/` に置く。
@@ -27,7 +28,11 @@ uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/run_mcp_gate.py
 uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/bench_mcp_latency.py
 uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/check_claude_spawn.py
 uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/check_commands_mcp.py
+uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/check_first_run_mcp.py
 ```
+
+- `check_commands_mcp.py` と `check_first_run_mcp.py` は、`claude -p` に `--settings '{"enabledPlugins":{"wiki@info-hive":false}}'` を渡す。マーケットプレイスから `wiki@info-hive` を入れていると、`--plugin-dir` の同じ名前のプラグインがそれを上書きし、MCP のサーバーが起動されずに `failed` になるためである（Claude Code 2.1.316）。手で `claude --plugin-dir` を試すときも、同じ指定を付ける。
+- macOS と Linux では、`.github/workflows/wiki-mcp.yml`（手で起動するか、`info-hive-wiki` の参照か `tests/wiki/` を変えた PR で動く）が、索引とサーバーの試験と、本物のモデルでの評価ゲートを動かす。
 
 - 試験はテスト用の埋め込み（`INFO_HIVE_TEST_EMBEDDER=hash`）を使い、モデルを読み込まない。中継は `.mcp.json` と同じく `uv run --script` で起動するので、サーバーの依存を初めて取得するときは数分かかる。
 - 評価ゲートと速さの測定は、本物のモデル（約 530 MB）を `$INFO_HIVE_POC_DATA/wiki-mcp-20261106/data/models/` に取得して使う。

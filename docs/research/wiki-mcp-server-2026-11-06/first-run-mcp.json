@@ -1,0 +1,140 @@
+{
+  "purpose": "初めて使う人の最初のセッションで、MCP のサーバーの依存の取得がホストの待ち時間に収まるか",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "claude_version": "2.1.316 (Claude Code)",
+  "plugin_commit": "v0.3.0-16-geb31b66-dirty",
+  "mcp_timeout_env": "120000",
+  "runs": [
+    {
+      "session": "cold",
+      "command": "stats",
+      "prompt": "/wiki:stats D:/Users/toshiki/AppData/Local/Temp/tmpar1u9ew5/project/wiki",
+      "returncode": 0,
+      "seconds": 103.6,
+      "mcp_servers": [
+        {
+          "name": "plugin:wiki:wiki",
+          "status": "pending",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:context7:context7",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:playwright:playwright",
+          "status": "connected",
+          "source": "plugin"
+        },
+        {
+          "name": "clion",
+          "status": "failed",
+          "source": "user"
+        },
+        {
+          "name": "playwright-edge",
+          "status": "connected",
+          "source": "user"
+        },
+        {
+          "name": "claude.ai Claude Docs",
+          "status": "connected",
+          "source": "claudeai"
+        },
+        {
+          "name": "claude.ai Figma",
+          "status": "connected",
+          "source": "claudeai"
+        }
+      ],
+      "tools": [
+        "ToolSearch",
+        "ToolSearch",
+        "Bash",
+        "Bash"
+      ],
+      "bash": [
+        "python \"C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_stats.py\" \"D:/Users/toshiki/AppData/Local/Temp/tmpar1u9ew5/project/wiki\"",
+        "cd \"D:/Users/toshiki/AppData/Local/Temp/tmpar1u9ew5/project/wiki\" && ls -la && wc -c index.md 2>&1"
+      ],
+      "wiki_args": [],
+      "succeeded": true,
+      "used_mcp": false,
+      "used_cli": true,
+      "used_other_wiki": false,
+      "answer_head": "この wiki は小規模で、規模の面では問題ありません。気になる点は2つあります。リンク密度が目安より低いことと、`index.md` が存在しないことです（統計の「index.md: 0 行」はこれが原因です）。\n\nMCP の wiki サーバーがまだ接続中だったので、CLI の `wiki_stats.py` で集計しました。そのため、検索の索引の状態は確認できていません。\n\n## 概要\n\n| 項目 | 値 |\n|---|---|\n| ページ数 | 27 |\n| 総文字数（空白を除く） | 14,459 |\n| 1ページの平均 | 24 行、535 文字 |\n| リンク数 | 35（1ページあたり 1.3 本） |\n| 構成 | concept 13 / entity 6 / source 5 / synthesis 3 |\n\n## 解釈\n\n- **スケーリング**：最初の閾値（インデ",
+      "stderr_tail": "",
+      "server_json_after": false
+    },
+    {
+      "session": "warm",
+      "command": "query",
+      "prompt": "/wiki:query D:/Users/toshiki/AppData/Local/Temp/tmpar1u9ew5/project/wiki の wiki で答えて。高輪ゲートウェイ駅は何線の駅？",
+      "returncode": 0,
+      "seconds": 27.7,
+      "mcp_servers": [
+        {
+          "name": "plugin:wiki:wiki",
+          "status": "pending",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:context7:context7",
+          "status": "needs-auth",
+          "source": "plugin"
+        },
+        {
+          "name": "plugin:playwright:playwright",
+          "status": "connected",
+          "source": "plugin"
+        },
+        {
+          "name": "clion",
+          "status": "failed",
+          "source": "user"
+        },
+        {
+          "name": "playwright-edge",
+          "status": "connected",
+          "source": "user"
+        },
+        {
+          "name": "claude.ai Claude Docs",
+          "status": "connected",
+          "source": "claudeai"
+        },
+        {
+          "name": "claude.ai Figma",
+          "status": "connected",
+          "source": "claudeai"
+        }
+      ],
+      "tools": [
+        "Read",
+        "Read",
+        "Glob",
+        "ToolSearch",
+        "mcp__plugin_wiki_wiki__query",
+        "Read"
+      ],
+      "bash": [],
+      "wiki_args": [
+        "D:/Users/toshiki/AppData/Local/Temp/tmpar1u9ew5/project/wiki"
+      ],
+      "succeeded": true,
+      "used_mcp": true,
+      "used_cli": false,
+      "used_other_wiki": false,
+      "answer_head": "wiki によると、高輪ゲートウェイ駅は **JR 東日本の山手線**の駅です。2020 年 3 月に、品川駅と田町駅の間に開業しました [[yamanote-line]]。\n\n- wiki に書かれているのは山手線だけです。ほかの路線（京浜東北線など）がこの駅に停まるかどうかは書かれていません。\n- この wiki には `index.md` がありません。そのため、wiki の MCP ツール `query` で検索して候補のページを見つけました。\n- 検索した時点では埋め込みの準備が終わっておらず、語彙検索だけで探しました。語彙検索は wiki 全体を対象にしています。\n\n経由する路線をすべて知りたい場合は、JR 東日本の駅の案内ページを取り込むと補えます。",
+      "stderr_tail": ""
+    }
+  ],
+  "wait_server": {
+    "returncode": 0,
+    "seconds": 71.5,
+    "stdout_tail": "{'started_now': False, 'port': 60508, 'pid': 36336, 'version': '832abeaf6d5dadf0', 'protocol': 1, 'started': 1794007362.1633964}\r\n",
+    "stderr_tail": ""
+  },
+  "server_log_tail": "wiki の MCP サーバーを 127.0.0.1:60508 で起動した（pid 36336、待機 120 秒で停止）\nパースキャッシュを作り直す（ファイルがない）\n埋め込みモデルのファイルを取得する: onnx-community/ruri-v3-130m-ONNX onnx/model.onnx\nWarning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.\nWarning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.\n"
+}
