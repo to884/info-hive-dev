@@ -155,5 +155,104 @@
       "update": {"plugin": "wiki", "section": {"browse": {"port": 0}}},
       "expect": "{\n  \"$schema\": \"./workspace.schema.json\",\n  \"version\": 1,\n  \"kind\": \"project\",\n  \"id\": \"p\",\n  \"zeta\": true,\n  \"dirs\": {\n    \"wiki\": \"知識\"\n  },\n  \"log\": {},\n  \"wiki\": {\n    \"browse\": {\n      \"port\": 0\n    }\n  },\n  \"rag\": {}\n}\n"
     }
-  ]
+  ],
+  "cli": {
+    "note": "wiki のスクリプトが wiki を省いたときの既定（wiki だけの試験）。cwd はスクリプトを動かすディレクトリ、wiki は明示する wiki（null なら省く）。target-page.md のある wiki を使い、decoy-page.md のある wiki を使わないことを確かめる。stderr があれば、標準エラーに含まれる文を確かめる。exit が 1 のときは標準出力が空であることも確かめる。",
+    "cases": [
+      {
+        "name": "設定がなければ ./wiki を使う",
+        "files": {"proj/wiki/target-page.md": "# 目印\n\n目印の本文。\n"},
+        "cwd": "proj",
+        "wiki": null,
+        "expect": {"exit": 0}
+      },
+      {
+        "name": "下のディレクトリから設定の dirs.wiki を使う",
+        "files": {
+          ".info-hive/workspace.json": {"version": 1, "kind": "user", "dirs": {"wiki": "知識/wiki"}},
+          "知識/wiki/target-page.md": "# 目印\n\n目印の本文。\n",
+          "wiki/decoy-page.md": "# 目印\n\n目印の本文。\n",
+          "src/wiki/decoy-page.md": "# 目印\n\n目印の本文。\n"
+        },
+        "cwd": "src",
+        "wiki": null,
+        "expect": {"exit": 0}
+      },
+      {
+        "name": "dirs.wiki を書かなければ作業領域の根の wiki を使う",
+        "files": {
+          ".info-hive/workspace.json": {"version": 1, "kind": "user"},
+          "wiki/target-page.md": "# 目印\n\n目印の本文。\n",
+          "src/wiki/decoy-page.md": "# 目印\n\n目印の本文。\n"
+        },
+        "cwd": "src",
+        "wiki": null,
+        "expect": {"exit": 0}
+      },
+      {
+        "name": "案内のファイルが指す作業領域の wiki を使う",
+        "files": {
+          ".info-hive.json": {"version": 1, "workspace": "ws"},
+          "ws/.info-hive/workspace.json": {"version": 1, "kind": "project", "id": "p"},
+          "ws/wiki/target-page.md": "# 目印\n\n目印の本文。\n",
+          "src/wiki/decoy-page.md": "# 目印\n\n目印の本文。\n"
+        },
+        "cwd": "src",
+        "wiki": null,
+        "expect": {"exit": 0}
+      },
+      {
+        "name": "未知のキーは標準エラーに警告を書いて続ける",
+        "files": {
+          ".info-hive/workspace.json": {"version": 1, "kind": "user", "zeta": true, "dirs": {"wiki": "kb"}},
+          "kb/target-page.md": "# 目印\n\n目印の本文。\n",
+          "src/wiki/decoy-page.md": "# 目印\n\n目印の本文。\n"
+        },
+        "cwd": "src",
+        "wiki": null,
+        "expect": {"exit": 0, "stderr": "警告: 未知のキー 'zeta'"}
+      },
+      {
+        "name": "壊れた設定は理由を書いて終了コード 1",
+        "files": {".info-hive/workspace.json": "{", "src/wiki/decoy-page.md": "# 目印\n\n目印の本文。\n"},
+        "cwd": "src",
+        "wiki": null,
+        "expect": {"exit": 1, "stderr": "作業領域の設定を読めない"}
+      },
+      {
+        "name": "dirs.wiki の .. は終了コード 1",
+        "files": {
+          ".info-hive/workspace.json": {"version": 1, "kind": "user", "dirs": {"wiki": "../wiki"}},
+          "src/wiki/decoy-page.md": "# 目印\n\n目印の本文。\n"
+        },
+        "cwd": "src",
+        "wiki": null,
+        "expect": {"exit": 1, "stderr": "作業領域の設定を読めない"}
+      },
+      {
+        "name": "案内のファイルが指す作業領域に設定がなければ終了コード 1",
+        "files": {".info-hive.json": {"version": 1, "workspace": "missing"}, "src/wiki/decoy-page.md": "# 目印\n\n目印の本文。\n"},
+        "cwd": "src",
+        "wiki": null,
+        "expect": {"exit": 1, "stderr": "作業領域の設定を読めない"}
+      },
+      {
+        "name": "dirs.wiki のディレクトリがなければ、従来どおり見つからないと書いて終了コード 1",
+        "files": {
+          ".info-hive/workspace.json": {"version": 1, "kind": "user", "dirs": {"wiki": "kb"}},
+          "src/wiki/decoy-page.md": "# 目印\n\n目印の本文。\n"
+        },
+        "cwd": "src",
+        "wiki": null,
+        "expect": {"exit": 1, "stderr": "wiki のディレクトリが見つからない"}
+      },
+      {
+        "name": "wiki を明示すれば設定を読まない",
+        "files": {".info-hive/workspace.json": "{", "src/other/target-page.md": "# 目印\n\n目印の本文。\n", "src/wiki/decoy-page.md": "# 目印\n\n目印の本文。\n"},
+        "cwd": "src",
+        "wiki": "other",
+        "expect": {"exit": 0}
+      }
+    ]
+  }
 }
