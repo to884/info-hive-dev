@@ -130,7 +130,7 @@ async def main():
     (wiki / "index.md").write_text("# 検証用 wiki\n", encoding="utf-8")
     (wiki / "log.md").write_text("# 操作記録\n", encoding="utf-8")
     config_file = RUN / "config.json"
-    write_json(config_file, {"reference_roots": {"fixture": str(references)}, "data_dir": str(RUN / "data"),
+    write_json(config_file, {"data_dir": str(RUN / "data"),
         "embedding_model": "cl-nagoya/ruri-v3-30m", "cpu_threads": 4, "batch_size": 1,
         "model_cache_dir": os.environ.get("RAG_TEST_MODEL_CACHE", str(WORK / "models")),
         "uv_cache_dir": str(Path(os.environ.get("RAG_TEST_UV_CACHE") or subprocess.check_output(["uv", "cache", "dir"], encoding="utf-8").strip()).resolve())})
@@ -145,7 +145,7 @@ async def main():
             identity = submitted["job_id"]
             record("registration_is_short_and_persistent", submitted["status"] in {"queued", "running"},
                    milliseconds=(time.perf_counter()-started)*1000, job_id=identity)
-            duplicate = await call(session, "ingest_pdf", wiki_root=str(wiki), source="fixture:" + source.name,
+            duplicate = await call(session, "ingest_pdf", wiki_root=str(wiki), source=str(source),
                                    source_page="sources/日本語の再開検証.md", title="日本語の再開検証")
             record("ingest_alias_deduplicates_registration", duplicate["job_id"] == identity)
             def ocr_started():

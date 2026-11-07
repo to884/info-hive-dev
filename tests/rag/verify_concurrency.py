@@ -21,7 +21,7 @@ async def main():
     values=json.loads(baseline.read_text(encoding='utf-8'))
     source=sorted((ROOT/'.rag-poc-data').glob('k*/references/controls.pdf'))[-1]
     source_hash=hashlib.sha256(source.read_bytes()).hexdigest()
-    values.update(data_dir=str(run/'data'),batch_size=1,model_cache_dir=str(ROOT/'.rag-poc-data/model-cache'),reference_roots={'fixture':str(source.parent)},ocr_mode='off')
+    values.update(data_dir=str(run/'data'),batch_size=1,model_cache_dir=str(ROOT/'.rag-poc-data/model-cache'),ocr_mode='off')
     path=run/'config.json'; write_json(path,values)
     cfg=Config(values); jobs=Jobs(cfg.data_dir)
     wikis=[run/'wiki-a',run/'wiki-b']

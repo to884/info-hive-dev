@@ -27,7 +27,7 @@ async def main():
     (wiki / "SCHEMA.md").write_text("# 制御試験\n", encoding="utf-8")
     base = Path(os.environ['RAG_TEST_BASE_CONFIG']) if os.environ.get('RAG_TEST_BASE_CONFIG') else sorted((ROOT / ".rag-poc-data").glob("j*/config.json"))[-1]
     values = json.loads(base.read_text(encoding="utf-8"))
-    values.update(reference_roots={"fixture": str(references)}, data_dir=str(run / "data"), batch_size=2)
+    values.update(data_dir=str(run / "data"), batch_size=2)
     if os.environ.get('RAG_TEST_MODEL_CACHE'):
         values['model_cache_dir']=os.environ['RAG_TEST_MODEL_CACHE']
     if os.environ.get('RAG_TEST_UV_CACHE'):
@@ -48,7 +48,7 @@ async def main():
             async with connect(config_file, via_uv=True) as (session, _):
                 job = await call(session, "register_pdf", wiki_root=str(wiki), source=str(source), source_page="sources/controls.md")
                 identity = job["job_id"]
-                rejected = await session.call_tool("configure", {"reference_roots": {"fixture": str(references)}})
+                rejected = await session.call_tool("configure", {"retrieval": {"reranker": "off"}})
                 record("configure_rejects_unfinished_jobs", rejected.isError)
                 pending = asyncio.create_task(call(session, "job_status", wiki_root=str(wiki), job_id=identity, wait_seconds=30))
                 await asyncio.sleep(.1)
