@@ -15,7 +15,9 @@ import argparse
 import hashlib
 import html
 import json
+import os
 import re
+import shutil
 import sys
 import time
 import unicodedata
@@ -28,6 +30,7 @@ sys.path.insert(0, str(HERE / "out" / "wiki-src" / "skills" / "info-hive" / "scr
 
 import wiki_lint  # noqa: E402
 from markdown_it import MarkdownIt  # noqa: E402
+from markdown_it.token import Token  # noqa: E402
 
 PROTOCOL_VERSION = 1
 WIKILINK_FULL_RE = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
@@ -46,13 +49,18 @@ def short_hash(text: str) -> str:
 
 
 SUFFIX_RE = re.compile(r"~[0-9a-f]{8}$")
+# 生成器が出力の最上位に自分で書くファイルとディレクトリ。ページの出力と同じ場所を取らせない。
+ASSET_FILES = ("index.html", "nav.js", "app.js", "style.css", ".browse-output",
+               "data/search.js", "data/capabilities.js", "data/diagnostics.js")
+RESERVED_TOP = {"index.html", "nav.js", "app.js", "style.css", "data", ".browse-output"}
+OUTPUT_MARKER = ".browse-output"
 
 
 class NameCollision(Exception):
     """接尾辞を付けても出力のパスが重なった。上書きせずに生成を止める。"""
 
 
-def safe_component(part: str, key: str, limit: int, is_dir: bool) -> str:
+def safe_component(part: str, key: str, limit: int, is_dir: bool, top: bool = False) -> str:
     """1 つの名前の要素を、どの OS でも作れる名前にする。読める名前を残し、必要なときだけ接尾辞を付ける。
 
     key は、この要素までの識別子（ディレクトリならそのディレクトリのパス、ページなら識別子）。
@@ -80,6 +88,9 @@ def safe_component(part: str, key: str, limit: int, is_dir: bool) -> str:
     if is_dir and name.lower().endswith(".html"):
         # ページ foo の出力 foo.html と、ディレクトリ foo.html が同じ場所を取り合わないようにする。
         changed = True
+    if top and (name if is_dir else name + ".html").casefold() in RESERVED_TOP:
+        # 最上位の index.html、nav.js、style.css、data/ などは生成器が使う。
+        changed = True
     # .html と接尾辞（~ と 8 桁）を足しても上限に収まるようにする。上限は UTF-8 のバイト数で数える。
     budget = limit - len(".html") - 9
     if len(name.encode("utf-8")) > budget:
@@ -94,7 +105,7 @@ def export_name(page_id: str, limit: int) -> str:
     """ページの識別子（NFC の POSIX の相対パスから .md を除いたもの）から、出力のパスを決める唯一の関数。"""
     parts = page_id.split("/")
     out = [safe_component(p, "/".join(parts[:i + 1]) + ("/" if i < len(parts) - 1 else ""), limit,
-                          is_dir=i < len(parts) - 1)
+                          is_dir=i < len(parts) - 1, top=i == 0)
            for i, p in enumerate(parts)]
     return "/".join(out) + ".html"
 
@@ -102,7 +113,9 @@ def export_name(page_id: str, limit: int) -> str:
 def check_unique(names: dict) -> None:
     """出力のパスが、大文字と小文字を同一視しても重ならず、ファイルとディレクトリが同じ場所を取らないことを確かめる。"""
     files = defaultdict(list)
-    dirs = set()
+    dirs = {"data"}
+    for asset in ASSET_FILES:
+        files[asset.casefold()].append("<生成器>")
     for pid, name in names.items():
         files[name.casefold()].append(pid)
         parts = name.casefold().split("/")
@@ -113,13 +126,17 @@ def check_unique(names: dict) -> None:
         raise NameCollision(json.dumps({"same_file": dup, "file_and_dir": clash}, ensure_ascii=False))
 
 
-def heading_id(text: str, used: dict) -> str:
+def heading_id(text: str, used: set) -> str:
+    """見出しの ID。連番を付けた結果も含め、そのページで使った ID と重ならないようにする。"""
     base = nfc(text).strip().lower()
     base = re.sub(r"[\s]+", "-", base)
     base = re.sub(r"[!-,./:-@\[-^`{-~]", "", base) or "section"
-    n = used.get(base, 0)
-    used[base] = n + 1
-    return base if n == 0 else f"{base}-{n}"
+    candidate, n = base, 0
+    while candidate in used:
+        n += 1
+        candidate = f"{base}-{n}"
+    used.add(candidate)
+    return candidate
 
 
 def rel_href(from_path: str, to_path: str) -> str:
@@ -180,7 +197,7 @@ class Core:
     @staticmethod
     def _headings(md: MarkdownIt, body: str) -> list:
         """見出しを、描くときと同じ markdown-it の解析から取る（ATX と Setext の両方）。"""
-        used = {}
+        used = set()
         found = []
         tokens = md.parse(body)
         for i, tok in enumerate(tokens):
@@ -212,13 +229,43 @@ class Core:
         return result
 
 
-def render_markdown(md: MarkdownIt, body: str, heading_ids: list) -> str:
+def wikilinks(md: MarkdownIt, body: str) -> list:
+    """本文の wikilink を、描くときと同じ解析から拾う。コードスパンとコードブロックの中は拾わない。"""
+    found = []
+    for tok in md.parse(body):
+        if tok.type == "inline":
+            for child in tok.children or []:
+                if child.type == "text":
+                    found.extend(WIKILINK_FULL_RE.finditer(child.content))
+    return found
+
+
+def render_markdown(md: MarkdownIt, body: str, heading_ids: list, link_html) -> str:
+    """Markdown を描く。本文の文字の中の wikilink だけを、link_html(連番) が返す HTML に置き換える。"""
     tokens = md.parse(body)
     i = 0
+    n = 0
     for tok in tokens:
         if tok.type == "heading_open" and i < len(heading_ids):
             tok.attrSet("id", heading_ids[i][1])
             i += 1
+        if tok.type != "inline" or not tok.children:
+            continue
+        children = []
+        for child in tok.children:
+            if child.type != "text" or not WIKILINK_FULL_RE.search(child.content):
+                children.append(child)
+                continue
+            pos = 0
+            for m in WIKILINK_FULL_RE.finditer(child.content):
+                if m.start() > pos:
+                    children.append(Token("text", "", 0, content=child.content[pos:m.start()]))
+                children.append(Token("html_inline", "", 0, content=link_html(n)))
+                n += 1
+                pos = m.end()
+            if pos < len(child.content):
+                children.append(Token("text", "", 0, content=child.content[pos:]))
+        tok.children = children
     return md.renderer.render(tokens, md.options, {})
 
 
@@ -228,14 +275,20 @@ def build(root: Path, out: Path, raw_mode: str, name_limit: int) -> dict:
     md = core.md
     generation = hashlib.sha256(
         "".join(f"{pid}\0{p['body']}" for pid, p in core.pages.items()).encode("utf-8")).hexdigest()[:16]
-    out.mkdir(parents=True, exist_ok=True)
+    if out.exists() and any(out.iterdir()) and not (out / OUTPUT_MARKER).exists():
+        raise SystemExit(f"出力先が空でなく、browse の出力でもないので書き出さない: {out}")
+    final = out
+    out = final.with_name(f"{final.name}.tmp-{os.getpid()}")
+    if out.exists():
+        shutil.rmtree(out)
+    out.mkdir(parents=True)
 
     links = {}
     inbound = defaultdict(set)
     diagnostics = []
     for pid, p in core.pages.items():
         resolved = []
-        for m in WIKILINK_FULL_RE.finditer(p["body"]):
+        for m in wikilinks(core.md, p["body"]):
             r = core.resolve(m.group(1))
             r["raw"] = m.group(0)
             r["label"] = (m.group(2) or m.group(1)).strip()
@@ -279,34 +332,34 @@ def build(root: Path, out: Path, raw_mode: str, name_limit: int) -> dict:
 
     for pid, p in core.pages.items():
         path = core.out_name[pid]
-        counter = iter(range(len(links[pid])))
-        placeholders = {}
-
-        def swap(m):
-            n = next(counter)
-            key = f"\ue000{n}\ue001"
-            placeholders[key] = links[pid][n]
-            return key
-
-        body = WIKILINK_FULL_RE.sub(swap, p["body"])
-        body_html = render_markdown(md, body, core.headings[pid])
-        for key, r in placeholders.items():
+        def link_html(n, path=path, page_links=links[pid]):
+            r = page_links[n]
             label = html.escape(r["label"])
             if r["state"] == "resolved":
                 href = rel_href(path, core.out_name[r["id"]]) + (f"#{urllib.parse.quote(r['anchor'])}" if r.get("anchor") else "")
                 cls = "wl" + (" wl-missing-heading" if r.get("missing_heading") else "")
-                rep = f'<a class="{cls}" href="{html.escape(href)}">{label}</a>'
-            elif r["state"] == "ambiguous":
-                rep = f'<span class="wl wl-ambiguous" title="候補: {html.escape(", ".join(r["candidates"]))}">{label}</span>'
-            else:
-                rep = f'<span class="wl wl-unresolved" title="未作成のページ">{label}</span>'
-            body_html = body_html.replace(key, rep)
+                return f'<a class="{cls}" href="{html.escape(href)}">{label}</a>'
+            if r["state"] == "ambiguous":
+                return f'<span class="wl wl-ambiguous" title="候補: {html.escape(", ".join(r["candidates"]))}">{label}</span>'
+            return '<span class="wl wl-unresolved" title="未作成のページ">' + label + "</span>"
+
+        body_html = render_markdown(md, p["body"], core.headings[pid], link_html)
         page_html = render_page(core, pid, path, body_html, inbound[pid], links[pid], raw_mode, title)
         target = out / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(page_html, encoding="utf-8", newline="\n")
 
     (out / "index.html").write_text(render_index(core, title), encoding="utf-8", newline="\n")
+    (out / OUTPUT_MARKER).write_text(generation + "\n", encoding="utf-8", newline="\n")
+    # 書き終えた世代と入れ替える。前の世代のファイル（消えたページ、別の --raw で書いたページ）は残らない。
+    if final.exists():
+        old = final.with_name(f"{final.name}.old-{os.getpid()}")
+        final.rename(old)
+        out.rename(final)
+        shutil.rmtree(old)
+    else:
+        out.rename(final)
+    out = final
     elapsed = time.perf_counter() - started
     nav_bytes = (out / "nav.js").stat().st_size
     search_bytes = (out / "data" / "search.js").stat().st_size
@@ -323,9 +376,6 @@ def build(root: Path, out: Path, raw_mode: str, name_limit: int) -> dict:
         "case_collisions": core.case_collisions, "diagnostics": diagnostics,
     }
     # 生成の記録は Wiki の絶対パスを含むので、出力（持ち運ぶ生成物）の中には置かず、隣に書く。
-    stale = out / "data" / "build-report.json"
-    if stale.exists():
-        stale.unlink()
     report["absolute_path_leaks"] = scan_leaks(out, [root.as_posix(), str(root)])
     Path(str(out) + ".build-report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2),
                                                      encoding="utf-8", newline="\n")
