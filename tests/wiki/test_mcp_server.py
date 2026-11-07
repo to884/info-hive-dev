@@ -243,9 +243,12 @@ class RepairTests(ServerCase):
     """uv の環境が作りかけで壊れていても、入口（wiki_mcp_launch.py）が入れ直して起動する。
 
     依存を入れている途中でホストに止められると、dist-info の METADATA が欠けた環境が残り、
-    `uv run --script` が失敗し続ける（uv 0.12 の Windows で起きた）。中継の環境で同じ壊れ方を作る。
+    `uv run --script` が失敗し続ける（uv 0.12 の Windows で起きた）。モジュールの本体だけが欠けると、
+    `uv sync` は成功するのに import に失敗する。中継の環境で、この 2 つの壊れ方を作る。
     サーバーの環境（約 1 GB）の入れ直しは時間がかかるので、ここでは試さない。
     """
+
+    REINSTALL_LOG = "環境が作りかけで壊れているかもしれないので、入れ直す"
 
     def site_packages(self, script: Path) -> Path:
         env = {**os.environ, "PYTHONUTF8": "1"}
@@ -268,6 +271,60 @@ class RepairTests(ServerCase):
         self.assertEqual({tool["name"] for tool in client.tools()}, TOOLS)
         self.assertTrue(broken.is_file(), "入口が中継の環境を入れ直していない")
         self.assertTrue(any("入れ直す" in line for line in client.stderr), client.stderr[-10:])
+
+    def test_launcher_repairs_missing_module_body(self):
+        """dist-info はそろっていて、モジュールの本体だけが欠けている。`uv sync` は成功する。"""
+        broken = self.site_packages(RELAY) / "mcp" / "server" / "stdio.py"
+        self.assertTrue(broken.is_file())
+        broken.unlink()
+        sync = subprocess.run(["uv", "sync", "--quiet", "--script", str(RELAY)], capture_output=True, timeout=600,
+                              env={**os.environ, "PYTHONUTF8": "1"})
+        self.assertEqual(sync.returncode, 0, "この壊れ方では uv sync が成功するはず")
+        client = self.client()
+        client.initialize(timeout=600)
+        self.assertEqual({tool["name"] for tool in client.tools()}, TOOLS)
+        self.assertTrue(broken.is_file(), "入口が中継の環境を入れ直していない")
+        self.assertTrue(any("壊れているかもしれない" in line for line in client.stderr), client.stderr[-10:])
+        self.assertTrue(any(self.REINSTALL_LOG in line for line in client.stderr), client.stderr[-10:])
+
+    def test_launcher_repairs_missing_lazily_imported_module(self):
+        """起動のときには import せず、実行中に初めて import するモジュールが欠けている（anyio のバックエンド）。"""
+        broken = self.site_packages(RELAY) / "anyio" / "_backends" / "_asyncio.py"
+        self.assertTrue(broken.is_file())
+        broken.unlink()
+        client = self.client()
+        client.initialize(timeout=600)
+        self.assertEqual({tool["name"] for tool in client.tools()}, TOOLS)
+        self.assertTrue(broken.is_file(), "入口が中継の環境を入れ直していない")
+        self.assertTrue(any(self.REINSTALL_LOG in line for line in client.stderr), client.stderr[-10:])
+
+    def test_concurrent_repairs_reinstall_once(self):
+        """壊れた環境に 3 つのセッションが同時に入っても、入れ直しは 1 回だけで、どのセッションも使える。
+
+        後から来たセッションは、ロックを取ったあとで直っていることを確かめ、入れ直さない。入れ直すと、
+        先に起動した中継が import する前のモジュールを消してしまう。
+        """
+        metadata = sorted(self.site_packages(RELAY).glob("*.dist-info/METADATA"))
+        self.assertTrue(metadata)
+        metadata[0].unlink()
+        clients = [self.client() for _ in range(3)]
+        results: list = []
+
+        def run(client: StdioClient) -> None:
+            try:
+                client.initialize(timeout=900)
+                results.append({tool["name"] for tool in client.tools()})
+            except Exception as exc:  # noqa: BLE001 - 本体のスレッドで確かめる
+                results.append(exc)
+
+        threads = [threading.Thread(target=run, args=(client,)) for client in clients]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=1200)
+        self.assertEqual(results, [TOOLS] * 3)
+        reinstalls = [line for client in clients for line in client.stderr if self.REINSTALL_LOG in line]
+        self.assertEqual(len(reinstalls), 1, reinstalls)
 
 
 class ScriptToolTests(ServerCase):
