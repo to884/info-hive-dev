@@ -31,7 +31,7 @@ uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/check_comman
 uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/check_first_run_mcp.py
 ```
 
-- `check_commands_mcp.py` と `check_first_run_mcp.py` は、`claude -p` に `--settings '{"enabledPlugins":{"wiki@info-hive":false}}'` を渡す。マーケットプレイスから `wiki@info-hive` を入れていると、`--plugin-dir` の同じ名前のプラグインがそれを上書きし、MCP のサーバーが起動されずに `failed` になるためである（Claude Code 2.1.316）。手で `claude --plugin-dir` を試すときも、同じ指定を付ける。
+- `check_commands_mcp.py` と `check_first_run_mcp.py` は、`claude -p --plugin-dir` で手元の `info-hive-wiki` を読み込む。マーケットプレイスから `wiki@info-hive` を入れていても、`--plugin-dir` の側が優先され、その MCP のサーバーが使われる（Claude Code 2.1.316 で確かめた）。
 - macOS と Linux では、`.github/workflows/wiki-mcp.yml`（手で起動するか、`info-hive-wiki` の参照か `tests/wiki/` を変えた PR で動く）が、索引とサーバーの試験と、本物のモデルでの評価ゲートを動かす。
 
 - 試験はテスト用の埋め込み（`INFO_HIVE_TEST_EMBEDDER=hash`）を使い、モデルを読み込まない。中継は `.mcp.json` と同じく `uv run --script` で起動するので、サーバーの依存を初めて取得するときは数分かかる。
