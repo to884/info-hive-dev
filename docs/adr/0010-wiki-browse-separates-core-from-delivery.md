@@ -145,7 +145,7 @@ mermaid と `wiki/assets/` の svg の表示は、ADR-0005 のとおり第 1 段
 
 - **事実**：今の版では、lint（`wiki_lint.py` L126〜127、L217〜222）は最上位の `SCHEMA.md`、`index.md`、`log.md`、`README.md` と、最上位の `indexes/`、`graph/`、`raw/`、`.evolution/`、`assets/` を除く。search（`wiki_search.py` L287〜290）は `README.md` と `assets/` を除かず、`.wiki-cache/` を除く。どちらも `.` で始まる名前のファイルを除く。試験用の Wiki では、lint だけが `.wiki-cache/` の Markdown を、search だけが `README.md` と `assets/` の Markdown を含んだ。作者の Wiki（56 ページ）では一致した。search の集合は、MCP の `query` の索引にも使われる（`wiki_index.py` L851）。
 - **選択肢**：A. lint の集合を正とし、search をそろえる。B. search の集合を正とし、lint をそろえる。C. browse だけが独自の集合を持つ。
-- **推す案**：閲覧の「ページ」とリンクの解決は、lint の集合を正とする。除外の規則を 1 か所に置き、lint と browse の中核がそれを使う。`.wiki-cache/` は lint の側でも除く。`index.md` と `indexes/` はページとして描かず、ナビゲーションの入力としてだけ読む。検索（search と MCP の索引）の対象を同じ集合に縮めるかは、検索の仕様の変更として分けて決める。推すのはそろえること（A）で、評価ゲートで確かめてから入れる。
+- **推す案**：閲覧の「ページ」とリンクの解決は、lint の集合を正とする。除外の規則を 1 か所に置き、lint と browse の中核がそれを使う。`.wiki-cache/` は lint の側でも除く。`index.md` と `indexes/` はページとして描かず、ナビゲーションの入力としてだけ読む。リンクの抜き出し方も 1 か所の規則にし、コードスパンとコードブロックの中の `[[...]]` は、lint でも閲覧でもリンクとして数えない（今の lint は数える）。検索（search と MCP の索引）の対象を同じ集合に縮めるかは、検索の仕様の変更として分けて決める。推すのはそろえること（A）で、評価ゲートで確かめてから入れる。
 - **根拠**：F-G06 が求めるのは、閲覧のリンクの解決と lint の一致である。検索の対象までは求めていない。lint の除外のほうが新しく、`assets/` と `README.md` を除く理由がある。検索をそろえれば、検索に出るのに閲覧では開けないページがなくなる。C は「規則を 1 か所に置く」に反する。
 - **影響**：どちらも `info-hive-wiki` の変更で、browse の実装の前に行う。
 
