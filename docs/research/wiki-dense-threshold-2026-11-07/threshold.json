@@ -1,0 +1,2304 @@
+{
+ "purpose": "MCP の検索の基盤（ruri-v3-130m、usearch、Tantivy、RRF）での意味の検索の距離の上限",
+ "env": {
+  "python": "3.12.13",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "dev_commit": "ec0b407",
+  "wiki_commit": "36a4089",
+  "model": "cl-nagoya/ruri-v3-130m",
+  "runtime": "fastembed-0.8.0+onnxruntime-1.31.1/fp32",
+  "fusion": {
+   "k": 30,
+   "lexical_weight": 0.5,
+   "candidates": 200
+  },
+  "current_max_distance": 0.208
+ },
+ "sets": {
+  "en": {
+   "summary": {
+    "positives": 27,
+    "negatives": 5,
+    "probes": 20,
+    "positive_needed_min_max": 0.1989,
+    "positive_needed_max_max": 0.1989,
+    "negative_nearest_min": 0.2192,
+    "probe_nearest_min": 0.1828,
+    "lexical_only": {
+     "recall@5": 0.6296,
+     "recall@10": 0.6296,
+     "mrr": 0.6296,
+     "fp_rate": 0.0
+    },
+    "lexical_only_probe_fp_rate": 1.0
+   },
+   "queries": [
+    {
+     "id": "q01",
+     "kind": "exact",
+     "nearest": 0.1304,
+     "expected": {
+      "quantization": 0.1304
+     },
+     "needed_min": 0.1304,
+     "needed_max": 0.1304
+    },
+    {
+     "id": "q02",
+     "kind": "exact",
+     "nearest": 0.1452,
+     "expected": {
+      "kv-cache": 0.1452
+     },
+     "needed_min": 0.1452,
+     "needed_max": 0.1452
+    },
+    {
+     "id": "q03",
+     "kind": "exact",
+     "nearest": 0.0886,
+     "expected": {
+      "cuda": 0.0886
+     },
+     "needed_min": 0.0886,
+     "needed_max": 0.0886
+    },
+    {
+     "id": "q04",
+     "kind": "exact",
+     "nearest": 0.1264,
+     "expected": {
+      "pytorch": 0.1264
+     },
+     "needed_min": 0.1264,
+     "needed_max": 0.1264
+    },
+    {
+     "id": "q05",
+     "kind": "exact",
+     "nearest": 0.1344,
+     "expected": {
+      "mixture-of-experts": 0.1344
+     },
+     "needed_min": 0.1344,
+     "needed_max": 0.1344
+    },
+    {
+     "id": "q06",
+     "kind": "exact",
+     "nearest": 0.1434,
+     "expected": {
+      "distributed-training": 0.1434
+     },
+     "needed_min": 0.1434,
+     "needed_max": 0.1434
+    },
+    {
+     "id": "q07",
+     "kind": "exact",
+     "nearest": 0.1531,
+     "expected": {
+      "cuda": 0.1531
+     },
+     "needed_min": 0.1531,
+     "needed_max": 0.1531
+    },
+    {
+     "id": "q08",
+     "kind": "exact",
+     "nearest": 0.1361,
+     "expected": {
+      "lora-paper": 0.1361
+     },
+     "needed_min": 0.1361,
+     "needed_max": 0.1361
+    },
+    {
+     "id": "q09",
+     "kind": "exact",
+     "nearest": 0.1293,
+     "expected": {
+      "chinchilla-paper": 0.1293
+     },
+     "needed_min": 0.1293,
+     "needed_max": 0.1293
+    },
+    {
+     "id": "q10",
+     "kind": "exact",
+     "nearest": 0.1383,
+     "expected": {
+      "distributed-training": 0.1383
+     },
+     "needed_min": 0.1383,
+     "needed_max": 0.1383
+    },
+    {
+     "id": "q11",
+     "kind": "exact",
+     "nearest": 0.1305,
+     "expected": {
+      "tokenization": 0.1305
+     },
+     "needed_min": 0.1305,
+     "needed_max": 0.1305
+    },
+    {
+     "id": "q12",
+     "kind": "paraphrase",
+     "nearest": 0.1942,
+     "expected": {
+      "attention-mechanism": 0.1989
+     },
+     "needed_min": 0.1989,
+     "needed_max": 0.1989
+    },
+    {
+     "id": "q13",
+     "kind": "paraphrase",
+     "nearest": 0.1528,
+     "expected": {
+      "gradient-descent": 0.1561
+     },
+     "needed_min": 0.1561,
+     "needed_max": 0.1561
+    },
+    {
+     "id": "q14",
+     "kind": "paraphrase",
+     "nearest": 0.1683,
+     "expected": {
+      "tokenization": 0.1683
+     },
+     "needed_min": 0.1683,
+     "needed_max": 0.1683
+    },
+    {
+     "id": "q15",
+     "kind": "paraphrase",
+     "nearest": 0.1692,
+     "expected": {
+      "quantization": 0.1693
+     },
+     "needed_min": 0.1693,
+     "needed_max": 0.1693
+    },
+    {
+     "id": "q16",
+     "kind": "paraphrase",
+     "nearest": 0.1643,
+     "expected": {
+      "mixture-of-experts": 0.175
+     },
+     "needed_min": 0.175,
+     "needed_max": 0.175
+    },
+    {
+     "id": "q17",
+     "kind": "paraphrase",
+     "nearest": 0.1584,
+     "expected": {
+      "kv-cache": 0.188
+     },
+     "needed_min": 0.188,
+     "needed_max": 0.188
+    },
+    {
+     "id": "q18",
+     "kind": "paraphrase",
+     "nearest": 0.1475,
+     "expected": {
+      "distributed-training": 0.1475
+     },
+     "needed_min": 0.1475,
+     "needed_max": 0.1475
+    },
+    {
+     "id": "q19",
+     "kind": "paraphrase",
+     "nearest": 0.1651,
+     "expected": {
+      "pytorch": 0.1768
+     },
+     "needed_min": 0.1768,
+     "needed_max": 0.1768
+    },
+    {
+     "id": "q20",
+     "kind": "paraphrase",
+     "nearest": 0.1654,
+     "expected": {
+      "cuda": 0.1654
+     },
+     "needed_min": 0.1654,
+     "needed_max": 0.1654
+    },
+    {
+     "id": "q21",
+     "kind": "paraphrase",
+     "nearest": 0.1491,
+     "expected": {
+      "chinchilla-paper": 0.1491
+     },
+     "needed_min": 0.1491,
+     "needed_max": 0.1491
+    },
+    {
+     "id": "q22",
+     "kind": "filter",
+     "nearest": 0.1418,
+     "expected": {
+      "attention-mechanism": 0.1418,
+      "kv-cache": 0.1623
+     },
+     "needed_min": 0.1418,
+     "needed_max": 0.1623
+    },
+    {
+     "id": "q23",
+     "kind": "filter",
+     "nearest": 0.1584,
+     "expected": {
+      "scaling-laws-paper": 0.1951,
+      "chinchilla-paper": 0.1584
+     },
+     "needed_min": 0.1584,
+     "needed_max": 0.1951
+    },
+    {
+     "id": "q24",
+     "kind": "filter",
+     "nearest": 0.1488,
+     "expected": {
+      "quantization": 0.1488
+     },
+     "needed_min": 0.1488,
+     "needed_max": 0.1488
+    },
+    {
+     "id": "q25",
+     "kind": "filter",
+     "nearest": 0.1488,
+     "expected": {
+      "mixture-of-experts": 0.1488
+     },
+     "needed_min": 0.1488,
+     "needed_max": 0.1488
+    },
+    {
+     "id": "q26",
+     "kind": "filter",
+     "nearest": 0.1887,
+     "expected": {
+      "ilya-sutskever": 0.1887
+     },
+     "needed_min": 0.1887,
+     "needed_max": 0.1887
+    },
+    {
+     "id": "q27",
+     "kind": "filter",
+     "nearest": 0.0979,
+     "expected": {
+      "cuda": 0.0979
+     },
+     "needed_min": 0.0979,
+     "needed_max": 0.0979
+    },
+    {
+     "id": "q28",
+     "kind": "negative",
+     "nearest": 0.2278
+    },
+    {
+     "id": "q29",
+     "kind": "negative",
+     "nearest": 0.2466
+    },
+    {
+     "id": "q30",
+     "kind": "negative",
+     "nearest": 0.2192
+    },
+    {
+     "id": "q31",
+     "kind": "negative",
+     "nearest": 0.2352
+    },
+    {
+     "id": "q32",
+     "kind": "negative",
+     "nearest": 0.2351
+    }
+   ],
+   "probes": [
+    {
+     "query": "how to bake sourdough bread at home",
+     "nearest": 0.2655
+    },
+    {
+     "query": "best hiking trails in the Alps",
+     "nearest": 0.2265
+    },
+    {
+     "query": "football world cup final score",
+     "nearest": 0.2053
+    },
+    {
+     "query": "how to repair a leaking faucet",
+     "nearest": 0.2613
+    },
+    {
+     "query": "symptoms of seasonal allergies in dogs",
+     "nearest": 0.2737
+    },
+    {
+     "query": "history of the Roman empire",
+     "nearest": 0.253
+    },
+    {
+     "query": "watercolor painting techniques for beginners",
+     "nearest": 0.2384
+    },
+    {
+     "query": "cheap flights to Hawaii in winter",
+     "nearest": 0.227
+    },
+    {
+     "query": "how to grow tomatoes on a balcony",
+     "nearest": 0.2473
+    },
+    {
+     "query": "rules of contract bridge",
+     "nearest": 0.1828
+    },
+    {
+     "query": "jazz saxophone players of the 1950s",
+     "nearest": 0.2532
+    },
+    {
+     "query": "how to knit a wool scarf",
+     "nearest": 0.2462
+    },
+    {
+     "query": "volcano eruption in Iceland",
+     "nearest": 0.2399
+    },
+    {
+     "query": "wedding speech ideas for the best man",
+     "nearest": 0.2238
+    },
+    {
+     "query": "fixing a flat bicycle tire",
+     "nearest": 0.2067
+    },
+    {
+     "query": "chess opening for beginners",
+     "nearest": 0.2228
+    },
+    {
+     "query": "skin care routine for dry skin",
+     "nearest": 0.2269
+    },
+    {
+     "query": "how to train a puppy to sit",
+     "nearest": 0.2242
+    },
+    {
+     "query": "recipe for vegetable curry",
+     "nearest": 0.2283
+    },
+    {
+     "query": "the plot of a famous opera",
+     "nearest": 0.2304
+    }
+   ],
+   "sweep": [
+    {
+     "max_distance": 0.16,
+     "recall@5": 0.7407,
+     "recall@10": 0.7407,
+     "mrr": 0.7037,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.162,
+     "recall@5": 0.7407,
+     "recall@10": 0.7407,
+     "mrr": 0.6852,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.164,
+     "recall@5": 0.7407,
+     "recall@10": 0.7407,
+     "mrr": 0.6852,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.166,
+     "recall@5": 0.7778,
+     "recall@10": 0.7778,
+     "mrr": 0.7222,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.168,
+     "recall@5": 0.7778,
+     "recall@10": 0.7778,
+     "mrr": 0.7222,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.17,
+     "recall@5": 0.8519,
+     "recall@10": 0.8519,
+     "mrr": 0.7716,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.172,
+     "recall@5": 0.8519,
+     "recall@10": 0.8519,
+     "mrr": 0.7531,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.174,
+     "recall@5": 0.8519,
+     "recall@10": 0.8519,
+     "mrr": 0.7531,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.176,
+     "recall@5": 0.8889,
+     "recall@10": 0.8889,
+     "mrr": 0.7623,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.178,
+     "recall@5": 0.9259,
+     "recall@10": 0.9259,
+     "mrr": 0.7747,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.18,
+     "recall@5": 0.9259,
+     "recall@10": 0.9259,
+     "mrr": 0.7698,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.182,
+     "recall@5": 0.9259,
+     "recall@10": 0.9259,
+     "mrr": 0.7698,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.184,
+     "recall@5": 0.8889,
+     "recall@10": 0.9259,
+     "mrr": 0.7623,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.186,
+     "recall@5": 0.8889,
+     "recall@10": 0.9259,
+     "mrr": 0.7623,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.188,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.766,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.19,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7627,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.192,
+     "recall@5": 0.8704,
+     "recall@10": 0.963,
+     "mrr": 0.7627,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.194,
+     "recall@5": 0.8704,
+     "recall@10": 0.963,
+     "mrr": 0.7565,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.196,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7503,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.198,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7485,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.2,
+     "recall@5": 0.8889,
+     "recall@10": 1.0,
+     "mrr": 0.741,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.202,
+     "recall@5": 0.8889,
+     "recall@10": 1.0,
+     "mrr": 0.741,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.204,
+     "recall@5": 0.8889,
+     "recall@10": 1.0,
+     "mrr": 0.7349,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.206,
+     "recall@5": 0.8889,
+     "recall@10": 1.0,
+     "mrr": 0.7349,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.208,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.21,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.212,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.214,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.216,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.218,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.22,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.2,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.222,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.2,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.224,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.2,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.226,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.2,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.228,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.4,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.23,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.4,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.232,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.4,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.234,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.4,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.236,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.8,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.238,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.8,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.24,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.8,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.242,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.8,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.244,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.8,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.246,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 0.8,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.248,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.25,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.252,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.254,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.256,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.258,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.26,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.262,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.264,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.266,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.268,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.27,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.272,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.274,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.276,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.278,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.28,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.282,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.284,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.286,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.288,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.29,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.292,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.294,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.296,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.298,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.3,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": null,
+     "recall@5": 0.8889,
+     "recall@10": 0.963,
+     "mrr": 0.7312,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    }
+   ]
+  },
+  "ja": {
+   "summary": {
+    "positives": 47,
+    "negatives": 6,
+    "probes": 20,
+    "positive_needed_min_max": 0.199,
+    "positive_needed_max_max": 0.1992,
+    "negative_nearest_min": 0.2164,
+    "probe_nearest_min": 0.1711,
+    "lexical_only": {
+     "recall@5": 0.9716,
+     "recall@10": 0.9716,
+     "mrr": 0.9007,
+     "fp_rate": 0.0
+    },
+    "lexical_only_probe_fp_rate": 0.1
+   },
+   "queries": [
+    {
+     "id": "j01",
+     "kind": "exact",
+     "nearest": 0.1057,
+     "expected": {
+      "消費税": 0.1057
+     },
+     "needed_min": 0.1057,
+     "needed_max": 0.1057
+    },
+    {
+     "id": "j02",
+     "kind": "exact",
+     "nearest": 0.0952,
+     "expected": {
+      "invoice-system": 0.0952
+     },
+     "needed_min": 0.0952,
+     "needed_max": 0.0952
+    },
+    {
+     "id": "j03",
+     "kind": "exact",
+     "nearest": 0.11,
+     "expected": {
+      "全文検索": 0.11
+     },
+     "needed_min": 0.11,
+     "needed_max": 0.11
+    },
+    {
+     "id": "j04",
+     "kind": "exact",
+     "nearest": 0.0936,
+     "expected": {
+      "heatstroke": 0.0936
+     },
+     "needed_min": 0.0936,
+     "needed_max": 0.0936
+    },
+    {
+     "id": "j05",
+     "kind": "exact",
+     "nearest": 0.1098,
+     "expected": {
+      "yamanote-line": 0.1098
+     },
+     "needed_min": 0.1098,
+     "needed_max": 0.1098
+    },
+    {
+     "id": "j06",
+     "kind": "exact",
+     "nearest": 0.1227,
+     "expected": {
+      "keigen-zeiritsu": 0.1227
+     },
+     "needed_min": 0.1227,
+     "needed_max": 0.1227
+    },
+    {
+     "id": "j07",
+     "kind": "exact",
+     "nearest": 0.1057,
+     "expected": {
+      "文字コード": 0.1057
+     },
+     "needed_min": 0.1057,
+     "needed_max": 0.1057
+    },
+    {
+     "id": "j08",
+     "kind": "exact",
+     "nearest": 0.1468,
+     "expected": {
+      "elasticsearch": 0.1468
+     },
+     "needed_min": 0.1468,
+     "needed_max": 0.1468
+    },
+    {
+     "id": "j09",
+     "kind": "exact",
+     "nearest": 0.1846,
+     "expected": {
+      "heatstroke": 0.1846
+     },
+     "needed_min": 0.1846,
+     "needed_max": 0.1846
+    },
+    {
+     "id": "j10",
+     "kind": "paraphrase",
+     "nearest": 0.1239,
+     "expected": {
+      "消費税": 0.1239
+     },
+     "needed_min": 0.1239,
+     "needed_max": 0.1239
+    },
+    {
+     "id": "j11",
+     "kind": "paraphrase",
+     "nearest": 0.0887,
+     "expected": {
+      "keigen-zeiritsu": 0.0887
+     },
+     "needed_min": 0.0887,
+     "needed_max": 0.0887
+    },
+    {
+     "id": "j12",
+     "kind": "paraphrase",
+     "nearest": 0.1168,
+     "expected": {
+      "morphological-analysis": 0.1168
+     },
+     "needed_min": 0.1168,
+     "needed_max": 0.1168
+    },
+    {
+     "id": "j13",
+     "kind": "paraphrase",
+     "nearest": 0.1181,
+     "expected": {
+      "heatstroke": 0.1181
+     },
+     "needed_min": 0.1181,
+     "needed_max": 0.1181
+    },
+    {
+     "id": "j14",
+     "kind": "paraphrase",
+     "nearest": 0.1463,
+     "expected": {
+      "rag": 0.1463
+     },
+     "needed_min": 0.1463,
+     "needed_max": 0.1463
+    },
+    {
+     "id": "j15",
+     "kind": "paraphrase",
+     "nearest": 0.1133,
+     "expected": {
+      "mount-fuji": 0.1133
+     },
+     "needed_min": 0.1133,
+     "needed_max": 0.1133
+    },
+    {
+     "id": "j16",
+     "kind": "paraphrase",
+     "nearest": 0.1597,
+     "expected": {
+      "文字コード": 0.1597,
+      "文字化け障害報告": 0.1992
+     },
+     "needed_min": 0.1597,
+     "needed_max": 0.1992
+    },
+    {
+     "id": "j17",
+     "kind": "paraphrase",
+     "nearest": 0.1059,
+     "expected": {
+      "embedding": 0.1059
+     },
+     "needed_min": 0.1059,
+     "needed_max": 0.1059
+    },
+    {
+     "id": "j18",
+     "kind": "two-char",
+     "nearest": 0.1022,
+     "expected": {
+      "東京都": 0.1022
+     },
+     "needed_min": 0.1022,
+     "needed_max": 0.1022
+    },
+    {
+     "id": "j19",
+     "kind": "two-char",
+     "nearest": 0.149,
+     "expected": {
+      "全文検索": 0.149
+     },
+     "needed_min": 0.149,
+     "needed_max": 0.149
+    },
+    {
+     "id": "j20",
+     "kind": "two-char",
+     "nearest": 0.1169,
+     "expected": {
+      "keigen-zeiritsu": 0.1456,
+      "消費税": 0.1169
+     },
+     "needed_min": 0.1169,
+     "needed_max": 0.1456
+    },
+    {
+     "id": "j21",
+     "kind": "two-char",
+     "nearest": 0.13,
+     "expected": {
+      "mount-fuji": 0.1318
+     },
+     "needed_min": 0.1318,
+     "needed_max": 0.1318
+    },
+    {
+     "id": "j22",
+     "kind": "single-kanji",
+     "nearest": 0.1434,
+     "expected": {
+      "消費税": 0.1434
+     },
+     "needed_min": 0.1434,
+     "needed_max": 0.1434
+    },
+    {
+     "id": "j23",
+     "kind": "single-kanji",
+     "nearest": 0.1704,
+     "expected": {
+      "cancer-screening": 0.1704
+     },
+     "needed_min": 0.1704,
+     "needed_max": 0.1704
+    },
+    {
+     "id": "j24",
+     "kind": "single-kanji",
+     "nearest": 0.1784,
+     "expected": {
+      "yamanote-line": 0.1784
+     },
+     "needed_min": 0.1784,
+     "needed_max": 0.1784
+    },
+    {
+     "id": "j25",
+     "kind": "mixed",
+     "nearest": 0.099,
+     "expected": {
+      "rag": 0.099
+     },
+     "needed_min": 0.099,
+     "needed_max": 0.099
+    },
+    {
+     "id": "j26",
+     "kind": "mixed",
+     "nearest": 0.1007,
+     "expected": {
+      "bm25": 0.1007
+     },
+     "needed_min": 0.1007,
+     "needed_max": 0.1007
+    },
+    {
+     "id": "j27",
+     "kind": "mixed",
+     "nearest": 0.0821,
+     "expected": {
+      "文字コード": 0.0821,
+      "文字化け障害報告": 0.1381
+     },
+     "needed_min": 0.0821,
+     "needed_max": 0.1381
+    },
+    {
+     "id": "j28",
+     "kind": "mixed",
+     "nearest": 0.102,
+     "expected": {
+      "nta": 0.102
+     },
+     "needed_min": 0.102,
+     "needed_max": 0.102
+    },
+    {
+     "id": "j29",
+     "kind": "cross-lingual",
+     "nearest": 0.138,
+     "expected": {
+      "elasticsearch": 0.1497
+     },
+     "needed_min": 0.1497,
+     "needed_max": 0.1497
+    },
+    {
+     "id": "j30",
+     "kind": "cross-lingual",
+     "nearest": 0.1483,
+     "expected": {
+      "elasticsearch": 0.1483
+     },
+     "needed_min": 0.1483,
+     "needed_max": 0.1483
+    },
+    {
+     "id": "j31",
+     "kind": "cross-lingual",
+     "nearest": 0.1422,
+     "expected": {
+      "embedding": 0.1422
+     },
+     "needed_min": 0.1422,
+     "needed_max": 0.1422
+    },
+    {
+     "id": "j32",
+     "kind": "cross-lingual",
+     "nearest": 0.1624,
+     "expected": {
+      "rag": 0.1624
+     },
+     "needed_min": 0.1624,
+     "needed_max": 0.1624
+    },
+    {
+     "id": "j33",
+     "kind": "cross-lingual",
+     "nearest": 0.1459,
+     "expected": {
+      "bm25": 0.1459
+     },
+     "needed_min": 0.1459,
+     "needed_max": 0.1459
+    },
+    {
+     "id": "j34",
+     "kind": "fullwidth",
+     "nearest": 0.1461,
+     "expected": {
+      "bm25": 0.1461
+     },
+     "needed_min": 0.1461,
+     "needed_max": 0.1461
+    },
+    {
+     "id": "j35",
+     "kind": "fullwidth",
+     "nearest": 0.182,
+     "expected": {
+      "rag": 0.199
+     },
+     "needed_min": 0.199,
+     "needed_max": 0.199
+    },
+    {
+     "id": "j36",
+     "kind": "fullwidth",
+     "nearest": 0.1907,
+     "expected": {
+      "unicode-normalization": 0.1907
+     },
+     "needed_min": 0.1907,
+     "needed_max": 0.1907
+    },
+    {
+     "id": "j37",
+     "kind": "long-section",
+     "nearest": 0.1411,
+     "expected": {
+      "embedding": 0.161,
+      "search-study-notes": 0.1411
+     },
+     "needed_min": 0.1411,
+     "needed_max": 0.161
+    },
+    {
+     "id": "j38",
+     "kind": "long-section",
+     "nearest": 0.0831,
+     "expected": {
+      "文字化け障害報告": 0.0831
+     },
+     "needed_min": 0.0831,
+     "needed_max": 0.0831
+    },
+    {
+     "id": "j39",
+     "kind": "long-section",
+     "nearest": 0.1342,
+     "expected": {
+      "search-study-notes": 0.1342
+     },
+     "needed_min": 0.1342,
+     "needed_max": 0.1342
+    },
+    {
+     "id": "j40",
+     "kind": "filename",
+     "nearest": 0.1041,
+     "expected": {
+      "熱中症予防ガイド要約": 0.1041
+     },
+     "needed_min": 0.1041,
+     "needed_max": 0.1041
+    },
+    {
+     "id": "j41",
+     "kind": "filename",
+     "nearest": 0.1099,
+     "expected": {
+      "文字化け障害報告": 0.1099
+     },
+     "needed_min": 0.1099,
+     "needed_max": 0.1099
+    },
+    {
+     "id": "j42",
+     "kind": "filter",
+     "nearest": 0.1612,
+     "expected": {
+      "tax-seminar-2025": 0.1612,
+      "tokyo-business-trip": 0.1816
+     },
+     "needed_min": 0.1612,
+     "needed_max": 0.1816
+    },
+    {
+     "id": "j43",
+     "kind": "filter",
+     "nearest": 0.1815,
+     "expected": {
+      "japanese-search-tradeoffs": 0.1815
+     },
+     "needed_min": 0.1815,
+     "needed_max": 0.1815
+    },
+    {
+     "id": "j44",
+     "kind": "filter",
+     "nearest": 0.1031,
+     "expected": {
+      "heatstroke": 0.1031,
+      "熱中症予防ガイド要約": 0.138,
+      "summer-outdoor-safety": 0.1488
+     },
+     "needed_min": 0.1031,
+     "needed_max": 0.1488
+    },
+    {
+     "id": "j45",
+     "kind": "filter",
+     "nearest": 0.1386,
+     "expected": {
+      "mecab": 0.1386
+     },
+     "needed_min": 0.1386,
+     "needed_max": 0.1386
+    },
+    {
+     "id": "j46",
+     "kind": "filter",
+     "nearest": 0.1022,
+     "expected": {
+      "東京都": 0.1022,
+      "yamanote-line": 0.1543,
+      "tokyo-business-trip": 0.1796
+     },
+     "needed_min": 0.1022,
+     "needed_max": 0.1796
+    },
+    {
+     "id": "j47",
+     "kind": "filter",
+     "nearest": 0.1156,
+     "expected": {
+      "embedding": 0.1156
+     },
+     "needed_min": 0.1156,
+     "needed_max": 0.1156
+    },
+    {
+     "id": "j48",
+     "kind": "negative",
+     "nearest": 0.2544
+    },
+    {
+     "id": "j49",
+     "kind": "negative",
+     "nearest": 0.2378
+    },
+    {
+     "id": "j50",
+     "kind": "negative",
+     "nearest": 0.2396
+    },
+    {
+     "id": "j51",
+     "kind": "negative",
+     "nearest": 0.2164
+    },
+    {
+     "id": "j52",
+     "kind": "negative",
+     "nearest": 0.2564
+    },
+    {
+     "id": "j53",
+     "kind": "negative",
+     "nearest": 0.2394
+    }
+   ],
+   "probes": [
+    {
+     "query": "自宅でのパンの焼き方",
+     "nearest": 0.2158
+    },
+    {
+     "query": "アルプスの登山ルート",
+     "nearest": 0.1711
+    },
+    {
+     "query": "サッカーのワールドカップの決勝",
+     "nearest": 0.2459
+    },
+    {
+     "query": "水漏れする蛇口の直し方",
+     "nearest": 0.2167
+    },
+    {
+     "query": "犬の花粉症の症状",
+     "nearest": 0.2304
+    },
+    {
+     "query": "ローマ帝国の歴史",
+     "nearest": 0.2457
+    },
+    {
+     "query": "初心者向けの水彩画の技法",
+     "nearest": 0.2411
+    },
+    {
+     "query": "冬のハワイへの格安航空券",
+     "nearest": 0.2281
+    },
+    {
+     "query": "ベランダでのトマトの育て方",
+     "nearest": 0.221
+    },
+    {
+     "query": "将棋の定跡",
+     "nearest": 0.2279
+    },
+    {
+     "query": "1950 年代のジャズのサックス奏者",
+     "nearest": 0.262
+    },
+    {
+     "query": "毛糸のマフラーの編み方",
+     "nearest": 0.2357
+    },
+    {
+     "query": "アイスランドの火山の噴火",
+     "nearest": 0.1972
+    },
+    {
+     "query": "結婚式の友人代表のスピーチ",
+     "nearest": 0.2309
+    },
+    {
+     "query": "自転車のパンクの直し方",
+     "nearest": 0.2122
+    },
+    {
+     "query": "盆栽の剪定の時期",
+     "nearest": 0.1994
+    },
+    {
+     "query": "乾燥肌のスキンケア",
+     "nearest": 0.2444
+    },
+    {
+     "query": "子犬にお座りを教える方法",
+     "nearest": 0.254
+    },
+    {
+     "query": "野菜カレーの作り方",
+     "nearest": 0.2452
+    },
+    {
+     "query": "オペラのあらすじ",
+     "nearest": 0.2276
+    }
+   ],
+   "sweep": [
+    {
+     "max_distance": 0.16,
+     "recall@5": 0.9894,
+     "recall@10": 1.0,
+     "mrr": 0.9521,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.1
+    },
+    {
+     "max_distance": 0.162,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9521,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.1
+    },
+    {
+     "max_distance": 0.164,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9521,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.1
+    },
+    {
+     "max_distance": 0.166,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9521,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.1
+    },
+    {
+     "max_distance": 0.168,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9521,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.1
+    },
+    {
+     "max_distance": 0.17,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9521,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.1
+    },
+    {
+     "max_distance": 0.172,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.174,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.176,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.178,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.18,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.182,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9521,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.184,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9521,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.186,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9521,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.188,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9486,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.19,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9486,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.192,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9486,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.194,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9486,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.196,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9486,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.198,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9486,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.15
+    },
+    {
+     "max_distance": 0.2,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.2
+    },
+    {
+     "max_distance": 0.202,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.2
+    },
+    {
+     "max_distance": 0.204,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.2
+    },
+    {
+     "max_distance": 0.206,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.2
+    },
+    {
+     "max_distance": 0.208,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.2
+    },
+    {
+     "max_distance": 0.21,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.2
+    },
+    {
+     "max_distance": 0.212,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.2
+    },
+    {
+     "max_distance": 0.214,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.25
+    },
+    {
+     "max_distance": 0.216,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.0,
+     "probe_fp_rate": 0.25
+    },
+    {
+     "max_distance": 0.218,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.1667,
+     "probe_fp_rate": 0.3
+    },
+    {
+     "max_distance": 0.22,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.1667,
+     "probe_fp_rate": 0.3
+    },
+    {
+     "max_distance": 0.222,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.1667,
+     "probe_fp_rate": 0.35
+    },
+    {
+     "max_distance": 0.224,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.1667,
+     "probe_fp_rate": 0.35
+    },
+    {
+     "max_distance": 0.226,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.1667,
+     "probe_fp_rate": 0.35
+    },
+    {
+     "max_distance": 0.228,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.1667,
+     "probe_fp_rate": 0.45
+    },
+    {
+     "max_distance": 0.23,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.1667,
+     "probe_fp_rate": 0.5
+    },
+    {
+     "max_distance": 0.232,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.1667,
+     "probe_fp_rate": 0.6
+    },
+    {
+     "max_distance": 0.234,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.1667,
+     "probe_fp_rate": 0.6
+    },
+    {
+     "max_distance": 0.236,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.1667,
+     "probe_fp_rate": 0.65
+    },
+    {
+     "max_distance": 0.238,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.3333,
+     "probe_fp_rate": 0.65
+    },
+    {
+     "max_distance": 0.24,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.6667,
+     "probe_fp_rate": 0.65
+    },
+    {
+     "max_distance": 0.242,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.6667,
+     "probe_fp_rate": 0.7
+    },
+    {
+     "max_distance": 0.244,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.6667,
+     "probe_fp_rate": 0.7
+    },
+    {
+     "max_distance": 0.246,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.6667,
+     "probe_fp_rate": 0.9
+    },
+    {
+     "max_distance": 0.248,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.6667,
+     "probe_fp_rate": 0.9
+    },
+    {
+     "max_distance": 0.25,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.6667,
+     "probe_fp_rate": 0.9
+    },
+    {
+     "max_distance": 0.252,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.6667,
+     "probe_fp_rate": 0.9
+    },
+    {
+     "max_distance": 0.254,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.6667,
+     "probe_fp_rate": 0.9
+    },
+    {
+     "max_distance": 0.256,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 0.8333,
+     "probe_fp_rate": 0.95
+    },
+    {
+     "max_distance": 0.258,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 0.95
+    },
+    {
+     "max_distance": 0.26,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 0.95
+    },
+    {
+     "max_distance": 0.262,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 0.95
+    },
+    {
+     "max_distance": 0.264,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.266,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.268,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.27,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.272,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.274,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.276,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.278,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.28,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.282,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.284,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.286,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.288,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.29,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.292,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.294,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.296,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.298,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": 0.3,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    },
+    {
+     "max_distance": null,
+     "recall@5": 1.0,
+     "recall@10": 1.0,
+     "mrr": 0.9628,
+     "fp_rate": 1.0,
+     "probe_fp_rate": 1.0
+    }
+   ]
+  }
+ },
+ "extra_wiki": {
+  "pages": 56,
+  "sections": 255,
+  "title_queries": 56,
+  "title_distance_max": 0.1057,
+  "titles_over_current": 0,
+  "probe_nearest_min": {
+   "en": 0.1792,
+   "ja": 0.2163
+  },
+  "probes_under_current": {
+   "en": 1,
+   "ja": 0
+  },
+  "title_distances": [
+   0.024,
+   0.0249,
+   0.0261,
+   0.0304,
+   0.0311,
+   0.0321,
+   0.036,
+   0.036,
+   0.0394,
+   0.0403,
+   0.0415,
+   0.0421,
+   0.0424,
+   0.0427,
+   0.045,
+   0.0462,
+   0.0465,
+   0.0483,
+   0.0487,
+   0.0493,
+   0.0495,
+   0.0506,
+   0.0515,
+   0.0516,
+   0.0517,
+   0.0533,
+   0.0537,
+   0.0537,
+   0.0545,
+   0.0548,
+   0.0559,
+   0.0578,
+   0.0605,
+   0.0607,
+   0.0608,
+   0.0609,
+   0.0625,
+   0.0626,
+   0.0627,
+   0.0665,
+   0.0667,
+   0.0678,
+   0.0689,
+   0.0706,
+   0.0739,
+   0.0743,
+   0.0777,
+   0.0851,
+   0.0868,
+   0.0869,
+   0.0937,
+   0.0946,
+   0.0963,
+   0.0986,
+   0.1,
+   0.1057
+  ],
+  "probe_distances": {
+   "en": [
+    0.2556,
+    0.2523,
+    0.2129,
+    0.2427,
+    0.2668,
+    0.2127,
+    0.2391,
+    0.2556,
+    0.2475,
+    0.1792,
+    0.2536,
+    0.2132,
+    0.2279,
+    0.2197,
+    0.2183,
+    0.2093,
+    0.2203,
+    0.2219,
+    0.2199,
+    0.2229
+   ],
+   "ja": [
+    0.2467,
+    0.2495,
+    0.2508,
+    0.2377,
+    0.2815,
+    0.2455,
+    0.2391,
+    0.2519,
+    0.2849,
+    0.22,
+    0.259,
+    0.2436,
+    0.2573,
+    0.2465,
+    0.2163,
+    0.2472,
+    0.2607,
+    0.2409,
+    0.2458,
+    0.2253
+   ]
+  }
+ }
+}

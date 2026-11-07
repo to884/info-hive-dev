@@ -8,12 +8,14 @@
 | `test_mcp_server.py` | サーバーと中継の試験。トークンと Host ヘッダー、127.0.0.1 だけで待ち受けること、中継を 4 つ同時に起動してもサーバーが 1 つ、中継の終了後もサーバーが残ること、サーバーが止まった後や呼び出しの途中で止まったときの接続し直し、版の違うサーバーの入れ替え、要求がないときの停止。ツール `lint`、`stats`、`graph` が CLI の `--json` と同じ結果を返すこと |
 | `run_mcp_gate.py`、`mcp_eval_search.py` | wiki の評価ゲート（`eval/retrieval/run_eval.py`）を新しい基盤で通す |
 | `bench_mcp_latency.py` | 検索の速さ（今の CLI、中継経由の MCP、直接呼び出し） |
+| `bench_mcp_startup.py` | 起動の速さ（入口から `initialize` と `tools/list` まで）。2 つの版のスクリプトを交互に起動して比べる。結果は `docs/research/wiki-mcp-startup-2026-11-07/` に置く |
+| `measure_dense_threshold.py` | 意味の検索の距離の上限（`max_distance`）。評価セットの距離の分布と、上限を変えたときの成績。結果は `docs/research/wiki-dense-threshold-2026-11-07/` に置く |
 | `check_claude_spawn.py` | Claude Code が中継とサーバーをどう起動し、セッションの後にサーバーが残るか（`claude -p` を 1 回実行する） |
 | `check_commands_mcp.py` | コマンド（`/wiki:stats`、`/wiki:query`、`/wiki:lint`）がまず MCP のツールを使い、`.mcp.json` のないプラグインでは CLI に戻るか（`claude -p --plugin-dir` をコマンドの数だけ実行する。引数にコマンド名を渡すと、それだけを実行する） |
 | `check_first_run_mcp.py` | 初めて使う人の最初のセッション。uv のキャッシュとデータの置き場所を空にして `claude -p` を実行し、サーバーの依存（約 1 GB）とモデル（約 530 MB）の取得のあいだにどう振る舞うかと、用意ができたあとの 2 回目のセッションを確かめる |
 | `mcp_stdio.py` | 試験用の最小の stdio の MCP クライアント |
 
-結果は `docs/research/wiki-mcp-server-2026-11-06/` に置く。
+結果は、ことわりがなければ `docs/research/wiki-mcp-server-2026-11-06/` に置く。
 
 ## 動かし方
 
@@ -26,7 +28,9 @@ uv run --python 3.12 %DEPS% python -X utf8 -m unittest tests/wiki/test_mcp_serve
 set INFO_HIVE_POC_DATA=C:\Works\info-hive-dev\.rag-poc-data
 uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/run_mcp_gate.py
 uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/bench_mcp_latency.py
+uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/measure_dense_threshold.py
 uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/check_claude_spawn.py
+uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/bench_mcp_startup.py 36a4089 work --rounds 7
 uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/check_commands_mcp.py
 uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/check_first_run_mcp.py
 ```
