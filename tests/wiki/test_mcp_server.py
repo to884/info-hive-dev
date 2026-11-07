@@ -26,7 +26,7 @@ import psutil
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from mcp_stdio import RELAY, ROOT, StdioClient, relay_command  # noqa: E402
+from mcp_stdio import LAUNCH, RELAY, ROOT, StdioClient, relay_command  # noqa: E402
 
 CORPUS = ROOT / "info-hive-wiki/eval/retrieval/ja/corpus/wiki"
 SCRIPTS = ROOT / "info-hive-wiki/skills/info-hive/scripts"
@@ -99,7 +99,7 @@ class ServerCase(unittest.TestCase):
         return [p for p in found if not any(c.pid in pids for c in p.children())]
 
     def ensure(self) -> dict:
-        out = subprocess.run(["uv", "run", "--quiet", "--script", str(RELAY), "--ensure"], capture_output=True,
+        out = subprocess.run(["uv", "run", "--quiet", "--script", str(LAUNCH), "--ensure"], capture_output=True,
                              env={**os.environ, "PYTHONUTF8": "1", **self.env}, timeout=1800)
         self.assertEqual(out.returncode, 0, out.stderr.decode("utf-8", "replace"))
         return self.info()
@@ -237,6 +237,37 @@ class RelayTests(ServerCase):
             client.call("list_index", {"wiki": str(self.wiki), "name": "../SCHEMA.md"})
         with self.assertRaises(RuntimeError):
             client.call("query", {"wiki": str(self.root / "ない"), "query": "x"})
+
+
+class RepairTests(ServerCase):
+    """uv の環境が作りかけで壊れていても、入口（wiki_mcp_launch.py）が入れ直して起動する。
+
+    依存を入れている途中でホストに止められると、dist-info の METADATA が欠けた環境が残り、
+    `uv run --script` が失敗し続ける（uv 0.12 の Windows で起きた）。中継の環境で同じ壊れ方を作る。
+    サーバーの環境（約 1 GB）の入れ直しは時間がかかるので、ここでは試さない。
+    """
+
+    def site_packages(self, script: Path) -> Path:
+        env = {**os.environ, "PYTHONUTF8": "1"}
+        subprocess.run(["uv", "sync", "--quiet", "--script", str(script)], check=True, capture_output=True,
+                       env=env, timeout=1800)
+        found = subprocess.run(["uv", "python", "find", "--script", str(script)], check=True, capture_output=True,
+                               env=env, timeout=120)
+        python = found.stdout.decode("utf-8").strip().splitlines()[-1]
+        out = subprocess.run([python, "-c", "import sysconfig; print(sysconfig.get_paths()['purelib'])"],
+                             check=True, capture_output=True, timeout=120)
+        return Path(out.stdout.decode("utf-8").strip())
+
+    def test_launcher_repairs_broken_relay_env(self):
+        metadata = sorted(self.site_packages(RELAY).glob("*.dist-info/METADATA"))
+        self.assertTrue(metadata)
+        broken = metadata[0]
+        broken.unlink()
+        client = self.client()
+        client.initialize(timeout=600)
+        self.assertEqual({tool["name"] for tool in client.tools()}, TOOLS)
+        self.assertTrue(broken.is_file(), "入口が中継の環境を入れ直していない")
+        self.assertTrue(any("入れ直す" in line for line in client.stderr), client.stderr[-10:])
 
 
 class ScriptToolTests(ServerCase):

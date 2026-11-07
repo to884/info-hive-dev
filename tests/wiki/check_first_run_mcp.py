@@ -29,13 +29,13 @@ sys.path.insert(0, str(HERE))
 import check_commands_mcp as base  # noqa: E402
 
 OUT = base.ROOT / "docs/research/wiki-mcp-server-2026-11-06/first-run-mcp.json"
-RELAY = base.PLUGIN / "skills/info-hive/scripts/wiki_mcp_relay.py"
+LAUNCH = base.PLUGIN / "skills/info-hive/scripts/wiki_mcp_launch.py"
 
 
 def wait_server(env: dict, timeout: float) -> dict:
     """中継の --ensure で、サーバーの依存の取得とサーバーの起動が終わるまで待つ。"""
     started = time.perf_counter()
-    out = subprocess.run(["uv", "run", "--quiet", "--script", str(RELAY), "--ensure"], capture_output=True,
+    out = subprocess.run(["uv", "run", "--quiet", "--script", str(LAUNCH), "--ensure"], capture_output=True,
                          timeout=timeout, env={**os.environ, "PYTHONUTF8": "1", **env})
     return {"returncode": out.returncode, "seconds": round(time.perf_counter() - started, 1),
             "stdout_tail": out.stdout.decode("utf-8", "replace")[-400:],

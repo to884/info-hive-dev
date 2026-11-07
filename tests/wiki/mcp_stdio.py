@@ -18,12 +18,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "info-hive-wiki/skills/info-hive/scripts"
 RELAY = SCRIPTS / "wiki_mcp_relay.py"
+# .mcp.json が起動する入口。中継の環境を確かめ（壊れていれば入れ直し）、中継を動かす。
+LAUNCH = SCRIPTS / "wiki_mcp_launch.py"
 SERVER = SCRIPTS / "wiki_mcp_server.py"
 
 
 def relay_command() -> list[str]:
-    """中継の起動のしかた。.mcp.json と同じく uv run --script で起動する。"""
-    return ["uv", "run", "--quiet", "--script", str(RELAY)]
+    """中継の起動のしかた。.mcp.json と同じく、入口を uv run --script で起動する。"""
+    return ["uv", "run", "--quiet", "--script", str(LAUNCH)]
 
 
 class StdioClient:
