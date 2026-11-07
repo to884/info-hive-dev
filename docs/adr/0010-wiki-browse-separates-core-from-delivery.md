@@ -5,7 +5,7 @@
 | 状態 | 提案 |
 | 決定日 | 未定 |
 | 決定者 | info-hive の開発者（このリポジトリの作者） |
-| 関連 | ADR-0001（3 条件）、ADR-0002（本 ADR が補う）、ADR-0005（図の表示）、ADR-0007（rag の構成）、ADR-0008（作業領域）、ADR-0009（グラフ層）、要件定義書の F-G06・AC-D02・S-07、`docs/agent-runs/2026-11-05-wiki-browse-viewer-agnostic-design/`（4 体のエージェントによる設計、相互レビュー、総括） |
+| 関連 | ADR-0001（3 条件）、ADR-0002（本 ADR が補う）、ADR-0005（図の表示）、ADR-0007（rag の構成）、ADR-0008（作業領域）、ADR-0009（グラフ層）、ADR-0012（wiki の MCP サーバー）、ADR-0013（`raw:` の絶対パス）、要件定義書の F-G06・AC-D02・S-07、`docs/agent-runs/2026-11-05-wiki-browse-viewer-agnostic-design/`（4 体のエージェントによる設計、相互レビュー、総括）、[未決と実装前の PoC](../research/wiki-browse-adr-0010-poc-2026-11-07.md) |
 
 ## 背景
 
@@ -20,6 +20,8 @@ ADR-0002 は、`/wiki:browse` を必要なときだけ起動するローカル H
 この設計を 4 体のエージェント（Claude Opus 5.5、Claude Fable 5.1、GPT-6.1 Sol、GPT-6 Astra）に独立に検討させ、相互に敵対的なレビューをさせ、総括をまとめた。4 体は独立に同じ骨格に達した。Wiki の解釈を 1 か所に置き、3 つの方式はその出力を表示する薄いアダプタにする、という骨格である。レビューでは、骨格を壊しうる事実と、契約に足すべき規則が見つかった。
 
 コードの事実は、本体のチェックアウトのサブモジュールで確かめた（`info-hive-wiki` 3028923、`info-hive-rag` 3541ec4）。worktree のサブモジュールは空だった。
+
+2026年11月7日、wiki 0.6.0（`info-hive-wiki` 36a4089）と rag 0.4.0（`info-hive-rag` 6a760b9）で事実を確かめ直し、実装前の PoC を行った（[未決と実装前の PoC](../research/wiki-browse-adr-0010-poc-2026-11-07.md)、試作は `poc/browse/`）。その間に ADR-0012（wiki が 127.0.0.1 の MCP サーバーを持つ）と ADR-0013（ソースのページの `raw:` が PDF の絶対パスになる）が承認され、未決の 4 に案が加わり、`raw:` の扱いが新しい未決になった。本文の行番号は、断りがなければ 36a4089 と 6a760b9 のものである。
 
 ## 決定
 
@@ -92,11 +94,11 @@ mermaid と `wiki/assets/` の svg の表示は、ADR-0005 のとおり第 1 段
 
 ## 理由
 
-- **規則を 2 か所に置くと食い違う。** Python の中でさえ、`clean_link_target()` が 2 か所にある。`wiki_lint.py` は区切る前に NFC にそろえ、`wiki_search.py` は区切った後にそろえる。今は結果が同じでも、別々に直せば食い違う。Obsidian では、規則の違いのために、未解決のリンクをクリックすると空のページができた（決定行列の第4.2節）。表示の方式ごとに規則を書くと、同じことが方式の間で起きる。
+- **規則を 2 か所に置くと食い違う。** Python の中でさえ、`clean_link_target()` が 3 か所にある（`wiki_lint.py` L87、`wiki_search.py` L236、`wiki_graph_extract.py` L68）。`wiki_lint.py` は区切る前に NFC にそろえ、ほかの 2 つは区切った後にそろえる。今は結果が同じでも、別々に直せば食い違う。ページの集合も、lint と search ですでに食い違っている（未決の 1）。Obsidian では、規則の違いのために、未解決のリンクをクリックすると空のページができた（決定行列の第4.2節）。表示の方式ごとに規則を書くと、同じことが方式の間で起きる。
 - **プロセスの境界は、Python 以外のアプリのために要る。** デスクトップアプリを Rust や TypeScript で書けば、中核を import できない。規則を書き直さずに使うには、子プロセスとして呼ぶしかない。なお、「wiki と rag は Python の版が違うので同じプロセスに載らない」という論は採らない。wiki の `>=3.10` と rag の `>=3.12,<3.13` は 3.12 で重なる。
-- **`file://` に合わせれば、ほかの 2 方式はそれを包むだけになる。** `file://` で動く HTML は、サーバーでもアプリでも動く。逆に、サーバーを前提に絶対 URL、クエリのトークン、`fetch` に頼る画面を作ると、静的版とアプリに移すときに作り直しになる。
+- **`file://` に合わせれば、ほかの 2 方式はそれを包むだけになる。** `file://` で動く HTML は、サーバーでもアプリでも動く。PoC では、同じ生成物を `file://` とサーバーで開き、5 つのブラウザで同じ結果になった。逆に、サーバーを前提に絶対 URL、クエリのトークン、`fetch` に頼る画面を作ると、静的版とアプリに移すときに作り直しになる。
 - **第 1 段階は事前に計算できる。** 第 1 段階の機能は、全ページを読めばどれも事前に描ける。1,000 ページの全変換は 1.26 秒、全体で約 2.3 秒だった（決定行列）。サーバーは「開いたときに 1 ページ描く」、静的版は「全部描く」というように、呼び方が違うだけになる。
-- **ナビゲーションを各ページに埋め込むと大きくなる。** 1 項目を約 100 バイトとすると、1,000 ページの各ページに 1,000 項目を埋め込めば約 100 MB になる。共有の `nav.js` なら 1 つで済む。
+- **ナビゲーションを各ページに埋め込むと大きくなる。** 作者の Wiki（56 ページ、日本語の題名）では、1 項目が平均 111.6 バイト、最大 176 バイトだった。1,000 ページの各ページに 1,000 項目を埋め込めば約 112 MB になる。共有の `nav.js` なら約 112 KB の 1 つで済む。
 - **重複したスラッグは、今の `resolve_link()` で一意に決まらない。** 閲覧で勝手に一方へ移動すると、lint の結果と食い違う。
 - **Wiki の場所は利用者ごとに違う。** ADR-0008 の既定は `~/info-hive/wiki/` だが、作者の環境の Wiki は別の名前のディレクトリにある。場所を決め打ちすると、プラグインとして配れない。
 - **受け入れの条件は動作で測る必要がある。** HTML のバイト一致は、生成器が変わっていないことしか示さない。
@@ -127,7 +129,7 @@ mermaid と `wiki/assets/` の svg の表示は、ADR-0005 のとおり第 1 段
 - 中核の契約（JSON の入出力、世代、能力、状態）を、最初から決めて保守する。契約の版で互換性を確かめる。
 - 静的版は、検索や RAG が縮小する。能力の宣言で利用者に示す。
 - アプリを選ぶと、OS と CPU ごとのビルド、署名、リリースの仕組みが要る。中核を子プロセスとして同梱するなら、それも OS と CPU ごとに要る。「移植性」はソースの移植性にとどまる。
-- RAG の統合は、どの方式でも rag 側の設計の変更が前提になる（「未決の事項」）。
+- RAG の統合は、rag の移行（ADR-0012 で決めた、rag の索引を wiki の MCP サーバーに移すこと）が済むまで足せない（「未決の事項」の 4）。
 
 本 ADR を承認したら、次を行う。
 
@@ -137,34 +139,67 @@ mermaid と `wiki/assets/` の svg の表示は、ADR-0005 のとおり第 1 段
 
 ## 未決の事項
 
-1. **閲覧の「ページ」の集合。** lint と search で、ページとして扱う集合が違う。`wiki_lint.py` は最上位の `README.md` を除外し（L110）、`.evolution` を除外する（L111）。`wiki_search.py` の `collect_pages()` は `README.md` を除外せず（L286）、`.wiki-cache` とドットで始まる名前を除外する（L286〜289）。F-G06 が lint との一致を求めるので、lint の集合を正とし、`wiki_search.py` の側をそろえる案を推す。これを決めないと中核を書けない。あわせて、`index.md` と `indexes/` を、ナビゲーションの入力として中核がどう扱うかを決める。
-2. **書き出し先。** 次の 2 案から選ぶ。
-   - `<WIKI_ROOT>/.wiki-cache/browse/`：1 か所で管理できる。ただし、F-G06 と AC-D02 の「Wiki を変更しない」の範囲を、派生データを除くと明文化する必要がある。Wiki を OneDrive などで同期していると、生成物も同期される。
-   - OS のユーザーキャッシュ：選択肢レポートの No.81 と整合し、Wiki の中に何も足さない。ただし、場所の解決と掃除の規則が要る。
-3. **静的出力のファイル名。** 次の 2 案から選ぶ。どちらにしても、大文字小文字だけが違うページは NTFS と APFS で同じファイルになるので、`export_name()` で対処する。lint に「大文字小文字だけが違うページ」の検査を足すかも決める。
-   - 読める名前を基本にし、衝突したときと長すぎるときだけ決定的な接尾辞を付ける：受け渡しに向く。切り詰めの規則と、ページを足したときに既存の URL が変わらない規則が要る。
-   - すべて ASCII の ID にする：OS の間の衝突を避けやすいが、URL とファイル名が読めなくなる。
-4. **RAG への経路。** rag の検索の入口は MCP だけである。検索のワーカーは MCP の接続中だけ動き（`rag_worker.py:1`）、`rag_index.py` の `Engine.search`（L302）には `argparse` も `__main__` もない。`commands/search.md` も MCP の `search` を呼ぶ。Claude Code の外で動く画面からは、今のままでは RAG を呼べない。次の 3 案があり、どれも rag の設計の変更で、ADR-0007 の見直しになる。
-   - rag に検索の CLI を足す：呼ぶたびに torch とモデルを読み込む。ワーカーとの索引の排他も要る。
-   - browse を rag の MCP のクライアントにする：起動の費用は避けられるが、rag の MCP サーバーの寿命に縛られる。
-   - 常駐の検索サービスを置く：ADR-0007 の「接続中だけ動く」構成を改めることになる。
-5. **静的版の検索の範囲。** 題名、要約、タグの照合だけにすれば、`tokenize()` の規則を JavaScript に二重に持たずに済む。本文の bigram 検索を JavaScript に移すなら、Python と同じ試験データで一致を確かめ続ける。
-6. **アプリの技術。** アプリを採るときに決める。条件は、埋め込みの Web エンジンを持ち、Windows、macOS、Linux で動き、中核を子プロセスとして起動できることである。
-   - Tauri 2（Rust）：配布物が小さい。OS ごとに WebView が違い（WebView2、WKWebView、WebKitGTK）、描画がそろわない。
-   - Electron（TypeScript）：Chromium で描画がそろうが、配布物が大きい。
-   - 日本語の表示を重く見るので、Linux の WebKitGTK での描画が分かれ目になる。
-   - アプリはプラグインではないので、別のリポジトリ（仮称 `to884/info-hive-viewer`）に置き、中核の版をアプリの側で固定する形を想定する。中核を uv で起動するか、実行ファイルとして同梱するかも決める。
+7 件ある。1〜6 は最初の版からの未決、7 は ADR-0013 で生じた。どれもユーザーが決める。各項の「推す案」は提案で、根拠と PoC の結果の詳細は [未決と実装前の PoC](../research/wiki-browse-adr-0010-poc-2026-11-07.md) にある。
+
+### 1. 閲覧の「ページ」の集合
+
+- **事実**：今の版では、lint（`wiki_lint.py` L126〜127、L217〜222）は最上位の `SCHEMA.md`、`index.md`、`log.md`、`README.md` と、最上位の `indexes/`、`graph/`、`raw/`、`.evolution/`、`assets/` を除く。search（`wiki_search.py` L287〜290）は `README.md` と `assets/` を除かず、`.wiki-cache/` を除く。どちらも `.` で始まる名前のファイルを除く。試験用の Wiki では、lint だけが `.wiki-cache/` の Markdown を、search だけが `README.md` と `assets/` の Markdown を含んだ。作者の Wiki（55 ページ）では一致した。search の集合は、MCP の `query` の索引にも使われる（`wiki_index.py` L851）。
+- **選択肢**：A. lint の集合を正とし、search をそろえる。B. search の集合を正とし、lint をそろえる。C. browse だけが独自の集合を持つ。
+- **推す案**：A。除外の規則を 1 か所に置き、lint、search、MCP の索引、browse の中核がそれを使う。`.wiki-cache/` は lint の側でも除く。`index.md` と `indexes/` はページとして描かず、ナビゲーションの入力としてだけ読む。
+- **根拠**：F-G06 は lint と一致するリンクの解決を求める。lint の除外のほうが新しく、`assets/` と `README.md` を除く理由がある。C は「規則を 1 か所に置く」に反する。
+- **影響**：`info-hive-wiki` の変更で、browse の実装の前に行う。MCP の `query` の結果も変わりうるので、評価ゲートを測り直す。
+
+### 2. 書き出し先
+
+- **選択肢**：A. `<WIKI_ROOT>/.wiki-cache/browse/`。B. OS のユーザーの領域。
+- **推す案**：B。ADR-0012 の索引と同じ根を使い、`%LOCALAPPDATA%/info-hive/browse/<wiki のハッシュ>/`（macOS と Linux は `$XDG_DATA_HOME/info-hive/browse/<wiki のハッシュ>/`）を既定にする。根とハッシュは `wiki_mcp_common.data_dir()` と `wiki_key()` を使う。人に渡すための書き出しは、引数で場所を選ぶ。
+- **根拠**：Wiki に何も足さないので、F-G06 と AC-D02 の範囲を書き換えずに済み、同期のフォルダーにも生成物が入らない。ADR-0012 は索引の置き場所で `.wiki-cache/` を退けた。選択肢レポートの No.81 はキャッシュの領域を選んでいたが、置き場所の規則を ADR-0012 と 1 つにするほうを重く見た。キャッシュの領域を選ぶ案も成り立つ。
+- **残ること**：書き出した場所の表示、古い世代と消えた Wiki の分の掃除、世代の切り替えの方法（PoC で確かめていない）。
+
+### 3. 静的出力のファイル名
+
+- **選択肢**：A. 読める名前を基本にし、必要なときだけ決定的な接尾辞を付ける。B. すべて ASCII の ID にする。
+- **推す案**：A。名前の要素ごとに、Windows で使えない文字を替えたとき、末尾の空白と `.` を除いたとき、予約名のとき、UTF-8 で 200 バイト（`.html` と接尾辞を含む）を超えて切り詰めたとき、大文字と小文字だけが違う出力が衝突したときに、`~<識別子の SHA-256 の先頭 8 桁>` を付ける。lint に「大文字と小文字だけが違うページ」の検査を足す。
+- **根拠**：ext4 と APFS の名前の上限は 255 バイトで、日本語は 86 文字を超えると作れない。NTFS は 255 文字（UTF-16）なので、バイトで数えれば 3 つの OS で収まる。接尾辞は識別子だけから決まるので、ページを足してもほかのページの名前は変わらない。例外は大文字と小文字だけが違うページを足したときで、lint の検査で起きにくくする。
+- **PoC**：作者の Wiki（56 ページ）では、名前を変えたページは 0 件、最も長い要素は 77 バイトだった。試験用の Wiki の 288 バイトの名前は、200 バイトに切り詰めて接尾辞を付け、5 つのブラウザでリンクが動いた。
+
+### 4. RAG への経路
+
+- **事実**：rag 0.4.0 の検索の入口は今も MCP の `search` だけで、索引も rag が持つ（`rag_server.py` L150〜166）。ADR-0012 の rag の移行は済んでいない。wiki の MCP サーバーの `query` は、`collection` を渡すと rag が `index_chunks` で入れたチャンクを検索するが、語彙のトークン（`query_tokens`）は呼び出し側が作る（`wiki_mcp_server.py` L304〜325）。サーバーは `allowed_origins=[]` で、トークンは `server.json` にだけある（L295）。
+- **選択肢**：A. rag に検索の CLI を足す。B. browse を rag の MCP のクライアントにする。C. 常駐の検索サービスを置く。D. 画面を wiki の MCP サーバーのクライアントにする（ADR-0012 の案）。D'. アダプタ（サーバーのプロセス、アプリの中核）を wiki の MCP サーバーのクライアントにする。E. 中核そのものを MCP のツールにする。
+- **推す案**：D'。画面は自分のアダプタ（同じオリジン）にだけ要求し、アダプタが `server.json` を読んでサーバーに接続し、`query` を呼ぶ。サーバーが止まっていれば、中継と同じく起動し直す。第 1 段階の表示は MCP サーバーに依存しない。検索の能力は、サーバーに届けば `live`、届かなければ `embedded` とする。rag の PDF の検索は、rag の移行が済んでから足し、`query(collection=...)` の語彙のトークンを誰が作るかは移行のときに決める。静的版は RAG を持たない。
+- **根拠**：ブラウザのページはサーバーに接続できない。PoC では、トークンが正しくても `Origin` の付いた要求は 403 になり、`file://` のページからの `fetch` は失敗した。中継を通した Python からの呼び出しは通った。D を成り立たせるには CORS とトークンの受け渡しを足すことになり、ADR-0001 と ADR-0012 の防御を弱める。browse は wiki のプラグインの中にあるので、D' は `wiki_mcp_common` と中継の起動の処理を使い回せ、プラグインの境界をまたがない。rag の索引は ADR-0012 で wiki のサーバーに移るので、ADR-0007 の見直しは要らない。A は CLI も結局 wiki のサーバーに頼むことになり、B は rag の台帳を 2 つのプロセスが扱い、C は ADR-0007 と ADR-0012 が退けた。E は第 1 段階の閲覧が、約 1 GB の依存とモデルを読み込むサーバーを前提にすることになる。
+
+### 5. 静的版の検索の範囲
+
+- **選択肢**：A. 題名、要約、タグ、見出しの部分一致。B. A に加えて、本文の bigram の検索を JavaScript に持つ。C. 検索を持たない。
+- **推す案**：A。照合は NFC にそろえ、小文字にしてから部分一致で行う。本文の検索は、サーバーとアプリで MCP の `query`（4 の D'）に頼む。
+- **根拠**：トークナイザーを JavaScript に二重に持たずに済む。日本語でも部分一致なら分かち書きが要らない。
+- **PoC**：`data/search.js` は作者の Wiki で 13,219 バイト（1,000 ページで約 236 KB の見込み）で、5 つのブラウザの `file://` とサーバーで動いた。本文まで埋め込むと、本文だけで 1,000 ページあたり約 2.4 MB になる。
+
+### 6. アプリの技術
+
+- **選択肢**：A. Tauri 2（Rust）。B. Electron（TypeScript）。C. pywebview（Python）。D. ローカルのサーバーを専用の窓で開くだけの殻。条件は最初の版のとおり、埋め込みの Web エンジンを持ち、Windows、macOS、Linux で動き、中核を子プロセスとして起動できることである。
+- **推す案**：今は決めない。アプリを作ると決まったら、A を第一候補にし、描画を 3 つの OS でそろえることを重く見るときは B にする。アプリを別のリポジトリ（仮称 `to884/info-hive-viewer`）に置き、中核の版をアプリの側で固定する想定は変えない。
+- **根拠**：最初の版が分かれ目に挙げた Linux の WebKitGTK での日本語の描画は、PoC で問題がなかった（禁則の違反 0 件）。Tauri の独自スキームで、同じ HTML が Windows（`http://wiki.localhost/`）と Linux（`wiki://localhost/`）で基準と同じ結果になった。字幅は OS のフォントで違うので、行の位置はそろわない。C は配布の形が Python の環境に縛られ、D はポートを開くので ADR-0001 の対策がアプリにも要る。
+
+### 7. ソースのページの `raw:` の絶対パス
+
+- **事実**：ADR-0013 で、rag が取り込んだ PDF のソースのページは、`raw:` に絶対パス（例 `C:/Books/x.pdf`）を、`raw_sha256:` に内容の SHA-256 を書く。PDF でないソースの `raw:` は、今も Wiki からの相対パスである。`file:///` のリンクは、`file://` のページからは Chromium 系と WebKit で開けたが、`http://127.0.0.1` のページからは 5 つのブラウザすべてで拒まれた。
+- **選択肢**：A. 絶対パスをそのまま出す。B. 出さない。C. 中核は値を解釈して持ち、表示は方式と書き出しの目的で変える。
+- **推す案**：C。中核の出力に `raw` を `{kind, value, sha256}` で持たせる。サーバーとアプリは絶対パスを文字として表示し、コピーできるようにする（リンクにしない。開く操作を足すなら S-07 に従う）。静的版は、既定の書き出し先では `file:///` のリンクにし、引数で Wiki の外に持ち出す書き出しでは、既定でファイル名と `raw_sha256:` の先頭だけを出す。
+- **根拠**：持ち運べる生成物に絶対パスの Wiki のルートを入れない、という本 ADR の規則と同じ扱いになる。ADR-0013 は、公開する Wiki に絶対パスを載せたくない利用者が出たら見直すとしている。
 
 ## 見直す条件
 
 次のどれかが起きたら、本 ADR を見直す。
 
-- 実装の前の PoC で、次のどれかが前提と違うと分かる。どれもまだ誰も確かめていない。
-  - `file://` で開いたページで、`<script src>` による別ファイルの読み込みが主要なブラウザで動く。`fetch` は移植性のある前提にできない
-  - Linux の WebKitGTK で、日本語の CSS（`line-break: strict` など）が崩れずに描ける
-  - Tauri の独自スキームの URL の形が OS で違っても、相対リンクだけで閉じた HTML がそのまま動く
-  - ナビゲーションの 1 項目が約 100 バイトに収まる
-  - 3 方式で、合格の条件の試験が通る
+- 実装の前の PoC の 5 項目のうち、確かめていない部分が前提と違うと分かる。2026年11月7日の PoC の結果は次のとおりで、詳細は [未決と実装前の PoC](../research/wiki-browse-adr-0010-poc-2026-11-07.md) にある。
+  - `file://` で開いたページで、`<script src>` による別ファイルの読み込みが主要なブラウザで動く：動いた（Chromium、Firefox、WebKit、Edge、Chrome）。実機の Safari は確かめていない。`fetch` は使わずに済んだ
+  - Linux の WebKitGTK で、日本語の CSS（`line-break: strict` など）が崩れずに描ける：描けた。WebKitGTK 2.52.6 で、幅を変えて数えた禁則の違反は 0 件で、Windows の 4 つのエンジンと同じだった。Tauri の WebView として描いたときは確かめていない
+  - Tauri の独自スキームの URL の形が OS で違っても、相対リンクだけで閉じた HTML がそのまま動く：動いた（Windows の `http://wiki.localhost/`、Linux の `wiki://localhost/`）。macOS は確かめていない
+  - ナビゲーションの 1 項目が約 100 バイトに収まる：作者の Wiki で平均 111.6 バイト。1,000 ページの実際の Wiki では確かめていない
+  - 3 方式で、合格の条件の試験が通る：試作のアダプタで、縮めた形で通った（`file://` とサーバーを 5 つのブラウザで、アプリを 2 つの OS で、12 通りの結果が一致した）。実装のアダプタでは、実装のあとに確かめ直す
 - 中核を子プロセスとして呼ぶ費用（起動時間、配布）が、アプリで受け入れられないと分かる。
 - 3 方式のうち 1 つに決め、ほかの 2 つを作らないと決まる。そのときは、その方式に要らない契約を外してよい。
 
@@ -172,9 +207,12 @@ mermaid と `wiki/assets/` の svg の表示は、ADR-0005 のとおり第 1 段
 
 - `docs/agent-runs/2026-11-05-wiki-browse-viewer-agnostic-design/summary.md`：4 体の検討、相互レビュー、総括。総括のうち、RAG の入口の不在を「B、C、D のレビューで一致した」とする記述は誤りである。D はリポジトリを読めず「確かめられず」としていた
 - 同 `results/A.md`〜`D.md`（各エージェントの設計）、`reviews/A.md`〜`D.md`（相互レビュー）
-- `docs/adr/0001-local-only-server-is-not-hosted-wiki.md`、`0002-wiki-browse-uses-on-demand-local-server.md`、`0005-wiki-figures-use-mermaid-and-svg.md`、`0007-rag-uses-mcp-core-and-persistent-jobs.md`、`0008-numbered-workspace-layout.md`、`0009-graph-layer-stays-in-wiki.md`
+- `docs/adr/0001-local-only-server-is-not-hosted-wiki.md`、`0002-wiki-browse-uses-on-demand-local-server.md`、`0005-wiki-figures-use-mermaid-and-svg.md`、`0007-rag-uses-mcp-core-and-persistent-jobs.md`、`0008-numbered-workspace-layout.md`、`0009-graph-layer-stays-in-wiki.md`、`0012-wiki-owns-local-mcp-index-server.md`、`0013-rag-records-pdfs-by-absolute-path-and-hash.md`
 - `docs/research/llm-wiki-browse-options.md`：`file://` の制約、安全対策、No.81（書き出し先）、第 1 段階の範囲と合格の目安
 - `docs/research/llm-wiki-browse-decision-matrix.md`：実測、Obsidian での確認（第4.2節）
 - `llm-wiki-product-concept-and-requirements-ja.md`：F-G06、AC-D02、S-07
-- `info-hive-wiki`（3028923）：`skills/info-hive/SKILL.md`（L21、Wiki を特定する順）、`skills/info-hive/scripts/wiki_lint.py`（`clean_link_target`、`resolve_link`、L110〜111 の除外）、`wiki_search.py`（`clean_link_target` の 2 つ目の実装、`collect_pages()` の L286〜289、`json_result`、`emit_json`）、`wiki_text.py`（`canonical_meta`）
-- `info-hive-rag`（3541ec4）：`scripts/rag_worker.py:1`、`scripts/rag_index.py:302`、`commands/search.md`
+- `info-hive-wiki`（3028923。最初の版で確かめた）：`skills/info-hive/SKILL.md`（L21、Wiki を特定する順）、`skills/info-hive/scripts/wiki_lint.py`（`clean_link_target`、`resolve_link`、L110〜111 の除外）、`wiki_search.py`（`clean_link_target` の 2 つ目の実装、`collect_pages()` の L286〜289、`json_result`、`emit_json`）、`wiki_text.py`（`canonical_meta`）
+- `info-hive-rag`（3541ec4。最初の版で確かめた）：`scripts/rag_worker.py:1`、`scripts/rag_index.py:302`、`commands/search.md`
+- `info-hive-wiki`（36a4089、wiki 0.6.0）：`skills/info-hive/SKILL.md`（L21）、`wiki_lint.py`（L87 `clean_link_target`、L100 `resolve_link`、L126〜127 の除外、L215 `collect_pages`）、`wiki_search.py`（L236 `clean_link_target`、L258 `resolve_link`、L280〜290 `collect_pages`、L814 `json_result`、L853 `emit_json`）、`wiki_graph_extract.py`（L68 `clean_link_target`）、`wiki_index.py`（L851 が `wiki_search.collect_pages()` を使う、L680 と L1104 の語彙の検索）、`wiki_mcp_server.py`（L295 `allowed_origins`、L304〜325 `query`）、`wiki_mcp_common.py`（L45 `data_dir`、L82 `wiki_key`）
+- `info-hive-rag`（6a760b9、rag 0.4.0）：`scripts/rag_server.py`（L150〜166 `search`）
+- [未決と実装前の PoC](../research/wiki-browse-adr-0010-poc-2026-11-07.md)、試作の `poc/browse/`
