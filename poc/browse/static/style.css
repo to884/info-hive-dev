@@ -1,0 +1,21 @@
+/* ADR-0010 の PoC の日本語の CSS。選択肢レポート No.67、68 と第 7 節の指定をそのまま使う。 */
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+    "Yu Gothic UI", "Meiryo", "Noto Sans CJK JP", "Noto Sans JP", sans-serif;
+  line-height: 1.8;
+}
+body { margin: 0; display: grid; grid-template-columns: 16rem minmax(0, 1fr); }
+nav { border-right: 1px solid #ccc; padding: 1rem; overflow: auto; max-height: 100vh; }
+main { padding: 1rem 2rem; max-width: 40rem; }
+main, nav {
+  line-break: strict;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+@supports (text-autospace: normal) {
+  main { text-autospace: normal; }
+}
+code, pre { font-family: ui-monospace, "Cascadia Mono", "BIZ UDGothic", "Noto Sans Mono CJK JP", monospace; }
+.wl-unresolved { color: #b00; text-decoration: underline dotted; }
+.wl-ambiguous { color: #a60; text-decoration: underline wavy; }
+.meta th { text-align: left; padding-right: 1em; }
