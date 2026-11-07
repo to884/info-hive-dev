@@ -11,7 +11,7 @@ index 38a926a..f36354a 100644
    "dependencies": [
      "wiki@info-hive"
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index e0064f1..11e1fd9 100644
+index e0064f1..cc8c28d 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
 @@ -6,6 +6,24 @@
@@ -31,7 +31,7 @@ index e0064f1..11e1fd9 100644
 +
 +- 大きさと更新時刻を変えずに中身を差し替えた PDF を登録し直すと、前の完了したジョブが返り、取り込み直せませんでした。完了、失敗、キャンセルのジョブしかなければ、新しいジョブを作ります。
 +- 同じ内容の PDF を 2 か所で登録したあと片方だけを書き換えると、古い版の検索結果の出典が、書き換えたほうの場所を指していました。文書に代表の場所を持たず、大きさと更新時刻が今と合う場所を返します。合う場所がなければ `raw` は `null` です。
-+- ハードリンクのように同じファイルを 2 つの名前で登録したあと、片方の名前で書き換えて取り込むと、もう片方の名前が古い版の出典に残っていました。場所にファイルの識別子を持たせ、今も同じファイルを指している場所だけを、まとめて新しい版に移します。
++- ハードリンクのように同じファイルを 2 つの名前で登録したあと、片方の名前で書き換えて取り込むと、もう片方の名前が古い版の出典に残っていました。場所にファイルの識別子を持たせ、公開の直前に調べて今も同じファイルを指している場所だけを、まとめて新しい版に移します。もうない別名の行は外します。
 +- PDF の内容を古い版に戻して取り込むと、内部の途中経過が残っていたため、索引に何も入らないまま完了になっていました。古い版を消すときに途中経過も消します。
 +- 公開を始めたあとに失敗したジョブ（キャンセルできない）が、`configure` を塞ぎ続けていました。設定の変更を塞ぐのは、受け付け済み、処理中、一時停止のジョブだけにしました。
 +- 登録のあとで PDF のあるフォルダーが差し替えられると、確かめていない別のファイルを読むことがありました。登録したときのファイルの識別子、大きさ、更新時刻を記録し、開いたファイルと照らします。
@@ -122,7 +122,7 @@ index dc64867..813dbfb 100644
 +
 +応答に `legacy_data` があれば、rag 0.3.0 のデータ（`paths` の場所）が残っていることを伝える。新しい版はそれを読まないので、ユーザーが消してよい。消すのはユーザーに任せ、自分では消さない。0.3.0 で取り込んだ PDF は、`/wiki:ingest` で取り込み直す。
 diff --git a/scripts/rag_config.py b/scripts/rag_config.py
-index 1b71aac..13ae8d6 100644
+index 1b71aac..85a5076 100644
 --- a/scripts/rag_config.py
 +++ b/scripts/rag_config.py
 @@ -6,6 +6,7 @@ import hashlib
@@ -133,10 +133,17 @@ index 1b71aac..13ae8d6 100644
  import sys
  import time
  import uuid
-@@ -42,6 +43,14 @@ def config_path() -> Path:
+@@ -42,6 +43,21 @@ def config_path() -> Path:
      return Path(os.environ.get("INFO_HIVE_RAG_CONFIG", app_data() / "config.json")).expanduser().resolve()
  
  
++def _has_control(text: str) -> bool:
++    """C0 と C1 の制御文字（改行、タブ、U+0085 など）を含むなら True を返す。frontmatter に書くと、
++    wiki の手書きのパーサーと PyYAML で値が食い違う。"""
++    import unicodedata
++    return any(unicodedata.category(character) == "Cc" for character in text)
++
++
 +def _network_drive(path: Path) -> bool:
 +    """Windows で、パスのドライブ文字が、利用者が割り当てたネットワークドライブなら True を返す。"""
 +    if not path.drive or not path.drive.endswith(":"):
@@ -148,7 +155,7 @@ index 1b71aac..13ae8d6 100644
  def write_json(path: Path, value: object) -> None:
      path.parent.mkdir(parents=True, exist_ok=True)
      temporary = path.with_name(path.name + "." + uuid.uuid4().hex + ".tmp")
-@@ -64,7 +73,6 @@ class Config:
+@@ -64,7 +80,6 @@ class Config:
              values = json.loads(self.path.read_text(encoding="utf-8-sig")) if self.path.exists() else {}
          self.values = values
          self.data_dir = Path(values.get("data_dir", app_data() / "data")).expanduser().resolve()
@@ -156,7 +163,7 @@ index 1b71aac..13ae8d6 100644
          self.model = values.get("embedding_model", DEFAULT_MODEL)
          if self.model not in MODELS:
              raise ValueError("embedding_model は Ruri v3 の 30m、70m、130m、310m から選んでください。")
-@@ -101,15 +109,10 @@ class Config:
+@@ -101,15 +116,10 @@ class Config:
              raise ValueError("search_nprobes は 1〜4096、search_refine_factor は 1〜100 にしてください。")
          if not 1<=self.ann_min_rows<=1000000 or not math.isfinite(self.ann_rebuild_growth) or not 2<=self.ann_rebuild_growth<=16 or not 1<=self.index_cleanup_age_days<=36500:
              raise ValueError('ann_min_rows は1〜1000000、ann_rebuild_growth は2〜16、index_cleanup_age_days は1〜36500にしてください。')
@@ -174,7 +181,7 @@ index 1b71aac..13ae8d6 100644
                  "embedding_model": self.model, "embedding_revision": self.revision,
                  "model_cache_dir": str(self.model_cache_dir), "uv_cache_dir": str(self.uv_cache_dir)}
  
-@@ -121,29 +124,51 @@ class Config:
+@@ -121,29 +131,53 @@ class Config:
  
      @property
      def fingerprint(self) -> str:
@@ -218,7 +225,7 @@ index 1b71aac..13ae8d6 100644
 +        text = str(source).strip()
 +        if not text:
 +            raise ValueError("PDF の絶対パスを指定してください。")
-+        if any(ord(character) < 0x20 or character == "\x7f" for character in text):
++        if _has_control(text):
 +            raise ValueError("改行などの制御文字を含むパスは指定できません。")
 +        # UNC とデバイスのパスは、解決する前に拒む。知らないサーバーに接続させないため。
 +        # Windows では /\server/... のように区切りを混ぜても UNC になるので、組み立てたパスのドライブでも見る。
@@ -235,6 +242,8 @@ index 1b71aac..13ae8d6 100644
 +            info = os.lstat(resolved)
 +        except OSError:
 +            raise ValueError("PDF が見つかりません。絶対パスを確かめてください。") from None
++        if _has_control(str(resolved)):
++            raise ValueError("解決したパスが、改行などの制御文字を含みます。")
 +        if not stat.S_ISREG(info.st_mode) or resolved.suffix.lower() != ".pdf":
 +            raise ValueError("読み取れる PDF ファイル（拡張子 .pdf）を指定してください。")
 +        if sys.platform == "win32" and str(resolved).startswith("\\\\") and not _network_drive(path):
@@ -245,7 +254,7 @@ index 1b71aac..13ae8d6 100644
 +                raise ValueError("rag の派生データやキャッシュの中の PDF は登録できません。")
 +        return resolved
 diff --git a/scripts/rag_index.py b/scripts/rag_index.py
-index 45b82b1..3b41bfb 100644
+index 45b82b1..dae0d9d 100644
 --- a/scripts/rag_index.py
 +++ b/scripts/rag_index.py
 @@ -18,6 +18,42 @@ from rag_config import Config, write_json
@@ -331,7 +340,7 @@ index 45b82b1..3b41bfb 100644
      def _source_page(self, wiki: Path, source_page: str) -> str:
          return self.config.source_page(wiki, source_page)
  
-@@ -185,32 +238,45 @@ class Engine:
+@@ -185,32 +238,25 @@ class Engine:
          return affected
  
      def ingest_pdf(self, wiki_root: str, source: str, source_page: str, title: str = "", progress=None,
@@ -365,30 +374,10 @@ index 45b82b1..3b41bfb 100644
 -                previous_location = connection.execute("SELECT doc_id FROM locations WHERE root=? AND relative_path=?", (root, relative)).fetchone()
                  existing = connection.execute("SELECT * FROM documents WHERE doc_id=?", (doc_id,)).fetchone()
 -                old_id = previous_location[0] if previous_location and previous_location[0] != doc_id else None
-+                # この場所と、同じファイルの別名（ハードリンクなど）の場所が前に指していた文書は、古い版になる。
-+                same_file = file_id(stat_after)
-+                previous = connection.execute(
-+                    "SELECT path,doc_id FROM locations WHERE path=? OR (? IS NOT NULL AND dev=? AND ino=?)",
-+                    (location, same_file and 1, *(same_file or (None, None)))).fetchall()
-+                aliases, affected = [], []
-+                for row in previous:
-+                    if row["path"] == location:
-+                        affected.append(row)
-+                        continue
-+                    # 記録した識別子だけでは決めない。今も同じファイルを指しているときだけ別名とみなす。
-+                    try:
-+                        current = os.stat(row["path"])
-+                    except OSError:
-+                        continue
-+                    if file_id(current) == same_file and (current.st_size, current.st_mtime_ns) == (
-+                            stat_after.st_size, stat_after.st_mtime_ns):
-+                        aliases.append(row["path"])
-+                        affected.append(row)
-+                old_ids = sorted({row["doc_id"] for row in affected if row["doc_id"] != doc_id})
                  if existing:
                      pages_count, chunks_count = existing["pages"], existing["chunks"]
                      markdown = folder / "extracted" / generation / "document.md"
-@@ -256,37 +322,44 @@ class Engine:
+@@ -256,37 +302,70 @@ class Engine:
                          connection.commit()
                          raise
                  self._maintain_indexes(folder,self._table(folder),progress)
@@ -398,6 +387,32 @@ index 45b82b1..3b41bfb 100644
                      raise ValueError("処理中に PDF が変更されました。新しいジョブで取り込んでください。")
                  if before_publish:
                      before_publish()
++                # この場所と、同じファイルの別名（ハードリンクなど）の場所が前に指していた文書は、古い版になる。
++                # 別名は公開の直前に調べる。取り込みの途中で別名が差し替えられても、残っている古い版を消さないため。
++                same_file = file_id(stat_after)
++                previous = connection.execute(
++                    "SELECT path,doc_id FROM locations WHERE path=? OR (? IS NOT NULL AND dev=? AND ino=?)",
++                    (location, same_file and 1, *(same_file or (None, None)))).fetchall()
++                aliases, affected, vanished = [], [], []
++                for row in previous:
++                    if row["path"] == location:
++                        affected.append(row)
++                        continue
++                    # 記録した識別子だけでは決めない。今も同じファイルを指しているときだけ別名とみなす。
++                    try:
++                        current = os.stat(row["path"])
++                    except FileNotFoundError:
++                        vanished.append(row)  # もうない別名の行は外す
++                        continue
++                    except OSError:
++                        continue
++                    if file_id(current) == same_file and (current.st_size, current.st_mtime_ns) == (
++                            stat_after.st_size, stat_after.st_mtime_ns):
++                        aliases.append(row["path"])
++                        affected.append(row)
++                old_ids = sorted({row["doc_id"] for row in affected + vanished if row["doc_id"] != doc_id})
++                for row in vanished:
++                    connection.execute("DELETE FROM locations WHERE path=?", (row["path"],))
                  # 新しい索引が揃うまでは旧版を検索対象として残す。
 -                reviews = self._mark_reviews(wiki, connection, old_id) if old_id else []
 +                reviews = sorted({page for old_id in old_ids for page in self._mark_reviews(wiki, connection, old_id)})
@@ -448,7 +463,7 @@ index 45b82b1..3b41bfb 100644
                          old_cache = folder / "extracted" / old_generation
                          for cached in old_cache.glob("*.json"):
                              cached.unlink()
-@@ -294,7 +367,7 @@ class Engine:
+@@ -294,7 +373,7 @@ class Engine:
                      except Exception as error:
                          cleanup_error = str(error)
                  return {"status": "unchanged" if skipped else "indexed", "document_id": doc_id,
@@ -457,7 +472,7 @@ index 45b82b1..3b41bfb 100644
                          "extracted_markdown": str(markdown), "source_page": source_page,
                          "review_pages": reviews, "cleanup_error": cleanup_error,
                          "indexes":json.loads((folder/'index-state.json').read_text(encoding='utf-8'))}
-@@ -344,10 +417,11 @@ class Engine:
+@@ -344,10 +423,11 @@ class Engine:
                  results = []
                  for key in ranked[:limit]:
                      row = rows[key]

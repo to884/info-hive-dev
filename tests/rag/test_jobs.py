@@ -349,11 +349,19 @@ class JobTests(unittest.TestCase):
         replacement.write_bytes(self.source.read_bytes())
         os.utime(replacement, ns=(mtime_ns, mtime_ns))
         os.replace(replacement, self.source)
-        calls = []
+        calls, reads = [], []
         engine = self.engine()
         engine.extractor = lambda *args: calls.append(args)
-        with self.assertRaisesRegex(ValueError, "登録した PDF"):
-            engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md", expected=(dev, ino, size, mtime_ns))
+        real_open = open
+        def counting_open(*args, **kwargs):
+            handle = real_open(*args, **kwargs)
+            read = handle.read
+            handle.read = lambda *a: reads.append(a) or read(*a)
+            return handle
+        with patch("rag_index.open", counting_open, create=True):
+            with self.assertRaisesRegex(ValueError, "登録した PDF"):
+                engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md", expected=(dev, ino, size, mtime_ns))
+        self.assertEqual(reads, [])  # 本文を読む前に止まる
         self.assertEqual(calls, [])
         self.assertEqual(engine.status(str(self.wiki))["documents"], 0)
 
@@ -389,7 +397,7 @@ class JobTests(unittest.TestCase):
         self.assertTrue(kept)
         self.assertTrue(all(row["raw"] == self.source.resolve().as_posix() for row in kept))
 
-    def test_job_records_the_path_as_given_and_the_worker_can_use_it(self):
+    def test_job_records_the_path_as_given_and_it_can_be_ingested(self):
         given = str(self.refs / "下" / ".." / "資料.pdf")
         (self.refs / "下").mkdir()
         job = self.register_path(given)
@@ -401,7 +409,7 @@ class JobTests(unittest.TestCase):
         return self.jobs.register(self.config, str(self.wiki), source, "sources/資料.md")
 
     def test_paths_with_control_characters_are_rejected(self):
-        for source in (str(self.refs) + "/改行\n.pdf", str(self.refs) + "/タブ\t.pdf"):
+        for source in (str(self.refs) + "/改行\n.pdf", str(self.refs) + "/タブ\t.pdf", str(self.refs) + "/次行\x85.pdf"):
             with self.subTest(source=source), self.assertRaisesRegex(ValueError, "制御文字"):
                 self.config.pdf_path(source)
 
@@ -440,6 +448,47 @@ class JobTests(unittest.TestCase):
         self.assertNotEqual(second["sha256"], first["sha256"])
         self.assertEqual(second["sha256"], hashlib.sha256(second_bytes).hexdigest())
         self.assertEqual(engine.status(str(self.wiki))["documents"], 1)
+
+
+    def test_deleted_hard_link_does_not_keep_the_old_version(self):
+        alias = self.refs / "別名.pdf"
+        try:
+            os.link(self.source, alias)
+        except OSError:
+            self.skipTest("このファイルシステムはハードリンクを作れない")
+        engine = self.engine()
+        engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        self.source.unlink()
+        self.make_pdf(alias, "Only one name is left")
+        new = engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        self.assertEqual(engine.status(str(self.wiki))["documents"], 1)
+        results = engine.search(str(self.wiki), "checkpoint", limit=20)["results"]
+        self.assertTrue(results and all(row["sha256"] == new["sha256"] for row in results))
+
+    def test_alias_swapped_during_ingest_keeps_the_old_version(self):
+        alias = self.refs / "別名.pdf"
+        try:
+            os.link(self.source, alias)
+        except OSError:
+            self.skipTest("このファイルシステムはハードリンクを作れない")
+        engine = self.engine()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        saved = self.source.read_bytes()
+        info = os.stat(self.source)
+        self.make_pdf(alias, "Rewritten while ingesting")
+        def swap_back(phase, completed, total):
+            if phase == "埋め込み" and completed == 0:
+                copy = self.refs / "戻し.tmp"
+                copy.write_bytes(saved)
+                os.utime(copy, ns=(info.st_atime_ns, info.st_mtime_ns))
+                os.replace(copy, self.source)  # 取り込みの途中で、資料.pdf だけを古い版の独立したファイルに戻す
+        engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md", progress=swap_back)
+        self.assertEqual(engine.status(str(self.wiki))["documents"], 2)
+        kept = [row for row in engine.search(str(self.wiki), "Persistent indexing checkpoint", limit=20)["results"]
+                if row["sha256"] == old["sha256"]]
+        self.assertTrue(kept and all(row["raw"] == self.source.resolve().as_posix() for row in kept))
 
 
 if __name__ == "__main__":
