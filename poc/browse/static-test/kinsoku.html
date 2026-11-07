@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>禁則の試験</title>
+<link rel="stylesheet" href="../static/style.css">
+<style>
+  body { display: block; }
+  .box { width: 20em; }
+  .control { line-break: anywhere; }
+</style>
+</head>
+<body>
+<!-- ADR-0010 の PoC。style.css の禁則の指定（main に付く）で、幅を変えながら行頭と行末の違反を数える。
+     対照の .control は line-break: anywhere で、違反が数えられることを確かめるために置く。 -->
+<main><div id="strict" class="box"></div></main>
+<main><div id="control" class="box control"></div></main>
+<script>
+(function () {
+  var text = "これは禁則の試験の文である。句読点、閉じ括弧」』）、長音ー、小書きのっとゃとゅとょとァとィとゥとェとォとッとャとュとョ、" +
+    "中黒・、感嘆符！疑問符？が行頭に来てはならない。開き括弧「『（は行末に来てはならない。" +
+    "カタカナのコンピューターやサーバーやデータベース、ひらがなのちょっとしたこと、（括弧）と「かぎかっこ」。";
+  var body = "";
+  for (var i = 0; i < 6; i++) body += text;
+  document.getElementById("strict").textContent = body;
+  document.getElementById("control").textContent = body;
+  var NO_START = "、。，．」』）】〕〉》ーっゃゅょァィゥェォッャュョぁぃぅぇぉ・：；！？";
+  var NO_END = "「『（【〔〈《";
+  function lines(el) {
+    var t = el.firstChild, r = document.createRange(), out = [], cur = "", top = null;
+    for (var i = 0; i < t.length; i++) {
+      r.setStart(t, i); r.setEnd(t, i + 1);
+      var rs = Array.prototype.filter.call(r.getClientRects(), function (x) { return x.width > 0; });
+      if (!rs.length) { cur += t.data[i]; continue; }
+      var y = rs[rs.length - 1].top;
+      if (top !== null && Math.abs(y - top) > 4) { out.push(cur); cur = ""; }
+      top = y; cur += t.data[i];
+    }
+    out.push(cur);
+    return out;
+  }
+  function count(el) {
+    var start = 0, end = 0, n = 0, examples = [];
+    for (var w = 8; w <= 30; w += 0.25) {
+      el.style.width = w + "em";
+      var ls = lines(el);
+      n += ls.length;
+      for (var j = 0; j < ls.length; j++) {
+        if (j > 0 && NO_START.indexOf(ls[j][0]) >= 0) { start++; if (examples.length < 3) examples.push(w + "em: 行頭 " + ls[j].slice(0, 3)); }
+        if (j < ls.length - 1 && NO_END.indexOf(ls[j][ls[j].length - 1]) >= 0) { end++; if (examples.length < 3) examples.push(w + "em: 行末 " + ls[j].slice(-3)); }
+      }
+    }
+    return { lines: n, startViolations: start, endViolations: end, examples: examples,
+             lineBreak: getComputedStyle(el).lineBreak };
+  }
+  window.kinsoku = function () {
+    return { strict: count(document.getElementById("strict")), control: count(document.getElementById("control")),
+             font: getComputedStyle(document.getElementById("strict")).fontFamily };
+  };
+})();
+</script>
+</body>
+</html>

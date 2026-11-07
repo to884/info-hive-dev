@@ -5,7 +5,7 @@ info-hive の設計で決めたことと、その理由を残す。1 つの判�
 | 番号 | 判断 | 状態 | 決定日 |
 | --- | --- | --- | --- |
 | [0001](0001-local-only-server-is-not-hosted-wiki.md) | 127.0.0.1 だけで待ち受けるサーバーは、方針 G の「ホスト型 wiki」に当たらない | 承認 | 2026年11月3日 |
-| [0002](0002-wiki-browse-uses-on-demand-local-server.md) | `/wiki:browse` は、必要なときだけ起動するローカルサーバーで作る | 承認 | 2026年11月3日 |
+| [0002](0002-wiki-browse-uses-on-demand-local-server.md) | `/wiki:browse` は、必要なときだけ起動するローカルサーバーで作る | 承認（作る順序と書き出しは 0010 で置き換え済み） | 2026年11月3日 |
 | [0003](0003-split-marketplace-repo.md) | マーケットプレイスをプラグインと別のリポジトリに置く | 承認 | 2026年11月3日 |
 | [0004](0004-raw-holds-translated-web-pages.md) | Web ページは訳文と図の説明を raw に置き、原文は出所とハッシュで記録する | 承認 | 2026年11月3日 |
 | [0005](0005-wiki-figures-use-mermaid-and-svg.md) | 知識ページの図は mermaid を本文に書き、svg は wiki/assets/ に置く | 承認 | 2026年11月3日 |
@@ -13,7 +13,7 @@ info-hive の設計で決めたことと、その理由を残す。1 つの判�
 | [0007](0007-rag-uses-mcp-core-and-persistent-jobs.md) | RAG は MCP、共通コア、永続ジョブで構成する | 承認（モデルの保持と共有、埋め込みと索引更新の実行場所は 0012 で置き換え済み） | 2026年11月3日 |
 | [0008](0008-numbered-workspace-layout.md) | info-hive の作業領域は番号付きのディレクトリで構成する | 承認 | 2026年11月4日 |
 | [0009](0009-graph-layer-stays-in-wiki.md) | グラフ層は wiki プラグインに残し、別のプラグインにしない | 承認 | 2026年11月4日 |
-| [0010](0010-wiki-browse-separates-core-from-delivery.md) | `/wiki:browse` は Wiki を解釈する中核と表示の方式を分け、どの方式でも同じ契約で動かす | 提案 | 未定 |
+| [0010](0010-wiki-browse-separates-core-from-delivery.md) | `/wiki:browse` は Wiki を解釈する中核と表示の方式を分け、どの方式でも同じ契約で動かす | 承認 | 2026年11月7日 |
 | [0011](0011-shared-embedding-and-index-stack.md) | wiki と rag の埋め込み、ベクトル索引、語彙検索をそろえる | 承認 | 2026年11月6日 |
 | [0012](0012-wiki-owns-local-mcp-index-server.md) | wiki が 127.0.0.1 の MCP サーバーを持ち、モデルと索引の唯一の持ち主になる | 承認 | 2026年11月6日 |
 | [0013](0013-rag-records-pdfs-by-absolute-path-and-hash.md) | rag は参照ルートを持たず、PDF を絶対パスと内容の SHA-256 で記録する | 承認 | 2026年11月7日 |

@@ -1,0 +1,45 @@
+{
+  "initialize_s": 2.61,
+  "tools_list_s": 5.95,
+  "tools": [
+    "query",
+    "get_page",
+    "list_index",
+    "lint",
+    "stats",
+    "graph",
+    "index_chunks"
+  ],
+  "relay_list_index_ok": true,
+  "http": {
+    "bearer_no_origin": {
+      "status": 200,
+      "acao": null
+    },
+    "bearer_origin_null": {
+      "status": 403,
+      "acao": null,
+      "body": "Invalid Origin header"
+    },
+    "bearer_origin_loopback_other_port": {
+      "status": 403,
+      "acao": null,
+      "body": "Invalid Origin header"
+    },
+    "no_bearer": {
+      "status": 401,
+      "acao": null,
+      "body": "{\"error\": \"unauthorized\"}"
+    },
+    "preflight_origin_null": {
+      "status": 403,
+      "acao": null,
+      "body": "Invalid Origin header"
+    }
+  },
+  "browser": {
+    "file_with_csp": "error TypeError: Failed to fetch",
+    "file_without_csp": "error TypeError: Failed to fetch",
+    "origin_sent": null
+  }
+}
