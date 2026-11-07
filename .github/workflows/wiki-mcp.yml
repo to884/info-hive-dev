@@ -1,12 +1,11 @@
 name: Wiki MCP server
 
-# wiki の MCP サーバー（info-hive-wiki）を、手元にない macOS と、Linux で確かめる。Windows は手元で確かめる。
+# wiki の MCP サーバー（info-hive-wiki）を Linux で確かめる。Windows は手元で確かめる。
 # - tests/wiki/test_wiki_index.py と test_mcp_server.py: テスト用の埋め込みで、索引、中継、サーバーの起動と停止
 # - tests/wiki/run_mcp_gate.py: 本物のモデル（約 530 MB）を取得して、評価ゲートを ADR-0011 の融合の設定で通す
 #
 # info-hive-wiki は private なので、読み取り専用のトークンをシークレット WIKI_READ_TOKEN に置く
 # （fine-grained PAT、対象は to884/info-hive-wiki、権限は Contents の Read-only）。
-# private のリポジトリでは macOS の 1 分が 10 分として数えられるので、動かす場面を絞る。
 
 on:
   workflow_dispatch:
@@ -28,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     env:
