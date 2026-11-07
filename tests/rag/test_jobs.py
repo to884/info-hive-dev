@@ -349,9 +349,13 @@ class JobTests(unittest.TestCase):
         replacement.write_bytes(self.source.read_bytes())
         os.utime(replacement, ns=(mtime_ns, mtime_ns))
         os.replace(replacement, self.source)
+        calls = []
+        engine = self.engine()
+        engine.extractor = lambda *args: calls.append(args)
         with self.assertRaisesRegex(ValueError, "登録した PDF"):
-            self.engine().ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md",
-                                     expected=(dev, ino, size, mtime_ns))
+            engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md", expected=(dev, ino, size, mtime_ns))
+        self.assertEqual(calls, [])
+        self.assertEqual(engine.status(str(self.wiki))["documents"], 0)
 
     def test_failed_job_after_publication_does_not_block_configuration(self):
         job = self.register()
@@ -360,6 +364,82 @@ class JobTests(unittest.TestCase):
         self.jobs.finish(job["job_id"], "owner", error="要再確認の印を書けなかった")
         self.assertFalse(self.jobs.cancel(str(self.wiki), job["job_id"])["cancellation_accepted"])
         self.assertFalse(self.jobs.unfinished())
+
+
+    def test_broken_hard_link_keeps_the_old_version(self):
+        alias = self.refs / "別名.pdf"
+        try:
+            os.link(self.source, alias)
+        except OSError:
+            self.skipTest("このファイルシステムはハードリンクを作れない")
+        engine = self.engine()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        # 資料.pdf を、同じ中身の独立したファイルに置き換えて、リンクの関係を切る。
+        copy = self.refs / "置き換え.tmp"
+        copy.write_bytes(self.source.read_bytes())
+        info = os.stat(self.source)
+        os.utime(copy, ns=(info.st_atime_ns, info.st_mtime_ns))  # 台帳の大きさと更新時刻に合わせる
+        os.replace(copy, self.source)
+        self.make_pdf(alias, "Only the alias changes")
+        engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        self.assertEqual(engine.status(str(self.wiki))["documents"], 2)
+        results = engine.search(str(self.wiki), "Persistent indexing checkpoint", limit=20)["results"]
+        kept = [row for row in results if row["sha256"] == old["sha256"]]
+        self.assertTrue(kept)
+        self.assertTrue(all(row["raw"] == self.source.resolve().as_posix() for row in kept))
+
+    def test_job_records_the_path_as_given_and_the_worker_can_use_it(self):
+        given = str(self.refs / "下" / ".." / "資料.pdf")
+        (self.refs / "下").mkdir()
+        job = self.register_path(given)
+        self.assertEqual(job["source"], given)
+        result = self.engine().ingest_pdf(str(self.wiki), job["source"], "sources/資料.md")
+        self.assertEqual(result["raw"], self.source.resolve().as_posix())
+
+    def register_path(self, source):
+        return self.jobs.register(self.config, str(self.wiki), source, "sources/資料.md")
+
+    def test_paths_with_control_characters_are_rejected(self):
+        for source in (str(self.refs) + "/改行\n.pdf", str(self.refs) + "/タブ\t.pdf"):
+            with self.subTest(source=source), self.assertRaisesRegex(ValueError, "制御文字"):
+                self.config.pdf_path(source)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows の UNC の書き方の試験")
+    def test_mixed_separator_unc_is_rejected_before_resolving(self):
+        def resolve(self, strict=False):
+            raise AssertionError("UNC を解決しようとした")
+        with patch.object(Path, "resolve", resolve):
+            for source in ("/\\server/share/本.pdf", "\\/server/share/本.pdf", "//server/share/本.pdf",
+                           "\\\\?\\C:\\本.pdf", "\\\\.\\C:\\本.pdf"):
+                with self.subTest(source=source), self.assertRaisesRegex(ValueError, "UNC"):
+                    self.config.pdf_path(source)
+
+    def test_same_size_and_time_with_new_content_is_indexed_again(self):
+        import sqlite3
+        other = self.refs / "第二版.tmp"
+        self.make_pdf(other, "Persistent indexing different")
+        first_bytes, second_bytes = self.source.read_bytes(), other.read_bytes()
+        size = max(len(first_bytes), len(second_bytes))
+        first_bytes, second_bytes = first_bytes.ljust(size, b"\n"), second_bytes.ljust(size, b"\n")
+        self.source.write_bytes(first_bytes)
+        engine = self.engine()
+        job = self.register()
+        self.jobs.claim("owner")
+        first = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.jobs.finish(job["job_id"], "owner", result=first)
+        info = os.stat(self.source)
+        with open(self.source, "r+b") as handle:  # 同じファイルのまま中身を書き換える
+            handle.write(second_bytes)
+        os.utime(self.source, ns=(info.st_atime_ns, info.st_mtime_ns))
+        again = self.register()
+        self.assertNotEqual(again["job_id"], job["job_id"])
+        with sqlite3.connect(self.jobs.path) as db:
+            expected = db.execute("SELECT dev,ino,size,mtime_ns FROM ingest_jobs WHERE id=?", (again["job_id"],)).fetchone()
+        second = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md", expected=expected)
+        self.assertNotEqual(second["sha256"], first["sha256"])
+        self.assertEqual(second["sha256"], hashlib.sha256(second_bytes).hexdigest())
+        self.assertEqual(engine.status(str(self.wiki))["documents"], 1)
 
 
 if __name__ == "__main__":
