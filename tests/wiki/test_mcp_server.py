@@ -327,6 +327,91 @@ class RepairTests(ServerCase):
         self.assertEqual(len(reinstalls), 1, reinstalls)
 
 
+class EnvProblemsTests(unittest.TestCase):
+    """env_problems（RECORD との照合）を、uv を使わずに偽の site-packages で確かめる。
+
+    大きさは os.scandir の一覧から読み、見つからないものと大きさの違うものだけを stat() で確かめ直す。
+    その近道で、欠けたファイルや大きさの違うファイルを見逃さないことを確かめる。
+    """
+
+    def setUp(self):
+        import wiki_mcp_common
+        self.common = wiki_mcp_common
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.prefix = Path(self.temp.name)
+        self.site = self.prefix / "Lib" / "site-packages"
+        files = {"pkg/__init__.py": b"x = 1\n", "pkg/_backends/_impl.py": b"y = 2\n" * 10,
+                 "pkg-1.0.dist-info/METADATA": b"Name: pkg\n", "../../Scripts/pkg.exe": b"MZ" * 8}
+        rows = []
+        for name, body in files.items():
+            path = self.site / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(body)
+            rows.append(f"{name},sha256=x,{len(body)}")
+        rows += ["pkg/__pycache__/__init__.cpython-312.pyc,,", "pkg-1.0.dist-info/RECORD,,"]
+        (self.site / "pkg-1.0.dist-info" / "RECORD").write_text("\n".join(rows) + "\n", encoding="utf-8")
+        from unittest import mock
+        patcher = mock.patch("sysconfig.get_paths", return_value={"purelib": str(self.site),
+                                                                  "platlib": str(self.site)})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_complete_env_has_no_problems(self):
+        self.assertEqual(self.common.env_problems(), [])
+
+    def test_missing_lazily_imported_module(self):
+        (self.site / "pkg" / "_backends" / "_impl.py").unlink()
+        self.assertEqual(self.common.env_problems(), ["pkg/_backends/_impl.py がない"])
+
+    def test_missing_metadata(self):
+        (self.site / "pkg-1.0.dist-info" / "METADATA").unlink()
+        self.assertEqual(self.common.env_problems(), ["pkg-1.0.dist-info/METADATA がない"])
+
+    def test_size_differs(self):
+        (self.site / "pkg" / "__init__.py").write_bytes(b"")
+        self.assertEqual(self.common.env_problems(), ["pkg/__init__.py の大きさ（0）が RECORD（6）と違う"])
+
+    def test_file_outside_site_packages(self):
+        """Scripts/ の実行ファイルは site-packages の外にあるので、一覧になく、1 つずつ確かめる。"""
+        (self.prefix / "Scripts" / "pkg.exe").unlink()
+        self.assertEqual(self.common.env_problems(), ["../../Scripts/pkg.exe がない"])
+
+    def test_dangling_symlink(self):
+        """リンク先のないシンボリックリンクは、リンク自体の大きさが RECORD と同じでも欠けとみなす。"""
+        target = self.site / "pkg" / "__init__.py"
+        target.unlink()
+        try:
+            os.symlink("abcdef", target)  # リンク自体の大きさは 6 で、RECORD の大きさと同じ
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"シンボリックリンクを作れない: {exc}")
+        self.assertEqual(self.common.env_problems(), ["pkg/__init__.py がない"])
+
+    def test_dotdot_through_symlink(self):
+        """.. を含む行は、文字列の上で正規化せず、実際の場所を確かめる。
+
+        Windows は .. をパスの文字の上で解決する（リンクをたどらない）ので、この食い違いは POSIX だけで起きる。
+        """
+        if os.name == "nt":
+            self.skipTest("Windows は .. をパスの文字の上で解決する")
+        outside = self.prefix / "outside" / "sub"
+        outside.mkdir(parents=True)
+        try:
+            os.symlink(outside, self.site / "jump", target_is_directory=True)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"シンボリックリンクを作れない: {exc}")
+        record = self.site / "pkg-1.0.dist-info" / "RECORD"
+        record.write_text(record.read_text(encoding="utf-8") + "jump/../pkg/__init__.py,,6\n", encoding="utf-8")
+        # 実際の jump/../pkg/__init__.py は outside/pkg/__init__.py で、存在しない。
+        self.assertEqual(self.common.env_problems(), ["jump/../pkg/__init__.py がない"])
+
+    def test_truncated_record(self):
+        record = self.site / "pkg-1.0.dist-info" / "RECORD"
+        record.write_text(record.read_text(encoding="utf-8").replace("pkg-1.0.dist-info/RECORD,,\n", ""),
+                          encoding="utf-8")
+        self.assertEqual(self.common.env_problems(), ["pkg-1.0.dist-info/RECORD が途中で切れている"])
+
+
 class ScriptToolTests(ServerCase):
     """lint、stats、graph（ADR-0012 の段階 3）。CLI の `--json` と同じ結果を返すことを確かめる。"""
 
