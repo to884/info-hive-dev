@@ -255,7 +255,7 @@ class RepairTests(ServerCase):
                                env=env, timeout=120)
         python = found.stdout.decode("utf-8").strip().splitlines()[-1]
         out = subprocess.run([python, "-c", "import sysconfig; print(sysconfig.get_paths()['purelib'])"],
-                             check=True, capture_output=True, timeout=120)
+                             check=True, capture_output=True, env=env, timeout=120)
         return Path(out.stdout.decode("utf-8").strip())
 
     def test_launcher_repairs_broken_relay_env(self):
