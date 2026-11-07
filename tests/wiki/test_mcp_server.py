@@ -366,6 +366,24 @@ class ScriptToolTests(ServerCase):
         with self.assertRaises(RuntimeError):
             self.call("lint", soft_cap=0)
 
+    def test_tools_ignore_workspace_config(self):
+        """ツールは wiki を引数で受け取る。サーバーの cwd（データの置き場所）や wiki の上に壊れた作業領域の
+        設定があっても、それを読まずに答える（ADR-0008）。"""
+        config = self.root / ".info-hive" / "workspace.json"
+        config.parent.mkdir()
+        config.write_text("{", encoding="utf-8")
+        self.data.mkdir(parents=True, exist_ok=True)
+        # 同じ場所で wiki を省いた CLI は、設定を読んで止まる。
+        out = subprocess.run([sys.executable, "-X", "utf8", str(SCRIPTS / "wiki_lint.py"), "--json"], cwd=self.data,
+                             capture_output=True, timeout=120, env={**os.environ, "PYTHONUTF8": "1"})
+        self.assertEqual(out.returncode, 1)
+        self.assertIn("作業領域の設定を読めない", out.stderr.decode("utf-8", "replace"))
+        result = self.call("lint", graph=False)
+        result.pop("graph")
+        self.assertEqual(result, run_cli(SCRIPTS / "wiki_lint.py", self.wiki.resolve(), "--json"))
+        self.assertGreater(self.call("stats")["pages"], 0)
+        self.assertTrue(self.call("query", query="熱中症")["results"])
+
     def test_lint_includes_graph_lint(self):
         self.build_graph()
         result = self.call("lint")
