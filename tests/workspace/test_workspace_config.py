@@ -179,12 +179,39 @@ class WikiCliDefaultTests(unittest.TestCase):
                     code, stdout, stderr = self.run_script(script, case)
                     expect = case["expect"]
                     self.assertEqual(code, expect["exit"], stderr)
+                    if "stderr" in expect:
+                        self.assertIn(expect["stderr"], stderr)
                     if expect["exit"] == 0:
                         self.assertIn("target-page", stdout)
                         self.assertNotIn("decoy-page", stdout)
                     else:
-                        self.assertIn(expect["stderr"], stderr)
                         self.assertEqual(stdout, "")
+
+    def test_search_cache_goes_under_resolved_wiki(self):
+        """値を省いた --cache は、設定から決めた wiki の下に置き、2 回目はそれを使う。"""
+        files = {
+            ".info-hive/workspace.json": {"version": 1, "kind": "user", "dirs": {"wiki": "知識/wiki"}},
+            "知識/wiki/target-page.md": "# 目印\n\n目印の本文。\n",
+            "src/wiki/decoy-page.md": "# 目印\n\n目印の本文。\n",
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            write_files(base, files)
+            command = [sys.executable, "-X", "utf8", str(WIKI_SCRIPTS / "wiki_search.py"), "目印", "--json",
+                       "--no-embed", "--cache"]
+            outputs = []
+            for _ in range(2):
+                out = subprocess.run(command, cwd=base / "src", capture_output=True, timeout=120,
+                                     env={**os.environ, "PYTHONUTF8": "1"})
+                self.assertEqual(out.returncode, 0, out.stderr.decode("utf-8"))
+                outputs.append(json.loads(out.stdout.decode("utf-8"))["results"])
+            cache = base / "知識" / "wiki" / ".wiki-cache" / "search-index.json"
+            self.assertTrue(cache.is_file())
+            self.assertIn("target-page.md", cache.read_text(encoding="utf-8"))
+            self.assertFalse((base / "src" / "wiki" / ".wiki-cache").exists())
+            self.assertFalse((base / "wiki" / ".wiki-cache").exists())
+            self.assertEqual(outputs[0], outputs[1])
+            self.assertEqual([row["slug"] for row in outputs[1]], ["target-page"])
 
     def test_help_does_not_read_workspace(self):
         case = {"files": {".info-hive/workspace.json": "{"}, "cwd": ".", "wiki": None}
@@ -200,32 +227,42 @@ class WikiCliDefaultTests(unittest.TestCase):
                 self.assertIn("作業領域の設定の dirs.wiki", out.stdout.decode("utf-8"))
 
     def test_functions_used_by_mcp_server_do_not_read_workspace(self):
-        """サーバーは wiki を引数で受け取り、lint や collect_pages を同じプロセスで呼ぶ。設定を読んではならない。"""
-        sys.path.insert(0, str(WIKI_SCRIPTS))
-        try:
-            import wiki_lint
-            import wiki_search
-        finally:
-            sys.path.remove(str(WIKI_SCRIPTS))
+        """サーバーは wiki を引数で受け取り、lint や collect_pages を同じプロセスで呼ぶ。設定を読んではならない。
 
+        import の時点で読む退行も見つけるため、壊れた設定の下で設定の探索を拒むようにしてから import し直す。
+        """
         def refuse(*_args, **_kwargs):
             raise AssertionError("作業領域の設定を読みに行った")
 
-        with tempfile.TemporaryDirectory() as temp:
-            base = Path(temp)
-            write_files(base, {".info-hive/workspace.json": "{", "wiki/target-page.md": "# 目印\n\n目印の本文。\n"})
-            wiki = base / "wiki"
-            previous = Path.cwd()
-            os.chdir(wiki)
-            try:
-                with mock.patch.object(wiki_lint.wiki_workspace, "find_workspace", refuse), \
-                        mock.patch.object(wiki_search.wiki_workspace, "find_workspace", refuse):
-                    findings = wiki_lint.lint(wiki_lint.collect_pages(wiki), 100, 200,
-                                              list(wiki_lint.DEFAULT_REQUIRED_FM), False, 5)
-                    pages = wiki_search.collect_pages(wiki)
-                    sections = wiki_search.collect_sections(pages)
-            finally:
-                os.chdir(previous)
+        previous = Path.cwd()
+        sys.path.insert(0, str(WIKI_SCRIPTS))
+        saved = {name: sys.modules.pop(name, None) for name in ("wiki_lint", "wiki_search")}
+        try:
+            import wiki_workspace
+            with tempfile.TemporaryDirectory() as temp:
+                base = Path(temp)
+                write_files(base, {".info-hive/workspace.json": "{", "wiki/target-page.md": "# 目印\n\n目印の本文。\n"})
+                wiki = base / "wiki"
+                os.chdir(wiki)
+                try:
+                    with mock.patch.object(wiki_workspace, "find_workspace", refuse):
+                        wiki_lint = importlib.import_module("wiki_lint")
+                        wiki_search = importlib.import_module("wiki_search")
+                        self.assertIs(wiki_lint.wiki_workspace, wiki_workspace)
+                        self.assertIs(wiki_search.wiki_workspace, wiki_workspace)
+                        findings = wiki_lint.lint(wiki_lint.collect_pages(wiki), 100, 200,
+                                                  list(wiki_lint.DEFAULT_REQUIRED_FM), False, 5)
+                        pages = wiki_search.collect_pages(wiki)
+                        sections = wiki_search.collect_sections(pages)
+                finally:
+                    os.chdir(previous)
+        finally:
+            sys.path.remove(str(WIKI_SCRIPTS))
+            for name, module in saved.items():
+                if module is None:
+                    sys.modules.pop(name, None)
+                else:
+                    sys.modules[name] = module
         self.assertEqual(findings["summary"]["total_pages"], 1)
         self.assertEqual([page["slug"] for page in pages], ["target-page"])
         self.assertTrue(sections)

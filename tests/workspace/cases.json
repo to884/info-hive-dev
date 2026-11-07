@@ -157,7 +157,7 @@
     }
   ],
   "cli": {
-    "note": "wiki のスクリプトが wiki を省いたときの既定（wiki だけの試験）。cwd はスクリプトを動かすディレクトリ、wiki は明示する wiki（null なら省く）。target-page.md のある wiki を使い、decoy-page.md のある wiki を使わないことを確かめる。exit が 1 のときは stderr に含まれる文を確かめる。",
+    "note": "wiki のスクリプトが wiki を省いたときの既定（wiki だけの試験）。cwd はスクリプトを動かすディレクトリ、wiki は明示する wiki（null なら省く）。target-page.md のある wiki を使い、decoy-page.md のある wiki を使わないことを確かめる。stderr があれば、標準エラーに含まれる文を確かめる。exit が 1 のときは標準出力が空であることも確かめる。",
     "cases": [
       {
         "name": "設定がなければ ./wiki を使う",
@@ -200,6 +200,17 @@
         "cwd": "src",
         "wiki": null,
         "expect": {"exit": 0}
+      },
+      {
+        "name": "未知のキーは標準エラーに警告を書いて続ける",
+        "files": {
+          ".info-hive/workspace.json": {"version": 1, "kind": "user", "zeta": true, "dirs": {"wiki": "kb"}},
+          "kb/target-page.md": "# 目印\n\n目印の本文。\n",
+          "src/wiki/decoy-page.md": "# 目印\n\n目印の本文。\n"
+        },
+        "cwd": "src",
+        "wiki": null,
+        "expect": {"exit": 0, "stderr": "警告: 未知のキー 'zeta'"}
       },
       {
         "name": "壊れた設定は理由を書いて終了コード 1",
