@@ -40,7 +40,7 @@ async def main():
     (wiki/'concept.md').write_text('---\nsources: [a]\n---\n資料を参照する概念。\n',encoding='utf-8')
     a=refs/'source-a.pdf'; b=refs/'source-b.pdf'
     fixture(a,40,'ANN_INITIAL_Q83'); fixture(b,4,'ANN_APPEND_Q83')
-    values={'reference_roots':{'fixture':str(refs)},'data_dir':str(run/'data'),'embedding_model':'cl-nagoya/ruri-v3-30m',
+    values={'data_dir':str(run/'data'),'embedding_model':'cl-nagoya/ruri-v3-30m',
         'model_cache_dir':os.environ.get('RAG_TEST_MODEL_CACHE',str(ROOT/'.rag-poc-data/model-cache')),
         'uv_cache_dir':os.environ.get('RAG_TEST_UV_CACHE',str(ROOT/'.rag-poc-data/uv-cache-ocr')),
         'cpu_threads':4,'batch_size':16,'index_cleanup_age_days':3650,'search_nprobes':20}

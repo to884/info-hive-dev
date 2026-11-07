@@ -12,7 +12,9 @@ RUN = ROOT / ".rag-poc-data" / f"c{int(time.time())}"
 RUN.mkdir(parents=True)
 base = sorted((ROOT / ".rag-poc-data").glob("j*/config.json"))[-1]
 config = json.loads(base.read_text(encoding="utf-8"))
-source = next(Path(config["reference_roots"]["fixture"]).glob("*.pdf"))
+config.pop("reference_roots", None)
+# verify_pipeline.py は、PDF を config.json と同じフォルダーの references/ に置く。
+source = next((base.parent / "references").glob("*.pdf"))
 before = hashlib.sha256(source.read_bytes()).hexdigest()
 config["data_dir"] = str(RUN / "data")
 config_path = RUN / "config.json"

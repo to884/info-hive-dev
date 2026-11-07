@@ -1,6 +1,8 @@
-"""登録の競合、キャンセル、公開境界と索引の再開に対する回帰試験。"""
+"""登録の競合、キャンセル、公開境界と索引の再開、PDF の絶対パスの扱い（ADR-0013）の回帰試験。"""
 import concurrent.futures
+import hashlib
 import json
+import unicodedata
 import os
 import sys
 import tempfile
@@ -27,15 +29,26 @@ class JobTests(unittest.TestCase):
         (self.wiki / "sources").mkdir(parents=True)
         (self.wiki / "SCHEMA.md").write_text("# 検証\n", encoding="utf-8")
         self.source = self.refs / "資料.pdf"
-        from reportlab.pdfgen import canvas
-        pdf = canvas.Canvas(str(self.source))
-        for number in range(4):
-            pdf.drawString(40, 700, "Persistent indexing checkpoint " + str(number))
-            pdf.showPage()
-        pdf.save()
-        self.config = Config({"reference_roots": {"local": str(self.refs)}, "data_dir": str(self.root / "data"),
+        self.make_pdf(self.source, "Persistent indexing checkpoint")
+        self.config = Config({"data_dir": str(self.root / "data"),
                               "embedding_model": "cl-nagoya/ruri-v3-30m", "ocr_mode": "off", "batch_size": 1})
         self.jobs = Jobs(self.config.data_dir)
+
+    @staticmethod
+    def make_pdf(path, text, pages=4):
+        from reportlab.pdfgen import canvas
+        pdf = canvas.Canvas(str(path))
+        for number in range(pages):
+            pdf.drawString(40, 700, text + " " + str(number))
+            pdf.showPage()
+        pdf.save()
+
+    def engine(self):
+        import numpy as np
+        class Embedder:
+            def encode(self, texts, **_):
+                return np.tile(np.asarray([1.] + [0.] * 255, dtype=np.float32), (len(texts), 1))
+        return Engine(self.config, embedder=Embedder())
 
     def register(self):
         return self.jobs.register(self.config, str(self.wiki), str(self.source), "sources/資料.md")
@@ -188,6 +201,294 @@ class JobTests(unittest.TestCase):
                        {"reranker":"tiny-int8","min_rerank_score":float("nan")},{"search_nprobes":0}]:
             with self.assertRaises(ValueError):
                 Config({**self.config.values,**values})
+
+
+    def test_registration_requires_an_absolute_pdf_path(self):
+        (self.refs / "メモ.txt").write_text("PDF ではない", encoding="utf-8")
+        (self.refs / "フォルダ.pdf").mkdir()
+        inside = self.config.data_dir / "派生.pdf"
+        inside.parent.mkdir(parents=True, exist_ok=True)
+        self.make_pdf(inside, "derived data")
+        for source in ("資料.pdf", "local:資料.pdf", str(self.refs / "ない.pdf"), str(self.refs / "メモ.txt"),
+                       str(self.refs / "フォルダ.pdf"), r"\\server\share\資料.pdf", str(inside), ""):
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                self.jobs.register(self.config, str(self.wiki), source, "sources/資料.md")
+        if sys.platform == "win32":
+            with self.assertRaises(ValueError):
+                self.jobs.register(self.config, str(self.wiki), "//server/share/資料.pdf", "sources/資料.md")
+
+    def test_pdf_anywhere_is_accepted_and_raw_is_posix_with_sha256(self):
+        elsewhere = self.root / "別の場所" / "深い" / "本.pdf"
+        elsewhere.parent.mkdir(parents=True)
+        self.make_pdf(elsewhere, "Anywhere on the drive")
+        job = self.jobs.register(self.config, str(self.wiki), str(elsewhere), "sources/本.md")
+        self.assertEqual(job["source"], str(elsewhere.resolve()))
+        result = self.engine().ingest_pdf(str(self.wiki), str(elsewhere), "sources/本.md")
+        self.assertEqual(result["raw"], elsewhere.resolve().as_posix())
+        self.assertNotIn("\\", result["raw"])
+        self.assertEqual(result["sha256"], hashlib.sha256(elsewhere.read_bytes()).hexdigest())
+        found = self.engine().search(str(self.wiki), "Anywhere", limit=1)["results"][0]
+        self.assertEqual((found["raw"], found["sha256"]), (result["raw"], result["sha256"]))
+
+    def test_file_that_is_not_a_pdf_is_rejected_when_read(self):
+        fake = self.refs / "偽物.pdf"
+        fake.write_bytes(b"not a pdf at all")
+        self.jobs.register(self.config, str(self.wiki), str(fake), "sources/偽物.md")
+        with self.assertRaisesRegex(ValueError, "%PDF-"):
+            self.engine().ingest_pdf(str(self.wiki), str(fake), "sources/偽物.md")
+
+    def test_completed_job_is_not_reused_when_registered_again(self):
+        first = self.register()
+        self.assertEqual(self.register()["job_id"], first["job_id"])
+        self.jobs.claim("owner")
+        self.assertEqual(self.register()["job_id"], first["job_id"])
+        self.jobs.finish(first["job_id"], "owner", result={"pages": 4})
+        # 大きさと更新時刻を変えずに中身を差し替えても、取り込み直せる。
+        second = self.register()
+        self.assertNotEqual(second["job_id"], first["job_id"])
+        self.assertEqual(second["status"], "queued")
+        self.assertEqual(self.register()["job_id"], second["job_id"])
+        self.assertEqual(self.jobs.claim("next")["id"], second["job_id"])
+
+    def test_nfc_and_nfd_names_are_different_locations(self):
+        nfc = self.refs / (unicodedata.normalize("NFC", "ガイド") + ".pdf")
+        nfd = self.refs / (unicodedata.normalize("NFD", "ガイド") + ".pdf")
+        self.make_pdf(nfc, "Composed name")
+        self.make_pdf(nfd, "Decomposed name")
+        if len([name for name in os.listdir(self.refs) if name.endswith(".pdf") and name != "資料.pdf"]) != 2:
+            self.skipTest("このファイルシステムは NFC と NFD の名前を同じファイルとして扱う")
+        engine = self.engine()
+        first = engine.ingest_pdf(str(self.wiki), str(nfc), "sources/nfc.md")
+        second = engine.ingest_pdf(str(self.wiki), str(nfd), "sources/nfd.md")
+        self.assertNotEqual(first["sha256"], second["sha256"])
+        self.assertEqual(second["review_pages"], [])
+        self.assertEqual(engine.status(str(self.wiki))["documents"], 2)
+
+    def test_old_version_points_to_the_copy_that_still_has_it(self):
+        copy = self.refs / "写し.pdf"
+        copy.write_bytes(self.source.read_bytes())
+        engine = self.engine()
+        original = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        engine.ingest_pdf(str(self.wiki), str(copy), "sources/写し.md")
+        self.make_pdf(copy, "Rewritten edition")
+        engine.ingest_pdf(str(self.wiki), str(copy), "sources/写し.md")
+        results = engine.search(str(self.wiki), "checkpoint", limit=20)["results"]
+        old = [row for row in results if row["sha256"] == original["sha256"]]
+        self.assertTrue(old)
+        self.assertTrue(all(row["raw"] == self.source.resolve().as_posix() for row in old))
+
+    def test_data_from_version_0_3_is_not_opened(self):
+        data_dir = self.root / "old-data"
+        (data_dir / "wikis" / "abc").mkdir(parents=True)
+        (data_dir / "jobs.sqlite").write_bytes(b"not a database of this version")
+        jobs = Jobs(data_dir)
+        self.assertEqual(sorted(Path(path).name for path in jobs.legacy_data()), ["jobs.sqlite", "wikis"])
+        config = Config({**self.config.values, "data_dir": str(data_dir), "reference_roots": {"old": str(self.refs)}})
+        self.assertNotIn("reference_roots", config.snapshot())
+        self.assertFalse(jobs.unfinished())
+        jobs.register(config, str(self.wiki), str(self.source), "sources/資料.md")
+        self.assertEqual(config.workspace(str(self.wiki)).parent.name, "wikis-v2")
+
+
+    def test_hard_link_alias_follows_the_new_version(self):
+        alias = self.refs / "別名.pdf"
+        try:
+            os.link(self.source, alias)
+        except OSError:
+            self.skipTest("このファイルシステムはハードリンクを作れない")
+        engine = self.engine()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        self.make_pdf(alias, "Rewritten through alias")  # 同じファイルなので、資料.pdf も書き換わる
+        new = engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        self.assertNotEqual(old["sha256"], new["sha256"])
+        self.assertEqual(engine.status(str(self.wiki))["documents"], 1)
+        results = engine.search(str(self.wiki), "Rewritten checkpoint", limit=20)["results"]
+        self.assertTrue(results)
+        self.assertTrue(all(row["sha256"] == new["sha256"] for row in results))
+
+    def test_restoring_old_content_indexes_it_again(self):
+        engine = self.engine()
+        original_bytes = self.source.read_bytes()
+        first = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.make_pdf(self.source, "Second edition")
+        engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.source.write_bytes(original_bytes)
+        again = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.assertEqual(again["sha256"], first["sha256"])
+        table = engine._table(self.config.workspace(str(self.wiki)))
+        rows = table.search().where(f"doc_id = '{first['sha256']}'").limit(100).to_list()
+        self.assertEqual(len(rows), again["chunks"])
+        found = engine.search(str(self.wiki), "Persistent indexing checkpoint", limit=5)["results"]
+        self.assertTrue(found and all(row["sha256"] == first["sha256"] for row in found))
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows のリンクの扱いの試験")
+    def test_local_link_to_network_file_is_rejected(self):
+        unc = Path(r"\\server\share\本.pdf")
+        info = os.lstat(self.source)
+        with patch.object(Path, "resolve", lambda self, strict=False: unc), \
+                patch("rag_config.os.lstat", lambda path: info), \
+                patch("rag_config._network_drive", lambda path: False):
+            with self.assertRaisesRegex(ValueError, "ネットワーク"):
+                self.config.pdf_path(str(self.refs / "リンク.pdf"))
+        with patch.object(Path, "resolve", lambda self, strict=False: unc), \
+                patch("rag_config.os.lstat", lambda path: info), \
+                patch("rag_config._network_drive", lambda path: True):
+            self.assertEqual(self.config.pdf_path("Z:/本.pdf"), unc)
+
+    def test_file_swapped_after_registration_is_not_read(self):
+        import sqlite3
+        job = self.register()
+        with sqlite3.connect(self.jobs.path) as db:
+            dev, ino, size, mtime_ns = db.execute("SELECT dev,ino,size,mtime_ns FROM ingest_jobs WHERE id=?",
+                                                  (job["job_id"],)).fetchone()
+        if ino in (None, "", "0"):
+            self.skipTest("このファイルシステムはファイルの識別子を返さない")
+        # 同じ大きさと更新時刻の、別のファイルに差し替える。
+        replacement = self.refs / "差し替え.tmp"
+        replacement.write_bytes(self.source.read_bytes())
+        os.utime(replacement, ns=(mtime_ns, mtime_ns))
+        os.replace(replacement, self.source)
+        calls, reads = [], []
+        engine = self.engine()
+        engine.extractor = lambda *args: calls.append(args)
+        real_open = open
+        def counting_open(*args, **kwargs):
+            handle = real_open(*args, **kwargs)
+            read = handle.read
+            handle.read = lambda *a: reads.append(a) or read(*a)
+            return handle
+        with patch("rag_index.open", counting_open, create=True):
+            with self.assertRaisesRegex(ValueError, "登録した PDF"):
+                engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md", expected=(dev, ino, size, mtime_ns))
+        self.assertEqual(reads, [])  # 本文を読む前に止まる
+        self.assertEqual(calls, [])
+        self.assertEqual(engine.status(str(self.wiki))["documents"], 0)
+
+    def test_failed_job_after_publication_does_not_block_configuration(self):
+        job = self.register()
+        self.jobs.claim("owner")
+        self.jobs.begin_publication(job["job_id"], "owner")
+        self.jobs.finish(job["job_id"], "owner", error="要再確認の印を書けなかった")
+        self.assertFalse(self.jobs.cancel(str(self.wiki), job["job_id"])["cancellation_accepted"])
+        self.assertFalse(self.jobs.unfinished())
+
+
+    def test_broken_hard_link_keeps_the_old_version(self):
+        alias = self.refs / "別名.pdf"
+        try:
+            os.link(self.source, alias)
+        except OSError:
+            self.skipTest("このファイルシステムはハードリンクを作れない")
+        engine = self.engine()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        # 資料.pdf を、同じ中身の独立したファイルに置き換えて、リンクの関係を切る。
+        copy = self.refs / "置き換え.tmp"
+        copy.write_bytes(self.source.read_bytes())
+        info = os.stat(self.source)
+        os.utime(copy, ns=(info.st_atime_ns, info.st_mtime_ns))  # 台帳の大きさと更新時刻に合わせる
+        os.replace(copy, self.source)
+        self.make_pdf(alias, "Only the alias changes")
+        engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        self.assertEqual(engine.status(str(self.wiki))["documents"], 2)
+        results = engine.search(str(self.wiki), "Persistent indexing checkpoint", limit=20)["results"]
+        kept = [row for row in results if row["sha256"] == old["sha256"]]
+        self.assertTrue(kept)
+        self.assertTrue(all(row["raw"] == self.source.resolve().as_posix() for row in kept))
+
+    def test_job_records_the_path_as_given_and_it_can_be_ingested(self):
+        given = str(self.refs / "下" / ".." / "資料.pdf")
+        (self.refs / "下").mkdir()
+        job = self.register_path(given)
+        self.assertEqual(job["source"], given)
+        result = self.engine().ingest_pdf(str(self.wiki), job["source"], "sources/資料.md")
+        self.assertEqual(result["raw"], self.source.resolve().as_posix())
+
+    def register_path(self, source):
+        return self.jobs.register(self.config, str(self.wiki), source, "sources/資料.md")
+
+    def test_paths_with_control_characters_are_rejected(self):
+        for source in (str(self.refs) + "/改行\n.pdf", str(self.refs) + "/タブ\t.pdf", str(self.refs) + "/次行\x85.pdf"):
+            with self.subTest(source=source), self.assertRaisesRegex(ValueError, "制御文字"):
+                self.config.pdf_path(source)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows の UNC の書き方の試験")
+    def test_mixed_separator_unc_is_rejected_before_resolving(self):
+        def resolve(self, strict=False):
+            raise AssertionError("UNC を解決しようとした")
+        with patch.object(Path, "resolve", resolve):
+            for source in ("/\\server/share/本.pdf", "\\/server/share/本.pdf", "//server/share/本.pdf",
+                           "\\\\?\\C:\\本.pdf", "\\\\.\\C:\\本.pdf"):
+                with self.subTest(source=source), self.assertRaisesRegex(ValueError, "UNC"):
+                    self.config.pdf_path(source)
+
+    def test_same_size_and_time_with_new_content_is_indexed_again(self):
+        import sqlite3
+        other = self.refs / "第二版.tmp"
+        self.make_pdf(other, "Persistent indexing different")
+        first_bytes, second_bytes = self.source.read_bytes(), other.read_bytes()
+        size = max(len(first_bytes), len(second_bytes))
+        first_bytes, second_bytes = first_bytes.ljust(size, b"\n"), second_bytes.ljust(size, b"\n")
+        self.source.write_bytes(first_bytes)
+        engine = self.engine()
+        job = self.register()
+        self.jobs.claim("owner")
+        first = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.jobs.finish(job["job_id"], "owner", result=first)
+        info = os.stat(self.source)
+        with open(self.source, "r+b") as handle:  # 同じファイルのまま中身を書き換える
+            handle.write(second_bytes)
+        os.utime(self.source, ns=(info.st_atime_ns, info.st_mtime_ns))
+        again = self.register()
+        self.assertNotEqual(again["job_id"], job["job_id"])
+        with sqlite3.connect(self.jobs.path) as db:
+            expected = db.execute("SELECT dev,ino,size,mtime_ns FROM ingest_jobs WHERE id=?", (again["job_id"],)).fetchone()
+        second = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md", expected=expected)
+        self.assertNotEqual(second["sha256"], first["sha256"])
+        self.assertEqual(second["sha256"], hashlib.sha256(second_bytes).hexdigest())
+        self.assertEqual(engine.status(str(self.wiki))["documents"], 1)
+
+
+    def test_deleted_hard_link_does_not_keep_the_old_version(self):
+        alias = self.refs / "別名.pdf"
+        try:
+            os.link(self.source, alias)
+        except OSError:
+            self.skipTest("このファイルシステムはハードリンクを作れない")
+        engine = self.engine()
+        engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        self.source.unlink()
+        self.make_pdf(alias, "Only one name is left")
+        new = engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        self.assertEqual(engine.status(str(self.wiki))["documents"], 1)
+        results = engine.search(str(self.wiki), "checkpoint", limit=20)["results"]
+        self.assertTrue(results and all(row["sha256"] == new["sha256"] for row in results))
+
+    def test_alias_swapped_during_ingest_keeps_the_old_version(self):
+        alias = self.refs / "別名.pdf"
+        try:
+            os.link(self.source, alias)
+        except OSError:
+            self.skipTest("このファイルシステムはハードリンクを作れない")
+        engine = self.engine()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md")
+        saved = self.source.read_bytes()
+        info = os.stat(self.source)
+        self.make_pdf(alias, "Rewritten while ingesting")
+        def swap_back(phase, completed, total):
+            if phase == "埋め込み" and completed == 0:
+                copy = self.refs / "戻し.tmp"
+                copy.write_bytes(saved)
+                os.utime(copy, ns=(info.st_atime_ns, info.st_mtime_ns))
+                os.replace(copy, self.source)  # 取り込みの途中で、資料.pdf だけを古い版の独立したファイルに戻す
+        engine.ingest_pdf(str(self.wiki), str(alias), "sources/別名.md", progress=swap_back)
+        self.assertEqual(engine.status(str(self.wiki))["documents"], 2)
+        kept = [row for row in engine.search(str(self.wiki), "Persistent indexing checkpoint", limit=20)["results"]
+                if row["sha256"] == old["sha256"]]
+        self.assertTrue(kept and all(row["raw"] == self.source.resolve().as_posix() for row in kept))
 
 
 if __name__ == "__main__":

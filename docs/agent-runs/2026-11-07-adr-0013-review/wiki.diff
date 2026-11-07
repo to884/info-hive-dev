@@ -1,0 +1,88 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index e039cd5..7d35392 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "wiki",
+-  "version": "0.5.0",
++  "version": "0.6.0",
+   "description": "日本語による Markdown の wiki を構築し、ローカルのハイブリッド検索、出典つきの回答、グラフ、タスクの経験からのスキル改善を提供する。praneybehl/llm-wiki-plugin v4.0.1 の日本語向け移植版。",
+   "author": {
+     "name": "to884"
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index bf65877..f1e92ed 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,16 @@
+ 
+ ## [Unreleased]
+ 
++## [0.6.0] - 2026-11-07
++
++### Changed
++
++- PDF の取り込み（rag が有効な場合）の手順を、rag 0.4.0 の参照ルートの廃止（開発リポジトリの ADR-0013）に合わせた。`register_pdf` の `source` には、ユーザーが指定した PDF の絶対パスを渡す。PDF はどのフォルダにあってもよく、`/rag:setup` で先に登録する案内はやめた。ユーザーが指定していない PDF は登録しない。登録を拒まれたら、理由をそのまま伝える。
++
++### Added
++
++- ソースの要約ページに、PDF の内容の SHA-256 を書くキー `raw_sha256` を足した。`raw` には rag が返す `/` 区切りの絶対パスを書き、どちらも二重引用符で囲んで `\` と `"` をエスケープする。別の PC で同じ PDF を取り込み直すと、`raw_sha256` で同じ出典と分かる。
++
+ ## [0.5.0] - 2026-11-07
+ 
+ ### Changed
+@@ -146,7 +156,8 @@
+ - 移植元の調査メモ `research/` と、移植元の英語の評価セットでの測定記録（`eval/decisions/results-*.json`）は取り込んでいない。
+ - Paperclip 連携は移植元の v4.0.0 で削除されており、info-hive にもない。
+ 
+-[Unreleased]: https://github.com/to884/info-hive-wiki/compare/v0.5.0...HEAD
++[Unreleased]: https://github.com/to884/info-hive-wiki/compare/v0.6.0...HEAD
++[0.6.0]: https://github.com/to884/info-hive-wiki/compare/v0.5.0...v0.6.0
+ [0.5.0]: https://github.com/to884/info-hive-wiki/compare/v0.4.2...v0.5.0
+ [0.4.2]: https://github.com/to884/info-hive-wiki/compare/v0.4.1...v0.4.2
+ [0.4.1]: https://github.com/to884/info-hive-wiki/compare/v0.4.0...v0.4.1
+diff --git a/commands/ingest.md b/commands/ingest.md
+index 54e56d5..001e9ba 100644
+--- a/commands/ingest.md
++++ b/commands/ingest.md
+@@ -41,10 +41,10 @@ wiki がまだない場合は、プロジェクトをまたいで使うユーザ
+ 
+ ## PDF の登録（rag が有効な場合）
+ 
+-1. 要約ページのスラッグを決め、`rag` MCP サーバーの `register_pdf` に `wiki_root=<WIKI_ROOT の絶対パス>`、`source=<PDF の絶対パスまたは名前付き参照>`、`source_page="sources/<スラッグ>.md"`、`title=<題名>` を渡す。ツール名は接続に表示されたものを使う。別プラグインの内部パスを組み立ててスクリプトを実行しない。PDF を閲覧するだけの場合は登録しない。
+-2. 応答の `job_id` を記録する。`queued`、`running`、`paused` は受付・処理中であり、索引化や wiki の取り込み完了と報告しない。原本を `<RAW_ROOT>` へコピーしない。参照ルートが未設定なら `/rag:setup` で登録する。
++1. 要約ページのスラッグを決め、`rag` MCP サーバーの `register_pdf` に `wiki_root=<WIKI_ROOT の絶対パス>`、`source=<PDF の絶対パス>`、`source_page="sources/<スラッグ>.md"`、`title=<題名>` を渡す。`source` は、ユーザーが指定した PDF の絶対パスにする。相対パスで指定されたら、作業ディレクトリから絶対パスにする。ユーザーが指定していない PDF は登録しない。PDF はどのフォルダにあってもよく、先に登録しておく必要はない。ツール名は接続に表示されたものを使う。別プラグインの内部パスを組み立ててスクリプトを実行しない。PDF を閲覧するだけの場合は登録しない。
++2. 応答の `job_id` を記録する。`queued`、`running`、`paused` は受付・処理中であり、索引化や wiki の取り込み完了と報告しない。原本を `<RAW_ROOT>` へコピーしない。登録を拒まれたら、理由（絶対パスでない、PDF でない、UNC パス、rag の派生データの中にある、など）をそのまま伝える。
+ 3. `job_status(wiki_root, job_id)` で進捗を確認する。短時間待つ場合は `wait_seconds=30` を使い、細かい連続呼び出しを避ける。処理中に会話を終える場合はジョブ ID と再開待ちの状態を報告し、ここで手順を止める。次回 rag の MCP 接続時に未完了ジョブは自動再開する。キャンセル済みのジョブは自動再開しない。
+-4. `completed` のときだけ `result.extracted_markdown` を分割して読み、通常の手順 4〜8 に進む。要約ページの `raw` には `result.raw` の名前付き参照を、`rag_job_id` にはジョブ ID を書く。内容を読む前に要約を作らない。
++4. `completed` のときだけ `result.extracted_markdown` を分割して読み、通常の手順 4〜8 に進む。要約ページの `raw` には `result.raw`（`/` 区切りの絶対パス）を、`raw_sha256` には `result.sha256` を、`rag_job_id` にはジョブ ID を書く。値は二重引用符で囲み、`\` は `\\`、`"` は `\"` と書く。内容を読む前に要約を作らない。
+ 5. `failed` は理由を報告し、修正後は `retry_job` で再試行する。`cancelled` の再試行は明示的に依頼された場合だけ行う。
+ 
+ rag が使えないときも wiki の通常の取り込みは使える。RAG 連携を求められている場合は、rag の有効化を案内し、索引化済みとは報告しない。
+diff --git a/skills/info-hive/references/ingest-workflow.md b/skills/info-hive/references/ingest-workflow.md
+index 7d5af09..afc087e 100644
+--- a/skills/info-hive/references/ingest-workflow.md
++++ b/skills/info-hive/references/ingest-workflow.md
+@@ -11,7 +11,9 @@
+ ### PDF と rag の連携
+ 
+ `rag` の MCP ツールが使える場合、PDF は原本の場所に置いたまま、`register_pdf(wiki_root, source, source_page, title)` を呼ぶ。
+-`wiki_root` は特定した wiki の絶対パス、`source` は PDF の絶対パスまたは登録済みの名前付き参照、`source_page` は `sources/<スラッグ>.md` である。
++`wiki_root` は特定した wiki の絶対パス、`source` はユーザーが指定した PDF の絶対パス、`source_page` は `sources/<スラッグ>.md` である。
++相対パスで指定されたら、作業ディレクトリから絶対パスにして渡す。ユーザーが指定していない PDF は登録しない。PDF はどのフォルダにあってもよく、先に登録しておく必要はない。
++rag は、拡張子が `.pdf` で先頭が `%PDF-` の通常のファイルだけを受け付け、UNC パスと rag の派生データの中の PDF を拒む。拒まれたら、理由をそのまま伝える。
+ この呼び出しを、コマンドと自然言語による取り込みの両方で実行する。PDF を読むだけの依頼では呼ばない。
+ 原本を `raw/` へコピーせず、別プラグインの内部スクリプトも直接呼ばない。
+ 
+@@ -22,7 +24,10 @@
+ `failed` の理由を直した後は `retry_job` を使う。`cancelled` は明示的な依頼なしに再試行しない。
+ 
+ `completed` になったら `result.extracted_markdown` を分割して読み、手順 3 以降へ進む。
+-ソースの要約ページには `raw: "<result.raw>"` と `rag_job_id: "<job_id>"` を書く。
++ソースの要約ページには `raw: "<result.raw>"`、`raw_sha256: "<result.sha256>"`、`rag_job_id: "<job_id>"` を書く。
++`result.raw` は `/` 区切りの絶対パス（Windows では `C:/Books/本.pdf`）で、`result.sha256` は PDF の内容の SHA-256 である。
++値の中の `\` は `\\`、`"` は `\"` と書く（`page-conventions.md` の frontmatter の決まり）。
++別の PC では PDF の場所が違うことがある。同じ PDF を取り込み直すと、`raw_sha256` で同じ出典と分かる。
+ rag が使えない場合は、下の通常手順を使える。ただし RAG 連携を求められた場合は rag の有効化を案内し、索引化済みとは報告しない。
+ 
+ ### 通常のソース

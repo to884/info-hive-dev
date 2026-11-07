@@ -1,0 +1,667 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index 38a926a..f36354a 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "rag",
+-  "version": "0.3.0",
++  "version": "0.4.0",
+   "description": "wiki@info-hive に依存し、PDF の抽出・OCR・埋め込みを永続ジョブで進め、中断後の再開とローカル検索を提供する Claude Code プラグイン。",
+   "dependencies": [
+     "wiki@info-hive"
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index e0064f1..cc8c28d 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,24 @@
+ 
+ ## [Unreleased]
+ 
++## [0.4.0] - 2026-11-07
++
++### 変更
++
++- 参照ルートを廃止しました（ADR-0013）。`/rag:setup` で PDF のフォルダを登録する必要はなくなり、`register_pdf` と `ingest_pdf` には PDF の絶対パスを渡します。`configure` の引数 `reference_roots` もなくしました。相対パスと「名前:相対パス」は受け付けません。
++- 取り込みと検索の結果の `raw` を、`/` 区切りの絶対パスにしました。PDF の内容の SHA-256 を `sha256` として返します。
++- 受け付けるのは、拡張子が `.pdf` の通常のファイルで、派生データとキャッシュの外にあるものです。UNC パス（`/\server/...` のように区切りを混ぜたものを含む）、デバイスのパス、改行などの制御文字を含むパスは拒みます。ジョブには渡されたままの絶対パスを記録するので、ネットワークドライブの PDF も取り込めます。読み込むときは、確かめたファイルを 1 回だけ開き、読んだバイト列の先頭が `%PDF-` であることを確かめます。
++- 0.3.0 の設定、ジョブ、台帳との互換をなくしました。ジョブは `jobs-v2.sqlite` に、台帳と索引は `wikis-v2/` に置き、0.3.0 の `jobs.sqlite` と `wikis/` は開きません。残っていれば `status` が `legacy_data` で伝えます。0.3.0 で取り込んだ PDF は、取り込み直してください。
++
++### 修正
++
++- 大きさと更新時刻を変えずに中身を差し替えた PDF を登録し直すと、前の完了したジョブが返り、取り込み直せませんでした。完了、失敗、キャンセルのジョブしかなければ、新しいジョブを作ります。
++- 同じ内容の PDF を 2 か所で登録したあと片方だけを書き換えると、古い版の検索結果の出典が、書き換えたほうの場所を指していました。文書に代表の場所を持たず、大きさと更新時刻が今と合う場所を返します。合う場所がなければ `raw` は `null` です。
++- ハードリンクのように同じファイルを 2 つの名前で登録したあと、片方の名前で書き換えて取り込むと、もう片方の名前が古い版の出典に残っていました。場所にファイルの識別子を持たせ、公開の直前に調べて今も同じファイルを指している場所だけを、まとめて新しい版に移します。もうない別名の行は外します。
++- PDF の内容を古い版に戻して取り込むと、内部の途中経過が残っていたため、索引に何も入らないまま完了になっていました。古い版を消すときに途中経過も消します。
++- 公開を始めたあとに失敗したジョブ（キャンセルできない）が、`configure` を塞ぎ続けていました。設定の変更を塞ぐのは、受け付け済み、処理中、一時停止のジョブだけにしました。
++- 登録のあとで PDF のあるフォルダーが差し替えられると、確かめていない別のファイルを読むことがありました。登録したときのファイルの識別子、大きさ、更新時刻を記録し、開いたファイルと照らします。
++
+ ## [0.3.0] - 2026-11-05
+ 
+ ### 変更
+@@ -43,7 +61,8 @@
+ 
+ - プラグイン `rag` の初期構成を追加しました。
+ 
+-[Unreleased]: https://github.com/to884/info-hive-rag/compare/v0.3.0...HEAD
++[Unreleased]: https://github.com/to884/info-hive-rag/compare/v0.4.0...HEAD
++[0.4.0]: https://github.com/to884/info-hive-rag/compare/v0.3.0...v0.4.0
+ [0.3.0]: https://github.com/to884/info-hive-rag/compare/v0.2.0...v0.3.0
+ [0.2.0]: https://github.com/to884/info-hive-rag/compare/v0.1.0...v0.2.0
+ [0.1.0]: https://github.com/to884/info-hive-rag/releases/tag/v0.1.0
+diff --git a/README.md b/README.md
+index 9879bc5..057f1c9 100644
+--- a/README.md
++++ b/README.md
+@@ -27,12 +27,13 @@ Claude Code で、マーケットプレイスを追加してから `rag` を入
+ 
+ ## PDF の取り込み
+ 
+-1. `/rag:setup` で PDF のあるフォルダを参照ルートとして登録します。派生データは原本と別の場所に保存します。
+-2. `/wiki:ingest <PDF のパス>` を実行します。wiki が `register_pdf` を呼び、ジョブ ID を受け取ります。自然言語で PDF の取り込みを依頼した場合も同じ手順を使います。
+-3. `/rag:status` で進捗を確認します。`completed` になると、wiki が抽出済みの Markdown を読み、ソースの要約ページを作成できます。
++1. `/wiki:ingest <PDF の絶対パス>` を実行します。PDF はどこにあってもかまいません。フォルダを先に登録する必要はありません。wiki が `register_pdf` を呼び、ジョブ ID を受け取ります。自然言語で PDF の取り込みを依頼した場合も同じ手順を使います。
++2. `/rag:status` で進捗を確認します。`completed` になると、wiki が抽出済みの Markdown を読み、ソースの要約ページを作成できます。
+ 
+ `queued`、`running`、`paused` は処理中です。PDF の索引化が完了したことや、wiki の要約ページが完成したことを意味しません。
+-PDF の原本はコピーしません。要約ページの `raw` は `books:日本語資料.pdf` のような名前付き参照になります。
++PDF の原本はコピーも書き換えもしません。要約ページの `raw` は `C:/Books/日本語資料.pdf` のような `/` 区切りの絶対パスに、`raw_sha256` は PDF の内容の SHA-256 になります。別の PC では、同じ PDF を取り込み直すと SHA-256 で同じ文書と分かります。
++受け付けるのは、拡張子が `.pdf` で先頭が `%PDF-` の通常のファイルです。UNC パス（`\\server\share\...`）と、派生データの保存先の中の PDF は拒みます。ネットワークの PDF は、ドライブ文字を割り当ててから指定します。
++派生データの保存先、埋め込みモデル、検索の設定を変えるときは `/rag:setup` を使います。
+ 
+ Claude Code の終了時は、ワーカーと OCR の子プロセスを停止します。次回 rag の MCP 接続時に未完了のジョブを再開します。
+ 保存済みのページと埋め込みバッチを再利用し、索引が揃ってから検索対象として公開します。
+@@ -46,13 +47,13 @@ Claude Code の終了時は、ワーカーと OCR の子プロセスを停止し
+ 
+ | MCP ツール | 用途 |
+ | --- | --- |
+-| `configure` | 参照ルート、派生データの保存先、モデルを設定する。未完了ジョブがある間は変更しない |
+-| `register_pdf` | PDF を登録し、ジョブ ID を返す。受付時に PDF 全体は読み込まない |
++| `configure` | 派生データの保存先、モデル、検索の設定を変える。未完了ジョブがある間は変更しない |
++| `register_pdf` | PDF を絶対パスで登録し、ジョブ ID を返す。受付時に PDF の中身は読まない |
+ | `ingest_pdf` | 同じ引数を受け付ける `register_pdf` の別名。同期的な完了待ちではない |
+ | `job_status` | 指定した wiki とジョブの進捗・結果を返す。`wait_seconds=1〜30` で短時間待機できる |
+ | `cancel_job` | キャンセルする。索引の公開開始後は受理しないため、`cancellation_accepted` を確認する |
+ | `retry_job` | 失敗またはキャンセルしたジョブを明示的に再試行する |
+-| `status` | 対象 wiki の索引件数とジョブ一覧を返す |
++| `status` | 対象 wiki の索引件数とジョブ一覧を返す。0.3.0 のデータが残っていれば `legacy_data` で伝える |
+ | `search` | 公開済みの索引から本文、出典、ページ番号を検索する |
+ 
+ 同じ保存先を使う複数の接続では、索引化を進めるワーカーを一つにします。OS の常駐サービスは作りません。
+diff --git a/commands/setup.md b/commands/setup.md
+index 0b907c3..417d3ed 100644
+--- a/commands/setup.md
++++ b/commands/setup.md
+@@ -1,12 +1,14 @@
+ ---
+-description: PDF の参照ルートと RAG の保存先を設定する。
+-argument-hint: "<PDF のあるフォルダと、任意の派生データ保存先>"
++description: RAG の派生データの保存先、埋め込みモデル、検索の設定を変える。
++argument-hint: "<任意の派生データの保存先や、モデルの指定>"
+ ---
+ 
+-ユーザーが指定した PDF のフォルダに短い名前を付け、`rag` MCP サーバーの `configure` に `reference_roots={名前: 絶対パス}` を渡す。指定された派生データの保存先は `data_dir` に渡す。既存のルートを残すときは、PC の設定ファイルにある `reference_roots` と合わせて渡す。
++`rag` MCP サーバーの `configure` に、ユーザーが指定した設定だけを渡す。派生データの保存先は `data_dir`、埋め込みモデルは `embedding_model`、検索の設定は `retrieval` に渡す。指定のない項目は今の設定のまま残る。
++
++PDF のフォルダは登録しない。PDF は `/wiki:ingest` で取り込むときに、絶対パスで渡す。どこにある PDF でもよい。rag 0.3.0 の参照ルート（`reference_roots`）は使わなくなった。設定ファイルに残っていれば、`configure` で保存し直したときに消える。
+ 
+ 埋め込みモデルの暫定既定値は `cl-nagoya/ruri-v3-130m`。CPU が非力な環境では、ユーザーの希望に応じて `30m` または `70m` を指定できる。既存の索引がある場合、モデルの変更には全資料の再投入が必要だと説明する。
+ 
+-PDF の原本には書き込まない。派生データの保存先の既定値は OS の利用者用アプリケーションデータ領域で、参照ルートと別にする。OneDrive などの同期対象のフォルダを指定する場合は、再生成できるデータの同期に時間がかかることを説明する。
++PDF の原本には書き込まない。派生データの保存先の既定値は OS の利用者用アプリケーションデータ領域である。派生データの保存先の中にある PDF は登録できない。OneDrive などの同期対象のフォルダを指定する場合は、再生成できるデータの同期に時間がかかることを説明する。
+ 
+ PDF の取り込みは `/wiki:ingest` で行う。取り込みを起点に抽出、OCR、埋め込み、索引更新が実行される。初回は実行環境とモデルを取得する。検索と埋め込みはローカルで処理するが、回答に使う上位チャンクは Claude Code に渡る。
+diff --git a/commands/status.md b/commands/status.md
+index dc64867..813dbfb 100644
+--- a/commands/status.md
++++ b/commands/status.md
+@@ -5,3 +5,5 @@ description: PDF の索引件数と、失敗・中断した取り込みを確認
+ ユーザーの指定とプロジェクト・グローバルの指示から対象の wiki を特定し、`rag` MCP サーバーの `status` に `wiki_root` の絶対パスを渡す。
+ 
+ 文書数、チャンク数、ジョブ ID、進捗と失敗理由を日本語で報告する。`queued`、`running`、`paused` は索引化完了ではない。次回 rag の MCP 接続時に未完了ジョブは自動再開する。失敗したジョブは理由を直して `retry_job(wiki_root, job_id)` で再試行する。キャンセルには `cancel_job` を使い、`cancellation_accepted` を確認する。公開開始後はキャンセルできない。キャンセル済みのジョブは明示的に再試行しない限り再開しない。
++
++応答に `legacy_data` があれば、rag 0.3.0 のデータ（`paths` の場所）が残っていることを伝える。新しい版はそれを読まないので、ユーザーが消してよい。消すのはユーザーに任せ、自分では消さない。0.3.0 で取り込んだ PDF は、`/wiki:ingest` で取り込み直す。
+diff --git a/scripts/rag_config.py b/scripts/rag_config.py
+index 1b71aac..85a5076 100644
+--- a/scripts/rag_config.py
++++ b/scripts/rag_config.py
+@@ -6,6 +6,7 @@ import hashlib
+ import json
+ import math
+ import os
++import stat
+ import sys
+ import time
+ import uuid
+@@ -42,6 +43,21 @@ def config_path() -> Path:
+     return Path(os.environ.get("INFO_HIVE_RAG_CONFIG", app_data() / "config.json")).expanduser().resolve()
+ 
+ 
++def _has_control(text: str) -> bool:
++    """C0 と C1 の制御文字（改行、タブ、U+0085 など）を含むなら True を返す。frontmatter に書くと、
++    wiki の手書きのパーサーと PyYAML で値が食い違う。"""
++    import unicodedata
++    return any(unicodedata.category(character) == "Cc" for character in text)
++
++
++def _network_drive(path: Path) -> bool:
++    """Windows で、パスのドライブ文字が、利用者が割り当てたネットワークドライブなら True を返す。"""
++    if not path.drive or not path.drive.endswith(":"):
++        return False
++    import ctypes
++    return ctypes.windll.kernel32.GetDriveTypeW(path.drive + "\\") == 4  # DRIVE_REMOTE
++
++
+ def write_json(path: Path, value: object) -> None:
+     path.parent.mkdir(parents=True, exist_ok=True)
+     temporary = path.with_name(path.name + "." + uuid.uuid4().hex + ".tmp")
+@@ -64,7 +80,6 @@ class Config:
+             values = json.loads(self.path.read_text(encoding="utf-8-sig")) if self.path.exists() else {}
+         self.values = values
+         self.data_dir = Path(values.get("data_dir", app_data() / "data")).expanduser().resolve()
+-        self.roots = {name: Path(path).expanduser().resolve() for name, path in values.get("reference_roots", {}).items()}
+         self.model = values.get("embedding_model", DEFAULT_MODEL)
+         if self.model not in MODELS:
+             raise ValueError("embedding_model は Ruri v3 の 30m、70m、130m、310m から選んでください。")
+@@ -101,15 +116,10 @@ class Config:
+             raise ValueError("search_nprobes は 1〜4096、search_refine_factor は 1〜100 にしてください。")
+         if not 1<=self.ann_min_rows<=1000000 or not math.isfinite(self.ann_rebuild_growth) or not 2<=self.ann_rebuild_growth<=16 or not 1<=self.index_cleanup_age_days<=36500:
+             raise ValueError('ann_min_rows は1〜1000000、ann_rebuild_growth は2〜16、index_cleanup_age_days は1〜36500にしてください。')
+-        for name, root in self.roots.items():
+-            if not name or any(c in name for c in ":/\\"):
+-                raise ValueError("参照ルート名にコロンやパスの区切りは使えません。")
+-            if any(path == root or path.is_relative_to(root) for path in (self.data_dir, self.model_cache_dir, self.uv_cache_dir)):
+-                raise ValueError("派生データとキャッシュは参照ルートの外にしてください。原資料の場所には書き込みません。")
+ 
+     def snapshot(self) -> dict:
+-        return {**self.values, "data_dir": str(self.data_dir),
+-                "reference_roots": {name: str(path) for name, path in self.roots.items()},
++        values = {key: value for key, value in self.values.items() if key != "reference_roots"}
++        return {**values, "data_dir": str(self.data_dir),
+                 "embedding_model": self.model, "embedding_revision": self.revision,
+                 "model_cache_dir": str(self.model_cache_dir), "uv_cache_dir": str(self.uv_cache_dir)}
+ 
+@@ -121,29 +131,53 @@ class Config:
+ 
+     @property
+     def fingerprint(self) -> str:
+-        policy = ["rag-v1", self.model, self.revision, self.dimension, self.chunk_chars,
++        policy = ["rag-v2", self.model, self.revision, self.dimension, self.chunk_chars,
+                   self.overlap, self.ocr_mode, self.ocr_dpi, OCR_REVISION, "sudachi-C-normalized", "ruri-prefix-v1", "native-context-token-budget-v1"]
+         return hashlib.sha256(json.dumps(policy).encode("utf-8")).hexdigest()
+ 
++    @staticmethod
++    def pdf_source(source: str) -> str:
++        """ジョブに記録する、利用者が渡したままの絶対パス。ネットワークドライブの PDF は解決すると UNC に
++        なるので、解決したパスではなくこちらを記録し、ワーカーで同じように確かめ直す。"""
++        return str(Path(str(source).strip()).expanduser())
++
+     def workspace(self, wiki_root: str) -> Path:
+         wiki = Path(wiki_root).expanduser().resolve()
+         if not (wiki / "SCHEMA.md").is_file():
+             raise ValueError("wiki_root に SCHEMA.md がありません。先に wiki を初期化してください。")
+         identity = hashlib.sha256(os.path.normcase(str(wiki)).encode("utf-8")).hexdigest()[:24]
+-        return self.data_dir / "wikis" / identity
+-
+-    def reference(self, source: str) -> tuple[str, str, Path]:
+-        # 名前付き参照と絶対パスの両方を受け付ける。解決後にもルート外への逸脱を調べる。
+-        name, separator, relative = source.partition(":")
+-        if separator and name in self.roots:
+-            root = self.roots[name]
+-            path = (root / relative).resolve()
+-            if not path.is_relative_to(root):
+-                raise ValueError("参照ルートの外の PDF は指定できません。")
+-            return name, path.relative_to(root).as_posix(), path
+-        path = Path(source).expanduser().resolve()
+-        matches = [(name, root) for name, root in self.roots.items() if path.is_relative_to(root)]
+-        if not matches:
+-            raise ValueError("PDF が参照ルートにありません。configure でそのフォルダを登録してください。")
+-        name, root = max(matches, key=lambda item: len(item[1].parts))
+-        return name, path.relative_to(root).as_posix(), path
++        return self.data_dir / "wikis-v2" / identity
++
++    def pdf_path(self, source: str) -> Path:
++        """登録する PDF の絶対パスを確かめ、解決したパスを返す。中身は読まない（ADR-0013）。"""
++        text = str(source).strip()
++        if not text:
++            raise ValueError("PDF の絶対パスを指定してください。")
++        if _has_control(text):
++            raise ValueError("改行などの制御文字を含むパスは指定できません。")
++        # UNC とデバイスのパスは、解決する前に拒む。知らないサーバーに接続させないため。
++        # Windows では /\server/... のように区切りを混ぜても UNC になるので、組み立てたパスのドライブでも見る。
++        unc = ValueError("UNC パスとデバイスのパスは指定できません。ネットワークの PDF は、ドライブ文字を割り当ててから指定してください。")
++        if text.startswith("\\\\") or (sys.platform == "win32" and text[:2] in ("//", "/\\", "\\/")):
++            raise unc
++        path = Path(text).expanduser()
++        if path.drive.startswith(("\\\\", "//")) or str(path).startswith("\\\\"):
++            raise unc
++        if not path.is_absolute():
++            raise ValueError("PDF は絶対パスで指定してください。")
++        try:
++            resolved = path.resolve(strict=True)
++            info = os.lstat(resolved)
++        except OSError:
++            raise ValueError("PDF が見つかりません。絶対パスを確かめてください。") from None
++        if _has_control(str(resolved)):
++            raise ValueError("解決したパスが、改行などの制御文字を含みます。")
++        if not stat.S_ISREG(info.st_mode) or resolved.suffix.lower() != ".pdf":
++            raise ValueError("読み取れる PDF ファイル（拡張子 .pdf）を指定してください。")
++        if sys.platform == "win32" and str(resolved).startswith("\\\\") and not _network_drive(path):
++            # ローカルのフォルダーに置かれたリンクが、ネットワーク上のファイルを指している。
++            raise ValueError("ローカルのフォルダーから、ネットワーク上のファイルへのリンクはたどりません。")
++        for folder in (self.data_dir, self.model_cache_dir, self.uv_cache_dir):
++            if resolved == folder or resolved.is_relative_to(folder):
++                raise ValueError("rag の派生データやキャッシュの中の PDF は登録できません。")
++        return resolved
+diff --git a/scripts/rag_index.py b/scripts/rag_index.py
+index 45b82b1..dae0d9d 100644
+--- a/scripts/rag_index.py
++++ b/scripts/rag_index.py
+@@ -18,6 +18,42 @@ from rag_config import Config, write_json
+ from rag_pdf import chunks_for, extract_pages
+ 
+ 
++def file_id(info: os.stat_result) -> tuple[str, str] | None:
++    """ファイルの識別子（st_dev と st_ino）を文字列で返す。Windows の st_ino は 64 ビットに収まらないことがある。
++    識別子を返さないファイルシステム（st_ino が 0）では None を返す。"""
++    return (str(info.st_dev), str(info.st_ino)) if info.st_ino else None
++
++
++def _same_file(first: os.stat_result, second: os.stat_result) -> bool:
++    return (first.st_dev, first.st_ino, first.st_size, first.st_mtime_ns) == (
++        second.st_dev, second.st_ino, second.st_size, second.st_mtime_ns)
++
++
++def read_pdf(path: Path, expected: tuple | None = None) -> tuple[bytes, os.stat_result]:
++    """確かめたファイルを 1 回だけ開いて読み、読んだバイト列が PDF であることを確かめる（ADR-0013）。
++
++    expected は登録したときのファイルの (st_dev, st_ino, st_size, st_mtime_ns)。開いたファイルがこれと
++    違えば読まない。登録のあとで親のフォルダーが差し替えられても、別のファイルを読まないため。
++    """
++    before = os.lstat(path)
++    with open(path, "rb") as handle:
++        opened = os.fstat(handle.fileno())
++        if not _same_file(before, opened):
++            raise ValueError("確かめた PDF と開いたファイルが違います。もう一度取り込んでください。")
++        if expected is not None:
++            dev, ino, size, mtime_ns = expected
++            if (opened.st_size, opened.st_mtime_ns) != (size, mtime_ns) or (
++                    ino not in (None, "", "0", 0) and file_id(opened) != (str(dev), str(ino))):
++                raise ValueError("登録した PDF と開いたファイルが違います。新しいジョブで取り込んでください。")
++        data = handle.read()
++        after = os.fstat(handle.fileno())
++    if not _same_file(opened, after) or len(data) != after.st_size:
++        raise ValueError("読み込み中に PDF が変更されました。もう一度取り込んでください。")
++    if not data.startswith(b"%PDF-"):
++        raise ValueError("PDF の形式ではありません（先頭が %PDF- ではない）。")
++    return data, after
++
++
+ class Embedder:
+     def __init__(self, config: Config):
+         import torch
+@@ -90,11 +126,11 @@ class Engine:
+         connection.executescript("""
+             CREATE TABLE IF NOT EXISTS documents (
+                 doc_id TEXT PRIMARY KEY, generation TEXT NOT NULL, title TEXT NOT NULL,
+-                root TEXT NOT NULL, relative_path TEXT NOT NULL, pages INTEGER, chunks INTEGER,
+-                fingerprint TEXT NOT NULL, ingested_at REAL NOT NULL);
++                pages INTEGER, chunks INTEGER, fingerprint TEXT NOT NULL, ingested_at REAL NOT NULL);
+             CREATE TABLE IF NOT EXISTS locations (
+-                root TEXT, relative_path TEXT, doc_id TEXT NOT NULL, size INTEGER, mtime_ns INTEGER,
+-                PRIMARY KEY(root, relative_path));
++                path TEXT PRIMARY KEY, doc_id TEXT NOT NULL, size INTEGER, mtime_ns INTEGER,
++                confirmed_at REAL NOT NULL, dev TEXT, ino TEXT);
++            CREATE INDEX IF NOT EXISTS locations_file ON locations(dev, ino);
+             CREATE TABLE IF NOT EXISTS citations (
+                 doc_id TEXT, source_page TEXT, PRIMARY KEY(doc_id, source_page));
+             CREATE TABLE IF NOT EXISTS jobs (
+@@ -132,6 +168,23 @@ class Engine:
+             write_json(path, {"fingerprint": self.config.fingerprint, "model": self.config.model,
+                               "revision": self.config.revision, "dimension": self.config.dimension})
+ 
++    @staticmethod
++    def _location(connection, doc_id: str) -> str | None:
++        """文書の今の場所を返す。最後に確かめた順に見て、記録した大きさと更新時刻が今と合う場所を選ぶ。
++
++        合う場所がなければ None を返す。中身が変わったかもしれない場所を、古い版の出典として返さない。
++        """
++        rows = connection.execute("SELECT path,size,mtime_ns FROM locations WHERE doc_id=? ORDER BY confirmed_at DESC",
++                                  (doc_id,)).fetchall()
++        for row in rows:
++            try:
++                current = os.stat(row["path"])
++            except OSError:
++                continue
++            if (current.st_size, current.st_mtime_ns) == (row["size"], row["mtime_ns"]):
++                return row["path"]
++        return None
++
+     def _source_page(self, wiki: Path, source_page: str) -> str:
+         return self.config.source_page(wiki, source_page)
+ 
+@@ -185,32 +238,25 @@ class Engine:
+         return affected
+ 
+     def ingest_pdf(self, wiki_root: str, source: str, source_page: str, title: str = "", progress=None,
+-                   before_publish=None) -> dict:
++                   before_publish=None, expected: tuple | None = None) -> dict:
+         wiki = Path(wiki_root).expanduser().resolve()
+         folder = self.config.workspace(str(wiki))
+-        root, relative, path = self.config.reference(source)
+-        if path.suffix.lower() != ".pdf" or not path.is_file():
+-            raise ValueError("読み取れる PDF ファイルを指定してください。")
++        path = self.config.pdf_path(source)
++        location = str(path)
+         source_page = self._source_page(wiki, source_page)
+         folder.mkdir(parents=True, exist_ok=True)
+         with FileLock(str(folder / "write.lock"), timeout=1800):
+             self._check_policy(folder)
+             with self._catalog(folder) as connection:
+-                stat_before = path.stat()
+                 if progress:
+                     progress("PDF の読み込み", 0, 1)
+                 # 遅い原資料を一度だけ順次読み込み、ハッシュと PDFium で共用する。
+-                data = path.read_bytes()
+-                stat_after = path.stat()
+-                if (stat_before.st_size, stat_before.st_mtime_ns) != (stat_after.st_size, stat_after.st_mtime_ns):
+-                    raise ValueError("読み込み中に PDF が変更されました。もう一度取り込んでください。")
++                data, stat_after = read_pdf(path, expected)
+                 if progress:
+                     progress("PDF の読み込み", 1, 1)
+                 doc_id = hashlib.sha256(data).hexdigest()
+                 generation = hashlib.sha256((doc_id + self.config.fingerprint).encode("ascii")).hexdigest()
+-                previous_location = connection.execute("SELECT doc_id FROM locations WHERE root=? AND relative_path=?", (root, relative)).fetchone()
+                 existing = connection.execute("SELECT * FROM documents WHERE doc_id=?", (doc_id,)).fetchone()
+-                old_id = previous_location[0] if previous_location and previous_location[0] != doc_id else None
+                 if existing:
+                     pages_count, chunks_count = existing["pages"], existing["chunks"]
+                     markdown = folder / "extracted" / generation / "document.md"
+@@ -256,37 +302,70 @@ class Engine:
+                         connection.commit()
+                         raise
+                 self._maintain_indexes(folder,self._table(folder),progress)
+-                current = path.stat()
++                current = os.stat(path)
+                 if (stat_after.st_size, stat_after.st_mtime_ns) != (current.st_size, current.st_mtime_ns):
+                     raise ValueError("処理中に PDF が変更されました。新しいジョブで取り込んでください。")
+                 if before_publish:
+                     before_publish()
++                # この場所と、同じファイルの別名（ハードリンクなど）の場所が前に指していた文書は、古い版になる。
++                # 別名は公開の直前に調べる。取り込みの途中で別名が差し替えられても、残っている古い版を消さないため。
++                same_file = file_id(stat_after)
++                previous = connection.execute(
++                    "SELECT path,doc_id FROM locations WHERE path=? OR (? IS NOT NULL AND dev=? AND ino=?)",
++                    (location, same_file and 1, *(same_file or (None, None)))).fetchall()
++                aliases, affected, vanished = [], [], []
++                for row in previous:
++                    if row["path"] == location:
++                        affected.append(row)
++                        continue
++                    # 記録した識別子だけでは決めない。今も同じファイルを指しているときだけ別名とみなす。
++                    try:
++                        current = os.stat(row["path"])
++                    except FileNotFoundError:
++                        vanished.append(row)  # もうない別名の行は外す
++                        continue
++                    except OSError:
++                        continue
++                    if file_id(current) == same_file and (current.st_size, current.st_mtime_ns) == (
++                            stat_after.st_size, stat_after.st_mtime_ns):
++                        aliases.append(row["path"])
++                        affected.append(row)
++                old_ids = sorted({row["doc_id"] for row in affected + vanished if row["doc_id"] != doc_id})
++                for row in vanished:
++                    connection.execute("DELETE FROM locations WHERE path=?", (row["path"],))
+                 # 新しい索引が揃うまでは旧版を検索対象として残す。
+-                reviews = self._mark_reviews(wiki, connection, old_id) if old_id else []
++                reviews = sorted({page for old_id in old_ids for page in self._mark_reviews(wiki, connection, old_id)})
+                 connection.execute("""INSERT OR REPLACE INTO documents
+-                    (doc_id,generation,title,root,relative_path,pages,chunks,fingerprint,ingested_at)
+-                    VALUES (?,?,?,?,?,?,?,?,?)""",
+-                                   (doc_id, generation, existing["title"] if existing else title, root, relative,
++                    (doc_id,generation,title,pages,chunks,fingerprint,ingested_at)
++                    VALUES (?,?,?,?,?,?,?)""",
++                                   (doc_id, generation, existing["title"] if existing else title,
+                                     pages_count, chunks_count, self.config.fingerprint, time.time()))
+-                connection.execute("INSERT OR REPLACE INTO locations VALUES (?,?,?,?,?)",
+-                                   (root, relative, doc_id, stat_after.st_size, stat_after.st_mtime_ns))
++                now = time.time()
++                for place in [location, *aliases]:
++                    connection.execute("INSERT OR REPLACE INTO locations VALUES (?,?,?,?,?,?,?)",
++                                       (place, doc_id, stat_after.st_size, stat_after.st_mtime_ns,
++                                        now if place == location else now - 1e-6, *(same_file or (None, None))))
+                 connection.execute("INSERT OR IGNORE INTO citations VALUES (?,?)", (doc_id, source_page))
+                 # 改名した同じ内容の資料は、存在しなくなった旧パスだけを台帳から外す。
+-                for location in connection.execute("SELECT root,relative_path FROM locations WHERE doc_id=?", (doc_id,)).fetchall():
+-                    old_root = self.config.roots.get(location["root"])
+-                    if old_root and not (old_root / location["relative_path"]).exists():
+-                        connection.execute("DELETE FROM locations WHERE root=? AND relative_path=?", tuple(location))
++                for row in connection.execute("SELECT path FROM locations WHERE doc_id=?", (doc_id,)).fetchall():
++                    if not os.path.exists(row["path"]):
++                        connection.execute("DELETE FROM locations WHERE path=?", (row["path"],))
+                 connection.execute("UPDATE jobs SET status='complete', error=NULL WHERE generation=?", (generation,))
+-                if old_id and not connection.execute("SELECT 1 FROM locations WHERE doc_id=?", (old_id,)).fetchone():
+-                    connection.execute("DELETE FROM documents WHERE doc_id=?", (old_id,))
++                removed = []
++                for old_id in old_ids:
++                    if not connection.execute("SELECT 1 FROM locations WHERE doc_id=?", (old_id,)).fetchone():
++                        connection.execute("DELETE FROM documents WHERE doc_id=?", (old_id,))
++                        # 内部の途中経過も消す。同じ内容に戻したとき、埋め込みを最初からやり直すため。
++                        old_generation = hashlib.sha256((old_id + self.config.fingerprint).encode("ascii")).hexdigest()
++                        connection.execute("DELETE FROM jobs WHERE generation=?", (old_generation,))
++                        removed.append((old_id, old_generation))
+                 connection.commit()
+                 # コミット後の保守が失敗しても、新版は検索できる。旧行は active generation の条件で除外する。
+                 cleanup_error = None
+-                if old_id and not connection.execute("SELECT 1 FROM documents WHERE doc_id=?", (old_id,)).fetchone():
++                for old_id, old_generation in removed:
+                     try:
+                         self._table(folder).delete(f"doc_id = '{old_id}'")
+                         self._maintain_indexes(folder,self._table(folder))
+-                        old_generation = hashlib.sha256((old_id + self.config.fingerprint).encode("ascii")).hexdigest()
+                         old_cache = folder / "extracted" / old_generation
+                         for cached in old_cache.glob("*.json"):
+                             cached.unlink()
+@@ -294,7 +373,7 @@ class Engine:
+                     except Exception as error:
+                         cleanup_error = str(error)
+                 return {"status": "unchanged" if skipped else "indexed", "document_id": doc_id,
+-                        "raw": f"{root}:{relative}", "pages": pages_count, "chunks": chunks_count,
++                        "raw": path.as_posix(), "sha256": doc_id, "pages": pages_count, "chunks": chunks_count,
+                         "extracted_markdown": str(markdown), "source_page": source_page,
+                         "review_pages": reviews, "cleanup_error": cleanup_error,
+                         "indexes":json.loads((folder/'index-state.json').read_text(encoding='utf-8'))}
+@@ -344,10 +423,11 @@ class Engine:
+                 results = []
+                 for key in ranked[:limit]:
+                     row = rows[key]
+-                    document = documents[row["doc_id"]]
++                    found = self._location(connection, row["doc_id"])
+                     sources = [item[0] for item in connection.execute("SELECT source_page FROM citations WHERE doc_id=?", (row["doc_id"],))]
+                     results.append({**{k: v for k, v in row.items() if not k.startswith("_")}, "score": scores[key],
+-                                    "raw": f"{document['root']}:{document['relative_path']}", "source_pages": sources,
++                                    "raw": Path(found).as_posix() if found else None, "sha256": row["doc_id"],
++                                    "source_pages": sources,
+                                     "rerank_score": reranked_scores.get(key)})
+                 return {"results": results, "model": self.config.model, "reranker":self.config.reranker,
+                         "abstained":not results and self.config.min_rerank_score is not None}
+diff --git a/scripts/rag_jobs.py b/scripts/rag_jobs.py
+index 35cc1c8..1046a1d 100644
+--- a/scripts/rag_jobs.py
++++ b/scripts/rag_jobs.py
+@@ -21,7 +21,8 @@ class Jobs:
+     def __init__(self, data_dir: Path):
+         self.data_dir = Path(data_dir).resolve()
+         self.data_dir.mkdir(parents=True, exist_ok=True)
+-        self.path = self.data_dir / "jobs.sqlite"
++        # 0.3.0 の jobs.sqlite は開かない（ADR-0013）。
++        self.path = self.data_dir / "jobs-v2.sqlite"
+         with self.connect() as db:
+             db.execute("PRAGMA journal_mode=WAL")
+             db.executescript("""
+@@ -31,18 +32,16 @@ class Jobs:
+                     config TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'queued',
+                     phase TEXT NOT NULL DEFAULT '受付', completed INTEGER NOT NULL DEFAULT 0,
+                     total INTEGER NOT NULL DEFAULT 0, attempts INTEGER NOT NULL DEFAULT 0,
+-                    owner TEXT, error TEXT, result TEXT, created_at REAL, updated_at REAL);
++                    owner TEXT, error TEXT, result TEXT, created_at REAL, updated_at REAL,
++                    publication_started INTEGER NOT NULL DEFAULT 0, request_key TEXT NOT NULL,
++                    dev TEXT, ino TEXT);
++                CREATE INDEX IF NOT EXISTS ingest_jobs_request ON ingest_jobs(request_key, status);
+                 CREATE TABLE IF NOT EXISTS search_requests (
+                     id TEXT PRIMARY KEY, config TEXT NOT NULL, wiki TEXT NOT NULL,
+                     query TEXT NOT NULL, result_limit INTEGER NOT NULL,
+                     status TEXT NOT NULL DEFAULT 'queued', result TEXT, error TEXT,
+                     updated_at REAL NOT NULL);
+             """)
+-            db.execute('BEGIN IMMEDIATE')
+-            columns={row['name'] for row in db.execute('PRAGMA table_info(ingest_jobs)')}
+-            if 'publication_started' not in columns:
+-                db.execute('ALTER TABLE ingest_jobs ADD COLUMN publication_started INTEGER NOT NULL DEFAULT 0')
+-                db.execute("UPDATE ingest_jobs SET publication_started=1 WHERE phase='索引の公開' OR status='completed'")
+ 
+     @contextmanager
+     def connect(self):
+@@ -56,21 +55,28 @@ class Jobs:
+     def register(self, config: Config, wiki_root: str, source: str, source_page: str, title: str = "") -> dict:
+         wiki = Path(wiki_root).expanduser().resolve()
+         config.workspace(str(wiki))
+-        root, relative, path = config.reference(source)
+-        if path.suffix.lower() != ".pdf" or not path.is_file():
+-            raise ValueError("読み取れる PDF ファイルを指定してください。")
++        path = config.pdf_path(source)
+         page = config.source_page(wiki, source_page)
+-        stat = path.stat()
+-        key = [os.path.normcase(str(wiki)), root, relative, stat.st_size, stat.st_mtime_ns,
++        stat = os.stat(path)
++        key = [os.path.normcase(str(wiki)), str(path), stat.st_size, stat.st_mtime_ns,
+                config.fingerprint, page, title.strip()]
+-        identity = hashlib.sha256(json.dumps(key, ensure_ascii=False).encode("utf-8")).hexdigest()
++        request_key = hashlib.sha256(json.dumps(key, ensure_ascii=False).encode("utf-8")).hexdigest()
+         now = time.time()
+         with self.connect() as db:
+-            db.execute("""INSERT OR IGNORE INTO ingest_jobs
+-                (id,wiki,source,source_page,title,size,mtime_ns,config,created_at,updated_at)
+-                VALUES (?,?,?,?,?,?,?,?,?,?)""",
+-                (identity, str(wiki), str(path), page, title.strip(), stat.st_size, stat.st_mtime_ns,
+-                 json.dumps(config.snapshot(), ensure_ascii=False), now, now))
++            db.execute("BEGIN IMMEDIATE")
++            # 同じ登録が受け付け済みか処理中なら、そのジョブを返す。完了、失敗、キャンセルしかなければ
++            # 新しいジョブにする。大きさと更新時刻を変えずに中身を差し替えた PDF も読み直すため（ADR-0013）。
++            row = db.execute("""SELECT id FROM ingest_jobs WHERE request_key=?
++                AND status IN ('queued','running','paused') ORDER BY created_at DESC LIMIT 1""", (request_key,)).fetchone()
++            if row:
++                identity = row[0]
++            else:
++                identity = uuid.uuid4().hex
++                db.execute("""INSERT INTO ingest_jobs
++                    (id,wiki,source,source_page,title,size,mtime_ns,config,created_at,updated_at,request_key,dev,ino)
++                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
++                    (identity, str(wiki), config.pdf_source(source), page, title.strip(), stat.st_size, stat.st_mtime_ns,
++                     json.dumps(config.snapshot(), ensure_ascii=False), now, now, request_key, str(stat.st_dev), str(stat.st_ino)))
+         return self.status(str(wiki), identity)
+ 
+     def status(self, wiki_root: str, job_id: str) -> dict:
+@@ -82,6 +88,9 @@ class Jobs:
+         result = dict(row)
+         result.pop("config")
+         result.pop("owner")
++        result.pop("request_key")
++        result.pop("dev")
++        result.pop("ino")
+         result["job_id"] = result.pop("id")
+         result["result"] = json.loads(result["result"]) if result["result"] else None
+         return result
+@@ -92,9 +101,15 @@ class Jobs:
+             ids = [row[0] for row in db.execute("SELECT id FROM ingest_jobs WHERE wiki=? ORDER BY created_at DESC", (wiki,))]
+         return [self.status(wiki, identity) for identity in ids]
+ 
++    def legacy_data(self) -> list[str]:
++        """0.3.0 が残したデータの場所を返す。新しい版は開かず、消してよい（ADR-0013）。"""
++        names = ("jobs.sqlite", "jobs.sqlite-wal", "jobs.sqlite-shm", "wikis")
++        return [str(self.data_dir / name) for name in names if (self.data_dir / name).exists()]
++
+     def unfinished(self) -> bool:
+         with self.connect() as db:
+-            ingest = db.execute("SELECT 1 FROM ingest_jobs WHERE status NOT IN ('completed','cancelled') LIMIT 1").fetchone()
++            # 失敗したジョブは明示的な再試行でしか動かないので、設定の変更を塞がない（ADR-0013）。
++            ingest = db.execute("SELECT 1 FROM ingest_jobs WHERE status IN ('queued','running','paused') LIMIT 1").fetchone()
+             search = db.execute("SELECT 1 FROM search_requests WHERE status IN ('queued','running') AND updated_at>? LIMIT 1", (time.time() - 5,)).fetchone()
+             return bool(ingest or search)
+ 
+diff --git a/scripts/rag_server.py b/scripts/rag_server.py
+index a2e92bd..65deeb3 100644
+--- a/scripts/rag_server.py
++++ b/scripts/rag_server.py
+@@ -78,15 +78,17 @@ def engine() -> Engine:
+ 
+ 
+ @server.tool()
+-def configure(reference_roots: dict[str, str], data_dir: str = "", embedding_model: str = "", retrieval: dict | None = None) -> dict:
+-    """PDF の参照ルートと派生データの保存先を、この PC の設定に保存する。"""
++def configure(data_dir: str = "", embedding_model: str = "", retrieval: dict | None = None) -> dict:
++    """派生データの保存先、埋め込みのモデル、検索の設定を、この PC の設定に保存する。PDF は登録のときに絶対パスで渡す。"""
+     global _engine, _jobs, _host, _config
+     with _lock:
+         if jobs().unfinished():
+             raise ValueError("未完了ジョブがあります。完了させるかキャンセルしてから設定を変更してください。")
+         current = configuration()
+         embedding_model = embedding_model or current.model
+-        values = {**current.values, "reference_roots": reference_roots, "embedding_model": embedding_model}
++        # 0.3.0 の reference_roots は使わないので、保存し直すときに消す（ADR-0013）。
++        values = {key: value for key, value in current.values.items() if key != "reference_roots"}
++        values["embedding_model"] = embedding_model
+         if embedding_model != current.model:
+             values.pop("embedding_revision", None)
+         if data_dir:
+@@ -97,9 +99,6 @@ def configure(reference_roots: dict[str, str], data_dir: str = "", embedding_mod
+                 raise ValueError("retrieval に未対応の設定名があります。")
+             values.update(retrieval)
+         checked = Config(values)
+-        for root in checked.roots.values():
+-            if not root.is_dir():
+-                raise ValueError("参照ルートのフォルダが見つかりません。")
+         if _host:
+             _host.close()
+         write_json(config_path(), values)
+@@ -107,12 +106,12 @@ def configure(reference_roots: dict[str, str], data_dir: str = "", embedding_mod
+         _engine, _jobs = None, Jobs(checked.data_dir)
+         _host = WorkerHost(_jobs)
+         _host.start()
+-        return {"config": str(config_path()), "data_dir": str(checked.data_dir), "reference_roots": list(checked.roots)}
++        return {"config": str(config_path()), "data_dir": str(checked.data_dir), "embedding_model": checked.model}
+ 
+ 
+ @server.tool()
+ def register_pdf(wiki_root: str, source: str, source_page: str, title: str = "") -> dict:
+-    """wiki の PDF 取り込みを受け付け、永続ジョブを返す。queued は索引化完了ではない。原本はコピーしない。"""
++    """wiki の PDF 取り込みを受け付け、永続ジョブを返す。source は利用者が指定した PDF の絶対パス。queued は索引化完了ではない。原本はコピーしない。"""
+     with _lock:
+         return jobs().register(configuration(), wiki_root, source, source_page, title)
+ 
+@@ -172,6 +171,10 @@ def status(wiki_root: str) -> dict:
+     result = engine().status(wiki_root)
+     result["index_jobs"] = result.pop("jobs")
+     result["jobs"] = jobs().list(wiki_root)
++    legacy = jobs().legacy_data()
++    if legacy:
++        result["legacy_data"] = {"paths": legacy,
++                                 "message": "rag 0.3.0 のデータが残っています。新しい版は読まないので、消してかまいません。"}
+     return result
+ 
+ 
+diff --git a/scripts/rag_worker.py b/scripts/rag_worker.py
+index d170acc..f44e3ce 100644
+--- a/scripts/rag_worker.py
++++ b/scripts/rag_worker.py
+@@ -154,7 +154,8 @@ def run(data_dir: str):
+                     raise ValueError("登録後に PDF が変わりました。新しいジョブで取り込んでください。")
+                 result = get_engine(job["config"]).ingest_pdf(job["wiki"], job["source"], job["source_page"], job["title"],
+                     progress=lambda phase, completed, total: jobs.progress(job["id"], owner, phase, completed, total),
+-                    before_publish=lambda: jobs.begin_publication(job["id"], owner))
++                    before_publish=lambda: jobs.begin_publication(job["id"], owner),
++                    expected=(job["dev"], job["ino"], job["size"], job["mtime_ns"]))
+                 jobs.finish(job["id"], owner, result=result)
+             except JobCancelled:
+                 pass
