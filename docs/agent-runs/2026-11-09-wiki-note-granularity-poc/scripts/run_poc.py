@@ -29,6 +29,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 RUN_DIR = HERE.parent
 MANIFEST = RUN_DIR / "snapshots" / "manifest.json"
+# 生の記録（原本の引用と CLI の出力を含む）は、公開リポジトリの外に置く。
+PRIVATE = Path(os.environ.get("POC_PRIVATE_DIR") or Path.home() / "info-hive-dev-private" / RUN_DIR.name)
 
 MODELS = {
     "opus": {"vendor": "claude", "model": "claude-opus-5-5", "label": "Claude Opus 5.5"},
@@ -40,8 +42,8 @@ REPS = (1, 2, 3)
 EFFORT = "high"
 TIMEOUT_S = 2400
 
-CLAUDE_ALLOWED = ["Read", "Glob", "Grep"]
-CLAUDE_DISALLOWED = ["Write", "Edit", "MultiEdit", "NotebookEdit", "Bash", "PowerShell",
+# ツールは使わせない。wiki のファイルと原本は依頼文に埋め込む（README の「設計の変更」）。
+CLAUDE_DISALLOWED = ["Read", "Glob", "Grep", "Write", "Edit", "MultiEdit", "NotebookEdit", "Bash", "PowerShell",
                      "WebFetch", "WebSearch", "Skill", "Agent", "Task"]
 
 METHOD_CURRENT = """\
@@ -153,7 +155,7 @@ def call_claude(model: str, prompt: str, cwd: Path) -> CallResult:
     r = CallResult()
     cmd = [find_exe("claude", "DISPATCH_CLAUDE"), "-p", "--output-format", "stream-json", "--verbose",
            "--model", model, "--effort", EFFORT, "--permission-mode", "dontAsk",
-           "--strict-mcp-config", "--allowedTools", *CLAUDE_ALLOWED, "--disallowedTools", *CLAUDE_DISALLOWED]
+           "--strict-mcp-config", "--disallowedTools", *CLAUDE_DISALLOWED]
     r.returncode, r.stdout, r.stderr = _run(cmd, prompt, cwd, TIMEOUT_S)
     if r.returncode is None:
         r.error = "timeout"
@@ -297,6 +299,28 @@ def build_prompt(manifest: dict, source: str, method: str) -> str:
     return tmpl
 
 
+def embed_files(manifest: dict, snapshot_root: Path, source: str) -> str:
+    """スナップショットの Markdown をすべて、パスの順に埋め込む。原本には行番号を付ける。"""
+    src = manifest["sources"][source]
+    root = snapshot_root / src["snapshot"]
+    raw_rel = src["raw_rel"]
+    parts = ["", "---", "", "## wiki のファイル", "",
+             "以下は、この作業の wiki と規約の全文である。`=== FILE: <パス> ===` から `=== END FILE ===` までが"
+             " 1 つのファイルである。", ""]
+    files = sorted((p for p in root.rglob("*.md") if p.is_file()), key=lambda x: x.relative_to(root).as_posix())
+    for f in files:
+        rel = f.relative_to(root).as_posix()
+        if rel == raw_rel:
+            continue
+        parts += [f"=== FILE: {rel} ===", f.read_text(encoding="utf-8").rstrip("\n"), "=== END FILE ===", ""]
+    raw_lines = (root / raw_rel).read_text(encoding="utf-8").splitlines()
+    parts += ["## 取り込む原本", "", f"`{raw_rel}` の全文。各行の先頭の `L<番号>| ` は行番号である。", "",
+              f"=== RAW: {raw_rel} ==="]
+    parts += [f"L{i}| {line}" for i, line in enumerate(raw_lines, 1)]
+    parts += ["=== END RAW ===", ""]
+    return "\n".join(parts)
+
+
 def all_runs() -> list[dict]:
     runs = []
     for rep in REPS:
@@ -309,7 +333,7 @@ def all_runs() -> list[dict]:
 
 
 def execute(run: dict, manifest: dict, snapshot_root: Path, prompts: dict, lock: threading.Lock) -> None:
-    out = RUN_DIR / "runs" / f"{run['run_id']}.json"
+    out = PRIVATE / "runs" / f"{run['run_id']}.json"
     m = MODELS[run["model_key"]]
     src = manifest["sources"][run["source"]]
     cwd = snapshot_root / src["snapshot"]
@@ -321,8 +345,8 @@ def execute(run: dict, manifest: dict, snapshot_root: Path, prompts: dict, lock:
     res = call_claude(m["model"], prompt, cwd) if m["vendor"] == "claude" else call_codex(m["model"], prompt, cwd)
     elapsed = time.monotonic() - t0
     plan, perr = parse_plan(res.text) if res.ok else (None, res.error)
-    logs = RUN_DIR / "logs"
-    logs.mkdir(exist_ok=True)
+    logs = PRIVATE / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
     (logs / f"{run['run_id']}.stdout.jsonl").write_text(res.stdout, encoding="utf-8")
     (logs / f"{run['run_id']}.stderr.txt").write_text(res.stderr, encoding="utf-8")
     record = {
@@ -331,7 +355,8 @@ def execute(run: dict, manifest: dict, snapshot_root: Path, prompts: dict, lock:
         "prompt_file": f"prompts/{run['source']}-{run['method']}.md",
         "prompt_sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest(),
         "started": started.isoformat(timespec="seconds"), "elapsed_s": round(elapsed, 1),
-        "ok": res.ok and plan is not None, "error": res.error or perr, "returncode": res.returncode,
+        "ok": res.ok and plan is not None and bool(plan.get("candidates")) and not plan.get("error"),
+        "error": res.error or perr or (str(plan.get("error") or "") if plan else "") or ("" if (plan or {}).get("candidates") else "候補が 0 件"), "returncode": res.returncode,
         "session_id": res.session_id, "usage": res.usage,
         "n_tool_calls": len(res.tool_calls),
         "files_read": sorted({str((c.get("input") or {}).get("file_path", "")) for c in res.tool_calls
@@ -362,19 +387,27 @@ def main() -> None:
     for s in SOURCES:
         for meth in METHODS:
             p = build_prompt(manifest, s, meth)
-            prompts[(s, meth)] = p
-            (RUN_DIR / "prompts" / f"{s}-{meth}.md").write_text(p, encoding="utf-8", newline="\n")
+            full = p + embed_files(manifest, args.snapshot_root, s)
+            prompts[(s, meth)] = full
+            digest = hashlib.sha256(full.encode("utf-8")).hexdigest()
+            # リポジトリには埋め込む前の依頼文だけを置く。全文は作者の wiki と原本を含むので外に置く。
+            (RUN_DIR / "prompts" / f"{s}-{meth}.md").write_text(
+                p + f"\n---\n\n（ここに wiki のファイルと原本を埋め込んだ。全文の sha256 は `{digest}`、"
+                f"{len(full):,} 文字。全文はリポジトリの外の `prompts/{s}-{meth}.md` にある）\n",
+                encoding="utf-8", newline="\n")
+            (PRIVATE / "prompts").mkdir(parents=True, exist_ok=True)
+            (PRIVATE / "prompts" / f"{s}-{meth}.md").write_text(full, encoding="utf-8", newline="\n")
     if args.dry_run:
         print("依頼文を prompts/ に書いた")
         return
-    (RUN_DIR / "runs").mkdir(exist_ok=True)
+    (PRIVATE / "runs").mkdir(parents=True, exist_ok=True)
     runs = all_runs()
     if args.only:
         want = set(args.only.split(","))
         runs = [r for r in runs if r["run_id"] in want]
     if not args.rerun:
         def done(r):
-            p = RUN_DIR / "runs" / f"{r['run_id']}.json"
+            p = PRIVATE / "runs" / f"{r['run_id']}.json"
             return p.exists() and json.loads(p.read_text(encoding="utf-8")).get("ok")
         runs = [r for r in runs if not done(r)]
     print(f"実行する件数: {len(runs)}", flush=True)

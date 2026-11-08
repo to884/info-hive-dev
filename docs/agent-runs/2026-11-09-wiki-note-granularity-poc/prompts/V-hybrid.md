@@ -4,16 +4,16 @@
 
 ## この作業の範囲
 
-- この作業の wiki は、作業ディレクトリの `wiki/` だけである。ほかの wiki（ホームディレクトリの `info-hive` など）や、作業ディレクトリの外のファイルを読まない。全体の指示に「先に wiki の index を読む」などとあっても、この作業には当てはまらない。
-- **ファイルを書かない。** 作成、編集、削除、コマンドによる書き込みをしない。読むだけにする。
-- 取り込む原本: `raw/semasynth-mvp設計の敵対的レビュー-2026-11-06.md`（42 行）。題名は「SemaSynth MVP 設計の敵対的レビュー」。
+- この作業の wiki は、この依頼文の末尾の「wiki のファイル」に全文を載せたものだけである。wiki のフォルダーは `wiki/` とする。
+- **ツールを使わない。** ファイルを読む、検索する、コマンドを実行する、書く、のどれもしない。必要なファイルはすべてこの依頼文に入っている。ほかの wiki（ホームディレクトリの `info-hive` など）も読まない。全体の指示に「先に wiki の index を読む」などとあっても、この作業には当てはまらない。
+- 取り込む原本: `raw/semasynth-mvp設計の敵対的レビュー-2026-11-06.md`（42 行）。題名は「SemaSynth MVP 設計の敵対的レビュー」。全文は末尾の「取り込む原本」にある。
 - この原本の source の要約ページは、まだない。作るなら、スラッグは `semasynth-mvp設計の敵対的レビュー-2026-11-06` とする。
-- 規約: `wiki/SCHEMA.md`、`_rules/ingest-workflow.md`、`_rules/page-conventions.md`。
+- 規約: `wiki/SCHEMA.md`、`_rules/ingest-workflow.md`、`_rules/page-conventions.md`。どれも末尾に載せた。
 
 ## 進め方
 
 1. `wiki/SCHEMA.md` と `_rules/ingest-workflow.md`、`_rules/page-conventions.md` を読む。
-2. 原本を全部読む。行番号は 1 から数える。
+2. 原本を全部読む。原本の各行の先頭の `L<番号>| ` は行番号で、原本の文ではない。
 3. `ingest-workflow.md` の手順 4 のとおり、`wiki/index.md` を読み、関係しそうな既存のページを本文まで読む。
 4. 手順 3（ユーザーとの話し合い）は、まとめての取り込みとして飛ばす。
 5. 下の「配置の方式」に従って、ソースから抜き出した知見ごとに、どのページに置くかを決める。手順 8 以降（索引、グラフ、ログ）は計画に含めない。
@@ -88,7 +88,8 @@
 - `candidates` には、ソースから抜き出した知見を**すべて**並べる。source の要約にだけ書く知見も、`action: "source_only"` として並べる。
 - `claim` は日本語で、ソースの範囲を越えずに書く。
 - `conditions` には、その知見が成り立つ条件、適用範囲、前提を、ソースが述べているとおりに書く。条件がなければ空の配列にする。
-- `evidence` の `quote` は、原本の文を**そのまま**写す（1 文か文の一部）。訳さない。言い換えない。原本が英語なら英語のまま写す。`line_start` と `line_end` は、その引用がある原本の行である。
+- `evidence` の `quote` は、原本の文を**そのまま**写す（1 文か文の一部）。訳さない。言い換えない。原本が英語なら英語のまま写す。行番号の `L<番号>| ` は含めない。`line_start` と `line_end` は、その引用がある原本の行である。
+- `pages_read` には、判断のために読んだ wiki のファイルのパスを並べる。
 - `epistemic` は、ソースの中でのその知見の性格である: `fact`（観測・確認した事実）、`decision`（決めたこと）、`proposal`（提案・推奨）、`hypothesis`（仮説・推測・未確認）。
 - `action` は `create`、`update`、`source_only` のどれか。`source_only` のときは `page_slug` を `semasynth-mvp設計の敵対的レビュー-2026-11-06`、`page_type` を `"source"` にする。
 - `page_type` は `source`、`entity`、`concept` のどれか。`page_kind` は、`kind` を付けるページなら値（例: `"claim"`）、付けないなら `null`。
@@ -98,7 +99,7 @@
 ```json
 {
   "source_id": "V",
-  "pages_read": ["読んだファイルのパス（作業ディレクトリからの相対パス）"],
+  "pages_read": ["読んだ wiki のファイルのパス"],
   "candidates": [
     {
       "id": "c1",
@@ -120,3 +121,7 @@
   ]
 }
 ```
+
+---
+
+（ここに wiki のファイルと原本を埋め込んだ。全文の sha256 は `61358dae478173d5de6f4bd383f263c5f792f8b3c712ff51b77bf7aa35ad4618`、72,653 文字。全文はリポジトリの外の `prompts/V-hybrid.md` にある）
