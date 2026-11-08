@@ -151,7 +151,8 @@ async def main():
             def ocr_started():
                 state = jobs.status(str(wiki), identity)
                 if state["status"] == "failed": raise RuntimeError(state["error"])
-                pages = list(folder.glob("extracted/*/page-*.json"))
+                # 抽出の結果は data_dir/extracted/<SHA-256>/<抽出の設定>/ に置く（ADR-0014）。
+                pages = list(config.extraction_root.glob("*/*/page-*.json"))
                 descendants = server.children(recursive=True)
                 ocr = [p for p in descendants if any("rag_ocr.py" in arg for arg in p.cmdline())]
                 return pages if len(pages) == 40 and ocr else None
