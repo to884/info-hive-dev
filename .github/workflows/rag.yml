@@ -1,0 +1,76 @@
+name: RAG unit tests
+
+# rag プラグイン（info-hive-rag）の単体試験を Linux で流す。Windows は手元で確かめる。
+# - tests/rag/test_jobs.py: ジョブの台帳、登録、再開、取り消し
+# - tests/rag/test_indexes.py: 索引の統計と版
+# - tests/rag/test_extraction.py: PDF の抽出、OCR の切り替え、MCP サーバーの設定
+# どれも偽の埋め込みを使うので、本物のモデルは取得しない。
+# 本物のモデルや OCR を使う tests/rag/verify_*.py は CI に入れない。
+#
+# info-hive-rag はパブリックなので、トークンなしで取得する。
+# 依存は info-hive-rag/scripts/rag_server.py の先頭の `# /// script` に合わせる。
+# torch は pytorch の CPU 版の index から取る（tests/rag/setup_linux_fresh.sh と同じ版）。
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - info-hive-rag
+      - tests/rag/**
+      - .github/workflows/rag.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rag-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      DEPS: >-
+        --index https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match
+        --with torch==2.8.0+cpu --with sentence-transformers==5.7.0 --with transformers==5.22.1
+        --with numpy==2.5.4 --with mcp==1.30.0 --with lancedb==0.29.2 --with pypdfium2>=5,<6
+        --with sudachipy>=0.6,<0.8 --with sudachidict-core --with pyyaml>=6,<7 --with filelock>=3,<5
+        --with psutil>=7,<8 --with pillow>=11,<14 --with onnxruntime==1.31.1 --with reportlab
+    steps:
+      - uses: actions/checkout@v4
+      - name: info-hive-rag の参照を調べる
+        id: rag
+        run: echo "sha=$(git ls-tree HEAD info-hive-rag | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+      - id: checkout-rag
+        uses: actions/checkout@v4
+        with:
+          repository: to884/info-hive-rag
+          ref: ${{ steps.rag.outputs.sha }}
+          path: info-hive-rag
+      - uses: astral-sh/setup-uv@v6
+      - name: 試験の作業場所を作る
+        run: |
+          mkdir -p "$RUNNER_TEMP/rag-runs"
+          echo "RAG_TEST_RUN_ROOT=$RUNNER_TEMP/rag-runs" >> "$GITHUB_ENV"
+      - name: 環境を記録する
+        run: |
+          uname -a
+          uv --version
+          uv run --python 3.12 $DEPS python -c "import platform, sys, torch; print(platform.platform(), platform.machine(), sys.version, torch.__version__)"
+      # 前の試験が失敗しても続けて動かす。rag を取得できなかったときは動かさない。
+      - name: ジョブの試験
+        if: ${{ !cancelled() && steps.checkout-rag.outcome == 'success' }}
+        run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/rag/test_jobs.py -v
+      - name: 索引の試験
+        if: ${{ !cancelled() && steps.checkout-rag.outcome == 'success' }}
+        run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/rag/test_indexes.py -v
+      - name: 抽出と設定の試験
+        if: ${{ !cancelled() && steps.checkout-rag.outcome == 'success' }}
+        run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/rag/test_extraction.py -v
