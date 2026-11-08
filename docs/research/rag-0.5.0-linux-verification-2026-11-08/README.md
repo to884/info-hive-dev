@@ -40,9 +40,9 @@ rag 0.4.0 の確認では、WSL の Ubuntu で `verify_pipeline.py` が 5 項目
 
 依存の版をそろえ、置き場所だけを変えて測った。
 
-| 項目 | HDD の上（0.4.0 の確認のとき） | tmpfs の上 |
+| 項目 | HDD の上 | tmpfs の上 |
 | --- | --- | --- |
-| `import torch` | 74 秒 | 2.6〜4.3 秒 |
+| `import torch` | 108 秒（このときの `venv-serial-20261104`、ファイルは壊れていない）。0.4.0 の確認のときの uv の一時環境では 74 秒 | 2.6〜4.3 秒 |
 | 埋め込みのモデルの読み込みまで | 283 秒（モデルは `/mnt/c`） | 試験の中で問題にならない |
 | 単体試験 65 件 | 約 23 分（`test_jobs.py` の 33 件だけ） | 11 秒 |
 
@@ -86,3 +86,5 @@ wsl.exe -d Ubuntu-24.04 -u ubuntu -- bash /mnt/c/Works/info-hive-dev/tests/rag/s
 
 - 根本の対処は、WSL の仮想ディスクを C:（NVMe の SSD）に移すことである。`wsl --manage Ubuntu-24.04 --move <C: のフォルダー>` か、`wsl --export` と `wsl --import` で移せるが、どちらも WSL を止める必要があるので、作者の判断に任せる。移せば、tmpfs を使わずに `RAG_LINUX_ROOT=$HOME/.cache/info-hive-validation` で流せるはずである（確かめていない）。
 - D: を詰まらせているプロセスは突き止めていない。
+- 空の tmpfs で `run_linux.sh --controls-only` だけを流すと、`verify_controls.py` が土台にする `j*/config.json`（`verify_pipeline.py` が作る）がなく、失敗する。以前からの動きで、今回は直していない。
+- `RAG_TEST_OUTPUT` の既定はこのフォルダーの `linux/` なので、流し直すと記録を上書きする。別の記録にするときは `RAG_TEST_OUTPUT` を指定する。
