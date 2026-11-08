@@ -1,0 +1,3 @@
+対象は rag 0.5.0 の実装（このリポジトリ info-hive-rag の差分 6a760b9..HEAD）と、親リポジトリの試験 C:/Works/info-hive-dev/.claude/worktrees/recursing-vaughan-6655d7/tests/rag/test_extraction.py である。設計は C:/Works/info-hive-dev/.claude/worktrees/recursing-vaughan-6655d7/docs/adr/0014-rag-keeps-extraction-independent-of-embedding.md にある。
+
+実装が ADR-0014 のとおりに動くか、既存の動作（ADR-0013 の版の更新、ハードリンクの別名、ジョブの再開、索引の公開の境界）を壊していないかを確かめてほしい。特に scripts/rag_index.py の ingest_pdf()、_reset_index()、_reingest()、_prune_previous()、_extraction_in_use()、_remove_extraction()、_adopt_legacy_extraction()、_legacy_generations() と、scripts/rag_server.py の configure()。途中で止まったとき（プロセスの強制終了）、Windows のファイル削除、SQLite の接続の扱いも見ること。

@@ -3,7 +3,7 @@
 作成日：2026年11月8日（日本時間）
 対象：info-hive の wiki プラグイン（`info-hive-wiki`）で、`/wiki:ingest` が何を 1 ページにするかを決める手法
 手法：`multi-agent-dispatch` スキルで 4 体のエージェント（A: Claude Opus 5.5、B: Claude Fable 5.1、C: GPT-6.1 Sol、D: GPT-6 Astra）に独立に検討させ、敵対的な相互レビューと総括を経て、本書で 1 本にまとめた。4 体の成果、レビュー、総括は [docs/agent-runs/2026-11-08-wiki-note-granularity-atomic-evergreen/](../agent-runs/2026-11-08-wiki-note-granularity-atomic-evergreen/) にある
-状態：提案。ADR は未作成で、SCHEMA.md とプラグインのファイルは変更していない
+状態：提案。導入の段階は [ADR-0015](../adr/0015-wiki-article-methodology-adopted-in-stages.md)（提案）に書いた。記事の単位の ADR は、PoC の結果を見て書く。SCHEMA.md とプラグインのファイルは変更していない
 
 本書の記述は次の区分に従う。
 
