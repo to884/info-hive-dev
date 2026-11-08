@@ -41,6 +41,11 @@ def page(type_: str | None, title: str, *, tags=("知識表現",), sources=None,
     return "\n".join(lines)
 
 
+def by_path(findings: list[dict]) -> list[dict]:
+    """ページを集める順（rglob）は OS で違うので、ページのパスの順に並べてから比べる。"""
+    return sorted(findings, key=lambda f: f["path"])
+
+
 class LintCase(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
@@ -144,7 +149,7 @@ class UnresolvedSourcesTests(LintCase):
         self.write("synthesis/比較2.md", page("synthesis", "比較 2", sources=["[[論文z]]"]))
         self.write("synthesis/比較3.md", page("synthesis", "比較 3", sources=[]))
         findings = self.run_lint()
-        self.assertEqual(findings["unresolved_sources"], [
+        self.assertEqual(by_path(findings["unresolved_sources"]), [
             {"path": "concepts/所得税.md", "source": "消えた論文", "reason": "missing"},
             {"path": "concepts/所得税.md", "source": "消費税", "reason": "not_source", "type": "concept"},
             {"path": "synthesis/比較2.md", "source": "[[論文z]]", "reason": "missing"},
@@ -169,7 +174,7 @@ class MissingRawTests(LintCase):
         self.write("sources/f.md", page("source", "F", raw=["../raw/a.md", "raw/ない.pdf"]))
         self.write("concepts/g.md", page("concept", "G", raw="../raw/ない.md"))  # source でなければ見ない
         findings = self.run_lint()
-        self.assertEqual(findings["missing_raw"], [
+        self.assertEqual(by_path(findings["missing_raw"]), [
             {"path": "sources/e.md", "raw": "../raw/ない.md", "absolute": False},
             {"path": "sources/f.md", "raw": "raw/ない.pdf", "absolute": False},
         ])
@@ -187,7 +192,7 @@ class MissingRawTests(LintCase):
         # Windows のドライブのパスは URL として読み飛ばさない。
         self.write("sources/e.md", page("source", "E", raw="Q:/存在しない/本.pdf"))
         findings = self.run_lint()
-        self.assertEqual(findings["missing_raw"], [
+        self.assertEqual(by_path(findings["missing_raw"]), [
             {"path": "sources/b.md", "raw": gone, "absolute": True},
             {"path": "sources/e.md", "raw": "Q:/存在しない/本.pdf", "absolute": True},
         ])
