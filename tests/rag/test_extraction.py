@@ -369,6 +369,22 @@ class ExtractionTests(unittest.TestCase):
         second.ingest_pdf(str(self.wiki), str(other), "sources/別の資料.md")
         self.assertEqual(second.status(str(self.wiki))["reingest"], [])
 
+    def test_gone_is_true_only_when_the_file_is_surely_missing(self):
+        import rag_index
+        place = self.source.as_posix()
+        self.assertFalse(Engine._gone(place))
+        original = os.stat
+
+        def denied(path, *args, **kwargs):
+            if os.fspath(path) == place:
+                raise PermissionError(13, "アクセスが拒否されました", place)
+            return original(path, *args, **kwargs)
+        with patch.object(rag_index.os, "stat", denied):
+            self.assertFalse(Engine._gone(place))  # 権限が足りず確かめられないときは、消えたとみなさない
+        missing = (self.root / "refs" / "ない.pdf").as_posix()
+        self.assertTrue(Engine._gone(missing))
+        self.assertFalse(Engine._gone((self.root / "ないフォルダー" / "資料.pdf").as_posix()))
+
     def test_second_change_before_reingest_keeps_every_path(self):
         copy = self.root / "refs" / "写し.pdf"
         copy.write_bytes(self.source.read_bytes())
