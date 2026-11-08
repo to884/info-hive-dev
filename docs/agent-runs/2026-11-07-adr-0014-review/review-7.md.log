@@ -1,0 +1,50 @@
+[ask-codex 21:09:24] gpt-6.1-sol に敵対的レビューを依頼（effort medium、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\recursing-vaughan-6655d7\info-hive-rag）
+## 判定
+
+**条件付きで採用可。確信度：中。** `PermissionError` による誤判定は解消している。ただし、保存された `place` がファイルへのシンボリックリンクを含み得る場合、リンク先の一時的な不通を削除と誤判定する反例が残る。呼び出し側でリンクを解決・除外しているかは、提供された本文では確かめられない。
+
+## 致命的・重大な欠陥
+
+### 重大：ファイルへのリンク先が一時的に見えない場合、削除と判定する
+
+**成立条件：** `place` に、リンクを解決する前のファイルパスが渡ること。これは未確認の仮定である。
+
+反例：
+
+1. ローカルの `refs/資料.pdf` を、別ボリューム上の PDF を指すファイルシンボリックリンクにする。
+2. リンク先のボリュームを取り外す。PDF 自体は削除しない。
+3. `os.stat(place)` が `FileNotFoundError` を返す状態で `_gone(place)` を呼ぶ。
+4. ローカルの `refs` はディレクトリなので、結果は `True` になる。
+
+リンク先ボリュームが復帰すれば PDF を再び読めるにもかかわらず、削除と扱う。依頼元が説明した呼び出し側の動作に従えば、取り込み直しの一覧から外れる。
+
+根拠は `scripts/rag_index.py` の `_gone()` にある `os.stat(place)` と、続く `os.stat(os.path.dirname(place))`。前者はリンク先をたどる一方、後者が確認するのはリンクを置いた側の親である。`stat()` が既定でリンク先をたどることは [Python の仕様](https://docs.python.org/3.13/library/os.html#os.stat)と一致する。
+
+これは**今回導入された退行ではなく、修正後にも残る反例**である。実機での再現と、呼び出し側への到達可能性は未検証。
+
+## 崩れる前提
+
+- **「`FileNotFoundError` は PDF の削除を意味する」**  
+  Windows では `ERROR_PATH_NOT_FOUND` に加え、`ERROR_BAD_NETPATH` や `ERROR_BAD_NET_NAME` も `ENOENT` に変換される。例外型だけでは削除とネットワーク側の不通を区別できない。[CPython の変換実装](https://github.com/python/cpython/blob/3.13/PC/errmap.h)
+- **「親フォルダーが見えれば、PDF と同じ接続先が見えている」**  
+  ファイルシンボリックリンクが別ボリュームやネットワーク先を指す場合に崩れる。通常の直接パスでは、親の確認が不通時の誤判定を抑える。
+
+## 見落としと軽微な問題
+
+**軽微：追加試験の範囲が限定されている。**  
+提示された試験は、ファイル側の `PermissionError`、通常の欠落、親フォルダーの欠落を扱う。親側の `PermissionError`、`NotADirectoryError`、リンク先の不通、Windows の例外変換は試験していない。試験本文のパスは提示されておらず、リポジトリ上の位置は確かめられない。
+
+## 検証した事実
+
+- **一致：** ファイル側の `PermissionError` は `except OSError` に入り、`False` を返す。
+- **一致：** 親側の `OSError` も `False` を返す。
+- **一致：** `NotADirectoryError` は `OSError` の派生なので、発生すれば `False` を返す。[Python の例外仕様](https://docs.python.org/3.13/library/exceptions.html#NotADirectoryError)
+- **一致：** Windows の `ERROR_PATH_NOT_FOUND` は `ENOENT` に対応する。ただし、ネットワーク不通時の具体的なエラーコードが常に同じになるとは確認できていない。
+- **確かめられず：** 実際の HEAD と埋め込み差分の一致、リンクの取り込み可否、保存前のパス正規化。指示に従い、シェルでのファイル読み取りと試験実行はしていない。
+
+## 崩せなかった点
+
+- 前回指摘された、`PermissionError` をファイル欠落と誤認する経路。
+- 通常の直接パスで、ファイルと親フォルダーがともに見えない場合の保留動作。
+- 親ディレクトリ自体が切れたジャンクション／ディレクトリリンクで、親の `stat()` も失敗する場合の保留動作。
+[ask-codex 21:14:58] 完了。session 01a1bb13-1fdf-7dd3-99d8-b7159cb12755  usage {"input_tokens": 92342, "cached_input_tokens": 71040, "cache_write_input_tokens": 0, "output_tokens": 1612, "reasoning_output_tokens": 232}
