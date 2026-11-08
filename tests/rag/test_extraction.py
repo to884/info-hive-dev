@@ -311,15 +311,87 @@ class ExtractionTests(unittest.TestCase):
         self.assertEqual(len(self.pages(engine, result["sha256"])), 3)
         self.assertFalse(legacy.exists())
 
-    def test_raising_the_extraction_revision_returns_an_existing_markdown(self):
+    def test_raising_the_extraction_revision_reindexes_with_the_new_extraction(self):
         engine = self.engine()
         self.ingest(engine)
         with patch("rag_config.EXTRACT_REVISION", "extract-v2"):
+            # 抽出の版を上げると、方針が変わった索引になる。取り込み直すまで前の抽出で検索しない。
+            self.assertTrue(engine.status(str(self.wiki))["reingest_required"])
+            with self.assertRaisesRegex(ValueError, "取り込み直"):
+                engine.search(str(self.wiki), "Extraction cache checkpoint", limit=3)
             again = self.ingest(engine)
-        self.assertEqual(again["status"], "unchanged")
-        self.assertTrue(Path(again["extracted_markdown"]).is_file())
-        self.assertIn("extract-v2", again["extracted_markdown"])
-        self.assertEqual(self.inspected, 6)
+            self.assertEqual(again["status"], "indexed")
+            self.assertTrue(again["index_reset"])
+            self.assertIn("extract-v2", again["extracted_markdown"])
+            self.assertTrue(Path(again["extracted_markdown"]).is_file())
+            self.assertEqual(self.inspected, 6)
+            found = engine.search(str(self.wiki), "Extraction cache checkpoint", limit=3)["results"]
+            self.assertTrue(found)
+
+    def test_same_content_at_two_paths_stays_in_the_list_until_both_are_reingested(self):
+        copy = self.root / "refs" / "写し.pdf"
+        copy.write_bytes(self.source.read_bytes())
+        first = self.engine()
+        self.ingest(first)
+        first.ingest_pdf(str(self.wiki), str(copy), "sources/写し.md")
+        second = self.engine(embedding_model="cl-nagoya/ruri-v3-70m")
+        self.ingest(second)
+        state = second.status(str(self.wiki))
+        self.assertTrue(state["reingest_required"])
+        self.assertEqual([item["paths"] for item in state["reingest"]], [[copy.as_posix()]])
+        second.ingest_pdf(str(self.wiki), str(copy), "sources/写し.md")
+        self.assertEqual(second.status(str(self.wiki))["reingest"], [])
+
+    def test_0_4_0_extraction_is_not_adopted_after_raising_the_extraction_revision(self):
+        engine = self.engine()
+        self.ingest(engine)
+        self.legacy_layout(engine, self.source)
+        workspace = engine.config.workspace(str(self.wiki))
+        (workspace / "catalog.sqlite").unlink()  # 0.4.0 の結果だけが残った状態で取り込み直させる
+        for name in ("lance", "index-state.json"):
+            path = workspace / name
+            shutil.rmtree(path) if path.is_dir() else path.unlink()
+        with patch("rag_config.EXTRACT_REVISION", "extract-v2"):
+            result = self.ingest(engine)
+            self.assertEqual(self.inspected, 6)  # 0.4.0 の結果を新しい版として使わず、抽出し直した
+            self.assertEqual(len(self.pages(engine, result["sha256"])), 3)
+            self.assertIn("extract-v2", result["extracted_markdown"])
+
+    def test_embedding_checkpoint_is_not_reused_after_raising_the_extraction_revision(self):
+        import numpy as np
+
+        class Counting(FakeEmbedder):
+            def __init__(self):
+                super().__init__(256)
+                self.texts = 0
+
+            def encode(self, texts, **_):
+                self.texts += len(texts)
+                return super().encode(texts)
+        engine = Engine(Config({**self.values, "batch_size": 1}), embedder=Counting())
+
+        def stop(phase, completed, total):
+            if phase == "埋め込み" and completed == 1:
+                raise RuntimeError("最初のバッチのあとで止まった")
+        with self.assertRaisesRegex(RuntimeError, "止まった"):
+            engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md", progress=stop)
+        engine._embedder.texts = 0
+        with patch("rag_config.EXTRACT_REVISION", "extract-v2"):
+            result = self.ingest(engine)
+            self.assertEqual(engine._embedder.texts, result["chunks"])  # 前の版の途中経過を飛ばさない
+            generation = engine.config.generation(result["sha256"])
+        rows = engine._table(engine.config.workspace(str(self.wiki))).search().where(
+            f"generation = '{generation}'").limit(100).to_list()
+        self.assertEqual(len(rows), result["chunks"])
+
+    def test_0_4_0_extraction_of_a_version_replaced_after_reset_is_removed(self):
+        first = self.engine()
+        self.ingest(first)
+        self.legacy_layout(first, self.source)
+        legacy = first.config.workspace(str(self.wiki)) / "extracted"
+        self.make_pdf(self.source, "Edited while the model changed")
+        self.ingest(self.engine(embedding_model="cl-nagoya/ruri-v3-70m"))
+        self.assertFalse(legacy.exists())
 
     def test_restoring_old_content_after_cleanup_extracts_again(self):
         engine = self.engine()
@@ -384,7 +456,7 @@ class ConfigureTests(unittest.TestCase):
         self.assertNotIn("ocr_mode", self.saved())
 
     def test_invalid_ocr_settings_are_rejected_and_not_saved(self):
-        for values in ({"ocr_mode": "sometimes"}, {"ocr_dpi": 71}, {"ocr_dpi": 301}):
+        for values in ({"ocr_mode": "sometimes"}, {"ocr_mode": ""}, {"ocr_dpi": 0}, {"ocr_dpi": 71}, {"ocr_dpi": 301}):
             with self.assertRaises(ValueError):
                 self.server.configure(**values)
         self.assertNotIn("ocr_mode", self.saved())
