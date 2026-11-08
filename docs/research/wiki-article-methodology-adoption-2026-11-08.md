@@ -4,7 +4,7 @@
 対象：作者が Codex と Claude に相談してまとめた「LLM Wiki 記事作成の方法論 — 使い分けと Skill 設計」（以下「提案」）を、info-hive の wiki プラグイン（`info-hive-wiki`）に導入するか
 手法：`multi-agent-dispatch` スキルで 4 体のエージェント（A: Claude Opus 5.5、B: Claude Fable 5.1、C: GPT-6.1 Sol、D: GPT-6 Astra）に独立に検討させ、敵対的な相互レビューと総括を経て、本書で 1 本にまとめた。提案の原文、4 体の成果、レビュー、総括は [docs/agent-runs/2026-11-08-wiki-article-methodology-adoption/](../agent-runs/2026-11-08-wiki-article-methodology-adoption/) にある
 関連：[wiki-note-granularity-2026-11-08.md](wiki-note-granularity-2026-11-08.md)（記事の単位の検討。提案の区分 2 と重なる）
-状態：提案。ADR は未作成で、SCHEMA.md とプラグインのファイルは変更していない
+状態：提案。結論は [ADR-0015](../adr/0015-wiki-article-methodology-adopted-in-stages.md)（提案）にまとめた。SCHEMA.md とプラグインのファイルは変更していない
 
 本書の記述は次の区分に従う。
 
