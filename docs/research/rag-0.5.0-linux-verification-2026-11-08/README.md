@@ -82,9 +82,24 @@ wsl.exe -d Ubuntu-24.04 -u ubuntu -- bash /mnt/c/Works/info-hive-dev/tests/rag/s
 
 空のファイルと 0 で埋まったファイルは、ext4 で、書き込んだデータがディスクに届く前に仮想マシンが止まったときの壊れ方である。HDD が飽和していると書き戻しが大きく遅れるので、起きやすい。segfault は、0 で埋まった共有ライブラリを読み込んだためと判断した。旧版の `setup_linux_fresh.sh` が導入のあとに `sync` を呼んでいたのも、このためだったと考える。tmpfs に置く今の手順では、この問題は起きない（WSL が止まれば環境ごと消え、作り直す）。
 
+## 仮想ディスクを C: に移したあと（2026年11月9日）
+
+作者の了承を得て、`wsl --manage Ubuntu-24.04 --move C:\wsl\Ubuntu-24.04` で、仮想ディスク（23.5 GB）を C:（NVMe の SSD）に移した。移すのに 16.4 分かかった。D: の元のファイルは残っていない。
+
+移したあと、WSL は 12.7 秒で起動し、仮想ディスクへの書き込み（`dd`、512 MiB、`oflag=direct`）は 3.1 GB/秒だった。
+
+tmpfs を使わず、仮想ディスクの上の `RAG_LINUX_ROOT=$HOME/.cache/info-hive-validation-c` で、`setup_linux_fresh.sh` を空の状態から流した。作成と試験を合わせて 193 秒で、3 つとも通った。記録は [linux-c-disk/](linux-c-disk/) にある。
+
+| 試験 | 結果 | かかった時間 |
+| --- | --- | --- |
+| 単体試験 | 65 件のうち 63 件が合格。2 件は Windows だけの試験なので省略 | 22 秒 |
+| `verify_pipeline.py` | 18 項目すべて合格 | 80 秒 |
+| `verify_controls.py` | 5 項目すべて合格 | 29 秒 |
+
+tmpfs の上より少し遅いが、WSL を止めても環境が消えないので、流し直すたびに作り直さなくてよい。旧版の環境 `~/.cache/info-hive-validation`（壊れた `venv` を含む）は、移したあとも消していない。
+
 ## 残したこと
 
-- 根本の対処は、WSL の仮想ディスクを C:（NVMe の SSD）に移すことである。`wsl --manage Ubuntu-24.04 --move <C: のフォルダー>` か、`wsl --export` と `wsl --import` で移せるが、どちらも WSL を止める必要があるので、作者の判断に任せる。移せば、tmpfs を使わずに `RAG_LINUX_ROOT=$HOME/.cache/info-hive-validation` で流せるはずである（確かめていない）。
 - D: を詰まらせているプロセスは突き止めていない。
 - 空の tmpfs で `run_linux.sh --controls-only` だけを流すと、`verify_controls.py` が土台にする `j*/config.json`（`verify_pipeline.py` が作る）がなく、失敗する。以前からの動きで、今回は直していない。
 - `RAG_TEST_OUTPUT` の既定はこのフォルダーの `linux/` なので、流し直すと記録を上書きする。別の記録にするときは `RAG_TEST_OUTPUT` を指定する。
