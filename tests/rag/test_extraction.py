@@ -342,6 +342,44 @@ class ExtractionTests(unittest.TestCase):
         second.ingest_pdf(str(self.wiki), str(copy), "sources/写し.md")
         self.assertEqual(second.status(str(self.wiki))["reingest"], [])
 
+    def test_unreachable_folder_keeps_its_pdf_in_the_list(self):
+        far = self.root / "network" / "資料.pdf"
+        far.parent.mkdir()
+        far.write_bytes(self.source.read_bytes())
+        other = self.root / "refs" / "別の資料.pdf"
+        self.make_pdf(other, "Another document entirely")
+        first = self.engine()
+        first.ingest_pdf(str(self.wiki), str(far), "sources/資料.md")
+        first.ingest_pdf(str(self.wiki), str(other), "sources/別の資料.md")
+        second = self.engine(embedding_model="cl-nagoya/ruri-v3-70m")
+        second.ingest_pdf(str(self.wiki), str(other), "sources/別の資料.md")
+        hidden = self.root / "network-offline"
+        os.replace(far.parent, hidden)  # ネットワークドライブが一時的に切れた（フォルダーごと見えない）
+        try:
+            self.make_pdf(other, "Edited while offline")
+            second.ingest_pdf(str(self.wiki), str(other), "sources/別の資料.md")
+            state = second.status(str(self.wiki))
+            self.assertEqual([item["paths"] for item in state["reingest"]], [[far.as_posix()]])
+            self.assertTrue((second.config.extraction_root / hashlib.sha256(self.source.read_bytes()).hexdigest()).exists())
+        finally:
+            os.replace(hidden, far.parent)
+        # ファイルだけが消えた（フォルダーはある）ときは、一覧から外す。
+        far.unlink()
+        self.make_pdf(other, "Edited again")
+        second.ingest_pdf(str(self.wiki), str(other), "sources/別の資料.md")
+        self.assertEqual(second.status(str(self.wiki))["reingest"], [])
+
+    def test_second_change_before_reingest_keeps_every_path(self):
+        copy = self.root / "refs" / "写し.pdf"
+        copy.write_bytes(self.source.read_bytes())
+        first = self.engine()
+        self.ingest(first)
+        first.ingest_pdf(str(self.wiki), str(copy), "sources/写し.md")
+        self.ingest(self.engine(embedding_model="cl-nagoya/ruri-v3-70m"))  # 資料.pdf だけ取り込み直す
+        third = self.engine(embedding_model="cl-nagoya/ruri-v3-130m")
+        paths = [set(item["paths"]) for item in third.status(str(self.wiki))["reingest"]]
+        self.assertEqual(paths, [{self.source.as_posix(), copy.as_posix()}])
+
     def test_0_4_0_extraction_is_not_adopted_after_raising_the_extraction_revision(self):
         engine = self.engine()
         self.ingest(engine)
