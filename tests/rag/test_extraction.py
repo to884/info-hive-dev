@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -270,6 +271,55 @@ class ExtractionTests(unittest.TestCase):
         self.assertEqual(self.inspected, 3)
         self.assertEqual(len(self.pages(second, result["sha256"])), 3)
         self.assertFalse(legacy.exists())
+
+    def legacy_layout(self, engine, *sources):
+        """取り込んだ文書の抽出の結果を、0.4.0 の置き場所に戻す（0.4.0 で取り込んだ状態を作る）。"""
+        for source in sources:
+            doc_id = hashlib.sha256(source.read_bytes()).hexdigest()
+            generation = hashlib.sha256((doc_id + engine.config.fingerprint).encode("ascii")).hexdigest()
+            legacy = engine.config.workspace(str(self.wiki)) / "extracted" / generation
+            legacy.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(engine.config.extraction_dir(doc_id), legacy)
+
+    def test_every_0_4_0_extraction_is_reused_after_a_model_change(self):
+        other = self.root / "refs" / "別の資料.pdf"
+        self.make_pdf(other, "Another document entirely")
+        first = self.engine()
+        self.ingest(first)
+        first.ingest_pdf(str(self.wiki), str(other), "sources/別の資料.md")
+        self.legacy_layout(first, self.source, other)
+        second = self.engine(embedding_model="cl-nagoya/ruri-v3-70m")
+        self.ingest(second)  # 1 件目で索引を空にする。2 件目は空にしたあとの取り込み
+        second.ingest_pdf(str(self.wiki), str(other), "sources/別の資料.md")
+        self.assertEqual(self.inspected, 6)  # 最初の 2 件の取り込みだけ。取り込み直しでは抽出しない
+        self.assertFalse((second.config.workspace(str(self.wiki)) / "extracted").exists())
+
+    def test_interrupted_move_of_0_4_0_extraction_is_finished(self):
+        engine = self.engine()
+        result = self.ingest(engine)
+        self.legacy_layout(engine, self.source)
+        legacy = next((engine.config.workspace(str(self.wiki)) / "extracted").iterdir())
+        cache = engine.config.extraction_dir(result["sha256"])
+        cache.mkdir(parents=True)
+        os.replace(legacy / "page-000001.json", cache / "page-000001.json")  # 1 ページだけ移して止まった
+        (engine.config.workspace(str(self.wiki)) / "catalog.sqlite").unlink()  # 取り込み直させる
+        for name in ("lance", "index-state.json"):
+            path = engine.config.workspace(str(self.wiki)) / name
+            shutil.rmtree(path) if path.is_dir() else path.unlink()
+        self.ingest(engine)
+        self.assertEqual(self.inspected, 3)
+        self.assertEqual(len(self.pages(engine, result["sha256"])), 3)
+        self.assertFalse(legacy.exists())
+
+    def test_raising_the_extraction_revision_returns_an_existing_markdown(self):
+        engine = self.engine()
+        self.ingest(engine)
+        with patch("rag_config.EXTRACT_REVISION", "extract-v2"):
+            again = self.ingest(engine)
+        self.assertEqual(again["status"], "unchanged")
+        self.assertTrue(Path(again["extracted_markdown"]).is_file())
+        self.assertIn("extract-v2", again["extracted_markdown"])
+        self.assertEqual(self.inspected, 6)
 
     def test_restoring_old_content_after_cleanup_extracts_again(self):
         engine = self.engine()
