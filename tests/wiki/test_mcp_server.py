@@ -448,6 +448,13 @@ class ScriptToolTests(ServerCase):
         strict.pop("graph")
         self.assertEqual(strict, cli)
         self.assertTrue(cli["oversized_hard"] and cli["missing_frontmatter"])
+        # タグの体系を渡すと、CLI の --allowed-tags と同じく体系にないタグを挙げる。省くと検査しない。
+        self.assertIsNone(self.call("lint", graph=False)["summary"]["unknown_tags"])
+        tagged = self.call("lint", graph=False, allowed_tags=["存在しないタグ"])
+        cli = run_cli(SCRIPTS / "wiki_lint.py", self.wiki.resolve(), "--json", "--allowed-tags", "存在しないタグ")
+        tagged.pop("graph")
+        self.assertEqual(tagged, cli)
+        self.assertTrue(cli["unknown_tags"])
         with self.assertRaises(RuntimeError):
             self.call("lint", soft_cap=0)
 
