@@ -1,0 +1,139 @@
+## 判定
+
+**却下。確信度：高。** 許可された出力先の組み合わせで排他が崩れる。また、グラフ抽出に求める契約を満たしても、lint が受理する出典参照や、同一ページ内の異なる関係が欠落しうる。
+
+以下は、既存関数での再現結果と、未実装の設計から導いた反例を区別して記す。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】静的出力を入れ子にすると、稼働中の別 build のロックを移動・削除できる
+
+**反例：** Linux を仮定する。Wiki とデータ領域の外に、次の出力先を指定する。
+
+```text
+親の出力先：/exports/site
+子の出力先：/exports/site/nested
+子の作業場所：/exports/site/nested.browse-work
+```
+
+1. 親の出力を作る。
+2. 子の build を開始し、子の作業場所の `build.lock` を保持させる。
+3. 親の build を実行する。親は別の `/exports/site.browse-work/build.lock` を取得できる。
+4. 親の入れ替え処理が `/exports/site` 全体を退避する。子の作業場所と保持中のロックも移動する。
+5. 親が新しい出力を公開し、退避先を削除する。
+6. 子と同じ出力先に、もう一つ build を開始する。元のパスに新しいロックを作れるため、先の子が生存中でも排他を取得できる。
+
+両出力は `<data_dir>/browse/` と重ならず、各ディレクトリ自身の目印も条件を満たす。別の出力先・作業場所との**包含関係**を拒否する規則はない。Wiki との非重複検査や、リンクをたどらない削除では防げない。
+
+根拠：[設計 §7 の持ち場の分離・排他・入れ替え](C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:105)。採用元の [`extract_lock` 自身も、ロックファイルが削除・再作成されると二重取得が成立すると説明している](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_graph_common.py:165)。
+
+**結果：設計上の反例。実ファイルの削除や Linux の並行実行は行っていない。** 前回指摘のサーバー状態との重複は閉じたが、静的出力同士では同種の問題が残る。
+
+### 2. 【重大】`sources:` の契約が、lint の受理する wikilink 形式を取りこぼす
+
+**入力：**
+
+```yaml
+# concepts/a.md
+type: "concept"
+sources: ["[[sources/paper]]"]
+```
+
+併せて、`type: "source"` の `sources/paper.md` を置く。
+
+現行関数をメモリ上で実行した結果は次のとおりだった。
+
+```text
+lint の unresolved_sources: []
+resolve_link("[[sources/paper]]", ...): None
+resolve_link("sources/paper", ...): "paper"
+```
+
+lint は `sources:` の外側の `[[...]]` を外してから解決する。一方、設計の契約4は、値を `wiki_pages.resolve_link()` と同じ規則で解くとするだけで、この字句処理を含めていない。
+
+したがって、契約どおり未解決として診断し、エッジを作らない抽出器が成立する。契約6も「4で一意に解決するもの」に限定されているため、この欠落を失敗にできない。
+
+根拠：[設計の契約4・6](C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:55)、[lint の外側の wikilink を外す処理](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:547)、[`clean_link_target()`](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:203)。
+
+**結果：既存関数で食い違いを再現。** 将来の抽出修正が追加で対応する可能性はあるが、要求された6条件だけでは保証されない。
+
+### 3. 【重大】同じページ内で有効期間・状態が異なる関係を、契約が保存しない
+
+同じページに、以下の2件を書く。主語、述語、目的語、出典、証拠は同じである。
+
+```yaml
+graph:
+  relationships:
+    - predicate: uses
+      object: concept:y
+      source: paper
+      evidence: "A used Y in 2020-2021 and from 2024."
+      confidence: high
+      status: historical
+      valid_from: 2020-01-01
+      valid_to: 2021-12-31
+    - predicate: uses
+      object: concept:y
+      source: paper
+      evidence: "A used Y in 2020-2021 and from 2024."
+      confidence: high
+      status: current
+      valid_from: 2024-01-01
+```
+
+対応するノードと出典、`uses` を定義したオントロジーを与え、現行関数をメモリ上で実行した。
+
+```text
+graph lint の非空の指摘項目: {}
+宣言した関係: 2件
+抽出したエッジ: 1件
+残った状態: historical
+```
+
+現行のエッジ ID は `status` と有効期間を区別しない。契約2の「ページの違う同じ内容の関係をまとめない」を満たすために `page` を加えても、この2件は同じページなので区別できない。ほかの5条件にも違反せず、現在の関係が表から消える抽出器が成立する。
+
+根拠：[設計の契約2](C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:53)、[現行のエッジ ID](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_graph_extract.py:282)、[有効期間を取り込む処理](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_graph_extract.py:344)、[既存スキーマの有効期間・状態](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/references/graph-workflow.md:37)。
+
+**結果：既存関数で欠落を再現。** 抽出修正の契約が、関係表に必要な区別を尽くしていない。
+
+## 崩れる前提
+
+- **作業用ディレクトリのロックは、build の間ずっと同じ場所に残る。**  
+  その祖先を別の出力先にすると、通常の入れ替え処理だけで移動・削除される。
+
+- **`sources:` の値は、ページ用 resolver に直接渡せる文字列である。**  
+  現行 lint が受理する `[[sources/paper]]` で崩れる。
+
+- **エッジの識別にページを加えれば、表示すべき関係を保存できる。**  
+  同一ページ内で状態や有効期間が異なる関係では足りない。
+
+## 見落としと軽微な問題
+
+上記以外に、独立した軽微な欠陥として確定できたものはない。
+
+試験の具体例には、入れ子の出力先、wikilink 形式の `sources:`、同一ページ内の期間違いの関係が明記されていない。列挙された反例をすべて通しても、上記3件は残りうる。
+
+## 検証した事実
+
+| 主張・対象 | 結果 |
+| --- | --- |
+| 対象は wiki 0.9.0、`64acc43` | 一致。HEAD と `plugin.json` を確認 |
+| 同梱 markdown-it-py は3.0.0 | 一致。実際に読み込み、版・同梱元の検査を通過 |
+| グラフ抽出の依存は PyYAML 6.0.3 | 宣言と一致。ただし現在の Python 環境に PyYAML はなく、全体実行は未実施 |
+| wikilink 形式の `sources:` を lint が受理する | 再現。`unresolved_sources` は空 |
+| 同一ページの期間違いの関係が保存される | 食い違い。graph lint の指摘なしでも2件が1件になった |
+| 前回の5件の重大指摘への対応 | 設計本文に対応を確認。修正後の実装動作は未確認 |
+| ADR-0016 に沿う2方式の実ブラウザ試験 | 設計 §11 に明記されている |
+| 新サーバーの安全性・復旧・ブラウザ試験 | 確かめられず。製品の `wiki_browse*` はまだ存在しない |
+
+実行確認は `python -B` とメモリ上のデータ・抽出した関数で行った。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- ADR-0016 による2方式での合格条件と、クリック時の外部移動の例外は、今回の試験計画に反映されている。
+- 127.0.0.1 固定、厳密な Host 照合、トークン、既知の出力名だけを返す契約から、DNS rebinding や任意ファイル取得の突破経路は示せなかった。実装の安全性を実証したものではない。
+- 読み取り前の変更印、組み立ての直列化、旧スナップショットでの応答は、以前の更新競合の反例を設計上閉じている。
+- `os.kill` による停止、識別子衝突の黙った上書き、外部入力の実体を保護しない削除は、現行設計では撤回されている。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
