@@ -1,0 +1,87 @@
+## 判定
+
+**却下。確信度：中。** 持ち出す静的出力にローカルの絶対パスが残る反例と、一時的な読み取り失敗でページが復旧しなくなる反例がある。以下は設計上の反例であり、未存在の製品実装で再現したという主張ではない。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】`raw:` が `file:` URL なら、`basename` でも絶対パスが残る
+
+**反例：**
+
+```yaml
+type: "source"
+raw: "file:///C:/Books/private.pdf"
+```
+
+Wiki を `C:/Wiki`、ホームを `C:/Users/Alice` とし、`build <WIKI_ROOT> --out <dir>` を実行する。
+
+現行 lint と同じく `file:` を URL に分類すると、§4 の規則により、既定の `basename` でも値全体が文字として出力される。`C:/Books/private.pdf` を復元できる一方、§5 の検査対象である Wiki ルートとホームの文字列は含まないため、公開前の検査を通る。
+
+`file:` URL をローカルパスとして扱い直す規則は書かれていない。したがって、「URL はどの描き方でも文字として出す」と「絶対パスを入れるのは `text`・`link` だけ」が、この入力では両立しない。
+
+**検証結果：** 現行 `missing_raw()` がこの入力を URL として受理し、検出結果を空にすること、指定された文字列検査では検出されないことをメモリ上で確認した。browse の分類も現行 lint に従うという仮定を置いている。
+
+**根拠：** [設計 L80](C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:80)、[L88](C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:88)、[L90](C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:90)、[lint の URL 判定](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:203)、[ADR-0010 の持ち出す出力の条件](C:/Works/info-hive-dev/docs/adr/0010-wiki-browse-separates-core-from-delivery.md:199)。
+
+### 2. 【重大】一時的に読めなかったページが、読み取り可能に戻っても復旧しない
+
+**反例の手順：**
+
+1. サーバーの初回構築、または更新による再構築を始める。
+2. ページの `stat` は成功するが、本文の読み取りだけが一時的な共有違反などで失敗する。
+3. §2 に従って、そのページを描かず、`read_error` を持つ中核を構築する。
+4. ファイルを保持していた別プロセスが閉じる。パス・サイズ・更新時刻は変わらない。
+5. 次の要求でも変更印が一致するため、ページを読み直さない。
+
+ファイルは正常に読める状態なのに、ページとそのリンクが欠けた状態が続く。§8 の「構築失敗なら前の中核を使う」は、ページ単位の読み取り失敗を診断として処理し、構築自体が成功した場合を救わない。
+
+**検証結果：** 現行 `collect_pages()` の読み取りだけを一時的な `PermissionError` に置き換え、解除後は実ファイルを読めること、前後の現行 `stat_signature()` が一致することを確認した。Windows の共有違反そのものや製品サーバーでの再現は未実施。
+
+**根拠：** [読めないページの扱い](C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:37)、[再構築の条件](C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:134)、[構築失敗時の扱い](C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:138)、[collect_pages](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:319)、[stat_signature](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:814)。
+
+## 崩れる前提
+
+- **「URL として保持した `raw:` は、ローカルの絶対パスではない」**  
+  `file:///C:/Books/private.pdf` で崩れる。Wiki ルート・ホーム以外のパスなら、指定された漏えい検査にも掛からない。
+
+- **「入力の変更印が同じなら、前回と同じように読める」**  
+  読み取りを妨げるハンドルや権限だけが変わると崩れる。本文を変更しなくても、読み取りの成否は変わる。
+
+- **「構築失敗への復旧規則が、読み取り失敗も扱う」**  
+  ページ単位の `read_error` を含む構築が成功扱いになると崩れる。
+
+## 見落としと軽微な問題
+
+- **【軽微】新しい `.browse-generation` と、PoC の予約名集合が一致しない。**  
+  現行 `wiki_pages.is_page_path(".browse-generation/a.md")` は真で、PoC の出力名は `.browse-generation/a.html` になる。PoC の重複検査も通るが、新設計では `.browse-generation` 自体を JSON ファイルとして使うため、ファイルとディレクトリが衝突する。予約集合をそのまま移す場合の反例であり、新実装への残存は未確認。根拠：[設計の名前規則](C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:45)、[世代の目印](C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:115)、[PoC の予約集合](C:/Works/info-hive-dev/poc/browse/gen.py:53)。
+
+- **【軽微】操作トークンを URL に出すかどうかが矛盾する。**  
+  L143 は「URL には出さない」とするが、L144 は操作トークンを URL のパスに置く。閲覧 URL に含めないという意味なら成立するが、操作要求のログへの記録は別に残る。PoC は要求行をそのまま標準エラーへ記録する。根拠：[設計 L143](C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:143)、[PoC のログ](C:/Works/info-hive-dev/poc/browse/serve.py:30)。新サーバーでの漏えいは未確認。
+
+## 検証した事実
+
+| 確かめた主張 | 結果 |
+| --- | --- |
+| 対象は wiki 0.9.0、`64acc43` | 一致。`plugin.json` と HEAD を確認 |
+| 同梱 markdown-it-py は 3.0.0 | 一致。実際に読み込み、同梱元も確認 |
+| lint・グラフ抽出の日本語別名の正規化 | 一致。双方が `canonical_meta()` を使用 |
+| グラフ抽出の PyYAML は 6.0.3 | 宣言と一致。抽出全体は実行していない |
+| ADR-0016 の試験条件が設計に反映されている | 一致。2方式の実ブラウザ、一覧とハッシュ、外部要求、クリック時の `Referer` を明記 |
+| 過去レビュー7の競合への対応 | 共通 `build.lock` を保持する規則を確認。同じ `data_dir` の以前の反例は適用できない |
+| 過去レビューの識別子衝突・外部入力保護・停止・復旧・見出しへの対応 | 設計本文で対応を確認。実装動作は未確認 |
+| PoC が要求時描画と再構築を実証する | 食い違い。`serve.py` は生成済みファイルを読む |
+| 製品の安全性・Windows の復旧・受け入れ試験が通る | 確かめられず。製品の `wiki_browse*` は未存在 |
+
+実行確認は `python -B` と読み取り・メモリ上の処理で行った。ファイルの作成・変更・削除はしていない。
+
+## 崩せなかった点
+
+- 127.0.0.1 固定、厳密な Host 照合、起動ごとのトークンを破る DNS rebinding の反例は示せなかった。
+- デコード後の禁止要素検査と既知の出力名への限定から、任意ファイル取得の経路は示せなかった。
+- 指定された抽出契約を満たす前提では、関係表の振り分けを崩せなかった。
+- 読み取り前の変更印、構築の直列化、要求ごとの写しの固定には、以前の世代逆転の反例を適用できなかった。
+- ナビゲーションの階層、重複掲載、最初の未解決リンク、分割索引の規則に、新しい確定的な反例は見つからなかった。
+- ADR-0016 による2方式の受け入れ条件そのものは否定理由にしていない。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
