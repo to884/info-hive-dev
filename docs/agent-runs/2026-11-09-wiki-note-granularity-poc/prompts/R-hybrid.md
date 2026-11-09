@@ -124,4 +124,4 @@
 
 ---
 
-（ここに wiki のファイルと原本を埋め込んだ。全文の sha256 は `d7ea05064eae492ad35b725d2dd6a1494fdf83b7e3c652c1e11702bb4e331df7`、72,468 文字。全文はリポジトリの外の `prompts/R-hybrid.md` にある）
+（ここに wiki のファイルと原本を埋め込んだ。全文の sha256 は `b70f5fdd49fd16407da21bc78c6545049b391f91c60521caf0d371ff35bb11d2`、69,869 文字。全文はリポジトリの外の `prompts/R-hybrid.md` にある）

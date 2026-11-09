@@ -11,22 +11,22 @@
   "snapshot": "semasynth",
   "snapshot_tree_sha256": "c0e27917644efd0915a90704d419a38df6a46865217512b99f3cb56b4257c5fa",
   "prompt_file": "prompts/R-hybrid.md",
-  "prompt_sha256": "d7ea05064eae492ad35b725d2dd6a1494fdf83b7e3c652c1e11702bb4e331df7",
-  "started": "2026-11-09T08:40:45+09:00",
-  "elapsed_s": 326.0,
+  "prompt_sha256": "b70f5fdd49fd16407da21bc78c6545049b391f91c60521caf0d371ff35bb11d2",
+  "started": "2026-11-09T09:52:12+09:00",
+  "elapsed_s": 137.8,
   "ok": true,
   "error": "",
   "returncode": 0,
-  "session_id": "0cbb981f-23fe-4fd3-847d-1914ba65ac6c",
+  "session_id": "454fd341-b24e-4d93-a54c-651a00d77f28",
   "usage": {
-    "total_cost_usd": 0.7825192000000001,
+    "total_cost_usd": 0.7674605999999999,
     "usage": {
       "input_tokens": 2,
-      "cache_creation_input_tokens": 61215,
-      "cache_read_input_tokens": 12656,
-      "output_tokens": 14513,
+      "cache_creation_input_tokens": 57482,
+      "cache_read_input_tokens": 14283,
+      "output_tokens": 15237,
       "output_tokens_details": {
-        "thinking_tokens": 7317
+        "thinking_tokens": 7315
       },
       "server_tool_use": {
         "web_search_requests": 0,
@@ -34,19 +34,19 @@
       },
       "service_tier": "standard",
       "cache_creation": {
-        "ephemeral_1h_input_tokens": 61215,
+        "ephemeral_1h_input_tokens": 57482,
         "ephemeral_5m_input_tokens": 0
       },
       "inference_geo": "global",
       "iterations": [
         {
           "input_tokens": 2,
-          "output_tokens": 14513,
-          "cache_read_input_tokens": 12656,
-          "cache_creation_input_tokens": 61215,
+          "output_tokens": 15237,
+          "cache_read_input_tokens": 14283,
+          "cache_creation_input_tokens": 57482,
           "cache_creation": {
             "ephemeral_5m_input_tokens": 0,
-            "ephemeral_1h_input_tokens": 61215
+            "ephemeral_1h_input_tokens": 57482
           },
           "type": "message"
         }
@@ -55,7 +55,7 @@
       "fallback_credit": null
     },
     "num_turns": 1,
-    "duration_ms": 172136
+    "duration_ms": 129517
   },
   "n_tool_calls": 0,
   "files_read": [],
@@ -70,6 +70,12 @@
         "epistemic": "decision",
         "n_conditions": 0,
         "evidence": [
+          {
+            "line_start": 1,
+            "line_end": 1,
+            "quote_sha256": "a3ce48f0d13023ff8ee3560a2f2f5a40784c8b1f38a40503110180e3098527c0",
+            "quote_chars": 30
+          },
           {
             "line_start": 3,
             "line_end": 3,
@@ -104,7 +110,7 @@
       {
         "id": "c3",
         "epistemic": "decision",
-        "n_conditions": 2,
+        "n_conditions": 1,
         "evidence": [
           {
             "line_start": 5,
@@ -113,11 +119,11 @@
             "quote_chars": 33
           }
         ],
-        "action": "create",
-        "page_slug": "再現性確認",
-        "page_type": "concept",
+        "action": "source_only",
+        "page_slug": "semasynth再現性の検証-2026-11-06",
+        "page_type": "source",
         "page_kind": null,
-        "has_section": true
+        "has_section": false
       },
       {
         "id": "c4",
@@ -129,7 +135,19 @@
             "line_end": 5,
             "quote_sha256": "2989033b6c6ab011d8c1b55c75ecd371d6e9d2895a5cdb2ac1c0b2512fef1983",
             "quote_chars": 39
-          },
+          }
+        ],
+        "action": "source_only",
+        "page_slug": "semasynth再現性の検証-2026-11-06",
+        "page_type": "source",
+        "page_kind": null,
+        "has_section": false
+      },
+      {
+        "id": "c5",
+        "epistemic": "decision",
+        "n_conditions": 1,
+        "evidence": [
           {
             "line_start": 5,
             "line_end": 5,
@@ -138,15 +156,15 @@
           }
         ],
         "action": "create",
-        "page_slug": "再現性確認",
+        "page_slug": "再生成の同等性確認",
         "page_type": "concept",
         "page_kind": null,
         "has_section": true
       },
       {
-        "id": "c5",
+        "id": "c6",
         "epistemic": "decision",
-        "n_conditions": 3,
+        "n_conditions": 2,
         "evidence": [
           {
             "line_start": 7,
@@ -163,74 +181,68 @@
           {
             "line_start": 7,
             "line_end": 7,
+            "quote_sha256": "578972646d4b9ab5bf506639a79af248cb4dfd86d2cf445b515f55106c8e28c0",
+            "quote_chars": 21
+          },
+          {
+            "line_start": 7,
+            "line_end": 7,
             "quote_sha256": "cdb3746c98a45bf6024a7c78e125595d35884362ef1c9a698075ae57a3225719",
             "quote_chars": 25
           }
         ],
         "action": "create",
-        "page_slug": "再生成の比較は同一環境でバイト一致異環境で値と型の一致を確かめる",
+        "page_slug": "再生成の同等性は同一環境では全ファイルのバイト一致異なるpythonやsqliteでは値と型の論理比較で確かめる",
         "page_type": "concept",
         "page_kind": "claim",
         "has_section": false
       },
       {
-        "id": "c6",
+        "id": "c7",
         "epistemic": "decision",
-        "n_conditions": 2,
+        "n_conditions": 0,
         "evidence": [
           {
             "line_start": 7,
             "line_end": 7,
-            "quote_sha256": "8cce59882e1d4077c7690f70c83f25ffc42ae93610763cb0b119ee22181bca84",
-            "quote_chars": 13
-          },
-          {
-            "line_start": 7,
-            "line_end": 7,
-            "quote_sha256": "578972646d4b9ab5bf506639a79af248cb4dfd86d2cf445b515f55106c8e28c0",
-            "quote_chars": 21
+            "quote_sha256": "ccd7bffb38ee9aebdf0a07f16c3c62efae807e49e8e2de6c9bd104526d4055d0",
+            "quote_chars": 15
           }
         ],
-        "action": "source_only",
-        "page_slug": "semasynth再現性の検証-2026-11-06",
-        "page_type": "source",
+        "action": "create",
+        "page_slug": "再生成の同等性確認",
+        "page_type": "concept",
         "page_kind": null,
         "has_section": false
       },
       {
-        "id": "c7",
+        "id": "c8",
         "epistemic": "decision",
-        "n_conditions": 1,
+        "n_conditions": 0,
         "evidence": [
           {
             "line_start": 7,
             "line_end": 7,
-            "quote_sha256": "4af7c7ff9191c4331319b245e756425ec9ccb29b28f62714da6391ecbb7c13d7",
-            "quote_chars": 54
+            "quote_sha256": "bbe392a293592b7f72ed62d6e1af5294758429630c3f364e6005810147b361f8",
+            "quote_chars": 38
           }
         ],
         "action": "create",
-        "page_slug": "再現性確認",
+        "page_slug": "再生成の同等性確認",
         "page_type": "concept",
         "page_kind": null,
         "has_section": true
       },
       {
-        "id": "c8",
+        "id": "c9",
         "epistemic": "decision",
-        "n_conditions": 1,
+        "n_conditions": 0,
         "evidence": [
           {
             "line_start": 9,
             "line_end": 9,
             "quote_sha256": "d42d2c184c164bdc3be917aef7c59d3ad9b14106e0102f915cd25f273b872b41",
             "quote_chars": 35
-          },
-          {
-            "line_start": 9,
-            "line_end": 9,
-            "quote_sha256": "fc18e20e3ef610b0fd8679cac89d1d147a7fb43c665d50527cea42ded99d1a5c",
-            "quote_chars": 19
           }
         ],
         "action": "source_only",
@@ -240,22 +252,46 @@
         "has_section": false
       },
       {
-        "id": "c9",
-        "epistemic": "fact",
-        "n_conditions": 2,
+        "id": "c10",
+        "epistemic": "decision",
+        "n_conditions": 1,
         "evidence": [
           {
             "line_start": 9,
             "line_end": 9,
-            "quote_sha256": "a5d29ca818ed9ee480bd8e0478ef54b1e9dcb31e7ed91cf474ddc28750ea6d39",
-            "quote_chars": 43
-          },
+            "quote_sha256": "d0f485a13757b6a00d0e10b0c2b8b492f775c9f603beb0a72a25c68071a28602",
+            "quote_chars": 63
+          }
+        ],
+        "action": "source_only",
+        "page_slug": "semasynth再現性の検証-2026-11-06",
+        "page_type": "source",
+        "page_kind": null,
+        "has_section": false
+      },
+      {
+        "id": "c11",
+        "epistemic": "decision",
+        "n_conditions": 1,
+        "evidence": [
           {
             "line_start": 9,
             "line_end": 9,
             "quote_sha256": "ad056e6f0269b5d8a06c2a9196dc640cb61e64d0d690f63473c7e4a77ed323cd",
             "quote_chars": 40
-          },
+          }
+        ],
+        "action": "source_only",
+        "page_slug": "semasynth再現性の検証-2026-11-06",
+        "page_type": "source",
+        "page_kind": null,
+        "has_section": false
+      },
+      {
+        "id": "c12",
+        "epistemic": "fact",
+        "n_conditions": 1,
+        "evidence": [
           {
             "line_start": 9,
             "line_end": 9,
@@ -264,15 +300,15 @@
           }
         ],
         "action": "create",
-        "page_slug": "pythonのaudit-hookによる通信禁止はpythonプロセスだけに働きos全体の遮断を保証しない",
+        "page_slug": "pythonのaudit-hookによる通信禁止はpythonプロセスだけが対象でos全体やネイティブコードの通信遮断を保証しない",
         "page_type": "concept",
         "page_kind": "claim",
         "has_section": false
       },
       {
-        "id": "c10",
+        "id": "c13",
         "epistemic": "fact",
-        "n_conditions": 1,
+        "n_conditions": 0,
         "evidence": [
           {
             "line_start": 9,
@@ -288,7 +324,7 @@
         "has_section": false
       },
       {
-        "id": "c11",
+        "id": "c14",
         "epistemic": "decision",
         "n_conditions": 1,
         "evidence": [
@@ -306,15 +342,15 @@
         "has_section": false
       },
       {
-        "id": "c12",
+        "id": "c15",
         "epistemic": "decision",
-        "n_conditions": 1,
+        "n_conditions": 0,
         "evidence": [
           {
             "line_start": 11,
             "line_end": 11,
-            "quote_sha256": "b506d962d843f5cd6f0889462744b6281200e8e0a404b24f7fcf885cca211271",
-            "quote_chars": 12
+            "quote_sha256": "4e43be2425c4b15e9d18b8c885dd25da34fe64f52768d1736ba4a98dcd178491",
+            "quote_chars": 42
           }
         ],
         "action": "source_only",
@@ -324,7 +360,7 @@
         "has_section": false
       },
       {
-        "id": "c13",
+        "id": "c16",
         "epistemic": "fact",
         "n_conditions": 1,
         "evidence": [
@@ -342,13 +378,13 @@
           }
         ],
         "action": "create",
-        "page_slug": "性能測定",
+        "page_slug": "プロセス全体のピーク常駐メモリは依存パッケージのインポートを含み処理単体の使用量ではない",
         "page_type": "concept",
-        "page_kind": null,
-        "has_section": true
+        "page_kind": "claim",
+        "has_section": false
       },
       {
-        "id": "c14",
+        "id": "c17",
         "epistemic": "decision",
         "n_conditions": 2,
         "evidence": [
@@ -360,15 +396,15 @@
           }
         ],
         "action": "create",
-        "page_slug": "性能測定",
+        "page_slug": "少数回の性能測定値は評価環境での基準値として保存し性能保証値にしない",
         "page_type": "concept",
-        "page_kind": null,
-        "has_section": true
+        "page_kind": "claim",
+        "has_section": false
       },
       {
-        "id": "c15",
+        "id": "c18",
         "epistemic": "fact",
-        "n_conditions": 1,
+        "n_conditions": 2,
         "evidence": [
           {
             "line_start": 13,
@@ -384,15 +420,15 @@
           }
         ],
         "action": "create",
-        "page_slug": "csv",
+        "page_slug": "汎用csvのnullと空文字はcsvだけでは区別して復元できず列のpolicyか別の期待値が要る",
         "page_type": "concept",
-        "page_kind": null,
-        "has_section": true
+        "page_kind": "claim",
+        "has_section": false
       },
       {
-        "id": "c16",
+        "id": "c19",
         "epistemic": "decision",
-        "n_conditions": 2,
+        "n_conditions": 1,
         "evidence": [
           {
             "line_start": 13,
@@ -401,69 +437,77 @@
             "quote_chars": 49
           }
         ],
-        "action": "create",
-        "page_slug": "csv",
-        "page_type": "concept",
+        "action": "source_only",
+        "page_slug": "semasynth再現性の検証-2026-11-06",
+        "page_type": "source",
         "page_kind": null,
-        "has_section": true
+        "has_section": false
       }
     ],
     "pages": [
       {
-        "slug": "再生成の比較は同一環境でバイト一致異環境で値と型の一致を確かめる",
-        "title": "再生成の比較は同一環境ではバイト一致、PythonやSQLiteの版が違えば値と型の一致で確かめる",
+        "slug": "再生成の同等性確認",
+        "title": "再生成の同等性確認",
+        "type": "concept",
+        "kind": null,
+        "action": "create",
+        "candidate_ids": [
+          "c7",
+          "c5",
+          "c8"
+        ]
+      },
+      {
+        "slug": "再生成の同等性は同一環境では全ファイルのバイト一致異なるpythonやsqliteでは値と型の論理比較で確かめる",
+        "title": "再生成の同等性は、同一環境では全ファイルのバイト一致、異なる Python や SQLite では値と型の論理比較で確かめる",
         "type": "concept",
         "kind": "claim",
         "action": "create",
         "candidate_ids": [
-          "c5"
+          "c6"
         ]
       },
       {
-        "slug": "pythonのaudit-hookによる通信禁止はpythonプロセスだけに働きos全体の遮断を保証しない",
-        "title": "Pythonのaudit hookによる通信禁止はPythonプロセスだけに働き、OS全体の遮断を保証しない",
+        "slug": "pythonのaudit-hookによる通信禁止はpythonプロセスだけが対象でos全体やネイティブコードの通信遮断を保証しない",
+        "title": "Python の audit hook による通信禁止は Python プロセスだけが対象で、OS 全体やネイティブコードの通信遮断を保証しない",
         "type": "concept",
         "kind": "claim",
         "action": "create",
         "candidate_ids": [
-          "c9"
+          "c12"
         ]
       },
       {
-        "slug": "再現性確認",
-        "title": "再現性確認",
+        "slug": "プロセス全体のピーク常駐メモリは依存パッケージのインポートを含み処理単体の使用量ではない",
+        "title": "プロセス全体のピーク常駐メモリは依存パッケージのインポートを含み、処理単体の使用量ではない",
         "type": "concept",
-        "kind": null,
+        "kind": "claim",
         "action": "create",
         "candidate_ids": [
-          "c3",
-          "c4",
-          "c7"
-        ]
-      },
-      {
-        "slug": "性能測定",
-        "title": "性能測定",
-        "type": "concept",
-        "kind": null,
-        "action": "create",
-        "candidate_ids": [
-          "c13",
-          "c14"
-        ]
-      },
-      {
-        "slug": "csv",
-        "title": "CSV",
-        "type": "concept",
-        "kind": null,
-        "action": "create",
-        "candidate_ids": [
-          "c15",
           "c16"
+        ]
+      },
+      {
+        "slug": "少数回の性能測定値は評価環境での基準値として保存し性能保証値にしない",
+        "title": "少数回の性能測定値は評価環境での基準値として保存し、性能保証値にしない",
+        "type": "concept",
+        "kind": "claim",
+        "action": "create",
+        "candidate_ids": [
+          "c17"
+        ]
+      },
+      {
+        "slug": "汎用csvのnullと空文字はcsvだけでは区別して復元できず列のpolicyか別の期待値が要る",
+        "title": "汎用 CSV の NULL と空文字は CSV だけでは区別して復元できず、列の Policy か別の期待値が要る",
+        "type": "concept",
+        "kind": "claim",
+        "action": "create",
+        "candidate_ids": [
+          "c18"
         ]
       }
     ]
   },
-  "final_text_sha256": "3d8c491633239899bc6695b80139b13ee1cfb42e1fdc6a0ac312e7389b9f524c"
+  "final_text_sha256": "5789ceb133e70966a25d84281c22ad626591f568290eb59746dc9a2ac280bbb7"
 }

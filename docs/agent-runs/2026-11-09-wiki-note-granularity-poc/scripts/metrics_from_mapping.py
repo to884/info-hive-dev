@@ -3,7 +3,7 @@
 人が埋める列（tabulate.py が作る PRIVATE/mapping/ の表）:
     <資料>-candidates.csv
         cluster_id       同じ知見に同じ ID を付ける（例 R01）。知見でない候補（ソースにない、知見と呼べない）は "-"
-        faithful         ソースに忠実なら "o"、ソースにないことを述べていれば "x"（捏造）
+        faithful         ソースに忠実なら "o"、ソースにないことを述べていれば "x"（捏造）。全行が o か x になるまで合格を出さない
         conditions_kept  成り立つ条件を保っていれば "o"、落としていれば "x"、条件のない知見は空でよい
     <資料>-pages.csv
         page_cluster     新しく作るページのうち、同じページとみなすものに同じ ID を付ける（例 P01）
@@ -68,7 +68,7 @@ def main() -> None:
     args = ap.parse_args()
     key = {r["blind_id"]: r for r in read_csv(RUN_DIR / "mapping" / "blind-key.csv")}
     L = ["# 人の対応づけからの指標", "", f"対応づけの表: `{args.mapping_dir}`", ""]
-    L += ["| 資料 | 方式 | 捏造 | 条件の脱落 | 未記入の行 | 正解の知見 | recall（平均） | precision（平均） "
+    L += ["| 資料 | 方式 | 捏造 | 条件の脱落 | cluster_id の未記入 / faithful の未判定 / conditions_kept の不正値 | 正解の知見 | recall（平均） | precision（平均） "
           "| 配置先の一致率 | うち別モデル | うち同モデルの別の回 | 同居の F1 | 判定 |",
           "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |"]
     for s in SOURCES:
@@ -84,7 +84,10 @@ def main() -> None:
             mrows = [r for r in rows if key[r["blind_id"]]["method"] == m]
             blank = sum(1 for r in mrows if not r["cluster_id"].strip())
             fabricated = sum(1 for r in mrows if r["faithful"].strip().lower() == "x")
+            # 忠実さは必須条件なので、全行が o か x で判定済みになるまで合格を出さない
+            unjudged = sum(1 for r in mrows if r["faithful"].strip().lower() not in ("o", "x"))
             dropped = sum(1 for r in mrows if r["conditions_kept"].strip().lower() == "x")
+            bad_cond = sum(1 for r in mrows if r["conditions_kept"].strip().lower() not in ("", "o", "x"))
             runs = sorted({r["blind_id"] for r in mrows})
             per_run_clusters = defaultdict(set)
             per_run_place = defaultdict(lambda: defaultdict(set))
@@ -130,16 +133,16 @@ def main() -> None:
                 f1s.append(f1(pairs(a), pairs(b)))
             rate = lambda xs: round(sum(xs) / len(xs), 3) if xs else None
             rec, pla, col = mean(recall), rate(agree["all"]), mean(f1s)
-            if blank:
-                verdict = "対応づけが終わっていない"
-            elif fabricated or dropped:
+            if fabricated or dropped:
                 verdict = "不合格（必須条件）"
+            elif blank or unjudged or bad_cond:
+                verdict = "対応づけが終わっていない"
             elif None in (rec, pla) or rec < TARGET["recall"] or pla < TARGET["placement"] or (
                     col is not None and col < TARGET["colocation_f1"]):
                 verdict = "目安に届かない"
             else:
                 verdict = "目安を満たす"
-            L.append(f"| {s} | {m} | {fabricated} | {dropped} | {blank} | {len(gold)}（{gold_note}） | {rec} | "
+            L.append(f"| {s} | {m} | {fabricated} | {dropped} | {blank} / {unjudged} / {bad_cond} | {len(gold)}（{gold_note}） | {rec} | "
                      f"{mean(precision)} | {pla} | {rate(agree['cross'])} | {rate(agree['same'])} | {col} | {verdict} |")
     L += ["", "- 配置先は、`source_only`、既存ページのスラッグ、新規ページの `page_cluster` と、`type` と `kind` の組で比べた。"
           "`###` の節の見出しは比べていない。",

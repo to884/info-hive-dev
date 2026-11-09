@@ -300,17 +300,22 @@ def build_prompt(manifest: dict, source: str, method: str) -> str:
 
 
 def embed_files(manifest: dict, snapshot_root: Path, source: str) -> str:
-    """スナップショットの Markdown をすべて、パスの順に埋め込む。原本には行番号を付ける。"""
+    """スナップショットの wiki と規約の Markdown を、パスの順に埋め込む。原本は対象の 1 本だけを、行番号つきで末尾に置く。
+
+    R と V は同じスナップショットを使い、その原本フォルダーには両方の原本がある。原本フォルダーの中身は
+    wiki のファイルとして埋め込まない（最初の版はここで対象の原本だけを除いていて、もう一方の原本が混ざった）。
+    """
     src = manifest["sources"][source]
     root = snapshot_root / src["snapshot"]
     raw_rel = src["raw_rel"]
+    raw_dirs = {Path(s["raw_rel"]).parts[0] for s in manifest["sources"].values()}
     parts = ["", "---", "", "## wiki のファイル", "",
              "以下は、この作業の wiki と規約の全文である。`=== FILE: <パス> ===` から `=== END FILE ===` までが"
              " 1 つのファイルである。", ""]
     files = sorted((p for p in root.rglob("*.md") if p.is_file()), key=lambda x: x.relative_to(root).as_posix())
     for f in files:
         rel = f.relative_to(root).as_posix()
-        if rel == raw_rel:
+        if rel.split("/", 1)[0] in raw_dirs:
             continue
         parts += [f"=== FILE: {rel} ===", f.read_text(encoding="utf-8").rstrip("\n"), "=== END FILE ===", ""]
     raw_lines = (root / raw_rel).read_text(encoding="utf-8").splitlines()
@@ -379,26 +384,62 @@ def main() -> None:
     ap.add_argument("--parallel", type=int, default=3, help="ベンダーごとの同時実行数")
     ap.add_argument("--dry-run", action="store_true", help="依頼文だけを書く")
     ap.add_argument("--rerun", action="store_true", help="結果がある実行もやり直す")
+    ap.add_argument("--supersede", action="store_true",
+                    help="依頼文が変わった組の既存の結果と依頼文を superseded/ に移し、走らせ直す")
     args = ap.parse_args()
 
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     prompts = {}
     (RUN_DIR / "prompts").mkdir(exist_ok=True)
+    built = {}
     for s in SOURCES:
         for meth in METHODS:
             p = build_prompt(manifest, s, meth)
             full = p + embed_files(manifest, args.snapshot_root, s)
-            prompts[(s, meth)] = full
-            digest = hashlib.sha256(full.encode("utf-8")).hexdigest()
-            # リポジトリには埋め込む前の依頼文だけを置く。全文は作者の wiki と原本を含むので外に置く。
-            (RUN_DIR / "prompts" / f"{s}-{meth}.md").write_text(
-                p + f"\n---\n\n（ここに wiki のファイルと原本を埋め込んだ。全文の sha256 は `{digest}`、"
-                f"{len(full):,} 文字。全文はリポジトリの外の `prompts/{s}-{meth}.md` にある）\n",
-                encoding="utf-8", newline="\n")
-            (PRIVATE / "prompts").mkdir(parents=True, exist_ok=True)
-            (PRIVATE / "prompts" / f"{s}-{meth}.md").write_text(full, encoding="utf-8", newline="\n")
+            built[(s, meth)] = (p, full, hashlib.sha256(full.encode("utf-8")).hexdigest())
+    # 既存の結果の依頼文と、いま作った依頼文が違えば、黙って上書きしない（入力の違う結果が混ざるのを防ぐ）
+    stale = []
+    for p in sorted((PRIVATE / "runs").glob("*.json")) if (PRIVATE / "runs").exists() else []:
+        rec = json.loads(p.read_text(encoding="utf-8"))
+        key = (rec.get("source"), rec.get("method"))
+        if key in built and rec.get("prompt_sha256") != built[key][2]:
+            stale.append(p)
+    if stale and not args.supersede:
+        raise SystemExit("依頼文が変わった組に既存の結果がある。--supersede で退避してから走らせ直す: "
+                         + ", ".join(p.stem for p in stale))
+    if stale and not args.dry_run:
+        dest = PRIVATE / "superseded" / datetime.now().strftime("%Y%m%d-%H%M%S")
+        for sub in ("runs", "logs", "prompts"):
+            (dest / sub).mkdir(parents=True, exist_ok=True)
+        keys = set()
+        for p in stale:
+            rec = json.loads(p.read_text(encoding="utf-8"))
+            keys.add((rec["source"], rec["method"]))
+            shutil.move(str(p), dest / "runs" / p.name)
+            for lg in (PRIVATE / "logs").glob(f"{p.stem}.*"):
+                shutil.move(str(lg), dest / "logs" / lg.name)
+        for s, meth in keys:
+            old = PRIVATE / "prompts" / f"{s}-{meth}.md"
+            if old.exists():
+                shutil.move(str(old), dest / "prompts" / old.name)
+        print(f"依頼文が変わった {len(stale)} 件を {dest} に退避した", flush=True)
+    elif stale:
+        print(f"（dry-run）依頼文が変わった結果: {len(stale)} 件", flush=True)
+    stale_keys = {(json.loads(p.read_text(encoding="utf-8"))["source"],
+                   json.loads(p.read_text(encoding="utf-8"))["method"]) for p in stale if p.exists()}
+    for (s, meth), (p, full, digest) in built.items():
+        prompts[(s, meth)] = full
+        if args.dry_run and (s, meth) in stale_keys:
+            continue  # 既存の結果の入力を、dry-run で消さない
+        # リポジトリには埋め込む前の依頼文だけを置く。全文は作者の wiki と原本を含むので外に置く。
+        (RUN_DIR / "prompts" / f"{s}-{meth}.md").write_text(
+            p + f"\n---\n\n（ここに wiki のファイルと原本を埋め込んだ。全文の sha256 は `{digest}`、"
+            f"{len(full):,} 文字。全文はリポジトリの外の `prompts/{s}-{meth}.md` にある）\n",
+            encoding="utf-8", newline="\n")
+        (PRIVATE / "prompts").mkdir(parents=True, exist_ok=True)
+        (PRIVATE / "prompts" / f"{s}-{meth}.md").write_text(full, encoding="utf-8", newline="\n")
     if args.dry_run:
-        print("依頼文を prompts/ に書いた")
+        print("依頼文を prompts/ に書いた（dry-run では、依頼文が変わった組の全文は書き換えない）")
         return
     (PRIVATE / "runs").mkdir(parents=True, exist_ok=True)
     runs = all_runs()
@@ -408,7 +449,10 @@ def main() -> None:
     if not args.rerun:
         def done(r):
             p = PRIVATE / "runs" / f"{r['run_id']}.json"
-            return p.exists() and json.loads(p.read_text(encoding="utf-8")).get("ok")
+            if not p.exists():
+                return False
+            rec = json.loads(p.read_text(encoding="utf-8"))
+            return rec.get("ok") and rec.get("prompt_sha256") == built[(r["source"], r["method"])][2]
         runs = [r for r in runs if not done(r)]
     print(f"実行する件数: {len(runs)}", flush=True)
     lock = threading.Lock()

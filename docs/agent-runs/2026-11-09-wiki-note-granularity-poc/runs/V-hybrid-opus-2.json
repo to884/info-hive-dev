@@ -11,22 +11,22 @@
   "snapshot": "semasynth",
   "snapshot_tree_sha256": "c0e27917644efd0915a90704d419a38df6a46865217512b99f3cb56b4257c5fa",
   "prompt_file": "prompts/V-hybrid.md",
-  "prompt_sha256": "61358dae478173d5de6f4bd383f263c5f792f8b3c712ff51b77bf7aa35ad4618",
-  "started": "2026-11-09T08:58:09+09:00",
-  "elapsed_s": 169.3,
+  "prompt_sha256": "9b512d793a801ffd9db4d4e59765303b78ee6b0b14eb792c67e1ee5361b3de96",
+  "started": "2026-11-09T09:55:57+09:00",
+  "elapsed_s": 161.1,
   "ok": true,
   "error": "",
   "returncode": 0,
-  "session_id": "f0629b96-ddc5-4fe4-8d85-b465673553b5",
+  "session_id": "8c681672-4a94-43bb-b8c1-d7819e34edc8",
   "usage": {
-    "total_cost_usd": 0.39699280000000003,
+    "total_cost_usd": 0.3897408,
     "usage": {
       "input_tokens": 2,
       "cache_creation_input_tokens": 0,
-      "cache_read_input_tokens": 74024,
-      "output_tokens": 19109,
+      "cache_read_input_tokens": 73164,
+      "output_tokens": 18755,
       "output_tokens_details": {
-        "thinking_tokens": 8982
+        "thinking_tokens": 8403
       },
       "server_tool_use": {
         "web_search_requests": 0,
@@ -41,8 +41,8 @@
       "iterations": [
         {
           "input_tokens": 2,
-          "output_tokens": 19109,
-          "cache_read_input_tokens": 74024,
+          "output_tokens": 18755,
+          "cache_read_input_tokens": 73164,
           "cache_creation_input_tokens": 0,
           "cache_creation": {
             "ephemeral_5m_input_tokens": 0,
@@ -55,7 +55,7 @@
       "fallback_credit": null
     },
     "num_turns": 1,
-    "duration_ms": 161098
+    "duration_ms": 151131
   },
   "n_tool_calls": 0,
   "files_read": [],
@@ -68,13 +68,13 @@
       {
         "id": "c1",
         "epistemic": "fact",
-        "n_conditions": 0,
+        "n_conditions": 1,
         "evidence": [
           {
             "line_start": 3,
             "line_end": 3,
-            "quote_sha256": "1092e7b4427cb0c278a4ae069dffd489c48441b5e28c58fe9c82c2d567c2d86c",
-            "quote_chars": 43
+            "quote_sha256": "f6f475380c3f59ae896a8c436d4085f4f2c760cfe3c26a8abf5592d1fbc34308",
+            "quote_chars": 61
           },
           {
             "line_start": 3,
@@ -127,14 +127,14 @@
           {
             "line_start": 8,
             "line_end": 8,
-            "quote_sha256": "fb208cae027c6ac56aeb2b055404153aa01b771f3fb07800d696907a49b08ebb",
-            "quote_chars": 25
+            "quote_sha256": "d7f86f34df39c53772655157bd23679c44b4fa4851b4b0441ea35d1808d880c2",
+            "quote_chars": 24
           },
           {
             "line_start": 8,
             "line_end": 8,
-            "quote_sha256": "141e0d470ce3399eff4870a82fae1c37730ec3ac7634bb961db8698a5cff978b",
-            "quote_chars": 27
+            "quote_sha256": "c939735cab24220f0246e62572e56ea08e0d6214ae0f015d149af7411b89eb86",
+            "quote_chars": 26
           }
         ],
         "action": "source_only",
@@ -192,7 +192,7 @@
           }
         ],
         "action": "create",
-        "page_slug": "合成データの検証は検証対象dbの外に置いた期待値と照合しないと整合を保った改変を見逃す",
+        "page_slug": "会計期間は期間マスターではなく指定年度の暦と照合して検証する",
         "page_type": "concept",
         "page_kind": "claim",
         "has_section": false
@@ -200,7 +200,7 @@
       {
         "id": "c6",
         "epistemic": "decision",
-        "n_conditions": 2,
+        "n_conditions": 3,
         "evidence": [
           {
             "line_start": 16,
@@ -222,15 +222,15 @@
           }
         ],
         "action": "create",
-        "page_slug": "合成データの検証",
+        "page_slug": "検証器は業務上の不変条件とシナリオの期待値を分けて小さいfixtureにも独立した期待値を渡す",
         "page_type": "concept",
-        "page_kind": null,
-        "has_section": true
+        "page_kind": "claim",
+        "has_section": false
       },
       {
         "id": "c7",
         "epistemic": "decision",
-        "n_conditions": 2,
+        "n_conditions": 3,
         "evidence": [
           {
             "line_start": 17,
@@ -241,12 +241,18 @@
           {
             "line_start": 17,
             "line_end": 17,
+            "quote_sha256": "57c7a1c576b0780e90baf9f193aa69edf08bb8bc6459420b94d78f3ccfca94c9",
+            "quote_chars": 17
+          },
+          {
+            "line_start": 17,
+            "line_end": 17,
             "quote_sha256": "f92cc0b29b9a94fa25d27c4737c46354d608d7834c6ca6efd68ca38aa210a1e6",
             "quote_chars": 58
           }
         ],
         "action": "create",
-        "page_slug": "合成データの検証は検証対象dbの外に置いた期待値と照合しないと整合を保った改変を見逃す",
+        "page_slug": "部門名称の交換やcsvの変更は版管理したマスター期待値と基準manifestとcsvとdbの照合で検出する",
         "page_type": "concept",
         "page_kind": "claim",
         "has_section": false
@@ -254,31 +260,7 @@
       {
         "id": "c8",
         "epistemic": "decision",
-        "n_conditions": 2,
-        "evidence": [
-          {
-            "line_start": 17,
-            "line_end": 17,
-            "quote_sha256": "57c7a1c576b0780e90baf9f193aa69edf08bb8bc6459420b94d78f3ccfca94c9",
-            "quote_chars": 17
-          },
-          {
-            "line_start": 17,
-            "line_end": 17,
-            "quote_sha256": "cca079b30046273260bb93d0b5ca8c0a0779f76f2e8456c8e22d7ee5b310b85c",
-            "quote_chars": 29
-          }
-        ],
-        "action": "create",
-        "page_slug": "合成データの検証",
-        "page_type": "concept",
-        "page_kind": null,
-        "has_section": true
-      },
-      {
-        "id": "c9",
-        "epistemic": "decision",
-        "n_conditions": 2,
+        "n_conditions": 3,
         "evidence": [
           {
             "line_start": 18,
@@ -300,13 +282,13 @@
           }
         ],
         "action": "create",
-        "page_slug": "合成データの検証",
+        "page_slug": "検証失敗時はreportと生成条件を正常出力とは別の診断先に保存する",
         "page_type": "concept",
-        "page_kind": null,
-        "has_section": true
+        "page_kind": "claim",
+        "has_section": false
       },
       {
-        "id": "c10",
+        "id": "c9",
         "epistemic": "decision",
         "n_conditions": 3,
         "evidence": [
@@ -336,13 +318,13 @@
           }
         ],
         "action": "create",
-        "page_slug": "生成したsqliteデータの再現性は同一環境ではバイト一致別環境では行型値の論理一致で確かめる",
+        "page_slug": "再現性は同一環境ではバイト一致で別環境では行と型と値の論理一致で確認する",
         "page_type": "concept",
         "page_kind": "claim",
         "has_section": false
       },
       {
-        "id": "c11",
+        "id": "c10",
         "epistemic": "decision",
         "n_conditions": 2,
         "evidence": [
@@ -366,13 +348,13 @@
           }
         ],
         "action": "create",
-        "page_slug": "合成データの検証",
+        "page_slug": "固定条件の専用サンプルは汎用policy対応の受け入れ根拠に含めない",
         "page_type": "concept",
-        "page_kind": null,
-        "has_section": true
+        "page_kind": "claim",
+        "has_section": false
       },
       {
-        "id": "c12",
+        "id": "c11",
         "epistemic": "decision",
         "n_conditions": 2,
         "evidence": [
@@ -390,15 +372,63 @@
           }
         ],
         "action": "create",
-        "page_slug": "基準manifestによるハッシュ照合はmanifestを信頼できることを前提にする",
+        "page_slug": "基準manifest",
         "page_type": "concept",
-        "page_kind": "claim",
-        "has_section": false
+        "page_kind": null,
+        "has_section": true
+      },
+      {
+        "id": "c12",
+        "epistemic": "decision",
+        "n_conditions": 2,
+        "evidence": [
+          {
+            "line_start": 18,
+            "line_end": 18,
+            "quote_sha256": "3b876b8b3a39412dded30ac43aabd0e1c0bc3966a62b131b8d8f52309ab01f5a",
+            "quote_chars": 34
+          },
+          {
+            "line_start": 26,
+            "line_end": 26,
+            "quote_sha256": "0a186e1112f76e8a8281352f19b4fd0d7764b29912d1d182f7cf1cd9af009fa3",
+            "quote_chars": 41
+          },
+          {
+            "line_start": 30,
+            "line_end": 30,
+            "quote_sha256": "fcf192059f606acc71d33df45f592e6fb37c6a6d5114117e7e2cce6abf254f0d",
+            "quote_chars": 36
+          }
+        ],
+        "action": "create",
+        "page_slug": "敵対的レビュー",
+        "page_type": "concept",
+        "page_kind": null,
+        "has_section": true
       },
       {
         "id": "c13",
+        "epistemic": "decision",
+        "n_conditions": 2,
+        "evidence": [
+          {
+            "line_start": 36,
+            "line_end": 36,
+            "quote_sha256": "f295526786338e2bc151d526372b23ac8276e8cfc28db849bef5aaf7a532216f",
+            "quote_chars": 66
+          }
+        ],
+        "action": "create",
+        "page_slug": "敵対的レビュー",
+        "page_type": "concept",
+        "page_kind": null,
+        "has_section": true
+      },
+      {
+        "id": "c14",
         "epistemic": "fact",
-        "n_conditions": 1,
+        "n_conditions": 2,
         "evidence": [
           {
             "line_start": 26,
@@ -409,8 +439,8 @@
           {
             "line_start": 26,
             "line_end": 26,
-            "quote_sha256": "f4a9553632bf895a992ea83a4e725ae703515e473b15b417825bdc340fdd728c",
-            "quote_chars": 30
+            "quote_sha256": "cb550c7fc812ce1e9c9cc907ce443cde5f8f17ab9d6c70f7a11edbd1884e9d65",
+            "quote_chars": 33
           },
           {
             "line_start": 26,
@@ -426,7 +456,7 @@
         "has_section": false
       },
       {
-        "id": "c14",
+        "id": "c15",
         "epistemic": "fact",
         "n_conditions": 1,
         "evidence": [
@@ -444,7 +474,7 @@
         "has_section": false
       },
       {
-        "id": "c15",
+        "id": "c16",
         "epistemic": "decision",
         "n_conditions": 1,
         "evidence": [
@@ -453,12 +483,6 @@
             "line_end": 30,
             "quote_sha256": "2a696478c4be49f255bafc28ee6c23fa499c991c5b9bc8e17d96acc9b9d82a6d",
             "quote_chars": 59
-          },
-          {
-            "line_start": 30,
-            "line_end": 30,
-            "quote_sha256": "fcf192059f606acc71d33df45f592e6fb37c6a6d5114117e7e2cce6abf254f0d",
-            "quote_chars": 36
           }
         ],
         "action": "source_only",
@@ -468,9 +492,9 @@
         "has_section": false
       },
       {
-        "id": "c16",
+        "id": "c17",
         "epistemic": "decision",
-        "n_conditions": 1,
+        "n_conditions": 2,
         "evidence": [
           {
             "line_start": 32,
@@ -492,9 +516,9 @@
         "has_section": false
       },
       {
-        "id": "c17",
+        "id": "c18",
         "epistemic": "fact",
-        "n_conditions": 1,
+        "n_conditions": 2,
         "evidence": [
           {
             "line_start": 34,
@@ -516,7 +540,7 @@
         "has_section": false
       },
       {
-        "id": "c18",
+        "id": "c19",
         "epistemic": "decision",
         "n_conditions": 1,
         "evidence": [
@@ -531,36 +555,6 @@
             "line_end": 36,
             "quote_sha256": "7bc11652a1fc4e429803ba9129963fe74b1d8851eff6d466151a048ed2f6e75b",
             "quote_chars": 23
-          }
-        ],
-        "action": "source_only",
-        "page_slug": "semasynth-mvp設計の敵対的レビュー-2026-11-06",
-        "page_type": "source",
-        "page_kind": null,
-        "has_section": false
-      },
-      {
-        "id": "c19",
-        "epistemic": "decision",
-        "n_conditions": 1,
-        "evidence": [
-          {
-            "line_start": 18,
-            "line_end": 18,
-            "quote_sha256": "3b876b8b3a39412dded30ac43aabd0e1c0bc3966a62b131b8d8f52309ab01f5a",
-            "quote_chars": 34
-          },
-          {
-            "line_start": 26,
-            "line_end": 26,
-            "quote_sha256": "0a186e1112f76e8a8281352f19b4fd0d7764b29912d1d182f7cf1cd9af009fa3",
-            "quote_chars": 41
-          },
-          {
-            "line_start": 36,
-            "line_end": 36,
-            "quote_sha256": "f295526786338e2bc151d526372b23ac8276e8cfc28db849bef5aaf7a532216f",
-            "quote_chars": 66
           }
         ],
         "action": "source_only",
@@ -613,12 +607,6 @@
           {
             "line_start": 42,
             "line_end": 42,
-            "quote_sha256": "72734c44ae7d3dd40f558869aa39bae81744a1dea67aef092b518e77c2749afe",
-            "quote_chars": 27
-          },
-          {
-            "line_start": 42,
-            "line_end": 42,
             "quote_sha256": "ff62c4f7611d3f34fbafdd0173838351bc1656058a2bd49a41f632feec67f54a",
             "quote_chars": 20
           }
@@ -632,32 +620,58 @@
     ],
     "pages": [
       {
-        "slug": "合成データの検証",
-        "title": "合成データの検証",
-        "type": "concept",
-        "kind": null,
-        "action": "create",
-        "candidate_ids": [
-          "c6",
-          "c8",
-          "c9",
-          "c11"
-        ]
-      },
-      {
-        "slug": "合成データの検証は検証対象dbの外に置いた期待値と照合しないと整合を保った改変を見逃す",
-        "title": "合成データの検証は、検証対象DBの外に置いた期待値と照合しないと、整合を保った改変を見逃す",
+        "slug": "会計期間は期間マスターではなく指定年度の暦と照合して検証する",
+        "title": "会計期間は期間マスターではなく指定年度の暦と照合して検証する",
         "type": "concept",
         "kind": "claim",
         "action": "create",
         "candidate_ids": [
-          "c5",
+          "c5"
+        ]
+      },
+      {
+        "slug": "検証器は業務上の不変条件とシナリオの期待値を分けて小さいfixtureにも独立した期待値を渡す",
+        "title": "検証器は業務上の不変条件とシナリオの期待値を分け、小さいfixtureにも独立した期待値を渡す",
+        "type": "concept",
+        "kind": "claim",
+        "action": "create",
+        "candidate_ids": [
+          "c6"
+        ]
+      },
+      {
+        "slug": "部門名称の交換やcsvの変更は版管理したマスター期待値と基準manifestとcsvとdbの照合で検出する",
+        "title": "部門名称の交換やCSVの変更は、版管理したマスター期待値と基準manifest、CSVとDBの照合で検出する",
+        "type": "concept",
+        "kind": "claim",
+        "action": "create",
+        "candidate_ids": [
           "c7"
         ]
       },
       {
-        "slug": "生成したsqliteデータの再現性は同一環境ではバイト一致別環境では行型値の論理一致で確かめる",
-        "title": "生成したSQLiteデータの再現性は、同一環境ではバイト一致、別環境では行・型・値の論理一致で確かめる",
+        "slug": "検証失敗時はreportと生成条件を正常出力とは別の診断先に保存する",
+        "title": "検証失敗時はreportと生成条件を正常出力とは別の診断先に保存する",
+        "type": "concept",
+        "kind": "claim",
+        "action": "create",
+        "candidate_ids": [
+          "c8"
+        ]
+      },
+      {
+        "slug": "再現性は同一環境ではバイト一致で別環境では行と型と値の論理一致で確認する",
+        "title": "再現性は同一環境ではバイト一致、別環境では行・型・値の論理一致で確認する",
+        "type": "concept",
+        "kind": "claim",
+        "action": "create",
+        "candidate_ids": [
+          "c9"
+        ]
+      },
+      {
+        "slug": "固定条件の専用サンプルは汎用policy対応の受け入れ根拠に含めない",
+        "title": "固定条件の専用サンプルは汎用Policy対応の受け入れ根拠に含めない",
         "type": "concept",
         "kind": "claim",
         "action": "create",
@@ -666,16 +680,27 @@
         ]
       },
       {
-        "slug": "基準manifestによるハッシュ照合はmanifestを信頼できることを前提にする",
-        "title": "基準manifestによるハッシュ照合は、manifestを信頼できることを前提にする",
+        "slug": "基準manifest",
+        "title": "基準manifest",
         "type": "concept",
-        "kind": "claim",
+        "kind": null,
         "action": "create",
         "candidate_ids": [
-          "c12"
+          "c11"
+        ]
+      },
+      {
+        "slug": "敵対的レビュー",
+        "title": "敵対的レビュー",
+        "type": "concept",
+        "kind": null,
+        "action": "create",
+        "candidate_ids": [
+          "c12",
+          "c13"
         ]
       }
     ]
   },
-  "final_text_sha256": "75b1e6bb3bce6043b84a1fb843d8d334599789db42b1648b5e2e3d03087980d5"
+  "final_text_sha256": "5b96ecbc32eb040584a5ae73200b661ef2d15ec3126eff5eaf943d300047a0ba"
 }

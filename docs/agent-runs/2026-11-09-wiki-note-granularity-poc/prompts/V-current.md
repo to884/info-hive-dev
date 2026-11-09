@@ -70,4 +70,4 @@
 
 ---
 
-（ここに wiki のファイルと原本を埋め込んだ。全文の sha256 は `da6717ff9c5b1954284e1000de8b8d0f7b0729f32970cf4a4ba75ba7bcade4ad`、70,356 文字。全文はリポジトリの外の `prompts/V-current.md` にある）
+（ここに wiki のファイルと原本を埋め込んだ。全文の sha256 は `568afd37b0403bdbcc3e8df801b2a1518a440ff9a9fd3ed907d580ca710cebcf`、69,333 文字。全文はリポジトリの外の `prompts/V-current.md` にある）

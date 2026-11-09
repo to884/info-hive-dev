@@ -124,4 +124,4 @@
 
 ---
 
-（ここに wiki のファイルと原本を埋め込んだ。全文の sha256 は `61358dae478173d5de6f4bd383f263c5f792f8b3c712ff51b77bf7aa35ad4618`、72,653 文字。全文はリポジトリの外の `prompts/V-hybrid.md` にある）
+（ここに wiki のファイルと原本を埋め込んだ。全文の sha256 は `9b512d793a801ffd9db4d4e59765303b78ee6b0b14eb792c67e1ee5361b3de96`、71,630 文字。全文はリポジトリの外の `prompts/V-hybrid.md` にある）

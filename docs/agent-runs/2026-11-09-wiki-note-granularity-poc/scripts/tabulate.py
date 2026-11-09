@@ -381,12 +381,24 @@ def write_csv(path: Path, rows: list[dict], fields: list[str] | None = None) -> 
         w.writerows(rows)
 
 
+HUMAN_COLUMNS = ("cluster_id", "faithful", "conditions_kept", "memo", "page_cluster")
+
+
 def write_csv_guarded(path: Path, rows: list[dict], fill_col: str, fields: list[str] | None = None) -> None:
-    """人が埋め始めた表は上書きしない。そのときは .new.csv に書く。"""
+    """人が埋め始めた表は上書きしない。そのときは .new.csv に書く。
+
+    人が書く列（HUMAN_COLUMNS）のどれか 1 つでも埋まっていれば、埋め始めたとみなす。
+    fill_col は表の主な列で、表にその列がなければ書き損じとして止める。
+    """
     if path.exists():
         with path.open(encoding="utf-8-sig", newline="") as f:
-            if any((row.get(fill_col) or "").strip() for row in csv.DictReader(f)):
-                path = path.with_suffix(".new.csv")
+            reader = csv.DictReader(f)
+            existing = list(reader)
+            cols = [c for c in HUMAN_COLUMNS if c in (reader.fieldnames or [])]
+        if fill_col not in cols:
+            raise SystemExit(f"{path} に {fill_col} の列がない。手で直した表かもしれないので上書きしない")
+        if any((row.get(c) or "").strip() for row in existing for c in cols):
+            path = path.with_suffix(".new.csv")
     write_csv(path, rows, fields)
 
 
