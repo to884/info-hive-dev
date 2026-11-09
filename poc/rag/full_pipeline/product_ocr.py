@@ -102,15 +102,20 @@ def freeze_rag(layout: Layout, repo: Path, main: Path) -> Path:
     worktree を消したり、サブモジュールを別の版に進めたりしても、走っている処理の読むコードが変わらないようにする。"""
     commit = pinned_rag_commit(repo)
     target = layout.rag_root / commit[:12]
-    if (target / "scripts" / "rag_pdf.py").is_file():
+    # 写し終えた印があるときだけ使う。途中で止まった写しを、揃ったものと取り違えないためである。
+    if (target / ".complete").is_file():
         return target / "scripts"
+    if target.exists():
+        # 走っている処理が使っているかもしれないので消さない。中身を確かめてから、印を付けるか消す。
+        raise SystemExit(f"{target} に写し終えた印（.complete）がありません。中身を確かめてください。")
     archive = subprocess.run(["git", "-C", str(main / "info-hive-rag"), "archive", "--format=tar", commit,
                               "scripts", ".claude-plugin/plugin.json"], capture_output=True, check=True).stdout
-    staging = target.with_name(target.name + ".tmp")
+    staging = target.with_name(f"{target.name}.{os.getpid()}.tmp")
     shutil.rmtree(staging, ignore_errors=True)
     staging.mkdir(parents=True)
     with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
         tar.extractall(staging, filter="data")
+    (staging / ".complete").write_text(commit, encoding="utf-8")
     os.replace(staging, target)
     return target / "scripts"
 
@@ -231,11 +236,10 @@ def initialize(events, settings: dict) -> None:
     original = rag_ocr_client.OcrClient.recognize
 
     def recognize(self, image, timeout=1800):
-        # 製品の処理は変えず、OCR の 1 回ごとに時間と結果の有無を親に知らせる。
-        started = time.perf_counter()
+        # 製品の処理は変えず、OCR の結果の有無を覚えておく。親に知らせるのは、ページのファイルを保存したあと
+        # （extract_document の progress）にする。保存の前に止まったページを、保存済みと数えないためである。
         response = original(self, image, timeout)
-        EVENTS.put({"type": "ocr", "doc_id": CURRENT["doc_id"], "seconds": time.perf_counter() - started,
-                    "empty": not response.get("text", "").strip()})
+        CURRENT["ocr_pending"] = not response.get("text", "").strip()
         return response
     rag_ocr_client.OcrClient.recognize = recognize
 
@@ -259,6 +263,7 @@ def extract_document(task: dict) -> dict:
 
     started = time.perf_counter()
     CURRENT["doc_id"] = task["doc_id"]
+    CURRENT["ocr_pending"] = None
     config = Config({"data_dir": SETTINGS["data_dir"], "cpu_threads": SETTINGS["threads"], **RAG_EXTRACT_KEY_DEFAULTS})
     path = Path(SETTINGS["source_root"]) / task["relative_path"]
     info = os.stat(path)
@@ -276,6 +281,10 @@ def extract_document(task: dict) -> dict:
         before = {item.name for item in cache.glob("page-*.json")} if cache.is_dir() else set()
 
         def progress(_stage, number, total):
+            # 製品は、ページを保存した直後にも呼ぶ。そのとき number は保存したページの番号である。
+            if CURRENT["ocr_pending"] is not None and (cache / f"page-{number:06d}.json").exists():
+                EVENTS.put({"type": "ocr", "doc_id": doc_id, "empty": CURRENT["ocr_pending"]})
+                CURRENT["ocr_pending"] = None
             EVENTS.put({"type": "page", "doc_id": doc_id, "number": number, "total": total})
         pages = extract_pages(data, config, cache, progress)
         markdown = cache / "document.md"
@@ -307,7 +316,21 @@ def _saved_ocr_pages(cache: Path) -> tuple[int, int]:
 
 
 def run(args) -> None:
+    from filelock import FileLock, Timeout
     layout = Layout(args.workspace)
+    # 同じ作業領域で動く処理は 1 つだけにする。台帳、進み具合、並列の数を 2 つの処理で取り合わないためである。
+    runner_lock = FileLock(str(layout.root / "runner.lock"))
+    try:
+        runner_lock.acquire(timeout=0)
+    except Timeout:
+        raise SystemExit("同じ作業領域で、ほかの処理が動いています。") from None
+    try:
+        _run(args, layout)
+    finally:
+        runner_lock.release()
+
+
+def _run(args, layout: Layout) -> None:
     scripts = Path(args.scripts)
     sys.path.insert(0, str(scripts))
     _lower_priority()
@@ -331,12 +354,13 @@ def run(args) -> None:
         f"SELECT doc_id, relative_path, size, mtime_ns FROM documents WHERE status='pending' ORDER BY {order}")]
     if args.limit:
         todo = todo[:args.limit]
-    # 途中まで済んだ文書の保存済みページを数えておく（進み具合の数を、再開しても正しく保つため）。
+    # 済んでいない文書（未処理、失敗、--limit の対象外を含む）の保存済みページを、ファイルから数えておく。
+    # 進み具合の数を、再開や失敗をまたいでも、保存したファイルと合わせるためである。
     partial = {}
-    for task in todo:
-        cache = config.extraction_dir(task["doc_id"])
+    for (doc_id,) in db.execute("SELECT doc_id FROM documents WHERE status!='completed'"):
+        cache = config.extraction_dir(doc_id)
         if cache.is_dir():
-            partial[task["doc_id"]] = list(_saved_ocr_pages(cache))
+            partial[doc_id] = list(_saved_ocr_pages(cache))
     running: dict[str, dict] = {}
     run_started = time.time()
     rate_window: list[float] = []   # この実行で OCR したページの完了時刻
@@ -401,9 +425,11 @@ def run(args) -> None:
                 rate_window.append(time.time())
                 totals["ocr_new_this_run"] += 1
                 totals["ocr_empty_this_run"] += event["empty"]
-                value = partial.setdefault(doc, [0, 0])
-                value[0] += 1
-                value[1] += event["empty"]
+                # 終わった文書は、台帳かファイルから数え直してある。遅れて届いた知らせで二重に数えない。
+                if doc in running:
+                    value = partial.setdefault(doc, [0, 0])
+                    value[0] += 1
+                    value[1] += event["empty"]
             elif event["type"] == "page" and doc in running:
                 running[doc]["page"], running[doc]["total"] = event["number"], event["total"]
 
@@ -431,7 +457,10 @@ def run(args) -> None:
                         db.execute("UPDATE documents SET status='failed', error=?, finished_at=? WHERE doc_id=?",
                                    (f"{type(error).__name__}: {error}"[:2000], now(), task["doc_id"]))
                     print(f"{now()} 失敗: {task['relative_path']}: {error}", flush=True)
-                partial.pop(task["doc_id"], None)
+                    # 失敗した文書でも、保存したページは残る。ファイルから数え直す。
+                    partial[task["doc_id"]] = list(_saved_ocr_pages(config.extraction_dir(task["doc_id"])))
+                else:
+                    partial.pop(task["doc_id"], None)
                 running.pop(task["doc_id"], None)
                 if not layout.stop.exists():
                     submit()
@@ -454,9 +483,17 @@ def run(args) -> None:
         if state["status"] == "running":
             state["status"] = "crashed"
         _stop_pool(pool)
+        # 届いている知らせを読み切ってから、処理中だった文書をファイルから数え直す。保存した直後で、知らせが
+        # 届く前に止めたページもあるからである。そのあと処理中の一覧を空にし、遅れて届く知らせは足さない。
+        try:
+            drain()
+        except Exception:  # noqa: BLE001 強制終了した子の書きかけの知らせは読めないことがある。数はファイルから取る
+            pass
+        for doc_id in running:
+            partial[doc_id] = list(_saved_ocr_pages(config.extraction_dir(doc_id)))
+        running.clear()
         with db:
             db.execute("UPDATE documents SET status='pending' WHERE status='running'")
-        drain()
         record = progress()
         with layout.history.open("a", encoding="utf-8") as stream:
             stream.write(json.dumps({key: record[key] for key in ["updated_at", "status", "documents", "ocr_pages"]},
@@ -487,14 +524,33 @@ def _stop_pool(pool) -> None:
 
 # ---------------------------------------------------------------- 起動と停止
 
+def _runner_alive(pid: int) -> bool:
+    import psutil
+    try:
+        return any("product_ocr" in part for part in psutil.Process(pid).cmdline())
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        return False
+
+
 def start(args) -> None:
+    from filelock import FileLock, Timeout
     layout = Layout(args.workspace)
     layout.root.mkdir(parents=True, exist_ok=True)
+    # 準備（コードの写し、台帳、起動）も 1 つずつにする。run の排他（runner.lock）より前の段階を守るためである。
+    try:
+        with FileLock(str(layout.root / "start.lock"), timeout=0):
+            _start(args, layout)
+    except Timeout:
+        raise SystemExit("同じ作業領域で、ほかの start が準備をしています。") from None
+
+
+def _start(args, layout: Layout) -> None:
     if layout.pid.exists():
-        import psutil
         pid = int(layout.pid.read_text(encoding="utf-8"))
-        if psutil.pid_exists(pid) and "product_ocr" in " ".join(psutil.Process(pid).cmdline()):
+        if _runner_alive(pid):
             raise SystemExit(f"すでに動いています（PID {pid}）。")
+        # 強制終了で残った古い PID のファイル。新しい処理が書くまでの待ちと取り違えないよう消す。
+        layout.pid.unlink()
     repo = HERE.parents[3]
     sys.path.insert(0, str(repo / "poc"))
     from poc_data import main_checkout
@@ -541,10 +597,9 @@ def start(args) -> None:
 def stop(args) -> None:
     layout = Layout(args.workspace)
     layout.stop.write_text(now(), encoding="utf-8")
-    import psutil
     pid = int(layout.pid.read_text(encoding="utf-8")) if layout.pid.exists() else None
     for _ in range(120):
-        if pid is None or not psutil.pid_exists(pid):
+        if pid is None or not _runner_alive(pid):
             print("止まりました。")
             return
         time.sleep(1)
