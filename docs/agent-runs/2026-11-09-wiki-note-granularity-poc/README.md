@@ -6,6 +6,8 @@
 
 見積もり: Claude Opus 5.5（effort high）の 18 件は 1 件 1〜2.5 USD で計 20〜45 USD、GPT-6.1 Sol（effort high、ChatGPT のプランの Codex CLI）の 18 件は 1 件 50 万〜300 万入力トークン（大半がキャッシュ）で従量の課金なし、所要はベンダーごとに 3 並列で 1〜2 時間。根拠は、前日の 4 体の検討の 1 件（Opus 3.1 USD、Sol 650 万入力トークン）より読む量が少ないことと、`claude -p` の空の呼び出しが 0.20 USD かかったこと。
 
+実績（本番の 36 件）: Opus 9.38 USD、1 件平均 159 秒。Sol 入力 131 万トークン、出力 27 万トークン、1 件平均 441 秒。本番は 2026-11-09 08:40〜09:35 の約 55 分。このほかパイロットに Opus 1.73 USD と、Sol の失敗 2 回の約 40 分を使った。
+
 ## 規模
 
 固定の 3 資料 × 2 モデル × 3 回 × 2 方式（現行、併用案）＝ 36 件。規模は作者が 2026年11月9日に決めた（[wiki-article-methodology-adoption-2026-11-08.md](../../research/wiki-article-methodology-adoption-2026-11-08.md) の第 8 節）。
@@ -68,7 +70,7 @@
 - GPT-6.1 Sol は `codex exec`（codex-cli 0.166.0）、`-s read-only`、`--skip-git-repo-check`。
 - effort はすべて high。毎回新しいセッションで、ほかの回の結果は渡していない。
 - 作者の全体の指示（`~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md`）は、実際の W0 の wiki を先に読むよう求めている。依頼文で「この作業の wiki は依頼文に載せたものだけ」と断り、ツールの呼び出しがあればその中のパスを `outside_snapshot` に記録した。
-- 実際の wiki と原本のフォルダー 4 つのハッシュを、実行の前と後に取った（[snapshots/real-wiki-hashes.json](snapshots/real-wiki-hashes.json)、`scripts/hash_real_wikis.py`）。
+- 実際の wiki と原本のフォルダー 4 つのハッシュを、埋め込みの形の 36 件の前と後に取り、同じだった（[snapshots/real-wiki-hashes.json](snapshots/real-wiki-hashes.json)、`scripts/hash_real_wikis.py`）。ツールで読む形のパイロット（Opus 1 件と、コマンドを 1 つも起動できなかった Sol 1 件）は、最初のハッシュより前に走った。Opus は読むツールだけ、Sol は読み取り専用のサンドボックスだった。
 
 ### 事前に決めた、人が確かめる点
 
@@ -79,8 +81,16 @@
 | パス | 内容 |
 | --- | --- |
 | `procedure-hybrid.md` | 併用案の手順書（全 18 件で同じ版） |
-| `prompt-template.md`、`prompts/` | 依頼文 |
+| `prompt-template.md`、`prompts/` | 依頼文。`prompts/` は埋め込む前の部分と、全文の sha256 |
 | `snapshots/manifest.json` | スナップショットと原本と規約のハッシュ |
-| `runs/<run_id>.json` | 1 件ごとの結果。計画の JSON、使用量、ツールの呼び出し、監査 |
-| `scripts/` | スナップショットの作成、実行、集計のスクリプト |
-| `logs/` | CLI の生の出力（コミットしない） |
+| `snapshots/real-wiki-hashes.json` | 実際の wiki と原本のフォルダーの、実行の前後のハッシュ（前後で同じ） |
+| `runs/<run_id>.json` | 1 件ごとの結果。使用量、監査、計画の行き先と根拠の行。候補の本文と引用は落とし、ハッシュだけを残した |
+| `metrics/mechanical.md`、`metrics/mechanical.json` | 機械で出した指標 |
+| `mapping/` | 人が対応づけるための表の写しと、埋め方（[mapping/README.md](mapping/README.md)） |
+| `scripts/build_snapshots.py` | スナップショットの作成 |
+| `scripts/run_poc.py`、`scripts/run_batch.ps1` | 実行 |
+| `scripts/tabulate.py` | 機械の指標と対応づけの表の作成 |
+| `scripts/metrics_from_mapping.py` | 人の対応づけからの一致率と合否 |
+| `scripts/hash_real_wikis.py` | 実際の wiki のハッシュ |
+
+リポジトリの外（`%USERPROFILE%\info-hive-dev-private\2026-11-09-wiki-note-granularity-poc\`）に、依頼文の全文、引用を伏せない結果、CLI の生の出力、人が埋める表、原文の行番号つきの写し、パイロットの記録を置いた。O の原文（Medium の会員限定記事）、R と V の原文（リモートのない SemaSynth のプロジェクトの記録）、作者の wiki の全文を、公開リポジトリに載せないためである。`run_batch.ps1` のスナップショットの既定の場所は、このセッションの一時フォルダーである。作り直すときは `build_snapshots.py --out` で作り、`--snapshot-root` で渡す。

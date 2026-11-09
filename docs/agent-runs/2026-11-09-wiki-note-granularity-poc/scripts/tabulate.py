@@ -7,9 +7,9 @@
     python tabulate.py --snapshot-root <dir>
 
 出力（リポジトリ）:
-    runs/<run_id>.json              1 件ごとの結果。O は引用を行番号とハッシュに置き換える
+    runs/<run_id>.json              1 件ごとの結果。引用を行番号とハッシュに置き換える
     metrics/mechanical.json, metrics/mechanical.md
-    mapping/<資料>-candidates.csv   候補の一覧（実行を伏せた ID つき。人が cluster_id などを埋める）。O は引用を伏せる
+    mapping/<資料>-candidates.csv   候補の一覧（実行を伏せた ID つき。人が cluster_id などを埋める）。引用を伏せる
     mapping/<資料>-pages.csv        新しく作るページの一覧（人が page_cluster を埋める）
     mapping/blind-key.csv           伏せた ID と実行の対応（対応づけが終わるまで見ない）
 出力（リポジトリの外、PRIVATE）:
@@ -33,8 +33,8 @@ HERE = Path(__file__).resolve().parent
 RUN_DIR = HERE.parent
 # 生の記録はリポジトリの外にある（run_poc.py と同じ場所）。
 PRIVATE = Path(os.environ.get("POC_PRIVATE_DIR") or Path.home() / "info-hive-dev-private" / RUN_DIR.name)
-# 公開リポジトリに原文の引用を載せない資料。O は Medium の会員限定記事である。
-REDACT_SOURCES = {"O"}
+# 公開リポジトリに原文の引用を載せない資料。O は Medium の会員限定記事、R と V は非公開の SemaSynth の記録である。
+REDACT_SOURCES = {"O", "R", "V"}
 SOURCES = ("O", "R", "V")
 METHODS = ("current", "hybrid")
 MODELS = ("opus", "sol")
@@ -357,13 +357,12 @@ def write_mapping(runs: list[dict], raws: dict, manifest: dict) -> None:
         if rows:
             write_csv_guarded(priv / f"{s}-candidates.csv", rows, "cluster_id")
         write_csv_guarded(priv / f"{s}-pages.csv", prs, "page_cluster", page_fields)
-        # 記録の版（リポジトリ）。O は引用を伏せる
+        # 記録の版（リポジトリ）。候補の本文は原文をほぼ写すので載せず、行き先と行番号だけを残す
         if rows:
-            pub = [dict(x) for x in rows]
-            if s in REDACT_SOURCES:
-                for x in pub:
-                    x["quotes"] = "（伏せた。原文の行は lines の列を見る）"
-            write_csv(out / f"{s}-candidates.csv", pub)
+            keep = ["blind_id", "cand_id", "first_line", "lines", "epistemic", "quote_check",
+                    "action", "page_type", "page_kind", "page_slug"]
+            pub = [{k: x[k] for k in keep} for x in rows]
+            write_csv(out / f"{s}-candidates.csv", pub, keep)
         write_csv(out / f"{s}-pages.csv", prs, page_fields)
         src = manifest["sources"][s]
         md = [f"# {src['title']}（{s}）の原文", "",
@@ -392,16 +391,31 @@ def write_csv_guarded(path: Path, rows: list[dict], fill_col: str, fields: list[
 
 
 def redact_run(run: dict) -> dict:
-    """公開用の記録。O は引用を行番号とハッシュに置き換え、最終メッセージの全文を落とす。"""
+    """公開用の記録。
+
+    モデルは知見（claim）を原文に近い言い回しで書くので、引用だけを伏せても原文が漏れる。
+    候補の本文（subject、claim、conditions、reason、引用）を落とし、行き先、区分、条件の数、
+    根拠の行と引用のハッシュだけを残す。最終メッセージの全文も落とす。全文はリポジトリの外にある。
+    """
     r = json.loads(json.dumps(run, ensure_ascii=False))
     if r["source"] not in REDACT_SOURCES:
         return r
-    r["final_text"] = "（伏せた。計画は plan にある）"
-    for c in ((r.get("plan") or {}).get("candidates")) or []:
-        for e in c.get("evidence") or []:
-            q = e.pop("quote", "") or ""
-            e["quote_sha256"] = hashlib.sha256(q.encode("utf-8")).hexdigest()
-            e["quote_chars"] = len(q)
+    final = r.get("final_text") or ""
+    r["final_text_sha256"] = hashlib.sha256(final.encode("utf-8")).hexdigest()
+    r["final_text"] = "（伏せた。全文はリポジトリの外の runs/ にある）"
+    plan = r.get("plan") or {}
+    slim = []
+    for c in plan.get("candidates") or []:
+        slim.append({
+            "id": c.get("id"), "epistemic": c.get("epistemic"), "n_conditions": len(c.get("conditions") or []),
+            "evidence": [{"line_start": e.get("line_start"), "line_end": e.get("line_end"),
+                          "quote_sha256": hashlib.sha256((e.get("quote") or "").encode("utf-8")).hexdigest(),
+                          "quote_chars": len(e.get("quote") or "")} for e in c.get("evidence") or []],
+            "action": c.get("action"), "page_slug": c.get("page_slug"), "page_type": c.get("page_type"),
+            "page_kind": c.get("page_kind"), "has_section": bool(c.get("section")),
+        })
+    plan["candidates"] = slim
+    plan.pop("pages_read", None)
     return r
 
 
