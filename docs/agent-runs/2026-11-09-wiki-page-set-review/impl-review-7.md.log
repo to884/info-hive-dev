@@ -1,0 +1,57 @@
+[ask-codex 16:31:56] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev）
+## 判定
+
+**採用可。** 致命・重大に当たる欠陥は再現できなかった。ただし、同梱モジュールの判定に限定条件での不備があり、更新時の再埋め込みと設計書の記述にも問題が残る。確信度：**中**。MCP の実環境での起動と評価ゲートは未実行。
+
+## 致命的・重大な欠陥
+
+なし。
+
+## 崩れる前提
+
+- **「別の場所から読み込まれた解析器は必ず同梱版に替わる」**：読み込み元が `_vendor_old/` など、`_vendor` と同じ文字列で始まる別ディレクトリの場合に崩れる。
+- **「リンクやセクション構造が変わらないページでは、既存の埋め込みを再利用できる」**：末尾が改行のページでは、最後のセクションの文字列が変わり、再登録・再埋め込みになる。
+- **「セクション本文を読み直しても全体の解析と一致する」**：別セクションに参照リンクの定義がある場合に崩れる。実装はこの前提を撤回しているが、設計書の試験説明には残っている。
+
+## 見落としと軽微な問題
+
+1. **軽微：同梱ディレクトリの判定が、パスの包含ではなく文字列の前方一致になっている。**
+
+   [`wiki_pages.py:95`](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:95) は、`__file__` が `str(VENDOR_DIR)` で始まれば除去対象から外す。したがって `_vendor_old/mdurl/__init__.py` も残る。
+
+   既存の試験と同じ `ModuleType` の方法で、`mdurl.__file__` をこのパス、版を `9.9.9` にして `_load_vendored()` を呼ぶと、同梱版へ置き換わらず、後段の場所・版検査で `ImportError` になった。サブモジュールでも、`markdown_it.rules_inline.text` を `_vendor_old/` のパスで登録すると除去されず残った。
+
+   後段の検査はトップレベルの２パッケージだけである（[同ファイル:105](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:105)）。通常の MCP・uv 起動でこの配置になる経路は確認できなかったため、重大とはしない。
+
+2. **軽微：末尾改行だけで、変更していないページの埋め込みが更新時に失効する。**
+
+   入力 `# T\n\ntext\n` の最後のセクションは、基準 `c23ae5b` では `"\ntext"`、今回の実装では `"\ntext\n"` になる。原因は、[`split_lines`](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:119) が末尾の空要素を残し、[`split_sections`](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:343) がそれも結合するためである。
+
+   `section_hash()` は文字列全体をハッシュするので変化を検出する（[`wiki_index.py:810`](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:810)）。基準版で作ったハッシュを既存索引として与えたメモリ上の検証では、**コードもリンクもない未変更の1,000ページで、1,000セクションが再登録対象になった**。新しい `Item.vector` はすべて `None` だった。
+
+   実際の更新処理は古いベクトルも削除する（[同ファイル:619](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:619)）。設計書の収集時間の測定には、この再埋め込みの費用が含まれていない。実モデルでの所要時間と検索順位への影響は確かめられず。
+
+3. **軽微：撤回した「セクション本文の読み直し」が、設計書に残っている。**
+
+   [設計書:90](C:/Works/info-hive-dev/docs/plans/wiki-page-set-and-links-2026-11-09.md:90) は、セクション本文を読み直しても全体と同じリンクになることを試験すると記述している。しかし、本文 `[r]: u\n\n# H\n[[entity]][r]` は、全体ではリンクなし、切り出した `[[entity]][r]` を読み直すと `entity` が現れる。
+
+   現在の試験は本文を読み直さず、保存した `section["links"]` を比較している（[`test_page_set.py:407`](C:/Works/info-hive-dev/tests/wiki/test_page_set.py:407)）。実装の欠陥ではなく、設計書と試験内容の食い違いである。
+
+## 検証した事実
+
+- **一致**：`impl-7.wiki.diff` は、同梱パッケージ本体を除いた `c23ae5b` からの作業ツリーの差分と一致した。
+- **一致**：固定例53件のリンク抽出結果、書き込みを伴わない既存テスト8件が通った。
+- **一致**：追加のランダム入力20,000件で、直接のトークン走査とリンク抽出結果が一致した。見出しマスク・セクション数・見出しを除いたリンク集合も一致した。
+- **一致**：同梱 `.py` の読み取り結果だけを変更するモックで、`_vendor_digest()` と `code_version()` の両方が変わった。
+- **一致**：読み込まれた版は markdown-it-py 3.0.0、mdurl 0.1.2。３つのライセンス文書と取得元・SHA-256 の記載がある。
+- **確かめられず**：PyPI 公表値と配布物の再照合、実際の uv・MCP 環境での競合、サーバー再起動、実モデルの評価ゲート。実行環境は Python 3.14.6 で、MCP 等の外部依存は未導入だった。
+
+## 崩せなかった点
+
+- 今回検証した入力では、コード内のリンク除外、`map` に基づく行への割り当て、セクションごとのリンク集合を崩せなかった。
+- 通常の別ディレクトリを読み込み元とする先行モジュールは、既存試験で同梱版へ置き換わった。
+- 同梱コードの変更検出と、`SERVER_FILES` への `wiki_pages.py` の追加は崩せなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 16:48:55] 完了。session 01a1bf38-a386-7cd0-bba9-4ebb38989500  usage {"input_tokens": 3029634, "cached_input_tokens": 2777344, "cache_write_input_tokens": 0, "output_tokens": 18081, "reasoning_output_tokens": 8301}

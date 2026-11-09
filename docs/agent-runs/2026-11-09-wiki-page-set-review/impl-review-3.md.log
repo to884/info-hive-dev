@@ -1,0 +1,126 @@
+[ask-codex 14:43:42] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev）
+## 判定
+
+**却下。確信度：高。** コード内のリンクを拾う反例と、セクション分割によってコードの文脈を失う反例が残る。参照リンク定義の判定にも、閲覧側との不一致がある。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】表より先にリスト・引用を開き、直後のコードからリンクを拾う
+
+反例：
+
+```markdown
+- 分類 | 説明
+--- | ---
+    [[entity]]
+```
+
+実装の抽出結果は `["entity"]`。閲覧側では最初の2行が表、最後の行が字下げコードになるため、正しくは `[]`。先頭を `> 分類 | 説明` にしても再現する。
+
+原因は、[wiki_pages.py:385](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:385) でコンテナを開いた後に、[425行](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:425) で表を調べる順序にある。markdown-it-py 3.0.0 は、[表を引用・リストより先に判定する](https://raw.githubusercontent.com/executablebooks/markdown-it-py/v3.0.0/markdown_it/parser_block.py)。
+
+この本文を持つ2ページを、入出力だけメモリ上に置き換えて実際の収集処理へ渡した結果：
+
+- lint・search・graph は、各ページから `entity` を抽出した。
+- 参照先がなければ、lint は偽のリンク切れを2件報告した。
+- stats はリンクを合計2件と数えた。
+- `entities/entity.md` を加えると、`contradiction_pairs()` は両ページを矛盾候補にした。
+
+**検証結果：食い違い。** 前回レビューの「表に続く字下げコードを拾う」問題が、表の開始判定を通じて残っている。
+
+### 2. 【重大】全角空白を使った行を見出しと誤認し、コードスパンを途中で切る
+
+反例。`#` の直後は全角空白 U+3000：
+
+````text
+説明 `
+#　コード中の行
+[[entity]]
+終了`
+````
+
+本文全体への `extract_wikilinks()` は正しく `[]` を返す。しかし `split_sections()` は `#　コード中の行` で分割し、次のセクションを作る。
+
+````text
+[[entity]]
+終了`
+````
+
+これを再解析すると `["entity"]` になる。同じ本文を持つ2ページとエンティティページを渡すと、**コード内でしか言及していない2ページが矛盾候補になった**。
+
+[wiki_search.py:85](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:85) の `HEADING_RE` は `\s+` を使うため全角空白も受け入れる。[332行](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:332) が除くのはコード**ブロック**だけである。一方、[markdown-it-py 3.0.0 の見出し判定](https://raw.githubusercontent.com/executablebooks/markdown-it-py/v3.0.0/markdown_it/rules_block/heading.py) は全角空白を区切りとして認めない。
+
+**検証結果：食い違い。** `HEADING_RE` 自体は既存の欠陥だが、今回の変更でも設計47行の「判定レイヤーがコード内のリンクを拾わなくなる」は成立しない。検索でも、存在しない見出しとセクションが生成される。
+
+### 3. 【重大】参照リンクの URL を復号せず検査し、本文のリンクを消す
+
+反例：
+
+```markdown
+[ref]: <javascript&#58;x> "[[visible]]"
+```
+
+または：
+
+```markdown
+[ref]: javascript\:x "[[visible]]"
+```
+
+実装はどちらも定義として行全体を除外し、`[]` を返す。閲覧側は URL を復号してから禁止プロトコルと判定するため、定義を受理せず、本文から `["visible"]` を拾う。
+
+[wiki_pages.py:313](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:313) は元の URL に対して `.strip().lower()` するだけで、文字参照と escape を戻していない。対象版では、[parseLinkDestination](https://raw.githubusercontent.com/executablebooks/markdown-it-py/v3.0.0/markdown_it/helpers/parse_link_destination.py) が復号し、その結果を [reference](https://raw.githubusercontent.com/executablebooks/markdown-it-py/v3.0.0/markdown_it/rules_block/reference.py) が検査する。
+
+**検証結果：食い違い。** 設計43行の「許されない行き先は定義にならない」は、表記を変えるだけで破れる。
+
+## 崩れる前提
+
+- **コンテナを除去してから表を判定しても構造は変わらない。**  
+  表の見出し行が `- ` や `> ` で始まると崩れる。規則の優先順位そのものが解析結果を変える。
+
+- **コードブロック内の見出しを除けば、セクションを独立に再解析できる。**  
+  Markdown では見出しでない行を `HEADING_RE` が受理すると、複数行コードスパンが切断される。
+
+- **禁止プロトコルは元の URL 文字列で検査できる。**  
+  コロンなどが文字参照・escape で書かれると崩れる。
+
+- **行の種類を組み合わせた比較で、ブロック境界を十分に確かめられる。**  
+  種類名だけでは足りない。既存の生成語彙にない「リスト・引用にも見える表の見出し」が反例になる。
+
+## 見落としと軽微な問題
+
+- **【軽微】比較試験が、セクション分割後の再解析を比較していない。**  
+  [test_page_set.py:308](/C:/Works/info-hive-dev/tests/wiki/test_page_set.py:308) の比較対象は本文全体の抽出である。欠陥2は、本文全体の比較が一致していても検出されない。
+
+- **【軽微】固定例・生成語彙に今回の境界条件がない。**  
+  [test_page_set.py:336](/C:/Works/info-hive-dev/tests/wiki/test_page_set.py:336) には通常の表、引用、リストがあるが、欠陥1の見出し行や、欠陥3の URL 表記はない。既存の固定例と乱数比較は、今回の反例が残っていても通った。
+
+- **【軽微】変更履歴と手順書が保証を言い切っている。**  
+  [CHANGELOG.md:18](/C:/Works/info-hive-dev/info-hive-wiki/CHANGELOG.md:18) の「コード内を数えなくなった」「参照リンクの定義を閲覧と同じように読む」と、[lint-workflow.md:36](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/references/lint-workflow.md:36) の「コードに入れればリンク切れとして挙がらない」は、上記の入力では成立しない。
+
+## 検証した事実
+
+| 主張 | 結果 |
+| --- | --- |
+| 基準コミットは `c23ae5b`、作業ツリーは0.9.0 | 一致 |
+| 比較対象の固定例は46件 | 一致。`MARKDOWN_CASES` 45件と `CODE_BODY` 1件 |
+| CI が markdown-it-py 3.0.0 を指定する | 一致。`wiki-mcp.yml` に実行ステップあり |
+| 古い名前の再輸出と `SERVER_FILES` の追加 | 確認した名前では一致 |
+| lint・stats の標準ライブラリだけでの読み込み | `python -S` で成功 |
+| schema 3 のキャッシュを破棄する | 一致。読み込み結果は `{}` |
+| 新規解析とキャッシュ再利用のリンク・セクション | 確認した本文では一致 |
+
+ファイルを作らない既存試験10件は通過した。Markdown の固定例・乱数・行構造の比較も、手動で利用可能な **markdown-it-py 4.2.0** に対して実行し、通過した。
+
+**3.0.0 本体での実行は確かめられず。** 上記の欠陥は、実装出力を実行で確認し、対応する3.0.0の公式ソースにも照合した。全試験、評価ゲート、実際のMCP接続は未実行。リポジトリは変更していない。
+
+## 崩せなかった点
+
+- 過去の固定反例である、区切り線後のコード、表セル境界、全角空白だけの行、複数行の参照タイトル、通常の文字参照。
+- `_mask_code_spans()` 単体の、既存固定例に含まれる複数行・escape・異なる長さのバッククォートの処理。
+- 確認した旧名の再輸出、`SERVER_FILES` への追加、旧パースキャッシュの拒否。
+- NFC → `casefold()` → NFC の比較と、正規化だけが違う名前の扱い。
+- 既存グラフの再生成が必要なことは、変更履歴とアップグレード手順に記載されている。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 14:59:40] 完了。session 01a1bed5-867f-7d73-9bb6-1ca49a698d5e  usage {"input_tokens": 3708006, "cached_input_tokens": 3542912, "cache_write_input_tokens": 0, "output_tokens": 16435, "reasoning_output_tokens": 5867}

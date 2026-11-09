@@ -71,6 +71,10 @@ jobs:
       - name: 主張と行き先の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_source_claims.py -v
+      # markdown-it-py はプラグインに同梱している。グラフの比較には PyYAML が要る。
+      - name: ページの集合とリンクの規則の試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_page_set.py -v
       - name: 索引の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/wiki/test_wiki_index.py -v
