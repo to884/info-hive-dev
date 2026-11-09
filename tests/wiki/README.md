@@ -7,6 +7,7 @@
 | `test_wiki_index.py` | 検索の基盤（`wiki_index.py`）の試験。差分の更新、途中で止まったときのそろえ直し、Tantivy の commit のやり直し、fingerprint が変わったときの作り直し、書き手のロック、`index_chunks` の世代 |
 | `test_mcp_server.py` | サーバーと中継の試験。トークンと Host ヘッダー、127.0.0.1 だけで待ち受けること、中継を 4 つ同時に起動してもサーバーが 1 つ、中継の終了後もサーバーが残ること、サーバーが止まった後や呼び出しの途中で止まったときの接続し直し、版の違うサーバーの入れ替え、要求がないときの停止。ツール `lint`、`stats`、`graph` が CLI の `--json` と同じ結果を返すこと |
 | `test_wiki_lint.py` | lint の索引、出典、原本、タグの検査（0.7.0 の `index_type_mismatch`、`unresolved_sources`、`missing_raw`、`unknown_tags`）。標準ライブラリだけで動く |
+| `test_source_claims.py` | 取り込みでソースの要約ページに残す `## 主張と行き先`（0.8.0、ADR-0015 の段階 2）。手順書、ページの規約、`SCHEMA.md` とページのひな形が同じ見出し、列、行き先の値を示すこと、作例の表の形、作例を入れた source のページが lint を通ること、`init_wiki.py --upgrade` が新しいセクションを案内すること、段階 3 の規定が混ざっていないこと。標準ライブラリだけで動く |
 | `run_mcp_gate.py`、`mcp_eval_search.py` | wiki の評価ゲート（`eval/retrieval/run_eval.py`）を新しい基盤で通す |
 | `bench_mcp_latency.py` | 検索の速さ（今の CLI、中継経由の MCP、直接呼び出し） |
 | `bench_mcp_startup.py` | 起動の速さ（入口から `initialize` と `tools/list` まで）。2 つの版のスクリプトを交互に起動して比べる。結果は `docs/research/wiki-mcp-startup-2026-11-07/` に置く |
@@ -24,6 +25,7 @@
 
 ```bat
 python -X utf8 -m unittest tests/wiki/test_wiki_lint.py -v
+python -X utf8 -m unittest tests/wiki/test_source_claims.py -v
 set DEPS=--with mcp==1.30.0 --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 --with fastembed==0.8.0 --with onnxruntime==1.31.1 --with pyyaml==6.0.3 --with psutil==7.2.2
 uv run --python 3.12 %DEPS% python -X utf8 -m unittest tests/wiki/test_wiki_index.py -v
 uv run --python 3.12 %DEPS% python -X utf8 -m unittest tests/wiki/test_mcp_server.py -v
