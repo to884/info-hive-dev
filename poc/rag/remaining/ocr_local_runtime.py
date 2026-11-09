@@ -4,7 +4,9 @@ import sys
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[3]
-archives=ROOT/'.rag-poc-data/uv-cache-ocr/archive-v0'
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
+archives=POC_DATA/'uv-cache-ocr/archive-v0'
 required=['ocr.py','cv2','lxml','pypdf']
 paths=[]
 for module in required:

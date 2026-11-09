@@ -4,6 +4,8 @@ import sys
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0,str(ROOT/'info-hive-rag/scripts'))
 from rag_config import write_json
 from provenance import approved_queries
@@ -38,7 +40,7 @@ def main():
         original=next(row for row in baseline['profiles'] if row['profile']==profile['profile'])
         assert original['recall_at_30']==profile['recall_at_30']
         assert original['ndcg_at_10']==profile['ndcg_at_10']
-    for path in [ROOT/'.rag-poc-data/unit-windows-context.log',OUT/'linux/unit.log']:
+    for path in [POC_DATA/'unit-windows-context.log',OUT/'linux/unit.log']:
         log=path.read_text(encoding='utf-8')
         assert 'Ran 11 tests' in log and '\nOK\n' in log
     assert all(case['build_confirmed'] for case in read('ann-linux-api-smoke.json')['cases'])

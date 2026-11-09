@@ -7,10 +7,13 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+import sys
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 OUT = ROOT / "docs/research/rag-pdf-job-integration-2026-11-04"
-RUN = ROOT / ".rag-poc-data" / f"c{int(time.time())}"
+RUN = POC_DATA /  f"c{int(time.time())}"
 RUN.mkdir(parents=True)
-base = sorted((ROOT / ".rag-poc-data").glob("j*/config.json"))[-1]
+base = sorted((POC_DATA).glob("j*/config.json"))[-1]
 config = json.loads(base.read_text(encoding="utf-8"))
 config.pop("reference_roots", None)
 # verify_pipeline.py は、PDF を config.json と同じフォルダーの references/ に置く。

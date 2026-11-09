@@ -11,11 +11,13 @@ import time
 import uuid
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0,str(ROOT/'info-hive-rag/scripts'))
 from rag_config import write_json
-BASE=ROOT/'.rag-poc-data/full-20261104'
-WORK=ROOT/'.rag-poc-data/full-ocr-index-20261104'
-OCR=ROOT/'.rag-poc-data/full-ocr-gpu-20261104'
+BASE=POC_DATA/'full-20261104'
+WORK=POC_DATA/'full-ocr-index-20261104'
+OCR=POC_DATA/'full-ocr-gpu-20261104'
 OUT=ROOT/'docs/research/rag-full-pipeline-2026-11-04'
 MODEL='cl-nagoya/ruri-v3-130m'
 REVISION='e3114c6ee10dbab8b4b235fbc6dcf9dd4d5ac1a6'
@@ -102,7 +104,7 @@ def main():
         if not torch.cuda.is_available(): raise RuntimeError('文書の GPU 埋め込みが利用できません。')
         torch.cuda.set_per_process_memory_fraction(.45)
         torch.backends.cuda.matmul.allow_tf32=False; torch.backends.cudnn.allow_tf32=False
-        model=SentenceTransformer(MODEL,revision=REVISION,device='cuda',cache_folder=str(ROOT/'.rag-poc-data/model-cache'),model_kwargs={'attn_implementation':'sdpa'})
+        model=SentenceTransformer(MODEL,revision=REVISION,device='cuda',cache_folder=str(POC_DATA/'model-cache'),model_kwargs={'attn_implementation':'sdpa'})
         model.max_seq_length=min(int(model[0].auto_model.config.max_position_embeddings),8192)
         position=db.execute("SELECT value FROM meta WHERE key='next_position'").fetchone()[0]
         maximum=0; encoded=0; gpu_started=time.perf_counter()

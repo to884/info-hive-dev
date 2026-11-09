@@ -6,6 +6,8 @@ import time
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0,str(ROOT/'info-hive-rag/scripts'))
 from rag_config import Config,write_json
 from rag_index import Embedder
@@ -13,10 +15,10 @@ from rag_index import Embedder
 
 def main():
     import numpy as np
-    work=ROOT/'.rag-poc-data/full-20261104'
+    work=POC_DATA/'full-20261104'
     db=sqlite3.connect(work/'corpus.sqlite')
     text=db.execute('SELECT embedding_text FROM chunks WHERE id=474293').fetchone()[0]; db.close()
-    cfg=Config({'embedding_model':'cl-nagoya/ruri-v3-30m','model_cache_dir':str(ROOT/'.rag-poc-data/model-cache'),'cpu_threads':4})
+    cfg=Config({'embedding_model':'cl-nagoya/ruri-v3-30m','model_cache_dir':str(POC_DATA/'model-cache'),'cpu_threads':4})
     embedder=Embedder(cfg)
     expected=len(embedder.model.tokenizer('検索文書: '+text,truncation=False)['input_ids'])
     seen=[]; original=embedder.model.preprocess

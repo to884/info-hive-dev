@@ -5,8 +5,11 @@ import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+import sys
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 OLD = (Path(os.environ["LOCALAPPDATA"]) / "info-hive/rag-poc/2026-11-04").resolve()
-OUT = ROOT / ".rag-poc-data/full-20261104/review"
+OUT = POC_DATA / "full-20261104/review"
 OUT.mkdir(parents=True, exist_ok=True)
 queries = json.loads((ROOT / "poc/rag/pdf-queries.json").read_text(encoding="utf-8"))
 lookup = {q["id"]: q for q in queries}

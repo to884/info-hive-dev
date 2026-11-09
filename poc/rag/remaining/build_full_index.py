@@ -10,10 +10,12 @@ import time
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0,str(ROOT/'info-hive-rag/scripts'))
 from rag_config import Config,write_json
 from provenance import full_fingerprint,lexical_fingerprint
-WORK=ROOT/'.rag-poc-data/full-20261104'
+WORK=POC_DATA/'full-20261104'
 OUT=ROOT/'docs/research/rag-validation-remaining-2026-11-04'
 
 
@@ -36,7 +38,7 @@ def build_index(memory_peak):
     previous=WORK/'product-import.json'
     if previous.exists() and json.loads(previous.read_text(encoding='utf-8')).get('source_fingerprint')!=fingerprint:
         raise RuntimeError('再開元のコーパスまたは埋め込みが変更されています。別の保存先で構築してください。')
-    values={'reference_roots':{'books':manifest['root']},'data_dir':str(WORK/'product-data'),'model_cache_dir':str(ROOT/'.rag-poc-data/model-cache'),'embedding_model':embedded['model'],'embedding_revision':embedded['revision'],'cpu_threads':4,'search_nprobes':128,'search_refine_factor':4,'reranker':'off'}
+    values={'reference_roots':{'books':manifest['root']},'data_dir':str(WORK/'product-data'),'model_cache_dir':str(POC_DATA/'model-cache'),'embedding_model':embedded['model'],'embedding_revision':embedded['revision'],'cpu_threads':4,'search_nprobes':128,'search_refine_factor':4,'reranker':'off'}
     config_file=WORK/'product-config.json'; write_json(config_file,values)
     cfg=Config(values); engine=Engine(cfg); folder=cfg.workspace(str(wiki))
     engine._check_policy(folder); table=engine._table(folder,create=True)

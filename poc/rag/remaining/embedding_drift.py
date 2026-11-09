@@ -6,6 +6,8 @@ import time
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0,str(ROOT/'info-hive-rag/scripts'))
 from rag_config import Config,write_json
 
@@ -13,14 +15,14 @@ from rag_config import Config,write_json
 def main():
     import numpy as np
     from rag_index import Embedder
-    work=ROOT/'.rag-poc-data/full-20261104'
+    work=POC_DATA/'full-20261104'
     db=sqlite3.connect(work/'corpus.sqlite')
     db.execute('ATTACH DATABASE ? AS embeddings',(str(work/'embeddings-130m/ledger.sqlite'),))
     candidates=db.execute('SELECT c.embedding_text,e.position FROM chunks c JOIN embeddings.vectors e ON e.id=c.id ORDER BY c.id LIMIT 100000').fetchall()
     positions=np.random.default_rng(20261104).choice(len(candidates),32,replace=False)
     rows=[candidates[p] for p in positions]
     db.close()
-    cfg=Config({'embedding_model':'cl-nagoya/ruri-v3-130m','model_cache_dir':str(ROOT/'.rag-poc-data/model-cache'),'cpu_threads':4})
+    cfg=Config({'embedding_model':'cl-nagoya/ruri-v3-130m','model_cache_dir':str(POC_DATA/'model-cache'),'cpu_threads':4})
     embedder=Embedder(cfg)
     started=time.perf_counter()
     cpu=embedder.encode([r[0] for r in rows])

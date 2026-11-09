@@ -5,9 +5,11 @@ import statistics
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0,str(ROOT/'info-hive-rag/scripts'))
 from rag_config import write_json
-WORK=ROOT/'.rag-poc-data/natural-20261104'
+WORK=POC_DATA/'natural-20261104'
 OUT=ROOT/'docs/research/rag-validation-remaining-2026-11-04'
 path=OUT/'natural-mcp-results.json'
 data=json.loads(path.read_text(encoding='utf-8'))

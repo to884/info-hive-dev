@@ -24,8 +24,10 @@ from rag_config import Config, write_json  # noqa: E402
 from rag_jobs import Jobs  # noqa: E402
 
 ROOT = base.ROOT
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 SOURCE = Path(os.environ["RAG_TEST_ONEDRIVE_PDF"])
-RUN = Path(os.environ.get("RAG_TEST_RUN_ROOT", str(ROOT / ".rag-poc-data"))) / f"o{int(time.time())}"
+RUN = Path(os.environ.get("RAG_TEST_RUN_ROOT", str(POC_DATA))) / f"o{int(time.time())}"
 OUT = Path(os.environ.get("RAG_TEST_OUTPUT", str(ROOT / "docs/research/rag-network-and-onedrive-2026-11-09")))
 RECALL_ON_DATA_ACCESS = 0x400000
 record = base.record

@@ -5,7 +5,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from verify_pipeline import ROOT,connect,call,wait_until
+from verify_pipeline import ROOT,POC_DATA,connect,call,wait_until
 from rag_config import Config,write_json
 from rag_jobs import Jobs
 from rag_index import Engine
@@ -31,7 +31,7 @@ def fixture(path,pages,marker):
     pdf.save()
 
 async def main():
-    run=Path(os.environ.get('RAG_TEST_RUN_ROOT',str(ROOT/'.rag-poc-data')))/f'auto-index-{int(time.time())}'
+    run=Path(os.environ.get('RAG_TEST_RUN_ROOT',str(POC_DATA)))/f'auto-index-{int(time.time())}'
     refs=run/'refs'; refs.mkdir(parents=True)
     wiki=run/'wiki'; (wiki/'sources').mkdir(parents=True)
     for name in ['SCHEMA.md','index.md','log.md']:
@@ -41,8 +41,8 @@ async def main():
     a=refs/'source-a.pdf'; b=refs/'source-b.pdf'
     fixture(a,40,'ANN_INITIAL_Q83'); fixture(b,4,'ANN_APPEND_Q83')
     values={'data_dir':str(run/'data'),'embedding_model':'cl-nagoya/ruri-v3-30m',
-        'model_cache_dir':os.environ.get('RAG_TEST_MODEL_CACHE',str(ROOT/'.rag-poc-data/model-cache')),
-        'uv_cache_dir':os.environ.get('RAG_TEST_UV_CACHE',str(ROOT/'.rag-poc-data/uv-cache-ocr')),
+        'model_cache_dir':os.environ.get('RAG_TEST_MODEL_CACHE',str(POC_DATA/'model-cache')),
+        'uv_cache_dir':os.environ.get('RAG_TEST_UV_CACHE',str(POC_DATA/'uv-cache-ocr')),
         'cpu_threads':4,'batch_size':16,'index_cleanup_age_days':3650,'search_nprobes':20}
     config_file=run/'config.json'; write_json(config_file,values)
     cfg=Config(values); jobs=Jobs(cfg.data_dir); engine=Engine(cfg); folder=cfg.workspace(str(wiki))

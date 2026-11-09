@@ -25,8 +25,10 @@ from rag_index import Engine  # noqa: E402
 from rag_jobs import Jobs  # noqa: E402
 
 ROOT = base.ROOT
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 SHARE = os.environ.get("RAG_TEST_SHARE", r"\\localhost\C$")
-RUN = Path(os.environ.get("RAG_TEST_RUN_ROOT", str(ROOT / ".rag-poc-data"))) / f"n{int(time.time())}"
+RUN = Path(os.environ.get("RAG_TEST_RUN_ROOT", str(POC_DATA))) / f"n{int(time.time())}"
 OUT = Path(os.environ.get("RAG_TEST_OUTPUT", str(ROOT / "docs/research/rag-network-and-onedrive-2026-11-09")))
 record = base.record
 

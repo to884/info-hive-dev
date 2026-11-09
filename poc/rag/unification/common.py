@@ -5,15 +5,17 @@ import hashlib
 import json
 import math
 import os
+import sys
 import sqlite3
 import time
 import unicodedata
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-# 測定データは Git の管理外にある。作業ツリー（.claude/worktrees/...）から動かすときは、
-# INFO_HIVE_POC_DATA でメインのチェックアウトの .rag-poc-data を指す。出力先（OUT）は ROOT のまま。
-POC_DATA = Path(os.environ.get("INFO_HIVE_POC_DATA", ROOT / ".rag-poc-data"))
+# 測定データは Git の管理外にあり、置き場所は poc/poc_data.py が決める（INFO_HIVE_POC_DATA で変えられる）。
+# 出力先（OUT）は ROOT のまま。
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 WORK = POC_DATA / "unification-20261105"
 FULL = POC_DATA / "full-20261104"
 NATURAL = POC_DATA / "natural-20261104"

@@ -7,9 +7,11 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0,str(ROOT/'info-hive-rag/scripts'))
 from rag_config import Config,write_json
-WORK=ROOT/'.rag-poc-data/full-20261104'
+WORK=POC_DATA/'full-20261104'
 OUT=ROOT/'docs/research/rag-validation-remaining-2026-11-04'
 
 

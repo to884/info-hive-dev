@@ -11,12 +11,14 @@ import uuid
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0,str(ROOT/'info-hive-rag/scripts'))
 from rag_config import Config,write_json
 from rag_pdf import chunks_for
-BASE=ROOT/'.rag-poc-data/full-20261104'
-OCR=ROOT/'.rag-poc-data/full-ocr-gpu-20261104'
-WORK=ROOT/'.rag-poc-data/full-ocr-index-20261104'
+BASE=POC_DATA/'full-20261104'
+OCR=POC_DATA/'full-ocr-gpu-20261104'
+WORK=POC_DATA/'full-ocr-index-20261104'
 OUT=ROOT/'docs/research/rag-full-pipeline-2026-11-04'
 
 def initialize():

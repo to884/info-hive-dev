@@ -21,10 +21,12 @@ export UV_PYTHON_BIN_DIR=${UV_PYTHON_BIN_DIR:-$linux_root/bin}
 export TMPDIR=${RAG_TEST_TMPDIR:-$linux_root/tmp}
 venv="$linux_root/venv"
 models=${RAG_TEST_MODEL_CACHE:-$linux_root/models}
-# 開発用リポジトリの本体の .rag-poc-data にあるモデルを既定の写し元にする。
+# PoC データ（既定は開発用リポジトリの本体の隣の info-hive-dev-data/rag-poc-data）にあるモデルを既定の写し元にする。
+# 置き場所は poc/poc_data.py と同じ決め方で、INFO_HIVE_POC_DATA で変えられる（WSL のパスで書く）。
 # worktree の .git は Windows のパスを指し、WSL の git では読めないので、パスから本体を求める。
 common_root=${repo_root%%/.claude/worktrees/*}
-model_source=${RAG_TEST_MODEL_SOURCE:-$common_root/.rag-poc-data/model-cache}
+poc_data=${INFO_HIVE_POC_DATA:-$(dirname "$common_root")/info-hive-dev-data/rag-poc-data}
+model_source=${RAG_TEST_MODEL_SOURCE:-$poc_data/model-cache}
 model=models--cl-nagoya--ruri-v3-30m
 
 if [[ -e "$venv" ]]; then

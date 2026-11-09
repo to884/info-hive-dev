@@ -16,12 +16,14 @@ from pathlib import Path
 import psutil
 
 ROOT=Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0,str(ROOT/'tests/rag'))
 from verify_pipeline import connect,call
 from rag_config import Config,write_json
 from provenance import digest,approved_queries
 
-WORK=ROOT/'.rag-poc-data/natural-20261104'
+WORK=POC_DATA/'natural-20261104'
 OUT=ROOT/'docs/research/rag-validation-remaining-2026-11-04'
 WIKI=WORK/'wiki'
 CONFIG=WORK/'config.json'

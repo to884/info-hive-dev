@@ -9,19 +9,19 @@ from contextlib import AsyncExitStack
 
 import psutil
 from filelock import FileLock
-from verify_pipeline import ROOT,connect,call,wait_until
+from verify_pipeline import ROOT,POC_DATA,connect,call,wait_until
 from rag_config import Config,write_json
 from rag_jobs import Jobs
 
 
 async def main():
-    run=ROOT/'.rag-poc-data'/f'concurrent-{int(time.time())}'
+    run=POC_DATA/f'concurrent-{int(time.time())}'
     run.mkdir(parents=True)
-    baseline=sorted((ROOT/'.rag-poc-data').glob('j*/config.json'))[-1]
+    baseline=sorted((POC_DATA).glob('j*/config.json'))[-1]
     values=json.loads(baseline.read_text(encoding='utf-8'))
-    source=sorted((ROOT/'.rag-poc-data').glob('k*/references/controls.pdf'))[-1]
+    source=sorted((POC_DATA).glob('k*/references/controls.pdf'))[-1]
     source_hash=hashlib.sha256(source.read_bytes()).hexdigest()
-    values.update(data_dir=str(run/'data'),batch_size=1,model_cache_dir=str(ROOT/'.rag-poc-data/model-cache'),ocr_mode='off')
+    values.update(data_dir=str(run/'data'),batch_size=1,model_cache_dir=str(POC_DATA/'model-cache'),ocr_mode='off')
     path=run/'config.json'; write_json(path,values)
     cfg=Config(values); jobs=Jobs(cfg.data_dir)
     wikis=[run/'wiki-a',run/'wiki-b']

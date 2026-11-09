@@ -6,7 +6,10 @@ import time
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[3]
-WORK=ROOT/'.rag-poc-data/full-20261104'
+import sys
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
+WORK=POC_DATA/'full-20261104'
 
 
 def main():
@@ -17,7 +20,7 @@ def main():
     torch.set_num_threads(2); torch.set_num_interop_threads(1)
     torch.cuda.set_per_process_memory_fraction(.3)
     torch.backends.cuda.matmul.allow_tf32=False; torch.backends.cudnn.allow_tf32=False
-    model=SentenceTransformer('cl-nagoya/ruri-v3-130m',revision='e3114c6ee10dbab8b4b235fbc6dcf9dd4d5ac1a6',device='cuda',cache_folder=str(ROOT/'.rag-poc-data/model-cache'),model_kwargs={'attn_implementation':'sdpa'})
+    model=SentenceTransformer('cl-nagoya/ruri-v3-130m',revision='e3114c6ee10dbab8b4b235fbc6dcf9dd4d5ac1a6',device='cuda',cache_folder=str(POC_DATA/'model-cache'),model_kwargs={'attn_implementation':'sdpa'})
     model.max_seq_length=2048
     db=sqlite3.connect(WORK/'corpus.sqlite')
     texts=['検索文書: '+r[0] for r in db.execute('SELECT embedding_text FROM chunks ORDER BY id LIMIT 128 OFFSET 20000')]; db.close()

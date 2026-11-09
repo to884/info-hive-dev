@@ -12,7 +12,6 @@ E8 は実装の前の試作で測った。ここでは、出荷している wiki
 3. 任意で、手元の wiki（--extra-wiki）でページの題名を問いにしたときの距離と、PROBES の距離。
 
 使い方（依存は wiki_mcp_server.py の宣言と同じ版にそろえる。モデルは取得済みのものを使い回す）:
-    set INFO_HIVE_POC_DATA=C:\\Works\\info-hive-dev\\.rag-poc-data
     uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/measure_dense_threshold.py [--extra-wiki <wiki>]
 
 結果は docs/research/wiki-dense-threshold-2026-11-07/threshold.json に書く。
@@ -32,6 +31,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import poc_data_dir  # noqa: E402
 EVAL = ROOT / "info-hive-wiki/eval/retrieval"
 OUT = ROOT / "docs/research/wiki-dense-threshold-2026-11-07"
 sys.path.insert(0, str(ROOT / "info-hive-wiki/skills/info-hive/scripts"))
@@ -62,9 +63,7 @@ PROBES = {
 
 
 def poc_models() -> Path:
-    base = os.environ.get("INFO_HIVE_POC_DATA")
-    if not base:
-        raise SystemExit("INFO_HIVE_POC_DATA（取得済みのモデルの置き場所）を設定する")
+    base = poc_data_dir()
     return Path(base) / "wiki-mcp-20261106" / "data" / "models"
 
 

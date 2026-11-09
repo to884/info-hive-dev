@@ -16,8 +16,10 @@ import yaml
 from qdrant_client import QdrantClient, models as qm
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 WORK = (Path(os.environ["LOCALAPPDATA"]) / "info-hive/rag-poc/2026-11-04").resolve()
-FOLDER = ROOT / ".rag-poc-data" / f"contracts-{time.time_ns()}"
+FOLDER = POC_DATA /  f"contracts-{time.time_ns()}"
 FOLDER.mkdir(parents=True)
 results = []
 

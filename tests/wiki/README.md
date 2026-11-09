@@ -31,7 +31,6 @@ set DEPS=--with mcp==1.30.0 --with numpy==2.5.4 --with usearch==2.26.6 --with ta
 uv run --python 3.12 %DEPS% python -X utf8 -m unittest tests/wiki/test_wiki_index.py -v
 uv run --python 3.12 %DEPS% python -X utf8 -m unittest tests/wiki/test_mcp_server.py -v
 uv run --python 3.12 --with cryptography python -X utf8 -m unittest tests/wiki/test_uv_tls.py -v
-set INFO_HIVE_POC_DATA=C:\Works\info-hive-dev\.rag-poc-data
 uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/run_mcp_gate.py
 uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/bench_mcp_latency.py
 uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/measure_dense_threshold.py
@@ -45,4 +44,4 @@ uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/check_first_
 - macOS と Linux では、`.github/workflows/wiki-mcp.yml`（手で起動するか、`info-hive-wiki` の参照か `tests/wiki/` を変えた PR で動く）が、lint、索引、サーバーの試験と、本物のモデルでの評価ゲートを動かす。
 
 - 試験はテスト用の埋め込み（`INFO_HIVE_TEST_EMBEDDER=hash`）を使い、モデルを読み込まない。中継は `.mcp.json` と同じく `uv run --script` で起動するので、サーバーの依存を初めて取得するときは数分かかる。
-- 評価ゲートと速さの測定は、本物のモデル（約 530 MB）を `$INFO_HIVE_POC_DATA/wiki-mcp-20261106/data/models/` に取得して使う。
+- 評価ゲートと速さの測定は、本物のモデル（約 530 MB）を PoC データの `wiki-mcp-20261106/data/models/` に取得して使う。PoC データの置き場所は `poc/poc_data.py` が決める。既定はメインのチェックアウトの隣の `info-hive-dev-data/rag-poc-data` で、環境変数 `INFO_HIVE_POC_DATA` で変えられる。
