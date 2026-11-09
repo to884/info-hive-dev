@@ -41,14 +41,24 @@ TLS_OUTPUT = (b"error: Failed to fetch: https://pypi.org/simple/mcp/\n"
 TLS_ENVS = ("UV_SYSTEM_CERTS", "UV_NATIVE_TLS")
 
 
-class FakeUv:
-    """subprocess.run の代わり。呼ばれたコマンドと環境変数を記録し、決めた順に結果を返す。"""
+NEW_HELP = b"      --system-certs\n          Whether to load TLS certificates [env: UV_SYSTEM_CERTS=]\n"
+OLD_HELP = b"      --native-tls\n          Whether to load TLS certificates [env: UV_NATIVE_TLS=]\n"
 
-    def __init__(self, results):
+
+class FakeUv:
+    """subprocess.run の代わり。`uv sync` のコマンドと環境変数を記録し、決めた順に結果を返す。
+    `uv sync --help` には help の文面を返す（uv の版を見分ける）。"""
+
+    def __init__(self, results, help_text: bytes = NEW_HELP):
         self.results = list(results)
+        self.help_text = help_text
         self.calls: list[tuple[list[str], dict]] = []
+        self.help_calls = 0
 
     def __call__(self, command, **kwargs):
+        if "--help" in command:
+            self.help_calls += 1
+            return subprocess.CompletedProcess(command, 0, stdout=self.help_text, stderr=b"")
         self.calls.append((list(command), dict(kwargs.get("env") or {})))
         code, out = self.results.pop(0)
         return subprocess.CompletedProcess(command, code, stdout=out, stderr=b"")
@@ -91,6 +101,15 @@ class UvSyncTest(unittest.TestCase):
         self.assertEqual(os.environ.get("UV_SYSTEM_CERTS"), "true")
         self.assertTrue(any("UV_SYSTEM_CERTS=true" in line for line in self.logs))
 
+    def test_old_uv_retries_with_native_tls(self):
+        # 古い uv は UV_SYSTEM_CERTS を黙って無視するので、UV_NATIVE_TLS でやり直す。
+        fake = FakeUv([(2, TLS_OUTPUT), (0, b"")], help_text=OLD_HELP)
+        self.assertEqual(self.sync(fake), 0)
+        self.assertEqual(fake.calls[1][1].get("UV_NATIVE_TLS"), "true")
+        self.assertNotIn("UV_SYSTEM_CERTS", fake.calls[1][1])
+        self.assertEqual(os.environ.get("UV_NATIVE_TLS"), "true")
+        self.assertNotIn("UV_SYSTEM_CERTS", os.environ)
+
     def test_raises_when_retry_also_fails_on_tls(self):
         fake = FakeUv([(2, TLS_OUTPUT), (2, TLS_OUTPUT)])
         with self.assertRaises(common.UvTlsError) as caught:
@@ -110,6 +129,7 @@ class UvSyncTest(unittest.TestCase):
                 with self.assertRaises(common.UvTlsError) as caught:
                     self.sync(fake)
                 self.assertEqual(len(fake.calls), 1)
+                self.assertEqual(fake.help_calls, 0)
                 self.assertIn(f"{name}={value}", str(caught.exception))
                 self.assertEqual(os.environ[name], value)
 
