@@ -18,20 +18,35 @@ ENV_NAME = "INFO_HIVE_POC_DATA"
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _from_worktree_path(root: Path) -> Path | None:
+    """.claude/worktrees/<名前> の配置なら、パスからメインのチェックアウトを求める。"""
+    parts = root.parts
+    for i in range(len(parts) - 2):
+        if parts[i] == ".claude" and parts[i + 1] == "worktrees":
+            return Path(*parts[:i])
+    return None
+
+
 def main_checkout(root: Path = ROOT) -> Path:
-    """root が worktree なら、メインのチェックアウトのパスを返す。そうでなければ root を返す。"""
+    """root が worktree なら、メインのチェックアウトのパスを返す。そうでなければ root を返す。
+
+    .git ファイルの gitdir から求める。Windows で作った worktree を WSL から使うと、
+    gitdir が Windows の形式（C:/...）で読めないので、そのときは .claude/worktrees/<名前>
+    の配置からパスで求める。
+    """
     dot_git = root / ".git"
     if not dot_git.is_file():
         return root
+    fallback = _from_worktree_path(root) or root
     text = dot_git.read_text(encoding="utf-8").strip()
     if not text.startswith("gitdir:"):
-        return root
+        return fallback
     gitdir = Path(text[len("gitdir:"):].strip())
     if not gitdir.is_absolute():
         gitdir = (root / gitdir).resolve()
     commondir = gitdir / "commondir"
     if not commondir.is_file():
-        return root
+        return fallback
     common = Path(commondir.read_text(encoding="utf-8").strip())
     if not common.is_absolute():
         common = (gitdir / common).resolve()
