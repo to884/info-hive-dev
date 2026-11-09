@@ -8,6 +8,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0,str(ROOT/'info-hive-rag/scripts'))
 from rag_config import Config
 from rag_index import Engine
@@ -16,7 +18,7 @@ from rag_indexes import statistics,version
 class IndexTests(unittest.TestCase):
     def setUp(self):
         import numpy as np
-        self.temp=tempfile.TemporaryDirectory(dir=os.environ.get('RAG_TEST_RUN_ROOT',str(ROOT/'.rag-poc-data')),ignore_cleanup_errors=True)
+        self.temp=tempfile.TemporaryDirectory(dir=os.environ.get('RAG_TEST_RUN_ROOT',str(POC_DATA)),ignore_cleanup_errors=True)
         self.addCleanup(self.temp.cleanup)
         self.root=Path(self.temp.name); self.wiki=self.root/'wiki'; self.wiki.mkdir()
         (self.wiki/'SCHEMA.md').write_text('# 索引試験\n',encoding='utf-8')

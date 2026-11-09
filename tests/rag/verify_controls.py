@@ -6,13 +6,13 @@ import time
 from pathlib import Path
 
 from filelock import FileLock
-from verify_pipeline import ROOT, OUT, connect, call, wait_until
+from verify_pipeline import ROOT, POC_DATA, OUT, connect, call, wait_until
 from rag_config import Config, write_json
 from rag_jobs import Jobs
 
 
 async def main():
-    run = Path(os.environ.get('RAG_TEST_RUN_ROOT',str(ROOT/'.rag-poc-data'))) / f"k{int(time.time())}"
+    run = Path(os.environ.get('RAG_TEST_RUN_ROOT',str(POC_DATA))) / f"k{int(time.time())}"
     references = run / "references"
     references.mkdir(parents=True)
     source = references / "controls.pdf"
@@ -25,7 +25,7 @@ async def main():
     wiki = run / "wiki"
     (wiki / "sources").mkdir(parents=True)
     (wiki / "SCHEMA.md").write_text("# 制御試験\n", encoding="utf-8")
-    base = Path(os.environ['RAG_TEST_BASE_CONFIG']) if os.environ.get('RAG_TEST_BASE_CONFIG') else sorted((ROOT / ".rag-poc-data").glob("j*/config.json"))[-1]
+    base = Path(os.environ['RAG_TEST_BASE_CONFIG']) if os.environ.get('RAG_TEST_BASE_CONFIG') else sorted((POC_DATA).glob("j*/config.json"))[-1]
     values = json.loads(base.read_text(encoding="utf-8"))
     values.update(data_dir=str(run / "data"), batch_size=2)
     if os.environ.get('RAG_TEST_MODEL_CACHE'):

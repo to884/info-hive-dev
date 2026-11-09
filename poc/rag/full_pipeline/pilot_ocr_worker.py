@@ -5,14 +5,16 @@ import sys
 import time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0,str(ROOT/'info-hive-rag/scripts'))
 from rag_config import Config,write_json
 from rag_ocr_client import OcrClient
 
 def main():
-    work=ROOT/'.rag-poc-data/full-ocr-20261104'
+    work=POC_DATA/'full-ocr-20261104'
     out=ROOT/'docs/research/rag-full-pipeline-2026-11-04'
-    image=ROOT/'.rag-poc-data/ocr-remaining-20261104/low_resolution.png'
+    image=POC_DATA/'ocr-remaining-20261104/low_resolution.png'
     expected=(work/'pilot/cli/low_resolution.txt').read_text(encoding='utf-8-sig').strip()
     from PIL import Image
     blank=work/'pilot/blank.png'; Image.new('RGB',(500,700),'white').save(blank)

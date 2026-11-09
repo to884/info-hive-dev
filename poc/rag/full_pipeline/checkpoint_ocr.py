@@ -4,12 +4,14 @@ import json
 import sqlite3
 import time
 from pathlib import Path
+import sys
 import psutil
 ROOT=Path(__file__).resolve().parents[3]
-import sys
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0,str(ROOT/'info-hive-rag/scripts'))
 from rag_config import write_json
-WORK=ROOT/'.rag-poc-data/full-ocr-20261104'
+WORK=POC_DATA/'full-ocr-20261104'
 OUT=ROOT/'docs/research/rag-full-pipeline-2026-11-04'
 
 def saved():

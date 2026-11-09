@@ -396,7 +396,7 @@ def main():
 <section id="repro">
 <h2>17. 再現と出典</h2>
 <p>スクリプトは <code>poc/rag/decision/</code>、結果の JSON は <code>docs/research/embedding-backend-decision-2026-11-06/</code> にある。手順とファイルの一覧は同じフォルダーの README.md に書いた。</p>
-<pre>set INFO_HIVE_POC_DATA=C:\\Works\\info-hive-dev\\.rag-poc-data
+<pre>set INFO_HIVE_POC_DATA=C:\\Works\\info-hive-dev-data\\rag-poc-data
 cd poc\\rag\\decision
 %INFO_HIVE_POC_DATA%\\unification-20261105\\venv\\Scripts\\python.exe -X utf8 decision_summary.py
 %INFO_HIVE_POC_DATA%\\unification-20261105\\venv\\Scripts\\python.exe -X utf8 build_decision_report.py</pre>

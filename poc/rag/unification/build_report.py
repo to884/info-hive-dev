@@ -527,7 +527,7 @@ ul.tight li {{ margin: 2px 0; }}
 <li>既存の調査: <code>docs/research/japanese-pdf-local-rag-options.md</code>、<code>docs/research/rag-execution-architecture/brainstorm-diverge-converge.md</code>、<code>docs/research/rag-validation-remaining-2026-11-04/</code></li>
 <li>ADR: <code>docs/adr/0001</code>、<code>0002</code>、<code>0007</code></li>
 <li>コード: <code>info-hive-wiki/skills/info-hive/scripts/wiki_search.py</code>、<code>info-hive-rag/scripts/rag_index.py</code>、<code>rag_server.py</code>、<code>info-hive-wiki/commands/ingest.md</code></li>
-<li>データ: <code>.rag-poc-data/full-20261104/</code>（761,915 チャンク、60 問）、<code>.rag-poc-data/natural-20261104/</code>（8,275 チャンク、119 問）</li>
+<li>データ（PoC データの置き場所の中）: <code>full-20261104/</code>（761,915 チャンク、60 問）、<code>natural-20261104/</code>（8,275 チャンク、119 問）</li>
 </ul>
 </section>
 <footer>最終更新: {today}。数値は <code>scores.json</code> ほかの JSON から生成。</footer>

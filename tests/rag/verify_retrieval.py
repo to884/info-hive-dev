@@ -2,12 +2,12 @@
 import asyncio
 import json
 import time
-from verify_pipeline import ROOT,connect,call
+from verify_pipeline import ROOT,POC_DATA,connect,call
 from rag_config import Config,write_json
 
 
 async def main():
-    run=ROOT/'.rag-poc-data'/f'retrieval-{int(time.time())}'
+    run=POC_DATA/f'retrieval-{int(time.time())}'
     wiki=run/'wiki'; (wiki/'sources').mkdir(parents=True)
     (wiki/'SCHEMA.md').write_text('# 検索設定の検証\n',encoding='utf-8')
     references=run/'references'; references.mkdir()

@@ -6,7 +6,6 @@ en と ja のそれぞれで --gate と --baseline（許容幅 0.05）を判定�
 両方で測る。
 
 使い方（依存は wiki_mcp_server.py の宣言と同じ版にそろえる）:
-    set INFO_HIVE_POC_DATA=C:\\Works\\info-hive-dev\\.rag-poc-data
     uv run --python 3.12 --with mcp==1.30.0 --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 ^
         --with fastembed==0.8.0 --with onnxruntime==1.31.1 python -X utf8 tests/wiki/run_mcp_gate.py
 
@@ -27,6 +26,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import poc_data_dir  # noqa: E402
 EVAL = ROOT / "info-hive-wiki/eval/retrieval"
 OUT = ROOT / "docs/research/wiki-mcp-server-2026-11-06"
 E8 = ROOT / "docs/research/embedding-backend-decision-2026-11-06/wiki-gate.json"
@@ -34,9 +35,7 @@ FUSIONS = {"adr-0011": "30,0.5,200", "e8-wiki-default": "60,1.0,50"}
 
 
 def data_dir() -> Path:
-    base = os.environ.get("INFO_HIVE_POC_DATA")
-    if not base:
-        raise SystemExit("INFO_HIVE_POC_DATA（作業データの置き場所）を設定する")
+    base = poc_data_dir()
     return Path(base) / "wiki-mcp-20261106" / "data"
 
 

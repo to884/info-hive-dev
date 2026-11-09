@@ -17,12 +17,14 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0, str(ROOT / "info-hive-rag/scripts"))
 from rag_config import Config, write_json
 from rag_jobs import Jobs
 
 WORK = Path(os.environ.get("RAG_TEST_WORK", str(Path(os.environ.get("LOCALAPPDATA", str(Path.home() / ".cache"))) / "info-hive/rag-poc/2026-11-04"))).resolve()
-RUN = Path(os.environ.get("RAG_TEST_RUN_ROOT", str(ROOT / ".rag-poc-data"))) / f"j{int(time.time())}"
+RUN = Path(os.environ.get("RAG_TEST_RUN_ROOT", str(POC_DATA))) / f"j{int(time.time())}"
 OUT = Path(os.environ.get("RAG_TEST_OUTPUT", str(ROOT / "docs/research/rag-pdf-job-integration-2026-11-04")))
 RESULTS = []
 

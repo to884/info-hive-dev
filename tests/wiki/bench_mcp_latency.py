@@ -9,7 +9,6 @@
 コーパスは wiki の評価セット（en と ja）で、クエリは評価セットのクエリ全部を使う。
 ADR-0012 の上乗せの目安は、mcp_relay と direct の p95 の差が 15 ms 以内。
 
-    set INFO_HIVE_POC_DATA=C:\\Works\\info-hive-dev\\.rag-poc-data
     uv run --python 3.12 --with mcp==1.30.0 --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 ^
         --with fastembed==0.8.0 --with onnxruntime==1.31.1 --with psutil==7.2.2 ^
         python -X utf8 tests/wiki/bench_mcp_latency.py
@@ -31,6 +30,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import poc_data_dir  # noqa: E402
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT / "info-hive-wiki/skills/info-hive/scripts"))
 from mcp_stdio import StdioClient, relay_command  # noqa: E402
@@ -56,9 +57,7 @@ def timed(fn) -> float:
 
 
 def main() -> None:
-    base = os.environ.get("INFO_HIVE_POC_DATA")
-    if not base:
-        raise SystemExit("INFO_HIVE_POC_DATA を設定する")
+    base = poc_data_dir()
     work = Path(base) / "wiki-mcp-20261106"
     os.environ["INFO_HIVE_DATA_DIR"] = str(work / "data-bench")
     shutil.rmtree(work / "data-bench", ignore_errors=True)

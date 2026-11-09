@@ -4,9 +4,9 @@ import hashlib
 import json
 import sqlite3
 from pathlib import Path
-from full_ocr import ROOT,fingerprint
+from full_ocr import ROOT,POC_DATA,fingerprint
 from rag_config import write_json
-WORK=ROOT/'.rag-poc-data/full-ocr-gpu-20261104'
+WORK=POC_DATA/'full-ocr-gpu-20261104'
 OUT=ROOT/'docs/research/rag-full-pipeline-2026-11-04'
 
 def normalized(source):

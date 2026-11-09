@@ -11,12 +11,14 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0, str(ROOT / "info-hive-rag/scripts"))
 from rag_config import Config, write_json
 from rag_pdf import chunks_for
 
-WORK = ROOT / ".rag-poc-data/natural-20261104"
-CACHE = ROOT / ".rag-poc-data/model-cache"
+WORK = POC_DATA / "natural-20261104"
+CACHE = POC_DATA / "model-cache"
 OUT = ROOT / "docs/research/rag-validation-remaining-2026-11-04"
 
 

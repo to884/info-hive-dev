@@ -23,6 +23,8 @@ import yaml
 from sentence_transformers import SentenceTransformer, CrossEncoder
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "poc"))
+from poc_data import POC_DATA  # noqa: E402
 WORK = (Path(os.environ["LOCALAPPDATA"]) / "info-hive/rag-poc/2026-11-04").resolve()
 OUT = ROOT / "docs/research/rag-poc-2026-11-04"
 MODEL_REVISIONS = {
@@ -120,7 +122,7 @@ def main():
     data = json.loads(corpus_bytes)
     corpus = data["corpus"]
     queries = [query for query in data["queries"] if query["expected"]]
-    folder = ROOT / ".rag-poc-data" / f"bench-{args.model}-{time.time_ns()}"
+    folder = POC_DATA /  f"bench-{args.model}-{time.time_ns()}"
     folder.mkdir(parents=True)
     peak = [0]
     stopped = threading.Event()

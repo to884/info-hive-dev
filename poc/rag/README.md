@@ -16,7 +16,7 @@ uv pip install --python .rag-venv/Scripts/python.exe -r poc/rag/requirements-loc
 
 `LOCALAPPDATA/info-hive/rag-poc/2026-11-04` が実行領域となる。
 Codex の Windows パッケージ環境では、モデルの保存先は `Path.resolve()` した物理パスを使う。
-索引の書き込み先は `.rag-poc-data/` で、Git の対象から外してある。
+索引の書き込み先は PoC データの置き場所で、リポジトリの外にある。置き場所は `poc/poc_data.py` が決める。既定はメインのチェックアウトの隣の `info-hive-dev-data/rag-poc-data` で、環境変数 `INFO_HIVE_POC_DATA` で変えられる。リポジトリの中に大量のファイルを置くと、worktree の作成や git の走査が遅くなるためである。
 
 Qdrant は [v1.20.0 の Windows バイナリ](https://github.com/qdrant/qdrant/releases/download/v1.20.0/qdrant-x86_64-pc-windows-msvc.zip) を展開し、実行領域の `qdrant-bin/qdrant.exe` に置く。
 スクリプトが専用の loopback ポートで起動し、処理終了時に停止する。
