@@ -24,6 +24,13 @@
 - `docs/adr/` には設計の決定を、`docs/research/` には調査レポートを、`docs/plans/` には実装の計画を、`docs/agent-runs/` には複数のエージェントに依頼した作業の記録を置く。
 - `docs/upstream/translation-hashes.txt` には、移植元から取り込んだときの日本語訳のファイルの SHA-256 を記録している。
 
+## 設計と実装のレビューについて
+
+設計と実装が完了する度に、以下のタスクを実行する。
+
+- Claude Code で実行している場合は、`ask-codex` スキルを用いて Sol による敵対的レビューを行う
+- Codex で実行している場合は、`ask-claude` スキルを用いて Opus による敵対的レビューを行う
+
 ## wiki プラグイン（info-hive-wiki）の開発
 
 `info-hive-wiki` は、Claude Code プラグイン llm-wiki（praneybehl/llm-wiki-plugin v4.0.1）を日本語に特化して移植したものである。`info-hive-wiki` で作業する前に [docs/porting-plan.html](docs/porting-plan.html) の方針と段階を読み、それに従う。移植元との関係は [info-hive-wiki/UPSTREAM.md](info-hive-wiki/UPSTREAM.md) に記録する。
@@ -86,3 +93,15 @@
 使用した MCP サーバー: なし
 使用した Agent Skills: git-conventions、claude-api
 ```
+
+## LLM Wiki
+
+このプロジェクトでは、Andrej Karpathy の「LLM Wiki」のパターン（https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f）に従い、LLM が管理する wiki を `wiki/` に置いている。
+
+このプロジェクトで蓄積した知識をもとに答える質問では、先に `wiki/index.md`（インデックスを分割した wiki では、`wiki/indexes/` の該当するファイル）を読み、1行の要約から必要なページを探す。引用には `[[wikilinks]]` を使う。インデックスからよい候補が見つからなければ、`info-hive` スキルの `wiki_search.py` でローカルのハイブリッド検索をする。依存パッケージを使わない BM25 にするには `--no-embed` を付ける。
+
+新しいソースを加えるときは、`info-hive` スキルの取り込みのワークフローに従う。`wiki/sources/`、`wiki/entities/`、`wiki/concepts/`、`wiki/synthesis/` のどこに置くかを決め、影響するページを洗い出し、ページを書き直さずに `str_replace` で必要な箇所だけを更新する。インデックスを更新し、`wiki/log.md` に1行の記録を追記する。
+
+規模を保つための規律: ページは1つの話題に絞る（目安は空白を除いて 10,000 文字または 100 行、上限は 25,000 文字または 200 行）。約 150 ページか、インデックスが 300 行を超えたら、インデックスを分割する。どのページにも YAML の frontmatter を付け、相互参照にはすべて `[[wikilinks]]` を使う。
+
+規約の全体は `wiki/SCHEMA.md` にある。この要約と食い違うときは、`wiki/SCHEMA.md` に従う。
