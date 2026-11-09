@@ -1,0 +1,540 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index a686fa9..aa6e309 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "wiki",
+-  "version": "0.8.0",
++  "version": "0.9.0",
+   "description": "日本語による Markdown の wiki を構築し、ローカルのハイブリッド検索、出典つきの回答、グラフ、タスクの経験からのスキル改善を提供する。praneybehl/llm-wiki-plugin v4.0.1 の日本語向け移植版。",
+   "author": {
+     "name": "to884"
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index bce329f..29ca927 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,20 @@
+ 
+ ## [Unreleased]
+ 
++## [0.9.0] - 2026-11-09
++
++### Added
++
++- lint（`wiki_lint.py` と MCP のツール `lint`）に `case_only_duplicates` を足した。`concepts/Kalman.md` と `concepts/kalman.md`、`Concepts/` と `concepts/` のように、大文字と小文字だけが違うページかディレクトリを挙げる。Windows と macOS の既定のファイルシステムでは同じ場所を取るので、閲覧のための書き出しで困る。1 件は `{"kind": "file" | "dir", "paths": [...]}` で、`summary.case_only_duplicates` に件数が入る。報告するだけで、wiki は直さない。
++- ページの集合と wikilink の抜き出しと解決の規則を、新しい `scripts/wiki_pages.py` の 1 か所にまとめた。lint、検索（MCP の `query` の索引を含む）、統計、グラフ、判定レイヤーがこれを使う。閲覧（browse）の準備である（ADR-0010 の決定の 1）。
++
++### Changed
++
++- コードブロック（フェンスと字下げ）とインラインのコードの中の `[[...]]` を、wikilink として数えなくなった。lint のリンク切れと被リンク、検索の `links`、グラフの `mentions` のエッジ、統計のリンクの数、判定レイヤーの矛盾の候補が変わる。本文は、閲覧が使う markdown-it（markdown-it-py 3.0.0、commonmark、表を有効）のブロックの規則に沿って読む。引用とリストの入れ子の中のフェンス、行をまたぐコードスパン、4 連のバッククォートの中の 3 連、表のセル、参照リンクの定義（`[ref]: url "タイトル"`）も見分ける。`\[\[x]]` のように角括弧を escape したものは wikilink として数え、`[[R&amp;D]]` のような文字参照は元の文字（`R&D`）に戻してから解決する。markdown-it と同じ結果になることは試験で突き合わせているが、強調の記号を含む行き先（`[[a *b* c]]`）や、リンクと画像の文字の中の `[[...]]` など、まれな形では違うことがある。
++- 検索（`wiki_search.py` と MCP の `query`）が、wiki の最上位の `README.md` と `assets/` の中の Markdown を対象にしなくなった。lint と統計は `.wiki-cache/` の中の Markdown を、グラフは `assets/` と `.wiki-cache/` の中の Markdown を、ページとして数えなくなった。どれも、lint が数えていたページの集合にそろえた。外れるページがある wiki では、検索の BM25 の文書数が変わるので、残ったページの順位も変わりうる。MCP の `get_page` は `README.md` を返さなくなった。
++- 検索のセクションの分割が、コードブロックの中の `#` と、`#　見出し` のように `#` のあとが全角空白の行で分かれなくなった（閲覧でも見出しにならない）。検索のパースキャッシュ（`search-index.json`）は、形式の番号を上げたので自動で作り直される。
++- グラフ層を使っている wiki は、`wiki_graph_extract.py` でグラフを作り直す。0.8.0 で作った `graph/graph.sqlite` などは、作り直すまで、コードの中の `[[...]]` によるエッジと、`assets/` の中のノードを含んだままである。MCP のツール `graph` も、作り直すまで古い結果を返す。
++
+ ## [0.8.0] - 2026-11-09
+ 
+ ### Added
+diff --git a/commands/lint.md b/commands/lint.md
+index 5e7f567..f77710c 100644
+--- a/commands/lint.md
++++ b/commands/lint.md
+@@ -10,7 +10,7 @@ argument-description: "`--suggest-pages` を付けると、独立したページ
+ 
+ 0. `<WIKI_ROOT>` は、ユーザーが明示したパス、もっとも近いプロジェクトの指示、グローバルなエージェントの指示の順に探し、どれにもなければ作業領域の設定（`.info-hive/workspace.json`）の `dirs.wiki`、それもなければ現在のプロジェクトの `wiki/` とする。指示が別の wiki を指定しているときに、`${PWD}/wiki` を前提にしてはならない。
+ 1. このセッションでまだ読んでいなければ、最初に `<WIKI_ROOT>/SCHEMA.md` を読む。追加の lint ルールが定義されていることがある。
+-2. 構造の lint をかける。MCP のツールと CLI の使い分けは、`info-hive` スキルの「MCP のツールと CLI の使い分け」に従う。wiki の MCP サーバーのツール `lint` が使える場合は、`wiki=<WIKI_ROOT の絶対パス>` を渡す（ツール名は接続に表示されたもの。Claude Code では `mcp__plugin_wiki_wiki__lint`）。ユーザーが求めた場合は `suggest_pages=true` を渡す。`SCHEMA.md` がページの大きさの上限や必須の frontmatter を既定と違う値に決めている場合は、`soft_cap`、`hard_cap`、`soft_char_cap`、`hard_char_cap`、`required_fm` にその値を渡す。`SCHEMA.md` の「タグの体系」にタグが並んでいれば、そのタグをすべて `allowed_tags` に配列で渡す（「構成の例」に挙げたタグも、この wiki で使っているなら含める）。体系がひな形のまま空なら、渡さない。渡さないとタグの検査はせず、`summary.unknown_tags` が `null` になる。ツールが使えない場合は、`python "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_lint.py" "<WIKI_ROOT>"` を実行する（`--suggest-pages`、`--soft-cap`、`--allowed-tags`（カンマ区切り）などの同じ意味の引数がある）。この検査は、孤立ページ、リンク切れの wikilink、大きすぎるページ（空白を除いて 10,000 文字か 100 行を超えると警告、25,000 文字か 200 行を超えると要分割）、frontmatter の欠落、更新の止まったページ、重複したスラッグ、参照先のない画像（`missing_assets`）を検出する。索引（`index.md` と `indexes/`）の見出しとそこに並ぶページの `type` の食い違い（`index_type_mismatch`）、ないページや source でないページを指す `sources:`（`unresolved_sources`）、原本のない source ページの `raw:`（`missing_raw`）、タグの体系にないタグ（`unknown_tags`）も検出する。ページの大きさには、コードフェンス（mermaid の図を含む）の中身と画像だけの行を数えない。日本語で書いた wiki に特有の誤りとして、frontmatter の全角の「：」、「、」で区切ったリスト、英語と日本語の別名の重複、`YYYY-MM-DD` でない日付、wikilink の中の全角の「｜」と「＃」、二重引用符で囲まれていない文字列の値も指摘する。
++2. 構造の lint をかける。MCP のツールと CLI の使い分けは、`info-hive` スキルの「MCP のツールと CLI の使い分け」に従う。wiki の MCP サーバーのツール `lint` が使える場合は、`wiki=<WIKI_ROOT の絶対パス>` を渡す（ツール名は接続に表示されたもの。Claude Code では `mcp__plugin_wiki_wiki__lint`）。ユーザーが求めた場合は `suggest_pages=true` を渡す。`SCHEMA.md` がページの大きさの上限や必須の frontmatter を既定と違う値に決めている場合は、`soft_cap`、`hard_cap`、`soft_char_cap`、`hard_char_cap`、`required_fm` にその値を渡す。`SCHEMA.md` の「タグの体系」にタグが並んでいれば、そのタグをすべて `allowed_tags` に配列で渡す（「構成の例」に挙げたタグも、この wiki で使っているなら含める）。体系がひな形のまま空なら、渡さない。渡さないとタグの検査はせず、`summary.unknown_tags` が `null` になる。ツールが使えない場合は、`python "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_lint.py" "<WIKI_ROOT>"` を実行する（`--suggest-pages`、`--soft-cap`、`--allowed-tags`（カンマ区切り）などの同じ意味の引数がある）。この検査は、孤立ページ、リンク切れの wikilink、大きすぎるページ（空白を除いて 10,000 文字か 100 行を超えると警告、25,000 文字か 200 行を超えると要分割）、frontmatter の欠落、更新の止まったページ、重複したスラッグ、大文字と小文字だけが違うページかディレクトリ（`case_only_duplicates`）、参照先のない画像（`missing_assets`）を検出する。コードブロックとインラインのコードの中の `[[...]]` は、リンクとして数えない。索引（`index.md` と `indexes/`）の見出しとそこに並ぶページの `type` の食い違い（`index_type_mismatch`）、ないページや source でないページを指す `sources:`（`unresolved_sources`）、原本のない source ページの `raw:`（`missing_raw`）、タグの体系にないタグ（`unknown_tags`）も検出する。ページの大きさには、コードフェンス（mermaid の図を含む）の中身と画像だけの行を数えない。日本語で書いた wiki に特有の誤りとして、frontmatter の全角の「：」、「、」で区切ったリスト、英語と日本語の別名の重複、`YYYY-MM-DD` でない日付、wikilink の中の全角の「｜」と「＃」、二重引用符で囲まれていない文字列の値も指摘する。
+ 2b. グラフの lint の結果も見る。ツールの `lint` は、`<WIKI_ROOT>/graph/ontology.yaml` があれば、グラフの lint の結果を `graph.findings` に入れて返す（`graph.state` が `checked`）。`disabled` はオントロジーがない wiki、`error` はオントロジーを読めないことを表す。CLI を使った場合と、判定レイヤーの `--decide` が要る場合は、オントロジーがあれば `uv run --script "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_graph_lint.py" "<WIKI_ROOT>"` も実行する。型付きエッジの検出結果（未知の述語、証拠の欠落、リンク切れの目的語の参照、エイリアスの衝突）も、構造の検出結果と同じように仕分ける。つまり、修正案を示し、黙って適用しない。承認された修正を適用したら、`uv run --script "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_graph_extract.py" "<WIKI_ROOT>"` の実行を提案する。
+ 3. 構造の検出結果をユーザーと一緒に1件ずつ確認し、それぞれに修正案を示す。黙って修正を適用してはならない。1件ずつ、またはまとめての承認を待つ。
+ 4. 内容の確認を行う。最近更新されたページと、もっとも多くリンクされているハブページを読む（ツールの `stats` の `most_linked` に上位 10 件がある。ツールが使えなければ `python "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_search.py" "" --wiki "<WIKI_ROOT>" --top-linked 10` で見つけられる）。古いページとの矛盾、張られていない相互参照、多くのページで言及されているのに専用のページがないコンセプトを探す。
+diff --git a/commands/upgrade.md b/commands/upgrade.md
+index 7d11860..0564a86 100644
+--- a/commands/upgrade.md
++++ b/commands/upgrade.md
+@@ -21,6 +21,7 @@ argument-description: "`--user` を付けるとユーザースコープの wiki
+    - ページでグラフ層を使い始めるときは、明示的なソースが裏づけている場合に限って、型付きの `graph.relationships[]` を追加する。詳しくは `skills/info-hive/references/graph-workflow.md` を参照。
+    - グラフの lint と抽出は、PyYAML のバージョンを固定したメタデータを持ち、`uv run --script` で実行される。手作業での `pip install` は不要である。
+    - `/wiki:ingest` に URL を渡すと、`wiki_fetch.py` で Web ページを取り込める。既存の wiki に移行作業は要らない。画像は `raw/assets/<スラッグ>/` に保存する。`raw/assets/` は `init_wiki.py` がすでに作っている。
++   - コードブロックとインラインのコードの中の `[[...]]` を、wikilink として数えなくなった。グラフ層を使っている wiki は、`wiki_graph_extract.py` でグラフを作り直すよう伝える（作り直すまで、MCP の `graph` は古い結果を返す）。検索は、最上位の `README.md` と `assets/` の中の Markdown を対象にしなくなった。
+    - 取り込みで、ソースの要約ページに `## 主張と行き先` の表を残すようになった。抜き出した主張ごとに、どのページへ送ったか（`create`、`update`、`source_only`）と理由を書く。既存のソースのページに移行作業は要らず、次に取り込むソースから表が付く。`init_wiki.py` は既存の `.page-template.md` を上書きしないので、テンプレートの `## 関係するページ` の直前にこのセクションを足すことを提案する。
+    - 知識ページに図表を入れられるようになった。`--upgrade` で `wiki/assets/`（svg の図の置き場所）ができる。既存のページに移行作業は要らない。ページの大きさは、コードフェンスの中身と画像だけの行を除いて数えるようになったので、mermaid の図の多いページは、以前より小さく数えられる。
+ 
+diff --git a/skills/info-hive/SKILL.md b/skills/info-hive/SKILL.md
+index 31892d8..7c15803 100644
+--- a/skills/info-hive/SKILL.md
++++ b/skills/info-hive/SKILL.md
+@@ -199,7 +199,8 @@ gist をめぐるコミュニティの議論で、このパターンがうまく
+ - `scripts/init_wiki.py`: wiki を初期化またはアップグレードし、実行環境とインデックスのセットアップが確認できるまで完了としない
+ - `scripts/setup_wiki.py`: `uv` を通じてバージョンを固定した FastEmbed、sqlite-vec、PyYAML をインストールし、ローカルのモデルをキャッシュし、パースとベクトルのインデックスを同期する
+ - `scripts/wiki_search.py`: セクション単位のローカルのハイブリッド検索。JSON の証拠、フィルター、差分更新のキャッシュ、依存パッケージを使わない語彙ベースの検索への切り替えを備える
+-- `scripts/wiki_lint.py`: 構造の健全性チェック（孤立ページ、リンク切れ、大きすぎるページ、frontmatter の検証、古い日付、`YYYY-MM-DD` でない日付）
++- `scripts/wiki_lint.py`: 構造の健全性チェック（孤立ページ、リンク切れ、大きすぎるページ、frontmatter の検証、古い日付、`YYYY-MM-DD` でない日付、大文字と小文字だけが違うページ）
++- `scripts/wiki_pages.py`: lint、検索、統計、グラフが共有する、ページの集合と wikilink の抜き出しと解決の規則。コードの中の `[[...]]` はリンクとして数えない
+ - `scripts/wiki_stats.py`: wiki の規模（ページ数、行数、文字数）、種類別のページ数、リンク密度の簡単なまとめ。インデックスを分割するタイミングを決めるのに役立つ
+ - `scripts/wiki_fetch.py`: Web ページを取得し、本文を Markdown にして画像とともに `raw/` に保存する。原文の HTML の SHA-256 を記録し、同じ内容の再取得を見分ける。翻訳と画像の説明はモデルが行う
+ - `scripts/wiki_encoding.py`: テキストのソースの文字コード（UTF-8、Shift_JIS、EUC-JP、ISO-2022-JP）を調べ、必要なら UTF-8 に変換した別のファイルを書き出す。元のファイルは書き換えない
+diff --git a/skills/info-hive/references/lint-workflow.md b/skills/info-hive/references/lint-workflow.md
+index 583ca9b..fb59916 100644
+--- a/skills/info-hive/references/lint-workflow.md
++++ b/skills/info-hive/references/lint-workflow.md
+@@ -28,15 +28,18 @@ uv run --script scripts/wiki_graph_lint.py wiki/
+ 
+ ユーザーが任意の判定レイヤーを有効にしている場合は、ツールではなく `wiki_graph_lint.py` を使い、`--decide` を付ける。証拠のテキストがソースページに出てこない型付きエッジをチェックする。矛盾を洗い出すには、`python scripts/wiki_decide.py contradictions --wiki wiki/` を実行し、報告されたページの組を読んでから判断する。`decision-models.md` を参照。
+ 
++lint が調べるページは、wiki の中の `.md` のうち、最上位の `SCHEMA.md`、`index.md`、`log.md`、`README.md` と、最上位の `indexes/`、`graph/`、`raw/`、`assets/`、`.evolution/`、`.wiki-cache/` の中のものと、名前が `.` で始まるファイルを除いたものである。検索（`wiki_search.py` と MCP の `query`）、統計、グラフも同じページを対象にする（`scripts/wiki_pages.py`）。
++
+ lint のレポートには、次のものが含まれる。
+ 
+ - **孤立ページ**: wiki のほかのどこからも wikilink で参照されていないページ。孤立ページは、たいてい、取り込みで親ページの更新を忘れたことを示す。インデックスを先に読むたどり方では見つけられないので、見えなくなる。
+-- **リンク切れの wikilink**: 存在しないページを指す `[[slug]]` の参照。たいていは、入力ミスか、参照元を更新せずに名前を変えたページである。ファイル名とリンク先は NFC にそろえてから比べるが、大文字と小文字は区別するので、`[[Kalman-Filter]]` は `kalman-filter.md` に解決しない。
++- **リンク切れの wikilink**: 存在しないページを指す `[[slug]]` の参照。たいていは、入力ミスか、参照元を更新せずに名前を変えたページである。ファイル名とリンク先は NFC にそろえてから比べるが、大文字と小文字は区別するので、`[[Kalman-Filter]]` は `kalman-filter.md` に解決しない。コードブロック（フェンスと字下げ）とインラインのコード（`` `[[例]]` ``）の中の `[[...]]` は、リンクとして数えない。記法の例を書くときは、コードに入れればリンク切れとして挙がらない。`\[\[例]]` のように角括弧を escape しても、リンクとして数える（閲覧で描く文字と同じ）。どこがコードかは、閲覧が使う markdown-it と同じ規則で決める。強調の記号を含む行き先など、まれな形では閲覧と違うことがある。
+ - **大きすぎるページ**: ハード上限（空白を除いて 25,000 文字、または 200 行）を超えるもの。ソフト上限（空白を除いて 10,000 文字、または 100 行）を超えるものは、分割を検討する大きいページとして別に挙がる。文字数は空白と改行を除いたコードポイントの数で、日本語も英語も 1 文字を 1 と数える。コードフェンス（mermaid の図を含む）の中身と、画像だけの行は、文字数にも行数にも数えない。上限は `--soft-char-cap`、`--hard-char-cap`、`--soft-cap`、`--hard-cap` で変えられる。
+ - **画像の参照先がない**（`missing_assets`）: 本文の `![説明](パス)` の参照先のファイルがないもの、または wiki の外を指すもの。参照先はページのファイルがあるディレクトリを基準に解決する。`wiki/<種類>/` のページから `wiki/assets/` の svg を `assets/...` と書いた場合は、正しい相対パス（`../assets/...`）を添えて指摘する。URL と、コードの中の画像の記法は見ない。
+ - **frontmatter の問題**: 必須のフィールド（既定では `type`、`title`、`tags`、`created`、`updated`。`--required-fm` で変えられる）がない、または YAML の形式が正しくないページ。
+ - **更新の止まったページ**: 被リンクが 3 つ以上あるのに、`updated:` の日付が 90 日より前のページ。よくリンクされるページは取り込みのたびに触れられるはずなので、スクリプトはこれで更新の止まったページを近似的に判定する。
+ - **重複したスラッグ**: 別々のサブディレクトリに、同じスラッグのページが2つあるもの（取り込みでの衝突が解消されていないことを示す）。Unicode の正規化（NFC と NFD）の違いだけで名前が異なるファイルも、重複として挙がる。
++- **大文字と小文字だけが違うページかディレクトリ**（`case_only_duplicates`）: `concepts/Kalman.md` と `concepts/kalman.md`、`Concepts/` と `concepts/` のように、大文字と小文字を同一視すると同じになるパス。Windows と macOS の既定のファイルシステムでは同じ場所を取るので、閲覧のための書き出しで名前に接尾辞が付くか、書き出しが止まる。`kind` は、ページのファイルどうしなら `file`、ディレクトリの名前が違うなら `dir` である。どちらかの名前を変えるよう提案する。
+ - **索引の分類の誤り**（`index_type_mismatch`）: `index.md` の種類の見出し（「ソース」「エンティティ」「コンセプト」「シンセシス」と、英語の `Sources` など）の下に、別の `type` のページが並んでいるもの。たとえば「シンセシス」の欄にある `type: "source"` のページである。分割した索引（`indexes/sources.md`、`indexes/entities-people.md` など）は、ファイル名を種類として読む。読むのは見出しの下のリストの項目の最初の wikilink だけで、冒頭の説明文の例示や、要約の中のリンクは数えない。索引の項目がリンク切れのとき（分割した `index.md` が `indexes/` を指すときなど）と、`type` のないページは見ない。
+ - **出典の参照切れ**（`unresolved_sources`）: frontmatter の `sources:` に、ないページ（`reason` が `missing`）か、`type` が `source` でないページ（`not_source`）を書いているもの。`sources_consulted` は種類を問わないので見ない。
+ - **原本がない**（`missing_raw`）: source ページの `raw:` が指すファイルかディレクトリがないもの。相対パスは、wiki のルート（`../raw/...`、`../W1_Raw/...`）、wiki の親（取り込みのひな形の `raw/...`）、ページのディレクトリのどれかを基準にして見つかればよい。rag が書く `C:/...` のような絶対パスはそのまま確かめる。URL は見ない。
+diff --git a/skills/info-hive/scripts/wiki_decide.py b/skills/info-hive/scripts/wiki_decide.py
+index 60db9f3..fa8992c 100644
+--- a/skills/info-hive/scripts/wiki_decide.py
++++ b/skills/info-hive/scripts/wiki_decide.py
+@@ -549,8 +549,9 @@ def contradiction_pairs(wiki: Path, max_pairs: int) -> list[tuple[str, dict, dic
+         title = page["meta"].get("title") or page["slug"]
+         for section in page["sections"]:
+             linked = set()
+-            for m in ws.WIKILINK_RE.finditer(section["text"]):
+-                slug = ws.resolve_link(m.group(1), by_path, by_slug)
++            # コードの中の [[...]] は数えない（ページの本文と同じ規則）。
++            for link in ws.extract_wikilinks(section["text"]):
++                slug = ws.resolve_link(link, by_path, by_slug)
+                 if slug in entity_titles and slug != page["slug"]:
+                     linked.add(slug)
+             text = section["text"].strip()
+diff --git a/skills/info-hive/scripts/wiki_graph_extract.py b/skills/info-hive/scripts/wiki_graph_extract.py
+index e0345ec..2cb069a 100644
+--- a/skills/info-hive/scripts/wiki_graph_extract.py
++++ b/skills/info-hive/scripts/wiki_graph_extract.py
+@@ -61,40 +61,18 @@ from wiki_text import canonical_meta, ljust_display, localize_argparse, nfc, pos
+ import wiki_graph_common as common  # noqa: E402
+ 
+ 
+-WIKILINK_RE = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]")
+-FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+-
+-
+-def clean_link_target(link: str) -> str:
+-    """wikilink から別名、アンカー、.md を取り除き、パスだけにする。"""
+-    target = link.split("|", 1)[0]      # 表示用の別名があれば取り除く
+-    target = target.split("#", 1)[0]    # 見出しのアンカーを取り除く
+-    target = target.replace("\\", "/").strip().strip("/")
+-    if target.lower().endswith(".md"):
+-        target = target[:-3]
+-    # スラッグとパスのインデックスは NFC なので、リンクの行き先も NFC にそろえる。
+-    return nfc(target.strip())
++# ページの集合とリンクの規則は wiki_pages の 1 か所に置く（ADR-0010 の決定の 1）。
++from wiki_pages import (  # noqa: E402
++    SKIP_TOP_LEVEL_DIRS,
++    SKIP_TOP_LEVEL_FILES,
++    WIKILINK_RE,
++    clean_link_target,
++    extract_wikilinks,
++    iter_page_files,
++)
++from wiki_pages import resolve_link as resolve_link_slug  # noqa: E402
+ 
+-
+-def resolve_link_slug(link: str, by_path: dict, by_slug) -> "str | None":
+-    """wikilink を、それが指すページのスラッグに解決する。解決できなければ None を返す。
+-
+-    ノード ID はファイル名のステムをキーにしているので、リンクの生のテキストで比べると、
+-    パスを付けたリンク（[[entities/kalman-filter]]）がすべて落ち、その mentions エッジは
+-    出力されない。ディレクトリの接頭辞は「制約」として扱う。パスを付けたリンクは、
+-    そのパスがちょうど存在する場合にだけ解決する。そのため [[raw/foo]] が sources/foo.md に
+-    黙って結び付き、たまたまステムが同じ別々の文書の間にエッジをでっち上げることはない。
+-    """
+-    target = clean_link_target(link)
+-    if not target:
+-        return None
+-    if "/" in target:
+-        return by_path.get(target)
+-    return target if target in by_slug else None
+-
+-
+-SKIP_TOP_LEVEL_FILES = {"SCHEMA.md", "index.md", "log.md", "README.md"}
+-SKIP_TOP_LEVEL_DIRS = {"indexes", "graph", "raw", ".evolution"}
++FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+ 
+ DEFAULT_FORMATS = ["jsonl", "sqlite", "graphml"]
+ 
+@@ -169,19 +147,16 @@ def parse_frontmatter(text: str) -> tuple[dict, str]:
+ 
+ def collect_pages(wiki_root: Path) -> list[dict]:
+     pages = []
+-    for md_path in sorted(wiki_root.rglob("*.md")):
++    for md_path in iter_page_files(wiki_root):
+         rel = md_path.relative_to(wiki_root)
+-        if rel.parts[0] in SKIP_TOP_LEVEL_FILES or rel.parts[0] in SKIP_TOP_LEVEL_DIRS:
+-            continue
+-        if rel.name.startswith("."):
+-            continue
+         try:
+             # BOM 付きの UTF-8 でも frontmatter を読めるように utf-8-sig で読む。
+             text = md_path.read_text(encoding="utf-8-sig")
+         except (UnicodeDecodeError, OSError):
+             continue
+         meta, body = parse_frontmatter(text)
+-        links = [nfc(m.group(1).strip()) for m in WIKILINK_RE.finditer(body)]
++        # コードフェンスとインラインのコードの中の [[...]] からは mentions のエッジを作らない。
++        links = extract_wikilinks(body)
+         pages.append({
+             "path": str(md_path),
+             # スラッグとパスは NFC にそろえる。lint が重複を報告するときのために、
+diff --git a/skills/info-hive/scripts/wiki_lint.py b/skills/info-hive/scripts/wiki_lint.py
+index 09a0b5e..29b0d06 100644
+--- a/skills/info-hive/scripts/wiki_lint.py
++++ b/skills/info-hive/scripts/wiki_lint.py
+@@ -10,6 +10,7 @@ frontmatter の文字列の値（配列の要素を含む）が二重引用符
+ 索引（index.md と indexes/）の見出しと、その下に並ぶページの type の食い違い、`sources:` が
+ source ページを指していないもの、source ページの `raw:` の原本がないもの、（--allowed-tags を
+ 渡した場合は）タグの体系にないタグも報告する。
++大文字と小文字だけが違うページとディレクトリも報告する。
+ 本文の画像（`![説明](../assets/x.svg)`）の参照先がないものも報告する。参照先はページのファイルが
+ あるディレクトリを基準に解決する。ページの大きさは、コードフェンス（mermaid を含む）の中身と
+ 画像だけの行を除いて数える。
+@@ -79,9 +80,20 @@ from wiki_text import (  # noqa: E402
+     unquoted_string_keys,
+ )
+ import wiki_workspace  # noqa: E402
++# ページの集合とリンクの規則は wiki_pages の 1 か所に置く（ADR-0010 の決定の 1）。ほかのスクリプトと試験が
++# wiki_lint.resolve_link などの名前で使うので、同じ名前で読み込んでおく。
++from wiki_pages import (  # noqa: E402
++    SKIP_TOP_LEVEL_DIRS,
++    SKIP_TOP_LEVEL_FILES,
++    WIKILINK_RE,
++    case_only_duplicates,
++    clean_link_target,
++    extract_wikilinks,
++    iter_page_files,
++    resolve_link,
++)
+ 
+ 
+-WIKILINK_RE = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]")
+ MD_ESCAPE_RE = re.compile(r"\\([!-/:-@\[-`{-~])")
+ URL_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]*:")
+ # Windows のドライブから始まる絶対パス（C:/Books/x.pdf、C:\Books\x.pdf）。URL_SCHEME_RE にも合うので先に見る。
+@@ -101,48 +113,6 @@ KANJI_COMPOUND_RE = re.compile(r"[\u3005\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]
+ CAPITALIZED_PHRASE_RE = re.compile(r"\b([A-Z][a-zA-Z0-9]+(?:\s+[A-Z][a-zA-Z0-9]+){0,3})\b")
+ 
+ 
+-def clean_link_target(link: str) -> str:
+-    """wikilink から別名、アンカー、.md を取り除き、パスだけにする。
+-
+-    ファイル名と同じく NFC にそろえる。全角の「｜」「＃」は区切りとして扱わない（Obsidian と同じ）。
+-    """
+-    target = nfc(link).split("|", 1)[0]      # 表示用の別名があれば取り除く
+-    target = target.split("#", 1)[0]    # 見出しのアンカーを取り除く
+-    target = target.replace("\\", "/").strip().strip("/")
+-    if target.lower().endswith(".md"):
+-        target = target[:-3]
+-    return target.strip()
+-
+-
+-def resolve_link(link: str, by_path: dict, by_slug) -> "str | None":
+-    """wikilink を、それが指すページのスラッグに解決する。リンク切れなら None を返す。
+-
+-    wikilink には、パスのない形（[[kalman-filter]]）とパスを付けた形（[[entities/kalman-filter]]）があり、
+-    見出しのアンカーや明示的な .md が付くこともある。ページはファイル名のステムで識別されるので、
+-    リンクの生のテキストで比べると、パスを付けた形をすべて見落とす。その結果リンク切れと報告され、
+-    被リンクにも数えられないので、よく参照されているページまで孤立ページと誤って報告される。
+-
+-    ディレクトリの接頭辞は飾りではなく「制約」として扱う。パスを付けたリンクは、そのパスが
+-    ちょうど存在する場合にだけ解決する。ステムだけの照合に切り替えると、[[raw/foo]] が
+-    sources/foo.md に黙って結び付いてしまう。ソースページを raw ファイルにちなんで名付けている
+-    wiki ならどこでも起きる衝突で、ツリーの外を指す本当のリンク切れを誤って合格にしてしまう。
+-    解決できないと答えるのは安全だが、誤って解決するのは安全ではない。
+-
+-    照合は、どちらの形でも大文字と小文字を区別する。パスだけ（パスのないスラッグは除く）大文字と
+-    小文字を同一視すると非対称になる。誤り方が2通りあるとすれば、誤った「リンク切れ」の報告は
+-    目に見えて害がないが、誤った解決は気づかれない。
+-    """
+-    target = clean_link_target(link)
+-    if not target:
+-        return None
+-    if "/" in target:
+-        return by_path.get(target)
+-    return target if target in by_slug else None
+-
+-
+-SKIP_TOP_LEVEL_FILES = {"SCHEMA.md", "index.md", "log.md", "README.md"}
+-SKIP_TOP_LEVEL_DIRS = {"indexes", "graph", "raw", ".evolution", "assets"}
+-
+ # 分割した索引（indexes/<type>.md、indexes/entities-people.md）のファイル名の `-` より前が表す type。
+ INDEX_FILE_TYPES = {
+     "source": "source", "sources": "source",
+@@ -348,12 +318,8 @@ def parse_frontmatter_raw(text: str) -> "tuple[dict, str | None, str, bool]":
+ 
+ def collect_pages(wiki_root: Path) -> list[dict]:
+     pages = []
+-    for md_path in wiki_root.rglob("*.md"):
++    for md_path in iter_page_files(wiki_root):
+         rel = md_path.relative_to(wiki_root)
+-        if rel.parts[0] in SKIP_TOP_LEVEL_FILES or rel.parts[0] in SKIP_TOP_LEVEL_DIRS:
+-            continue
+-        if rel.name.startswith("."):
+-            continue
+         # 比べるときは NFC にそろえた / 区切りのパスを使う。ディスク上の名前のままのパスも残し、
+         # 正規化すると同じ名前になる2つのファイルを、重複の報告で見分けられるようにする。
+         rel_path = posix_rel(str(rel))
+@@ -376,7 +342,8 @@ def collect_pages(wiki_root: Path) -> list[dict]:
+         # 大きさは、コードフェンスの中身と画像だけの行を除いて数える（ADR-0005）。
+         sized = strip_fences_and_images(text)
+         line_count = sized.count("\n") + 1
+-        links = [nfc(m.group(1).strip()) for m in WIKILINK_RE.finditer(body)]
++        # コードフェンスとインラインのコードの中の [[...]] は数えない（ADR-0010 の決定の 1）。
++        links = extract_wikilinks(body)
+         pages.append({
+             "path": str(md_path),
+             "rel_path": rel_path,
+@@ -435,6 +402,7 @@ def lint(pages: list[dict], soft_cap: int, hard_cap: int, required_fm: list[str]
+         "missing_frontmatter": [],
+         "malformed_frontmatter": [],
+         "duplicate_slugs": [],
++        "case_only_duplicates": [],
+         "stale_pages": [],
+         "read_errors": [],
+         "frontmatter_alias_conflicts": [],
+@@ -474,6 +442,10 @@ def lint(pages: list[dict], soft_cap: int, hard_cap: int, required_fm: list[str]
+                 finding["normalization_collision"] = True
+             findings["duplicate_slugs"].append(finding)
+ 
++    # 大文字と小文字だけが違うページとディレクトリ。NTFS と APFS の既定では、静的な書き出しで同じ場所を
++    # 取るので、閲覧の書き出しが接尾辞を足すか止まる（ADR-0010 の決定の 3）。前もって知らせる。
++    findings["case_only_duplicates"] = case_only_duplicates([p["rel_path"] for p in pages])
++
+     # 被リンクの対応表
+     inbound = defaultdict(set)
+     all_slugs = set(slug_to_pages.keys())
+@@ -662,6 +634,7 @@ def lint(pages: list[dict], soft_cap: int, hard_cap: int, required_fm: list[str]
+         "missing_frontmatter": len(findings["missing_frontmatter"]),
+         "malformed_frontmatter": len(findings["malformed_frontmatter"]),
+         "duplicate_slugs": len(findings["duplicate_slugs"]),
++        "case_only_duplicates": len(findings["case_only_duplicates"]),
+         "stale_pages": len(findings["stale_pages"]),
+         "read_errors": len(findings["read_errors"]),
+         "frontmatter_alias_conflicts": len(findings["frontmatter_alias_conflicts"]),
+@@ -703,6 +676,8 @@ def render_text(findings: dict) -> str:
+         ("malformed_frontmatter", "frontmatter を読めない", lambda f: f"  - {f['path']}"),
+         ("duplicate_slugs", "重複したスラッグ", lambda f: f"  - {f['slug']}: {', '.join(f['paths'])}"
+          + ("  （Unicode の正規化の違いだけで名前が異なる）" if f.get("normalization_collision") else "")),
++        ("case_only_duplicates", "大文字と小文字だけが違うページかディレクトリ（閲覧の書き出しで同じ場所を取る）",
++         lambda f: f"  - {'、'.join(f['paths'])}" + ("  （ディレクトリ）" if f["kind"] == "dir" else "")),
+         ("stale_pages", "更新の止まったページ（よくリンクされているのに 90 日以上更新されていない）",
+          lambda f: f"  - {f['path']}  （更新 {f['updated']}、{f['age_days']} 日前、被リンク {f['inbound_count']}）"),
+         ("read_errors", "読み込めないファイル", lambda f: f"  - {f['path']}: {f['error']}"),
+diff --git a/skills/info-hive/scripts/wiki_mcp_common.py b/skills/info-hive/scripts/wiki_mcp_common.py
+index 7b57ece..a2baa0b 100644
+--- a/skills/info-hive/scripts/wiki_mcp_common.py
++++ b/skills/info-hive/scripts/wiki_mcp_common.py
+@@ -38,7 +38,7 @@ PROTOCOL = 1
+ SCRIPTS = Path(__file__).resolve().parent
+ # サーバーの版を決めるファイル。中身が変わったら、中継は古いサーバーを止めて起動し直す。
+ SERVER_FILES = ("wiki_mcp_common.py", "wiki_mcp_server.py", "wiki_index.py", "wiki_search.py", "wiki_text.py",
+-                "wiki_lint.py", "wiki_stats.py", "wiki_workspace.py", "wiki_graph_common.py", "wiki_graph_query.py",
++                "wiki_pages.py", "wiki_lint.py", "wiki_stats.py", "wiki_workspace.py", "wiki_graph_common.py", "wiki_graph_query.py",
+                 "wiki_graph_lint.py", "wiki_graph_extract.py")
+ COLLECTION_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+ 
+diff --git a/skills/info-hive/scripts/wiki_search.py b/skills/info-hive/scripts/wiki_search.py
+index 13e0996..492243b 100644
+--- a/skills/info-hive/scripts/wiki_search.py
++++ b/skills/info-hive/scripts/wiki_search.py
+@@ -59,9 +59,20 @@ from wiki_text import (  # noqa: E402
+     canonical_meta, ljust_display, localize_argparse, nfc, normalize_tags, parse_frontmatter_text, posix_rel,
+ )
+ import wiki_workspace  # noqa: E402
++# ページの集合とリンクの規則は wiki_pages の 1 か所に置く（ADR-0010 の決定の 1）。wiki_index、wiki_decide、
++# 試験が wiki_search.resolve_link などの名前で使うので、同じ名前で読み込んでおく。
++from wiki_pages import (  # noqa: E402
++    WIKILINK_RE,
++    build_link_index,
++    clean_link_target,
++    code_line_mask,
++    heading_line_mask,
++    extract_wikilinks,
++    iter_page_files,
++    resolve_link,
++)
+ 
+ 
+-WIKILINK_RE = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]")
+ FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+ # 文字種ごとの並び。英数字は小文字にしたあとの ASCII だけを語とみなす（移植元と同じ）。
+ # 漢字には 々 と 〆、CJK 統合漢字の拡張 B 以降（𠮷 など）を含める。
+@@ -119,8 +130,9 @@ VECTOR_INDEX_NAME = "embeddings.sqlite"
+ # prefix-v1: EMBED_MODELS の接頭辞を付ける（P3）。
+ EMBED_INPUT_FORMAT = "prefix-v1"
+ # パースキャッシュの形式。日本語のキーを英語に直すようにしたので 2 に、frontmatter の解析を
+-# wiki_text の共通のパーサー（引用符の中のカンマと行末のコメントを扱う）に替えたので 3 に上げた。
+-PARSE_CACHE_SCHEMA = 3
++# wiki_text の共通のパーサー（引用符の中のカンマと行末のコメントを扱う）に替えたので 3 に、
++# コードの中の wikilink を links に入れないようにしたので 4 に上げた。
++PARSE_CACHE_SCHEMA = 4
+ 
+ 
+ def parse_frontmatter(text: str) -> tuple[dict, str]:
+@@ -166,10 +178,6 @@ def slug_from_path(path: Path, wiki_root: Path) -> str:
+     return nfc(path.stem)
+ 
+ 
+-def extract_wikilinks(body: str) -> list[str]:
+-    return [nfc(m.group(1).strip()) for m in WIKILINK_RE.finditer(body)]
+-
+-
+ def cache_page_body(sections: list[dict]) -> str:
+     """キャッシュしたセクションのデータから、検索できる Markdown を組み立て直す。"""
+     chunks = []
+@@ -233,45 +241,6 @@ def write_parse_cache(cache_path: Path, files: dict) -> None:
+     os.replace(temporary, cache_path)
+ 
+ 
+-def clean_link_target(link: str) -> str:
+-    """wikilink から別名、アンカー、.md を取り除き、パスだけにする。"""
+-    target = link.split("|", 1)[0]      # 表示用の別名があれば取り除く
+-    target = target.split("#", 1)[0]    # 見出しのアンカーを取り除く
+-    target = target.replace("\\", "/").strip().strip("/")
+-    if target.lower().endswith(".md"):
+-        target = target[:-3]
+-    # NFD で書かれたリンクも、NFC のスラッグとパスで解決できるようにする。
+-    return nfc(target.strip())
+-
+-
+-def build_link_index(pages: list[dict]) -> tuple[dict, set]:
+-    """wikilink を解決するための (パスからスラッグへの対応, {スラッグ}) を返す。"""
+-    by_path = {}
+-    for p in pages:
+-        rel = posix_rel(p["rel_path"])
+-        if rel.lower().endswith(".md"):
+-            rel = rel[:-3]
+-        by_path[rel] = p["slug"]
+-    return by_path, {p["slug"] for p in pages}
+-
+-
+-def resolve_link(link: str, by_path: dict, by_slug) -> "str | None":
+-    """wikilink を、それが指すページのスラッグに解決する。解決できなければ None を返す。
+-
+-    パスのない形（[[kalman-filter]]）もパスを付けた形（[[entities/kalman-filter]]）も、
+-    ファイル名のステムで識別されるページを指す。そのため、リンクの生のテキストで比べると、
+-    --backlinks はパスを付けた参照をすべて見落とし、--top-linked の件数は2つの形に分かれてしまう。
+-    ディレクトリの接頭辞は飾りではなく「制約」である。パスを付けたリンクは、そのパスがちょうど
+-    存在する場合にだけ解決するので、[[raw/foo]] が sources/foo になりすますことはない。
+-    """
+-    target = clean_link_target(link)
+-    if not target:
+-        return None
+-    if "/" in target:
+-        return by_path.get(target)
+-    return target if target in by_slug else None
+-
+-
+ def link_key(link: str, by_path: dict, by_slug) -> str:
+     """報告に使う正規化したキー。解決できない対象はそのまま残す。"""
+     return resolve_link(link, by_path, by_slug) or clean_link_target(link)
+@@ -282,12 +251,9 @@ def collect_pages(wiki_root: Path, cache_path: Path | None = None) -> list[dict]
+     pages = []
+     cached_files = load_parse_cache(cache_path) if cache_path else {}
+     next_cache = {}
+-    for md_path in wiki_root.rglob("*.md"):
++    # ページの集合は lint と同じ（wiki_pages）。最上位の README.md と assets/、.evolution/、.wiki-cache/ は含めない。
++    for md_path in iter_page_files(wiki_root):
+         rel = md_path.relative_to(wiki_root)
+-        if rel.parts[0] in {"SCHEMA.md", "index.md", "log.md"} or rel.name.startswith("."):
+-            continue
+-        if rel.parts[0] in {"indexes", "graph", "raw", ".wiki-cache", ".evolution"}:
+-            continue
+         rel_path = posix_rel(rel.as_posix())
+         try:
+             raw = md_path.read_bytes()
+@@ -350,7 +316,10 @@ def split_sections(title: str, body: str) -> list[dict]:
+     current_path: list[str] = []
+     current_level = 0
+     current_lines: list[str] = []
+-    in_fence = False
++    lines = body.splitlines()
++    # 見出しは、wikilink の抜き出しと同じ wiki_pages の規則で決める。コードブロック（4 連のバッククォートの中の
++    # 3 連、引用やリストの中のフェンス、字下げのコード）の中の「# 」と、「#　」（# のあとが全角空白）は見出しではない。
++    is_heading = heading_line_mask(lines)
+ 
+     def append_section() -> None:
+         sections.append({
+@@ -360,13 +329,8 @@ def split_sections(title: str, body: str) -> list[dict]:
+             "section_index": len(sections),
+         })
+ 
+-    for line in body.splitlines():
+-        stripped = line.strip()
+-        if stripped.startswith(("```", "~~~")):
+-            in_fence = not in_fence
+-            current_lines.append(line)
+-            continue
+-        heading = None if in_fence else HEADING_RE.match(line)
++    for line, heading_line in zip(lines, is_heading):
++        heading = HEADING_RE.match(line) if heading_line else None
+         if not heading:
+             current_lines.append(line)
+             continue
+diff --git a/skills/info-hive/scripts/wiki_stats.py b/skills/info-hive/scripts/wiki_stats.py
+index 0354ccb..2e8a26f 100644
+--- a/skills/info-hive/scripts/wiki_stats.py
++++ b/skills/info-hive/scripts/wiki_stats.py
+@@ -30,9 +30,10 @@ from wiki_text import (  # noqa: E402
+     rjust_display, strip_fences_and_images,
+ )
+ import wiki_workspace  # noqa: E402
++# ページの集合とリンクの抜き出しは、lint と同じ規則（wiki_pages）を使う。
++from wiki_pages import SKIP_TOP_LEVEL_DIRS, SKIP_TOP_LEVEL_FILES, WIKILINK_RE, extract_wikilinks, is_page_path  # noqa: E402,F401
+ 
+ 
+-WIKILINK_RE = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]+)?\]\]")
+ FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+ 
+ 
+@@ -58,10 +59,6 @@ def link_stem(link: str) -> str:
+     return nfc(target.strip())
+ 
+ 
+-SKIP_TOP_LEVEL_FILES = {"SCHEMA.md", "log.md", "README.md"}
+-SKIP_TOP_LEVEL_DIRS = {"indexes", "graph", "raw", ".evolution", "assets"}
+-
+-
+ def parse_type(text: str) -> str | None:
+     """frontmatter の type を返す。「種類: 概念」のような日本語の別名も英語に直して返す。"""
+     m = FRONTMATTER_RE.match(text)
+@@ -134,11 +131,8 @@ def compute_stats(wiki: Path) -> dict:
+         if rel.name == "index.md" and len(rel.parts) == 1:
+             index_lines = text.count("\n") + 1
+             continue
+-        if rel.parts[0] in SKIP_TOP_LEVEL_FILES:
+-            continue
+-        if rel.parts[0] in SKIP_TOP_LEVEL_DIRS:
+-            continue
+-        if rel.name.startswith("."):
++        # ページの数え方は lint と同じ（wiki_pages）。
++        if not is_page_path(rel.as_posix()):
+             continue
+ 
+         total_pages += 1
+@@ -153,7 +147,8 @@ def compute_stats(wiki: Path) -> dict:
+         total_chars += chars
+         # wikilink を数える前に frontmatter を取り除く。frontmatter ではパスのないスラッグを使う。
+         body = FRONTMATTER_RE.sub("", text, count=1) if text.startswith("---") else text
+-        links = WIKILINK_RE.findall(body)
++        # コードフェンスとインラインのコードの中の [[...]] は数えない（lint と同じ）。
++        links = extract_wikilinks(body)
+         total_links += len(links)
+         for link in links:
+             most_linked_in[link_stem(link)] += 1

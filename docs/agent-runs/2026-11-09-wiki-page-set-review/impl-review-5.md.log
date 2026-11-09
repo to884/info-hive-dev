@@ -1,0 +1,111 @@
+[ask-codex 15:53:25] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev）
+## 判定
+
+**却下。確信度：高。** セクションごとの再解析で参照リンクの定義が失われ、本文全体では存在しない wikilink を判定レイヤーが生成する。「各層で拾うリンクが一致する」という目的を満たしていない。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】セクションを分けて再解析すると、存在しないエンティティ参照が生まれる
+
+次の本文で再現した。
+
+```markdown
+[r]: https://example.com
+
+# H
+[[entity]][r]
+```
+
+結果は次のとおり。
+
+```python
+extract_wikilinks(body)                  # []
+extract_wikilinks(body, headings=False)  # []
+
+sections = split_sections("T", body)
+[extract_wikilinks(s["text"]) for s in sections]
+# [[], ["entity"]]
+```
+
+本文全体では `[[entity]][r]` が通常の参照リンクとして解析され、`text` トークンの内容は `[entity]` になる。分割後の `H` セクションには `[r]` の定義がなく、同じ文字列から `entity` が wikilink として拾われる。
+
+さらに、`entity` のエンティティページと、この本文を持つ概念ページ `a`、`b` をメモリ上で構成し、実物の `contradiction_pairs()` に渡した。両ページの `links` は空なのに、`('E', aのセクション, bのセクション)` という矛盾候補が返った。
+
+根拠：
+
+- [wiki_pages.py:99](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:99)：呼び出しごとに本文を独立して解析する。
+- [wiki_search.py:326](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:326)：セクションには切り出した文字列だけを保存する。
+- [wiki_decide.py:553](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_decide.py:553)：その文字列を再解析する。
+- [設計書:42](C:/Works/info-hive-dev/docs/plans/wiki-page-set-and-links-2026-11-09.md:42)：「判定レイヤーと同じ範囲になる」という主張と食い違う。
+
+既存の `SectionTests` は成功するが、この本文を同クラスの `check()` に渡すと、不一致として返る。乱数試験の材料には参照定義がある一方、対応する `[[entity]][r]` という使用形がない。
+
+## 崩れる前提
+
+- **見出しで分けても Markdown の解析文脈が独立する。** 参照リンクの定義と使用箇所が別セクションにあると崩れる。コード範囲が保たれることだけでは、再解析の同値性を保証できない。
+- **`sys.path` の先頭への追加で、同梱パッケージが選ばれる。** `markdown_it` または `mdurl` が既に `sys.modules` にあると崩れる。
+- **解析器の更新は必ず `wiki_pages.py` の変更を伴う。** `mdurl` だけの更新や同梱ファイルだけの修正では、現在の `code_version()` は変わらない。
+- **同じ版の解析器に替えてサーバーを再起動すれば、検索の解析結果も更新される。** パースキャッシュは解析器の版を保存せず、形式番号と原文のハッシュで再利用するため、この前提も成立しない。
+
+## 見落としと軽微な問題
+
+### 【軽微】同梱版の使用は読み込み順に依存する
+
+実在する外部インストールを先に読み込み、次に `wiki_pages` を import して確認した。
+
+- 外部の markdown-it-py **3.0.0**：同梱ディレクトリ外のモジュールをそのまま受け入れた。
+- 外部の **4.2.0**：`wiki_lint` の import が `ImportError` で停止した。
+- 外部の **mdurl 0.1.2 だけ**を先に読み込み：markdown-it-py は同梱版、mdurl は外部版という組み合わせを受け入れた。
+
+版違いでの停止は設計どおりだが、「同梱版が優先される」という保証にはなっていない。mdurl の版・取得元も検査していない。同じ版の外部パッケージによる解析結果の差までは確認していない。
+
+根拠：[wiki_pages.py:66](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:66)。通常の MCP 起動で先行 import が起きることは、今回の環境では確かめられなかった。
+
+### 【軽微】同梱ファイル自体の変更を更新検出に含めていない
+
+`SERVER_FILES` に `_vendor/` は含まれない。`Path.read_bytes()` をメモリ上で差し替え、同梱ファイルの内容だけが変わる状態を模擬しても、`code_version()` は同じ値だった。同梱ファイルへの読み取り自体がない。
+
+`MARKDOWN_IT_VERSION` を変える手順なら検出できる。しかし、markdown-it-py の版を据え置く mdurl 単独更新は検出されない。
+
+根拠：[wiki_mcp_common.py:40](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_common.py:40)、[同ファイル:102](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_common.py:102)。
+
+また、[_vendor/README.md:16](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/_vendor/README.md:16) の更新手順には、解析結果が変わる場合のキャッシュ更新がない。`PARSE_CACHE_SCHEMA` が同じなら、旧解析器が作った `links` と `sections` を再利用する。[wiki_search.py:265](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:265)
+
+### 【軽微】解析時間の増加が大きい
+
+基準 `c23ae5b` と作業ツリーを、同じ Python 3.14.6 で比較した。5,407 文字・202 行の本文を100回処理し、3回の中央値を採った。
+
+| 処理 | 0.8.0 | 今回 |
+|---|---:|---:|
+| リンク抽出 | 0.0087秒 | 0.5069秒 |
+| リンク抽出＋セクション分割 | 0.0144秒 | 0.9950秒 |
+
+後者は約69倍。検索の未キャッシュ経路では、同じ本文をリンク抽出と見出し判定で二度解析する。これはファイル走査や検索を除いた測定であり、lint 全体や MCP の応答時間を測った値ではない。時間制限による失敗までは確認していない。
+
+根拠：[wiki_search.py:277](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:277)、[wiki_pages.py:121](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:121)。
+
+### 【軽微】拡張子を大小不問とする仕様が走査まで徹底されていない
+
+`is_page_path("concepts/Upper.MD")` は真だが、候補の走査は `rglob("*.md")` のままである。大小を区別する Linux の走査では、判定関数に届く前に `.MD` が外れる。今回の Linux 実行はしていない。0.8.0 からの Linux 固有の後退ではないが、新しい仕様の「拡張子の大小は問わない」とは食い違う。
+
+根拠：[wiki_pages.py:39](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:39)、[同ファイル:50](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:50)。統計側も `rglob("*.md")` を使う。
+
+## 検証した事実
+
+- **一致**：指定された差分と実物で、版は0.9.0、`PARSE_CACHE_SCHEMA` は4。`SERVER_FILES` に `wiki_pages.py` が追加されている。
+- **一致**：新規プロセスでは同梱した markdown-it-py 3.0.0 が読み込まれる。
+- **一致**：同梱した `markdown_it` の68ファイル、mdurl の7ファイルは、手元の別の3.0.0インストールにある対応ファイルとバイト単位で一致した。
+- **一致**：3件のライセンス文書に著作権表示と許諾文がある。取得元の wheel 名と SHA-256 は README に記録されている。
+- **確かめられず**：記録された SHA-256 と PyPI 原本との一致。今回は wheel 原本との照合をしていない。
+- **成功**：ファイルを書き込まない `VendoredParserTests`、`SectionTests`、`ReexportTests` の計7件。既存のリンク抽出・分割の試験メソッド4件も直接実行して成功した。
+- **未実行**：一時ファイルを作る全試験、実サーバーの起動、評価ゲート。既存 uv 環境の Python 起動は権限エラーになった。これを対象実装の欠陥とは判定していない。
+
+## 崩せなかった点
+
+- 既存の反例群にあるフェンス、字下げコード、表、文字参照、引用・リスト内のコードのリンク抽出。
+- 検証した入れ子のコードと CRLF の例における `_line_kinds` の `map` の対応。マスクの長さは入力行数と一致し、コード内の見出しを分割対象にしなかった。
+- 閲覧 PoC と本文全体のリンク抽出について、解析器の版・設定・`inline` の `text` を走査する方式の一致。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 16:08:33] 完了。session 01a1bf15-622e-7bf0-b19c-58239d54fbad  usage {"input_tokens": 2265033, "cached_input_tokens": 2135936, "cache_write_input_tokens": 0, "output_tokens": 13975, "reasoning_output_tokens": 4889}

@@ -1,0 +1,92 @@
+[ask-codex 14:19:52] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev）
+## 判定
+
+**却下。確信度：高。** 表の直後のコードと、複数行の参照リンク定義から、本文に存在しないリンクを拾う反例が残っている。「コード内を数えない」「閲覧と同じ箇所から拾う」という必須条件を満たしていない。
+
+## 致命的・重大な欠陥
+
+1. **【重大】表の終了を認識せず、直後の字下げコードからリンクを拾う。**
+
+   反例：
+
+   ```markdown
+   | A | B |
+   | --- | --- |
+       [[entity]]
+   ```
+
+   実装は `["entity"]` を返す。Markdown としては、表に続く字下げコードなので期待値は `[]`。
+
+   `scan_blocks()` は表の区切り行でも段落を終了せず、字下げ行を段落の続きにする。その後、`inline_text_lines()` が残りをすべて表の行として処理する。根拠は [wiki_pages.py:221](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:221) と [wiki_pages.py:418](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:418)。markdown-it-py 3.0.0 は、表の途中でも字下げコードに達すると表を終了する。[3.0.0 の表実装](https://raw.githubusercontent.com/executablebooks/markdown-it-py/v3.0.0/markdown_it/rules_block/table.py)
+
+   入出力だけをメモリ上の仮想ファイルに置き換え、この本文を持つ `concepts/a.md` と `concepts/b.md` を各収集関数に渡した結果：
+
+   - lint・search・graph が、両ページから `entity` を抽出した。
+   - stats がリンクを合計2件と数えた。
+   - 参照先がなければ、lint が偽のリンク切れを2件報告した。
+   - `entities/entity.md` があれば、`contradiction_pairs()` が両ページを矛盾候補にした。
+
+   **検証結果：食い違い。** 前回の「コードだけのページから矛盾候補を作らない」という問題が、別の入力で再発する。
+
+2. **【重大】次の行から始まる複数行の参照リンクタイトルを本文として数える。**
+
+   反例：
+
+   ```markdown
+   [ref]: https://example.com
+     "タイトル
+     [[hidden]]
+     続き"
+   [[visible]]
+   ```
+
+   実装は `["hidden", "visible"]` を返す。タイトルは本文ではないため、期待値は `["visible"]`。
+
+   [wiki_pages.py:239](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:239) で定義の先頭行を先に捨てる。一方、次行のタイトルを除く [235行](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:235) は、同じ行で閉じるタイトルにしか対応しない。残った行には `[ref]:` がないため、後段の `_leading_refdef_lines()` でも定義として認識できない。
+
+   markdown-it-py 3.0.0 は、後続行を含む文字列からタイトルを解析し、消費した行数だけ進む。[3.0.0 の参照定義実装](https://raw.githubusercontent.com/executablebooks/markdown-it-py/v3.0.0/markdown_it/rules_block/reference.py)
+
+   **検証結果：食い違い。** 設計末尾の「参照リンクの定義のタイトルを本文から除く」という対応は、この形では完了していない。
+
+## 崩れる前提
+
+- **「同じ段落番号の範囲は、表を見つけた後もすべて表である」**  
+  表の直後に字下げコードが来ると崩れる。さらに、表の終了後に置いた通常の複数行コードスパンも、行ごとの表セルとして解析される。
+
+- **「参照定義の先頭行を捨てても、後続タイトルを判定できる」**  
+  タイトルの開始と終了が別の行になると崩れる。定義とタイトルの対応関係が失われる。
+
+- **「ランダム比較の不一致率が低ければ、通常の構造も保証できる」**  
+  固定シードの比較は通ったが、上記の短い反例は検出されない。トークンの無作為な連結と、意味のあるブロック境界の網羅は別である。
+
+## 見落としと軽微な問題
+
+- **【軽微】対象版との比較を試験自体が保証していない。**  
+  [test_page_set.py:265](/C:/Works/info-hive-dev/tests/wiki/test_page_set.py:265) は、インストール済みの `MarkdownIt` を版の確認なしで使う。実際に4.2.0でも比較試験は通った。また、現在の [wiki-mcp.yml:68](/C:/Works/info-hive-dev/.github/workflows/wiki-mcp.yml:68) 以降には `test_page_set.py` の実行がない。
+
+- **【軽微】キャッシュ試験はセクションの再構築を検査していない。**  
+  [test_page_set.py:249](/C:/Works/info-hive-dev/tests/wiki/test_page_set.py:249) は旧形式の `links` だけを汚染し、リンクだけを検査する。セクション分割も変更する実装に対する回帰試験として、その経路が抜けている。
+
+- **【軽微】設計と変更履歴の説明が実装を上回っている。**  
+  [CHANGELOG.md:18](/C:/Works/info-hive-dev/info-hive-wiki/CHANGELOG.md:18) の「コードブロック内を数えなくなった」「参照リンクの定義を閲覧と同じように読む」は、重大な欠陥の反例では成立しない。また、[設計43行](/C:/Works/info-hive-dev/docs/plans/wiki-page-set-and-links-2026-11-09.md:43) の固定例「44件」に対し、実際の比較対象は `MARKDOWN_CASES` と `CODE_BODY` を合わせて39件だった。
+
+## 検証した事実
+
+- サブモジュールの HEAD は `c23ae5bb24d7b6437740b8e1bd9717ea9eb69911`。基準コミットの説明と**一致**。
+- Markdown の固定例、ランダム比較、再輸出、`SERVER_FILES` の計4試験は**通過**。上記の反例が残っていても通る。
+- 反例の比較実行に使用できた markdown-it-py は **4.2.0**。表と参照定義については **3.0.0 の公式ソースにも照合**した。3.0.0 本体での実行は**確かめられず**。
+- ファイル入出力をメモリ上に置き換えた検証で、schema 3 のキャッシュからリンクとセクションが再構築され、初回解析と一致した。
+- 実ファイルを作る試験は、読み取り専用環境で一時ディレクトリを作れず実行できなかった。これは対象の欠陥とは判定していない。全試験・評価ゲートは未実行。
+- リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 前回の固定反例である区切り線後の字下げコード、表セルをまたぐコードスパン、全角空白、文字参照の処理。
+- 通常の行をまたぐコードスパンと、エスケープ・長さの異なるバッククォートの組み合わせ。
+- 確認した旧名の再輸出と、`SERVER_FILES` への `wiki_pages.py` の追加。
+- 確認した入力での旧キャッシュの破棄と、キャッシュ再利用時のセクション・トークンの一致。
+- NFC → `casefold()` → NFC の比較と、正規化だけが違う名前を `case_only_duplicates` に混ぜない処理。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 14:32:01] 完了。session 01a1bebf-b883-7642-a7bb-751e18260f11  usage {"input_tokens": 2491243, "cached_input_tokens": 2351872, "cache_write_input_tokens": 0, "output_tokens": 15985, "reasoning_output_tokens": 6262}
