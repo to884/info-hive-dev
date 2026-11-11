@@ -14,6 +14,13 @@
   プロジェクトのルートから実行すると、その wiki のページが見つかる（既定の名前と、別の名前で初期化した wiki の両方）。
 - `--upgrade` の検出に使う見出しと行（`SCHEMA_SECTION_MARKERS`）は 0.9.0 と同じで、ひな形にすべてある。
 
+スキルの `SKILL.md` と `references/*.md` のコマンドも、同じ書き方にそろえた（wiki 0.9.3）。こちらは文の中で
+`scripts/wiki_pages.py` のようにスキルの中のファイルを指すことがあるので、`scripts/` の有無ではなくコマンドを調べる。
+- `python`、`python3`、`uv run --script`、`uv sync --script` のあとのスクリプトは、どれも `"<skill-root>/scripts/<名前>.py"` で、
+  そのスクリプトが実在する。JSON の `argv`（`"python3", "..."`）のスクリプトも `<skill-root>/scripts/` で始まる。
+- `SKILL.md` の「スクリプトのパス」が最初のコマンドより前にあり、コマンドのある各リファレンスはそこを指している。
+- `skills/info-hive/scripts/` と書くのは、プラグインのコマンドの書き方を説明する `SKILL.md` の 1 行だけである。
+
 実行（標準ライブラリだけで動く）:
     python -X utf8 -m unittest tests/wiki/test_template_script_paths.py -v
 """
@@ -66,6 +73,71 @@ def read(path: Path) -> str:
 
 def templates() -> list[Path]:
     return sorted(p for p in ASSETS.iterdir() if p.name.endswith(".template"))
+
+
+SKILL_MD = SKILL / "SKILL.md"
+REPO = ROOT / "info-hive-wiki"
+REPO_ROOT_NOTE = "プラグインのリポジトリ（info-hive-wiki）のルートで実行する"
+# 実行するコマンドのスクリプト。前後の `"` も拾う。
+SKILL_COMMAND = re.compile(
+    r"(?:python3?|uv (?:run|sync)(?: --?[\w-]+)* --script) +(\"?)([^\s\"`]+\.py)(\"?)"
+)
+JSON_ARGV = re.compile(r"\"python3?\",\s*\"([^\"]+\.py)\"")
+POINTER = "書き方は `SKILL.md` の「スクリプトのパス」にある。"
+SECTION = "## スクリプトのパス"
+
+
+def skill_docs() -> list[Path]:
+    return [SKILL_MD] + sorted((SKILL / "references").glob("*.md"))
+
+
+class SkillDocsScriptPathTests(unittest.TestCase):
+    """`SKILL.md` と `references/*.md` のコマンドを調べる。"""
+
+    def test_commands_use_quoted_skill_root(self):
+        for path in skill_docs():
+            for number, line in enumerate(read(path).splitlines(), 1):
+                for match in SKILL_COMMAND.finditer(line):
+                    with self.subTest(file=path.name, line=number):
+                        opening, script, closing = match.groups()
+                        if script.startswith("eval/"):
+                            # 評価のスクリプトはスキルではなくプラグインのリポジトリにあり、そのルートで実行する。
+                            self.assertTrue((REPO / script).is_file(), script)
+                            self.assertIn(REPO_ROOT_NOTE, read(path))
+                            continue
+                        self.assertEqual((opening, closing), ('"', '"'), line)
+                        self.assertTrue(script.startswith("<skill-root>/scripts/"), line)
+                        name = script.removeprefix("<skill-root>/scripts/")
+                        self.assertTrue((SKILL / "scripts" / name).is_file(), name)
+
+    def test_json_argv_uses_skill_root(self):
+        found = []
+        for path in skill_docs():
+            for script in JSON_ARGV.findall(read(path)):
+                found.append(script)
+                with self.subTest(file=path.name, script=script):
+                    self.assertTrue(script.startswith("<skill-root>/scripts/"))
+                    self.assertTrue((SKILL / "scripts" / script.removeprefix("<skill-root>/scripts/")).is_file())
+        self.assertTrue(found)
+
+    def test_definition_and_pointers(self):
+        text = read(SKILL_MD)
+        self.assertIn(SECTION, text)
+        first_command = min(m.start() for m in SKILL_COMMAND.finditer(text))
+        self.assertLess(text.index(SECTION), first_command)
+        for path in skill_docs()[1:]:
+            text = read(path)
+            if SKILL_COMMAND.search(text) or JSON_ARGV.search(text):
+                with self.subTest(file=path.name):
+                    self.assertIn(POINTER, text)
+
+    def test_plugin_relative_path_only_in_definition(self):
+        for path in skill_docs():
+            for number, line in enumerate(read(path).splitlines(), 1):
+                if "skills/info-hive/scripts/" in line:
+                    with self.subTest(file=path.name, line=number):
+                        self.assertEqual(path, SKILL_MD)
+                        self.assertIn("`commands/*.md`", line)
 
 
 class TemplateScriptPathTests(unittest.TestCase):
