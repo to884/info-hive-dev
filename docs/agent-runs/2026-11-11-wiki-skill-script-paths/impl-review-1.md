@@ -1,0 +1,69 @@
+## 判定
+
+**条件付きで採用可。確信度：高。** 致命的・重大な欠陥は確認できなかった。ただし、文中に呼び出しの省略表記が残り、追加試験も「すべての呼び出しが規則を満たす」「定義が存在する」ことまでは保証していない。
+
+## 致命的・重大な欠陥
+
+なし。
+
+## 崩れる前提
+
+- **試験がすべての Python 呼び出しを拾うという前提。** インタープリターのオプション、値を取る uv オプション、`--script=`、行継続が入ると検出から外れる。
+- **正規表現で拾った `.py` までが、実行時のスクリプト引数全体だという前提。** 閉じ引用符の後ろに文字列が続く場合、実際には別のファイル名になる。
+- **定義節の見出しがあれば `<skill-root>` の意味も説明されているという前提。** 見出しだけ残して本文を削除しても試験が通る。
+
+いずれも、対象ファイルを書き換えず、試験の `read()` をメモリ上で差し替えて確認した。
+
+## 見落としと軽微な問題
+
+1. **軽微：実行手順の文中に、パスもインタープリターもない省略表記が残っている。**
+
+   - [lint-workflow.md:81](C:/Works/info-hive-dev/.claude/worktrees/wiki-template-script-paths-733553/info-hive-wiki/skills/info-hive/references/lint-workflow.md:81)：`wiki_search.py --top-linked 10` を使うよう指示している。
+   - [page-conventions.md:60](C:/Works/info-hive-dev/.claude/worktrees/wiki-template-script-paths-733553/info-hive-wiki/skills/info-hive/references/page-conventions.md:60)：`wiki_search.py --backlinks <slug>` を提示している。
+
+   スクリプトを置いていない利用側プロジェクトで、これらを呼び出しとして実行しても解決できない。引数つきの使用指示なので、許容するとした「文中でファイルを指す相対パス」との境界が曖昧である。両方とも `SKILL_COMMAND` の検出対象外だった。CHANGELOG の「実行するスクリプトはすべて」という記述にも、この省略表記の扱いは示されていない。
+
+2. **軽微：コマンドの検査には、未解決パスを素通りさせる穴がある。**
+
+   根拠は [test_template_script_paths.py:82](C:/Works/info-hive-dev/.claude/worktrees/wiki-template-script-paths-733553/tests/wiki/test_template_script_paths.py:82) の正規表現と、97行目以降の検査である。`query-workflow.md` の正しい呼び出しを次の各形へ個別に差し替えても、`SkillDocsScriptPathTests` の4件すべてが成功した。
+
+   ```text
+   python -B scripts/wiki_search.py
+   uv run --script=scripts/wiki_search.py
+   uv run --python 3.12 --script scripts/wiki_search.py
+   ```
+
+   また、次も4件すべて成功した。
+
+   ```text
+   uv run --script "<skill-root>/scripts/wiki_search.py".missing
+   ```
+
+   最後の例では、検査する既存ファイルは `wiki_search.py` だが、シェルが渡す引数は `wiki_search.py.missing` になる。
+
+   JSON 側も同様で、次への差し替えを検出できず、4件すべて成功した。根拠は同ファイル85行目の `JSON_ARGV`。
+
+   ```json
+   {"argv":["python3","-B","scripts/wiki_evolve_agent.py","codex"],"model":"EXACT_MODEL_ID"}
+   ```
+
+3. **軽微：定義の存在を検査する試験が、定義本文を確認していない。**
+
+   [test_template_script_paths.py:123](C:/Works/info-hive-dev/.claude/worktrees/wiki-template-script-paths-733553/tests/wiki/test_template_script_paths.py:123) は、見出しの存在・位置と参照文だけを確認する。
+
+   `SKILL.md` の「## スクリプトのパス」を残し、その節の本文をすべて削除しても4件すべて成功した。したがって、この試験の成功から、エージェントが `<skill-root>` を決定できるとは判断できない。
+
+## 検証した事実
+
+- **一致：** 実際の `git diff be117ad..HEAD` の変更対象は、提示された12ファイルだった。`commands/*.md` は変更されていない。
+- **一致：** 対象文書13ファイルにある具体的な `<skill-root>/scripts/*.py` の参照49箇所は、すべて実在するスクリプトを指していた。
+- **一致：** 現状の `SkillDocsScriptPathTests` は4件成功した。
+- **一致：** 行頭のシェル呼び出し36行を字句解析でき、JSON の `argv` 例2件も JSON として解析できた。`git diff --check` は成功した。
+- **一致：** プラグインの版は `0.9.3`。変更は文書修正と版更新であり、パッチ版とする判断を崩す変更は見つからなかった。
+- **確かめられず：** Claude Code が実際に表示するベースディレクトリは、この環境では実測していない。依存取得や MCP 起動を伴う実行も行っていない。
+
+## 崩せなかった点
+
+- 現在の定義は `<skill-root>` を「この `SKILL.md` のあるディレクトリ」と特定しており、プラグインルートや wiki ルートとの取り違えを起こす説明にはなっていない。
+- 変更済みの明示的な呼び出しでは、引用符、インラインコード、JSON、行末の `\` の破損は確認できなかった。
+- JSON の絶対パスへの置換指示と、`eval/decisions/run_eval.py` をリポジトリルートで実行する説明は、実際の配置と整合していた。
