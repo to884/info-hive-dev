@@ -1,10 +1,12 @@
-# wiki 0.9.6（frontmatter のパーサーが読む YAML の書き方）の敵対的レビュー
+# wiki 0.9.7（frontmatter のパーサーが読む YAML の書き方）の敵対的レビュー
 
 2026-11-11、`info-hive-wiki` の frontmatter のパーサー（`wiki_text.parse_frontmatter_text`）が読む YAML の書き方を広げる変更を、設計と実装のそれぞれで GPT-6.1 Sol（effort high、`ask-codex` の `review`）に敵対的レビューしてもらった。設計は `docs/plans/wiki-frontmatter-parser-2026-11-11.md` にある。
 
+レビューを頼んだときは、この変更を 0.9.6 と呼んでいた。PR を作ったところで、別の修正（Medium の記事の取得。to884/info-hive-wiki#43）が 0.9.6 として main に入ったので、0.9.7 に付け替えた。依頼の文面（`*task*.md`）と結果（`*review-*.md`）は、送ったとき、受け取ったときのままで、0.9.6 と書いてある。
+
 ## コミットの対応
 
-info-hive-wiki に push したのは、228c3a6（最初の実装）と afc3404（実装のレビューへの対応）の 2 つである。レビューの依頼の文面が指しているコミットは、レビューのたびに作った手元のもので、push した履歴にはない。
+info-hive-wiki に push したのは、228c3a6（最初の実装）と afc3404（実装のレビューへの対応）の 2 つと、main の 0.9.6 を取り込んで 0.9.7 に付け替えたマージ（845ee0b）である。レビューの依頼の文面が指しているコミットは、レビューのたびに作った手元のもので、push した履歴にはない。
 
 | レビューが見たコミット | 中身 | push した履歴 |
 | --- | --- | --- |

@@ -52,7 +52,7 @@ class RawFrontmatterTests(unittest.TestCase):
 
     def test_windows_backslash_path_would_break_without_escape(self):
         # rag は / 区切りで返すので起きないが、手で \ のまま書いたときにどう読むかを残しておく。
-        # wiki 0.9.6 から、手書きのパーサーも YAML のエスケープを YAML の意味で読む。\b と \n は YAML が決めている
+        # wiki 0.9.7 から、手書きのパーサーも YAML のエスケープを YAML の意味で読む。\b と \n は YAML が決めている
         # エスケープなので、どちらのパーサーも、後退と改行の入った同じ（壊れた）値に読む。0.9.5 までの手書きの
         # パーサーは、書かれた文字のまま読んでいた。
         text = 'raw: "C:\\books\\new.pdf"'

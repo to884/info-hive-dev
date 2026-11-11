@@ -1,4 +1,4 @@
-"""frontmatter のパーサー（`wiki_text.parse_frontmatter_text`）が読む YAML の書き方の試験（wiki 0.9.6）。
+"""frontmatter のパーサー（`wiki_text.parse_frontmatter_text`）が読む YAML の書き方の試験（wiki 0.9.7）。
 
 0.9.5 までのパーサーは、YAML としては正しいのに読まない書き方があった。字下げが 2 つでないブロックの配列、
 複数行にまたがる `[...]`、引用符つきのキーとコロンの前の空白、二重引用符の中の `\\"` と `\\\\` のほかの

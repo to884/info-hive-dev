@@ -1,0 +1,70 @@
+## 判定
+
+**条件付きで採用可。確信度：高。** 提示された Medium の形は処理できるが、カンマを含む画像 URL の破壊と、適用されない `<source>` の選択を再現した。以下の重大な欠陥が残る。
+
+## 致命的・重大な欠陥
+
+1. **重大：URL 内のカンマを区切りとして扱い、別の URL を取得する。**
+
+   ```html
+   <picture>
+     <source srcset="https://cdn.example/resize,w_1400/image.png 1400w">
+     <img>
+   </picture>
+   ```
+
+   基準 URL を `https://medium.example/@someone/article-1` にすると、画像の取得先は **`https://medium.example/@someone/w_1400/image.png`** になった。元のホストとパスを失い、取得失敗や別画像の保存につながる。
+
+   原因は `_largest_candidate()` の無条件な `split(",")`。[wiki_fetch.py:336](C:/Works/info-hive-dev/.claude/worktrees/wiki-fetch-medium/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:336)。URL 内部のカンマは保持されるべきで、この入力は単なる不正記述子の問題ではない。[HTML の解析規則](https://html.spec.whatwg.org/multipage/images.html#parse-a-srcset-attribute)とも食い違う。
+
+2. **重大：`media` を無視し、どの環境でも適用されない画像を選ぶ。**
+
+   ```html
+   <picture>
+     <source media="not all" srcset="wrong.png 1400w">
+     <source srcset="right.png 1400w">
+     <img>
+   </picture>
+   ```
+
+   実際には `wrong.png` を取得した。`not all` は常に不成立なので、ビューポートが未指定でもこの候補を選ぶ理由はない。本文の図とは異なる画像を保存し得る。
+
+   `picture_source_url()` は `type` で並べ替えるだけで、`media` を一切確認しない。[wiki_fetch.py:360](C:/Works/info-hive-dev/.claude/worktrees/wiki-fetch-medium/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:360)。[HTML の選択規則](https://html.spec.whatwg.org/multipage/images.html#updating-the-source-set)では、環境に適合しない候補を除外する。
+
+致命的な欠陥は確認できなかった。
+
+## 崩れる前提
+
+- **カンマは候補の区切りにしか現れない。** URL のパスやクエリに含まれると、URL 自体を破壊する。
+- **同じ `<picture>` の候補は、形式や解像度だけが違う。** `media` によって内容を切り替える場合、別の図を選ぶ。
+- **記述子はすべて明示され、正しい形式である。** 記述子の省略や不正な複数記述子で、最大候補の選択が崩れる。
+- **空でない `srcset` には実画像がある。** `data:` の代替画像が入っていると、同じ要素の `data-srcset` が隠れる。
+
+## 見落としと軽微な問題
+
+- **軽微：記述子なしの候補を `0x` 相当として比較する。**  
+  `_largest_candidate("full.png, half.png 0.5x")` は `half.png` を返した。記述子なしは `1x` 相当なので、「密度のいちばん大きい候補」という主張と食い違う。また、`valid.png 100w, invalid.png 2x 1000w` では、不正な後者を選ぶ。最後の記述子だけを `float()` で評価するためである。[wiki_fetch.py:340](C:/Works/info-hive-dev/.claude/worktrees/wiki-fetch-medium/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:340)、[HTML の記述子・密度の規則](https://html.spec.whatwg.org/multipage/images.html#normalizing-the-source-densities)。
+
+- **軽微：`srcset` が代替画像だと `data-srcset` に進まない。**  
+  `<picture><source srcset="data:image/gif;base64,AAAA" data-srcset="real.png 1400w"><img></picture>` は、`real.png` を取得せず `no_src` になった。`srcset or data-srcset` が先に評価されるため、実画像の候補を調べない。[wiki_fetch.py:364](C:/Works/info-hive-dev/.claude/worktrees/wiki-fetch-medium/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:364)。
+
+- **軽微：「ネットにつながない」テストが DNS を抑止していない。**  
+  `fetch` を差し替えても、`build()` はその前に `is_private_host()` を呼ぶ。`socket.getaddrinfo` を記録すると、`getaddrinfo("medium.example", None)` が実際に呼ばれた。外部 DNS への問い合わせが発生しない保証はない。[test_wiki_fetch.py:82](C:/Works/info-hive-dev/.claude/worktrees/wiki-fetch-medium/tests/wiki/test_wiki_fetch.py:82)、[wiki_fetch.py:1006](C:/Works/info-hive-dev/.claude/worktrees/wiki-fetch-medium/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:1006)。
+
+## 検証した事実
+
+- 指定された本体、テスト、CHANGELOG、両差分を読んだ。
+- 指定テストは、読み取り専用環境で一時ディレクトリを作れず、**10件すべて実行エラー**になった。製品コードの失敗とは判定していない。
+- 保存処理をメモリ上に差し替え、DNS もモックした実行では、既存10件のアサーションはすべて通った。実ファイルの保存は未検証。
+- CHANGELOG の「最大の密度を選ぶ」は、上記の記述子省略の反例と**食い違う**。
+- CHANGELOG の「Medium の図はすべてこの形」という一般化は、合成されたテスト入力だけでは**確かめられない**。
+
+## 崩せなかった点
+
+- `text_of()` の既定動作は、題名、インラインコード、TeX 注釈、非表示要素を含む入力で旧実装と一致した。`skip_dropped` の両設定を比較した。
+- `pre` 内の入れ子の `<br>`、`<br/>`、連続する改行、字下げ、CRLF は期待どおり処理された。`pre` 外の改行も維持された。
+- 通常の `img src` の優先、WebP 以外の候補の優先、`1.5x` の比較、`data-srcset` 単独の取得は崩せなかった。`picture` 外や入れ子の `<source>` も拾わなかった。
+- 公開ページから `127.0.0.1` と `169.254.169.254` を参照させても、実際の `fetch()` は通信開始前に拒否した。内部アドレスへのリダイレクトも拒否された。今回の追加経路による `block_private` の迂回は確認できなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
