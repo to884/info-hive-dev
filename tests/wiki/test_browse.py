@@ -244,6 +244,44 @@ class SignatureTest(TempWiki):
         self.assertNotEqual(core.signature(self.wiki), before)
 
 
+class UnreadableExcludedDirTest(TempWiki):
+    """入力でない最上位のディレクトリ（raw など）の一覧を作れなくても、閲覧は止まらない。"""
+
+    def denied(self):
+        real = os.scandir
+        blocked = {self.wiki / name for name in ("raw", "assets", ".wiki-cache")}
+
+        def scandir(path="."):
+            if Path(path) in blocked:
+                raise PermissionError("denied")
+            return real(path)
+        return mock.patch.object(os, "scandir", scandir)
+
+    def test_build_and_inputs_ignore_unreadable_raw(self):
+        write(self.wiki, "concepts/a.md", page("# A"))
+        write(self.wiki, "raw/x.md", "raw\n")
+        write(self.wiki, "assets/y.md", "asset\n")
+        with self.denied():
+            self.assertEqual([k for k, _p in core.list_inputs(self.wiki)], ["page"])
+            self.assertEqual(core.external_inputs(self.wiki), [])
+            report = self.build(self.base / "site")
+            with redirect_stderr(io.StringIO()):
+                wiki_browse._prepare_state(self.wiki)   # serve と stop の最初の手順
+        self.assertEqual(report["pages"], 1)
+
+    def test_unreadable_page_dir_still_fails(self):
+        write(self.wiki, "concepts/a.md", page("# A"))
+        real = os.scandir
+
+        def scandir(path="."):
+            if Path(path) == self.wiki / "concepts":
+                raise PermissionError("denied")
+            return real(path)
+        with mock.patch.object(os, "scandir", scandir):
+            with self.assertRaises(core.EnumerationError):
+                core.list_inputs(self.wiki)
+
+
 class NamesTest(unittest.TestCase):
     def test_reserved_names(self):
         for name in ("CON", "con", "COM0", "COM¹", "LPT²", "CONIN$", "CONOUT$", "nul.txt", "COM9 "):
