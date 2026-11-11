@@ -10,6 +10,8 @@
 - `graph:` を読めなかったページは、診断 `unreadable_graph` に挙がる。PyYAML が値を組み立てられない欄
   （`created: 2026-13-01`）が `graph` の外にあっても、`graph` は読める。
 - lint のパーサーが読めない書き方の `type`・`kind`・`sources`・`raw` は、診断 `unread_field` に挙がる。
+  wiki 0.9.6 でパーサーが読む書き方を広げた（docs/plans/wiki-frontmatter-parser-2026-11-11.md）。字下げの違う
+  配列、複数行の `[...]`、引用符つきのキー、コロンの前の空白は、lint もグラフも読み、診断は出ない。
 - オントロジーの `maps_from` の `type`・`kind` も、書かれた文字で照らす。
 - 引用符で囲む規約どおりのページでは、ノードもエッジも ID も変わらない。
 
@@ -180,7 +182,7 @@ TOP_LEVEL_CASES = {
     "コメント": 'type: source # 種類\nsources: [true] # 出典\ntitle: "a # b"',
     "NFD の参照": 'sources: ["カ\u3099", カ\u3099]\nraw: "カ\u3099.md"\ntype: concept',
     "PyYAML が組み立てられない値": "created: 2026-13-01\nupdated: 0000-01-01\ntype: source\nsources: [true]",
-    # 二重引用符の中の \" と \\ のほかのエスケープは、lint と同じく、書かれた文字のまま読む（PyYAML はタブや é にする）。
+    # 二重引用符の中のエスケープは、lint と同じ値に読む。wiki 0.9.6 から、lint のパーサーも YAML の意味で読む。
     "エスケープ": 'title: "a\\tb caf\\u00e9"\nraw: "raw\\/a.md"\nsources: ["a\\nb", "C:\\\\x", "q\\"q"]\ntype: source',
     "引用符のない日時": "created: 2026-11-01 10:00:00\nupdated: 2026-11-01T10:00:00Z\ntitle: [a] b",
     "最上位のマージキー":"base: &b {type: source}\n<<: *b\nsources: [true]",
@@ -324,12 +326,17 @@ class TopLevelMatchesLintTest(WikiCase):
         self.assertEqual({n["slug"]: n["tags"] for n in nodes},
                          {"p": ["ml"], "q": ["ＡＩ", " a ", "", "ml"], "r": [], "s": []})
 
-    def test_escapes_and_datetimes_are_text(self):
+    def test_escapes_follow_lint_and_datetimes_are_text(self):
+        # wiki 0.9.6 から、lint のパーサーが YAML のエスケープを YAML の意味で読む。グラフも同じ値になる。
         write(self.wiki / "p.md", page(TOP_LEVEL_CASES["エスケープ"]))
         meta = self.graph_meta("p.md")
-        self.assertEqual(meta["title"], "a\\tb caf\\u00e9")
-        self.assertEqual(meta["raw"], "raw\\/a.md")
-        self.assertEqual(meta["sources"], ["a\\nb", "C:\\x", 'q"q'])
+        self.assertEqual(meta["title"], "a\tb caf\N{LATIN SMALL LETTER E WITH ACUTE}")
+        self.assertEqual(meta["raw"], "raw/a.md")
+        self.assertEqual(meta["sources"], ["a\nb", "C:\\x", 'q"q'])
+        # YAML にないエスケープが 1 つでもある値は、lint と同じく、書かれた文字のまま読む。
+        write(self.wiki / "p.md", page('type: concept\ntitle: "\\d+\\n"\nsources: ["C:\\Users\\new"]'))
+        meta = self.graph_meta("p.md")
+        self.assertEqual((meta["title"], meta["sources"]), ("\\d+\\n", ["C:\\Users\\new"]))
         write(self.wiki / "p.md", page("type: concept\ncreated: 2026-11-01 10:00:00"))
         nodes, _edges, _diagnostics, _aliases = self.build()
         self.assertEqual(nodes[0]["created"], "2026-11-01 10:00:00")
@@ -342,23 +349,62 @@ class TopLevelMatchesLintTest(WikiCase):
 
 @unittest.skipUnless(HAS_YAML, "PyYAML が要る")
 class UnreadFieldTest(WikiCase):
-    """lint のパーサーが読めない書き方の欄は、グラフも読まない。黙らずに診断に挙げる。"""
+    """lint のパーサーが読めない書き方の欄は、グラフも読まない。黙らずに診断に挙げる。
+
+    wiki 0.9.6 で、lint のパーサーが読む書き方を広げた。読めるようになった書き方では、診断が出ず、エッジができる。
+    """
 
     def unread(self):
         _nodes, _edges, diagnostics, _aliases = self.build()
         return [(d["page"], d["field"]) for d in diagnostics if d["kind"] == "unread_field"]
 
-    def test_lists_the_lint_parser_cannot_read(self):
+    def test_spellings_readable_since_0_9_6_make_edges(self):
+        # 0.9.5 では unread_field に挙がり、sourced_from ができなかった書き方。
         write(self.wiki / "paper.md", SOURCE_PAGE)
         cases = {
             "字下げのない配列": "sources:\n- paper",
             "字下げ 4 つの配列": "sources:\n    - paper",
             "複数行の配列": "sources: [paper,\n  paper]",
+            "字下げのない閉じ括弧": "sources: [\npaper,# コメント\npaper\n]",
             "引用符つきのキー": '"sources": [paper]',
             "キーのあとに空白": "sources : [paper]",
             "日本語の別名": "出典:\n- paper",
-            "同じキーの 2 つ目だけ読めない": "sources: [paper]\nsources:\n- paper",
+            "同じキーの 2 つ目が字下げのない配列": "sources: [paper]\nsources:\n- paper",
+            "エスケープ": 'sources: ["\\u0070aper"]',
+            "ブロックのスカラー": "sources: >\n  paper",
+        }
+        for name, frontmatter in cases.items():
+            with self.subTest(name):
+                write(self.wiki / "a.md", page('type: "concept"\n' + frontmatter))
+                _nodes, edges, diagnostics, _aliases = self.build()
+                self.assertEqual(diagnostics, [])
+                self.assertEqual({(e["subject"], e["predicate"], e["object"]) for e in edges},
+                                 {("concept:a", "sourced_from", "source:paper")})
+                findings = self.graph_findings()
+                self.assertEqual(findings["unread_fields"], [])
+                # wiki の lint も、同じページに解決する。
+                self.assertEqual(self.lint_findings()["unresolved_sources"], [])
+
+    def test_items_after_an_unread_key_line_belong_to_no_one(self):
+        # 0.9.5 までは、読まないキーの行（source-url:）を挟んでも配列を続け、b も sources の要素にしていた。
+        # YAML では b は source-url の要素である。0.9.6 から、lint もグラフも sources を ["a"] と読む。
+        write(self.wiki / "a.md", SOURCE_PAGE)
+        write(self.wiki / "b.md", SOURCE_PAGE)
+        write(self.wiki / "c.md", page('type: "concept"\nsources:\n  - "a"\nsource-url:\n  - "b"'))
+        _nodes, edges, diagnostics, _aliases = self.build()
+        self.assertEqual(diagnostics, [])
+        self.assertEqual([(e["predicate"], e["object"]) for e in edges], [("sourced_from", "source:a")])
+        self.assertEqual(yaml.safe_load('sources:\n  - "a"\nsource-url:\n  - "b"')["sources"], ["a"])
+
+    def test_lists_the_lint_parser_cannot_read(self):
+        write(self.wiki / "paper.md", SOURCE_PAGE)
+        cases = {
             "アンカー": "sources: &s [paper]",
+            "次の行に書いた配列": "sources:\n  [paper]",
+            "? の形のキー": "? sources\n: [paper]",
+            "エスケープを含むキー": '"s\\u006Furces": [paper]',
+            "続きの行が字下げのないキーの形": "sources: [paper,\nb: c]",
+            "同じキーの 2 つ目だけ読めない": "sources: [paper]\nsources:\n  [paper]",
         }
         for name, frontmatter in cases.items():
             with self.subTest(name):
@@ -370,15 +416,22 @@ class UnreadFieldTest(WikiCase):
 
     def test_field_written_twice_with_one_unreadable_key(self):
         # lint のパーサーが読めるキーと読めないキーで 2 度書くと、YAML では後の値が勝つ。読めなかった宣言を見落とさない。
+        # 0.9.6 から、引用符つきのキーとコロンの前の空白は読める。読めないキーは、`? key` の形で確かめる。
         cases = {
-            'type: "concept"\n"type": "source"': [("a.md", "type")],
-            'sources: ["a"]\n"sources": "b"': [("a.md", "sources")],
-            'sources: ["a"]\nsources : ["b"]': [("a.md", "sources")],
+            'type: "concept"\n? type\n: "source"': [("a.md", "type")],
+            'sources: ["a"]\n? sources\n: "b"': [("a.md", "sources")],
+            'sources: ["a"]\n"s\\u006Furces": ["b"]': [("a.md", "sources")],
             # 値のない宣言を lint のパーサーが読んでいても、あとの読めない宣言を隠さない。
-            'sources:\n"sources": "s"': [("a.md", "sources")],
-            'type:\n"type": "source"': [("a.md", "type")],
-            'type: null\n"type": "source"': [("a.md", "type")],
-            'sources: ["a"]\n"sources":': [("a.md", "sources")],
+            'sources:\n? sources\n: "s"': [("a.md", "sources")],
+            'type:\n? type\n: "source"': [("a.md", "type")],
+            'type: null\n? type\n: "source"': [("a.md", "type")],
+            'sources: ["a"]\n? sources\n:': [("a.md", "sources")],
+            # 引用符つきのキーとコロンの前の空白で 2 度書いた欄は、lint のパーサーがどちらも読むので挙げない。
+            'type: "concept"\n"type": "source"': [],
+            'sources: ["a"]\n"sources": "b"': [],
+            'sources: ["a"]\nsources : ["b"]': [],
+            'sources:\n"sources": "s"': [],
+            'type: null\n\'type\' : "source"': [],
         }
         for frontmatter, expected in cases.items():
             with self.subTest(frontmatter):
@@ -394,8 +447,15 @@ class UnreadFieldTest(WikiCase):
         self.assertEqual(self.unread(), [("a.md", "type"), ("a.md", "sources")])
 
     def test_type_kind_and_raw(self):
-        write(self.wiki / "a.md", page('"type": source\nkind : paper\nraw:\n- raw/a.md\n- raw/b.md'))
+        write(self.wiki / "a.md", page('? type\n: source\n? kind\n: paper\nraw:\n  [raw/a.md, raw/b.md]'))
         self.assertEqual(self.unread(), [("a.md", "type"), ("a.md", "kind"), ("a.md", "raw")])
+        # 0.9.6 から読める書き方では挙がらず、ノードの種類と summarizes_raw に使う。
+        write(self.wiki / "a.md", page('"type": source\nkind : paper\nraw:\n- raw/a.md\n- raw/b.md'))
+        nodes, edges, diagnostics, _aliases = self.build()
+        self.assertEqual(diagnostics, [])
+        self.assertEqual([(n["page_type"], n["kind"]) for n in nodes], [("source", "paper")])
+        self.assertEqual(sorted(e["object"] for e in edges if e["predicate"] == "summarizes_raw"),
+                         ["raw:raw/a.md", "raw:raw/b.md"])
 
     def test_readable_spellings_are_not_reported(self):
         cases = [
@@ -408,6 +468,10 @@ class UnreadFieldTest(WikiCase):
             "sources: [[sources/paper]]",
             "type: concept # 種類\nsources: [a] # 出典",
             "title: x\ntags:\n- a",   # 見ている欄ではない
+            # 0.9.6 から読める書き方
+            '"type": "concept"\nkind : "x"\nsources:\n- paper\n- other\nraw:\n    - raw/a.md',
+            "sources: [paper,\n  other,\n]\n'raw': |\n  raw/a.md",
+            '種類 : 概念\n"出典":\n- "\\u8AD6\\u6587"',
             'sources: ["a"]\nsources: "b"',          # あとの文字列が配列を置き換える。YAML も lint も "b"
             'sources: "b"\nsources: ["a", "c"]',
             'sources: ["a"]\n出典: ["b"]',            # 別名との衝突。lint のパーサーはどちらも読んでいる
@@ -422,7 +486,7 @@ class UnreadFieldTest(WikiCase):
 
     def test_cli_reports_it(self):
         write(self.wiki / "paper.md", SOURCE_PAGE)
-        write(self.wiki / "a.md", page('type: "concept"\nsources:\n- paper'))
+        write(self.wiki / "a.md", page('type: "concept"\nsources:\n  [paper]'))
         proc = self.cli("wiki_graph_lint.py", "--json")
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(json.loads(proc.stdout)["unread_fields"], [{"page": "a.md", "field": "sources"}])
@@ -433,6 +497,20 @@ class UnreadFieldTest(WikiCase):
         self.assertIn(extract.DIAGNOSTIC_LABELS["unread_field"], proc.stderr)
         # 読めなかった sources: からは、sourced_from を作らない（lint、検索、統計と同じく、値は空）。
         self.assertEqual((self.wiki / "graph" / "edges.jsonl").read_text(encoding="utf-8"), "")
+
+    def test_cli_reads_the_spellings_readable_since_0_9_6(self):
+        write(self.wiki / "paper.md", SOURCE_PAGE)
+        write(self.wiki / "a.md", page('"type": "concept"\nsources:\n- paper'))
+        proc = self.cli("wiki_graph_lint.py", "--json")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(json.loads(proc.stdout)["unread_fields"], [])
+        proc = self.cli("wiki_graph_extract.py", "--formats", "jsonl")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertNotIn(extract.DIAGNOSTIC_LABELS["unread_field"], proc.stderr)
+        edges = [json.loads(line) for line in
+                 (self.wiki / "graph" / "edges.jsonl").read_text(encoding="utf-8").splitlines()]
+        self.assertEqual([(e["subject"], e["predicate"], e["object"]) for e in edges],
+                         [("concept:a", "sourced_from", "source:paper")])
 
 
 CONVENTIONAL_PAGES = {
