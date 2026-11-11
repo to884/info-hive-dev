@@ -205,6 +205,45 @@ class LintAgreementTest(TempWiki):
 # 中核の規則（出力の名前、見出し、描画、ナビゲーション、raw）
 # ---------------------------------------------------------------------------
 
+def link_dir(link: Path, target: Path) -> bool:
+    """ディレクトリへのシンボリックリンクを作る。作れなければ、Windows ではジャンクションにする。"""
+    try:
+        os.symlink(target, link, target_is_directory=True)
+        return True
+    except (OSError, NotImplementedError):
+        if os.name != "nt":
+            return False
+        import _winapi
+        _winapi.CreateJunction(str(target), str(link))
+        return True
+
+
+class SignatureTest(TempWiki):
+    def test_linked_indexes_dir_is_watched(self):
+        write(self.wiki, "a.md", page("# A"))
+        split = self.base / "split-indexes"
+        write(split, "contents.md", "# OLD_NAV\n\n- [[a]]\n")
+        if not link_dir(self.wiki / "indexes", split):
+            self.skipTest("ディレクトリのリンクを作れない")
+        before = core.signature(self.wiki)
+        c = build_core(self.wiki)
+        self.assertIn("OLD_NAV", c.render_data("nav.js"))
+        write(split, "contents.md", "# NEW_NAV_LONGER\n\n- [[a]]\n")
+        self.assertNotEqual(core.signature(self.wiki), before)
+
+    def test_link_loop_terminates_and_skipped_dirs_are_ignored(self):
+        write(self.wiki, "concepts/a.md", page("# A"))
+        write(self.wiki, "raw/x.md", "raw 1\n")
+        link_dir(self.wiki / "concepts" / "loop", self.wiki)
+        before = core.signature(self.wiki)
+        write(self.wiki, "raw/x.md", "raw 2 longer\n")           # 最上位の raw/ は入力でない
+        self.assertEqual(core.signature(self.wiki), before)
+        write(self.wiki, "concepts/a.md", page("# A longer"))
+        self.assertNotEqual(core.signature(self.wiki), before)
+        write(self.wiki, "graph/ontology.yaml", "node_types: {}\n")
+        self.assertNotEqual(core.signature(self.wiki), before)
+
+
 class NamesTest(unittest.TestCase):
     def test_reserved_names(self):
         for name in ("CON", "con", "COM0", "COM¹", "LPT²", "CONIN$", "CONOUT$", "nul.txt", "COM9 "):
@@ -606,6 +645,32 @@ class BuildTest(TempWiki):
             leaks, _w = core.find_leaks({"a.html": f"x {leak} y"}, [root], core.Recorder())
             self.assertEqual(leaks, ["a.html"], leak)
 
+    def test_user_written_encoded_path_is_a_warning(self):
+        rec = core.Recorder()
+        rec.add("a.html", "C%3A%2FUsers%2FAlice")
+        leaks, warnings = core.find_leaks({"a.html": "<code>C%3A%2FUsers%2FAlice</code>"}, ["C:/Users/Alice"], rec)
+        self.assertEqual((leaks, warnings), ([], ["a.html"]))
+
+    def test_concurrent_nested_builds_do_not_both_publish(self):
+        site = self.base / "exports" / "site"
+        site.parent.mkdir()
+        env = {**os.environ, "INFO_HIVE_DATA_DIR": str(self.data)}
+        cmd = [sys.executable, "-X", "utf8", str(SCRIPTS / "wiki_browse.py"), "build", str(self.wiki), "--out"]
+        site.mkdir()   # 親は空のディレクトリ、子はその中のまだないディレクトリ
+        procs = [subprocess.Popen(cmd + [str(out)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
+                                  text=True, encoding="utf-8") for out in (site, site / "nested", site / "nested")]
+        outs = [p.communicate(timeout=180) for p in procs]
+        codes = [p.returncode for p in procs]
+        # 共通のロックで 1 つずつ走る。親が先なら子は親の中なので止まり、子が先なら親は空でないので止まる。
+        parent_ok = codes[0] == 0
+        child_ok = codes[1] == 0 or codes[2] == 0
+        self.assertNotEqual(parent_ok, child_ok, (codes, outs))
+        published = site if parent_ok else site / "nested"
+        self.assertTrue((published / "index.html").is_file())
+        self.assertTrue((published / fs.GENERATION_MARKER).is_file())
+        if parent_ok:
+            self.assertFalse((site / "nested").exists())
+
     def test_each_needle_is_judged(self):
         rec = core.Recorder()
         rec.add("a.html", "C:/private-WIKI")
@@ -694,10 +759,33 @@ class BuildTest(TempWiki):
         before = tree_state(self.wiki)
         env = {**os.environ, "INFO_HIVE_DATA_DIR": str(self.data)}
         env.pop("PYTHONDONTWRITEBYTECODE", None)
-        result = subprocess.run([sys.executable, "-X", "utf8", str(plugin / "wiki_browse.py"), "build",
-                                 str(self.wiki), "--out", str(self.base / "site")],
+        script = [sys.executable, "-X", "utf8", str(plugin / "wiki_browse.py")]
+        result = subprocess.run(script + ["build", str(self.wiki), "--out", str(self.base / "site")],
                                 capture_output=True, text=True, encoding="utf-8", env=env, timeout=120)
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(tree_state(self.wiki), before)
+        # core、serve、stop も、Wiki の中のプラグインから実際のプロセスとして動かす。
+        request = json.dumps({"op": "manifest", "wiki": str(self.wiki)}) + "\n"
+        result = subprocess.run(script + ["core"], input=request, capture_output=True, text=True, encoding="utf-8",
+                                env=env, timeout=120)
+        self.assertTrue(json.loads(result.stdout)["ok"], result.stderr)
+        server = subprocess.Popen(script + ["serve", str(self.wiki), "--no-open"], stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, env=env, text=True, encoding="utf-8")
+        try:
+            url = json.loads(server.stdout.readline())["url"]
+            import urllib.request
+            with urllib.request.urlopen(url, timeout=30) as res:
+                self.assertEqual(res.status, 200)
+            stopped = subprocess.run(script + ["stop", str(self.wiki)], capture_output=True, text=True,
+                                     encoding="utf-8", env=env, timeout=60)
+            self.assertEqual(stopped.returncode, 0, stopped.stderr)
+            server.wait(30)
+        finally:
+            if server.poll() is None:
+                server.kill()
+                server.wait(30)
+            server.stdout.close()
+            server.stderr.close()
         self.assertEqual(tree_state(self.wiki), before)
 
 

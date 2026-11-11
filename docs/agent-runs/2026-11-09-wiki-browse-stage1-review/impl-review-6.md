@@ -1,0 +1,115 @@
+## 判定
+
+**却下。確信度：高。** 属性取得の失敗で書き込みの保護が外れ、Wiki 内への作成処理に到達する反例を確認した。また、分割索引の配置によって変更検知が働かず、古い内容を正常として返し続ける。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】保護対象の属性取得に失敗すると、その対象を保護しなくなる
+
+`identity()` は、存在しない場合だけでなく、`PermissionError` を含むすべての `OSError` を `None` にする。`Guard.set_protected()` は、その対象を黙って登録から除外する。
+
+再現条件と手順：
+
+1. 書き込み可能な Wiki に対して、`build WIKI --out WIKI/preview` を実行する。本来は書き込み前に拒否される入力である。
+2. 保護対象を登録する際の `os.stat(WIKI)` だけを、一度 `PermissionError` にする。
+3. 以後の属性取得は正常に戻す。
+4. Guard に Wiki の識別情報が残っていないため、Wiki 内への作成を許す。
+
+実際の `build()` と Guard を通し、ロックとファイル操作を mock に置き換えた結果：
+
+```text
+保護対象の登録時の stat 失敗: 発生
+Guard の保護対象の識別情報: 0 件
+到達した mkdir:
+  WIKI/.forbidden-output.browse-work.<PID>.<乱数>.tmp
+```
+
+後段の写し作成で保護を再設定しても、作業用ディレクトリの作成より後になる。ディレクトリの差し替えを必要とせず、設計 §6.5 の既知の限界とは異なる。
+
+根拠：[属性取得の例外処理](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:40)、[保護対象の登録](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:103)、[書き出し開始時の保護と作業用ディレクトリ作成](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:191)、[写し作成後の再設定](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:219)。
+
+実際の権限変更やファイル作成は行っていない。例外の注入と、作成要求への到達を確認した。
+
+### 2. 【重大】`indexes/` 自体がシンボリックリンクだと、その索引の更新を検知しない
+
+Linux などで次の配置にする。
+
+```text
+wiki/
+  a.md
+  index.md
+  indexes -> ../split-indexes/
+
+split-indexes/
+  contents.md
+```
+
+再現手順：
+
+1. `contents.md` に見出し `OLD_NAV` と `- [[a]]` を書く。
+2. サーバーで一度開く。
+3. `contents.md` の見出しを、長さの異なる `NEW_NAV_LONGER` に変える。
+4. 再読み込みする。
+
+索引の収集は `split_dir.rglob("*.md")` を呼ぶため、リンク先のファイルを入力として読む。一方、`signature()` の `os.walk(root)` は、そのディレクトリへのリンクをたどらない。**読み込む入力が、変更検知の対象に含まれていない。**
+
+シンボリックリンクに対する OS の列挙結果を模し、実際の `os.walk()`、`Path.rglob()`、中核の取得処理で確認した。
+
+```text
+入力の集合: indexes/contents.md を含む
+索引のサイズ変更後も signature: 同じ
+同じ中核を再利用: True
+ナビゲーション: OLD_NAV
+stale: None
+```
+
+大きさを変えない編集という既知の限界には当たらない。`core_loop()` のキャッシュにも同じ問題がある。
+
+根拠：[分割索引の列挙](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:137)、[入力の印の走査範囲](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:106)、[サーバーの中核再利用](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:364)、[子プロセスのキャッシュ](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:282)。
+
+Linux 上で実際のリンクを作る検証は行っていない。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| 実体の識別を取得できない対象は、登録しなくても安全である | 既存の Wiki への属性取得が一時的に失敗する |
+| ルートからの `os.walk()` が、すべての入力を含む | `indexes/` 自体が、別のディレクトリへのシンボリックリンクである |
+| パスを利用者の内容として記録すれば、公開前検査でも区別できる | 利用者がパーセント符号化したパスを本文に書く |
+
+## 見落としと軽微な問題
+
+- **【軽微】利用者が書いた符号化済みパスを、生成器の漏洩と誤判定する。**  
+  ホームが `C:/Users/Alice` の場合、本文のコードに利用者が `C%3A%2FUsers%2FAlice` と書くだけで、検査は `(["a.html"], [])` を返す。検索は符号化した形にも対応する一方、利用者の記録との照合は未符号化のパスだけだからである。メモリ上で再現した。根拠：[find_leaks()](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:1167)。
+
+- **【軽微・試験不足】設計にある一部の条件を、現在の試験は実行していない。**  
+  親子の書き出し先を扱う試験は逐次実行であり、同時起動を確かめない。また、プラグインを Wiki 内に置くバイトコードの試験は `build` だけで、設計にある `serve`、`stop`、`core` は実行しない。この不足から、その動作が壊れているとは断定しない。根拠：[入れ子の書き出し先の試験](/C:/Works/info-hive-dev/tests/wiki/test_browse.py:511)、[バイトコードの試験](/C:/Works/info-hive-dev/tests/wiki/test_browse.py:691)、[設計の試験条件](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:378)。
+
+## 検証した事実
+
+実行環境は **Windows／Python 3.14.6**。読み取りとメモリ上の検証だけを行った。PyYAML がなく、Python 3.12 の全試験、実ブラウザ、実プロセス間の競合、実際の CI は再実行していない。
+
+| 確認事項 | 結果 |
+|---|---|
+| 出力名の `NamesTest` | **一致。5 件成功** |
+| 日本語コーパス27ページの未解決リンクと lint | **一致**。リンク抽出も全ページで一致し、31出力をメモリ上で生成できた |
+| 1回目の絶対出力名、非表示ページの未解決リンク消失、複数パス検査の打ち切り | **元の反例は修正確認** |
+| `raw: ~/papers/x.pdf` と `raw: "http://["` | **元の反例は修正確認** |
+| 5回目の通常ディレクトリ列挙失敗 | **修正確認**。旧中核を保持し、`stale: failed` を返した。ただし欠陥2の配置は走査対象外 |
+| ロック待機後・終了時の保護対象再調査、`shutdown_requested` の確認 | **コード上は対応と一致**。欠陥1の識別失敗は残る |
+| 関係表が 0.9.5 の `read_frontmatter()` を使う | **コード上は一致**。YAML の反例の再実行はできず |
+| CI が両OSで Python 試験、Chromiumの2方式、起動速度試験を指定する | **設定上は一致**。報告された成功件数と測定時間は確かめられず |
+| 版・案内文書 | **一致**。0.10.0 と `/wiki:browse` の記載を確認 |
+| 既存スクリプトの振る舞いが不変 | **確かめられず**。既存試験全体を再実行していない |
+
+## 崩せなかった点
+
+メモリ上のソケットで実際の HTTP ハンドラーを通した範囲では、次を越えられなかった。
+
+- Host 不一致は421、誤トークンと閲覧トークンによる停止は404になった。
+- `..`、符号化した `..`、`\`、NUL、不正UTF-8、空要素、`.`、未知名は404になった。
+- 確認した応答に、Wiki ルートや操作トークンは混入しなかった。
+- 要求パスから任意ファイルを取得する経路、閲覧トークンで操作口へ入る経路は示せなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

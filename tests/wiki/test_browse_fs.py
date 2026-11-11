@@ -84,6 +84,24 @@ class BrowseFsTest(unittest.TestCase):
         self.assertTrue(self.guard.overlapping(self.base / "work"))
         self.assertEqual(tree_state(self.wiki), {"concepts": None, "concepts/a.md": b"# a\n"})
 
+    def test_unverifiable_protected_place_is_refused(self):
+        # 守る場所の属性を読めないときは、守りを外さずに止まる（ないものとして扱わない）。
+        from unittest import mock
+        real = os.stat
+
+        def denied(path, *a, **k):
+            if Path(path) == self.wiki:
+                raise PermissionError("denied")
+            return real(path, *a, **k)
+        with mock.patch.object(os, "stat", denied):
+            with self.assertRaises(fs.Refused):
+                fs.Guard([self.wiki])
+            with self.assertRaises(fs.Refused):
+                self.guard.mkdir(self.wiki / "preview")
+        with self.assertRaises(fs.Refused):
+            fs.Guard([self.base / "no-such-wiki"])
+        self.assertEqual(sorted(p.name for p in self.wiki.iterdir()), ["concepts"])
+
     def test_sibling_under_same_parent_is_allowed(self):
         view = self.guard.mkdir(self.base / "work" / "view")
         self.guard.write_text(view / "index.html", "ok")
