@@ -131,6 +131,41 @@ class SkillDocsScriptPathTests(unittest.TestCase):
                 with self.subTest(file=path.name):
                     self.assertIn(POINTER, text)
 
+    def test_every_script_path_has_an_allowed_form(self):
+        # コマンドの検出から外れる形（`python -B scripts/...`、`--script=scripts/...`、閉じ引用符のあとに続く文字、
+        # JSON の `argv` の途中の引数）も捕まえるため、`scripts/<名前>.py` の出現をすべて調べる。
+        # 許すのは、`"<skill-root>/scripts/<名前>.py"` と、文の中でファイルを指す `` `scripts/<名前>.py` `` だけである。
+        allowed = re.compile(r"\"<skill-root>/scripts/[\w-]+\.py\"(?![\w.])|`scripts/[\w-]+\.py`")
+        for path in skill_docs():
+            for number, line in enumerate(read(path).splitlines(), 1):
+                spans = [m.span() for m in allowed.finditer(line)]
+                for match in re.finditer(r"scripts/[\w-]+\.py", line):
+                    with self.subTest(file=path.name, line=number, at=match.start()):
+                        self.assertTrue(any(a <= match.start() and match.end() <= b for a, b in spans), line)
+
+    def test_runner_never_takes_a_bare_script_name(self):
+        bare = re.compile(r"(?:python3?|uv (?:run|sync))\b[^`\n]*?(?<![/\w])([\w-]+\.py)")
+        for path in skill_docs():
+            for number, line in enumerate(read(path).splitlines(), 1):
+                # `/` のあとの名前（`"<skill-root>/scripts/x.py"` や `eval/decisions/run_eval.py`）は名前だけではない。
+                for match in bare.finditer(line):
+                    with self.subTest(file=path.name, line=number):
+                        self.fail(f"スクリプトの名前だけを実行している: {line}")
+
+    def test_definition_body(self):
+        text = read(SKILL_MD)
+        body = text.split(SECTION, 1)[1].split("\n## ", 1)[0]
+        for phrase in (
+            '`"<skill-root>/scripts/<名前>.py"`',
+            "`<skill-root>` は、このスキルのディレクトリ（この `SKILL.md` のあるディレクトリ）の実際のパスに置き換える",
+            "スキルのベースディレクトリ",
+            "`\"` で囲む",
+            "`commands/*.md`",
+            "スキルのディレクトリから見たパスである",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, body)
+
     def test_plugin_relative_path_only_in_definition(self):
         for path in skill_docs():
             for number, line in enumerate(read(path).splitlines(), 1):
