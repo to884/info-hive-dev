@@ -1,0 +1,72 @@
+[ask-codex 18:58:46] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-mcp-console-window）
+## 判定
+
+**却下。** `run_relay` への `CREATE_NO_WINDOW` 追加により、標準出力または標準エラーがコンソールの場合に出力が失敗する、新しい回帰を確認した。確信度：**高**。
+
+## 致命的・重大な欠陥
+
+### 重大：親のコンソールの標準ハンドルを渡したまま、中継を別コンソールに移している
+
+[wiki_mcp_launch.py:53](/C:/Works/info-hive-dev/.claude/worktrees/wiki-mcp-console-window/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_launch.py:53) は、`sys.stdin`、`sys.stdout`、`sys.stderr` をそのまま渡しながら、`CREATE_NO_WINDOW` で中継を別コンソールに所属させる。**パイプと違い、親のコンソールを指すハンドルは、この条件で使用できなかった。**
+
+Windows／Python 3.14.6 で、実際の `run_relay` を使い、次の比較を行った。ファイルは変更していない。
+
+| 条件 | 今回のフラグ | 以前のフラグ `0` |
+| --- | --- | --- |
+| 標準出力を親の `CONOUT$` にし、実際の `relay.main()` の `--ensure` 出力を実行 | `Bad file descriptor`、終了コード120 | 終了コード0 |
+| 標準エラーだけを親の `CONOUT$` にし、実際の `relay.log()` を実行 | 終了コード120 | 終了コード0 |
+
+前者では [wiki_mcp_relay.py:319](/C:/Works/info-hive-dev/.claude/worktrees/wiki-mcp-console-window/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_relay.py:319) の `print()` が `OSError: [Errno 9] Bad file descriptor` を起こした。
+
+再現条件は、ターミナルから診断用の `--ensure` を出力のリダイレクトなしで実行する場合や、MCP ホストが標準入出力をパイプ、標準エラーをコンソールにする場合に当たる。後者では、中継がログを書いた時点で失敗する。
+
+実験では依存の検査とサーバーの起動をメモリ上で代替し、実際の診断出力・ログ出力を通した。uv と実サーバーを含むコマンド全体は未実行だが、**標準ハンドルの受け渡しによる回帰は再現済み**である。コンソールへのアクセスを共有する必要があるという [Windows の仕様](https://learn.microsoft.com/en-us/windows/console/console-handles)とも一致する。
+
+## 崩れる前提
+
+- **「標準入出力はすべてパイプかファイルである」**  
+  標準出力または標準エラーがコンソールなら、上記の回帰が発生する。手動確認スクリプトは両方を `PIPE` にしているため、この条件を試していない。
+
+- **「入口を停止すれば中継も停止する」**  
+  入口だけを terminate し、ホスト側の標準入力パイプを開いたままにすると、`run_relay` が起動した代替子プロセスは残った。パイプを閉じて EOF を渡すと終了した。親停止への追従はホストのパイプ処理にも依存する。この実験だけでは、実 MCP 中継の終了時間や、新しく導入した回帰かどうかまでは判定できない。
+
+- **「同時刻に OCR ワーカーが起動したので、観測した窓も OCR のものである」**  
+  時刻の一致だけでは発生元を確定できない。OCR 起因という説明は妥当な候補だが、提示された情報では**推測**である。
+
+## 見落としと軽微な問題
+
+1. **軽微：窓1件を除外した判断を、確認スクリプトの記録から追跡できない。**  
+   [check_server_console.py:101](/C:/Works/info-hive-dev/.claude/worktrees/wiki-mcp-console-window/tests/wiki/check_server_console.py:101) は HWND と題を一時的に保持するが、結果には題だけを出す。窓の所有 PID、観測時刻、MCP のプロセスとの対応は記録しない。`conhost.exe` が存在することも、可視・不可視の判定にはならない。ADR の「付けたあとは……窓は出なかった」という断定は、帰属未確定の1件を含む測定結果より強い。
+
+2. **軽微：観測待ち中に出力パイプが詰まると、最大1時間待つ。**  
+   [check_server_console.py:108](/C:/Works/info-hive-dev/.claude/worktrees/wiki-mcp-console-window/tests/wiki/check_server_console.py:108) は子の終了まで出力を読まず、後から `communicate()` する。子がパイプ容量を超えるログを書くと、子は書き込みで停止し、親はその終了を待つ。1 MiB を標準エラーへ出す小さな子で、読み取るまで終了できないことを確認した。[Python の説明](https://docs.python.org/3/library/subprocess.html#subprocess.Popen.wait)とも一致する。
+
+3. **軽微：AST 試験は `NO_WINDOW` の使用を保証しない。**  
+   [test_mcp_spawn_flags.py:38](/C:/Works/info-hive-dev/.claude/worktrees/wiki-mcp-console-window/tests/wiki/test_mcp_spawn_flags.py:38) は `creationflags` キーワードの有無だけを見る。検査対象として読む common のソースを、メモリ上で5か所とも `creationflags=0` に置き換えても、新しい4試験はすべて通った。  
+   別名 import や `os.system` なども検出対象外だが、**現在の自前の MCP 経路に、そうした実在する起動の抜けは見つからなかった**。
+
+4. **軽微：0.1秒未満で消える窓は観測できない場合がある。**  
+   観測間隔の間に作成・破棄された窓は見逃す。「どれかが窓を出せば、ここで見つかる」という冒頭の説明は、厳密には成立しない。
+
+## 検証した事実
+
+| 主張 | 結果 |
+| --- | --- |
+| common の5か所、`run_relay`、`spawn_server` にフラグを追加した | **一致** |
+| 前回のコンソールなし起動の反例を塞いだ | **一致**。同じ軽量実験では `_run_uv`、`run_relay` とも可視窓なし |
+| サーバーの版が `e87338645e6416c0` になった | **一致**。実際に算出した |
+| ADR がデスクトップアプリ終了の未測定を明記した | **一致** |
+| 新しい4試験が通る | **一致**。読み取り専用のため一時ディレクトリ部分だけ代替して実行 |
+| 43件成功、実サーバーの terminate・アイドル終了、Claude 終了後の生存 | **確かめられず**。この環境では uv と依存がなく、再実行していない |
+| 観測した窓1件が OCR ワーカー由来 | **確かめられず** |
+
+## 崩せなかった点
+
+- 前回指摘した、コンソールなしの入口から補助プロセスが可視窓を作る経路は、今回の修正後には再現しなかった。
+- POSIX では `creationflags=0`、サーバーでは `start_new_session=True` となり、起動方法が変わる具体例は見つからなかった。
+- 旧サーバーを再利用し続けるという前回の指摘は、common の変更による版ハッシュの更新で成立しなくなった。
+- 自前の MCP 経路を検索した範囲では、今回フラグを付け忘れた別形式のプロセス起動は見つからなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 19:07:06] 完了。session 01a1c9fb-0864-7520-b8ae-8e766aac7647  usage {"input_tokens": 3551150, "cached_input_tokens": 3370368, "cache_write_input_tokens": 0, "output_tokens": 28960, "reasoning_output_tokens": 16715}

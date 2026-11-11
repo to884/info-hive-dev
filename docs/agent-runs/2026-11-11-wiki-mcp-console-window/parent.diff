@@ -1,0 +1,561 @@
+diff --git a/.github/workflows/wiki-mcp.yml b/.github/workflows/wiki-mcp.yml
+index 93ba7e0..6106a01 100644
+--- a/.github/workflows/wiki-mcp.yml
++++ b/.github/workflows/wiki-mcp.yml
+@@ -9,6 +9,7 @@ name: Wiki MCP server
+ # - tests/wiki/test_graph_lint_edge_refs.py: グラフの lint が contradicts と supersedes のエッジの ID を認めること（PyYAML が要る）
+ # - tests/wiki/test_graph_frontmatter_values.py: グラフの抽出が読む frontmatter の値が lint と同じこと（PyYAML が要る）
+ # - tests/wiki/test_frontmatter_parser.py と test_frontmatter_raw.py: frontmatter のパーサーが読む YAML の書き方（PyYAML が要る）
++# - tests/wiki/test_mcp_spawn_flags.py: 入口、中継、サーバーの子プロセスの起動の旗（標準ライブラリだけ）
+ # - tests/wiki/test_wiki_index.py と test_mcp_server.py: テスト用の埋め込みで、索引、中継、サーバーの起動と停止
+ # - tests/wiki/run_mcp_gate.py: 本物のモデル（約 530 MB）を取得して、評価ゲートを ADR-0011 の融合の設定で通す
+ #
+@@ -102,6 +103,9 @@ jobs:
+       - name: 索引の試験
+         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+         run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/wiki/test_wiki_index.py -v
++      - name: 子プロセスの起動の旗の試験
++        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
++        run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_mcp_spawn_flags.py -v
+       - name: サーバーと中継の試験
+         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+         run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/wiki/test_mcp_server.py -v
+diff --git a/docs/adr/0012-wiki-owns-local-mcp-index-server.md b/docs/adr/0012-wiki-owns-local-mcp-index-server.md
+index cc533f5..434caeb 100644
+--- a/docs/adr/0012-wiki-owns-local-mcp-index-server.md
++++ b/docs/adr/0012-wiki-owns-local-mcp-index-server.md
+@@ -21,7 +21,7 @@ ADR-0001 は、127.0.0.1 だけで待ち受け、Wiki を外部に送らず、Wi
+ | --- | --- |
+ | 持ち主 | wiki のプラグインが、127.0.0.1 で待ち受ける streamable HTTP の MCP サーバーを持つ。モデルの読み込み、埋め込み、索引の書き込み（初回の再埋め込みを含む）は、このサーバーだけが行う |
+ | 入口 | wiki に `.mcp.json` を足し、stdio の中継を登録する。中継はロックファイルを取り、`server.json`（ポート、トークン、pid）の指すサーバーが生きていればそれを使い、いなければ起動する。同時に起動された中継が、サーバーを 2 つ起動しないようにする |
+-| 起動のしかた | サーバーは中継の子として、Windows では `DETACHED_PROCESS` と新しいプロセスグループで起動する。起動の前にロックの中で `server.json` を消し、新しく現れた `server.json` を今起動したサーバーのものとみなす。venv の `python.exe` は本体を子プロセスとして起動するので、`Popen` の pid では確かめない。WMI のように、ホストの外からプロセスを起動する方式は使わない |
++| 起動のしかた | サーバーは中継の子として、Windows では窓のない自分のコンソール（`CREATE_NO_WINDOW`）と新しいプロセスグループで起動する。`DETACHED_PROCESS` は使わない（2026年11月11日に改めた。info-hive-wiki#36、理由の節）。起動の前にロックの中で `server.json` を消し、新しく現れた `server.json` を今起動したサーバーのものとみなす。venv の `python.exe` は本体を子プロセスとして起動するので、`Popen` の pid では確かめない。WMI のように、ホストの外からプロセスを起動する方式は使わない |
+ | 寿命 | 要求がない状態が一定の時間続いたら、サーバーは自分で止まる。次の呼び出しで中継が起動し直す。OS のサービスとしては登録しない |
+ | 防御 | 127.0.0.1 だけで待ち受ける。起動ごとにトークンを作り、Bearer で確かめる。Host ヘッダーを確かめ、DNS rebinding を防ぐ。認証は ASGI のミドルウェアで書く |
+ | 応答 | streamable HTTP の応答は、SSE ではなく JSON にする |
+@@ -37,6 +37,8 @@ ADR-0001 は、127.0.0.1 だけで待ち受け、Wiki を外部に送らず、Wi
+ - トークンのない要求と違うトークンの要求は 401、Host ヘッダーを偽装した要求は 421 になった。
+ - 中継経由の上乗せは、応答を JSON にし、認証を ASGI のミドルウェアで書いた構成で 12.8 ms だった。認証を外しても 12.6 ms で、残りの約 9 ms は Python の MCP の SDK が HTTP で 1 回の呼び出しを処理する費用である。中継の 1 段は約 3 ms だった。実装では、同じ処理の直接呼び出しとの p95 の差が 4.7〜11.2 ms だった（実装の記録）。
+ - Claude Code のデスクトップアプリ（Claude 4.16336.0.0、CLI 2.1.317）は、stdio の MCP サーバーを KILL_ON_JOB_CLOSE のジョブに入れない。アプリ本体から下のプロセスはすべて 1 つのジョブに入っているが、そのジョブの制限の旗は 0x0（KILL_ON_JOB_CLOSE も BREAKAWAY_OK もない）だった。中継が `DETACHED_PROCESS` で起動したサーバー（ホストから見て孫プロセス）は、セッションが終わった後も残った（実装の記録）。ターミナルから単体で起動した CLI は、測り直していない。測定に使った Python の MCP の SDK はジョブ（KILL_ON_JOB_CLOSE）を使うので、そのクライアントの下では、サーバーは中継の終了とともに止まった。
++- 最初は `DETACHED_PROCESS` で起動していたが、Windows では画面（既定のターミナルの窓）が 1 つ出た（info-hive-wiki#36）。コンソールを持たない venv の `python.exe` が本体の `python.exe` を起動するときに、本体に新しいコンソールが作られるためである。窓の題はサーバーの venv の `Scripts\python.exe` のパスで、本体の子に `conhost.exe` が付いていた。`CREATE_NO_WINDOW` で起動すると、サーバーは窓のない自分のコンソールを持ち、本体はそれを引き継ぐので、窓は出なかった（`tests/wiki/check_server_console.py`）。2 つの旗は併せると `CREATE_NO_WINDOW` が無視されるので、置き換えた。入口と中継が終わってもサーバーが残ること、`claude -p` のセッションが終わってもサーバーが残ることは、測り直しても変わらなかった（CLI 2.1.321、`check_claude_spawn.py`）。デスクトップアプリそのものを終えたときは、測っていない。
++- 同じ理由で、ホストが入口をコンソールなしで起動すると、入口と中継が起動する `uv` や中継の python でも窓が出る（入口を `DETACHED_PROCESS` で起動して、窓が 4 つ出た）。Claude Code は入口の `uv.exe` にコンソールを付けて起動するので今は当たらないが、ほかのホストに備える。入口と中継の子プロセスの起動は、自分がコンソールを持つときはそれを引き継がせ（旗は 0）、持たないときだけ `CREATE_NO_WINDOW` を付ける（`wiki_mcp_common.child_creationflags`）。いつも `CREATE_NO_WINDOW` を付けると、子が親と別のコンソールに入り、親から受け取ったコンソールの標準出力と標準エラーに書けない（`--ensure` を、出力をコンソールにして実行すると、終了コード 120 で止まった）。サーバーだけは、いつも中継と別の窓のないコンソールにする（`server_creationflags`。標準入出力はファイルにつなぐ）。どの起動もこの 2 つの関数を通すことを、`tests/wiki/test_mcp_spawn_flags.py` が確かめる。直したあとは、入口をコンソールなしで起動しても、`uv run` で起動しても、窓は出なかった（それぞれ 3 回と 2 回。直す前の途中の版で 1 回だけ窓が 1 つ出たが、同じ時刻に別のセッションのプロセスが起動しており、出どころは確かめていない）。
+ - 追加測定 E10 の補足は「CLI 2.1.316 はサーバーをジョブに入れなかった」と記録していたが、確かめ方に誤りがあった。試作の `job_check_server.py` は `GetCurrentProcess()` の疑似ハンドルを ctypes の既定の int で渡すので、ジョブの中でも入っていないと返す。サーバーがセッションの後も残るという結論は、測り直しでも変わらない。
+ - 1 つのプロセスが索引を持ち、一時ファイルに保存してから置き換える方式は、Windows でエラーがなかった（E5 の (b)）。書き手を 1 つにすれば、別のプロセスの写像による置き換えの失敗は起きない。
+ - `ingest_source` は wiki にソースを登録する操作で、ADR-0001 の条件 3（Wiki を書き換える API を持たない）に当たる。`index_chunks` が書くのは wiki の外の索引で、wiki の Markdown は変えない。
+diff --git a/docs/research/wiki-mcp-server-2026-11-06.md b/docs/research/wiki-mcp-server-2026-11-06.md
+index 310fa7c..dd88d0e 100644
+--- a/docs/research/wiki-mcp-server-2026-11-06.md
++++ b/docs/research/wiki-mcp-server-2026-11-06.md
+@@ -38,7 +38,7 @@ ADR の決定は変えていないが、実装の細部で次の判断をした
+ | 判断 | 理由 |
+ | --- | --- |
+ | ベクトルが 50,000 件以下の索引は、HNSW ではなく総当たりで探す（確認が要ること 1） | 結果を決定的にするため |
+-| サーバーは `uv sync --script` で依存を入れ、`uv python find --script` で見つけた python を `DETACHED_PROCESS` で起動する | ADR の「venv の python.exe を子として起動する」に合わせた。`uv run` を子にすると、コンソールの窓が出るおそれがある |
++| サーバーは `uv sync --script` で依存を入れ、`uv python find --script` で見つけた python を `DETACHED_PROCESS` で起動する | ADR の「venv の python.exe を子として起動する」に合わせた。`uv run` を子にすると、コンソールの窓が出るおそれがある。2026年11月11日に、`DETACHED_PROCESS` でも本体の python.exe に窓が出るとわかり、`CREATE_NO_WINDOW` に改めた（info-hive-wiki#36、ADR-0012 の理由） |
+ | 索引のディレクトリごとに OS のファイルロックを取る | 止まりかけのサーバーが索引を閉じ終える前に、次のサーバーが同じ索引を開くことを防ぐ（書き手を 1 つにする ADR-0011 の規則の補強） |
+ | `index_chunks` の語彙のトークンは呼び出し側（rag）が作る | wiki のサーバーに Sudachi の辞書を持たせないため。rag は今も Sudachi で分かち書きしている |
+ | 中継は、接続が切れたら待っている呼び出しを取り消し、つなぎ直して 1 回だけやり直す | mcp 1.30 のクライアントは、サーバーが止まると待っている要求に応答を返さず、待ち続けた |
+diff --git a/docs/research/wiki-mcp-server-2026-11-06/claude-spawn.json b/docs/research/wiki-mcp-server-2026-11-06/claude-spawn.json
+index 84abdee..a63cdc8 100644
+--- a/docs/research/wiki-mcp-server-2026-11-06/claude-spawn.json
++++ b/docs/research/wiki-mcp-server-2026-11-06/claude-spawn.json
+@@ -1,49 +1,59 @@
+ {
+  "purpose": "Claude Code が wiki の中継とサーバーをどう起動し、セッションの後にサーバーが残るか",
+- "claude": "D:\\Users\\toshiki\\AppData\\Roaming\\Claude\\claude-code\\2.1.317\\a33aa5518497\\claude.exe",
++ "claude": "D:\\Users\\toshiki\\AppData\\Roaming\\Claude\\claude-code\\2.1.321\\d0e23af87588\\claude.exe",
+  "platform": "Windows-11-10.0.26300-SP0",
+- "claude_version": "2.1.317 (Claude Code)",
++ "claude_version": "2.1.321 (Claude Code)",
+  "measuring_process": {
+   "ancestry": [
+    {
+-    "pid": 52768,
++    "pid": 9644,
+     "name": "python.exe",
+     "in_job": true
+    },
+    {
+-    "pid": 33912,
++    "pid": 23700,
+     "name": "python.exe",
+     "in_job": true
+    },
+    {
+-    "pid": 48104,
++    "pid": 23640,
++    "name": "uv.exe",
++    "in_job": true
++   },
++   {
++    "pid": 9608,
+     "name": "bash.exe",
+     "in_job": true
+    },
+    {
+-    "pid": 40420,
++    "pid": 36536,
+     "name": "bash.exe",
+     "in_job": true
+    },
+    {
+-    "pid": 48444,
++    "pid": 20516,
+     "name": "bash.exe",
+     "in_job": true
+    },
+    {
+-    "pid": 24256,
++    "pid": 28652,
+     "name": "claude.exe",
+     "in_job": true
+    },
+    {
+-    "pid": 45388,
++    "pid": 34996,
+     "name": "claude.exe",
+     "in_job": true
+    },
+    {
+-    "pid": 15092,
+-    "name": "explorer.exe",
++    "pid": 6968,
++    "name": "sihost.exe",
+     "in_job": false
++   },
++   {
++    "pid": 2744,
++    "name": "svchost.exe",
++    "in_job": null
+    }
+   ],
+   "job": {
+@@ -60,12 +70,12 @@
+    "kill_on_job_close": false,
+    "breakaway_ok": false,
+    "silent_breakaway_ok": false,
+-   "processes_in_job": 123
++   "processes_in_job": 110
+   }
+  },
+  "claude_p": {
+   "exit_code": 0,
+-  "seconds": 26.6,
++  "seconds": 20.2,
+   "stderr_tail": "",
+   "result": "0"
+  },
+@@ -75,12 +85,12 @@
+   "in_job": true,
+   "ancestry": [
+    {
+-    "pid": 37272,
++    "pid": 6432,
+     "name": "python.exe",
+     "in_job": true
+    },
+    {
+-    "pid": 52772,
++    "pid": 27668,
+     "name": "python.exe",
+     "in_job": true
+    }
+diff --git a/tests/wiki/README.md b/tests/wiki/README.md
+index 7b22c8a..0d46b11 100644
+--- a/tests/wiki/README.md
++++ b/tests/wiki/README.md
+@@ -14,12 +14,14 @@
+ | `test_wiki_fetch.py` | Web ページの取得（`wiki_fetch.py`）の、Medium の形の取りこぼし（info-hive-wiki#42）。`<picture>` の `<source srcset>` にだけ URL がある図を保存し、WebP でない `<source>` の幅のいちばん大きい候補を選ぶこと、`<img>` の URL があればそれを使うこと、`<pre>` の中の `<br>` を改行にし、`<pre>` の外の `<br>` は変えないこと。取得を差し替え、ネットにはつながない。標準ライブラリだけで動く |
+ | `test_frontmatter_parser.py` | frontmatter のパーサー（`wiki_text.parse_frontmatter_text`）が読む YAML の書き方（wiki 0.9.7）。字下げの違うブロックの配列、複数行にまたがる `[...]`、引用符つきのキーとコロンの前の空白、二重引用符の中の YAML のエスケープ、`\|` と `>` のブロックのスカラーの値が、PyYAML の `BaseLoader`（型に直さない）と等しいこと（値の表と、種を固定した無作為の入力）。YAML と違ってよいと決めた箇所と、読まないまま残す書き方の値。規約どおりのページと、読み方を変えない書き方で、値が 0.9.5 のパーサーそのものの出力（`frontmatter_parser_golden.json`）と等しいこと。`]` を書き忘れた配列が後ろの欄を取り込まないこと、YAML にないエスケープを含む値を今までどおり読むこと。書き手（`format_frontmatter`）との往復、lint・検索・統計が読めるようになった欄を読むこと、検索の古いパースキャッシュを使い続けないこと、制御文字のある値でも GraphML が読める XML になること。PyYAML が要る |
+ | `test_frontmatter_raw.py` | rag が返す PDF の絶対パスと SHA-256 を、ソースの要約ページの frontmatter に書いて読み戻す（ADR-0013）。手書きのパーサーと PyYAML が同じ値に読むこと、`\` を重ねていない Windows のパスの読み方。PyYAML が要る |
++| `test_mcp_spawn_flags.py` | 入口、中継、サーバーの子プロセスの起動が、すべて `child_creationflags` か `server_creationflags` を通し、`DETACHED_PROCESS` を使わないこと（info-hive-wiki#36）。子はコンソールがあれば引き継ぎ、なければ窓のないコンソールで起動すること、引き継いだコンソールの標準出力に書けること。サーバーを窓のない自分のコンソールと新しいプロセスグループで起動すること。依存は要らない |
+ | `test_uv_tls.py` | TLS を検査する社内ネットワークで uv が証明書を検証できないとき（info-hive-wiki#30）。`UV_SYSTEM_CERTS=true` での 1 回だけのやり直し、利用者の設定の尊重、入れ直しに進まないこと。自己署名の証明書の HTTPS の索引を手元に立て、入口が理由と対処を `logs/launch.log` に書いてすぐ止まることも確かめる（`--with cryptography` で動かす） |
+ | `run_mcp_gate.py`、`mcp_eval_search.py` | wiki の評価ゲート（`eval/retrieval/run_eval.py`）を新しい基盤で通す |
+ | `bench_mcp_latency.py` | 検索の速さ（今の CLI、中継経由の MCP、直接呼び出し） |
+ | `bench_mcp_startup.py` | 起動の速さ（入口から `initialize` と `tools/list` まで）。2 つの版のスクリプトを交互に起動して比べる。結果は `docs/research/wiki-mcp-startup-2026-11-07/` に置く |
+ | `measure_dense_threshold.py` | 意味の検索の距離の上限（`max_distance`）。評価セットの距離の分布と、上限を変えたときの成績。結果は `docs/research/wiki-dense-threshold-2026-11-07/` に置く |
+ | `check_claude_spawn.py` | Claude Code が中継とサーバーをどう起動し、セッションの後にサーバーが残るか（`claude -p` を 1 回実行する） |
++| `check_server_console.py` | Windows でサーバーを起動したときに、画面（コンソールの窓）が出ないか（info-hive-wiki#36）。入口の `--ensure` で起動し、見える窓を前後で比べる。入口と中継が終わった後もサーバーが残り、terminate で止まるかも見る。結果は標準出力に書く |
+ | `check_commands_mcp.py` | コマンド（`/wiki:stats`、`/wiki:query`、`/wiki:lint`）がまず MCP のツールを使い、`.mcp.json` のないプラグインでは CLI に戻るか（`claude -p --plugin-dir` をコマンドの数だけ実行する。引数にコマンド名を渡すと、それだけを実行する） |
+ | `check_first_run_mcp.py` | 初めて使う人の最初のセッション。uv のキャッシュとデータの置き場所を空にして `claude -p` を実行し、サーバーの依存（約 1 GB）とモデル（約 530 MB）の取得のあいだにどう振る舞うかと、用意ができたあとの 2 回目のセッションを確かめる |
+ | `mcp_stdio.py` | 試験用の最小の stdio の MCP クライアント |
+@@ -41,12 +43,14 @@ uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/
+ set DEPS=--with mcp==1.30.0 --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 --with fastembed==0.8.0 --with onnxruntime==1.31.1 --with pyyaml==6.0.3 --with psutil==7.2.2
+ uv run --python 3.12 %DEPS% python -X utf8 -m unittest tests/wiki/test_wiki_index.py -v
+ uv run --python 3.12 %DEPS% python -X utf8 -m unittest tests/wiki/test_mcp_server.py -v
++python -X utf8 -m unittest tests/wiki/test_mcp_spawn_flags.py -v
+ uv run --python 3.12 --with cryptography python -X utf8 -m unittest tests/wiki/test_uv_tls.py -v
+ uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/run_mcp_gate.py
+ uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/bench_mcp_latency.py
+ uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/measure_dense_threshold.py
+ uv run --python 3.12 %DEPS% python -X utf8 tests/wiki/check_claude_spawn.py
+ uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/bench_mcp_startup.py 36a4089 work --rounds 7
++uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/check_server_console.py
+ uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/check_commands_mcp.py
+ uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/check_first_run_mcp.py
+ ```
+diff --git a/tests/wiki/check_claude_spawn.py b/tests/wiki/check_claude_spawn.py
+index e870195..a7418f8 100644
+--- a/tests/wiki/check_claude_spawn.py
++++ b/tests/wiki/check_claude_spawn.py
+@@ -8,7 +8,7 @@ ADR-0012 の「デスクトップアプリが stdio の MCP サーバーをど
+ 確かめること:
+ 1. このプロセス（デスクトップアプリの子孫）がジョブに入っているか、ジョブの制限の旗（KILL_ON_JOB_CLOSE など）
+ 2. `claude -p` が中継を起動し、中継がサーバーを起動するか
+-3. `claude -p` が終わった後もサーバーが残るか（DETACHED_PROCESS の孫がセッションの終了で止まらないか）
++3. `claude -p` が終わった後もサーバーが残るか（中継が別のコンソールで起動した孫が、セッションの終了で止まらないか）
+ 4. サーバーがジョブに入っているか（外から IsProcessInJob で見る）
+ 
+ 試作の job_check_server.py は GetCurrentProcess() の疑似ハンドル（-1）を ctypes の既定の int で渡していたので、
+diff --git a/tests/wiki/check_server_console.py b/tests/wiki/check_server_console.py
+new file mode 100644
+index 0000000..dc4bf08
+--- /dev/null
++++ b/tests/wiki/check_server_console.py
+@@ -0,0 +1,175 @@
++"""Windows で wiki の MCP サーバーを起動したときに、画面（コンソールの窓）が出ないかを確かめる（info-hive-wiki#36）。
++
++入口の `wiki_mcp_launch.py --ensure` で、ホストと同じ経路（入口 → 中継 → サーバー）でサーバーを起動する。
++起動のあいだ 0.1 秒ごとに見えるトップレベルの窓を数え、起動の前になかった窓が 1 つでも出たら失敗にする。
++窓の題は見ない（Windows Terminal の設定によっては、題がプログラムのパスにならない）。同じ時間に別のアプリが
++窓を開くと誤って失敗になるので、出た窓の題、持ち主のプロセス、出た時刻を見て判断する。0.1 秒より短いあいだだけ
++出て消える窓は、見逃すことがある。
++
++- 既定（`--entry uv`）: .mcp.json と同じく `uv run --script` で入口を起動する。
++- `--entry detached`: 入口を、コンソールを持たないプロセス（DETACHED_PROCESS）として、base の python で直接起動する。
++  ホストがコンソールなしで MCP サーバーを起動する場合に当たる。uv の環境の用意（uv sync など）、中継の起動、
++  サーバーの起動が出す窓を見る。
++
++あわせて、入口と中継が終わった後もサーバーが残って応答するか、`stop_server` と同じ terminate で止まるかを見る。
++
++データの置き場所（INFO_HIVE_DATA_DIR）は一時ディレクトリにする。既定の置き場所で動いている、版の違うサーバーを
++止めないためである。uv の環境は既定のものを使うので、初回はサーバーの依存の用意に時間がかかる。
++
++    uv run --python 3.12 --with psutil==7.2.2 python -X utf8 tests/wiki/check_server_console.py [--entry uv|detached] [--plugin <info-hive-wiki>]
++
++結果は標準出力に JSON で書く。窓が出たか、サーバーが残らなかったときは、終了コード 1 を返す。
++"""
++from __future__ import annotations
++
++import argparse
++import ctypes
++import json
++import os
++import socket
++import subprocess
++import sys
++import tempfile
++import time
++from ctypes import wintypes
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[2]
++
++
++def visible_windows() -> dict[int, tuple[str, int]]:
++    """見えるトップレベルの窓の、題と持ち主のプロセスの pid。"""
++    user32 = ctypes.WinDLL("user32", use_last_error=True)
++    enum_proc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
++    found: dict[int, tuple[str, int]] = {}
++
++    def callback(hwnd, _):
++        if user32.IsWindowVisible(hwnd):
++            length = user32.GetWindowTextLengthW(hwnd)
++            buffer = ctypes.create_unicode_buffer(length + 1)
++            user32.GetWindowTextW(hwnd, buffer, length + 1)
++            pid = wintypes.DWORD()
++            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
++            found[int(hwnd or 0)] = (buffer.value, pid.value)
++        return True
++
++    user32.EnumWindows(enum_proc(callback), 0)
++    return found
++
++
++def responds(port: int) -> bool:
++    try:
++        with socket.create_connection(("127.0.0.1", port), timeout=1):
++            return True
++    except OSError:
++        return False
++
++
++def tree(pid: int) -> list[dict]:
++    import psutil
++    root = psutil.Process(pid)
++    return [{"pid": p.pid, "ppid": p.ppid(), "name": p.name(), "exe": p.exe()}
++            for p in [root, *root.children(recursive=True)]]
++
++
++def kill_server(data: Path) -> None:
++    import psutil
++    try:
++        pid = int(json.loads((data / "server.json").read_text(encoding="utf-8"))["pid"])
++        if psutil.pid_exists(pid):
++            psutil.Process(pid).kill()
++            time.sleep(1)  # 一時ディレクトリのファイルを手放すのを待つ
++    except (OSError, ValueError, KeyError, psutil.Error):
++        pass
++
++
++def start_entry(entry: str, launch: Path, env: dict, out, err) -> subprocess.Popen:
++    # 出力はファイルに書く。パイプにすると、読まないあいだに詰まって入口が止まることがある。
++    if entry == "uv":
++        return subprocess.Popen(["uv", "run", "--quiet", "--script", str(launch), "--ensure"],
++                                stdin=subprocess.DEVNULL, stdout=out, stderr=err, env=env)
++    # 入口は標準ライブラリだけで動く。venv の python.exe は本体を子として起動し、それ自体が窓を出すので、
++    # base の python で直接起動する。
++    python = getattr(sys, "_base_executable", sys.executable)
++    return subprocess.Popen([python, "-X", "utf8", str(launch), "--ensure"], stdin=subprocess.DEVNULL,
++                            stdout=out, stderr=err, env=env,
++                            creationflags=subprocess.DETACHED_PROCESS)
++
++
++def main() -> int:
++    if os.name != "nt":
++        print("Windows だけで確かめる", file=sys.stderr)
++        return 2
++    import psutil
++
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--plugin", type=Path, default=ROOT / "info-hive-wiki")
++    parser.add_argument("--entry", choices=("uv", "detached"), default="uv")
++    parser.add_argument("--settle", type=float, default=3.0, help="起動の後も窓を数え続ける秒数")
++    args = parser.parse_args()
++    launch = args.plugin.resolve() / "skills/info-hive/scripts/wiki_mcp_launch.py"
++
++    with tempfile.TemporaryDirectory(prefix="wiki-console-") as data:
++        env = {**os.environ, "PYTHONUTF8": "1", "INFO_HIVE_DATA_DIR": data}
++        before = visible_windows()
++        seen: dict[int, dict] = {}
++
++        def look():
++            for hwnd, (title, owner) in visible_windows().items():
++                if hwnd not in before and hwnd not in seen:
++                    try:
++                        name = psutil.Process(owner).name()
++                    except psutil.Error:
++                        name = "?"
++                    seen[hwnd] = {"title": title, "owner_pid": owner, "owner": name,
++                                  "at_seconds": round(time.perf_counter() - started, 2)}
++
++        try:
++            out_path, err_path = Path(data) / "ensure.out", Path(data) / "ensure.err"
++            with open(out_path, "wb") as out, open(err_path, "wb") as err:
++                started = time.perf_counter()
++                process = start_entry(args.entry, launch, env, out, err)
++                while process.poll() is None and time.perf_counter() - started < 3600:
++                    look()
++                    time.sleep(0.1)
++                if process.poll() is None:
++                    process.kill()
++                process.wait(timeout=60)
++            stderr = err_path.read_bytes()
++            seconds = round(time.perf_counter() - started, 1)
++            ends = time.monotonic() + args.settle
++            while time.monotonic() < ends:
++                look()
++                time.sleep(0.1)
++            result: dict = {"plugin": str(args.plugin), "entry": args.entry, "ensure_returncode": process.returncode,
++                            "ensure_seconds": seconds, "new_windows": list(seen.values())}
++            info_path = Path(data) / "server.json"
++            if process.returncode != 0 or not info_path.exists():
++                result["stderr"] = stderr.decode("utf-8", "replace")[-2000:]
++                print(json.dumps(result, ensure_ascii=False, indent=2))
++                return 1
++            info = json.loads(info_path.read_text(encoding="utf-8"))
++            pid, port = int(info["pid"]), int(info["port"])
++            # --ensure の入口と中継は、ここではもう終わっている。サーバーが残って応答するかを見る。
++            result["alive_after_relay_exit"] = psutil.pid_exists(pid) and responds(port)
++            result["server_tree"] = tree(pid) if psutil.pid_exists(pid) else []
++            # 中継の stop_server と同じく terminate で止める。
++            try:
++                process = psutil.Process(pid)
++                process.terminate()
++                process.wait(timeout=30)
++            except psutil.Error:
++                pass
++            result["stopped"] = not psutil.pid_exists(pid)
++            time.sleep(1)  # サーバーが止まり、一時ディレクトリのファイルを手放すのを待つ
++        finally:
++            # 途中で止めても（Ctrl+C など）、試験のサーバーを残さない。サーバーは別のコンソールなので、自分では止まらない。
++            kill_server(Path(data))
++    print(json.dumps(result, ensure_ascii=False, indent=2))
++    ok = not result["new_windows"] and result["alive_after_relay_exit"] and result["stopped"]
++    return 0 if ok else 1
++
++
++if __name__ == "__main__":
++    sys.stdout.reconfigure(encoding="utf-8")
++    sys.exit(main())
+diff --git a/tests/wiki/test_mcp_server.py b/tests/wiki/test_mcp_server.py
+index a8d3865..f48a736 100644
+--- a/tests/wiki/test_mcp_server.py
++++ b/tests/wiki/test_mcp_server.py
+@@ -190,6 +190,19 @@ class RelayTests(ServerCase):
+         self.assertEqual(self.info()["pid"], pid)
+         self.assertEqual(len(self.server_processes()), 1)
+ 
++    @unittest.skipUnless(os.name == "nt", "Windows だけの試験")
++    def test_server_gets_no_new_console_on_windows(self):
++        """サーバーの本体に新しいコンソールが作られない（info-hive-wiki#36）。
++
++        venv の python.exe（起動用）は本体を子として起動する。起動用がコンソールを持たないと（DETACHED_PROCESS）、
++        本体に新しいコンソールが作られ、本体の子に conhost.exe が付き、画面が出る。窓のない自分のコンソール
++        （CREATE_NO_WINDOW）で起動すれば、本体は起動用のコンソールを引き継ぎ、本体の子に conhost.exe は付かない。
++        画面が実際に出るかは tests/wiki/check_server_console.py で確かめる。
++        """
++        server = psutil.Process(self.ensure()["pid"])
++        consoles = [c.pid for c in server.children() if c.name().lower() == "conhost.exe"]
++        self.assertEqual(consoles, [], "サーバーの本体に新しいコンソールが作られた")
++
+     def test_relay_reconnects_after_server_stops(self):
+         client = self.client()
+         client.initialize()
+diff --git a/tests/wiki/test_mcp_spawn_flags.py b/tests/wiki/test_mcp_spawn_flags.py
+new file mode 100644
+index 0000000..9ec4cf9
+--- /dev/null
++++ b/tests/wiki/test_mcp_spawn_flags.py
+@@ -0,0 +1,141 @@
++"""wiki の MCP の経路で子プロセスを起動するときの旗の試験（info-hive-wiki#36）。
++
++Windows では、コンソールを持たないプロセスがコンソール用のプログラムを起動すると、新しいコンソールが作られ、
++画面が出る。一方、子が親と別のコンソールに入ると、親から受け取ったコンソールの標準ハンドルに書けない。
++そのため、入口、中継、サーバーの子プロセスの起動は、すべて次のどちらかを creationflags に渡す。
++
++- `wiki_mcp_common.child_creationflags()`: 親にコンソールがあれば引き継ぎ（0）、なければ CREATE_NO_WINDOW。
++- `wiki_mcp_common.server_creationflags()`: サーバー。中継と別の、窓のないコンソールと新しいプロセスグループ。
++
++依存は要らない。
++
++    python -X utf8 -m unittest tests/wiki/test_mcp_spawn_flags.py -v
++"""
++from __future__ import annotations
++
++import ast
++import os
++import subprocess
++import sys
++import tempfile
++import textwrap
++import unittest
++from pathlib import Path
++from unittest import mock
++
++ROOT = Path(__file__).resolve().parents[2]
++SCRIPTS = ROOT / "info-hive-wiki/skills/info-hive/scripts"
++MCP_FILES = ("wiki_mcp_common.py", "wiki_mcp_launch.py", "wiki_mcp_relay.py", "wiki_mcp_server.py")
++SPAWNERS = {"run", "Popen", "call", "check_call", "check_output", "getoutput", "getstatusoutput"}
++FLAG_FUNCTIONS = {"child_creationflags", "server_creationflags"}
++sys.path.insert(0, str(SCRIPTS))
++import wiki_mcp_common as common  # noqa: E402
++import wiki_mcp_relay as relay  # noqa: E402
++
++
++def subprocess_calls(tree: ast.AST):
++    for node in ast.walk(tree):
++        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in SPAWNERS
++                and isinstance(node.func.value, ast.Name) and node.func.value.id == "subprocess"):
++            yield node
++
++
++def flag_function(call: ast.Call) -> str | None:
++    """creationflags に渡しているのが FLAG_FUNCTIONS の呼び出しなら、その名前。"""
++    value = next((k.value for k in call.keywords if k.arg == "creationflags"), None)
++    if not isinstance(value, ast.Call):
++        return None
++    func = value.func
++    name = func.attr if isinstance(func, ast.Attribute) else func.id if isinstance(func, ast.Name) else None
++    return name if name in FLAG_FUNCTIONS else None
++
++
++class SpawnFlagsTests(unittest.TestCase):
++    def test_every_child_process_uses_flag_function(self):
++        """MCP の経路の子プロセスの起動は、すべて child_creationflags か server_creationflags を渡す。"""
++        wrong = []
++        for name in MCP_FILES:
++            tree = ast.parse((SCRIPTS / name).read_text(encoding="utf-8"), filename=name)
++            wrong += [f"{name}:{call.lineno}" for call in subprocess_calls(tree) if flag_function(call) is None]
++        self.assertEqual(wrong, [], "旗の関数を通さない子プロセスの起動")
++
++    def test_only_spawn_server_uses_server_flags(self):
++        found = []
++        for name in MCP_FILES:
++            tree = ast.parse((SCRIPTS / name).read_text(encoding="utf-8"), filename=name)
++            found += [name for call in subprocess_calls(tree) if flag_function(call) == "server_creationflags"]
++        self.assertEqual(found, ["wiki_mcp_relay.py"])
++
++    def test_detached_process_is_not_used(self):
++        used = []
++        for name in MCP_FILES:
++            tree = ast.parse((SCRIPTS / name).read_text(encoding="utf-8"), filename=name)
++            used += [f"{name}:{n.lineno}" for n in ast.walk(tree)
++                     if isinstance(n, ast.Attribute) and n.attr == "DETACHED_PROCESS"]
++        self.assertEqual(used, [])
++
++    @unittest.skipUnless(os.name == "nt", "Windows だけの試験")
++    def test_child_flags_follow_console(self):
++        with mock.patch.object(common, "has_console", return_value=True):
++            self.assertEqual(common.child_creationflags(), 0)
++        with mock.patch.object(common, "has_console", return_value=False):
++            self.assertEqual(common.child_creationflags(), subprocess.CREATE_NO_WINDOW)
++        self.assertEqual(common.server_creationflags(),
++                         subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP)
++
++    @unittest.skipIf(os.name == "nt", "POSIX だけの試験")
++    def test_flags_are_zero_on_posix(self):
++        self.assertEqual(common.child_creationflags(), 0)
++        self.assertEqual(common.server_creationflags(), 0)
++
++    @unittest.skipUnless(os.name == "nt", "Windows だけの試験")
++    def test_has_console_without_console(self):
++        """コンソールを持たないプロセス（DETACHED_PROCESS）では偽、窓のないコンソールでは真になる。"""
++        code = f"import sys; sys.path.insert(0, {str(SCRIPTS)!r}); import wiki_mcp_common as c; print(c.has_console())"
++        python = getattr(sys, "_base_executable", sys.executable)
++        for flags, expected in ((subprocess.DETACHED_PROCESS, "False"), (subprocess.CREATE_NO_WINDOW, "True")):
++            out = subprocess.run([python, "-c", code], capture_output=True, text=True, encoding="utf-8",
++                                 creationflags=flags, timeout=60)
++            self.assertEqual(out.stdout.strip(), expected, out.stderr)
++
++    @unittest.skipUnless(os.name == "nt", "Windows だけの試験")
++    def test_child_can_write_to_inherited_console(self):
++        """親のコンソールの標準出力を渡した子が、そこに書ける（子を別のコンソールに入れると書けない）。
++
++        親（ここで起動する python）は、窓のないコンソールを持ち、その CONOUT$ を標準出力にして子を起動する。
++        """
++        code = textwrap.dedent(f"""
++            import subprocess, sys
++            sys.path.insert(0, {str(SCRIPTS)!r})
++            import wiki_mcp_common as c
++            out = open("CONOUT$", "w")
++            child = subprocess.run([sys.executable, "-c", "print('ok')"], stdout=out,
++                                   creationflags=c.child_creationflags())
++            sys.exit(child.returncode)
++        """)
++        python = getattr(sys, "_base_executable", sys.executable)
++        out = subprocess.run([python, "-c", code], capture_output=True, text=True, encoding="utf-8",
++                             creationflags=subprocess.CREATE_NO_WINDOW, timeout=60)
++        self.assertEqual(out.returncode, 0, out.stderr)
++
++    def test_spawn_server_flags(self):
++        captured = {}
++
++        class FakeProcess:
++            def wait(self):
++                return 0
++
++        def fake_popen(args, **kwargs):
++            captured.update(kwargs)
++            return FakeProcess()
++
++        with tempfile.TemporaryDirectory() as data, \
++                mock.patch.dict(os.environ, {common.DATA_DIR_ENV: data}), \
++                mock.patch.object(relay.subprocess, "Popen", fake_popen):
++            relay.spawn_server(sys.executable, subprocess.DEVNULL)
++        self.assertEqual(captured["creationflags"], common.server_creationflags())
++        self.assertEqual(captured["start_new_session"], os.name != "nt")
++
++
++if __name__ == "__main__":
++    unittest.main()
