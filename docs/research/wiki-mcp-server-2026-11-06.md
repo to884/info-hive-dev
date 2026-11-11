@@ -38,7 +38,7 @@ ADR の決定は変えていないが、実装の細部で次の判断をした�
 | 判断 | 理由 |
 | --- | --- |
 | ベクトルが 50,000 件以下の索引は、HNSW ではなく総当たりで探す（確認が要ること 1） | 結果を決定的にするため |
-| サーバーは `uv sync --script` で依存を入れ、`uv python find --script` で見つけた python を `DETACHED_PROCESS` で起動する | ADR の「venv の python.exe を子として起動する」に合わせた。`uv run` を子にすると、コンソールの窓が出るおそれがある |
+| サーバーは `uv sync --script` で依存を入れ、`uv python find --script` で見つけた python を `DETACHED_PROCESS` で起動する | ADR の「venv の python.exe を子として起動する」に合わせた。`uv run` を子にすると、コンソールの窓が出るおそれがある。2026年11月11日に、`DETACHED_PROCESS` でも本体の python.exe に窓が出るとわかり、`CREATE_NO_WINDOW` に改めた（info-hive-wiki#36、ADR-0012 の理由） |
 | 索引のディレクトリごとに OS のファイルロックを取る | 止まりかけのサーバーが索引を閉じ終える前に、次のサーバーが同じ索引を開くことを防ぐ（書き手を 1 つにする ADR-0011 の規則の補強） |
 | `index_chunks` の語彙のトークンは呼び出し側（rag）が作る | wiki のサーバーに Sudachi の辞書を持たせないため。rag は今も Sudachi で分かち書きしている |
 | 中継は、接続が切れたら待っている呼び出しを取り消し、つなぎ直して 1 回だけやり直す | mcp 1.30 のクライアントは、サーバーが止まると待っている要求に応答を返さず、待ち続けた |

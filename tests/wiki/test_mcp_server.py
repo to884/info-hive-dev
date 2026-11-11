@@ -190,6 +190,19 @@ class RelayTests(ServerCase):
         self.assertEqual(self.info()["pid"], pid)
         self.assertEqual(len(self.server_processes()), 1)
 
+    @unittest.skipUnless(os.name == "nt", "Windows だけの試験")
+    def test_server_gets_no_new_console_on_windows(self):
+        """サーバーの本体に新しいコンソールが作られない（info-hive-wiki#36）。
+
+        venv の python.exe（起動用）は本体を子として起動する。起動用がコンソールを持たないと（DETACHED_PROCESS）、
+        本体に新しいコンソールが作られ、本体の子に conhost.exe が付き、画面が出る。窓のない自分のコンソール
+        （CREATE_NO_WINDOW）で起動すれば、本体は起動用のコンソールを引き継ぎ、本体の子に conhost.exe は付かない。
+        画面が実際に出るかは tests/wiki/check_server_console.py で確かめる。
+        """
+        server = psutil.Process(self.ensure()["pid"])
+        consoles = [c.pid for c in server.children() if c.name().lower() == "conhost.exe"]
+        self.assertEqual(consoles, [], "サーバーの本体に新しいコンソールが作られた")
+
     def test_relay_reconnects_after_server_stops(self):
         client = self.client()
         client.initialize()
