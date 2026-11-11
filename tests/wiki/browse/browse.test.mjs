@@ -48,11 +48,13 @@ put("試験/リンク.md", [
   "[外部](https://example.invalid/page) と [相対](rel/x.md) と [ [[ない2]] ](https://example.invalid/x)。", "",
   "| 左 | 右 |", "| :--- | ---: |", "| 1 | 2 |", "",
 ].join("\n"));
-put("試験/行き先.md", ["---", 'type: "concept"', "---", "", "# 行き先", "", "## 定義", "", "本文。", ""].join("\n"));
+put("試験/行き先.md", ["---", 'type: "concept"', "graph:", "  relationships:", "    - predicate: uses",
+  "      object: concept:リンク", "---", "", "# 行き先", "", "## 定義", "", "本文。[[試験/リンク]] に戻る。", ""].join("\n"));
 put("a/同名.md", "# 同名 A\n");
 put("b/同名.md", "# 同名 B\n");
 put("index.md", ["# 索引", "", "## 試験", "", "- [[試験/リンク]]", "- [[試験/行き先]]", "- [[ない]]", ""].join("\n"));
 put("graph/ontology.yaml", "node_types:\n  concept: {}\npredicates:\n  uses: {}\n");
+// 被リンクと関係表が空でないことを比べる（試験/リンク は、試験/行き先 から被リンクと uses の関係を受ける）。
 
 function hashTree(dir) {
   const h = createHash("sha256");
@@ -157,6 +159,18 @@ async function scenario(browser, base, origin) {
   await page.click("#_body a.wl:text-is('定義へ')");
   await page.waitForLoadState("load");
   steps.anchor = await probe();
+  // データの世代がページと違えば、知らせが出る（nav.js の世代だけを書き換えて返す）。
+  await page.route("**/nav.js", async (route) => {
+    const url = route.request().url();
+    // file:// は route.fetch で取れないので、ファイルを直接読む。
+    const text = url.startsWith("file:") ? readFileSync(fileURLToPath(url), "utf8") : await (await route.fetch()).text();
+    const body = text.replace(/"generation":"[^"]*"/, '"generation":"other"');
+    await route.fulfill({ status: 200, contentType: "text/javascript; charset=utf-8", body });
+  });
+  await page.goto(beforeUrl);
+  steps.mismatch = await page.evaluate(() => ({ list: (window.__browse || {}).mismatch || [],
+    notice: !!document.querySelector(".notice-updated") }));
+  await page.unroute("**/nav.js");
   await context.close();
   return { steps, errors };
 }
@@ -272,6 +286,7 @@ try {
         run.errors = r.errors;
         const s = r.steps;
         const all = [s.index, s.links, s.anchor];
+        s.links.mismatch = [];
         check(run.summary.navLoaded, `${name}/${mode}: ナビゲーションを読めない`);
         check(all.every((x) => x.cspViolations.length === 0), `${name}/${mode}: CSP の違反がある`);
         check(all.every((x) => x.styleAttrs === 0), `${name}/${mode}: style の属性がある`);
@@ -281,6 +296,9 @@ try {
         check(s.externalOnClick.length === 1 && s.externalOnClick[0].referer === null,
           `${name}/${mode}: 外部リンクのクリックの移動か Referer が期待と違う: ${JSON.stringify(s.externalOnClick)}`);
         check(!run.summary.unresolvedNavigated, `${name}/${mode}: 未解決リンクで移動した`);
+        check(run.summary.backlinks.length > 0, `${name}/${mode}: 被リンクが空で、比べられない`);
+        check(run.summary.relations.length > 1, `${name}/${mode}: 関係表が空で、比べられない`);
+        check(s.mismatch.notice && s.mismatch.list.includes("WIKI_NAV"), `${name}/${mode}: 世代の不一致を知らせない`);
         check(run.summary.anchorFound, `${name}/${mode}: 見出しへの移動先がない`);
         check(r.errors.length === 0, `${name}/${mode}: コンソールのエラー: ${r.errors.slice(0, 3)}`);
         check(s.links.scriptEscaped, `${name}/${mode}: 題名の <script> が文字として出ていない`);

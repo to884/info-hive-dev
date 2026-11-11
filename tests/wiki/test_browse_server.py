@@ -116,6 +116,38 @@ class RequestTest(InProcess):
         self.assertIn('href="../index.html"', body)
         self.assertNotIn(str(self.wiki), body)
 
+    def test_other_methods_and_bad_request_line(self):
+        for method in ("PATCH", "OPTIONS", "DELETE"):
+            self.assertEqual(self.get("concepts/a.html", method)[0], 405, method)
+        import socket
+        with socket.create_connection(("127.0.0.1", self.port), timeout=10) as s:
+            s.sendall(f"GET {self.prefix}index.html HTTP/9.9 x\r\nHost: 127.0.0.1:{self.port}\r\n\r\n".encode())
+            data = s.recv(65536).decode("utf-8", errors="replace")
+        self.assertTrue(data.startswith("HTTP/1.1 400") or data.startswith("HTTP/1.0 400"), data[:60])
+        self.assertIn("Content-Security-Policy", data)
+        self.assertNotIn(self.app.view_token, data)
+
+    def test_render_error_is_500_and_keeps_serving(self):
+        self.assertEqual(self.get("concepts/a.html")[0], 200)
+        with mock.patch.object(core.Core, "render", side_effect=RuntimeError("x")), redirect_stderr(io.StringIO()):
+            code, body, _h = self.get("concepts/a.html")
+        self.assertEqual(code, 500)
+        self.assertNotIn("RuntimeError", body)
+        self.assertEqual(self.get("concepts/a.html")[0], 200)
+
+    def test_unparsable_raw_is_served(self):
+        write(self.wiki, "concepts/a.md", '---\ntype: "source"\nraw: "http://["\n---\n# A\n')
+        self.assertEqual(self.get("concepts/a.html")[0], 200)
+
+    def test_overlap_shuts_down_from_any_entry(self):
+        self.get("concepts/a.html")
+        write(self.wiki, "concepts/c.md", "# C\n")
+        with mock.patch.object(self.app.state.guard, "overlapping", return_value=True):
+            code, body, _h = request(self.port, "GET", f"/{self.app.control_token}/control/locate/a")
+        self.assertEqual(code, 503)
+        self.assertTrue(self.app.state.shutdown_requested)
+        self.assertTrue(self.app._stopping.is_set())
+
     def test_headers(self):
         _code, _body, headers = self.get("concepts/a.html")
         self.assertEqual(headers["Content-Security-Policy"], core.CSP)
@@ -195,6 +227,81 @@ class RebuildTest(InProcess):
             self.assertEqual(json.loads(body)["instance"], self.app.instance)
             code, body, _h = request(self.port, "GET", f"/{self.app.control_token}/control/locate/b")
             self.assertEqual(json.loads(body)["state"], "unavailable")
+
+    def test_failed_reason_persists_during_retry_interval(self):
+        self.get("concepts/a.html")
+        with mock.patch.object(core, "Core", side_effect=RuntimeError("x")), \
+                mock.patch.object(wiki_browse, "RETRY_INTERVAL", 30):
+            write(self.wiki, "concepts/a.md", "# 壊れた 1\n")
+            first = self.get("concepts/a.html")[1]
+            second = self.get("concepts/a.html")[1]
+        for body in (first, second):
+            self.assertIn("組み立てに失敗した", body)
+
+    def test_wait_timeout_over_http(self):
+        real = core.Core
+        gate = threading.Event()
+
+        def slow(*a, **k):
+            gate.wait(10)
+            return real(*a, **k)
+        with mock.patch.object(wiki_browse, "BUILD_WAIT", 0.3), mock.patch.object(core, "Core", side_effect=slow):
+            first = threading.Thread(target=self.get, args=("index.html",))
+            first.start()
+            time.sleep(0.2)
+            code, _body, headers = self.get("index.html")   # 最初の組み立てを待ちきれない
+            self.assertEqual(code, 503)
+            self.assertIn("Retry-After", headers)
+            gate.set()
+            first.join()
+            gate.clear()
+            write(self.wiki, "concepts/a.md", "# A\n\n本文 4。\n")
+            second = threading.Thread(target=self.get, args=("concepts/a.html",))
+            second.start()
+            time.sleep(0.2)
+            code, body, _h = self.get("concepts/a.html")   # 前の中核で、古いと示して答える
+            self.assertEqual(code, 200)
+            self.assertIn("最新の内容を表示できていない", body)
+            gate.set()
+            second.join()
+
+    def test_concurrent_requests_build_once(self):
+        self.get("index.html")
+        real = core.Core
+        count = {"n": 0}
+
+        def counting(*a, **k):
+            count["n"] += 1
+            time.sleep(0.3)
+            return real(*a, **k)
+        with mock.patch.object(core, "Core", side_effect=counting):
+            write(self.wiki, "concepts/a.md", "# A\n\n本文 5。\n")
+            threads = [threading.Thread(target=self.get, args=("concepts/a.html",)) for _ in range(5)]
+            for th in threads:
+                th.start()
+            for th in threads:
+                th.join()
+        self.assertEqual(count["n"], 1)
+
+    def test_unreadable_ontology_and_index_recover(self):
+        write(self.wiki, "graph/ontology.yaml", "node_types: {concept: {}}\npredicates: {}\n")
+        write(self.wiki, "index.md", "# 索引\n\n- [[a]]\n")
+        targets = {self.wiki / "graph/ontology.yaml", self.wiki / "index.md"}
+        real = Path.read_bytes
+        busy = {"on": True}
+
+        def flaky(self_):
+            if busy["on"] and Path(self_) in targets:
+                raise PermissionError("busy")
+            return real(self_)
+        with mock.patch.object(Path, "read_bytes", flaky):
+            body = self.get("concepts/a.html")[1]
+            self.assertIn("オントロジーを読めない", body)
+            busy["on"] = False
+            time.sleep(0.4)
+            body = self.get("concepts/a.html")[1]
+            self.assertNotIn("オントロジーを読めない", body)
+            self.assertIn('"label":"a"', self.get("nav.js")[1])
 
     def test_wait_timeout_is_stale(self):
         self.get("concepts/a.html")
@@ -336,6 +443,23 @@ class ProcessTest(Base):
         self.assertIsNone(p.poll())   # 止めていない
         self.assertEqual(request(r["port"], "GET", "/x")[0], 404)
         p.kill()
+        p.wait(30)
+
+    def test_two_concurrent_stops(self):
+        p = self.serve()
+        self.first_line(p)
+        cmd = [sys.executable, "-X", "utf8", str(SCRIPTS / "wiki_browse.py"), "stop", str(self.wiki)]
+        stops = [subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=self.env, text=True,
+                                  encoding="utf-8") for _ in range(2)]
+        outs = [s.communicate(timeout=60) for s in stops]
+        self.assertEqual([s.returncode for s in stops], [0, 0], outs)
+        self.assertEqual(p.wait(30), 0)
+        self.assertFalse((self.state_dir() / "server.json").exists())
+
+    def test_stop_while_starting_waits_for_record(self):
+        p = self.serve("--page", "a")
+        res = self.stop()   # 記録ができる前に来ることがある
+        self.assertEqual(res.returncode, 0, res.stderr)
         p.wait(30)
 
     @unittest.skipUnless(os.name == "posix", "POSIX の権限")

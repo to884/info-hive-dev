@@ -262,6 +262,20 @@ class RenderTest(TempWiki):
         self.assertEqual(html.count('id="nav"'), 1)
         self.assertIn('id="_nav"', html)
 
+    def test_heading_with_markdown_link(self):
+        write(self.wiki, "a.md", page("## [X](target)\n\n## [外](https://example.invalid/)\n"))
+        write(self.wiki, "r.md", page("[[a#X（target）]] [[a#外]]"))
+        c = build_core(self.wiki)
+        self.assertEqual([r.get("anchor") for r in c.links["r"]], ["x（target）", "外"])   # 全角の括弧は鍵に残る
+        self.assertIn("X（target）", c.render_page("a"))
+
+    def test_unparsable_raw_url_renders(self):
+        write(self.wiki, "a.md", page("# A", type="source", raw="http://["))
+        c = build_core(self.wiki)
+        for mode in core.RAW_MODES:
+            c.render_page("a", mode)
+        self.assertEqual(core.classify_raw("http://[")["kind"], "url")
+
     def test_links_and_escaping(self):
         write(self.wiki, "a.md", page("[外](https://example.invalid/) [内](rel/x.md) <https://auto.invalid/> "
                                       "[ [[missing]] ](https://example.invalid/) <script>alert(1)</script>\n\n"
@@ -565,6 +579,13 @@ class BuildTest(TempWiki):
         report = self.build(self.base / "site")
         self.assertEqual(report["leaks"], [])
         self.assertIn("concepts/r.html", report["warnings"])
+
+    def test_tilde_raw_builds_with_default_link_mode(self):
+        write(self.wiki, "sources/s.md", page("# S", type="source", raw="~/papers/x.pdf"))
+        report = self.build()   # 既定の書き出し先は link（~ をホームに展開した file:/// のリンク）
+        self.assertEqual(report["leaks"], [])
+        html = (Path(report["out"]) / "sources/s.html").read_text(encoding="utf-8")
+        self.assertIn("file://", html)
 
     def test_user_written_path_is_a_warning(self):
         home = str(Path.home())
