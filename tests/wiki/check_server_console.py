@@ -3,12 +3,13 @@
 入口の `wiki_mcp_launch.py --ensure` で、ホストと同じ経路（入口 → 中継 → サーバー）でサーバーを起動する。
 起動のあいだ 0.1 秒ごとに見えるトップレベルの窓を数え、起動の前になかった窓が 1 つでも出たら失敗にする。
 窓の題は見ない（Windows Terminal の設定によっては、題がプログラムのパスにならない）。同じ時間に別のアプリが
-窓を開くと誤って失敗になるので、出た窓の題を見て判断する。
+窓を開くと誤って失敗になるので、出た窓の題、持ち主のプロセス、出た時刻を見て判断する。0.1 秒より短いあいだだけ
+出て消える窓は、見逃すことがある。
 
 - 既定（`--entry uv`）: .mcp.json と同じく `uv run --script` で入口を起動する。
 - `--entry detached`: 入口を、コンソールを持たないプロセス（DETACHED_PROCESS）として、base の python で直接起動する。
   ホストがコンソールなしで MCP サーバーを起動する場合に当たる。uv の環境の用意（uv sync など）、中継の起動、
-  サーバーの起動のどれかが窓を出せば、ここで見つかる。
+  サーバーの起動が出す窓を見る。
 
 あわせて、入口と中継が終わった後もサーバーが残って応答するか、`stop_server` と同じ terminate で止まるかを見る。
 
@@ -36,17 +37,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def visible_windows() -> dict[int, str]:
+def visible_windows() -> dict[int, tuple[str, int]]:
+    """見えるトップレベルの窓の、題と持ち主のプロセスの pid。"""
     user32 = ctypes.WinDLL("user32", use_last_error=True)
     enum_proc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
-    found: dict[int, str] = {}
+    found: dict[int, tuple[str, int]] = {}
 
     def callback(hwnd, _):
         if user32.IsWindowVisible(hwnd):
             length = user32.GetWindowTextLengthW(hwnd)
             buffer = ctypes.create_unicode_buffer(length + 1)
             user32.GetWindowTextW(hwnd, buffer, length + 1)
-            found[int(hwnd or 0)] = buffer.value
+            pid = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+            found[int(hwnd or 0)] = (buffer.value, pid.value)
         return True
 
     user32.EnumWindows(enum_proc(callback), 0)
@@ -68,15 +72,16 @@ def tree(pid: int) -> list[dict]:
             for p in [root, *root.children(recursive=True)]]
 
 
-def start_entry(entry: str, launch: Path, env: dict) -> subprocess.Popen:
+def start_entry(entry: str, launch: Path, env: dict, out, err) -> subprocess.Popen:
+    # 出力はファイルに書く。パイプにすると、読まないあいだに詰まって入口が止まることがある。
     if entry == "uv":
         return subprocess.Popen(["uv", "run", "--quiet", "--script", str(launch), "--ensure"],
-                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+                                stdin=subprocess.DEVNULL, stdout=out, stderr=err, env=env)
     # 入口は標準ライブラリだけで動く。venv の python.exe は本体を子として起動し、それ自体が窓を出すので、
     # base の python で直接起動する。
     python = getattr(sys, "_base_executable", sys.executable)
     return subprocess.Popen([python, "-X", "utf8", str(launch), "--ensure"], stdin=subprocess.DEVNULL,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
+                            stdout=out, stderr=err, env=env,
                             creationflags=subprocess.DETACHED_PROCESS)
 
 
@@ -96,19 +101,29 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="wiki-console-") as data:
         env = {**os.environ, "PYTHONUTF8": "1", "INFO_HIVE_DATA_DIR": data}
         before = visible_windows()
-        seen: dict[int, str] = {}
+        seen: dict[int, dict] = {}
 
         def look():
-            for hwnd, title in visible_windows().items():
-                if hwnd not in before:
-                    seen.setdefault(hwnd, title)
+            for hwnd, (title, owner) in visible_windows().items():
+                if hwnd not in before and hwnd not in seen:
+                    try:
+                        name = psutil.Process(owner).name()
+                    except psutil.Error:
+                        name = "?"
+                    seen[hwnd] = {"title": title, "owner_pid": owner, "owner": name,
+                                  "at_seconds": round(time.perf_counter() - started, 2)}
 
-        started = time.perf_counter()
-        process = start_entry(args.entry, launch, env)
-        while process.poll() is None and time.perf_counter() - started < 3600:
-            look()
-            time.sleep(0.1)
-        stdout, stderr = process.communicate(timeout=60)
+        out_path, err_path = Path(data) / "ensure.out", Path(data) / "ensure.err"
+        with open(out_path, "wb") as out, open(err_path, "wb") as err:
+            started = time.perf_counter()
+            process = start_entry(args.entry, launch, env, out, err)
+            while process.poll() is None and time.perf_counter() - started < 3600:
+                look()
+                time.sleep(0.1)
+            if process.poll() is None:
+                process.kill()
+            process.wait(timeout=60)
+        stderr = err_path.read_bytes()
         seconds = round(time.perf_counter() - started, 1)
         ends = time.monotonic() + args.settle
         while time.monotonic() < ends:
