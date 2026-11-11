@@ -1,0 +1,71 @@
+[ask-codex 00:41:13] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\full-ocr-continue-94ee76）
+## 判定
+
+**却下。確信度：高。** 終了時の再集計後に遅延OCR通知を再加算する経路があり、最終進捗が実ファイル数より多くなる反例を再現した。
+
+## 致命的・重大な欠陥
+
+**重大：停止時の再集計と、その後の `drain()` が同じページを二重計上する。**
+
+再現する実行順序：
+
+1. 親がOCR済み2ページを集計している。
+2. ワーカーが3ページ目を保存し、OCR通知を送る。親はまだ受信していない。
+3. 親がSTOPを検出し、プールを終了する。
+4. 追加された再集計が3ファイルを数え、`partial[doc_id]` を3にする。
+5. 続く `drain()` が3ページ目の通知を受信する。
+6. 文書が辞書 `running` に残っているため、`partial` にもう1ページ加算する。
+
+SQLiteの状態を `pending` に戻しても、通知側が参照する辞書 `running` は変わらないため、加算を防げない。
+
+対象の集計関数と終了処理をメモリ上で実行した結果：
+
+| 終了時の状態 | 実ファイルのOCR数／空ページ数 | 最終進捗 |
+|---|---:|---:|
+| 未受信通知なし | 3／1 | 3／1 |
+| 保存済みページの未受信通知が1件 | 3／1 | **4／2** |
+
+次回起動時にはファイルから3／1と数え直されるため、停止・再開をまたいで値が減る。
+
+根拠：[再集計後に通知を読む処理:485–492](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:485)、[辞書 `running` による加算判定:424–432](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:424)。
+
+## 崩れる前提
+
+- **ファイルから再集計したあとには、そのページの未受信通知が残っていない。** 保存と通知受信は別操作なので、STOP直前の保存・通知で崩れる。
+- **台帳を `pending` に戻すと、通知側も終了済みと扱う。** 通知側はSQLiteではなく、別管理の辞書 `running` を見るため成立しない。
+- **チェックポイント試験中は書き手が1つ。** MCPなどを並行稼働させると、別の書き手のページを再開結果に数える。この制約は今回docstringに明記されており、明示された条件として扱った。
+
+## 見落としと軽微な問題
+
+**軽微：停止完了後の進捗にも、処理中一覧が残る。**
+
+同じ試験で、最終出力が `status="stopped"`、`documents.pending=1` なのに、`running` 配列にはその文書が1件残った。終了処理が辞書 `running` を保持したまま出力するためである。
+
+根拠：[処理中一覧の生成:392–393](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:392)、[終了処理:485–492](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:485)。
+
+## 検証した事実
+
+| 確認事項 | 結果 |
+|---|---|
+| 終了時に処理中文書をファイルから再集計する | **一致。** 前回の「保存済みだが通知前」という反例は、未受信通知なしの場合には解消 |
+| `start` の準備全体を `start.lock` で保護する | **一致。** 対象関数とロック代替を使った並行試験で、後発は準備関数に入る前に拒否された |
+| ステージング名をプロセスごとに分ける | **一致。** PIDを名前に含めている |
+| 展開完了後に印を作り、ディレクトリを確定する | **一致。** 展開→`.complete` 作成→`os.replace()` の順 |
+| 印のない既存コピーを消さず停止する | **一致。** 既存先の検査は削除処理より前にある |
+| 既存コピーは指定コミットと一致する | **一致。** `0ca80c7…` のアーカイブと実ファイル11件をバイト比較し、差分0件。印の内容も同コミット |
+| チェックポイントの単独書き手という前提 | **一致。** [docstringの8–9行](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/checkpoint_product_ocr.py:8)に明記 |
+
+リポジトリのファイルは変更していない。制御処理の試験はメモリ上で行い、実際のOCR停止・OS再起動・実プロセス間のファイルロック試験は行っていない。
+
+## 崩せなかった点
+
+- 同時 `start` が同じステージングディレクトリを削除し合う、前回の反例。
+- 不完全なコピーを `rag_pdf.py` の存在だけで完成済みと判定する、前回の反例。
+- 失敗文書と `--limit` 対象外の保存済みページを起動時に数える処理。
+- 製品の抽出関数、抽出の鍵、文書ロックを使う処理。
+
+`fsync` 不使用は、今回指定された制約として扱った。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 00:44:25] 完了。session 01a1c0e3-358d-71f0-9ece-b5fc9e02b3c4  usage {"input_tokens": 3644126, "cached_input_tokens": 3515648, "cache_write_input_tokens": 0, "output_tokens": 35489, "reasoning_output_tokens": 16202}
