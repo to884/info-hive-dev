@@ -72,6 +72,17 @@ def tree(pid: int) -> list[dict]:
             for p in [root, *root.children(recursive=True)]]
 
 
+def kill_server(data: Path) -> None:
+    import psutil
+    try:
+        pid = int(json.loads((data / "server.json").read_text(encoding="utf-8"))["pid"])
+        if psutil.pid_exists(pid):
+            psutil.Process(pid).kill()
+            time.sleep(1)  # 一時ディレクトリのファイルを手放すのを待つ
+    except (OSError, ValueError, KeyError, psutil.Error):
+        pass
+
+
 def start_entry(entry: str, launch: Path, env: dict, out, err) -> subprocess.Popen:
     # 出力はファイルに書く。パイプにすると、読まないあいだに詰まって入口が止まることがある。
     if entry == "uv":
@@ -113,43 +124,47 @@ def main() -> int:
                     seen[hwnd] = {"title": title, "owner_pid": owner, "owner": name,
                                   "at_seconds": round(time.perf_counter() - started, 2)}
 
-        out_path, err_path = Path(data) / "ensure.out", Path(data) / "ensure.err"
-        with open(out_path, "wb") as out, open(err_path, "wb") as err:
-            started = time.perf_counter()
-            process = start_entry(args.entry, launch, env, out, err)
-            while process.poll() is None and time.perf_counter() - started < 3600:
+        try:
+            out_path, err_path = Path(data) / "ensure.out", Path(data) / "ensure.err"
+            with open(out_path, "wb") as out, open(err_path, "wb") as err:
+                started = time.perf_counter()
+                process = start_entry(args.entry, launch, env, out, err)
+                while process.poll() is None and time.perf_counter() - started < 3600:
+                    look()
+                    time.sleep(0.1)
+                if process.poll() is None:
+                    process.kill()
+                process.wait(timeout=60)
+            stderr = err_path.read_bytes()
+            seconds = round(time.perf_counter() - started, 1)
+            ends = time.monotonic() + args.settle
+            while time.monotonic() < ends:
                 look()
                 time.sleep(0.1)
-            if process.poll() is None:
-                process.kill()
-            process.wait(timeout=60)
-        stderr = err_path.read_bytes()
-        seconds = round(time.perf_counter() - started, 1)
-        ends = time.monotonic() + args.settle
-        while time.monotonic() < ends:
-            look()
-            time.sleep(0.1)
-        result: dict = {"plugin": str(args.plugin), "entry": args.entry, "ensure_returncode": process.returncode,
-                        "ensure_seconds": seconds, "new_windows": list(seen.values())}
-        info_path = Path(data) / "server.json"
-        if process.returncode != 0 or not info_path.exists():
-            result["stderr"] = stderr.decode("utf-8", "replace")[-2000:]
-            print(json.dumps(result, ensure_ascii=False, indent=2))
-            return 1
-        info = json.loads(info_path.read_text(encoding="utf-8"))
-        pid, port = int(info["pid"]), int(info["port"])
-        # --ensure の入口と中継は、ここではもう終わっている。サーバーが残って応答するかを見る。
-        result["alive_after_relay_exit"] = psutil.pid_exists(pid) and responds(port)
-        result["server_tree"] = tree(pid) if psutil.pid_exists(pid) else []
-        # 中継の stop_server と同じく terminate で止める。
-        try:
-            process = psutil.Process(pid)
-            process.terminate()
-            process.wait(timeout=30)
-        except psutil.Error:
-            pass
-        result["stopped"] = not psutil.pid_exists(pid)
-        time.sleep(1)  # サーバーが止まり、一時ディレクトリのファイルを手放すのを待つ
+            result: dict = {"plugin": str(args.plugin), "entry": args.entry, "ensure_returncode": process.returncode,
+                            "ensure_seconds": seconds, "new_windows": list(seen.values())}
+            info_path = Path(data) / "server.json"
+            if process.returncode != 0 or not info_path.exists():
+                result["stderr"] = stderr.decode("utf-8", "replace")[-2000:]
+                print(json.dumps(result, ensure_ascii=False, indent=2))
+                return 1
+            info = json.loads(info_path.read_text(encoding="utf-8"))
+            pid, port = int(info["pid"]), int(info["port"])
+            # --ensure の入口と中継は、ここではもう終わっている。サーバーが残って応答するかを見る。
+            result["alive_after_relay_exit"] = psutil.pid_exists(pid) and responds(port)
+            result["server_tree"] = tree(pid) if psutil.pid_exists(pid) else []
+            # 中継の stop_server と同じく terminate で止める。
+            try:
+                process = psutil.Process(pid)
+                process.terminate()
+                process.wait(timeout=30)
+            except psutil.Error:
+                pass
+            result["stopped"] = not psutil.pid_exists(pid)
+            time.sleep(1)  # サーバーが止まり、一時ディレクトリのファイルを手放すのを待つ
+        finally:
+            # 途中で止めても（Ctrl+C など）、試験のサーバーを残さない。サーバーは別のコンソールなので、自分では止まらない。
+            kill_server(Path(data))
     print(json.dumps(result, ensure_ascii=False, indent=2))
     ok = not result["new_windows"] and result["alive_after_relay_exit"] and result["stopped"]
     return 0 if ok else 1
