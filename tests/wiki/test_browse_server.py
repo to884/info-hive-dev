@@ -251,6 +251,30 @@ class RequestTest(InProcess):
         self.assertEqual(code, wiki_browse.EXIT_FAILED)
         self.assertTrue(record.exists())
 
+    def test_locate_accepts_wikilink_spellings(self):
+        import urllib.parse
+        for target in ("concepts/b", "concepts\\b", "/concepts/b", "b", "concepts/b.md", "b#x"):
+            quoted = urllib.parse.quote(target, safe="")
+            code, body, _h = request(self.port, "GET", f"/{self.app.control_token}/control/locate/{quoted}")
+            self.assertEqual(code, 200, target)
+            res = json.loads(body)
+            self.assertEqual(res["state"], "resolved", target)
+            self.assertEqual(res["path"], "concepts/b.html", target)
+        # 閲覧のトークンでは届かず、行き先がファイルのパスとして使われることもない
+        self.assertEqual(request(self.port, "GET", f"/{self.app.view_token}/control/locate/b")[0], 404)
+        code, body, _h = request(self.port, "GET", f"/{self.app.control_token}/control/locate/..%2F..%2Fsecret")
+        self.assertEqual(json.loads(body)["state"], "unresolved")
+        self.assertEqual(request(self.port, "POST", f"/{self.app.control_token}/control/locate/b")[0], 405)
+        self.assertEqual(request(self.port, "GET", f"/{self.app.control_token}/control/locate/%ff")[0], 404)
+
+    def test_generated_at_belongs_to_the_core(self):
+        self.get("index.html")
+        c = self.app.state.current
+        self.assertTrue(c.generated_at)
+        c.generated_at = "TIME-A"
+        self.assertIn('"generated_at":"TIME-A"', self.get("data/manifest.js")[1])
+        self.assertFalse(hasattr(self.app.state, "generated_at"))
+
     def test_log_has_no_tokens(self):
         self.app.verbose = True
         err = io.StringIO()
