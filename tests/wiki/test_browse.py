@@ -214,7 +214,7 @@ class NamesTest(unittest.TestCase):
             self.assertIn("~", last, name)
 
     def test_generator_names_are_avoided(self):
-        for pid in ("index", "data/x", "assets/x", ".browse-generation/a", "x/.browse-work/b"):
+        for pid in ("index", "data/x", "assets/x", ".browse-generation/a", "x/.browse-work/b", ".BROWSE-GENERATION/a"):
             out = core.export_name(pid)
             self.assertNotEqual(out, pid + ".html", pid)
         names = core.assign_names(["index", "nav", "data/x", "assets/x"])
@@ -538,6 +538,21 @@ class BuildTest(TempWiki):
             wiki_browse.cleanup(fs.Guard([self.wiki]), out, work)
         self.assertEqual((out / ".browse-generation").read_text(encoding="utf-8"), first)
         self.assertEqual(sorted(p.name for p in work.iterdir() if p.is_dir()), ["old-x"])
+
+    def test_unlistable_directory_fails_build_and_keeps_previous(self):
+        out = self.base / "site"
+        self.build(out)
+        before = (out / "index.html").read_bytes()
+        real = os.scandir
+
+        def denied(path="."):
+            if Path(path) == self.wiki:
+                raise PermissionError("denied")
+            return real(path)
+        with mock.patch.object(os, "scandir", denied):
+            code = wiki_browse.main(["build", str(self.wiki), "--out", str(out)])
+        self.assertEqual(code, wiki_browse.EXIT_FAILED)
+        self.assertEqual((out / "index.html").read_bytes(), before)
 
     def test_recovery_into_empty_output_dir(self):
         out = self.base / "site"

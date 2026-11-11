@@ -357,14 +357,26 @@ class RebuildTest(InProcess):
             count["n"] += 1
             time.sleep(0.3)
             return real(*a, **k)
+        results = []
+
+        def fetch():
+            code, body, _h = self.get("concepts/a.html")
+            gen = body.split('data-generation="', 1)[1].split('"', 1)[0] if 'data-generation="' in body else None
+            results.append((code, "本文 5" in body, gen))
         with mock.patch.object(core, "Core", side_effect=counting):
             write(self.wiki, "concepts/a.md", "# A\n\n本文 5。\n")
-            threads = [threading.Thread(target=self.get, args=("concepts/a.html",)) for _ in range(5)]
+            threads = [threading.Thread(target=fetch) for _ in range(5)]
             for th in threads:
                 th.start()
             for th in threads:
                 th.join()
         self.assertEqual(count["n"], 1)
+        # どの応答も、成功し、新しい 1 つの世代の内容だけでできている
+        self.assertEqual([r[0] for r in results], [200] * 5)
+        self.assertTrue(all(r[1] for r in results))
+        self.assertEqual(len({r[2] for r in results}), 1)
+        nav = self.get("nav.js")[1]
+        self.assertIn(f'"generation":"{results[0][2]}"', nav)
 
     def test_unreadable_ontology_and_index_recover(self):
         write(self.wiki, "graph/ontology.yaml", "node_types: {concept: {}}\npredicates: {}\n")
@@ -385,6 +397,27 @@ class RebuildTest(InProcess):
             body = self.get("concepts/a.html")[1]
             self.assertNotIn("オントロジーを読めない", body)
             self.assertIn('"label":"a"', self.get("nav.js")[1])
+
+    def test_unlistable_directory_keeps_previous_core(self):
+        self.assertEqual(self.get("concepts/a.html")[0], 200)
+        real = os.scandir
+
+        def denied(path="."):
+            if Path(path) == self.wiki:
+                raise PermissionError("denied")
+            return real(path)
+        with mock.patch.object(os, "scandir", denied):
+            code, body, _h = self.get("concepts/a.html")
+            self.assertEqual(code, 200)                         # 0 ページに切り替えない
+            self.assertIn("最新の内容を表示できていない", body)
+            manifest = self.get("data/manifest.js")[1]
+            self.assertNotIn('"pages":0', manifest)
+        time.sleep(0.4)
+        self.assertNotIn("最新の内容を表示できていない", self.get("concepts/a.html")[1])
+
+    def test_manifest_has_generated_at(self):
+        manifest = self.get("data/manifest.js")[1]
+        self.assertNotIn('"generated_at":""', manifest)
 
     def test_signature_failure_is_stale_not_500(self):
         self.assertEqual(self.get("concepts/a.html")[0], 200)

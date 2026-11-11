@@ -1,0 +1,90 @@
+## 判定
+
+**却下。確信度：高。** 入力ディレクトリの列挙に失敗すると、保持していた中核を正常な「0ページ」に置き換える反例を確認した。「失敗時は前の内容を残す」「使えない状態と0件を区別する」という条件を満たさない。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】列挙エラーが正常な空集合になり、旧中核を捨てる
+
+再現手順：
+
+1. 評価用コーパス27ページを読み、サーバーに中核を保持させる。
+2. Wikiルートを列挙する `os.scandir()` が `PermissionError` を出す状態にする。
+3. 既存ページ、索引、manifestを要求する。
+
+実際のHTTPサーバーで、`os.scandir()` にだけ例外を注入した結果：
+
+```text
+障害前の既存ページ: 200
+障害中の既存ページ: 404
+障害中の索引:       200、「古い」の表示なし
+manifest.pages:     0
+failed:             None
+snapshot.unreadable: False
+```
+
+`Path.rglob()` が列挙エラーを内部で抑え、空の結果を返す。したがって、4回目の修正で追加された `_signature()` の例外処理には到達しない。空集合の印と写しが正常に作られ、`self.current` が置き換わる。初回から同じ障害があれば、503ではなく正常な0件になる。
+
+根拠：
+
+- [wiki_pages.py:52](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:52)：`rglob()` による列挙。
+- [wiki_browse_core.py:79](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:79)：列挙結果を入力集合として採用。
+- [wiki_browse.py:363](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:363)：空集合から作った新中核への切り替え。
+- [test_browse_server.py:389](/C:/Works/info-hive-dev/tests/wiki/test_browse_server.py:389)：試験は `signature()` 自体を例外にしており、この反例を検出しない。
+
+Windows／Python 3.14.6で確認した。実際のアクセス権変更と、Python 3.12での再実行はしていない。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| 入力を列挙できなければ `signature()` が例外になる | `rglob()` が列挙エラーを抑え、空集合や一部の集合を返す |
+| `stop` の後片付けも、状態ディレクトリ全体の重なりを拒む | 停止開始後に、その中の別ファイルがWikiの入力になる |
+| `.browse-` の予約判定でWindows上の目印との衝突を防げる | ディレクトリ名の大文字・小文字が違う |
+
+## 見落としと軽微な問題
+
+- **【軽微】稼働中サーバーを止める経路では、状態ディレクトリ全体の重なりを再検査しない。**  
+  `stop` 開始後、後片付けのロック取得前に、Wikiのページが状態ディレクトリの `.browse-server` を指すようにする。サーバー自身の `_finish()` は記録を残すが、停止側は保護対象を更新するだけで、別ファイルの `server.json` の削除を許す。実関数とGuardを使い、削除を記録するだけの検証で、`state_dir` が重なっていても削除へ進み、終了コード0になることを確認した。入力自体の削除は確認していないが、「重なれば記録に触れない」という対応には不足が残る。  
+  根拠：[wiki_browse.py:817](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:817)、[同:713](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:713)。
+
+- **【軽微】大文字の目印名がWindowsでファイルとディレクトリの衝突を起こす。**  
+  `.BROWSE-GENERATION/a.md` はページ集合に入るが、出力名は `.BROWSE-GENERATION/a.html` のままだった。Windowsでは、生成開始時に置く `.browse-generation` ファイルと親ディレクトリが同じ場所になるため、書き出せない。名前の変換結果は実関数で確認した。実ファイルへの書き出しは未実施。  
+  根拠：[wiki_browse_core.py:211](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:211)、[wiki_browse.py:230](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:230)。
+
+- **【軽微・試験不足】同時要求の試験は、応答の成功や世代の整合性を確認していない。**  
+  `test_concurrent_requests_build_once` が検査するのは構築回数だけである。各要求が500や誤った本文を返しても、構築回数が1なら通る。「どの応答も1つの世代だけからできる」という主張の検証にはなっていない。  
+  根拠：[test_browse_server.py:351](/C:/Works/info-hive-dev/tests/wiki/test_browse_server.py:351)。
+
+- **【軽微】サーバーの生成日時が常に空文字になる。**  
+  実HTTP応答のmanifestで `generated_at: ""` を確認した。サーバーは描画時に生成日時を渡していない。設計§4の生成日時を持たせる契約と食い違う。  
+  根拠：[wiki_browse.py:526](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:526)、[wiki_browse_core.py:1061](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:1061)。
+
+## 検証した事実
+
+実行環境はWindows／Python 3.14.6／PyYAML 6.0.3。ファイルは変更していない。
+
+| 確認事項 | 結果 |
+|---|---|
+| コーパス27ページの未解決リンクとlint | 一致 |
+| 同コーパスのリンク抽出と `extract_wikilinks()` | 全ページで一致 |
+| 同コーパスの描画 | メモリ上で31出力を生成 |
+| `NamesTest` | 5件成功 |
+| 衝突して非表示になったページの未解決リンク | 修正確認 |
+| 複数の絶対パスを個別に検査する処理 | 元の反例は修正確認 |
+| `raw: ~/papers/x.pdf`、`raw: "http://["` | 元の反例は修正確認 |
+| 誤ったオントロジー構造・日付、ページの日付 | 中核全体は停止せず、元の反例は修正確認 |
+| 同一 `core_loop` 内の読み取り失敗からの復帰 | 26ページから27ページへ復帰 |
+| 既存3スクリプトの `origin/main` 差分 | 説明された関数切り出しを確認。既存動作の全試験は未実施 |
+| 版と案内文書 | 0.10.0と `/wiki:browse` の記載は一致 |
+| CI設定 | Windows・Ubuntu双方でPython試験、Chromiumの2方式、起動速度試験を指定 |
+| 報告されたCI成功・ブラウザ成功・起動時間 | 今回は確かめられず |
+
+## 崩せなかった点
+
+実HTTPサーバーで、Host不一致は421、誤トークンと閲覧トークンによる停止は404になった。`..`、符号化した `..`、`\`、NUL、不正UTF-8、空要素、`.`、未知名による拒否も越えられなかった。
+
+確認範囲では、要求パスから任意ファイルを返す経路、閲覧トークンから操作トークンを得る経路は示せなかった。実プロセス間の競合と、実ブラウザでの攻撃は再実行していない。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
