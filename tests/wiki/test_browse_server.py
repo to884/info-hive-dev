@@ -168,6 +168,28 @@ class RequestTest(InProcess):
             code, body, _h = request(self.port, "GET", f"/{self.app.control_token}/control/locate/{target}")
             self.assertEqual(json.loads(body)["state"], state, target)
 
+    def test_responses_have_no_paths_or_tokens(self):
+        names = ["index.html", "nav.js", "data/manifest.js", "data/diagnostics.js", "concepts/a.html",
+                 "concepts/nope.html", "assets/app.js"]
+        bodies = [self.get(n)[1] for n in names]
+        bodies.append(request(self.port, "GET", self.prefix + "concepts/a.html", host="x")[1])
+        bodies.append(request(self.port, "GET", f"/{self.app.control_token}/control/locate/a")[1])
+        for body in bodies:
+            for needle in (str(self.wiki), self.wiki.as_posix(), str(self.data), self.app.control_token):
+                self.assertNotIn(needle, body)
+
+    def test_finish_keeps_record_pointed_by_a_page(self):
+        record = self.app.state_dir / "server.json"
+        record.write_text("{}", encoding="utf-8")
+        try:
+            os.symlink(record, self.wiki / "concepts" / "record.md")
+        except (OSError, NotImplementedError):
+            self.skipTest("シンボリックリンクを作れない")
+        with redirect_stderr(io.StringIO()):
+            code = wiki_browse._finish(self.wiki, self.app, self.app.guard, self.app.state_dir)
+        self.assertEqual(code, wiki_browse.EXIT_FAILED)
+        self.assertTrue(record.exists())
+
     def test_log_has_no_tokens(self):
         self.app.verbose = True
         err = io.StringIO()
@@ -458,7 +480,16 @@ class ProcessTest(Base):
 
     def test_stop_while_starting_waits_for_record(self):
         p = self.serve("--page", "a")
-        res = self.stop()   # 記録ができる前に来ることがある
+        # サーバーがロックを取った（起動の途中に入った）ことを確かめてから止める。
+        with redirect_stderr(io.StringIO()):
+            guard, state_dir = wiki_browse._prepare_state(self.wiki)
+        probe = fs.Lock(guard, state_dir / "server.lock")
+        deadline = time.monotonic() + 30
+        while probe.try_acquire():
+            probe.release()
+            self.assertLess(time.monotonic(), deadline, "サーバーがロックを取らない")
+            time.sleep(0.05)
+        res = self.stop()
         self.assertEqual(res.returncode, 0, res.stderr)
         p.wait(30)
 

@@ -311,6 +311,23 @@ class RenderTest(TempWiki):
         self.assertIn('href="file:///C:/Books/private.pdf"', c.render_page("s", "link"))
         self.assertIn("<code>C:/Books/private.pdf</code>", c.render_page("s", "text"))
 
+    def test_unreadable_split_index_has_no_dangling_group_link(self):
+        write(self.wiki, "index.md", "- [[indexes/people]]\n")
+        target = write(self.wiki, "indexes/people.md", "- [[p]]\n")
+        real = Path.read_bytes
+
+        def flaky(self_):
+            if Path(self_) == target:
+                raise PermissionError("busy")
+            return real(self_)
+        with mock.patch.object(Path, "read_bytes", flaky):
+            c = build_core(self.wiki)
+        items = c._nav_json()["groups"][0]["items"]
+        self.assertNotEqual(items[0]["state"], "group")
+        html = c.render_index()
+        for anchor in __import__("re").findall(r'href="#([^"]+)"', html):
+            self.assertIn(f'id="{anchor}"', html)
+
     def test_navigation(self):
         write(self.wiki, "index.md", "- [[pre]]\n\n# 上\n\n## 概念\n\n- [[a]] — 説明 [[b]]\n  - [[b]]\n"
                                      "- [[missing]] — 関連：[[a]]\n- [[indexes/people]]\n- 説明だけ\n")
@@ -406,6 +423,18 @@ class RelationsTest(TempWiki):
         write(self.wiki, "sources/paper.md", page("# P", type="source", title="論文"))
         html = build_core(self.wiki).render_page("a")
         self.assertIn('href="sources/paper.html">論文</a>', html)
+
+    def test_bad_yaml_dates_do_not_stop_the_core(self):
+        write(self.wiki, "graph/ontology.yaml", "node_types: {}\npredicates: {}\nupdated: 2026-99-99\n")
+        write(self.wiki, "a.md", page("# A", type="concept"))
+        c = build_core(self.wiki)   # 中核は組み立てられ、関係表だけが使えない
+        self.assertEqual(c.relations_state, "error")
+        self.assertIn("<h1", c.render_page("a"))
+        write(self.wiki, "graph/ontology.yaml", self.ONTOLOGY)
+        (self.wiki / "b.md").write_bytes(b"---\ntype: concept\ncreated: 2026-99-99\n---\n# B\n")
+        c = build_core(self.wiki)   # ページの誤った日付でも、ほかのページの関係表は作れる
+        self.assertEqual(c.relations_state, "ok")
+        self.assertIn("<h1", c.render_page("b"))
 
     def test_states(self):
         write(self.wiki, "a.md", page("# A", type="concept"))
@@ -593,6 +622,36 @@ class BuildTest(TempWiki):
         report = self.build(self.base / "site")
         self.assertEqual(report["leaks"], [])
         self.assertEqual(report["warnings"], ["concepts/h.html"])
+
+    def test_markers_absent_everywhere(self):
+        # Wiki、ホーム、data_dir、Wiki の外の入力の実体を、別々の目印の文字を含む場所にする（設計の 11）。
+        wiki = self.base / "WIKIMARK"
+        home = self.base / "HOMEMARK"
+        ext = self.base / "EXTMARK"
+        for d in (wiki, home, ext):
+            d.mkdir()
+        write(wiki, "concepts/a.md", page("# A\n\n[[b]] [[missing]]", type="concept"))
+        write(wiki, "concepts/b.md", page("# B", type="source", raw="~/papers/x.pdf"))
+        write(wiki, "index.md", "- [[a]]\n")
+        write(ext, "outside.md", page("# 外"))
+        marks = ["WIKIMARK", "HOMEMARK", "EXTMARK", "DATAMARK"]
+        try:
+            os.symlink(ext / "outside.md", wiki / "concepts" / "outside.md")
+        except (OSError, NotImplementedError):
+            marks.remove("EXTMARK")
+        data = self.base / "DATAMARK"
+        with mock.patch.dict(os.environ, {"INFO_HIVE_DATA_DIR": str(data)}), \
+                mock.patch.object(Path, "home", return_value=home), redirect_stderr(io.StringIO()):
+            report = wiki_browse.build(wiki, str(self.base / "site"), "basename")
+            out = io.StringIO()
+            wiki_browse.core_loop(io.StringIO(json.dumps({"op": "manifest", "wiki": str(wiki)}) + "\n"
+                                              + json.dumps({"op": "page", "wiki": str(wiki), "id": "concepts/a"}) + "\n"),
+                                  out)
+        texts = [p.read_text(encoding="utf-8", errors="replace")
+                 for p in Path(report["out"]).rglob("*") if p.is_file()] + [out.getvalue()]
+        for text in texts:
+            for mark in marks:
+                self.assertNotIn(mark, text)
 
     def test_no_absolute_paths_in_output(self):
         write(self.wiki, "concepts/s.md", page("# S", type="source", raw="../raw/x.pdf"))
