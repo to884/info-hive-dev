@@ -180,7 +180,10 @@ TOP_LEVEL_CASES = {
     "コメント": 'type: source # 種類\nsources: [true] # 出典\ntitle: "a # b"',
     "NFD の参照": 'sources: ["カ\u3099", カ\u3099]\nraw: "カ\u3099.md"\ntype: concept',
     "PyYAML が組み立てられない値": "created: 2026-13-01\nupdated: 0000-01-01\ntype: source\nsources: [true]",
-    "最上位のマージキー": "base: &b {type: source}\n<<: *b\nsources: [true]",
+    # 二重引用符の中の \" と \\ のほかのエスケープは、lint と同じく、書かれた文字のまま読む（PyYAML はタブや é にする）。
+    "エスケープ": 'title: "a\\tb caf\\u00e9"\nraw: "raw\\/a.md"\nsources: ["a\\nb", "C:\\\\x", "q\\"q"]\ntype: source',
+    "引用符のない日時": "created: 2026-11-01 10:00:00\nupdated: 2026-11-01T10:00:00Z\ntitle: [a] b",
+    "最上位のマージキー":"base: &b {type: source}\n<<: *b\nsources: [true]",
 }
 
 
@@ -320,6 +323,16 @@ class TopLevelMatchesLintTest(WikiCase):
         nodes, _edges, _diagnostics, _aliases = self.build()
         self.assertEqual({n["slug"]: n["tags"] for n in nodes},
                          {"p": ["ml"], "q": ["ＡＩ", " a ", "", "ml"], "r": [], "s": []})
+
+    def test_escapes_and_datetimes_are_text(self):
+        write(self.wiki / "p.md", page(TOP_LEVEL_CASES["エスケープ"]))
+        meta = self.graph_meta("p.md")
+        self.assertEqual(meta["title"], "a\\tb caf\\u00e9")
+        self.assertEqual(meta["raw"], "raw\\/a.md")
+        self.assertEqual(meta["sources"], ["a\\nb", "C:\\x", 'q"q'])
+        write(self.wiki / "p.md", page("type: concept\ncreated: 2026-11-01 10:00:00"))
+        nodes, _edges, _diagnostics, _aliases = self.build()
+        self.assertEqual(nodes[0]["created"], "2026-11-01 10:00:00")
 
     def test_title_and_dates_are_text(self):
         write(self.wiki / "p.md", page("type: concept\ntitle: 2024\ncreated: 2024-01-01\nupdated: 2024-1-1"))

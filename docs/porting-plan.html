@@ -496,7 +496,7 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
           <li><code>type</code> と <code>kind</code> の値も、日本語の別名で読めるようにする（例: <code>概念</code> → <code>concept</code>、<code>人物</code> → <code>person</code>）。</li>
           <li>スクリプト、テンプレート、エージェントが書くときは英語のキーと値を使う。日本語は読むだけにする。</li>
           <li>グラフの述語名、<code>--json</code> の出力のキー、コマンドラインの引数名、<code>SCHEMA.md</code> の目印、固定のファイル名とディレクトリ名は英語のまま残す。</li>
-          <li>別名の対応表は 1 か所に置き、検索・lint・統計の手書きの解析器と、グラフの PyYAML の両方が同じ表で英語に直す。同じページに <code>title</code> と <code>タイトル</code> のように両方がある場合は lint で指摘する。対応表は <code>SCHEMA.md</code> のテンプレートにも載せる。</li>
+          <li>別名の対応表は 1 か所に置き、検索・lint・統計の手書きの解析器と、グラフの PyYAML の両方が同じ表で英語に直す（wiki 0.9.5 から、グラフも最上位の欄は手書きの解析器で読み、<code>graph:</code> の欄だけを PyYAML から取る）。同じページに <code>title</code> と <code>タイトル</code> のように両方がある場合は lint で指摘する。対応表は <code>SCHEMA.md</code> のテンプレートにも載せる。</li>
         </ul>
         <p class="why">理由: 人が日本語で書いたページを読めるようにしつつ、移植元の wiki や Obsidian のプラグインとの互換を保つためです。</p>
         <p class="src">根拠: 方針 B の質問と、範囲を確かめる追加の質問への回答</p>
@@ -663,7 +663,7 @@ footer { font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--ru
           <li>解析キャッシュ（<code>.wiki-cache/search-index.json</code>）に形式番号を持たせ、解析の仕方を変えたら番号を上げて作り直す。埋め込みの接頭辞や分割方式も、ベクトル索引を作り直す条件に含める。</li>
           <li>ファイル名、相対パス、リンク先、スラッグを NFC で比較する。グラフの明示的な参照（<code>graph.node_id</code>、<code>relationships.object</code>、<code>source</code>、<code>contradicts</code>、<code>supersedes</code>）と、問い合わせのノード ID も同じ規則にする。正規化すると同じになる別ファイルは lint で指摘する。タグは NFKC で比較する。</li>
           <li>方針 B の別名の対応表を作り、frontmatter のキーと <code>type</code>・<code>kind</code> の値を読み込み時に英語に直す。対応表は解析器の 2 系統で共有する。ページの置き場所（<code>sources/</code> など）は英語に直した <code>type</code> で決める。</li>
-          <li>frontmatter のリストの <code>、</code> 区切りは受け付けず、lint で指摘する。frontmatter の解析器は 2 系統（検索・lint・統計の手書きの解析器と、グラフの PyYAML）あるので、片方だけ変えて解釈がずれないようにする。キーの後の全角 <code>：</code> も lint で指摘する（キー自体は ASCII のまま）。</li>
+          <li>frontmatter のリストの <code>、</code> 区切りは受け付けず、lint で指摘する。frontmatter の解析器は 2 系統（検索・lint・統計の手書きの解析器と、グラフの PyYAML）あるので、片方だけ変えて解釈がずれないようにする。2 系統のままでは、引用符のない <code>true</code>、数、日付の値がずれたので、wiki 0.9.5 で、グラフが読む最上位の欄を手書きの解析器の値にそろえた（<a href="plans/wiki-graph-frontmatter-values-2026-11-11.md">設計</a>）。PyYAML で読むのは <code>graph:</code> の欄だけである。キーの後の全角 <code>：</code> も lint で指摘する（キー自体は ASCII のまま）。</li>
           <li>wikilink の全角 <code>｜</code> と <code>＃</code> は区切りとして受け付けず、lint で指摘する（2026-11-02 に決定）。Obsidian もこれらを区切りとして扱わないので、受け付けるとスクリプトでは通るのに Obsidian ではリンク切れになる。</li>
           <li>出力に含めるパスを <code>/</code> 区切りにそろえる。Windows では <code>wiki_search.py --json</code> がパスを <code>\</code> 区切りで出し、<code>eval/decisions/test_decisions.py</code> の <code>test_output_without_decide_is_byte_identical</code> が落ちる（P0 の作業中に確認。移植元からある不具合）。</li>
           <li>この修正のあとで <code>json.dumps</code> に <code>ensure_ascii=False</code> を付ける。先に付けると cp932 の出力で落ちる。<code>wiki_evolve_loop.py:452, 458, 659</code> は frontmatter に書く値なので、見た目の問題ではなくデータの破損として先に直す。</li>

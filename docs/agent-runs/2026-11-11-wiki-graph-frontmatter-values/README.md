@@ -43,3 +43,10 @@
 - `graph.relationships` が配列でない（`relationships: 7`）と抽出が、`predicate` が辞書だとグラフの lint が、`TypeError` で止まること（0.9.3 からある）。
 - `object` のない関係の項目を、抽出もグラフの lint も黙って飛ばすこと。
 - `tests/wiki/test_mcp_server.py` の後始末（`server_processes()`）が、終わったプロセスの `children()` で `psutil.NoSuchProcess` を出して、ときどきエラーになること。今回の変更と関係のない試験（中継の再接続、入れ直し）で、実行のたびに違う試験に出た。ツール `lint`・`stats`・`graph` の試験（`ScriptToolTests`）は通っている。
+
+## レビューのあとに確かめたこと
+
+- 実際の wiki で、0.9.3（c50854a）のスクリプトと今の実装の出力を比べた（どちらも wiki には何も書かない）。このリポジトリの `wiki/`（4 ページ、エッジ 12 本）と、作者のユーザースコープの wiki（39 ページ、エッジ 219 本）で、ノード、エッジ、別名、グラフの lint の結果が同じで、`unreadable_graph` と `unread_field` は 0 件だった。
+- 文字列どうしでも、lint のパーサーと PyYAML で値が違う書き方がある。二重引用符の中の、`\"` と `\` のほかのエスケープ（`\t`、`\n`、`é`）と、引用符のない日時である。どちらもページの規約にない書き方で、グラフは lint と同じく書かれた文字として読むようになる。設計 3 の表と CHANGELOG に足し、試験に入れた（info-hive-wiki の 15d0668）。
+- `docs/porting-plan.html` の、frontmatter の解析器が 2 系統あるという 2 か所に、0.9.5 からグラフも最上位の欄を手書きの解析器で読むことを足した。
+- info-hive-wiki の CI（`wiki-tests.yml`）が走らせる試験のうち、手元で走らせていなかった `eval/retrieval` の単体の試験（40 件）と `eval/evolution` の 3 つも通った。検索の評価ゲート（`run_eval.py --gate`）は、グラフに触れないので走らせていない。
