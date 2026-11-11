@@ -5,6 +5,7 @@ name: Wiki MCP server
 # - tests/wiki/test_source_claims.py: ソースの要約ページの「主張と行き先」の規定とひな形の整合（標準ライブラリだけ）
 # - tests/wiki/test_template_script_paths.py: ひな形が書き出すコマンドのスクリプトのパスと、検索の例の実行（標準ライブラリだけ）
 # - tests/wiki/test_graph_duplicate_slugs.py: 同じスラッグと同じノード ID のページのグラフの抽出（PyYAML が要る）
+# - tests/wiki/test_graph_lint_edge_refs.py: グラフの lint が contradicts と supersedes のエッジの ID を認めること（PyYAML が要る）
 # - tests/wiki/test_graph_frontmatter_values.py: グラフの抽出が読む frontmatter の値が lint と同じこと（PyYAML が要る）
 # - tests/wiki/test_wiki_index.py と test_mcp_server.py: テスト用の埋め込みで、索引、中継、サーバーの起動と停止
 # - tests/wiki/run_mcp_gate.py: 本物のモデル（約 530 MB）を取得して、評価ゲートを ADR-0011 の融合の設定で通す
@@ -84,6 +85,9 @@ jobs:
       - name: 同じスラッグと同じノード ID のページのグラフの試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_graph_duplicate_slugs.py -v
+      - name: グラフの lint のエッジの ID の参照の試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_graph_lint_edge_refs.py -v
       - name: グラフが読む frontmatter の値の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_graph_frontmatter_values.py -v

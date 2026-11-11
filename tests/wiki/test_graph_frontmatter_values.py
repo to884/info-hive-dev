@@ -657,6 +657,18 @@ class GraphReferenceFieldsTest(WikiCase):
         self.assertEqual([(e["subject"], e["object"]) for e in self.typed_edges()], [("concept:a", "007")])
         self.assertEqual(self.graph_findings()["broken_object_refs"], [])
 
+    def test_edge_id_reference_written_without_quotes(self):
+        # 0.9.4 から、contradicts と supersedes にエッジの ID（16 進 24 桁）を書ける。数字だけの ID を引用符なしで
+        # 書くと、PyYAML は数に読む（0 で始まる 0〜7 だけの並びは 8 進数）。書かれた文字で読めば、ID のまま残る。
+        self.add("a.md", "  relationships:\n" + relation(contradicts="012345670123456701234567",
+                                                         supersedes="123456789012345678901234"))
+        rel = self.graph_meta("a.md")["graph"]["relationships"][0]
+        self.assertEqual((rel["contradicts"], rel["supersedes"]),
+                         ("012345670123456701234567", "123456789012345678901234"))
+        self.assertTrue(extract.EDGE_ID_RE.match(rel["contradicts"]))
+        findings = self.graph_findings()
+        self.assertEqual([f["contradicts"] for f in findings["broken_contradicts"]], ["012345670123456701234567"])
+
     def test_null_stays_absent(self):
         self.add("a.md", "\n".join([
             "  node_id: null",
