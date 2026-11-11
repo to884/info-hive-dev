@@ -1,0 +1,685 @@
+{
+ "cases": {
+  "1 行の配列のあとのコメントの行": {
+   "keys": [
+    "sources",
+    "tags",
+    "k"
+   ],
+   "meta": {
+    "k": [
+     "- it's #w"
+    ],
+    "sources": [
+     "it's"
+    ],
+    "tags": [
+     "a\"b"
+    ]
+   },
+   "unquoted": [
+    "sources",
+    "tags",
+    "k"
+   ]
+  },
+  "1 行目で閉じて文字が続く": {
+   "keys": [
+    "title",
+    "tags",
+    "note"
+   ],
+   "meta": {
+    "note": [
+     "a]",
+     "[b"
+    ],
+    "tags": [
+     "a"
+    ],
+    "title": "[下書き] 題名"
+   },
+   "unquoted": [
+    "title",
+    "tags",
+    "note"
+   ]
+  },
+  "CRLF": {
+   "keys": [
+    "type",
+    "sources",
+    "tags"
+   ],
+   "meta": {
+    "sources": [
+     "a"
+    ],
+    "tags": [
+     "x"
+    ],
+    "type": "concept"
+   },
+   "unquoted": []
+  },
+  "Unicode の空白のあとの #": {
+   "keys": [
+    "title",
+    "tags",
+    "sources"
+   ],
+   "meta": {
+    "sources": [
+     "b"
+    ],
+    "tags": "[a, b",
+    "title": "消費税"
+   },
+   "unquoted": [
+    "title",
+    "tags",
+    "sources"
+   ]
+  },
+  "YAML にないエスケープ": {
+   "keys": [
+    "raw",
+    "pattern",
+    "latex"
+   ],
+   "meta": {
+    "latex": "\\sigma \\pi \\omega",
+    "pattern": "\\d+\\.\\d+",
+    "raw": "C:\\Users\\me\\docs"
+   },
+   "unquoted": []
+  },
+  "YAML にないエスケープと YAML のエスケープが混ざる値": {
+   "keys": [
+    "pattern",
+    "raw",
+    "latex"
+   ],
+   "meta": {
+    "latex": "$\\theta$ と $\\sigma$",
+    "pattern": "\\d+\\n",
+    "raw": "C:\\Users\\new\\temp.pdf"
+   },
+   "unquoted": []
+  },
+  "] で終わる行のあとの字下げした行": {
+   "keys": [
+    "a",
+    "b",
+    "c"
+   ],
+   "meta": {
+    "a": [
+     "x",
+     "# メモ"
+    ],
+    "b": [
+     "x",
+     "\"y"
+    ],
+    "c": [
+     "x",
+     "[y"
+    ]
+   },
+   "unquoted": [
+    "a",
+    "b",
+    "c"
+   ]
+  },
+  "アンカー、タグ、マージキー": {
+   "keys": [
+    "base",
+    "sources",
+    "raw",
+    "other"
+   ],
+   "meta": {
+    "base": "&b {type: source}",
+    "other": "*s",
+    "raw": "!!str true",
+    "sources": "&s [a]"
+   },
+   "unquoted": [
+    "base",
+    "sources",
+    "raw",
+    "other"
+   ]
+  },
+  "コメント": {
+   "keys": [
+    "type",
+    "url",
+    "title",
+    "empty"
+   ],
+   "meta": {
+    "empty": [],
+    "title": "C# の #1",
+    "type": "source",
+    "url": "https://example.com/a?b=1#x"
+   },
+   "unquoted": [
+    "type"
+   ]
+  },
+  "コロンのあとに空白なし": {
+   "keys": [
+    "type",
+    "sources",
+    "title"
+   ],
+   "meta": {
+    "sources": [
+     "a"
+    ],
+    "title": "x",
+    "type": "source"
+   },
+   "unquoted": [
+    "type",
+    "sources"
+   ]
+  },
+  "タブで字下げした要素": {
+   "keys": [
+    "sources",
+    "type"
+   ],
+   "meta": {
+    "sources": [],
+    "type": "x"
+   },
+   "unquoted": [
+    "type"
+   ]
+  },
+  "値のないキー": {
+   "keys": [
+    "type",
+    "kind",
+    "sources",
+    "raw",
+    "title",
+    "tags"
+   ],
+   "meta": {
+    "kind": [],
+    "raw": [],
+    "sources": [],
+    "tags": [],
+    "title": [],
+    "type": []
+   },
+   "unquoted": []
+  },
+  "値の前後の Unicode の空白": {
+   "keys": [
+    "title",
+    "sources",
+    "tags"
+   ],
+   "meta": {
+    "sources": [
+     "a"
+    ],
+    "tags": [
+     "b"
+    ],
+    "title": "消費税"
+   },
+   "unquoted": [
+    "title",
+    "sources",
+    "tags"
+   ]
+  },
+  "入れ子の graph": {
+   "keys": [
+    "type",
+    "graph",
+    "title"
+   ],
+   "meta": {
+    "graph": [],
+    "title": "x",
+    "type": "entity"
+   },
+   "unquoted": []
+  },
+  "入れ子の wikilink": {
+   "keys": [
+    "sources",
+    "related"
+   ],
+   "meta": {
+    "related": [
+     "[[a]]",
+     "[[b|c]]"
+    ],
+    "sources": [
+     "[sources/paper]"
+    ]
+   },
+   "unquoted": [
+    "sources",
+    "related"
+   ]
+  },
+  "全角のコロン": {
+   "keys": [
+    "type"
+   ],
+   "meta": {
+    "type": "x"
+   },
+   "unquoted": [
+    "type"
+   ]
+  },
+  "別名と英語のキーの両方": {
+   "keys": [
+    "type",
+    "種類",
+    "sources",
+    "出典"
+   ],
+   "meta": {
+    "sources": [
+     "a"
+    ],
+    "type": "concept",
+    "出典": [
+     "b"
+    ],
+    "種類": "資料"
+   },
+   "unquoted": [
+    "種類"
+   ]
+  },
+  "単語でないキー": {
+   "keys": [
+    "type"
+   ],
+   "meta": {
+    "type": "z"
+   },
+   "unquoted": [
+    "type"
+   ]
+  },
+  "同じキーを 2 度": {
+   "keys": [
+    "sources",
+    "sources",
+    "title",
+    "title",
+    "tags",
+    "tags"
+   ],
+   "meta": {
+    "sources": [
+     "a",
+     "b"
+    ],
+    "tags": "b",
+    "title": "y"
+   },
+   "unquoted": [
+    "tags"
+   ]
+  },
+  "字下げ 2 つの配列": {
+   "keys": [
+    "sources",
+    "tags",
+    "raw"
+   ],
+   "meta": {
+    "raw": [
+     "raw/a.md"
+    ],
+    "sources": [
+     "a",
+     "b"
+    ],
+    "tags": [
+     "税制",
+     "c # d"
+    ]
+   },
+   "unquoted": [
+    "tags",
+    "raw"
+   ]
+  },
+  "引用符": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d",
+    "e",
+    "f"
+   ],
+   "meta": {
+    "a": "it's",
+    "b": "\"x\" y",
+    "c": "'p' q",
+    "d": "",
+    "e": "",
+    "f": "\""
+   },
+   "unquoted": [
+    "a",
+    "b",
+    "c",
+    "e",
+    "f"
+   ]
+  },
+  "引用符が閉じない配列": {
+   "keys": [
+    "tags",
+    "title"
+   ],
+   "meta": {
+    "tags": [
+     "a",
+     "\"b"
+    ],
+    "title": "x"
+   },
+   "unquoted": [
+    "tags"
+   ]
+  },
+  "引用符のない値": {
+   "keys": [
+    "type",
+    "tags",
+    "created",
+    "flag",
+    "none",
+    "num",
+    "when"
+   ],
+   "meta": {
+    "created": "2026-11-03",
+    "flag": "true",
+    "none": "null",
+    "num": "007",
+    "tags": [
+     "a",
+     "b"
+    ],
+    "type": "source",
+    "when": "2026-11-01 10:00:00"
+   },
+   "unquoted": [
+    "type",
+    "tags",
+    "when"
+   ]
+  },
+  "日本語の別名": {
+   "keys": [
+    "種類",
+    "タイトル",
+    "タグ",
+    "出典",
+    "作成日"
+   ],
+   "meta": {
+    "タイトル": "消費税",
+    "タグ": [
+     "税制、間接税"
+    ],
+    "作成日": "2026-11-01",
+    "出典": [
+     "a"
+    ],
+    "種類": "概念"
+   },
+   "unquoted": [
+    "種類",
+    "タイトル",
+    "タグ",
+    "出典"
+   ]
+  },
+  "次の行に書いた値": {
+   "keys": [
+    "title",
+    "sources",
+    "type"
+   ],
+   "meta": {
+    "sources": [],
+    "title": [],
+    "type": "y"
+   },
+   "unquoted": [
+    "type"
+   ]
+  },
+  "空の frontmatter": {
+   "keys": [],
+   "meta": {},
+   "unquoted": []
+  },
+  "行末に空白のある空の要素": {
+   "keys": [
+    "sources"
+   ],
+   "meta": {
+    "sources": [
+     "a",
+     "",
+     "b"
+    ]
+   },
+   "unquoted": [
+    "sources"
+   ]
+  },
+  "複数行のスカラー": {
+   "keys": [
+    "title",
+    "note",
+    "type"
+   ],
+   "meta": {
+    "note": "\"b",
+    "title": "a very long",
+    "type": "y"
+   },
+   "unquoted": [
+    "title",
+    "note",
+    "type"
+   ]
+  },
+  "見出しでない記号": {
+   "keys": [
+    "a",
+    "b",
+    "c",
+    "d",
+    "e"
+   ],
+   "meta": {
+    "a": "> x",
+    "b": "|x",
+    "c": ">>",
+    "d": "-",
+    "e": "|0"
+   },
+   "unquoted": [
+    "a",
+    "b",
+    "c",
+    "d",
+    "e"
+   ]
+  },
+  "規約どおりのソース": {
+   "keys": [
+    "type",
+    "title",
+    "raw",
+    "raw_sha256",
+    "fetched_at",
+    "authors"
+   ],
+   "meta": {
+    "authors": [
+     "Kingma, D.",
+     "Ba, J."
+    ],
+    "fetched_at": "2026-11-01T10:00:00+09:00",
+    "raw": "C:/Books/日本語の資料.pdf",
+    "raw_sha256": "0123abcd",
+    "title": "題名 \"引用\" と \\ 記号",
+    "type": "source"
+   },
+   "unquoted": []
+  },
+  "規約どおりのページ": {
+   "keys": [
+    "type",
+    "title",
+    "tags",
+    "sources",
+    "aliases",
+    "created",
+    "updated",
+    "count"
+   ],
+   "meta": {
+    "aliases": [
+     "VAT",
+     "付加価値税"
+    ],
+    "count": "3",
+    "created": "2026-11-01",
+    "sources": [
+     "paper",
+     "sources/b"
+    ],
+    "tags": [
+     "税制",
+     "間接税"
+    ],
+    "title": "消費税",
+    "type": "concept",
+    "updated": "2026-11-09"
+   },
+   "unquoted": []
+  },
+  "読めない YAML": {
+   "keys": [
+    "title",
+    "type",
+    "sources"
+   ],
+   "meta": {
+    "sources": [
+     "true"
+    ],
+    "title": "a: b",
+    "type": "source"
+   },
+   "unquoted": [
+    "title",
+    "type"
+   ]
+  },
+  "配列の間の空行とコメント": {
+   "keys": [
+    "sources",
+    "type"
+   ],
+   "meta": {
+    "sources": [
+     "a",
+     "b"
+    ],
+    "type": "x"
+   },
+   "unquoted": [
+    "sources",
+    "type"
+   ]
+  },
+  "配列の間の読まない行": {
+   "keys": [
+    "sources",
+    "type"
+   ],
+   "meta": {
+    "sources": [
+     "a",
+     "b"
+    ],
+    "type": "x"
+   },
+   "unquoted": [
+    "sources",
+    "type"
+   ]
+  },
+  "閉じない括弧": {
+   "keys": [
+    "tags",
+    "title",
+    "sources",
+    "last"
+   ],
+   "meta": {
+    "last": "[d",
+    "sources": [
+     "c"
+    ],
+    "tags": "[a, b",
+    "title": "x"
+   },
+   "unquoted": [
+    "tags",
+    "last"
+   ]
+  },
+  "閉じない括弧のあとの対にならない括弧": {
+   "keys": [
+    "tags",
+    "type",
+    "title",
+    "urls",
+    "https"
+   ],
+   "meta": {
+    "https": "//x/y]",
+    "tags": "[a,",
+    "title": "X]",
+    "type": "source",
+    "urls": "[g,"
+   },
+   "unquoted": [
+    "tags",
+    "type",
+    "title",
+    "urls",
+    "https"
+   ]
+  }
+ },
+ "note": "wiki 0.9.5（info-hive-wiki 426d6bf）の wiki_text.py が、test_frontmatter_parser.py の UNCHANGED_CASES から返した値（parse_frontmatter_text、unquoted_string_keys、top_level_keys）。0.9.6 でパーサーが読む書き方を広げても、規約どおりのページと、読み方を変えない書き方の値が変わらないことを確かめるのに使う。UNCHANGED_CASES を変えたら、`git -C info-hive-wiki show 426d6bf:skills/info-hive/scripts/wiki_text.py` を読み込み、各 frontmatter にこの 3 つの関数をかけて取り直す。"
+}

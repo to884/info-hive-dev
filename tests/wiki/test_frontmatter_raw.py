@@ -51,9 +51,19 @@ class RawFrontmatterTests(unittest.TestCase):
                 self.assertEqual(wiki_text.unquoted_string_keys(text), [])
 
     def test_windows_backslash_path_would_break_without_escape(self):
-        # rag は / 区切りで返すので起きないが、手で \ のまま書いたときに食い違うことを残しておく。
+        # rag は / 区切りで返すので起きないが、手で \ のまま書いたときにどう読むかを残しておく。
+        # wiki 0.9.7 から、手書きのパーサーも YAML のエスケープを YAML の意味で読む。\b と \n は YAML が決めている
+        # エスケープなので、どちらのパーサーも、後退と改行の入った同じ（壊れた）値に読む。0.9.5 までの手書きの
+        # パーサーは、書かれた文字のまま読んでいた。
         text = 'raw: "C:\\books\\new.pdf"'
-        self.assertNotEqual(yaml.safe_load(text)["raw"], wiki_text.parse_frontmatter_text(text)["raw"])
+        self.assertEqual(yaml.safe_load(text)["raw"], "C:\x08ooks\new.pdf")
+        self.assertEqual(wiki_text.parse_frontmatter_text(text)["raw"], "C:\x08ooks\new.pdf")
+        # YAML にないエスケープ（\U のあとが 16 進 8 桁でない）が 1 つでもある値は、YAML としては誤りである。
+        # PyYAML は frontmatter を読めず、手書きのパーサーは、値の全体を書かれた文字のまま読む（\n も改行にしない）。
+        text = 'raw: "C:\\Users\\new.pdf"'
+        with self.assertRaises(yaml.YAMLError):
+            yaml.safe_load(text)
+        self.assertEqual(wiki_text.parse_frontmatter_text(text)["raw"], "C:\\Users\\new.pdf")
 
 
 if __name__ == "__main__":
