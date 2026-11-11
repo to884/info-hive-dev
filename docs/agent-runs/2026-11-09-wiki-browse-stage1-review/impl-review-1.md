@@ -1,0 +1,194 @@
+## 判定
+
+**却下。確信度：高。** 指定した書き出し先から逸脱し、別の書き出しの HTML を公開前に上書きできる経路を確認した。ほかにも、入力の属性変更、lint との不一致、絶対パス検査の迂回、復旧時の旧世代消失がある。
+
+## 致命的・重大な欠陥
+
+### 1. 【致命】Linux のファイル名から絶対の出力名ができ、別の書き出しを上書きできる
+
+Linux では、次は Wiki 直下に置ける**一つのファイル名**である。
+
+```python
+r"\tmp\browse-review\site1\a.md"
+```
+
+実関数で確認した変換結果は次のとおりだった。
+
+```text
+is_page_path() : True
+rel_path      : /tmp/browse-review/site1/a.md
+export_name() : /tmp/browse-review/site1/a.html
+```
+
+`posix_rel()` が `\` を `/` に変え、先頭に生じた空の要素を `export_name()` がそのまま残す。`write_tree()` の `base / name` は、`name` が絶対パスなので `base` を捨てる。
+
+再現手順：
+
+1. `/tmp/browse-review/site1/` に、別の Wiki の公開済み書き出しを置く。
+2. 上記ファイルを含む Wiki を、`--out /tmp/browse-review/site2` へ書き出す。
+3. `site2` の作業用ディレクトリへ書く段階で、実際には `site1/a.html` が置き換わる。
+
+`Guard` は Wiki と入力の保護しか確認せず、この対象を許可する。別の出力の目印も、個々の書き込みでは調べない。**絶対パス検査より先に上書きするため、後から生成を失敗させても戻らない。** 中核の `pages[].path` にも絶対パスが出る。
+
+根拠：[wiki_text.py:87](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_text.py:87)、[wiki_browse_core.py:181](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:181)、[同:217](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:217)、[wiki_browse.py:153](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:153)、[同:214](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:214)。
+
+変換と実際の `write_tree()` の書き込み引数をメモリ上で確認した。Linux 上での実ファイルの上書きは実施していない。
+
+### 2. 【重大】再帰削除が、Wiki のページの読み取り専用属性を変更できる
+
+`Guard.rmtree()` が保護を確認するのは、削除する最上位ディレクトリだけである。子孫は `_rmtree_nofollow()` が直接処理し、削除で `PermissionError` が出ると、無条件に `os.chmod(child, stat.S_IWRITE)` を呼ぶ。
+
+Windows／NTFS で成立する手順：
+
+1. 公開済み出力の `a.html` を、Wiki の `a.md` のハードリンクにする。
+2. `a.md` を読み取り専用にする。
+3. 同じ出力先へ再び書き出す。
+4. 退避した旧世代の削除で、ハードリンクの削除が失敗する。
+5. `chmod()` が、そのハードリンクと同じ実体である **Wiki の `a.md` の読み取り専用属性を外す**。
+
+本文のハッシュは変わらないため、既存の `tree_state()` による確認では検出できない。
+
+根拠：[wiki_browse_fs.py:175](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:175)、[同:244](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:244)、[test_browse.py:54](/C:/Works/info-hive-dev/tests/wiki/test_browse.py:54)。
+
+削除失敗時に子孫への `chmod()` が呼ばれる分岐を mock で確認した。NTFS 上での属性変更そのものは実施していない。
+
+### 3. 【重大】衝突して非表示になったページの未解決リンクが消え、lint と一致しない
+
+Linux で次を置く。
+
+```text
+x.md   本文: [[missing]]
+x.MD   本文: # X
+```
+
+実関数の実行結果：
+
+```text
+browse.unresolved(): []
+lint.broken_links:   [{"from_path": "x.md", "to": "missing", ...}]
+```
+
+両ページは読めており、lint は両方を調べる。一方、browse は識別子衝突により両方を `drawn` から除き、リンクの収集も `unresolved()` も `drawn` だけを走査する。`missing` は全体の診断にも出ない。
+
+これは、衝突ページへのリンクを `ambiguous` にする規則とは別の問題である。設計の「同じ内容に対する `broken_links` と一致する」という条件に反する。
+
+根拠：[wiki_browse_core.py:434](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:434)、[同:478](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:478)、[同:508](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:508)、[wiki_lint.py:504](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:504)。
+
+### 4. 【重大】絶対パス検査が、別のパスの混入まで利用者の内容として通す
+
+次を実関数で確認した。
+
+```python
+recorder.add("a.html", "C:/private-WIKI")
+
+find_leaks(
+    {"a.html": "C:/private-WIKI D:/private-HOME"},
+    ["C:/private-WIKI", "D:/private-HOME"],
+    recorder,
+)
+# ([], ["a.html"])
+```
+
+最初のパスを利用者の内容として警告にした直後、`break` で次の検索対象を調べなくなる。利用者が書いていない `D:/private-HOME` も通る。設計で受け入れた「**同じ**パスが本文にもある場合」の限界を超えている。
+
+さらに、生成器が診断の `reason` に Wiki の絶対パスを混入させた場合も、`_diagnostics_html()` がその値を利用者の内容として記録する。`relations_error.reason` にパスを注入して描画したところ、`index.html` と `data/diagnostics.js` は漏洩ではなく警告になった。
+
+逆方向の誤判定もある。ソースページの `title` を実際のホームパスとし、別ページの `sources: [s]` から参照すると、参照元 HTML のリンク文字にその題名を出す一方、その文字を記録しない。その結果、**利用者が書いた題名で書き出しが失敗する**。
+
+根拠：[wiki_browse_core.py:1049](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:1049)、[同:866](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:866)、[同:805](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:805)、[設計 §5](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:200)。
+
+混入検査の反例は意図的な注入によるものであり、通常入力からホームパスが自動的に漏れることを確認した、という主張ではない。
+
+### 5. 【重大】誤ったオントロジーが「関係を使えない」にならず、中核全体を停止させる
+
+次のオントロジーと、通常の `a.md` 一つで再現する。
+
+```yaml
+node_types: []
+predicates: {}
+```
+
+実行結果：
+
+```text
+AttributeError: 'list' object has no attribute 'items'
+```
+
+`parse_ontology()` は最上位が辞書かだけを検査するため、これは通る。その後、`build_nodes()` から呼ばれる `derive_node_type()` が失敗する。browse が捕捉するのは `OntologyError` だけなので、`relations: "error"` の中核を返せない。
+
+`core` ではページ全体が `internal`、静的版では生成失敗になる。設計 §3.6 の「中身が誤っている場合も関係表の場所にエラーを示す」と食い違う。
+
+根拠：[wiki_graph_extract.py:212](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_graph_extract.py:212)、[同:241](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_graph_extract.py:241)、[wiki_browse_core.py:534](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:534)。
+
+PyYAML 6.0.3 と実際の中核で再現した。
+
+### 6. 【重大】復旧時に出力先が空なら、最後の公開世代を消してから生成を始める
+
+再現手順：
+
+1. G1 を公開する。
+2. 次の書き出しが、出力先を `old-2` に移した直後に停止する。
+3. 再実行するラッパーなどが、出力先を空のディレクトリとして作り直す。
+4. 新しい入力には、前項の誤ったオントロジーなど、生成を失敗させる内容を置く。
+5. 再び書き出す。
+
+空の出力先は検査を通る。しかし `cleanup()` は `out.exists()` だけで公開世代があると判断し、G1 の入った `old-2` を削除する。その後の生成が失敗すると、空の出力先だけが残る。
+
+出力先が空でもよいという契約と、失敗時に前の世代を残す契約が、この状態で両立していない。設計 §7 自体も同じ前提を置いている。
+
+根拠：[wiki_browse_fs.py:353](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:353)、[wiki_browse.py:121](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:121)、[同:204](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:204)。
+
+既存の空出力先に対し、旧世代を削除する分岐を mock で確認した。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| 正規化した識別子は相対パスのままである | Linux のファイル名が `\` で始まる |
+| 削除するディレクトリを保護確認すれば、その子孫の操作も安全である | 子孫が入力のハードリンクで、削除失敗後に `chmod()` する |
+| 非表示ページをリンク集計から除いても lint と一致する | 衝突ページ自身に未解決リンクがある |
+| 一つのパスを警告にできれば、そのファイルの検査を終えてよい | 別の保護対象パスも混入している |
+| 診断に入った文字は利用者の内容である | 生成器が `reason` などにパスを混入させる |
+| `parse_ontology()` が返ればグラフ構築できる | `node_types` がリストなど、内部構造が誤っている |
+| 出力先が存在すれば公開済み世代が入っている | 復旧前に空の出力先を作り直す |
+
+## 見落としと軽微な問題
+
+- **【軽微】生成失敗時に、元の例外を隠して未標識の作業ディレクトリを残す。**  
+  `tmp-*` の目印は `Core()` と `render_all()` の後に書く。それ以前に失敗すると、例外処理の `_try_rmtree()` 自身が「目印がない」と `Refused` を出す。`NameCollision` を注入してこの結果を確認した。残ったディレクトリは次回の `_generation_dirs()` にも拾われない。[wiki_browse.py:207](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:207)
+
+- **【軽微】旧世代の削除失敗後、「次の書き出しで消す」が成立しない場合がある。**  
+  `.browse-generation` を先に削除し、その後で別ファイルの削除に失敗すると、残骸は目印を失う。次回から世代として認識されない。許される走査順序を mock で与え、目印が先に消えることを確認した。[wiki_browse_fs.py:244](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:244)、[wiki_browse.py:104](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:104)
+
+- **【軽微】関係表の出典欄は、一意に解決してもリンクにならない。**  
+  `_relations_html()` は相手だけをリンクにし、`source` は常にエスケープした文字として出す。設計 §3.6 の「相手と出典は、一つに決まればリンク」と食い違う。[wiki_browse_core.py:844](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:844)、[設計:152](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:152)
+
+- **【軽微・試験不足】読み取り失敗からの復帰試験は、同じプロセスのキャッシュを検査していない。**  
+  最初の `core_loop()` を終了させ、次に `run_loop()` で別の `core_loop()` を開始するため、キャッシュは空に戻る。再試行条件が壊れていても、この試験は通る。[test_browse.py:535](/C:/Works/info-hive-dev/tests/wiki/test_browse.py:535)
+
+- **【軽微・試験不足】JavaScript 無効時の移動を確かめられていない。**  
+  `noScript()` はクリックの失敗を握りつぶした後、直接 `index.html` に移動する。`<noscript>` のリンクが機能しなくても合格できる。また、この確認には関係表が含まれない。[browse.test.mjs:164](/C:/Works/info-hive-dev/tests/wiki/browse/browse.test.mjs:164)
+
+## 検証した事実
+
+| 確認事項 | 結果 |
+|---|---|
+| 評価用コーパス27ページの `unresolved` と lint の `broken_links` | **一致** |
+| 同コーパスの描画対象リンクと `extract_wikilinks()` | **一致** |
+| 衝突ページ自身にある未解決リンク | **食い違い**。browse 側から消える |
+| 名前変換の既存試験 `NamesTest` 4件 | **全件成功**。絶対出力名の反例は検査していない |
+| HTML、別名、危険スキーム、画像、外側リンク、表を含む6入力 | 確認範囲では危険なタグ・属性、`<a>` の入れ子なし |
+| 通常コーパスの生成結果の Wiki・ホームパス検査 | 漏洩・警告とも0件 |
+| 指定コミット間の既存ファイルの変更前後比較 | **確かめられず**。サブモジュールの Git 管理先を参照できず、指定の `git diff` が実行できなかった |
+| 全47件の試験、実ブラウザ、実ファイルによる削除・復旧 | **未実施**。読み取り専用環境のため、純粋な試験とメモリ上の実行・mock に限定 |
+
+実行環境は Python 3.14.6、関係表の再現には既存環境の PyYAML 6.0.3 を使用した。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 衝突していない通常ページについて、共通パーサーと正規表現からリンクを抽出する部分。
+- 確認した入力での HTML エスケープ、外側の Markdown リンクの無効化、危険スキームの除外、表の配置属性からクラスへの変換。
+- 通常コーパスから、生成器が Wiki・ホームの絶対パスを自動的に出力する経路。第1項のファイル名による経路は除く。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

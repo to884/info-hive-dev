@@ -161,13 +161,30 @@ class LintAgreementTest(TempWiki):
         write(self.wiki, "concepts/が.md", page("# nfc"))
         write(self.wiki, nfd + ".md", page("# nfd"))
         write(self.wiki, "r.md", page("[[concepts/x]] [[b]] [[concepts/が]]"))
+        write(self.wiki, "concepts/x.md", page("# lower\n\n[[missing-from-hidden]]"))
         c = build_core(self.wiki)
+        self.assertEqual(c.unresolved(), lint_broken(self.wiki))
+        self.assertIn(("concepts/x.md", "missing-from-hidden"), c.unresolved())
         for pid in ("concepts/x", "concepts/a/b", "concepts/が"):
             self.assertNotIn(pid, c.drawn)
         self.assertEqual([r["state"] for r in c.links["r"]], ["ambiguous"] * 3)
         kinds = [d for d in c.diagnostics if d["kind"] == "id_collision"]
         self.assertEqual(len(kinds), 3)
         self.assertNotIn("a/b.html", c.render_page("r"))
+
+    @unittest.skipUnless(LINUX, "Linux でだけ置けるファイル名")
+    def test_backslash_filename_stays_inside_output(self):
+        site1 = self.base / "site1"
+        site1.mkdir()
+        (site1 / "a.html").write_bytes(b"keep")
+        write(self.wiki, "\\" + str(site1).lstrip("/").replace("/", "\\") + "\\a.md", page("# evil"))
+        with redirect_stderr(io.StringIO()):
+            report = wiki_browse.build(self.wiki, str(self.base / "site2"), None)
+        self.assertEqual((site1 / "a.html").read_bytes(), b"keep")
+        self.assertEqual(sorted(p.name for p in site1.iterdir()), ["a.html"])
+        out = Path(report["out"])
+        for f in out.rglob("*.html"):
+            self.assertTrue(fs.is_within(f, out))
 
     @unittest.skipUnless(LINUX and hasattr(os, "geteuid") and os.geteuid() != 0, "読めないファイルを作れる環境だけ")
     def test_unreadable_collision_member_is_ignored(self):
@@ -203,6 +220,15 @@ class NamesTest(unittest.TestCase):
         names = core.assign_names(["index", "nav", "data/x", "assets/x"])
         self.assertEqual(len(set(n.casefold() for n in names.values())), 4)
         self.assertFalse({"index.html", "nav.js"} & set(names.values()))
+
+    def test_names_stay_relative(self):
+        # Linux の `\\tmp\\x\\a.md` は、/ にそろえると先頭が空の要素になる（実装のレビュー 1 の致命 1）。
+        for pid in ("/tmp/x/a", "a/../b", "a/./b", "..", "a//b", "./a"):
+            name = core.export_name(pid)
+            self.assertTrue(core.is_safe_relative(name), (pid, name))
+        names = core.assign_names(["/tmp/x/a", "tmp/x/a"])
+        self.assertEqual(len(set(names.values())), 2)
+        self.assertTrue(all(core.is_safe_relative(n) for n in names.values()))
 
     def test_case_only_collisions_get_suffixes(self):
         names = core.assign_names(["a/Foo", "a/foo"])
@@ -359,11 +385,23 @@ class RelationsTest(TempWiki):
         self.assertNotIn("unresolved_source", [d["kind"] for d in c.page_diagnostics("c")])
         self.assertIn('href="true.html"', c.render_page("c"))
 
+    def test_relation_source_is_linked(self):
+        write(self.wiki, "a.md", "---\ntype: concept\ngraph:\n  relationships:\n"
+                                 "    - {predicate: uses, object: 'concept:y', source: paper}\n---\n# A\n")
+        write(self.wiki, "y.md", "---\ntype: concept\n---\n# Y\n")
+        write(self.wiki, "sources/paper.md", page("# P", type="source", title="論文"))
+        html = build_core(self.wiki).render_page("a")
+        self.assertIn('href="sources/paper.html">論文</a>', html)
+
     def test_states(self):
         write(self.wiki, "a.md", page("# A", type="concept"))
         self.assertIn("関係はない", build_core(self.wiki).render_page("a"))
         write(self.wiki, "graph/ontology.yaml", "- not a mapping\n")
         c = build_core(self.wiki)
+        self.assertEqual(c.relations_state, "error")
+        self.assertIn("オントロジーを読めない", c.render_page("a"))
+        write(self.wiki, "graph/ontology.yaml", "node_types: []\npredicates: {}\n")
+        c = build_core(self.wiki)   # 中の形が誤っていても、中核は組み立てられ、関係表だけが使えない
         self.assertEqual(c.relations_state, "error")
         self.assertIn("オントロジーを読めない", c.render_page("a"))
         (self.wiki / "graph/ontology.yaml").unlink()
@@ -449,6 +487,29 @@ class BuildTest(TempWiki):
         self.assertEqual((out / ".browse-generation").read_text(encoding="utf-8"), first)
         self.assertEqual(sorted(p.name for p in work.iterdir() if p.is_dir()), ["old-x"])
 
+    def test_recovery_into_empty_output_dir(self):
+        out = self.base / "site"
+        self.build(out)
+        work = Path(str(out) + ".browse-work")
+        first = (out / ".browse-generation").read_text(encoding="utf-8")
+        os.rename(out, work / "old-1")
+        out.mkdir()   # 再実行するラッパーなどが、空の出力先を作り直した
+        with redirect_stderr(io.StringIO()):
+            wiki_browse.cleanup(fs.Guard([self.wiki]), out, work)
+        self.assertEqual((out / ".browse-generation").read_text(encoding="utf-8"), first)
+        self.assertEqual(wiki_browse._generation_dirs(work, "old-"), [])
+
+    def test_failed_core_leaves_no_tmp_and_keeps_error(self):
+        out = self.base / "site"
+        self.build(out)
+        before = (out / "index.html").read_bytes()
+        with mock.patch.object(core.Core, "__init__", side_effect=core.NameCollision("x")):
+            with self.assertRaises(core.NameCollision):
+                self.build(out)
+        self.assertEqual((out / "index.html").read_bytes(), before)
+        work = Path(str(out) + ".browse-work")
+        self.assertEqual([p.name for p in work.iterdir() if p.is_dir()], [])
+
     def test_empty_seq_file_continues_from_markers(self):
         out = self.base / "site"
         self.build(out)
@@ -477,6 +538,33 @@ class BuildTest(TempWiki):
         for leak in (root, root.replace("\\", "/"), json.dumps(root)[1:-1], "C%3A%2FUsers%2FAlice%2FWiki"):
             leaks, _w = core.find_leaks({"a.html": f"x {leak} y"}, [root], core.Recorder())
             self.assertEqual(leaks, ["a.html"], leak)
+
+    def test_each_needle_is_judged(self):
+        rec = core.Recorder()
+        rec.add("a.html", "C:/private-WIKI")
+        leaks, warnings = core.find_leaks({"a.html": "C:/private-WIKI D:/private-HOME"},
+                                          ["C:/private-WIKI", "D:/private-HOME"], rec)
+        self.assertEqual(leaks, ["a.html"])
+        self.assertEqual(warnings, [])
+
+    def test_generator_reason_is_not_user_content(self):
+        write(self.wiki, "graph/ontology.yaml", "- x\n")
+        original = core.Core._relations
+
+        def leaky(self_):
+            original(self_)
+            self_.diagnostics.append({"kind": "relations_error", "reason": str(self_.snapshot.root)})
+        with mock.patch.object(core.Core, "_relations", leaky):
+            with self.assertRaises(wiki_browse.Failed):
+                self.build(self.base / "site")
+
+    def test_title_with_home_path_is_a_warning(self):
+        home = str(Path.home())
+        write(self.wiki, "sources/s.md", page("# S", type="source", title=home))
+        write(self.wiki, "concepts/r.md", page("# R", type="concept", sources=["s"]))
+        report = self.build(self.base / "site")
+        self.assertEqual(report["leaks"], [])
+        self.assertIn("concepts/r.html", report["warnings"])
 
     def test_user_written_path_is_a_warning(self):
         home = str(Path.home())
@@ -540,13 +628,22 @@ class CoreLoopTest(TempWiki):
             if Path(self_) == target:
                 raise PermissionError("busy")
             return real(self_)
+        state = {"busy": True}
+
+        def lines():
+            line = json.dumps({"op": "manifest", "wiki": str(self.wiki)}) + "\n"
+            yield line
+            state["busy"] = False   # ファイルを変えずに、読めるようにする
+            yield line
+
+        def maybe(self_):
+            return flaky(self_) if state["busy"] else real(self_)
         out = io.StringIO()
-        with mock.patch.object(Path, "read_bytes", flaky):
-            wiki_browse.core_loop(io.StringIO(json.dumps({"op": "manifest", "wiki": str(self.wiki)}) + "\n"), out)
-        first = json.loads(out.getvalue())
+        with mock.patch.object(Path, "read_bytes", maybe):
+            wiki_browse.core_loop(lines(), out)   # 同じプロセス（同じ写しの使い回し）の中で確かめる
+        first, second = [json.loads(x) for x in out.getvalue().splitlines()]
         self.assertEqual(first["pages"], [])
-        res = self.run_loop({"op": "manifest", "wiki": str(self.wiki)})
-        self.assertEqual([p["id"] for p in res[0]["pages"]], ["a"])
+        self.assertEqual([p["id"] for p in second["pages"]], ["a"])
 
 
 if __name__ == "__main__":

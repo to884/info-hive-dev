@@ -162,6 +162,26 @@ class BrowseFsTest(unittest.TestCase):
         self.assertEqual((out / "report.json").read_text(encoding="utf-8"), "{}")
         self.assertEqual([p.name for p in out.iterdir()], ["report.json"])  # 一時のファイルが残らない
 
+    def test_rmtree_does_not_change_attributes_of_hardlinked_page(self):
+        import stat as st
+        page = self.wiki / "concepts" / "a.md"
+        old = self.base / "old-1"
+        old.mkdir()
+        try:
+            os.link(page, old / "a.html")
+        except OSError:
+            self.skipTest("ハードリンクを作れない")
+        os.chmod(page, st.S_IREAD)
+        mode = os.stat(page).st_mode
+        try:
+            try:
+                self.guard.rmtree(old)
+            except OSError:
+                pass   # Windows では読み取り専用のファイルを消せずに失敗する。それでよい
+            self.assertEqual(os.stat(page).st_mode, mode)
+        finally:
+            os.chmod(page, st.S_IREAD | st.S_IWRITE)
+
     def test_rename_does_not_replace(self):
         a = self.guard.mkdir(self.base / "a")
         b = self.guard.mkdir(self.base / "b")

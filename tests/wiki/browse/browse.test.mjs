@@ -168,9 +168,12 @@ async function noScript(browser, base) {
   const result = await page.evaluate(() => ({
     body: !!document.querySelector("#_body h1"), meta: !!document.querySelector("#_meta tr"),
     backlinks: !!document.querySelector("#_backlinks"), diagnostics: !!document.querySelector("#_diagnostics li"),
+    relations: !!document.querySelector("#_relations"),
   }));
-  await page.click("noscript a, #_nav a").catch(() => {});
-  await page.goto(base + "index.html");
+  // <noscript> のリンクを、実際にたどる（失敗を握りつぶさない）。
+  await page.click("#_nav noscript a");
+  await page.waitForLoadState("load");
+  result.noscriptReachedIndex = decodeURIComponent(page.url()).endsWith("/index.html");
   result.indexLinks = await page.locator("#_index a").count();
   await context.close();
   return result;
@@ -282,7 +285,8 @@ try {
         check(r.errors.length === 0, `${name}/${mode}: コンソールのエラー: ${r.errors.slice(0, 3)}`);
         check(s.links.scriptEscaped, `${name}/${mode}: 題名の <script> が文字として出ていない`);
         run.noScript = await noScript(browser, b.base);
-        check(run.noScript.body && run.noScript.meta && run.noScript.backlinks && run.noScript.diagnostics && run.noScript.indexLinks > 0,
+        check(run.noScript.body && run.noScript.meta && run.noScript.backlinks && run.noScript.diagnostics &&
+          run.noScript.relations && run.noScript.noscriptReachedIndex && run.noScript.indexLinks > 0,
           `${name}/${mode}: JavaScript を切ると読めない: ${JSON.stringify(run.noScript)}`);
         if (mode === "static") {
           run.typesetting = await typesetting(browser, b.base, allPages);
