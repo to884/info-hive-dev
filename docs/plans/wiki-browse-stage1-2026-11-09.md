@@ -438,7 +438,7 @@ wiki 0.10.0（マイナー）。新しいコマンドとスクリプトを足す
 **状態の区別（守ること 9）と中核の規則**
 
 - オントロジーがない、読めない、関係が 0 件、関係がある、のそれぞれの表示。
-- 関係表: 同じスラッグの `concepts/x.md` と `entities/x.md` で、関係を書いていないページに関係が出ない。両方に同じ関係を書くと、それぞれに出る。同じページの中で `status` と期間だけが違う 2 つの関係が、2 本とも出る。同じ `graph.node_id` のページで、入ってくる関係が出ず、どちらのページにも `duplicate_node_id` の診断が出る。`sources/left/paper.md` と `sources/right/paper.md` があるとき、`sources: ["paper"]` は診断に出て、`sources: ["sources/left/paper"]` は左のページだけに出る。
+- 関係表: 同じスラッグの `concepts/x.md` と `entities/x.md` で、関係を書いていないページに関係が出ない。両方に同じ関係を書くと、それぞれに出る。同じページの中で `status` と期間だけが違う 2 つの関係が、2 本とも出る。同じ `graph.node_id` のページで、入ってくる関係が出ず、どちらのページにも `duplicate_node_id` の診断が出る。`sources/left/paper.md` と `sources/right/paper.md` があるとき、`sources: ["paper"]` は診断（`ambiguous_source`）に出る。2 つのページは既定のノード ID（`source:paper`）を共有するので、`sources: ["sources/left/paper"]` の関係は出ていく側にだけ出て、どちらのページにも入ってくる関係としては出ない（両方に `duplicate_node_id` が出る）。別々の `graph.node_id` を持つ同じスラッグのページでは、パスつきの `sources:` の関係が、指したページだけに入ってくる関係として出る。
 - 出力の名前: PoC の `names_check.py` の反例に、`COM¹`、`LPT²`、`CONIN$`、`COM0`、`.browse-generation/a.md` を足す。接尾辞の 8 桁が同じになる 2 つの長い名前（13 回目のレビューの例）で、桁が増えて重ならない名前になる。PoC の `review_checks.py` の場面（生成し直したときの残り、生成器のファイルとの衝突）。
 - 見出し: `## **Definition**`、`## [[other|Definition]]`、`## ![Definition](diagram.png)` に `[[a#Definition]]` で移動できる。`## 例`、`## 例`、`## 例-1` で、`[[対象#例-1]]` が 3 つ目に移動する。`# nav` の見出しが画面の部品と重ならない（同じ ID の要素が 1 つしかない）。
 - ナビゲーション: 任意の見出しの `index.md`、最初の見出しより前の項目、分割した `indexes/`、`[[indexes/concepts]]` の項目、`- [[missing]] — 関連：[[a]]`、索引にないページ、読めない索引。
