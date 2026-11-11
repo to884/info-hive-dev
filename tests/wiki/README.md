@@ -12,6 +12,8 @@
 | `test_graph_duplicate_slugs.py` | グラフの抽出が、閲覧（browse）の関係表の契約を満たすこと（wiki 0.9.2）。別のディレクトリの同じスラッグのページ（`a/Foo.md` と `b/Foo.md`）で、主語がそのページ自身のノードになること、パスを付けたリンクの行き先、パスのないリンクと `sources:` をどちらにも寄せないこと。別のページの同じ内容の関係を 1 本にまとめないこと（NFC と NFD の名前の違いだけのファイルも）、同じ `graph.node_id` のページの関係を捨てず、その ID を目的語にした関係を曖昧として挙げること、パスと `[[...]]` で書いた `sources:` の解決と診断。`graph.sqlite`、JSONL、GraphML、グラフの lint、MCP のツール `graph` が使う問い合わせ。PyYAML が要る |
 | `test_graph_frontmatter_values.py` | グラフの抽出が読む frontmatter の値が、wiki の lint と同じこと（wiki 0.9.5）。引用符のない真偽値、数、日付、`null` を書いた最上位の欄が lint の辞書と等しいこと、`sources: [true]` が lint と同じページに解決すること、`graph:` の参照の欄を書かれた文字で読むこと、読めなかった `graph:`（`unreadable_graph`）と lint のパーサーが読めない書き方の欄（`unread_fields`）の診断、オントロジーの `maps_from` の読み方。引用符で囲む規約どおりのページで、ノードとエッジが 0.9.3 の読み方と変わらないこと。PyYAML が要る |
 | `test_wiki_fetch.py` | Web ページの取得（`wiki_fetch.py`）の、Medium の形の取りこぼし（info-hive-wiki#42）。`<picture>` の `<source srcset>` にだけ URL がある図を保存し、WebP でない `<source>` の幅のいちばん大きい候補を選ぶこと、`<img>` の URL があればそれを使うこと、`<pre>` の中の `<br>` を改行にし、`<pre>` の外の `<br>` は変えないこと。取得を差し替え、ネットにはつながない。標準ライブラリだけで動く |
+| `test_frontmatter_parser.py` | frontmatter のパーサー（`wiki_text.parse_frontmatter_text`）が読む YAML の書き方（wiki 0.9.7）。字下げの違うブロックの配列、複数行にまたがる `[...]`、引用符つきのキーとコロンの前の空白、二重引用符の中の YAML のエスケープ、`\|` と `>` のブロックのスカラーの値が、PyYAML の `BaseLoader`（型に直さない）と等しいこと（値の表と、種を固定した無作為の入力）。YAML と違ってよいと決めた箇所と、読まないまま残す書き方の値。規約どおりのページと、読み方を変えない書き方で、値が 0.9.5 のパーサーそのものの出力（`frontmatter_parser_golden.json`）と等しいこと。`]` を書き忘れた配列が後ろの欄を取り込まないこと、YAML にないエスケープを含む値を今までどおり読むこと。書き手（`format_frontmatter`）との往復、lint・検索・統計が読めるようになった欄を読むこと、検索の古いパースキャッシュを使い続けないこと、制御文字のある値でも GraphML が読める XML になること。PyYAML が要る |
+| `test_frontmatter_raw.py` | rag が返す PDF の絶対パスと SHA-256 を、ソースの要約ページの frontmatter に書いて読み戻す（ADR-0013）。手書きのパーサーと PyYAML が同じ値に読むこと、`\` を重ねていない Windows のパスの読み方。PyYAML が要る |
 | `test_uv_tls.py` | TLS を検査する社内ネットワークで uv が証明書を検証できないとき（info-hive-wiki#30）。`UV_SYSTEM_CERTS=true` での 1 回だけのやり直し、利用者の設定の尊重、入れ直しに進まないこと。自己署名の証明書の HTTPS の索引を手元に立て、入口が理由と対処を `logs/launch.log` に書いてすぐ止まることも確かめる（`--with cryptography` で動かす） |
 | `run_mcp_gate.py`、`mcp_eval_search.py` | wiki の評価ゲート（`eval/retrieval/run_eval.py`）を新しい基盤で通す |
 | `bench_mcp_latency.py` | 検索の速さ（今の CLI、中継経由の MCP、直接呼び出し） |
@@ -35,6 +37,7 @@ python -X utf8 -m unittest tests/wiki/test_template_script_paths.py -v
 python -X utf8 -m unittest tests/wiki/test_wiki_fetch.py -v
 uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_graph_duplicate_slugs.py -v
 uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_graph_frontmatter_values.py -v
+uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_frontmatter_parser.py tests/wiki/test_frontmatter_raw.py -v
 set DEPS=--with mcp==1.30.0 --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 --with fastembed==0.8.0 --with onnxruntime==1.31.1 --with pyyaml==6.0.3 --with psutil==7.2.2
 uv run --python 3.12 %DEPS% python -X utf8 -m unittest tests/wiki/test_wiki_index.py -v
 uv run --python 3.12 %DEPS% python -X utf8 -m unittest tests/wiki/test_mcp_server.py -v
