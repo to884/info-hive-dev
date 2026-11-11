@@ -1,8 +1,9 @@
 """rag が返す PDF の絶対パスと SHA-256 を、ソースの要約ページの frontmatter に書いて読み戻す試験（ADR-0013）。
 
 ingest の手順は、`raw:` と `raw_sha256:` を二重引用符で囲み、`\\` を `\\\\`、`"` を `\\"` と書くと決めている。
-wiki の手書きのパーサー（`wiki_text.parse_frontmatter_text`）と、グラフのスクリプトが使う PyYAML が、
-同じ値として読むことを確かめる。
+wiki の手書きのパーサー（`wiki_text.parse_frontmatter_text`）と PyYAML が、同じ値として読むことを確かめる。
+wiki 0.9.5 から、グラフのスクリプトも `raw:` などの最上位の欄は手書きのパーサーで読む（PyYAML で読むのは
+`graph:` の欄だけ）。PyYAML と同じ値になることは、frontmatter を YAML として読むほかの道具のために確かめる。
 """
 from __future__ import annotations
 
