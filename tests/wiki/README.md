@@ -10,6 +10,7 @@
 | `test_source_claims.py` | 取り込みでソースの要約ページに残す `## 主張と行き先`（0.8.0、ADR-0015 の段階 2）。手順書、ページの規約、`SCHEMA.md` とページのひな形が同じ見出し、列、行き先の値を示すこと、作例の表の形、作例を入れた source のページが lint を通ること、`init_wiki.py --upgrade` が新しいセクションを案内すること、段階 3 の規定が混ざっていないこと。標準ライブラリだけで動く |
 | `test_template_script_paths.py` | `init_wiki.py` が書き出す `SCHEMA.md` と `graph/README.md` のコマンドの例のスクリプトのパス（wiki 0.9.1）。ひな形に `<skill-root>/` の付かない `scripts/` がないこと、`<skill-root>` の説明があり、置き換えると実在するスクリプトを指すこと、パスが `"` で囲まれていること、`SCHEMA_SECTION_MARKERS` が変わっていないこと。書き出した `SCHEMA.md` の `--no-embed` の検索の例を、既定の名前と別の名前の wiki で実行する。スキルの `SKILL.md` と `references/*.md` のコマンドも同じ `"<skill-root>/scripts/..."` の書き方で、実在するスクリプトを指し、`SKILL.md` の「スクリプトのパス」が定義していること（wiki 0.9.3）。標準ライブラリだけで動く |
 | `test_graph_duplicate_slugs.py` | グラフの抽出が、閲覧（browse）の関係表の契約を満たすこと（wiki 0.9.2）。別のディレクトリの同じスラッグのページ（`a/Foo.md` と `b/Foo.md`）で、主語がそのページ自身のノードになること、パスを付けたリンクの行き先、パスのないリンクと `sources:` をどちらにも寄せないこと。別のページの同じ内容の関係を 1 本にまとめないこと（NFC と NFD の名前の違いだけのファイルも）、同じ `graph.node_id` のページの関係を捨てず、その ID を目的語にした関係を曖昧として挙げること、パスと `[[...]]` で書いた `sources:` の解決と診断。`graph.sqlite`、JSONL、GraphML、グラフの lint、MCP のツール `graph` が使う問い合わせ。PyYAML が要る |
+| `test_graph_frontmatter_values.py` | グラフの抽出が読む frontmatter の値が、wiki の lint と同じこと（wiki 0.9.5）。引用符のない真偽値、数、日付、`null` を書いた最上位の欄が lint の辞書と等しいこと、`sources: [true]` が lint と同じページに解決すること、`graph:` の参照の欄を書かれた文字で読むこと、読めなかった `graph:`（`unreadable_graph`）と lint のパーサーが読めない書き方の欄（`unread_fields`）の診断、オントロジーの `maps_from` の読み方。引用符で囲む規約どおりのページで、ノードとエッジが 0.9.3 の読み方と変わらないこと。PyYAML が要る |
 | `test_uv_tls.py` | TLS を検査する社内ネットワークで uv が証明書を検証できないとき（info-hive-wiki#30）。`UV_SYSTEM_CERTS=true` での 1 回だけのやり直し、利用者の設定の尊重、入れ直しに進まないこと。自己署名の証明書の HTTPS の索引を手元に立て、入口が理由と対処を `logs/launch.log` に書いてすぐ止まることも確かめる（`--with cryptography` で動かす） |
 | `run_mcp_gate.py`、`mcp_eval_search.py` | wiki の評価ゲート（`eval/retrieval/run_eval.py`）を新しい基盤で通す |
 | `bench_mcp_latency.py` | 検索の速さ（今の CLI、中継経由の MCP、直接呼び出し） |
@@ -31,6 +32,7 @@ python -X utf8 -m unittest tests/wiki/test_wiki_lint.py -v
 python -X utf8 -m unittest tests/wiki/test_source_claims.py -v
 python -X utf8 -m unittest tests/wiki/test_template_script_paths.py -v
 uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_graph_duplicate_slugs.py -v
+uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_graph_frontmatter_values.py -v
 set DEPS=--with mcp==1.30.0 --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 --with fastembed==0.8.0 --with onnxruntime==1.31.1 --with pyyaml==6.0.3 --with psutil==7.2.2
 uv run --python 3.12 %DEPS% python -X utf8 -m unittest tests/wiki/test_wiki_index.py -v
 uv run --python 3.12 %DEPS% python -X utf8 -m unittest tests/wiki/test_mcp_server.py -v
