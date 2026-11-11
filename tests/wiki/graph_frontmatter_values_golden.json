@@ -1,0 +1,336 @@
+{
+ "note": "wiki 0.9.3（info-hive-wiki c50854a）の wiki_graph_extract.py と wiki_graph_lint.py が、test_graph_frontmatter_values.py の CONVENTIONAL_PAGES から作るノード、エッジ、別名、診断、グラフの lint の結果。0.9.5 で frontmatter の読み方を変えても、規約どおりのページの出力が変わらないことを確かめるのに使う。CONVENTIONAL_PAGES を変えたら、0.9.3 のスクリプトで取り直す。",
+ "nodes": [
+  {
+   "aliases": [
+    "A",
+    "あるふぁ"
+   ],
+   "canonical": true,
+   "created": "2026-11-01",
+   "id": "concept:alpha",
+   "kind": "",
+   "node_type": "concept",
+   "page_type": "concept",
+   "path": "concepts/alpha.md",
+   "slug": "alpha",
+   "tags": [
+    "x",
+    "y"
+   ],
+   "title": "アルファ",
+   "updated": "2026-11-02"
+  },
+  {
+   "aliases": [],
+   "canonical": false,
+   "created": "2026-11-01",
+   "id": "concept:beta",
+   "kind": "",
+   "node_type": "concept",
+   "page_type": "concept",
+   "path": "concepts/beta.md",
+   "slug": "beta",
+   "tags": [],
+   "title": "ベータ",
+   "updated": "2026-11-02"
+  },
+  {
+   "aliases": [],
+   "canonical": false,
+   "created": "2026-11-01",
+   "id": "person:taro",
+   "kind": "person",
+   "node_type": "person",
+   "page_type": "entity",
+   "path": "entities/taro.md",
+   "slug": "taro",
+   "tags": [
+    "人"
+   ],
+   "title": "太郎",
+   "updated": ""
+  },
+  {
+   "aliases": [],
+   "canonical": false,
+   "created": "2026-11-01",
+   "id": "source:note",
+   "kind": "",
+   "node_type": "source",
+   "page_type": "source",
+   "path": "sources/note.md",
+   "slug": "note",
+   "tags": [],
+   "title": "メモ",
+   "updated": ""
+  },
+  {
+   "aliases": [],
+   "canonical": false,
+   "created": "2026-11-01",
+   "id": "source:paper",
+   "kind": "",
+   "node_type": "source",
+   "page_type": "source",
+   "path": "sources/paper.md",
+   "slug": "paper",
+   "tags": [
+    "x"
+   ],
+   "title": "論文",
+   "updated": "2026-11-02"
+  }
+ ],
+ "edges": [
+  {
+   "confidence": "high",
+   "evidence": "",
+   "extraction_method": "frontmatter_sources",
+   "extras": {},
+   "id": "06650a1fbff1abea31e1c995",
+   "object": "source:note",
+   "page": "concepts/alpha.md",
+   "predicate": "sourced_from",
+   "source": "sources/note",
+   "status": "current",
+   "subject": "concept:alpha"
+  },
+  {
+   "confidence": "high",
+   "evidence": "",
+   "extraction_method": "frontmatter_sources",
+   "extras": {},
+   "id": "121fe57f1a53e25704c3beb7",
+   "object": "source:note",
+   "page": "concepts/alpha.md",
+   "predicate": "sourced_from",
+   "source": "[[sources/note]]",
+   "status": "current",
+   "subject": "concept:alpha"
+  },
+  {
+   "confidence": "medium",
+   "evidence": "太郎が提案した",
+   "extraction_method": "explicit_graph_frontmatter",
+   "extras": {},
+   "id": "149970487c3432eb31881a16",
+   "object": "concept:alpha",
+   "page": "entities/taro.md",
+   "predicate": "proposed",
+   "source": "paper",
+   "status": "current",
+   "subject": "person:taro"
+  },
+  {
+   "confidence": "low",
+   "evidence": "",
+   "extraction_method": "body_wikilink",
+   "extras": {},
+   "id": "1555004edd90148965a01671",
+   "object": "concept:alpha",
+   "page": "concepts/beta.md",
+   "predicate": "mentions",
+   "source": "",
+   "status": "current",
+   "subject": "concept:beta"
+  },
+  {
+   "confidence": "high",
+   "evidence": "",
+   "extraction_method": "frontmatter_sources",
+   "extras": {},
+   "id": "4b5eb12d16f266897c2952e0",
+   "object": "source:paper",
+   "page": "concepts/alpha.md",
+   "predicate": "sourced_from",
+   "source": "paper",
+   "status": "current",
+   "subject": "concept:alpha"
+  },
+  {
+   "confidence": "low",
+   "evidence": "",
+   "extraction_method": "body_wikilink",
+   "extras": {},
+   "id": "54859560ac5e523d01ea3895",
+   "object": "concept:beta",
+   "page": "concepts/alpha.md",
+   "predicate": "mentions",
+   "source": "",
+   "status": "current",
+   "subject": "concept:alpha"
+  },
+  {
+   "confidence": "low",
+   "evidence": "",
+   "extraction_method": "body_wikilink",
+   "extras": {},
+   "id": "6b1a364778b9c720927a0704",
+   "object": "source:paper",
+   "page": "concepts/alpha.md",
+   "predicate": "mentions",
+   "source": "",
+   "status": "current",
+   "subject": "concept:alpha"
+  },
+  {
+   "confidence": "high",
+   "evidence": "alpha は beta に依存する",
+   "extraction_method": "explicit_graph_frontmatter",
+   "extras": {
+    "supersedes": "concept:gamma"
+   },
+   "id": "7b6be346e44108d7b2686d70",
+   "object": "concept:beta",
+   "page": "concepts/alpha.md",
+   "predicate": "depends_on",
+   "source": "paper",
+   "status": "historical",
+   "subject": "concept:alpha"
+  },
+  {
+   "confidence": "high",
+   "evidence": "",
+   "extraction_method": "frontmatter_raw",
+   "extras": {},
+   "id": "8180b14032b22a5c710e867d",
+   "object": "raw:../raw/note.md",
+   "page": "sources/note.md",
+   "predicate": "summarizes_raw",
+   "source": "",
+   "status": "current",
+   "subject": "source:note"
+  },
+  {
+   "confidence": "high",
+   "evidence": "",
+   "extraction_method": "frontmatter_raw",
+   "extras": {},
+   "id": "8454d60e42f348d241016c1e",
+   "object": "raw:raw/paper.pdf",
+   "page": "sources/paper.md",
+   "predicate": "summarizes_raw",
+   "source": "",
+   "status": "current",
+   "subject": "source:paper"
+  },
+  {
+   "confidence": "high",
+   "evidence": "",
+   "extraction_method": "frontmatter_sources",
+   "extras": {},
+   "id": "d85a0ff02268528d97da54ca",
+   "object": "source:paper",
+   "page": "concepts/beta.md",
+   "predicate": "sourced_from",
+   "source": "paper",
+   "status": "current",
+   "subject": "concept:beta"
+  },
+  {
+   "confidence": "high",
+   "evidence": "alpha は beta に依存する",
+   "extraction_method": "explicit_graph_frontmatter",
+   "extras": {
+    "notes": "メモ",
+    "valid_from": "2024-01-01"
+   },
+   "id": "ed9c4707eed995739e7394b7",
+   "object": "concept:beta",
+   "page": "concepts/alpha.md",
+   "predicate": "depends_on",
+   "source": "paper",
+   "status": "current",
+   "subject": "concept:alpha"
+  },
+  {
+   "confidence": "high",
+   "evidence": "",
+   "extraction_method": "frontmatter_sources",
+   "extras": {},
+   "id": "f342014882c66d8e524c099c",
+   "object": "source:paper",
+   "page": "entities/taro.md",
+   "predicate": "sourced_from",
+   "source": "paper",
+   "status": "current",
+   "subject": "person:taro"
+  }
+ ],
+ "aliases": [
+  {
+   "alias": "A",
+   "node_id": "concept:alpha"
+  },
+  {
+   "alias": "あるふぁ",
+   "node_id": "concept:alpha"
+  }
+ ],
+ "diagnostics": [],
+ "lint": {
+  "alias_collisions": [],
+  "ambiguous_object_refs": [],
+  "ambiguous_sources": [],
+  "broken_contradicts": [],
+  "broken_object_refs": [],
+  "broken_source_refs": [],
+  "broken_supersedes": [
+   {
+    "index": 1,
+    "object": "concept:beta",
+    "page": "concepts/alpha.md",
+    "predicate": "depends_on",
+    "supersedes": "concept:gamma"
+   }
+  ],
+  "duplicate_canonical": [],
+  "duplicate_node_ids": [],
+  "invalid_confidence": [],
+  "invalid_status": [],
+  "missing_evidence": [],
+  "missing_source_field": [],
+  "object_type_mismatch": [
+   {
+    "allowed": [
+     "decision",
+     "claim"
+    ],
+    "index": 0,
+    "object": "concept:alpha",
+    "object_type": "concept",
+    "page": "entities/taro.md",
+    "predicate": "proposed"
+   }
+  ],
+  "order_dependent_edge_ids": [],
+  "orphan_typed_nodes": [],
+  "subject_type_mismatch": [],
+  "summary": {
+   "alias_collisions": 0,
+   "ambiguous_object_refs": 0,
+   "ambiguous_sources": 0,
+   "broken_contradicts": 0,
+   "broken_object_refs": 0,
+   "broken_source_refs": 0,
+   "broken_supersedes": 1,
+   "duplicate_canonical": 0,
+   "duplicate_node_ids": 0,
+   "invalid_confidence": 0,
+   "invalid_status": 0,
+   "missing_evidence": 0,
+   "missing_source_field": 0,
+   "nodes": 5,
+   "object_type_mismatch": 1,
+   "order_dependent_edge_ids": 0,
+   "orphan_typed_nodes": 0,
+   "pages_scanned": 5,
+   "subject_type_mismatch": 0,
+   "unknown_predicates": 0,
+   "unresolved_sources": 0
+  },
+  "unknown_predicates": [],
+  "unresolved_sources": []
+ }
+}
