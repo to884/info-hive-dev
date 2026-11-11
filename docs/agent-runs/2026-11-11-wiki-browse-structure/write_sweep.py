@@ -437,8 +437,12 @@ def check_server(state, phase, at, mode):
             return f"{label}（状態 {state}、{phase}、{mode}@{at}、{injector.hit}、rc={rc}）"
         if world(sb) != before_world:
             problems.append(where("状態のディレクトリの外が変わった"))
-        if m.is_running(sb.state_dir):
-            problems.append(where("終わったあとも、ロックが残っている"))
+        try:
+            if m.is_running(sb.state_dir):
+                problems.append(where("終わったあとも、ロックが残っている"))
+        except (m.Stop, m.Unknown, m.Absent) as e:
+            problems.append(where(f"動いているかを確かめられない: {e}"))
+            return problems, injector.count
         # 次の起動は成功する。動いているあいだ、もう 1 つは起動しない。
         try:
             server = m.serve_start(sb.state_dir, "next")
@@ -479,6 +483,41 @@ def sweep_server(modes):
 # 実行
 # ---------------------------------------------------------------------------
 
+USER_DELETES = [("gen", "asis", False), ("gen", "leftovers", False), ("absent+old", "asis", False),
+                ("gen", "asis", True)]
+
+
+def sweep_user_deletes(cases, modes=("crash", "half")):
+    """強制停止のあとで、利用者が書き出し先を消してから、手を入れずに書き出す。
+
+    途中で消していた前の世代を、公開した世代として戻さないことを確かめる。
+    """
+    problems, runs = [], 0
+    for out_state, work_state, default in cases:
+        total = count_calls(lambda: Sandbox(out_state, work_state, default))
+        for mode in modes:
+            for at in range(1, total + 1):
+                sb = Sandbox(out_state, work_state, default)
+                try:
+                    before_world = world(sb)
+                    injector = Injector(at, mode)
+                    rc = run_build(sb, injector)
+                    if rc != "crash" or not os.path.isdir(sb.out):
+                        continue
+                    runs += 1
+                    shutil.rmtree(sb.out)          # 利用者が書き出し先を消す
+                    rc2 = run_build(sb, Injector())
+                    if rc2 != 0 or content(tree(sb.out)) != expected(FILES_N):
+                        problems.append(f"書き出し先を消したあとの書き出しが、新しい世代に着かなかった（rc={rc2}）"
+                                        f"（{out_state}/{work_state}/{'default' if default else 'out'}、{mode}@{at}、"
+                                        f"{injector.hit}）")
+                    if world(sb) != before_world:
+                        problems.append(f"書き出し先を消したあとの書き出しで、領分の外が変わった（{out_state}、{mode}@{at}）")
+                finally:
+                    sb.close()
+    return runs, problems
+
+
 MODES = ("denied", "absent", "short", "crash", "half")
 CONTROLS = {
     "skip_gate": [("gen+extra", "asis", False), ("userdir", "asis", False)],
@@ -506,6 +545,8 @@ def main():
                 lines.append(f"| {'既定' if default else '--out'} | {out_state} | {work_state} | {total} | {runs} | {len(problems)} |")
     server_runs, server_problems = sweep_server(MODES)
     all_problems += server_problems
+    deletes_runs, deletes_problems = sweep_user_deletes(USER_DELETES)
+    all_problems += deletes_problems
 
     control_lines = []
     for mutant, cases in CONTROLS.items():
@@ -515,6 +556,8 @@ def main():
             for out_state, work_state, default in cases:
                 _, _, problems = sweep_build(out_state, work_state, default, MODES)
                 found += problems
+            if mutant == "delete_in_place":
+                found += sweep_user_deletes(USER_DELETES)[1]
         finally:
             m.MUTANTS.discard(mutant)
         control_lines.append(f"| {mutant} | {len(found)} | {found[0] if found else '見つからなかった'} |")
@@ -529,6 +572,7 @@ def main():
     print("\n## 書き出し\n\n| 書き出し先の種類 | 書き出し先の状態 | 作業用の状態 | 口の呼び出し | 実行 | 破れた決まり |\n| --- | --- | --- | --- | --- | --- |")
     print("\n".join(lines))
     print(f"\n## サーバーの記録\n\n実行 {server_runs} 回、破れた決まり {len(server_problems)} 件")
+    print(f"\n## 強制停止のあとで、利用者が書き出し先を消す\n\n実行 {deletes_runs} 回、破れた決まり {len(deletes_problems)} 件")
     print("\n## 対照\n\n| 対照 | 見つけた件数 | 最初の 1 件 |\n| --- | --- | --- |")
     print("\n".join(control_lines))
     if NOTES:

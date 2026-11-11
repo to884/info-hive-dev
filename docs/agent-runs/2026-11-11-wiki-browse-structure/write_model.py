@@ -125,6 +125,9 @@ def x(name, *args):
     except (FileNotFoundError, NotADirectoryError) as e:
         raise Absent(str(e)) from None
     except OSError as e:
+        # 解けないリンクと正しくない名前は、木の状態として必ず起きる失敗なので「ない」（設計の 3.2）
+        if e.errno == getattr(__import__("errno"), "ELOOP", None) or getattr(e, "winerror", None) in (1921, 123):
+            raise Absent(str(e)) from None
         raise Unknown(f"{name}: {type(e).__name__}") from None
 
 
@@ -202,7 +205,9 @@ def remove_tree(path):
             x("rmdir", path)      # Windows のジャンクションとディレクトリのリンクは rmdir で外す
         return
     if k == "dir":
-        for name in x("listdir", path):
+        # 世代の一覧は最後に消す（0.10.0 と同じ順）。途中で止まった世代が一覧を持ったまま残る形を、
+        # わざと作る。del-N に付け替える規則が、その形を戻す候補から外すことを、探索で確かめるためである。
+        for name in sorted(x("listdir", path), key=lambda n: n == MANIFEST):
             remove_tree(os.path.join(path, name))
         x("rmdir", path)
         return
@@ -244,7 +249,8 @@ def use_territory(path, marker, known=()):
             if kind(os.path.join(path, marker)) != "file":
                 raise
     elif "refuse_unknown_entries" in MUTANTS:
-        extra = [e for e in entries if e != marker and e not in known]
+        # 3 版目の規則: 記録と、ロックと、目印のほかの項目があれば使わない（置き換えの一時ファイルも拒む）
+        extra = [e for e in entries if e != marker and e not in known or e.endswith(".new")]
         if extra:
             raise Stop(f"決まった名前のほかの項目がある: {extra[0]}")
 
@@ -517,6 +523,9 @@ def is_running(state_dir):
     """真実はロックである。記録の有無は見ない。"""
     if kind(state_dir) == "absent":
         return False
+    # 状態のディレクトリに触れる操作は、どれも領分の確かめを先に通す。目印のない空のディレクトリに
+    # ロックのファイルだけを作ると、次の起動が「目印がなく、空でもない」として止まる（探索が見つけた）。
+    use_territory(state_dir, SERVER_MARKER, STATE_KNOWN)
     lock = Lock(os.path.join(state_dir, "server.lock"))
     if lock.try_acquire():
         lock.release()
