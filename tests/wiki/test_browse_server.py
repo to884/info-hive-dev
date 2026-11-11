@@ -178,6 +178,67 @@ class RequestTest(InProcess):
             for needle in (str(self.wiki), self.wiki.as_posix(), str(self.data), self.app.control_token):
                 self.assertNotIn(needle, body)
 
+    def test_broken_record_is_not_reused(self):
+        record = self.app.state_dir / "server.json"
+        for rec in ({"port": 1, "view_token": "a", "control_token": "b", "instance": None},
+                    {"port": "1", "view_token": "a", "control_token": "b", "instance": "c"},
+                    {"port": 1, "view_token": "", "control_token": "b", "instance": "c"}):
+            record.write_text(json.dumps(rec), encoding="utf-8")
+            self.assertIsNone(wiki_browse._read_record(self.app.state_dir), rec)
+
+    def test_stop_waits_for_record_of_starting_server(self):
+        # サーバーがロックを持ち、まだ記録を書いていない状態を作る。
+        record = self.app.state_dir / "server.json"
+        if record.exists():
+            record.unlink()
+        lock = fs.Lock(self.app.guard, self.app.state_dir / "server.lock")
+        self.assertTrue(lock.try_acquire())
+
+        def later():
+            time.sleep(0.7)
+            record.write_text(json.dumps(self.app.record()), encoding="utf-8")
+            self.app._stopping.wait(20)
+            lock.release()
+        helper = threading.Thread(target=later)
+        helper.start()
+        out = io.StringIO()
+        from contextlib import redirect_stdout
+        with redirect_stdout(out), redirect_stderr(io.StringIO()):
+            code = wiki_browse.stop(self.wiki)
+        helper.join(30)
+        self.assertEqual(code, 0)
+        self.assertTrue(json.loads(out.getvalue())["stopped"])
+        self.assertTrue(self.app._stopping.is_set())
+
+    def test_serve_rechecks_inputs_after_waiting_for_lock(self):
+        record = self.app.state_dir / "server.json"
+        record.write_text(json.dumps({"port": 9, "view_token": "a", "control_token": "b", "instance": "c"}),
+                          encoding="utf-8")
+        before = record.read_bytes()
+        lock = fs.Lock(self.app.guard, self.app.state_dir / "server.lock")
+        self.assertTrue(lock.try_acquire())
+        result = {}
+
+        def run():
+            try:
+                with redirect_stderr(io.StringIO()):
+                    result["code"] = wiki_browse.serve(self.wiki, None, False, 5)
+            except Exception as e:  # noqa: BLE001
+                result["error"] = e
+        th = threading.Thread(target=run)
+        th.start()
+        time.sleep(0.5)
+        try:
+            os.symlink(record, self.wiki / "concepts" / "record.md")
+        except (OSError, NotImplementedError):
+            lock.release()
+            th.join(30)
+            self.skipTest("シンボリックリンクを作れない")
+        lock.release()
+        th.join(30)
+        self.assertIsInstance(result.get("error"), fs.Refused)
+        self.assertEqual(record.read_bytes(), before)
+
     def test_finish_keeps_record_pointed_by_a_page(self):
         record = self.app.state_dir / "server.json"
         record.write_text("{}", encoding="utf-8")
@@ -325,6 +386,17 @@ class RebuildTest(InProcess):
             self.assertNotIn("オントロジーを読めない", body)
             self.assertIn('"label":"a"', self.get("nav.js")[1])
 
+    def test_signature_failure_is_stale_not_500(self):
+        self.assertEqual(self.get("concepts/a.html")[0], 200)
+        with mock.patch.object(core, "signature", side_effect=PermissionError("x")):
+            code, body, _h = self.get("concepts/a.html")
+        self.assertEqual(code, 200)
+        self.assertIn("最新の内容を表示できていない", body)
+        time.sleep(0.4)
+        code, body, _h = self.get("concepts/a.html")
+        self.assertEqual(code, 200)
+        self.assertNotIn("最新の内容を表示できていない", body)
+
     def test_wait_timeout_is_stale(self):
         self.get("concepts/a.html")
         real = core.Core
@@ -364,6 +436,51 @@ class RebuildTest(InProcess):
     def test_server_does_not_record(self):
         self.get("concepts/a.html")
         self.assertFalse(self.app.state.current.recorder.enabled)
+
+
+class MarkersTest(unittest.TestCase):
+    """Wiki、ホーム、data_dir、Wiki の外の入力を別々の目印の場所にして、サーバーの応答と記録に出ないことを確かめる。"""
+
+    def test_markers_absent_from_server(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d).resolve()
+            wiki, home, ext, data = (base / n for n in ("WIKIMARK", "HOMEMARK", "EXTMARK", "DATAMARK"))
+            for x in (wiki, home, ext):
+                x.mkdir()
+            write(wiki, "concepts/a.md", '---\ntype: "source"\nraw: "~/papers/x.pdf"\n---\n# A\n\n[[b]] [[missing]]\n')
+            write(wiki, "concepts/b.md", "# B\n")
+            write(wiki, "index.md", "- [[a]]\n")
+            write(ext, "outside.md", "# 外\n")
+            marks = ["WIKIMARK", "HOMEMARK", "EXTMARK", "DATAMARK"]
+            try:
+                os.symlink(ext / "outside.md", wiki / "concepts" / "outside.md")
+            except (OSError, NotImplementedError):
+                marks.remove("EXTMARK")
+            log = io.StringIO()
+            with mock.patch.dict(os.environ, {"INFO_HIVE_DATA_DIR": str(data)}), \
+                    mock.patch.object(Path, "home", return_value=home), redirect_stderr(log):
+                guard, state_dir = wiki_browse._prepare_state(wiki)
+                app = wiki_browse.App(wiki, guard, state_dir, idle=600, verbose=True)
+                httpd = wiki_browse._Server(("127.0.0.1", 0), wiki_browse.Handler)
+                httpd.app = app
+                app.httpd = httpd
+                app.port = httpd.server_address[1]
+                th = threading.Thread(target=httpd.serve_forever, kwargs={"poll_interval": 0.05}, daemon=True)
+                th.start()
+                try:
+                    prefix = f"/{app.view_token}/w/{app.key}/"
+                    paths = [prefix + n for n in ("index.html", "nav.js", "data/manifest.js", "data/diagnostics.js",
+                                                  "concepts/a.html", "concepts/outside.html", "concepts/nope.html",
+                                                  "%2e%2e/x")]
+                    paths += [f"/{app.control_token}/control/status", f"/{app.control_token}/control/locate/a", "/x"]
+                    bodies = [request(app.port, "GET", p)[1] for p in paths]
+                    bodies.append(request(app.port, "GET", prefix + "index.html", host="x")[1])
+                finally:
+                    httpd.shutdown()
+                    httpd.server_close()
+            for text in bodies + [log.getvalue()]:
+                for mark in marks:
+                    self.assertNotIn(mark, text)
 
 
 class ProcessTest(Base):

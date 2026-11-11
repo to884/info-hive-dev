@@ -311,6 +311,15 @@ class RenderTest(TempWiki):
         self.assertIn('href="file:///C:/Books/private.pdf"', c.render_page("s", "link"))
         self.assertIn("<code>C:/Books/private.pdf</code>", c.render_page("s", "text"))
 
+    @unittest.skipUnless(LINUX, "Linux でだけ同時に置ける名前")
+    def test_nfc_colliding_split_indexes_get_distinct_ids(self):
+        write(self.wiki, "indexes/が.md", "- [[a]]\n")
+        write(self.wiki, unicodedata.normalize("NFD", "indexes/が") + ".md", "- [[a]]\n")
+        write(self.wiki, "a.md", page("# A"))
+        html = build_core(self.wiki).render_index()
+        ids = __import__("re").findall(r'id="(_g[^"]+)"', html)
+        self.assertEqual(len(ids), len(set(ids)))
+
     def test_unreadable_split_index_has_no_dangling_group_link(self):
         write(self.wiki, "index.md", "- [[indexes/people]]\n")
         target = write(self.wiki, "indexes/people.md", "- [[p]]\n")
