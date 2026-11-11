@@ -1,0 +1,102 @@
+## 判定
+
+**却下。確信度：高。** `serve` のロック待機中に保護対象が増えると、Wiki の入力になった状態ファイルを削除・置換できる。また、入力の列挙で失敗すると、前の内容を表示する処理を通らず500になる。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】ロック待機中にWikiの入力になった`server.json`を削除・置換する
+
+再現条件と手順：
+
+1. 以前の`server.json`が残っており、応答するサーバーはない状態にする。
+2. 検証用の別プロセスで`server.lock`を保持し、`serve`を待機させる。
+3. 待機中に、Wikiへ`server.json`を指すページのシンボリックリンクを追加する。
+4. ロックを解放する。
+
+`serve`は待機前のGuardを使い続ける。ロック取得後に入力を調べ直さず、`server.json`を削除し、新しい記録を書く。次の閲覧や終了処理で重なりを検出しても、元の入力は既に失われている。
+
+実際の`serve`とGuardを使い、実体の識別・ロック・サーバー・ファイルI/Oを仮想化して順序を固定した結果：
+
+```text
+保護対象の調査：リンクなし
+待機中にページのリンクを追加
+server.json の削除：許可
+server.json の書き込み：許可
+終了時の調査：リンクあり
+終了コード：1
+```
+
+実ファイルの削除は行っていない。ディレクトリの差し替えを必要とせず、設計§6.5で除外したジャンクション交換とは異なる。
+
+根拠：[待機前の保護対象決定](</C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:653>)、[ロック待機と取得後の削除・書き込み](</C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:698>)、[終了時に初めて行う再調査](</C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:742>)。
+
+3回目の修正は終了処理を対象にしており、この起動経路には残っている。
+
+### 2. 【重大】入力の列挙失敗が、旧中核へのフォールバックをすり抜ける
+
+`BrowseState.get()`は、例外捕捉に入る前に`core.signature()`を呼ぶ。そこで入力を列挙する`list_inputs()`が失敗すると、既存の中核を保持していても要求全体が500になる。失敗状態や再試行間隔も更新されない。
+
+再現では、正常なWikiを一度開いて中核を保持させ、その後、`index.md`への`Path.is_file()`だけが`PermissionError`を出すようにした。同一プロセスの実HTTPサーバーでの結果：
+
+```text
+正常時：200
+索引の属性取得失敗中：500
+「古い」の表示：なし
+障害解除後：200
+```
+
+属性取得やディレクトリ列挙が失敗する状態が成立条件である。実際のアクセス権変更は行わず、例外を注入して確認した。
+
+ファイル本文の読み取り失敗を処理する経路とは別であり、現在の読み取り復帰試験では捕まらない。
+
+根拠：[捕捉範囲外のsignature呼び出し](</C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:363>)、[入力列挙](</C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:79>)、[索引の属性取得](</C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:137>)、[最終的に500にする処理](</C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:444>)。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| 待機前に決めた保護対象で、取得後の書き込みも判断できる | ロック待機中に、状態ファイルを参照するページが追加される |
+| 中核取得の失敗は、旧中核へのフォールバックで処理される | 最初の入力列挙・印の取得が例外になる |
+| 状態確認の戻り値が記録と一致すれば、接続確認に成功している | 記録の`instance`が`null`で、接続失敗も`None`になる |
+| 分割索引の正規化後の名前は一意である | LinuxでNFCとNFDの名前の索引を同時に置く |
+
+## 見落としと軽微な問題
+
+- **【軽微】`instance: null`の壊れた記録を、稼働確認成功として扱う。**  
+  `_read_record()`はキーの存在しか確認しない。接続失敗時の`_status()`の`None`が、記録の`null`と一致する。ロック取得不能・接続失敗を与えた検証で、`serve`が終了コード0、`reused=True`を返した。通常生成する記録では発生せず、記録破損時の問題である。根拠：[記録の検証](</C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:643>)、[成功扱いする比較](</C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:704>)。
+
+- **【軽微】NFCで衝突する分割索引が、同じHTML IDを生成する。**  
+  `indexes/が.md`と、濁点を分解した`indexes/が.md`を含む写しで、両グループのIDが`_g5a037984c4`になった。索引へのリンクは両者を区別できない。メモリ上で重複IDを確認した。Linuxの実ファイルでは未実施。根拠：[正規化後のパスによるグループID生成](</C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:681>)、[IDの出力](</C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:1027>)。
+
+- **【軽微・試験不足】起動途中の停止試験は、記録がない期間を保証しない。**  
+  ロックの取得不能は通常稼働中にも成立するため、記録を書き終えた後で停止しても合格する。「記録を待って停止する」分岐を通ったとは確認できない。根拠：[該当試験](</C:/Works/info-hive-dev/tests/wiki/test_browse_server.py:481>)。
+
+- **【軽微・試験不足】絶対パス検査の3回目の対応は、サーバー側に不足が残る。**  
+  四つの目印を使う追加試験は静的版と`core`を検査する。一方、サーバー試験はWiki・dataのパスと操作トークンを調べるだけで、別のホーム・外部入力の目印を含む条件になっていない。設計§11の「サーバーの全応答・記録」まで確認したという主張とは食い違う。漏洩自体を確認した指摘ではない。根拠：[追加された四つの目印の試験](</C:/Works/info-hive-dev/tests/wiki/test_browse.py:626>)、[サーバーの検査対象](</C:/Works/info-hive-dev/tests/wiki/test_browse_server.py:171>)。
+
+## 検証した事実
+
+実行環境は**Windows／Python 3.14.6／PyYAML 6.0.3**。リポジトリのファイルは変更していない。
+
+| 確認事項 | 結果 |
+|---|---|
+| `NamesTest`の5件 | 全件成功 |
+| 日本語コーパス27ページの未解決リンクとlint | 一致 |
+| 同コーパスのリンク抽出と`extract_wikilinks()` | 全ページで一致。31出力をメモリ上で生成できた |
+| 1回目の非表示ページの未解決リンク消失 | 元の反例は修正確認 |
+| 1回目の絶対パス検査の打ち切り | 元の反例は修正確認 |
+| 1回目の空出力先への復旧 | 仮想I/Oで旧世代を削除せず復元することを確認 |
+| 3回目の誤ったYAML日付 | オントロジーは関係表だけ`error`、ページの誤った日付でも中核を生成できた |
+| 版と案内文書 | 0.10.0と`/wiki:browse`の記載を確認 |
+| CIの両OS・Python試験・Chromiumの2方式・起動速度試験 | 設定上は一致。CIの実行結果は確かめられず |
+| Python 3.12の全試験、実ブラウザ、起動速度、Linux | 今回は再実行していない |
+| 既存スクリプトの振る舞い不変 | Git比較・既存試験による確認はできていない |
+
+## 崩せなかった点
+
+実HTTPサーバーへの確認範囲では、Host不一致は421、誤トークンと閲覧トークンによる停止は404になった。`..`、その符号化、`\`、NUL、不正UTF-8、空のパス要素、`.`による拒否も越えられなかった。
+
+要求パスから任意ファイルを返す経路、閲覧トークンから操作トークンを取得する経路、インスタンス不一致の別サーバーを停止する具体的経路は示せなかった。実プロセス間の競合検証は未実施である。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

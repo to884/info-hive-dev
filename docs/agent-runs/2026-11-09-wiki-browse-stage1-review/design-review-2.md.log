@@ -1,0 +1,125 @@
+[ask-codex 20:19:29] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev）
+## 判定
+
+**却下。確信度：高。** 関係表から関係が欠落する反例を現行コードで再現した。加えて、出力の掃除とサーバーの状態保存に閲覧専用を破る穴があり、交換可能性の試験も ADR-0010 の合格条件を満たしていない。
+
+## 致命的・重大な欠陥
+
+### 1. 【致命】退避・一時ディレクトリの掃除に、Wiki 自体を巻き込める
+
+**主張:** 出力先の検証と、実際に削除する場所の検証範囲が一致していない。
+
+**反例:** Wiki を `C:\data\view.old-notes`、出力先を `C:\data\view` とする。出力先と生成記録は Wiki と重ならず、計画の検証を通る。一方、掃除する `view.old-*` には Wiki 自体が該当する。名前で候補を回収して削除する実装なら、閲覧対象を削除する。
+
+これは**記載されたパターンで掃除する実装を仮定した反例**であり、削除は実行していない。パスの非包含とパターンへの一致はメモリ上で確認した。計画には、掃除対象が自分の生成物であることの確認も、削除直前の Wiki との包含確認もない。
+
+**根拠:** [計画 L80](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:80) は出力先と生成記録だけを検証し、[L87](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:87) は残った `.tmp-*`、`.old-*` を片付けるとしている。下敷きの [gen.py L282](/C:/Works/info-hive-dev/poc/browse/gen.py:282) も、既存の一時ディレクトリを所有確認なしで削除する。
+
+### 2. 【重大】関係表のページ別振り分けより前に、エッジが消える
+
+**主張:** エッジの `page` で振り分けても、重複スラッグの問題を隔離できていない。
+
+**反例・実行結果:** `concepts/x.md` と `entities/x.md` に、同じ `predicate: uses`、`object: concept:y` の関係を書く。現行の `build_nodes()`、`build_edges()` をメモリ上で実行すると、エッジは `concepts/x.md` の1本だけになり、`entities/x.md` の出ていく関係は空になった。
+
+`edge_id()` に `page` が含まれず、重複スラッグが同じ主語 ID に集約されるためである。計画どおりに振り分けた結果、後者のページは、書かれている関係を表示できない。
+
+**根拠:** [計画 L46](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:46)、[wiki_graph_extract.py L253](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_graph_extract.py:253)、同 [L282](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_graph_extract.py:282) の ID 算出、同 [L322](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_graph_extract.py:322) の重複排除。**現行コードとの食い違いを再現済み。**
+
+### 3. 【重大】古いロックの回収競合で、同時 build が成立する
+
+**主張:** `O_CREAT | O_EXCL` だけでは、記載された古いロックの回収手順を含めた排他は成立しない。
+
+**反例:**
+
+1. 古いロックに、終了済み PID が記録されている。
+2. A、B がともにそのロックを読み、PID の終了を確認する。
+3. A が古いロックを削除し、自分のロックを排他作成する。
+4. B が「古いロックを削除する」処理で、A の新しいロックを削除する。
+5. B も排他作成に成功し、A、B が同じ出力先の入れ替えと掃除を実行する。
+
+計画には、削除対象が確認時点のロックと同じであることを保証する規則がない。この競合は通常の2プロセスだけで成立する。実プロセスでの競合試験はしていない。
+
+**根拠:** [計画 L81](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:81)、入れ替えと掃除の [L84](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:84)。
+
+### 4. 【重大】サーバーの起動・停止の競合を閉じていない
+
+**主張:** 「Wiki ごとに1サーバー」と「停止したこと」を、状態ファイルの規則が保証していない。
+
+**反例:** 同じ Wiki に対して A、B が同時に `serve` を実行する。両方が状態ファイルなしと判断し、OS に別々のポートを割り当てさせ、起動後に同じ `.server.json` を書く。最後に書いた側しか記録されず、`stop` では片方しか停止対象にできない。
+
+また、「終了を求め、記録を消す」では、終了要求に応じないサーバーが残っても記録が消える。その後の `serve` はさらに別のサーバーを起動できる。開始時刻は保存するが、停止時のプロセス同一性や終了確認への利用も定めていない。
+
+**根拠:** [計画 L92](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:92)、[L97](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:97)。build には排他があるが、サーバーの起動・停止には相当する規則がない。**設計上の欠落で、実装の動作は未検証。**
+
+### 5. 【重大】サーバーの状態保存は、Wiki 内への書き込みを拒否しない
+
+**主張:** build の出力先検証だけでは、サーバーの閲覧専用を保証できない。
+
+**反例:** `INFO_HIVE_DATA_DIR=<WIKI_ROOT>` として `serve` を実行する。採用する `data_dir()` はその指定をそのまま返すので、状態ファイルは `<WIKI_ROOT>/browse/<wiki_key>.server.json` に作られる。起動・停止だけで Wiki 内のファイル一覧が変わる。
+
+この環境変数は現行コードが正式に扱う設定である。計画のサーバー節には、保存先が Wiki と重なる場合の拒否がない。
+
+**根拠:** [計画 L97](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:97)、[wiki_mcp_common.py L46](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_common.py:46)。閲覧でファイルを変えない決定は [ADR-0002 L31](/C:/Works/info-hive-dev/docs/adr/0002-wiki-browse-uses-on-demand-local-server.md:31)。**保存先の導出は確認済み。実際の書き込みは行っていない。**
+
+### 6. 【重大】交換可能性の自動試験が、ADR の禁じた代替になっている
+
+**主張:** アプリを中核の子プロセスに置き換え、HTML と JS の一致を調べても、3方式の動作確認にならない。
+
+**反例:** 子プロセスが正しい HTML を返しても、アプリの独自スキームで `nav.js` が読めない、CSP がスクリプトを拒否する、相対リンクの解決先が違う、といった欠陥はこの自動試験を通る。子プロセスには URL の基準も WebView の権限も存在しない。
+
+Tauri の手動試験は残るが、新しい中核の出力を使う手順、比較対象、閲覧前後のハッシュ・外部通信の合否が計画に定義されていない。既存 PoC は静的生成物を配るもので、新しい子プロセスを使う実装ではない。
+
+**根拠:** [計画 L124](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:124) に対し、[ADR-0010 L81](/C:/Works/info-hive-dev/docs/adr/0010-wiki-browse-separates-core-from-delivery.md:81) は3方式の実動作と閲覧専用の共通試験を要求し、L83 はバイト一致を証明に使わないと明記する。PoC の配信処理は [main.rs L109](/C:/Works/info-hive-dev/poc/browse/app/src/main.rs:109)。**決定との食い違いを確認した。**
+
+## 崩れる前提
+
+- **「`page` で分ければ、重複スラッグの影響を閉じ込められる」**  
+  振り分け前の重複排除で関係が失われると崩れる。上記2で再現した。
+
+- **「出力先の隣にある `.tmp-*`、`.old-*` は自分の生成物である」**  
+  同名規則に合う Wiki や別用途のディレクトリが存在すると崩れる。
+
+- **「状態ファイルを確認してから起動すれば、1サーバーになる」**  
+  同時起動、状態保存前の停止、終了要求に応じないサーバーで崩れる。
+
+- **「入力を一度ずつ読めば、Wiki 全体の同一時点の写しになる」**  
+  複数ファイルを読む途中で編集されれば、旧ページと新索引の混合は成立する。二重読みの不整合は防ぐが、全体の原子的スナップショットではない。[計画 L31](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:31) にはこの限界の記載がない。
+
+## 見落としと軽微な問題
+
+- **【軽微】NFC で同じ識別子になる別ファイルの処理が未定義。**  
+  Linux で NFC/NFD だけが違う名前を置ける。現行 lint は `normalization_collision` を報告するが、計画は識別子を NFC にした後の衝突処理を定めていない。PoC の識別子をキーにした辞書では片方が上書きされる。[wiki_lint.py L438](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:438)、[gen.py L172](/C:/Works/info-hive-dev/poc/browse/gen.py:172)。
+
+- **【軽微】ナビゲーションの階層と重複の扱いが未定義。**  
+  `index.md` の親見出しと子見出し、複数箇所への掲載、索引ファイルを指す `[[indexes/concepts]]` の扱いが決まっていない。「どの見出しでもグループ」と「分割索引はファイルごとに1グループ」だけでは一意に実装できない。[計画 L51](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:51)。
+
+- **【軽微】`raw` の相対パスと URL に対する `link` の意味が不明。**  
+  `relative`、`url` を認める一方、`link` は `file:///` としか定義していない。現行 lint でさえ相対 raw の基準を3候補で扱うため、絶対化の基準は自明ではない。[計画 L57](/C:/Works/info-hive-dev/docs/plans/wiki-browse-stage1-2026-11-09.md:57)、[wiki_lint.py L206](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:206)。
+
+- **【軽微】試験を追加しても、現行 CI では実行されない。**  
+  現行 workflow は試験ファイルを個別列挙しており、`test_browse.py` は自動収集されない。OS も `ubuntu-latest` だけである。計画には workflow の変更がなく、選択肢レポートの Windows・Ubuntu 両方での起動終了試験が抜ける。[wiki-mcp.yml L34](/C:/Works/info-hive-dev/.github/workflows/wiki-mcp.yml:34)、[レポート L562](/C:/Works/info-hive-dev/docs/research/llm-wiki-browse-options.md:562)。
+
+## 検証した事実
+
+| 主張 | 結果 |
+| --- | --- |
+| 対象の wiki は `64acc43`、0.9.0 | 一致。HEAD と `plugin.json` を確認 |
+| 同梱の markdown-it-py は3.0.0 | 一致。`wiki_pages.py` は版と同梱元を検証し、commonmark・HTML無効・表有効で解析する |
+| グラフの frontmatter は日本語別名を正規化する | 一致。`canonical_meta()` を呼ぶ |
+| PyYAML 6.0.3 はグラフ抽出と同じ依存 | 一致。ただし browse ではオントロジーなしでも入口の必須依存になる |
+| 関係を `page` で分ければ欠落しない | 食い違い。現行関数のメモリ上実行で欠落を確認 |
+| 現行 PoC が要求時に Markdown を変換する | 食い違い。PoC サーバーは生成済みファイルを読む。新設計の要求時描画・再構築の証拠にはならない |
+| 新設計の競合、Windows の入れ替え、権限設定 | 確かめられず。対象は設計であり、新実装はまだない |
+
+ファイルの作成・変更・削除は行っていない。
+
+## 崩せなかった点
+
+- 記載どおりの **127.0.0.1 限定 bind と厳密な Host 確認**を破る DNS rebinding の反例は見つからなかった。
+- **デコード後の禁止要素確認と、中核が知る名前だけを返す方式**について、`..` や Windows のドライブ指定から任意ファイルを読ませる反例は見つからなかった。実装の検証は別途必要である。
+- 生成記録を出力の外に置き、静的出力の漏れ検査失敗時に公開しない方針は、旧 PoC の「漏れを検出しても成功する」問題を設計上は解消している。
+- サイズと更新時刻を維持した編集の見逃しは、計画が明示した限界であり、新たな欠陥として数えていない。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 20:31:15] 完了。session 01a1c008-ef50-7860-99e2-9d91d164035b  usage {"input_tokens": 1949452, "cached_input_tokens": 1819904, "cache_write_input_tokens": 0, "output_tokens": 11539, "reasoning_output_tokens": 4238}

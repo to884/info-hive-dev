@@ -1,0 +1,104 @@
+name: Wiki browse
+
+# wiki の閲覧（browse、info-hive-wiki の wiki_browse*.py）を、Windows と Linux の両方で確かめる。
+# - tests/wiki/test_browse_fs.py: 書き込みの守り（標準ライブラリだけ）
+# - tests/wiki/test_browse.py: 中核と静的の書き出し（関係表は PyYAML が要る）
+# - tests/wiki/test_browse_server.py: サーバーの要求の扱い、作り直し、起動、使い回し、停止
+# - tests/wiki/browse/browse.test.mjs: 静的版とサーバーを Chromium で開いて比べる（ADR-0016 の合格の条件）
+# Firefox、WebKit、Edge、Chrome での確認は、手で流す試験に残す（BROWSERS 環境変数）。
+#
+# info-hive-wiki は、シークレット WIKI_READ_TOKEN の読み取り専用のトークンで取得する（wiki-mcp.yml と同じ）。
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - info-hive-wiki
+      - tests/wiki/test_browse*.py
+      - tests/wiki/browse/**
+      - .github/workflows/wiki-browse.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wiki-browse-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browse:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: '1'
+      BROWSE_PYTHON: uv run --python 3.12 --with pyyaml==6.0.3 python
+    steps:
+      - uses: actions/checkout@v4
+      - name: info-hive-wiki の参照を調べる
+        id: wiki
+        env:
+          WIKI_READ_TOKEN: ${{ secrets.WIKI_READ_TOKEN }}
+        run: |
+          if [ -z "$WIKI_READ_TOKEN" ]; then
+            echo "::error::シークレット WIKI_READ_TOKEN がない。to884/info-hive-wiki を読める fine-grained PAT を置く"
+            exit 1
+          fi
+          echo "sha=$(git ls-tree HEAD info-hive-wiki | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+      - id: checkout-wiki
+        uses: actions/checkout@v4
+        with:
+          repository: to884/info-hive-wiki
+          ref: ${{ steps.wiki.outputs.sha }}
+          path: info-hive-wiki
+          token: ${{ secrets.WIKI_READ_TOKEN }}
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 環境を記録する
+        run: |
+          uname -a
+          uv --version
+          node --version
+          uv run --python 3.12 python -c "import platform, sys; print(platform.platform(), platform.machine(), sys.version)"
+      # 前の試験が失敗しても続けて動かす。wiki を取得できなかったときは動かさない。
+      - name: 書き込みの守りの試験（標準ライブラリだけ）
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 python -X utf8 -B -m unittest tests/wiki/test_browse_fs.py -v
+      - name: 中核と静的の書き出しの試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_browse.py -v
+      - name: サーバーの試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_browse_server.py -v
+      - name: Playwright を入れる
+        id: playwright
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        working-directory: tests/wiki/browse
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: ブラウザの試験（静的版とサーバー、Chromium）
+        if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
+        working-directory: tests/wiki/browse
+        env:
+          OUT: ${{ runner.temp }}/browse-results.json
+        run: node browse.test.mjs
+      - name: 起動の速さ（1,000 ページの合成 Wiki）
+        if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
+        working-directory: tests/wiki/browse
+        run: node startup.test.mjs
+      - name: 結果を残す
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: browse-results-${{ matrix.os }}
+          path: ${{ runner.temp }}/browse-results.json
+          if-no-files-found: ignore
