@@ -1,0 +1,83 @@
+## 判定
+
+**却下。確信度：高。** 保存済みページ数が誤る反例を再現でき、停止・再開をまたいだ進捗の正確性を満たしていない。同じ作業領域への二重起動も排除されていない。
+
+## 致命的・重大な欠陥
+
+1. **重大：文書が途中で失敗すると、その文書の保存済みページが進捗から消える。**
+
+   反例：最初の3ページのOCR・保存に成功し、4ページ目でタイムアウトする。失敗処理は文書を `failed` にしたあと、`partial` から無条件に削除する。集計対象は `completed` と `partial` だけなので、3ファイルが残っていても `saved` は3から0になる。通常の再開では `failed` を走査しないため、過少集計が続く。
+
+   対象コードの `progress()` と `drain()` をメモリ上のSQLiteで実行し、**集計値が3→0になることを再現した**。また、再開時に `--limit` を指定すると、今回の対象外となった未完了文書の保存済みページも数えられない。
+
+   根拠：[product_ocr.py:330–350](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:330)、[失敗後の削除処理:429–434](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:429)。
+
+2. **重大：ページ保存前のOCR応答を「保存済み」として数える。**
+
+   `recognize()` のラッパーは、OCR応答を受け取った直後にイベントを送る。製品が `page-*.json` を保存するのは、その関数から戻ったあとである。
+
+   反例：イベント送信後、ページJSONの確定前にSTOPでワーカーを終了する。親はイベント分を `partial` に加算したまま最終進捗を書くため、存在しないページを保存済みと報告する。再開すると実ファイルから数え直され、値が減る。JSON保存そのものが失敗した場合にも、保存前の加算が発生する。
+
+   対象の集計関数をメモリ上で実行し、**保存ファイル0件に対して `saved=1` になることを再現した**。
+
+   根拠：[product_ocr.py:233–239](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:233)、[イベント加算:393–406](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:393)、[停止時の集計:438–460](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:438)、製品側の [rag_pdf.py:108–111](C:/Works/info-hive-dev/info-hive-rag/scripts/rag_pdf.py:108)。
+
+3. **重大：二重起動の確認とPID作成が排他的でなく、台帳と並列数の管理が崩れる。**
+
+   再現手順：初期化済みで停止中の同じ `workspace` に対し、2つの端末から同時に `start` する。両方がPID不存在の確認を通過すると、どちらも `run` を起動できる。`run` 自体にも所有権を取得する処理がない。
+
+   後発の `run` は、先発が処理中の行まで `running→pending` に戻す。さらに、先発が次の文書を `running` にしたあとで後発が対象一覧を取得すると、その文書を避けて別の文書を処理でき、全体の3並列という制限も失われる。PIDと進捗は互いに上書きし、一方の終了処理が、他方の稼働中にPIDファイルを削除する。
+
+   文書ロックが守るのは個々の抽出ファイルであり、台帳・進捗・ランナー数ではない。この指摘はコード上の実行順序によるもので、稼働中の実データへの二重起動試験は行っていない。
+
+   根拠：[起動確認:498–519](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:498)、[PID上書きと状態リセット:318–331](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:318)、[PID削除:467](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:467)。
+
+## 崩れる前提
+
+- **同じ作業領域のランナーは常に1つ。** 同時起動、または `run` の直接実行で崩れる。
+- **OCR応答の受信はページ保存の完了と同じ。** 応答後の停止、保存エラー、イベント転送の遅延で崩れる。
+- **保存済みページは、完了文書か今回の処理対象にだけ存在する。** 途中失敗した文書や、`--limit` の対象外となった未完了文書で崩れる。
+- **同じ `data_dir` なら将来も再利用できる。** 製品側の `ocr_mode`、`ocr_dpi`、`OCR_REVISION`、`EXTRACT_REVISION` が変われば別の鍵になる。同じ `data_dir` だけでは再利用条件を満たさない。
+- **親プロセスの強制終了試験で、電源断への耐久性も確認できる。** ページJSONとMarkdownの保存処理には明示的な `fsync` がなく、電源断後の耐久性は未確認。実際に破損するという主張は推測であり、通常のOS再起動での破損を確認したわけではない。
+
+## 見落としと軽微な問題
+
+- **軽微：再開しなくても `checkpoint_product_ocr.py verify` が成功する。**  
+  スナップショット取得時にはワーカーが動いている。取得後から `owner.kill()` までにページが増えると、再起動せずに `verify` しても「既存ページ不変・ページ数増加」の条件を満たす。対象の検証分岐をメモリ上で実行し、再開していない状態でも成功して `resumed=true` を記録する反例を再現した。  
+  根拠：[checkpoint_product_ocr.py:43–46](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/checkpoint_product_ocr.py:43)、[判定処理:55–66](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/checkpoint_product_ocr.py:55)。
+
+- **軽微：チェックポイント試験は、新規ページの妥当性と `document.md` を検査しない。**  
+  新規ファイルは件数にしか使わず、JSONとして読めるかも確認しない。既存ページのハッシュ・更新日時が保たれたことから、抽出全体や製品取り込みの成功までは判断できない。  
+  根拠：[checkpoint_product_ocr.py:24–30](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/checkpoint_product_ocr.py:24)、同55–66行。
+
+- **軽微：記録文書の参照先と検証記録が未完成。**  
+  5行目で案内する `rag-full-ocr-v050-2026-11-09/` は、このworktreeには存在しない。「止めても再開できること」「進み具合」もコメントだけである。  
+  根拠：[調査文書:5](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/docs/research/rag-full-ocr-v050-2026-11-09.md:5)、同69–71行、109–111行。
+
+## 検証した事実
+
+| 主張 | 結果 |
+|---|---|
+| 対象は914件、内容で重複排除すると905文書。OCR見積もりは22,335ページ | **一致。** 元の `corpus.sqlite` を読み取り専用で照合した |
+| 固定コミットは `0ca80c7`、製品版は0.5.0 | **一致。** 親のgitlinkと製品の `plugin.json` を確認した |
+| 抽出の鍵と配置はADR-0014に従う | **一致。** 製品の `Config.extraction_dir()` を使用している |
+| `document.md` は製品と同じ内容になる | **一致。** 完了済み5文書、計1,570ページで、ページJSONから組み立てた本文と実ファイルが一致した |
+| 保存済みページはOCR・ネイティブ抽出をせず再利用される | **一致。** 製品の抽出関数に実在する308ページを読ませ、PDFページへのアクセスとOCR起動を禁止した試験が成功した |
+| 文書ロックは製品と同じ | **一致。** 両方とも `extracted/<SHA-256>.lock` を取得する |
+| 原本PDFを移動・複製・書き換えしない | **一致。** 原本は `read_pdf()` で読み、OCR画像は抽出キャッシュ内に生成する |
+| PoC保存分は233ページ、7文書、うち198ページに文字、35ページは空 | **一致。** PoC台帳を照合した。14ページ一致の比較記録も存在する |
+| PoCの3ファイルのハッシュは製品版と異なる | **一致。** 記録値と固定版を照合した。対象3ファイルの履歴も初回コミットから0.5.0まで変更なしだった |
+| 強制終了前の1,504ページが不変 | **一致。** 保存済みスナップショットと現在のハッシュ・更新日時を再照合し、差分0件。ただし、これは今回の再開操作の実行証明ではない |
+| CPUは常に3並列・2スレッド、優先度は通常以下 | **一部のみ確認。** 既定値と設定処理は一致。二重起動時の全体上限はない。実プロセスの優先度とCPU使用量は測定できなかった |
+
+リポジトリ、原本、稼働中の処理は変更していない。メモリ上の試験は、制御分岐と集計の反例確認であり、製品取り込み全体の実行試験ではない。
+
+## 崩せなかった点
+
+- 抽出の鍵、ページJSON、Markdown本文について、製品が再利用を拒む形式上の差異は見つからなかった。
+- 通常のプロセス強制終了では、製品が一時ファイルを書き終えてから置換するため、書きかけの内容を確定済みページとして公開する経路は見つからなかった。
+- 再開時の残骸削除は文書ロック内で行い、確定済みの `page-*.json` は削除しない。
+- 原本PDFへの書き込み・永続的な複製の経路は見つからなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

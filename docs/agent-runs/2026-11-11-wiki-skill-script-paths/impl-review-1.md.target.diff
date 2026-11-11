@@ -1,0 +1,484 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index 6786fad..7e654a2 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "wiki",
+-  "version": "0.9.2",
++  "version": "0.9.3",
+   "description": "日本語による Markdown の wiki を構築し、ローカルのハイブリッド検索、出典つきの回答、グラフ、タスクの経験からのスキル改善を提供する。praneybehl/llm-wiki-plugin v4.0.1 の日本語向け移植版。",
+   "author": {
+     "name": "to884"
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 2c6b98f..2185033 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,16 @@
+ 
+ ## [Unreleased]
+ 
++## [0.9.3] - 2026-11-11
++
++### Fixed
++
++- スキルの `SKILL.md` と `references/*.md` のコマンドの例で、スクリプトのパスの書き方がそろっていなかった。`scripts/wiki_lint.py`（スキルのディレクトリから見たパス）、`skills/info-hive/scripts/setup_wiki.py`（プラグインから見たパス）、`${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/...`、`<プラグインのパス>/skills/info-hive/scripts/...`、`wiki_mcp_launch.py`（名前だけ）が混ざっていて、wiki を使う側のプロジェクトのルートで実行すると、多くは見つからなかった。
++  - 0.9.1 のひな形と同じく、実行するスクリプトはすべて `"<skill-root>/scripts/<名前>.py"` と書くようにした。`SKILL.md` に「スクリプトのパス」の節を足し、`<skill-root>` はこのスキルのディレクトリ（Claude Code では、スキルを読み込んだときに示されるベースディレクトリ）の実際のパスに置き換えると書いた。コマンドのある各リファレンスには、その節を指す 1 行を足した。`references/graph-workflow.md` の、`${CLAUDE_PLUGIN_ROOT}` で呼ぶという説明は書き換えた。
++  - `${CLAUDE_PLUGIN_ROOT}` を使わないのは、リファレンスは普通のファイルとして読まれ、スキルはこの変数を持たないホストでも使われるからである。プラグインのコマンド（`commands/*.md`）は今までどおり `${CLAUDE_PLUGIN_ROOT}` を使う。
++  - 文の中で `scripts/wiki_pages.py` のようにスキルの中のファイルを指す書き方は、スキルのディレクトリから見たパスとして残した。
++  - `references/evolution-workflow.md` の JSON の `argv` の例は、`/absolute/skill/scripts/...` を `<skill-root>/scripts/...` にし、シェルを通さないので絶対パスに置き換えると書いた。`references/decision-models.md` の `eval/decisions/run_eval.py` は、プラグインのリポジトリのルートで実行すると書いた。
++
+ ## [0.9.2] - 2026-11-11
+ 
+ ### Fixed
+diff --git a/skills/info-hive/SKILL.md b/skills/info-hive/SKILL.md
+index 1211f64..8df8986 100644
+--- a/skills/info-hive/SKILL.md
++++ b/skills/info-hive/SKILL.md
+@@ -38,6 +38,14 @@ wiki には3つの層と3つの操作がある。スキルの残りの部分は
+ 
+ これらの操作の正式な説明は `references/architecture.md` にある。手順の詳細は、必要に応じて `references/ingest-workflow.md`、`references/query-workflow.md`、`references/lint-workflow.md` を読む。
+ 
++## スクリプトのパス
++
++このスキルの文書は、実行するスクリプトを `"<skill-root>/scripts/<名前>.py"` と書く。`<skill-root>` は、このスキルのディレクトリ（この `SKILL.md` のあるディレクトリ）の実際のパスに置き換える。Claude Code では、スキルを読み込んだときに示されるスキルのベースディレクトリがそれにあたる。コマンドは wiki を使う側のプロジェクトのルートなどで実行するので、スキルのディレクトリから見た `scripts/...` のままでは見つからない。パスに空白があっても引数が分かれないよう、スクリプトのパスは `"` で囲む。
++
++`${CLAUDE_PLUGIN_ROOT}` を使わないのは、リファレンスのファイルは普通のファイルとして読まれ、このスキルはこの変数を持たないホストでも使われるからである。プラグインのコマンド（`commands/*.md`）だけは `${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/...` で呼ぶ。
++
++文の中で `scripts/wiki_pages.py` や `references/ingest-workflow.md` のように書いたファイルは、このスキルの中のファイルで、スキルのディレクトリから見たパスである。
++
+ ## グラフ層（コンパイルで生成する任意の層）
+ 
+ ページの frontmatter には、型付きの `graph:` メタデータを書ける。付属の抽出スクリプトが、すべてのページを `wiki/graph/` の `nodes.jsonl`、`edges.jsonl`、`graph.sqlite`、`graph.graphml` にコンパイルする。**正本は Markdown である。**グラフは作り直せるインデックスにすぎない。`graph:` のないページも、`type` と `kind` から導いたノードとして現れ、本文の wikilink から確信度の低い `mentions` エッジを生む。型付きの意味的なエッジ（`founded`、`proposed`、`depends_on` など）には、明示的なソースと証拠となる引用が必要である。学習データから推測したエッジを書いてはならない。
+@@ -45,9 +53,9 @@ wiki には3つの層と3つの操作がある。スキルの残りの部分は
+ グラフ層の規約（述語の語彙、ノード ID の形式、必須のフィールド）は `wiki/graph/ontology.yaml` にある。有効化、更新、検査、問い合わせ、作り直しの手順の正本は `references/graph-workflow.md` である。ページを作るか書き換えたら、型付きの関係に触れていなくても extract を実行する。
+ 
+ ```bash
+-uv run --script scripts/wiki_graph_lint.py wiki/      # オントロジー、証拠、エイリアスの衝突をチェックする
+-uv run --script scripts/wiki_graph_extract.py wiki/   # nodes.jsonl、edges.jsonl、graph.sqlite、graph.graphml を作り直す
+-python scripts/wiki_graph_query.py wiki/ neighbors --node product:konvy
++uv run --script "<skill-root>/scripts/wiki_graph_lint.py" wiki/      # オントロジー、証拠、エイリアスの衝突をチェックする
++uv run --script "<skill-root>/scripts/wiki_graph_extract.py" wiki/   # nodes.jsonl、edges.jsonl、graph.sqlite、graph.graphml を作り直す
++python "<skill-root>/scripts/wiki_graph_query.py" wiki/ neighbors --node product:konvy
+ ```
+ 
+ 問い合わせと lint は、MCP のツール `graph` と `lint` が使えればそちらで行う（「MCP のツールと CLI の使い分け」）。上のコマンドは CLI の形である。extract はいつも CLI で実行する。
+@@ -102,11 +110,11 @@ LLM Wiki のパターンでもっとも大きな失敗は、wiki そのものが
+ 
+ **書き直さず、必要な箇所だけを編集する。** ページを更新するとき（新しく取り込んだソースが既存のエンティティに触れているので相互参照を追加する、など）は、`str_replace` で関係するセクションだけを変更する。ページ全体を書き直すと、遅く、トークンを多く使い、以前の細かいニュアンスを失うおそれがある。
+ 
+-**被リンクはスクリプトで探す。** あるページを参照しているページをすべて見つけるときは、ページを読んで言及を探さず、`python scripts/wiki_search.py "" --wiki wiki/ --backlinks <slug>` を実行する（MCP のツールにはこの機能がない）。このスクリプトは、`[[slug]]`、`[[dir/slug]]`、`[[slug|表示名]]` のどの書き方も、NFC にそろえてから解決する。手作業で探すなら `grep -rl "\[\[消費税" wiki/` のようにするが、表示名や見出しの付いたリンクと、macOS の NFD のファイル名は取りこぼすことがある。
++**被リンクはスクリプトで探す。** あるページを参照しているページをすべて見つけるときは、ページを読んで言及を探さず、`python "<skill-root>/scripts/wiki_search.py" "" --wiki wiki/ --backlinks <slug>` を実行する（MCP のツールにはこの機能がない）。このスクリプトは、`[[slug]]`、`[[dir/slug]]`、`[[slug|表示名]]` のどの書き方も、NFC にそろえてから解決する。手作業で探すなら `grep -rl "\[\[消費税" wiki/` のようにするが、表示名や見出しの付いたリンクと、macOS の NFD のファイル名は取りこぼすことがある。
+ 
+ **ソースは分割して取り込む。** 大きい raw ソース（長い PDF、書籍の章、長い文字起こし）は、取り込みのときに全体を一度に読み込まず、分割して読む。取り込みのワークフローがこれを扱う。`references/ingest-workflow.md` を参照。
+ 
+-**大きい wiki には検索を使う。** wiki が約 300 ページを超えると、あいまいなクエリでは、インデックスを引くだけでは適切なページが見つからないことがある。検索は、まず MCP のツール `query` で行う（「MCP のツールと CLI の使い分け」）。埋め込みは cl-nagoya/ruri-v3-130m、ベクトル索引は usearch、語彙検索は Tantivy で、索引は wiki の外に置く。戻り道の `scripts/wiki_search.py` を使うと、セクション単位のハイブリッド検索を、任意の frontmatter のフィルターと、構造化された `--json` の証拠の行つきで実行できる。既定の経路では、ローカルで多言語の埋め込みモデル `intfloat/multilingual-e5-small`（約 0.25 GB）を FastEmbed で実行し、生成したベクトルを sqlite-vec で `wiki/.wiki-cache/embeddings.sqlite` に保存し、セマンティック検索と BM25 の順位を RRF で統合する。BM25 も日本語に対応している。かなと漢字は2文字ずつ重ねて切り出し、漢字は1文字単位でも索引に入れるので、「税」のような1文字のクエリも「消費税」を含むページに当たる。日本語のクエリは、分かち書きせずにそのまま渡せばよい。初期化とアップグレードでは、`uv` を通じて `scripts/setup_wiki.py` を実行し、バージョンを固定した FastEmbed、sqlite-vec、PyYAML をインストールし、モデルをキャッシュし、すべてのセクションを同期してから、セットアップの完了を報告する。wiki やクエリのテキストがマシンの外に出ることはない。依存パッケージを使わない BM25 にするには、`python scripts/wiki_search.py "クエリ" --no-embed` で PEP 723 による依存解決を通さずに実行する。モデルの選び方とトークン化の詳細は、リポジトリの `docs/search.md` にある。
++**大きい wiki には検索を使う。** wiki が約 300 ページを超えると、あいまいなクエリでは、インデックスを引くだけでは適切なページが見つからないことがある。検索は、まず MCP のツール `query` で行う（「MCP のツールと CLI の使い分け」）。埋め込みは cl-nagoya/ruri-v3-130m、ベクトル索引は usearch、語彙検索は Tantivy で、索引は wiki の外に置く。戻り道の `scripts/wiki_search.py` を使うと、セクション単位のハイブリッド検索を、任意の frontmatter のフィルターと、構造化された `--json` の証拠の行つきで実行できる。既定の経路では、ローカルで多言語の埋め込みモデル `intfloat/multilingual-e5-small`（約 0.25 GB）を FastEmbed で実行し、生成したベクトルを sqlite-vec で `wiki/.wiki-cache/embeddings.sqlite` に保存し、セマンティック検索と BM25 の順位を RRF で統合する。BM25 も日本語に対応している。かなと漢字は2文字ずつ重ねて切り出し、漢字は1文字単位でも索引に入れるので、「税」のような1文字のクエリも「消費税」を含むページに当たる。日本語のクエリは、分かち書きせずにそのまま渡せばよい。初期化とアップグレードでは、`uv` を通じて `scripts/setup_wiki.py` を実行し、バージョンを固定した FastEmbed、sqlite-vec、PyYAML をインストールし、モデルをキャッシュし、すべてのセクションを同期してから、セットアップの完了を報告する。wiki やクエリのテキストがマシンの外に出ることはない。依存パッケージを使わない BM25 にするには、`python "<skill-root>/scripts/wiki_search.py" "クエリ" --no-embed` で PEP 723 による依存解決を通さずに実行する。モデルの選び方とトークン化の詳細は、リポジトリの `docs/search.md` にある。
+ 
+ 閾値と移行の手順を含むスケーリングの詳しい手引きは、`references/scaling-playbook.md` を読む。
+ 
+@@ -138,10 +146,10 @@ wiki のプラグインは、ローカルの MCP サーバー（`wiki`）を持
+ 
+ ```bash
+ # プロジェクトの wiki: <project-root>/wiki と <project-root>/raw
+-python scripts/init_wiki.py <project-root> [--wiki-dir wiki] [--raw-dir raw]
++python "<skill-root>/scripts/init_wiki.py" <project-root> [--wiki-dir wiki] [--raw-dir raw]
+ 
+ # ユーザースコープの wiki: ~/info-hive/wiki、raw ソースは ~/info-hive/raw
+-python scripts/init_wiki.py <home-directory>/info-hive
++python "<skill-root>/scripts/init_wiki.py" <home-directory>/info-hive
+ ```
+ 
+ このスクリプトは、ディレクトリ構造を作り、`SCHEMA.md`、`index.md`、`log.md` のテンプレートを置き、そのあと必須のローカル実行環境のセットアップを行う。セットアップでは、`uv` を通じてバージョンを固定した依存パッケージをインストールし、`intfloat/multilingual-e5-small` がなければダウンロードし、パースキャッシュを作り、現在のすべてのセクションのベクトルを作る。セットアップが `"status": "ready"` を出力しない限り、初期化やアップグレードが完了したものとして扱ってはならない。
+@@ -158,11 +166,11 @@ PDF を取り込み、`rag` MCP サーバーが使える場合は、先に `refe
+ 
+ ## クエリのワークフロー（概要）
+ 
+-詳しい内容は `references/query-workflow.md` にある。wiki をもとにクエリに答えるには、最初に `index.md`（または該当する分割済みのファイル）を読み、1行の要約から候補のページを見つけ、そのページ（と、そこに挙がっている被リンクのうち関係がありそうなもの）を読み、使ったページへの `[[wikilink]]` を出典として付けて回答をまとめる。今後のクエリで役立つように、まとめた回答を `synthesis/` に保存することを提案する。インデックスから適切な候補が見つからない場合は、MCP のツール `query` に `wiki=<wiki の絶対パス>` と検索語を渡して、ローカルのハイブリッド検索で順位付けした結果を得る。ツールが使えないときは、`uv run --script <skill-root>/scripts/wiki_search.py "検索語" --wiki <absolute-wiki-root> --json` を実行する。依存パッケージを使わない語彙ベースの BM25 にしたいときだけ、`python` で直接実行して `--no-embed` を付ける。インストールしたスキルのパスと、対象の wiki のパスは明示する。wiki にその話題の内容が足りないようなら、話をでっち上げず、そうはっきり伝え、取り込むべき候補として挙げる。
++詳しい内容は `references/query-workflow.md` にある。wiki をもとにクエリに答えるには、最初に `index.md`（または該当する分割済みのファイル）を読み、1行の要約から候補のページを見つけ、そのページ（と、そこに挙がっている被リンクのうち関係がありそうなもの）を読み、使ったページへの `[[wikilink]]` を出典として付けて回答をまとめる。今後のクエリで役立つように、まとめた回答を `synthesis/` に保存することを提案する。インデックスから適切な候補が見つからない場合は、MCP のツール `query` に `wiki=<wiki の絶対パス>` と検索語を渡して、ローカルのハイブリッド検索で順位付けした結果を得る。ツールが使えないときは、`uv run --script "<skill-root>/scripts/wiki_search.py" "検索語" --wiki <absolute-wiki-root> --json` を実行する。依存パッケージを使わない語彙ベースの BM25 にしたいときだけ、`python` で直接実行して `--no-embed` を付ける。インストールしたスキルのパスと、対象の wiki のパスは明示する。wiki にその話題の内容が足りないようなら、話をでっち上げず、そうはっきり伝え、取り込むべき候補として挙げる。
+ 
+ ## lint のワークフロー（概要）
+ 
+-詳しい内容は `references/lint-workflow.md` にある。lint は、操作のたびではなく、一定の頻度（N 回の取り込みごと、または週1回）で行うのがよい。MCP のツール `lint`（使えなければ `python scripts/wiki_lint.py`）は、構造上の問題を自動で見つける。孤立ページ、リンク切れの `[[wikilinks]]`、大きすぎるページ（文字数か行数で判定する）、frontmatter の欠落や形式の誤り（全角の「：」、「、」で区切ったリスト、`YYYY-MM-DD` でない日付など）、`updated` の日付が古いページである。`--suggest-pages` を付けると、多くのページに出てくるのに専用のページがない語（3文字以上のカタカナ語や漢字の複合語、大文字で始まる英語の句）も挙げる。そのあと、LLM が必要な内容面のチェックを行う。最近更新されたページを読んで古い主張との矛盾を探し、言及されているのに専用のページがないコンセプトを洗い出し、Web 検索や新しいソースで補うとよい不足をユーザーに提案する。lint の検出結果は、すでに済ませたこととしてではなく、ユーザーが承認する編集案として必ず示す。wiki はユーザーのものであり、黙って書き換えると信頼が損なわれる。
++詳しい内容は `references/lint-workflow.md` にある。lint は、操作のたびではなく、一定の頻度（N 回の取り込みごと、または週1回）で行うのがよい。MCP のツール `lint`（使えなければ `python "<skill-root>/scripts/wiki_lint.py"`）は、構造上の問題を自動で見つける。孤立ページ、リンク切れの `[[wikilinks]]`、大きすぎるページ（文字数か行数で判定する）、frontmatter の欠落や形式の誤り（全角の「：」、「、」で区切ったリスト、`YYYY-MM-DD` でない日付など）、`updated` の日付が古いページである。`--suggest-pages` を付けると、多くのページに出てくるのに専用のページがない語（3文字以上のカタカナ語や漢字の複合語、大文字で始まる英語の句）も挙げる。そのあと、LLM が必要な内容面のチェックを行う。最近更新されたページを読んで古い主張との矛盾を探し、言及されているのに専用のページがないコンセプトを洗い出し、Web 検索や新しいソースで補うとよい不足をユーザーに提案する。lint の検出結果は、すでに済ませたこととしてではなく、ユーザーが承認する編集案として必ず示す。wiki はユーザーのものであり、黙って書き換えると信頼が損なわれる。
+ 
+ ## 防ぐべき失敗
+ 
+diff --git a/skills/info-hive/references/decision-models.md b/skills/info-hive/references/decision-models.md
+index 7ca0328..ce42d4f 100644
+--- a/skills/info-hive/references/decision-models.md
++++ b/skills/info-hive/references/decision-models.md
+@@ -2,6 +2,8 @@
+ 
+ 判定モデルは、選択肢が決まった質問に答える小さなモデルである。たとえば「このセクションはクエリへの回答に役立つか？ A か B」「このエッジを裏づける文はどれか？ s1、s2、どれでもない」といった質問である。選択肢はコードが用意し、モデルはその中から1つを選んで確信度を返す。
+ 
++コマンドの `<skill-root>` は、このスキルのディレクトリ（`SKILL.md` のあるディレクトリ）の実際のパスに置き換える。書き方は `SKILL.md` の「スクリプトのパス」にある。
++
+ 判定レイヤーは既定では無効で、なくても wiki は同じように動く。ユーザーが求めた場合にだけ有効にする。
+ 
+ 判定モデルに渡す質問文（`assets/decision-questions.json`）は英語のままで、日本語の wiki でどれだけ正しく判定できるかはまだ確かめていない（移植計画の方針 H）。評価用のフィクスチャも英語だけである。日本語の wiki で有効にすると、関係のある結果を誤って捨てるおそれがある。
+@@ -63,17 +65,17 @@
+ export INFO_HIVE_DECISIONS=local          # off | local | typesafe | openrouter | liquid
+ export INFO_HIVE_DECISIONS_URL=http://127.0.0.1:8080   # 任意。ベース URL
+ export INFO_HIVE_DECISIONS_MODEL=d1-2B                 # 任意。モデルを上書きする
+-python scripts/wiki_decide.py check                   # バックエンドを試す
++python "<skill-root>/scripts/wiki_decide.py" check                   # バックエンドを試す
+ ```
+ 
+ チェックは次のように使う。
+ 
+ ```bash
+-uv run --script scripts/wiki_search.py "軽減税率の対象" --json --decide [--decide-pool 20] [--decide-threshold 0.65]
+-uv run --script scripts/wiki_graph_lint.py wiki/ --decide [--decide-threshold 0.55]
+-python scripts/wiki_decide.py contradictions --wiki wiki/ [--max-pairs 40]
+-python scripts/wiki_decide.py shortlist raw/<source-file> --wiki wiki/ [--top 30]
+-python scripts/wiki_decide.py screen <file>
++uv run --script "<skill-root>/scripts/wiki_search.py" "軽減税率の対象" --json --decide [--decide-pool 20] [--decide-threshold 0.65]
++uv run --script "<skill-root>/scripts/wiki_graph_lint.py" wiki/ --decide [--decide-threshold 0.55]
++python "<skill-root>/scripts/wiki_decide.py" contradictions --wiki wiki/ [--max-pairs 40]
++python "<skill-root>/scripts/wiki_decide.py" shortlist raw/<source-file> --wiki wiki/ [--top 30]
++python "<skill-root>/scripts/wiki_decide.py" screen <file>
+ ```
+ 
+ `wiki_decide.py` のグローバルなフラグは、`--backend`、`--model`、`--url`、`--timeout` である。閾値のフラグは、各サブコマンドの `--help` で確かめる。`--decide` を付けると、検索の JSON にトップレベルの `decision` ブロックと、各行の `decision` フィールドが加わる。`--decide` を付けなければ、出力は変わらない。
+@@ -82,6 +84,8 @@ python scripts/wiki_decide.py screen <file>
+ 
+ 評価には、合成したフィクスチャだけを使う。評価のために、非公開の wiki のテキストを外部のバックエンドに送ってはならない。
+ 
++次のコマンドは、プラグインのリポジトリ（info-hive-wiki）のルートで実行する。`eval/` はスキルではなくリポジトリにある。
++
+ ```bash
+ python eval/decisions/run_eval.py --backend fake            # ネットワークを使わない
+ python eval/decisions/run_eval.py --backend local --out results.json
+diff --git a/skills/info-hive/references/evolution-workflow.md b/skills/info-hive/references/evolution-workflow.md
+index 9a22d39..719f605 100644
+--- a/skills/info-hive/references/evolution-workflow.md
++++ b/skills/info-hive/references/evolution-workflow.md
+@@ -2,6 +2,8 @@
+ 
+ 任意で使える改善ループは、観測できるタスクの結果から学び、wiki にパターンとしてまとめ、1つのスキル全体に対する変更を提案し、検証の結果で改善を選ぶ。独立した最終テストを実行する前に、選んだスキルを固定する。インストール済みのスキルが変わるのは、ユーザーが得られた改善案を適用したときだけである。
+ 
++コマンドの `<skill-root>` は、このスキルのディレクトリ（`SKILL.md` のあるディレクトリ）の実際のパスに置き換える。書き方は `SKILL.md` の「スクリプトのパス」にある。
++
+ ## 研究上の根拠と取り入れ方
+ 
+ 改善の仕組みは、Liyan Tang らによる [WikiSkill: Compiling Agent Experience into Persistent Knowledge for Skill Evolution](https://arxiv.org/html/2608.27454v1)（Google Research と Virginia Tech、2026 年）をもとにしている。論文の[手法](https://arxiv.org/html/2608.27454v1#S3)と LLM Wiki の実装は、次のように対応する。
+@@ -41,7 +43,7 @@ flowchart LR
+ プラグインのリポジトリから `eval/evolution/pilot/config.example.json` をコピーし、アダプターのパスと正確なモデル ID を書き換える。ロールごとに専用のランナーとモデルを設定する。推論（inference）はタスクを実行し、メンテナー（maintainer）は経験を統合し、プロポーザー（proposer）はスキルを変更し、ジャッジ（judge）は回答を検証する。推論を始める前に、承認済みの実行予算を設定する。
+ 
+ ```bash
+-python <skill-root>/scripts/wiki_evolve_loop.py \
++python "<skill-root>/scripts/wiki_evolve_loop.py" \
+   --wiki /path/to/learning-wiki --raw /path/to/raw \
+   --id query-cycle-01 --skill /path/to/working-skill \
+   --suite /path/to/suite-v2.json --config /path/to/config.json
+@@ -54,9 +56,9 @@ python <skill-root>/scripts/wiki_evolve_loop.py \
+ 実行が成功し、改善が選ばれると、`<run-id>-selected` ができる。これは既存のレビュー用・適用用のコマンドでそのまま扱える。
+ 
+ ```bash
+-python <skill-root>/scripts/wiki_evolve.py --wiki /path/to/learning-wiki show query-cycle-01-selected
+-python <skill-root>/scripts/wiki_evolve.py --wiki /path/to/learning-wiki apply query-cycle-01-selected
+-python <skill-root>/scripts/wiki_evolve.py --wiki /path/to/learning-wiki rollback query-cycle-01-selected
++python "<skill-root>/scripts/wiki_evolve.py" --wiki /path/to/learning-wiki show query-cycle-01-selected
++python "<skill-root>/scripts/wiki_evolve.py" --wiki /path/to/learning-wiki apply query-cycle-01-selected
++python "<skill-root>/scripts/wiki_evolve.py" --wiki /path/to/learning-wiki rollback query-cycle-01-selected
+ ```
+ 
+ `wiki_evolve.py history` と `show <run-id>` では、ループ全体の実行と、そこで残した判断も確認できる。実行が完了しても、変更が選ばれないことはある。実行時の失敗や予算切れでは、適用できる改善案は作られない。中断した実行は証拠を残すが、評価の入力をいったん見せたあとは、同じ ID で再開できない。
+@@ -84,9 +86,11 @@ python <skill-root>/scripts/wiki_evolve.py --wiki /path/to/learning-wiki rollbac
+ 共通のアダプターは、`claude`、`codex`、`cursor`、`gemini`、`opencode`、`pi`、`omp`、`hermes`、`openclaw` に対応している。どのアダプターも、4つのロールの仕様を扱う。先に対応するホストをインストールして認証しておく。プロトコルのテストは、実際のアカウントでの確認の代わりにはならない。
+ 
+ ```json
+-{"argv":["python3","/absolute/skill/scripts/wiki_evolve_agent.py","codex"],"model":"EXACT_MODEL_ID"}
++{"argv":["python3","<skill-root>/scripts/wiki_evolve_agent.py","codex"],"model":"EXACT_MODEL_ID"}
+ ```
+ 
++`argv` はシェルを通さずにそのまま実行するので、`<skill-root>` は絶対パスに置き換える。
++
+ | アダプター | 実行方法とモデルの選択 | 使用量の記録 |
+ | --- | --- | --- |
+ | Claude Code | `claude` のストリーム JSON と、ネイティブの構造化出力 | 報告されたトークン数と USD |
+@@ -109,7 +113,7 @@ Hermes のランナーでは、`"options":{"home":"/absolute/hermes-eval-profile
+ リクエストの前に金額の上限を守るには、**すべてのロールと転用のランナー**で、同梱の API ランナーを使うよう設定する。
+ 
+ ```json
+-{"argv":["python3","/absolute/skill/scripts/wiki_evolve_api.py"],"model":"claude-sonnet-5"}
++{"argv":["python3","<skill-root>/scripts/wiki_evolve_api.py"],"model":"claude-sonnet-5"}
+ ```
+ 
+ `budget.max_usd` を設定し、環境変数 `ANTHROPIC_API_KEY` を用意する。ランナーは Messages API へのリクエストのたびに、その前に、ドキュメントに記載された入力コンテキストの上限と最大出力の合計を、レビュー済みのファーストパーティの価格で予約する。予約できないリクエストは送らない。応答が返ってきたら、実際の使用量で精算する。応答がなかった場合は予約を残したまま、再試行せずに試験を中止する。十進数で計算するので、浮動小数点の誤差が積み重なって上限を超えることはない。予約は保守的に見積もるので、実際のリクエストのコストがずっと小さそうでも、Sonnet 5 では残額が少なくとも $2.08192 必要になる。
+@@ -136,8 +140,8 @@ Hermes のランナーでは、`"options":{"home":"/absolute/hermes-eval-profile
+ 完了した実行は、持ち運べる1つのバンドルとしてエクスポートできる。
+ 
+ ```bash
+-python <skill-root>/scripts/wiki_evolve.py --wiki /path/to/wiki export query-cycle-01 --destination /path/to/new-bundle
+-python <skill-root>/scripts/wiki_evolve.py verify-bundle /path/to/new-bundle
++python "<skill-root>/scripts/wiki_evolve.py" --wiki /path/to/wiki export query-cycle-01 --destination /path/to/new-bundle
++python "<skill-root>/scripts/wiki_evolve.py" verify-bundle /path/to/new-bundle
+ ```
+ 
+ バンドルには、`skill/`、`evidence/`、すべてのファイルを対象にした SHA-256 のマニフェストが含まれる。`PURPOSE.md`、パターンとの対応、観測できる実行の記録、却下された試行、固定したソースの文脈が一緒に持ち運ばれる。後で推論の作業領域に置いてよいのは `bundle/skill` だけである。監査用のアーカイブには結果を見たテストが含まれるので、スキルの指示として注入してはならない。検証で確かめるのはマニフェストであり、デジタル署名でも、元の観測が正しかったことの証明でもない。
+@@ -149,7 +153,7 @@ python <skill-root>/scripts/wiki_evolve.py verify-bundle /path/to/new-bundle
+ スキル全体の改善案を手動で作る場合は、候補のディレクトリを渡す。既存の1ファイルだけを対象にする場合は、引き続き `--target` を使う。
+ 
+ ```bash
+-python <skill-root>/scripts/wiki_evolve.py --wiki /path/to/wiki propose \
++python "<skill-root>/scripts/wiki_evolve.py" --wiki /path/to/wiki propose \
+   --id query-manual-01 --skill /path/to/working-skill \
+   --candidate /path/to/candidate-skill --evidence concepts/query-pattern.md \
+   --reason "検証で確かめた失敗に対処する"
+diff --git a/skills/info-hive/references/graph-workflow.md b/skills/info-hive/references/graph-workflow.md
+index 21864ba..db56929 100644
+--- a/skills/info-hive/references/graph-workflow.md
++++ b/skills/info-hive/references/graph-workflow.md
+@@ -93,12 +93,12 @@ graph:
+ 
+ 検査（lint）と問い合わせ（query）は、wiki の MCP サーバーのツール `lint` と `graph` が使えればそちらで行い、使えないときは下のスクリプトを実行する。使い分けは `SKILL.md` の「MCP のツールと CLI の使い分け」にある。更新（extract）は wiki の `graph/` に書き込むので、いつもスクリプトで実行する。
+ 
+-スクリプトのパスは、スキルのディレクトリ（`skills/info-hive/`）から見たものである。コマンドからは `${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/...` で呼ぶ。`wiki/` は実際の wiki のディレクトリに置き換える。lint は `<wiki>` を省くと、作業領域の設定（`.info-hive/workspace.json`）の `dirs.wiki`、設定がなければ `./wiki` を使う。extract と query は `<wiki>` を省けない。
++コマンドの `<skill-root>` は、このスキルのディレクトリ（`SKILL.md` のあるディレクトリ）の実際のパスに置き換える。書き方は `SKILL.md` の「スクリプトのパス」にある。`wiki/` は実際の wiki のディレクトリに置き換える。lint は `<wiki>` を省くと、作業領域の設定（`.info-hive/workspace.json`）の `dirs.wiki`、設定がなければ `./wiki` を使う。extract と query は `<wiki>` を省けない。
+ 
+ ### 検査（lint）
+ 
+ ```bash
+-uv run --script scripts/wiki_graph_lint.py wiki/ [--json] [--decide]
++uv run --script "<skill-root>/scripts/wiki_graph_lint.py" wiki/ [--json] [--decide]
+ ```
+ 
+ ツールの `lint` は、構造の lint の結果と一緒に、同じ検査の結果を `graph` に入れて返す（`state` が `checked` なら `findings`、オントロジーがなければ `disabled`、読めなければ `error`）。`--decide` が要るときはスクリプトを使う。
+@@ -110,7 +110,7 @@ lint を実行するのは、`graph.relationships[]` を足したか直したと
+ ### 更新（extract）
+ 
+ ```bash
+-uv run --script scripts/wiki_graph_extract.py wiki/ [--out <dir>] [--formats jsonl,sqlite,graphml] [--ontology <path>]
++uv run --script "<skill-root>/scripts/wiki_graph_extract.py" wiki/ [--out <dir>] [--formats jsonl,sqlite,graphml] [--ontology <path>]
+ ```
+ 
+ **グラフ層が有効な wiki で、ページを足した、消した、名前を変えた、または書き換えたときは、必ず extract を実行する。** extract が作るエッジは `graph.relationships[]` だけから来るのではない。本文の `[[wikilink]]`（`mentions`）、frontmatter の `sources:`（`sourced_from`）、ソースページの `raw:`（`summarizes_raw`）からも作り、ノードの題名、種類、タグ、別名も frontmatter から読む。そのため、型付きの関係を足さず、新しいページも作らない取り込みでも、既存のページの本文や `sources:` を直せばグラフは変わる。オントロジーの `node_types` の `maps_from` を変えたときも、ノードの種類と ID が変わるので extract を実行する。extract を飛ばしてよいのは、wiki のページもオントロジーも 1 つも変えなかったときだけである。
+@@ -134,10 +134,10 @@ Windows では、ほかのプロセスが `graph.sqlite` を開いていると
+ ### 問い合わせ（query）
+ 
+ ```bash
+-python scripts/wiki_graph_query.py wiki/ neighbors --node company:やまだ製作所
+-python scripts/wiki_graph_query.py wiki/ edges    --subject person:山田太郎 [--predicate founded]
+-python scripts/wiki_graph_query.py wiki/ path     --from person:山田太郎 --to concept:消費税 [--max-depth 6]
+-python scripts/wiki_graph_query.py wiki/ facts    --about company:やまだ製作所
++python "<skill-root>/scripts/wiki_graph_query.py" wiki/ neighbors --node company:やまだ製作所
++python "<skill-root>/scripts/wiki_graph_query.py" wiki/ edges    --subject person:山田太郎 [--predicate founded]
++python "<skill-root>/scripts/wiki_graph_query.py" wiki/ path     --from person:山田太郎 --to concept:消費税 [--max-depth 6]
++python "<skill-root>/scripts/wiki_graph_query.py" wiki/ facts    --about company:やまだ製作所
+ ```
+ 
+ `--json` は、lint と query のどちらでも使える。query は標準ライブラリだけで動くので、`python` で実行する。
+diff --git a/skills/info-hive/references/ingest-workflow.md b/skills/info-hive/references/ingest-workflow.md
+index 806c8d9..a44ba20 100644
+--- a/skills/info-hive/references/ingest-workflow.md
++++ b/skills/info-hive/references/ingest-workflow.md
+@@ -2,6 +2,8 @@
+ 
+ 新しいソースが届いたときの手順である。順序には意味がある。各手順が、次の手順のための文脈を作る。
+ 
++コマンドの `<skill-root>` は、このスキルのディレクトリ（`SKILL.md` のあるディレクトリ）の実際のパスに置き換える。書き方は `SKILL.md` の「スクリプトのパス」にある。
++
+ ## 手順 0: スキーマを確認する
+ 
+ 何よりも先に `wiki/SCHEMA.md` を読む。ユーザーが、ページの種類の構成、タグの体系、命名規則、取り込みのワークフローそのものをカスタマイズしていることがある。スキーマは、ここに書いてあるすべてより優先される。
+@@ -42,7 +44,7 @@ rag が使えない場合は、下の通常手順を使える。ただし RAG 
+ 
+ Web ページは、下の「Web ページ」の手順で `wiki_fetch.py` を使って取得し、本文の Markdown（日本語でなければ訳文）を `raw/<スラッグ>.md` に保存する。ユーザーが Obsidian Web Clipper などで保存した `.md` を渡したときは、そのまま置く。PDF は `.pdf` のままにする。文字起こしは `.md` か `.txt` で保存する。
+ 
+-テキストのソース（`.txt`、`.md`、`.csv` など）は、読む前に `python scripts/wiki_encoding.py raw/<ファイル名>` で文字コードを確かめる。日本語のテキストは、Shift_JIS（出力では `cp932`）、EUC-JP、ISO-2022-JP で書かれていることがあり、UTF-8 だと思って読むと文字化けする。`encoding` が `utf-8` か `utf-8-sig` でなければ、`--output raw/<スラッグ>.utf8.<拡張子>` を付けて UTF-8 に変換したファイルを別に書き出し、それを読む。元のファイルは書き換えずに残し、ソースの要約ページの `raw:` には元のファイルを書き、本文に変換したファイルも記す。終了コードが 2（文字コードを判定できない、またはバイナリ）なら、推測で読まずに、ユーザーに文字コードを確かめる。
++テキストのソース（`.txt`、`.md`、`.csv` など）は、読む前に `python "<skill-root>/scripts/wiki_encoding.py" raw/<ファイル名>` で文字コードを確かめる。日本語のテキストは、Shift_JIS（出力では `cp932`）、EUC-JP、ISO-2022-JP で書かれていることがあり、UTF-8 だと思って読むと文字化けする。`encoding` が `utf-8` か `utf-8-sig` でなければ、`--output raw/<スラッグ>.utf8.<拡張子>` を付けて UTF-8 に変換したファイルを別に書き出し、それを読む。元のファイルは書き換えずに残し、ソースの要約ページの `raw:` には元のファイルを書き、本文に変換したファイルも記す。終了コードが 2（文字コードを判定できない、またはバイナリ）なら、推測で読まずに、ユーザーに文字コードを確かめる。
+ 
+ ここで決めたスラッグは、`wiki/sources/` に作るソースの要約ページのスラッグになる。内容が分かり、あとで変えなくて済むものにする。
+ 
+@@ -56,7 +58,7 @@ Web ページは、下の「Web ページ」の手順で `wiki_fetch.py` を使
+ | モデル | 残った雑音の削除、言語の判定、翻訳、画像の補足、`translated_by` の記入 |
+ 
+ ```bash
+-python scripts/wiki_fetch.py "<URL>" --raw-root raw --slug "<スラッグ>" --json
++python "<skill-root>/scripts/wiki_fetch.py" "<URL>" --raw-root raw --slug "<スラッグ>" --json
+ ```
+ 
+ スクリプトは `raw/<スラッグ>.md` と、本文の画像を `raw/assets/<スラッグ>/<スラッグ>-NN.<拡張子>` に出現順で書く。原文の HTML は保存しない。32px 以下の画像、`data:` の画像、本文の外の画像は保存しない。ページが内部のアドレス（ループバック、LAN、リンクローカル）にない限り、内部のアドレスを指す画像とリダイレクトは取得しない。表の中の画像は、表のすぐ下に独立した行として置く。`ja_ratio` は、コードを除いた文章でかなと漢字が占める割合で、かなを 1 文字も含まないとき（中国語のページなど）は 0 になる。frontmatter は次の形になる。
+@@ -140,7 +142,7 @@ PDF の場合は、`pdf-reading` スキルがあればそれを使う（分割
+ 2. 関係しそうなページはそれぞれ読んで確かめる（grep ではなく読む。インデックスの要約だけでは判断を誤ることがある）。
+ 3. 更新する既存のページ、作成する新しいページ、指摘する矛盾を、作業用のメモリに一覧にする。ソースの主な主張も、成り立つ条件と原本の位置を添えて書き出しておく。手順 7b で、主張ごとの行き先を記録するときに使う。
+ 
+-ユーザーが任意の判定レイヤーを有効にしている場合は、`python scripts/wiki_decide.py shortlist raw/<source-file> --wiki wiki/` で、先に読むべきページに順位を付けられる。結果は手がかりとしてだけ使う（`decision-models.md`）。
++ユーザーが任意の判定レイヤーを有効にしている場合は、`python "<skill-root>/scripts/wiki_decide.py" shortlist raw/<source-file> --wiki wiki/` で、先に読むべきページに順位を付けられる。結果は手がかりとしてだけ使う（`decision-models.md`）。
+ 
+ この下調べが、ページの重複を防ぐ。下調べをしないと、少し違う名前ですでにページがあるトピックについて、新しいページを作ってしまう。
+ 
+diff --git a/skills/info-hive/references/lint-workflow.md b/skills/info-hive/references/lint-workflow.md
+index c1f63d9..d7e1f77 100644
+--- a/skills/info-hive/references/lint-workflow.md
++++ b/skills/info-hive/references/lint-workflow.md
+@@ -2,6 +2,8 @@
+ 
+ wiki の健全性のチェックである。操作のたびにではなく、決まった頻度で（N 回の取り込みごと、毎週、またはユーザーが明示的に求めたときに）実行するのがよい。lint は、MCP のツール `lint`（または `wiki_lint.py`）が行う構造の確認と、LLM が直接行う内容の確認に分かれる。
+ 
++コマンドの `<skill-root>` は、このスキルのディレクトリ（`SKILL.md` のあるディレクトリ）の実際のパスに置き換える。書き方は `SKILL.md` の「スクリプトのパス」にある。
++
+ ## 手順 0: スキーマを確認する
+ 
+ `wiki/SCHEMA.md` で、この wiki 固有の追加の lint ルールが定義されていることがある（たとえば「エンティティのページにはすべて `aliases:` フィールドが必要」「ソースが2つ未満のコンセプトのページは作らない」）。これを読む。
+@@ -13,7 +15,7 @@ wiki の健全性のチェックである。操作のたびにではなく、決
+ ツールが使えないときは、スクリプトを実行する。使い分けは `SKILL.md` の「MCP のツールと CLI の使い分け」にある。
+ 
+ ```bash
+-python scripts/wiki_lint.py wiki/
++python "<skill-root>/scripts/wiki_lint.py" wiki/
+ ```
+ 
+ `wiki/` は実際の wiki のディレクトリに置き換える。省くと、作業領域の設定（`.info-hive/workspace.json`）の `dirs.wiki`、設定がなければ `./wiki` を使う。設定が壊れているときは理由を書いて終了コード 1 で止まる。
+@@ -21,12 +23,12 @@ python scripts/wiki_lint.py wiki/
+ グラフ層がある場合は、次も実行する。
+ 
+ ```bash
+-uv run --script scripts/wiki_graph_lint.py wiki/
++uv run --script "<skill-root>/scripts/wiki_graph_lint.py" wiki/
+ ```
+ 
+ グラフの lint は、構造の lint とは別に、型付きエッジの問題を検出する。対象は、未知の述語、証拠の欠落、リンク切れの目的語の参照、エイリアスの衝突、無効な `confidence`/`status` の値、リンク切れの `contradicts`/`supersedes` の参照である。検出結果は構造の lint と同じように仕分ける。つまり、修正案を示し、黙って適用しない。承認された修正を適用したら、extract で成果物を作り直す。手順、終了コード、オントロジーがないときの扱いの正本は `references/graph-workflow.md` である。
+ 
+-ユーザーが任意の判定レイヤーを有効にしている場合は、ツールではなく `wiki_graph_lint.py` を使い、`--decide` を付ける。証拠のテキストがソースページに出てこない型付きエッジをチェックする。矛盾を洗い出すには、`python scripts/wiki_decide.py contradictions --wiki wiki/` を実行し、報告されたページの組を読んでから判断する。`decision-models.md` を参照。
++ユーザーが任意の判定レイヤーを有効にしている場合は、ツールではなく `wiki_graph_lint.py` を使い、`--decide` を付ける。証拠のテキストがソースページに出てこない型付きエッジをチェックする。矛盾を洗い出すには、`python "<skill-root>/scripts/wiki_decide.py" contradictions --wiki wiki/` を実行し、報告されたページの組を読んでから判断する。`decision-models.md` を参照。
+ 
+ lint が調べるページは、wiki の中の `.md` のうち、最上位の `SCHEMA.md`、`index.md`、`log.md`、`README.md` と、最上位の `indexes/`、`graph/`、`raw/`、`assets/`、`.evolution/`、`.wiki-cache/` の中のものと、名前が `.` で始まるファイルを除いたものである。検索（`wiki_search.py` と MCP の `query`）、統計、グラフも同じページを対象にする（`scripts/wiki_pages.py`）。
+ 
+@@ -85,7 +87,7 @@ lint のレポートには、次のものが含まれる。
+ 参照されているのに、まだページになっていないものを探す。ツールの `lint` に `suggest_pages=true` を渡すか、次を実行する。
+ 
+ ```bash
+-python scripts/wiki_lint.py wiki/ --suggest-pages
++python "<skill-root>/scripts/wiki_lint.py" wiki/ --suggest-pages
+ ```
+ 
+ 多くのページ（既定では 5 ページ以上。`--suggest-min` で変えられる）に出てくるのに専用のページがない、エンティティやコンセプトらしい語を見つける。候補にするのは、3 文字以上のカタカナ語、3 文字以上の漢字の並び（「消費税」「仕入税額控除」など）、大文字で始まる英語の語句で、題名かスラッグが同じページがすでにあるものは除き、出てくるページの多い順に最大 30 件を挙げる。漢字の並びは途中で切らずに数えるので、「消費税率」は「消費税」とは別の語になる。どれを独立したページにし、どれを本文での言及のままにするかは、ユーザーが決められる。
+diff --git a/skills/info-hive/references/mcp-server.md b/skills/info-hive/references/mcp-server.md
+index b3879cc..f66d9be 100644
+--- a/skills/info-hive/references/mcp-server.md
++++ b/skills/info-hive/references/mcp-server.md
+@@ -2,6 +2,8 @@
+ 
+ wiki のプラグインは、検索のためのローカルの MCP サーバーを持つ。埋め込みモデルの読み込み、埋め込み、索引の書き込みは、このサーバーだけが行う。wiki の Markdown は書き換えない。
+ 
++コマンドの `<skill-root>` は、このスキルのディレクトリ（`SKILL.md` のあるディレクトリ）の実際のパスに置き換える。書き方は `SKILL.md` の「スクリプトのパス」にある。
++
+ この文書は、サーバーの仕組み、ツール、置き場所、困ったときの確かめ方をまとめる。コマンド（`/wiki:query`、`/wiki:lint`、`/wiki:stats`、`/wiki:graph`、`/wiki:ingest` のグラフの lint）は、まずこのサーバーのツールを使い、使えないときは CLI（`wiki_search.py` など）に戻る。使い分けの規則は `SKILL.md` の「MCP のツールと CLI の使い分け」にある。
+ 
+ ## 仕組み
+@@ -146,23 +148,23 @@ rag がチャンクを渡すためのツールである。wiki の Markdown は
+ サーバーの依存を取得できない、uv がない、などで MCP が使えないときは、今の CLI がそのまま使える。
+ 
+ ```bash
+-uv run --script "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_search.py" "<検索語>" --wiki "<WIKI_ROOT>" --json
+-python "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_search.py" "<検索語>" --wiki "<WIKI_ROOT>" --json --no-embed
++uv run --script "<skill-root>/scripts/wiki_search.py" "<検索語>" --wiki "<WIKI_ROOT>" --json
++python "<skill-root>/scripts/wiki_search.py" "<検索語>" --wiki "<WIKI_ROOT>" --json --no-embed
+ ```
+ 
+ CLI の埋め込み検索は、MCP のサーバーとは別のモデル（multilingual-e5-small）と別の索引（wiki の `.wiki-cache/`）を使う。
+ 
+ ## 困ったとき
+ 
+-- サーバーが起動しない: `logs/server.log` を見る。`uv run --script wiki_mcp_launch.py --ensure` を実行すると、サーバーを確かめ（なければ起動し）、トークンを除いた `server.json` の中身を表示する。
++- サーバーが起動しない: `logs/server.log` を見る。`uv run --script "<skill-root>/scripts/wiki_mcp_launch.py" --ensure` を実行すると、サーバーを確かめ（なければ起動し）、トークンを除いた `server.json` の中身を表示する。
+ - 社内ネットワークで起動しない（`logs/launch.log` か uv の出力に `invalid peer certificate` や `UnknownIssuer` がある）: TLS を検査するプロキシの CA を uv が信頼していない。入口と中継は `UV_SYSTEM_CERTS=true`（古い uv では `UV_NATIVE_TLS=true`）で 1 回だけやり直すが、CLI の `uv run --script` はやり直さない。ユーザーに、環境変数 `UV_SYSTEM_CERTS=true` か、uv の `uv.toml` の `system-certs = true` を設定してもらう（README の「トラブルシューティング」）。その場で CLI を動かすときは、`uv run --system-certs --script ...` のように `--system-certs`（古い uv では `--native-tls`）を付ける。
+ - プラグインを更新した: 中継は `server.json` のコードの版を見て、古いサーバーを止めて起動し直す。
+ - uv の環境が壊れた（`Failed to read metadata from installed package` のような uv のエラーが出る）: 次の 2 つを実行して入れ直す。入口とサーバーは、起動のたびに同じことを自動で試す。
+ 
+   ```bash
+-  uv sync --reinstall --script "<プラグインのパス>/skills/info-hive/scripts/wiki_mcp_relay.py"
+-  uv sync --reinstall --script "<プラグインのパス>/skills/info-hive/scripts/wiki_mcp_server.py"
++  uv sync --reinstall --script "<skill-root>/scripts/wiki_mcp_relay.py"
++  uv sync --reinstall --script "<skill-root>/scripts/wiki_mcp_server.py"
+   ```
+ 
+ - 直したのにツールが出ない: Claude Code は、接続に失敗した MCP のサーバーを覚えていて、しばらく起動しないことがある（`~/.claude/mcp-needs-auth-cache.json` に `plugin:wiki:wiki` が入る）。`/mcp` で wiki のサーバーをつなぎ直す。
+-- Claude Code 以外のホスト（Codex など）: `CLAUDE_PLUGIN_ROOT` を持たないので、`uv run --script <プラグインのパス>/skills/info-hive/scripts/wiki_mcp_launch.py` を stdio の MCP サーバーとして登録する。
++- Claude Code 以外のホスト（Codex など）: `CLAUDE_PLUGIN_ROOT` を持たないので、`uv run --script "<skill-root>/scripts/wiki_mcp_launch.py"` を stdio の MCP サーバーとして登録する。
+diff --git a/skills/info-hive/references/query-workflow.md b/skills/info-hive/references/query-workflow.md
+index c5edff5..7aa0cde 100644
+--- a/skills/info-hive/references/query-workflow.md
++++ b/skills/info-hive/references/query-workflow.md
+@@ -2,6 +2,8 @@
+ 
+ ユーザーが wiki に対して質問している。やるべきことは、wiki をもとに出典つきで答え、wiki の規模に応じてたどり方を変え、必要なら回答をシンセシスのページとして保存することである。
+ 
++コマンドの `<skill-root>` は、このスキルのディレクトリ（`SKILL.md` のあるディレクトリ）の実際のパスに置き換える。書き方は `SKILL.md` の「スクリプトのパス」にある。
++
+ ## 手順 0: スキーマを確認する
+ 
+ このセッションでまだ読んでいなければ、`wiki/SCHEMA.md` を読む。wiki によっては、クエリ専用の規約を定めている（たとえば「比較を問う質問には、必ず比較表で答える」「回答は `wiki/synthesis/` ではなく `wiki/synthesis/qa/` に置く」）。スキーマは既定の動作より優先される。
+@@ -23,12 +25,12 @@
+ ツールが使えないとき、呼び出しが返らないとき、ページ単位の順位（`--granularity page`）や依存パッケージを使わない決定的な検索が要るときは、検索スクリプトを使う。使い分けは `SKILL.md` の「MCP のツールと CLI の使い分け」にある。
+ 
+ ```bash
+-uv run --script scripts/wiki_search.py "軽減税率の対象" --top 10 --cache --json
++uv run --script "<skill-root>/scripts/wiki_search.py" "軽減税率の対象" --top 10 --cache --json
+ ```
+ 
+ `--wiki` を省くと、作業領域の設定（`.info-hive/workspace.json`）の `dirs.wiki`、設定がなければ `./wiki` を検索する。設定が壊れているときは理由を書いて終了コード 1 で止まる。
+ 
+-スクリプトも、既定では、セクション単位のハイブリッド検索の結果を返す。ローカルの FastEmbed によるセマンティックな順位付けと BM25 を RRF で統合し、JSON の各行には `heading_path`、抜粋、検索の出所が付く。埋め込みモデルの既定は多言語モデルの `intfloat/multilingual-e5-small`（fp16 の ONNX、約 0.25 GB、384 次元）で、初回のセマンティック検索でダウンロードする。環境変数 `INFO_HIVE_EMBED_MODEL` で `intfloat/multilingual-e5-large`（約 2.24 GB、1024 次元）も選べ、モデルを変えるとベクトルの索引は自動で作り直される。セクションのベクトルは `wiki/.wiki-cache/embeddings.sqlite` に保存され、変更されたセクションだけがベクトル化し直される。wiki やクエリのテキストがマシンの外に出ることはない。依存パッケージを使わない語彙ベースの BM25 にしたい場合は、`python scripts/wiki_search.py "軽減税率の対象" --no-embed` を実行する。必要に応じて frontmatter のフィルター（`--type concept`、`--tag 税制`、`--since 2026-01-01`）を使い、ページ単位の語彙ベースの順位付けにしたいときは `--granularity page` を指定する。
++スクリプトも、既定では、セクション単位のハイブリッド検索の結果を返す。ローカルの FastEmbed によるセマンティックな順位付けと BM25 を RRF で統合し、JSON の各行には `heading_path`、抜粋、検索の出所が付く。埋め込みモデルの既定は多言語モデルの `intfloat/multilingual-e5-small`（fp16 の ONNX、約 0.25 GB、384 次元）で、初回のセマンティック検索でダウンロードする。環境変数 `INFO_HIVE_EMBED_MODEL` で `intfloat/multilingual-e5-large`（約 2.24 GB、1024 次元）も選べ、モデルを変えるとベクトルの索引は自動で作り直される。セクションのベクトルは `wiki/.wiki-cache/embeddings.sqlite` に保存され、変更されたセクションだけがベクトル化し直される。wiki やクエリのテキストがマシンの外に出ることはない。依存パッケージを使わない語彙ベースの BM25 にしたい場合は、`python "<skill-root>/scripts/wiki_search.py" "軽減税率の対象" --no-embed` を実行する。必要に応じて frontmatter のフィルター（`--type concept`、`--tag 税制`、`--since 2026-01-01`）を使い、ページ単位の語彙ベースの順位付けにしたいときは `--granularity page` を指定する。
+ 
+ 日本語のクエリはそのまま渡してよく、分かち書きは要らない。語彙ベースの検索は、かなと漢字を 2 文字ずつ重ねて切り出し（文字 bigram）、漢字は 1 文字単位でも索引に入れるので、「税」のような単漢字のクエリも「消費税」を含むページに当たる。形態素解析は使わない。文字 bigram は偶然に一致しやすいので、日本語を含むクエリでは、クエリのトークンの被覆率（IDF で重み付け）が 0.25 未満のページを語彙ベースの結果から外す。詳しくは、リポジトリの `docs/search.md` を参照。
+ 
+diff --git a/skills/info-hive/references/retrieval-setup.md b/skills/info-hive/references/retrieval-setup.md
+index 0902c65..72d4657 100644
+--- a/skills/info-hive/references/retrieval-setup.md
++++ b/skills/info-hive/references/retrieval-setup.md
+@@ -2,6 +2,8 @@
+ 
+ `/wiki:init` と `/wiki:upgrade` の前に、この質問をまとめて行う。どちらのコマンドも、そのあとでローカルの実行環境一式をインストールし、動作を確認する。セットアップを後回しにしたり、一部だけで済ませたりする手順はない。
+ 
++コマンドの `<skill-root>` は、このスキルのディレクトリ（`SKILL.md` のあるディレクトリ）の実際のパスに置き換える。書き方は `SKILL.md` の「スクリプトのパス」にある。
++
+ ## 質問する前に調べる
+ 
+ 次の点を確かめる。
+@@ -33,7 +35,7 @@
+ - セットアップでは、バージョンを固定したモデルを1回だけダウンロードし、パースキャッシュを作り、現在のすべてのセクションをベクトル化する。2回目以降は、新しいセクションと変更されたセクションだけをベクトル化し、削除されたセクションは取り除く。
+ - wiki のセクションとクエリはマシンの外に出ない。API キー、リモートのエンドポイント、リクエストごとの料金、プロバイダーのデータ保持の方針は関係しない。
+ - wiki ごとのベクトルは `<wiki-root>/.wiki-cache/embeddings.sqlite` にある派生データで、削除しても問題ない。
+-- `python wiki_search.py "<query>" --no-embed` を直接実行すれば、あとで依存パッケージを使わない BM25 の検索ができる。日本語のクエリも、分かち書きせずにそのまま渡せる。ただし、これは初期化やアップグレードでの必須のセットアップの代わりにはならない。
++- `python "<skill-root>/scripts/wiki_search.py" "<query>" --no-embed` を直接実行すれば、あとで依存パッケージを使わない BM25 の検索ができる。日本語のクエリも、分かち書きせずにそのまま渡せる。ただし、これは初期化やアップグレードでの必須のセットアップの代わりにはならない。
+ 
+ ## 秘密情報を含まない状態を記録する
+ 
+@@ -52,7 +54,7 @@
+ 初期化とアップグレードは、次のコマンドを自動で呼び出す。
+ 
+ ```bash
+-uv run --script skills/info-hive/scripts/setup_wiki.py --wiki wiki --cache
++uv run --script "<skill-root>/scripts/setup_wiki.py" --wiki wiki --cache
+ ```
+ 
+ 準備完了を報告する前に、次のすべてを満たしていることを確かめる。
+diff --git a/skills/info-hive/references/scaling-playbook.md b/skills/info-hive/references/scaling-playbook.md
+index d753776..01fb31d 100644
+--- a/skills/info-hive/references/scaling-playbook.md
++++ b/skills/info-hive/references/scaling-playbook.md
+@@ -2,6 +2,8 @@
+ 
+ wiki の構造を変える必要が出てくる閾値と、その移行の手順をまとめる。目的は、wiki が大きくなっても、1回のクエリにかかるコンテキストの量をほぼ一定に保つことである。wiki が大きくなったからといって、LLM が読むページの数やページの大きさが増えるようではいけない。
+ 
++コマンドの `<skill-root>` は、このスキルのディレクトリ（`SKILL.md` のあるディレクトリ）の実際のパスに置き換える。書き方は `SKILL.md` の「スクリプトのパス」にある。
++
+ ## ボトルネック
+ 
+ 素朴な LLM Wiki の実装は、規模が大きくなると、いくつかの決まった失敗で破綻する。それぞれに構造上の対策がある。
+@@ -35,8 +37,8 @@ wiki の構造を変える必要が出てくる閾値と、その移行の手順
+ 
+ `scripts/wiki_search.py` には次の機能がある。
+ 
+-- `uv run --script scripts/wiki_search.py "軽減税率の対象"`: セクション単位のローカルのハイブリッド検索の結果。
+-- `python scripts/wiki_search.py "軽減税率の対象" --no-embed`: 依存パッケージを使わない語彙ベースの BM25（PEP 723 による依存解決を通さない）。
++- `uv run --script "<skill-root>/scripts/wiki_search.py" "軽減税率の対象"`: セクション単位のローカルのハイブリッド検索の結果。
++- `python "<skill-root>/scripts/wiki_search.py" "軽減税率の対象" --no-embed`: 依存パッケージを使わない語彙ベースの BM25（PEP 723 による依存解決を通さない）。
+ - `--type concept`: frontmatter の type で絞り込む。
+ - `--tag <tag>`: タグで絞り込む。
+ - `--since 2026-01-01`: `updated` の日付で絞り込む。

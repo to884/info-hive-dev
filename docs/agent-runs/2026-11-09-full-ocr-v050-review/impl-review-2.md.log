@@ -1,0 +1,88 @@
+[ask-codex 00:31:46] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\full-ocr-continue-94ee76）
+## 判定
+
+**却下。確信度：高。** STOP時の最終進捗が保存済みファイル数と食い違う反例と、同時起動によって固定コードの写しが欠損する反例が残っている。
+
+## 致命的・重大な欠陥
+
+1. **重大：保存後・通知前にSTOPすると、保存済みページを最終進捗に数えない。**
+
+   修正によって保存前の過大計上は解消されたが、ページ保存と親への通知は別の操作である。
+
+   反例：
+
+   1. 保存済みOCRページが2件ある状態で開始する。
+   2. 製品が3件目のJSONを確定する。
+   3. 保存後の `progress()` が通知する前に、親がSTOPを検出してワーカーを終了する。
+   4. 終了処理はファイルを再集計せず、既存の `partial` と受信済みイベントから最終進捗を書く。
+
+   結果は、**実ファイル3件に対して `status=stopped, saved=2`**。次回起動時には3件に戻るため、停止・再開をまたいで数値が変わる。
+
+   対象の集計関数と終了処理を、メモリ上のファイル代替・SQLiteに接続して、この結果を再現した。
+
+   根拠：[保存後の通知:278–284](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:278)、[最終集計:477–484](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:477)、製品側の [保存とコールバック:108–114](C:/Works/info-hive-dev/info-hive-rag/scripts/rag_pdf.py:108)。
+
+2. **重大：`runner.lock` の取得前に行う初期化が競合し、欠損したコードの写しを確定できる。**
+
+   `runner.lock` は `run` を排他するが、`start` が実行する `freeze_rag()` は保護されない。固定コードをまだ用意していない同じ作業領域で、2つの `start` がPID不存在の確認を通ると、同じ `.tmp` ディレクトリを操作する。
+
+   反例となる実行順序：
+
+   1. Aがアーカイブから `plugin.json` と `rag_config.py` まで展開する。
+   2. Bが同じステージングディレクトリを `rmtree()` で削除し、作り直す。
+   3. Aが残りの展開を続け、`os.replace()` で確定する。
+   4. 確定先には `rag_pdf.py` がある一方、先に削除された `rag_config.py` と `plugin.json` がない。
+   5. Bの確定は、既存の空でない確定先との衝突で失敗する。
+
+   以後の起動も、`rag_pdf.py` の存在だけで固定済みと判定して欠損した写しを使うため、自動的には復旧しない。
+
+   実アーカイブの展開順を確認し、対象の `freeze_rag()` をメモリ上のファイルシステムに接続して、この欠損状態と再試行時の誤判定を再現した。実ファイルへの同時起動は行っていない。
+
+   根拠：[固定済み判定とステージング操作:103–114](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:103)、[ロック取得:313–325](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:313)、[ロック取得前の準備:525–543](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/product_ocr.py:525)。
+
+## 崩れる前提
+
+- **保存済みページの通知は、終了時までに必ず親へ届く。** 保存から通知までの間の終了、または通知の配送前の強制終了で崩れる。
+- **`run` を排他すれば、同じ作業領域への起動全体も排他できる。** `start` の準備段階を同時に実行すると崩れる。
+- **`rag_pdf.py` が存在すれば、固定コード一式は完全である。** 上記の初期化競合によって、ほかの必須ファイルだけが欠けた状態で崩れる。
+- **再開後の時刻を持つページは、新しいランナーが保存したものである。** 同じ `data_dir` を使うMCPなど、別の書き手がいると崩れる。
+
+## 見落としと軽微な問題
+
+**軽微：チェックポイント試験は、別の書き手による保存を再開ランナーの成果と判定する。**
+
+`verify` はキャッシュ全体を走査し、更新日時だけで `pages_saved_by_resumed_runner` を数える。文書、抽出の鍵、書き手を新しいランナーと対応付けていない。
+
+反例：新しいランナーは生存しているが文書ロック待ちで、まだ1ページも保存していない。その間にMCPが別文書のページを保存すると、既存ページが不変でキーの並びが一致しているだけで検証が成功する。
+
+対象の検証分岐をメモリ上で実行し、**ランナーによる保存0件、MCPによる保存1件で、`resumed=true`、`pages_saved_by_resumed_runner=1`** となることを再現した。同じ `data_dir` への別の書き込みがない運用なら、この反例は成立しない。
+
+根拠：[checkpoint_product_ocr.py:62–76](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/checkpoint_product_ocr.py:62)、[キャッシュ全体の走査:25–30](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/poc/rag/full_pipeline/checkpoint_product_ocr.py:25)。
+
+## 検証した事実
+
+| 修正内容 | 結果 |
+|---|---|
+| 失敗時に保存済みページを再集計する | **一致。** 3ページ保存後の失敗を模した実行で、集計は3件を保持した |
+| 起動時に失敗文書と `--limit` 対象外も数える | **一致。** 起動時の走査は `todo` と独立し、`completed` 以外を対象とする |
+| OCR応答だけでは保存済みとして通知しない | **一致。** ラッパーは結果を保持し、通知は製品の保存後コールバックへ移っている |
+| 終了文書への遅延通知で二重計上しない | **一致。** 失敗処理後に通知を追加しても、保存済み集計は3件のままだった |
+| 同時に2つの `run` が台帳を変更するのを防ぐ | **一致。** `_run()` に入る前に非待機でロックを取得する。ただし準備段階は対象外 |
+| チェックポイントが新PIDの生存と起動後のページを要求する | **一致。** 前回の「再起動なしで成功する」条件は、そのままでは通らない |
+| 原本と製品の抽出ファイル形式を維持する | **一致。** 原本は読み取り、ページJSONとMarkdownの生成は引き続き製品関数を使用する |
+
+ファイルは変更していない。反例の再現には、対象関数・分岐をメモリ上の代替へ接続した試験を用いた。実際のOCR処理、プロセス強制終了、OS再起動の試験は行っていない。
+
+## 崩せなかった点
+
+- 失敗文書と `--limit` 対象外の保存済みページが、再開時の集計から消えるという前回の反例。
+- OCR応答直後、ページ保存前に通知して過大計上するという前回の反例。
+- 終了文書への遅延イベントが `partial` に再加算される経路。
+- 文書ロック内で残骸を削除し、確定済みのページJSONを残す処理。
+- 製品と同じ抽出の鍵・生成関数を使う処理。
+
+`fsync` 不使用は今回明示された制約として扱い、欠陥には数えていない。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 00:39:41] 完了。session 01a1c0e3-358d-71f0-9ece-b5fc9e02b3c4  usage {"input_tokens": 2827139, "cached_input_tokens": 2713728, "cache_write_input_tokens": 0, "output_tokens": 29756, "reasoning_output_tokens": 14145}
