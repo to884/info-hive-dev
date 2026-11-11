@@ -1,0 +1,100 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index d25c20c..4139823 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,13 @@
+ 
+ ## [Unreleased]
+ 
++### Fixed
++
++Web ページの取得（`wiki_fetch.py`）が、Medium の記事の図とコードブロックの改行を落とす不具合を直した（#42）。
++
++- `<picture>` の中の `<img>` に URL がなく、URL が `<source srcset>` にだけある図を、`no_src` として捨てていた。Medium の図はすべてこの形なので、本文の図が 1 枚も保存されなかった。今は、`<img>` の `src`、`data-src` など、`srcset` のどれからも URL を取れないとき（代わりの `data:` の画像のときを含む）、同じ `<picture>` の `<source>` から取る。WebP でない `<source>` を先に見て、`srcset` のうち幅（または密度）のいちばん大きい候補を選ぶ。`<img>` から URL を取れるときは、今までどおりそれを使う。
++- `<pre>` の中で行を `<br>` で区切ったコードブロックが、1 行につながっていた。Medium のコードブロックはこの形である。今は `<pre>` の中の `<br>` を改行にする。`<pre>` の外の `<br>` の扱い（Markdown の行末の 2 つの空白）は変わらない。
++
+ ## [0.9.5] - 2026-11-11
+ 
+ ### Fixed
+diff --git a/skills/info-hive/scripts/wiki_fetch.py b/skills/info-hive/scripts/wiki_fetch.py
+index dd3e06e..3789cd6 100644
+--- a/skills/info-hive/scripts/wiki_fetch.py
++++ b/skills/info-hive/scripts/wiki_fetch.py
+@@ -317,16 +317,56 @@ def in_dropped(node: Node) -> bool:
+     return False
+ 
+ 
+-def text_of(node: Node, skip_dropped: bool = True) -> str:
++def text_of(node: Node, skip_dropped: bool = True, br: str = "") -> str:
++    """要素の中の文字をつなぐ。br を渡すと、<br> をその文字にする（<pre> の行の区切り）。"""
+     parts = []
+     for child in node.children:
+         if isinstance(child, str):
+             parts.append(child)
++        elif child.tag == "br":
++            parts.append(br)
+         elif not (skip_dropped and is_dropped(child)):
+-            parts.append(text_of(child, skip_dropped))
++            parts.append(text_of(child, skip_dropped, br))
+     return "".join(parts)
+ 
+ 
++def _largest_candidate(srcset: str) -> str:
++    """srcset の候補から、幅（w）か密度（x）がいちばん大きい URL を返す。記述子がなければ最初の候補。"""
++    best_url, best_size = "", -1.0
++    for candidate in srcset.split(","):
++        fields = candidate.strip().split()
++        if not fields:
++            continue
++        size = 0.0
++        if len(fields) > 1 and fields[-1][-1:] in ("w", "x"):
++            try:
++                size = float(fields[-1][:-1])
++            except ValueError:
++                size = 0.0
++        if size > best_size:
++            best_url, best_size = fields[0], size
++    return best_url
++
++
++def picture_source_url(img: Node) -> str:
++    """<picture> の中の <img> に URL がないとき、兄弟の <source> の srcset から URL を選ぶ。
++
++    Medium などは、URL を <source srcset> にだけ書き、<img> には書かない。WebP でない <source> を
++    先に見る（元の形式の画像を保存するため）。選んだ <source> の中では、いちばん大きい候補を取る。
++    """
++    picture = img.parent
++    if picture is None or picture.tag != "picture":
++        return ""
++    sources = [n for n in picture.children
++               if isinstance(n, Node) and n.tag == "source" and (n.attrs.get("srcset") or n.attrs.get("data-srcset"))]
++    sources.sort(key=lambda n: n.attrs.get("type", "").strip().lower() == "image/webp")
++    for source in sources:
++        url = _largest_candidate(source.attrs.get("srcset") or source.attrs.get("data-srcset") or "")
++        if url and not url.startswith("data:"):
++            return url
++    return ""
++
++
+ def _visible_len(node: Node) -> int:
+     return len(re.sub(r"\s+", "", text_of(node)))
+ 
+@@ -506,6 +546,8 @@ class Converter:
+             first = srcset.split(",")[0].strip().split(" ")[0] if srcset else ""
+             if first:
+                 src = first
++        if not src or src.startswith("data:"):
++            src = picture_source_url(node) or src
+         alt = _clean_inline(attrs.get("alt", ""))
+         index = len(self.images)
+         self.images.append({
+@@ -636,7 +678,8 @@ class Converter:
+             text = "\n\n".join(inner)
+             return ["\n".join(("> " + line) if line else ">" for line in text.split("\n"))]
+         if tag == "pre":
+-            code = text_of(node, skip_dropped=False).replace("\r\n", "\n").strip("\n")
++            # Medium などは、<pre> の中の行を改行文字でなく <br> で区切る。
++            code = text_of(node, skip_dropped=False, br="\n").replace("\r\n", "\n").strip("\n")
+             if not code.strip():
+                 return []
+             fence = "```"
