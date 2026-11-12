@@ -34,3 +34,9 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-13] ingest | rag 0.5.3 の PDF のヘッダーのエラーメッセージの修正
    ページ: concepts/pdfのヘッダーの条件（sources/pdfのヘッダーの判定の修正-rag-0.5.1 を更新）
+
+## [2026-11-13] ingest | rag 0.5.2・0.5.3 の書き方とメッセージの修正、リリースの記録
+   ページ: sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3（concepts/リリースの確かめ方、concepts/pdfのヘッダーの条件 を更新）
+
+## [2026-11-13] ingest | Windows の Python で書き戻すと LF が CRLF に変わる件
+   ページ: concepts/pythonの書き戻しの改行（sources/取り込み手順の追従とリリース-wiki-0.11.1 を更新）
