@@ -909,8 +909,18 @@ class PortTests(unittest.TestCase):
         tree = ast.parse(source)
         found = []
         functions = {node.name: node for node in tree.body if isinstance(node, ast.FunctionDef)}
-        for name in self.FUNCTIONS:
+        # 走査の関数から、名前で呼ぶか参照するモジュールの関数も、たどって確かめる（補助の関数の中の入出力を見逃さない）
+        names, queue = [], list(self.FUNCTIONS)
+        while queue:
+            name = queue.pop(0)
+            if name in names:
+                continue
             self.assertIn(name, functions)
+            names.append(name)
+            for node in ast.walk(functions[name]):
+                if isinstance(node, ast.Name) and node.id in functions and node.id not in names:
+                    queue.append(node.id)
+        for name in names:
             for node in ast.walk(functions[name]):
                 if isinstance(node, ast.Attribute) and ast.unparse(node.value) in ("os", "os.path"):
                     ref = ast.unparse(node)
@@ -939,6 +949,10 @@ class PortTests(unittest.TestCase):
         planted = source.replace("    files, unlistable, unknown = [], [], []\n",
                                  "    files, unlistable, unknown = [], [], []\n    os.listdir(start)\n", 1)
         self.assertIn("walk_markdown: os.listdir", self.violations(planted))
+        planted = source.replace("    files, unlistable, unknown = [], [], []\n",
+                                 "    files, unlistable, unknown = [], [], []\n    _extra_listing(start)\n", 1)
+        planted += "\n\ndef _extra_listing(start):\n    return os.listdir(start)\n"
+        self.assertIn("_extra_listing: os.listdir", self.violations(planted))
         planted = source.replace("        state, entries = read_os(_list_dir, directory)\n",
                                  "        try:\n            entries = _list_dir(directory)\n        except OSError:\n"
                                  "            continue\n        state = \"ok\"\n", 1)
