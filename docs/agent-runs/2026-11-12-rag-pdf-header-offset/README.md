@@ -10,7 +10,7 @@ rag 0.5.0 の `read_pdf`（`info-hive-rag/scripts/rag_index.py`）は、ファ�
 
 | 指摘 | 重大度 | 対応 |
 | --- | --- | --- |
-| wiki の `skills/info-hive/references/ingest-workflow.md` が「先頭が `%PDF-`」のままで、rag の受け付ける条件と食い違う | 軽微 | この変更では直さない。wiki プラグインの版を上げる別の変更にする |
+| wiki の `skills/info-hive/references/ingest-workflow.md` が「先頭が `%PDF-`」のままで、rag の受け付ける条件と食い違う | 軽微 | この変更では直さない。wiki プラグインの版を上げる別の変更にする → wiki 0.11.1（to884/info-hive-wiki#47、記録は [2026-11-12-wiki-rag-pdf-header-docs](../2026-11-12-wiki-rag-pdf-header-docs/README.md)）で直した |
 | 境界の試験が `read_pdf` までで、1024 バイトの前置きを PDFium が開けるかを見ていない | 軽微 | 受け付けた 3 例を PDFium で開け、1025 バイトの前置きを PDFium も開けないことを確かめるようにした |
 | CHANGELOG の例のコードスパンに、文字の `\n` ではなく本物の改行が入っている | 軽微 | Bash のヒアドキュメントで `\\` が縮んでいた。「改行のあとに `%PDF-1.5` が続く」と書き直した |
 | 前の版でこの理由で失敗したジョブは、更新しても自動では再開しない | 崩れる前提 | CHANGELOG に、`retry_job` で再試行するか、取り込み直すよう書いた |

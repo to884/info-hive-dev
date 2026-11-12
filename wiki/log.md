@@ -15,3 +15,16 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-11] ingest | wiki 0.9.2 のグラフの抽出の修正の記録
    ページ: sources/グラフの抽出の修正-0.9.2、concepts/グラフの抽出の契約、concepts/エッジの識別子、concepts/グラフのlintの期待値
+
+## [2026-11-12] schema | タグの体系に rag を足した
+
+## [2026-11-12] ingest | rag 0.5.1 の PDF のヘッダーの判定の修正の記録
+   ページ: sources/pdfのヘッダーの判定の修正-rag-0.5.1、concepts/pdfのヘッダーの条件
+
+## [2026-11-12] ingest | wiki 0.11.1 の取り込み手順の追従と、wiki 0.11.1・rag 0.5.1 のリリースの記録
+   ページ: sources/取り込み手順の追従とリリース-wiki-0.11.1、concepts/リリースの確かめ方
+
+## [2026-11-13] schema | タグの体系に windows を足した
+
+## [2026-11-13] ingest | Git Bash のパス変換で git の引数が壊れる件
+   ページ: concepts/git-bashのパス変換（sources/取り込み手順の追従とリリース-wiki-0.11.1 を更新）
