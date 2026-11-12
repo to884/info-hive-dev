@@ -2,7 +2,7 @@
 type: "concept"
 title: "rag が受け付ける PDF のヘッダーの条件"
 tags: ["rag"]
-sources: ["pdfのヘッダーの判定の修正-rag-0.5.1", "取り込み手順の追従とリリース-wiki-0.11.1"]
+sources: ["pdfのヘッダーの判定の修正-rag-0.5.1", "取り込み手順の追従とリリース-wiki-0.11.1", "pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3"]
 created: 2026-11-12
 updated: 2026-11-13
 ---

@@ -27,7 +27,8 @@ updated: 2026-11-13
 - 別のセッション（wiki の走査の修正）が、同じ wiki の 0.11.0 を準備していると知らせてきた。main ではすでに 0.11.0 が公開済みで、こちらが 0.11.1 を使ったので、相手は 0.11.2 以降になると伝えた。
 - 親の #78 の CI で、`browse (windows-latest)` の静的版の試験が、`file://` のページの `page.goto` で 30 秒のタイムアウトになった。同じジョブで Playwright の導入に 6 分かかっていた（いつもはジョブ全体で 5 分ほど）。再実行で通った。ランナーの遅さによる一時的な失敗と見ているが、観測は 1 回だけである。
 - Git Bash で `git show origin/main:.claude-plugin/plugin.json` を実行すると、引数が `origin\main;.claude-plugin\plugin.json` に書き換えられて失敗した。`MSYS_NO_PATHCONV=1` を付けて確かめ直した（[[git-bashのパス変換]]）。
-- to884/info-hive-dev#77（rag の参照の付け替え）を「まだマージされていない」と報告したが、実際には 12:54 にマージされていた。状態を確かめた後に、取り直さないまま報告していた。
+- to884/info-hive-dev#77（rag の参照の付け替え）を「まだマージされていない」と報告したが、実際には 2026-11-12 21:54（日本時間。GitHub の記録では 12:54Z）にマージされていた。状態を確かめた後に、取り直さないまま報告していた。
+- この記録を wiki に足す作業（#82）で、ファイルを Python で書き戻すと、LF の改行が CRLF に変わった。コミットの前に `git diff --stat` で気づいて戻した（[[pythonの書き戻しの改行]]）。
 
 ## 残したこと
 
@@ -46,6 +47,7 @@ updated: 2026-11-13
 | 5 | `browse (windows-latest)` の一時的なタイムアウト | 作業の記録 | source_only | 観測が 1 回で、傾向とは言えない |
 | 6 | CHANGELOG の比較リンクが v0.7.0 で止まっている | review-sol.md | source_only | 既存の食い違いで、直す作業は別にする |
 | 7 | Git Bash のパス変換で `git show <リビジョン>:<パス>` が壊れ、`MSYS_NO_PATHCONV=1` で避けられる | 作業の記録（2026-11-13 に形を変えて確かめ直した） | create | [[git-bashのパス変換]] |
+| 8 | Windows の Python の `write_text` が LF を CRLF に変え、Git Bash の `grep` は `-U` なしでは CR を数えない | 作業の記録（2026-11-13 に確かめ直した） | create | [[pythonの書き戻しの改行]] |
 
 ## 関係するページ
 
@@ -53,3 +55,5 @@ updated: 2026-11-13
 - [[pdfのヘッダーの条件]]
 - [[リリースの確かめ方]]
 - [[git-bashのパス変換]]
+- [[pythonの書き戻しの改行]]
+- [[pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3]]
