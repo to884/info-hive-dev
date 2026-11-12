@@ -65,6 +65,9 @@ class Injector(m.Os):
         self.reads = []
         self.names = []
         self.failed = {}        # 手を入れずに失敗した呼び出し: {番号: 例外の型}
+        self.targets = []       # 呼び出しの対象のパス（記述子と一覧は、開いたときのパス。付け替えは (元, 先)）
+        self.fd_paths = {}
+        self.it_paths = {}
 
     def _fail_close(self, fd):
         """close の失敗。書いたファイルなら、遅れて出た書き込みの失敗として、中身を失わせる。"""
@@ -82,6 +85,15 @@ class Injector(m.Os):
             raise Crash()
         self.count += 1
         self.names.append(name)
+        if name in ("write", "read", "close", "try_lock", "unlock"):
+            target = self.fd_paths.get(args[0])
+        elif name == "scandir_next":
+            target = self.it_paths.get(id(args[0]))
+        elif name in ("rename", "replace"):
+            target = (os.fspath(args[0]), os.fspath(args[1]))
+        else:
+            target = os.fspath(args[0]) if args and isinstance(args[0], str) else None
+        self.targets.append(target)
         if name == "open_read":
             self.reads.append(os.fspath(args[0]))
         if self.count == self.at:
@@ -136,11 +148,14 @@ def _wrap(name):
             raise
         if name.startswith("open_"):
             self.fds.add(result)
+            self.fd_paths[result] = os.fspath(args[0])
             if name == "open_excl":
                 self.writing[result] = args[0]
         elif name == "close":
             self.fds.discard(args[0])
             self.writing.pop(args[0], None)
+        elif name == "scandir_open":
+            self.it_paths[id(result)] = os.fspath(args[0])
         return result
     return method
 
@@ -177,8 +192,27 @@ def junction(link, target):
 OUT_STATES = ("absent", "empty", "gen", "gen+extra", "gen+edited", "userdir", "legacy", "gen+hardlink",
               "absent+old", "empty+old", "wikiroot", "insidewiki", "nodata")
 WORK_STATES = ("asis", "leftovers", "junction", "unmarked-empty")
+# 作業用のロックと目印の名前に、利用者が置いたリンク（7 版目。6 回目の設計のレビューの重大 1）
+LINK_STATES = ("lock-dangling", "lock-symlink", "lock-hardlink", "marker-symlink")
+LINK_OUT_STATES = ("absent", "gen")
 FOREIGN = ("gen+extra", "gen+edited", "userdir", "legacy")
 WHOLE = ("wikiroot", "insidewiki", "datainwiki")     # 砂場の全体が変わってはならない（Wiki のルートと重なる）
+
+
+def place_link(state, lock, marker, wiki):
+    """ロックか目印の名前に、Wiki の中を指すリンクを置く。作れなければ、理由を返す（その状態は飛ばし、合格にしない）。"""
+    try:
+        if state == "lock-dangling":
+            os.symlink(os.path.join(wiki, "created.md"), lock)
+        elif state == "lock-symlink":
+            os.symlink(os.path.join(wiki, "a.md"), lock)
+        elif state == "lock-hardlink":
+            os.link(os.path.join(wiki, "a.md"), lock)
+        elif state == "marker-symlink":
+            os.symlink(os.path.join(wiki, "a.md"), marker)
+    except OSError as e:
+        return f"リンクを作れない: {type(e).__name__}"
+    return None
 
 
 class Sandbox:
@@ -231,10 +265,14 @@ class Sandbox:
             os.makedirs(work)
             write(os.path.join(work, m.WORK_MARKER), b"A" if default else b"")
             put_generation(os.path.join(work, "old-5"), FILES_P, 5)
+        self.skipped = None
         if work_state != "asis" and not os.path.isdir(work):
             os.makedirs(work)
-            if work_state != "unmarked-empty":
+            if work_state not in ("unmarked-empty", "marker-symlink"):
                 write(os.path.join(work, m.WORK_MARKER), b"A" if default else b"")
+        if work_state in LINK_STATES:
+            self.skipped = place_link(work_state, os.path.join(work, "build.lock"), os.path.join(work, m.WORK_MARKER),
+                                      os.path.join(r, "wiki"))
         if work_state == "leftovers":
             write(os.path.join(work, "tmp-7", "index.html"), b"<p>half")
             write(os.path.join(work, "del-6", "concepts", "a.html"), b"<p>a v0</p>")
@@ -389,7 +427,31 @@ def run_build(sb, injector, files=None):
         m.X = m.Os()
 
 
-def check_build(sb, at, mode, second=None, baseline=None, natural=None):
+def role_of(sb, injector, at, commit, leftovers):
+    """N 回目の呼び出しの役目を、試験の側で決める。'post'（確定のあと）、'leftover'（前からあった残りの片付け）、'pre'。
+
+    確定の点は、手を入れない実行の記録で、tmp-N を書き出し先の名前にした付け替えの番号である（試作の申告ではない）。
+    N 回目までの呼び出しは手を入れない実行と同じなので、N がそれより大きければ、確定は済んでいる。
+    """
+    if commit is not None and at > commit:
+        return "post"
+    target = injector.targets[at - 1] if at - 1 < len(injector.targets) else None
+    paths = target if isinstance(target, tuple) else (target,)
+    for path in paths:
+        if path and any(path == d or path.startswith(d + os.sep) for d in leftovers):
+            return "leftover"
+    return "pre"
+
+
+def commit_index(sb, injector):
+    for i, (name, target) in enumerate(zip(injector.names, injector.targets), 1):
+        if (name == "rename" and isinstance(target, tuple) and os.path.normcase(target[1]) == os.path.normcase(sb.out)
+                and os.path.basename(target[0]).startswith("tmp-")):
+            return i
+    return None
+
+
+def check_build(sb, at, mode, second=None, baseline=None, natural=None, commit=None):
     """1 回の実行と、そのあとの手を入れない実行を確かめる。破れた決まりの一覧を返す。
 
     baseline は、同じ状態で手を入れない実行が出した警告（多重集合）。手を入れた実行の警告は、これと比べて、
@@ -401,6 +463,8 @@ def check_build(sb, at, mode, second=None, baseline=None, natural=None):
     problems = []
     before_world, before_out = world(sb), tree(sb.out)
     old5 = content(tree(os.path.join(sb.work, "old-5")))
+    leftovers = [os.path.join(sb.work, n) for n in (os.listdir(sb.work) if os.path.isdir(sb.work) else [])
+                 if n.startswith(("tmp-", "del-")) or n in m.LEGACY]
     protected = (sb.out_state in FOREIGN and not sb.default) or sb.out_state in WHOLE
     injector = Injector(at, mode, second)
     rc = run_build(sb, injector)
@@ -409,6 +473,7 @@ def check_build(sb, at, mode, second=None, baseline=None, natural=None):
     LAST_WARNINGS.update(warnings)
     LAST_FAILED.clear()
     LAST_FAILED.update(injector.failed)
+    LAST_COMMIT[0] = commit_index(sb, injector)
     new_warnings = warnings - (baseline or Counter())
     already_failing = mode == "denied" and (natural or {}).get(at) is PermissionError
     after_out = tree(sb.out)
@@ -425,8 +490,12 @@ def check_build(sb, at, mode, second=None, baseline=None, natural=None):
         if any(p.startswith(prefix) for p in injector.reads):
             problems.append(where("既定の書き出し先の前の世代を読んだ"))
     if (mode in ("denied", "zero", "blk") and injector.hit not in ("unlock", "close")
-            and rc == 0 and not new_warnings and not already_failing):
-        problems.append(where("「分からない」の失敗を、警告なしに吸収して 0 で終わった"))
+            and rc == 0 and not already_failing):
+        # 9.2: 確定の前の失敗は、前からあった残りの片付けのほかは、失敗で終わる。警告があっても、0 で終わってはならない
+        if role_of(sb, injector, at, commit, leftovers) == "pre":
+            problems.append(where("確定の前の「分からない」の失敗を吸収して 0 で終わった"))
+        elif not new_warnings:
+            problems.append(where("「分からない」の失敗を、警告なしに吸収して 0 で終わった"))
     # 上で基準を当てない場所（手を入れなくても失敗する呼び出し）は、手を入れない実行の側で、警告があるかを確かめる
     if (at is None and rc == 0 and not warnings
             and any(t not in (FileNotFoundError, NotADirectoryError) for t in injector.failed.values())):
@@ -445,13 +514,15 @@ def check_build(sb, at, mode, second=None, baseline=None, natural=None):
         c = content(after_out)
         olds = [content(tree(os.path.join(sb.work, n))) for n in (os.listdir(sb.work) if os.path.isdir(sb.work) else [])
                 if n.startswith("old-")]
-        ok = (after_out == before_out
-              or (old5 is not None and c == old5)                       # 途中で止まっていた世代を戻した
-              or (c in (None, {}) and P in (None, {}))                  # ない、または空のまま
-              or (c in (None, {}) and (P in olds or (old5 is not None and old5 in olds)))   # 作業用に P が残っている
-              or (rc == "crash" and c == N))                            # 確定のあとで止まった
+        # 最後に公開した世代 G は、砂場の作りで決まる（書き出し先にあった世代か、作業用の old-5）。
+        # 確定の前は、G はいつも、書き出し先か、作業用の old-N のどれかにある（設計の 6.4、7）
+        G = P if P not in (None, {}) else old5
+        if G is None:
+            ok = c in (None, {}) or after_out == before_out or (rc == "crash" and c == N)
+        else:
+            ok = c == G or G in olds or (rc == "crash" and c == N)
         if not ok:
-            problems.append(where("0 でないのに、書き出し先が前のままでも、戻せる形でもない"))
+            problems.append(where("0 でないのに、最後に公開した世代が、書き出し先にも作業用の退避にも残っていない"))
 
     # 次の実行（手を入れない）
     counter = Injector()
@@ -477,6 +548,8 @@ def check_build(sb, at, mode, second=None, baseline=None, natural=None):
 NOTES: set = set()
 LAST_WARNINGS: Counter = Counter()      # check_build の 1 回目の実行の警告（手を入れない実行の警告を、基準の側で覚える）
 LAST_FAILED: dict = {}                  # 同じく、1 回目の実行で、手を入れずに失敗した呼び出し
+LAST_COMMIT: list = [None]              # 同じく、1 回目の実行の確定の点（呼び出しの番号）
+SKIPPED: list = []                      # リンクを作れずに飛ばした状態
 
 
 def count_calls(make, names=False):
@@ -495,6 +568,12 @@ ONLY = {"zero": "stat_id", "blk": "lstat"}     # 正常復帰の異常は、そ�
 def sweep_build(out_state, work_state, default, modes, depth2=False):
     def make():
         return Sandbox(out_state, work_state, default)
+    probe = make()
+    skipped = probe.skipped
+    probe.close()
+    if skipped:
+        SKIPPED.append(f"{out_state}/{work_state}/{'default' if default else 'out'}: {skipped}")
+        return 0, 0, []
     total, names = count_calls(make, names=True)
     problems, runs = [], 0
     sb = make()
@@ -502,7 +581,7 @@ def sweep_build(out_state, work_state, default, modes, depth2=False):
         found, _ = check_build(sb, None, None)        # 失敗のないときの約束
         problems += found
         runs += 1
-        baseline, natural = Counter(LAST_WARNINGS), dict(LAST_FAILED)
+        baseline, natural, commit = Counter(LAST_WARNINGS), dict(LAST_FAILED), LAST_COMMIT[0]
     finally:
         sb.close()
     for mode in modes:
@@ -511,7 +590,7 @@ def sweep_build(out_state, work_state, default, modes, depth2=False):
                 continue
             sb = make()
             try:
-                found, _ = check_build(sb, at, mode, baseline=baseline, natural=natural)
+                found, _ = check_build(sb, at, mode, baseline=baseline, natural=natural, commit=commit)
                 problems += found
                 runs += 1
             finally:
@@ -528,7 +607,7 @@ def sweep_build(out_state, work_state, default, modes, depth2=False):
             for second in range(at + 1, min(last, at + SECOND_WINDOW) + 1):
                 sb = make()
                 try:
-                    found, _ = check_build(sb, at, "denied", second, baseline=baseline, natural=natural)
+                    found, _ = check_build(sb, at, "denied", second, baseline=baseline, natural=natural, commit=commit)
                     problems += found
                     runs += 1
                 finally:
@@ -540,7 +619,8 @@ def sweep_build(out_state, work_state, default, modes, depth2=False):
 # サーバーの記録の探索
 # ---------------------------------------------------------------------------
 
-STATE_STATES = ("absent", "stale-record", "leftover-new", "unmarked-empty", "stale+leftover", "other-owner", "nodata")
+STATE_STATES = ("absent", "stale-record", "leftover-new", "unmarked-empty", "stale+leftover", "other-owner", "nodata",
+                "lock-dangling", "lock-symlink", "lock-hardlink", "marker-symlink")
 
 
 def make_state(sb, state):
@@ -550,6 +630,10 @@ def make_state(sb, state):
     os.makedirs(d)
     if state == "unmarked-empty":
         return
+    if state in LINK_STATES:
+        if state != "marker-symlink":
+            write(os.path.join(d, m.SERVER_MARKER), b"A")
+        return place_link(state, os.path.join(d, "server.lock"), os.path.join(d, m.SERVER_MARKER), sb.wiki)
     owner = b"B" if state == "other-owner" else b"A"
     write(os.path.join(d, m.SERVER_MARKER), owner)
     write(os.path.join(d, "server.lock"), b"")
@@ -586,14 +670,25 @@ def run_server(sb, injector, phase):
             server.lock.release()
 
 
-def check_server(state, phase, at, mode):
+def check_server(state, phase, at, mode, baseline=None, natural=None):
     sb = Sandbox("nodata" if state == "nodata" else "absent", "asis", True)
     problems = []
     try:
-        make_state(sb, state)
+        skipped = make_state(sb, state)
+        if skipped:
+            SKIPPED.append(f"サーバー {state}: {skipped}")
+            return [], 0
         before_world = world(sb)
         injector = Injector(at, mode)
         rc = run_server(sb, injector, phase)
+        warnings = Counter(m.WARNINGS)
+        if at is None:
+            LAST_WARNINGS.clear()
+            LAST_WARNINGS.update(warnings)
+            LAST_FAILED.clear()
+            LAST_FAILED.update(injector.failed)
+        new_warnings = warnings - (baseline or Counter())
+        already_failing = mode == "denied" and (natural or {}).get(at) is PermissionError
 
         def where(label):
             return f"{label}（状態 {state}、{phase}、{mode}@{at}、{injector.hit}、rc={rc}）"
@@ -601,6 +696,15 @@ def check_server(state, phase, at, mode):
             problems.append(where("失敗のない起動と終了が成功しなかった"))
         if rc == "reused":
             problems.append(where("動いていないのに、使い回した"))
+        # 7.1: 起動の失敗は、失敗で終わる。終了で警告して続けてよいのは、記録を消せないときだけ（警告がある）
+        # 手を入れたことが効いた実行だけに当てる（識別子 0 は stat_id に、ブロックデバイスは lstat にだけ効く）
+        effective = mode == "denied" or (mode in ONLY and injector.hit == ONLY[mode])
+        if (at is not None and effective and injector.hit not in ("unlock", "close")
+                and not already_failing and rc == "ok"):
+            if phase == "start":
+                problems.append(where("起動の「分からない」の失敗を吸収して、起動した"))
+            elif not new_warnings:
+                problems.append(where("終了の「分からない」の失敗を、警告なしに吸収した"))
         if not world_same(sb, before_world, world(sb)):
             problems.append(where("状態のディレクトリの外が変わった"))
         lock_path = os.path.join(sb.state_dir, "server.lock")
@@ -635,11 +739,14 @@ def sweep_server(modes):
     for state in STATE_STATES:
         for phase in ("start", "finish"):
             found, total = check_server(state, phase, None, None)
+            if not total:
+                continue                      # 飛ばした状態
+            baseline, natural = Counter(LAST_WARNINGS), dict(LAST_FAILED)
             problems += found
             runs += 1
             for mode in modes:
                 for at in range(1, total + 1):
-                    found, _ = check_server(state, phase, at, mode)
+                    found, _ = check_server(state, phase, at, mode, baseline, natural)
                     problems += found
                     runs += 1
     return runs, problems
@@ -847,6 +954,10 @@ CONTROLS = {
     "swallow_marker_failure": [("absent", "asis", False)],
     # 2 つ目は、手を入れない実行も警告を出す状態（読み取り専用のファイル）。警告の基準を、新しい警告で量ることを確かめる
     "fallback_rmdir": [("absent", "junction", False), ("gen+hardlink", "junction", True)],
+    # 7 版目（6 回目の設計のレビュー）
+    "follow_on_open": [("absent", "lock-dangling", False), ("gen", "lock-dangling", True)],
+    "discard_old_first": [("empty+old", "asis", False), ("absent+old", "asis", True)],
+    "warn_on_marker_close": [("absent", "asis", False)],
 }
 
 
@@ -864,6 +975,8 @@ def build_cases(quick):
                 if out_state in ("wikiroot", "insidewiki") and work_state != "asis":
                     continue
                 cases.append((out_state, work_state, default))
+            if not quick and out_state in LINK_OUT_STATES:
+                cases += [(out_state, ls, default) for ls in LINK_STATES]
         if default:
             cases.append(("datainwiki", "asis", True))
     return cases
@@ -903,7 +1016,8 @@ def main():
         finally:
             m.MUTANTS.discard(mutant)
         out(f"| {mutant} | {len(found)} | {found[0] if found else '見つからなかった'} |")
-    for mutant, run in (("recover_by_published_seq", scenario_rewind),
+    for mutant, run in (("warn_on_record_failure", lambda: sweep_server(MODES)[1]),
+                        ("recover_by_published_seq", scenario_rewind),
                         ("delete_in_place", lambda: sweep_user_deletes(USER_DELETES)[1]),
                         ("refuse_unknown_entries", lambda: sweep_server(MODES)[1]),
                         ("skip_owner", lambda: sweep_shared(MODES)[1])):
@@ -921,6 +1035,10 @@ def main():
         all_problems += problems
         out(f"| {'既定' if default else '--out'} | {out_state} | {work_state} | {total} | {runs} | {len(problems)} |")
 
+    if SKIPPED:
+        out("\n## 飛ばした状態（合格にしていない）\n")
+        for item in SKIPPED:
+            out("- " + item)
     if NOTES:
         out("\n## 気づき\n")
         for note in sorted(NOTES):

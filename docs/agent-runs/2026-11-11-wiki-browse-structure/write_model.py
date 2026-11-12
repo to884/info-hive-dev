@@ -49,6 +49,47 @@ class Stop(Exception):
     """何も変えずに止まり、利用者に知らせる。"""
 
 
+_CREATE_NEW, _OPEN_ALWAYS = 1, 4
+
+
+def _win_open(path, disposition, flags):
+    """Windows で、最後の名前の再解析点をたどらずに、ファイルを作るか開く。開いたものが、通常のファイルでなければ失敗する。
+
+    CreateFileW に FILE_FLAG_OPEN_REPARSE_POINT を付ける。名前がリンクなら、リンクそのものを開くので、先は作らない。
+    開いたハンドルの属性で、再解析点とディレクトリを拒む（名前を調べてから開く形にしない）。
+    """
+    import ctypes
+    import msvcrt
+    from ctypes import wintypes
+
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    k32.CreateFileW.restype = wintypes.HANDLE
+    k32.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID,
+                                wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    k32.CloseHandle.argtypes = [wintypes.HANDLE]
+
+    class Info(ctypes.Structure):
+        _fields_ = [("attrs", wintypes.DWORD), ("c", wintypes.FILETIME), ("a", wintypes.FILETIME),
+                    ("w", wintypes.FILETIME), ("vol", wintypes.DWORD), ("sh", wintypes.DWORD),
+                    ("sl", wintypes.DWORD), ("links", wintypes.DWORD), ("ih", wintypes.DWORD), ("il", wintypes.DWORD)]
+    k32.GetFileInformationByHandle.argtypes = [wintypes.HANDLE, ctypes.POINTER(Info)]
+
+    access = 0x40000000 | (0x80000000 if flags == os.O_RDWR else 0)      # GENERIC_WRITE と GENERIC_READ
+    handle = k32.CreateFileW(path, access, 0x7, None, disposition, 0x80 | 0x00200000, None)
+    if handle == wintypes.HANDLE(-1).value:
+        raise ctypes.WinError(ctypes.get_last_error())
+    try:
+        info = Info()
+        if not k32.GetFileInformationByHandle(handle, ctypes.byref(info)):
+            raise ctypes.WinError(ctypes.get_last_error())
+        if info.attrs & (0x400 | 0x10):       # 再解析点、ディレクトリ
+            raise OSError(errno.EPERM, "開いた名前が、通常のファイルでない", path)
+        return msvcrt.open_osfhandle(handle, flags | O_BINARY)
+    except BaseException:
+        k32.CloseHandle(handle)
+        raise
+
+
 class Os:
     """OS を呼ぶ口。探索は、この口の呼び出しの N 回目に手を入れる。"""
 
@@ -76,13 +117,28 @@ class Os:
         os.mkdir(path)
 
     def open_excl(self, path):
-        return os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | O_BINARY, 0o644)
+        """排他で作る。最後の名前がリンクでも、たどらない（設計の 3.1。Windows の os.open は、O_EXCL を付けても、
+        先のないリンクをたどって先を作る）。"""
+        if "follow_on_open" in MUTANTS:
+            return os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | O_BINARY, 0o644)    # 対照: 6 版目の形
+        if os.name == "nt":
+            return _win_open(path, _CREATE_NEW, os.O_WRONLY)
+        return os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o644)
 
     def open_read(self, path):
         return os.open(path, os.O_RDONLY | O_BINARY)
 
     def open_lock(self, path):
-        return os.open(path, os.O_RDWR | os.O_CREAT | O_BINARY, 0o600)
+        """ロックのファイルを開く。なければ作る。最後の名前がリンクなら、たどらずに失敗する。"""
+        if "follow_on_open" in MUTANTS:
+            return os.open(path, os.O_RDWR | os.O_CREAT | O_BINARY, 0o600)                  # 対照: 6 版目の形
+        if os.name == "nt":
+            return _win_open(path, _OPEN_ALWAYS, os.O_RDWR)
+        fd = os.open(path, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            os.close(fd)
+            raise OSError(errno.EPERM, "ロックのファイルが通常のファイルでない", path)
+        return fd
 
     def write(self, fd, data):
         return os.write(fd, data)
@@ -427,6 +483,11 @@ def use_territory(path, marker, known=(), owner=None, lock_name=None):
             except Unknown:
                 if kind(marker_path) != "file":     # 5 版目の試作の形: ファイルがあれば失敗を捨てる
                     raise
+        elif "warn_on_marker_close" in MUTANTS:
+            try:
+                create_file(marker_path, content)
+            except Unknown as e:
+                warn(f"目印を書けなかった（{e}）")      # 対照: 確定の前の失敗を、警告して続ける
         else:
             create_file(marker_path, content)
     elif "refuse_unknown_entries" in MUTANTS:
@@ -453,6 +514,10 @@ class Lock:
         self.fd = None
 
     def try_acquire(self):
+        # 領分の中のロックの名前に、利用者が置いたリンクがあれば、たどらずに外してから作る（設計の 6.2）。
+        # 外すかどうかは、見た種類で決める。種類の答えが誤っていても、ロックの口がリンクをたどらずに失敗する。
+        if kind(self.path) == "link":
+            remove_tree(self.path)
         fd = w("open_lock", self.path)
         try:
             got = x("try_lock", fd)
@@ -624,7 +689,8 @@ def _discard(work, names):
 
 def _build_locked(out, work, files, default):
     entries = listdir(work)
-    _discard(work, [n for n in entries if n.startswith(("tmp-", "del-")) or n in LEGACY])
+    leftover = ("tmp-", "del-", "old-") if "discard_old_first" in MUTANTS else ("tmp-", "del-")   # 対照: 退避の世代も消す
+    _discard(work, [n for n in entries if n.startswith(leftover) or n in LEGACY])
     olds = [n for n in listdir(work) if n.startswith("old-")]
     state, reason, out_seq = out_state(out, verify=not default)
 
@@ -754,6 +820,11 @@ def serve_start(root, state_dir, instance, owner):
     try:
         replace_file(os.path.join(state_dir, "server.json"),
                      json.dumps({"instance": instance, "owner": owner}).encode("utf-8"))
+    except Unknown as e:
+        if "warn_on_record_failure" not in MUTANTS:
+            lock.release()
+            raise
+        warn(f"記録を書けなかった（{e}）")              # 対照: 起動の失敗を、警告して続ける
     except BaseException:
         lock.release()
         raise
