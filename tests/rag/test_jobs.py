@@ -236,7 +236,7 @@ class JobTests(unittest.TestCase):
         fake = self.refs / "偽物.pdf"
         fake.write_bytes(b"not a pdf at all")
         self.jobs.register(self.config, str(self.wiki), str(fake), "sources/偽物.md")
-        with self.assertRaisesRegex(ValueError, "%PDF-"):
+        with self.assertRaisesRegex(ValueError, "%PDF- がないか、最初の %PDF- の前に 1024 バイトを超えるバイトがある"):
             self.engine().ingest_pdf(str(self.wiki), str(fake), "sources/偽物.md")
 
     def test_pdf_with_leading_newline_is_ingested(self):
@@ -270,7 +270,7 @@ class JobTests(unittest.TestCase):
                     self.assertEqual(len(document), 1)
         too_far = self.refs / "前置き1025.pdf"
         too_far.write_bytes(b" " * 1025 + body)
-        with self.assertRaisesRegex(ValueError, "先頭の 1024 バイトに %PDF- がない"):
+        with self.assertRaisesRegex(ValueError, "%PDF- がないか、最初の %PDF- の前に 1024 バイトを超えるバイトがある"):
             read_pdf(too_far)
         # 拒むものは PDFium でも開けない。
         with self.assertRaises(pdfium.PdfiumError):
