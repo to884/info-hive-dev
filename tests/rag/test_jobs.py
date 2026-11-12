@@ -239,6 +239,43 @@ class JobTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "%PDF-"):
             self.engine().ingest_pdf(str(self.wiki), str(fake), "sources/偽物.md")
 
+    def test_pdf_with_leading_newline_is_ingested(self):
+        # 検証データに、先頭に改行 1 バイト（\n%PDF-1.5）がある PDF があった。PDFium は開けるので拒まない。
+        leading = self.refs / "先頭に改行.pdf"
+        self.make_pdf(leading, "Leading newline")
+        leading.write_bytes(b"\n" + leading.read_bytes())
+        self.jobs.register(self.config, str(self.wiki), str(leading), "sources/先頭に改行.md")
+        result = self.engine().ingest_pdf(str(self.wiki), str(leading), "sources/先頭に改行.md")
+        self.assertEqual(result["pages"], 4)
+        # ハッシュと抽出は、前置きを含む読んだままのバイト列に対して行う。
+        self.assertEqual(result["sha256"], hashlib.sha256(leading.read_bytes()).hexdigest())
+        found = self.engine().search(str(self.wiki), "Leading newline", limit=1)["results"][0]
+        self.assertEqual(found["sha256"], result["sha256"])
+
+    def test_pdf_header_may_start_up_to_1024_bytes_in(self):
+        import pypdfium2 as pdfium
+        from rag_index import PDF_HEADER_OFFSET_LIMIT, read_pdf
+        self.assertEqual(PDF_HEADER_OFFSET_LIMIT, 1024)
+        original = self.refs / "元.pdf"
+        self.make_pdf(original, "Offset", pages=1)
+        body = original.read_bytes()
+        for prefix in (b"\r\n", b" \t\n", b" " * 1024):
+            with self.subTest(prefix=len(prefix)):
+                path = self.refs / f"前置き{len(prefix)}.pdf"
+                path.write_bytes(prefix + body)
+                data, _ = read_pdf(path)
+                self.assertEqual(data, prefix + body)
+                # 受け付けたものは PDFium でも開ける（境界が PDFium とずれたら、ここで気づく）。
+                with pdfium.PdfDocument(data) as document:
+                    self.assertEqual(len(document), 1)
+        too_far = self.refs / "前置き1025.pdf"
+        too_far.write_bytes(b" " * 1025 + body)
+        with self.assertRaisesRegex(ValueError, "先頭の 1024 バイトに %PDF- がない"):
+            read_pdf(too_far)
+        # 拒むものは PDFium でも開けない。
+        with self.assertRaises(pdfium.PdfiumError):
+            pdfium.PdfDocument(too_far.read_bytes())
+
     def test_completed_job_is_not_reused_when_registered_again(self):
         first = self.register()
         self.assertEqual(self.register()["job_id"], first["job_id"])
