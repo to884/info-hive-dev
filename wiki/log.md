@@ -40,3 +40,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-13] ingest | Windows の Python で書き戻すと LF が CRLF に変わる件
    ページ: concepts/pythonの書き戻しの改行（sources/取り込み手順の追従とリリース-wiki-0.11.1 を更新）
+
+## [2026-11-13] ingest | browse のスコープ表示、wiki 0.12.0 のリリースと画面の確かめの記録
+   ページ: sources/browseのスコープ表示とリリース-wiki-0.12.0、concepts/browseの画面の確かめ方（concepts/リリースの確かめ方 を更新）
