@@ -8,7 +8,7 @@
 | きっかけ | 作者の問い「Raw が 10 GB 以上になったら圧縮するなど、ファイルサイズが増大したときの対策を考慮しているか」 |
 | 関連 | ADR-0004（Raw に置く Web ページ）、ADR-0008（作業領域）、ADR-0012（MCP サーバー）、ADR-0013（PDF は絶対パスで記録する）、`references/scaling-playbook.md` |
 | レビュー | Sol の敵対的レビューを 2 回受け、2 回とも却下された（[design-review-1.md](../agent-runs/2026-11-11-wiki-raw-size-in-stats/design-review-1.md)、[design-review-2.md](../agent-runs/2026-11-11-wiki-raw-size-in-stats/design-review-2.md)）。この版は、2 回目の指摘までを反映したものである。指摘と対応の対照は、この文書の最後にある。**この版のレビューは、まだ受けていない。** 2 回目の重大な指摘の 2（MCP の索引がリンクの先をたどる）は、この設計の前に入れる別の変更（[wiki をたどるとき、除くディレクトリに降りない](wiki-walk-excluded-dirs-2026-11-11.md)）で直す |
-| 前提 | [wiki をたどるとき、除くディレクトリに降りない](wiki-walk-excluded-dirs-2026-11-11.md)（0.10.2）が先に入っていること。`compute_stats()` が wiki をたどる経路の修正は、そちらの変更が持つ |
+| 前提 | [wiki をたどるとき、除くディレクトリに降りない](wiki-walk-excluded-dirs-2026-11-11.md)（0.11.2）が先に入っていること。`compute_stats()` が wiki をたどる経路の修正は、そちらの変更が持つ |
 | 直していないこと | 走査の計画は、7 版目で承認された（2026年11月12日）。そこでは、同じディレクトリかどうかを Win32 から直接取る識別子で決め、失敗の分け方を今の実装の扱いの表から決めている。走査の計画は、3 版目で、同じディレクトリかどうかを識別子だけで決め、`os.path.realpath()`、`os.path.samefile()`、`Path.resolve()` を使わない作りに変わった（[root-causes.md](../agent-runs/2026-11-11-wiki-walk-excluded-dirs/root-causes.md) の前提 A と B）。この設計の「1. Raw の場所」のルートの検査（`Path.resolve()` と `samefile()`）と、「2. 測り方」の走査は、同じ前提に頼ったままである。走査の計画が固まってから、同じ作りに書き直す |
 
 ## 背景
@@ -257,7 +257,7 @@ Raw の大きさ:
 | `info-hive-wiki/skills/info-hive/scripts/wiki_pages.py`、`wiki_lint.py` | `raw:` の値を URL、絶対パス、相対パスに分ける見分け方を、lint と stats が同じ関数で使えるようにする（今は `wiki_lint.missing_raw()` の中にある）。lint の結果は変えない |
 | `info-hive-wiki/skills/info-hive/scripts/wiki_mcp_server.py` | `stats` の引数 |
 | `info-hive-wiki/commands/stats.md`、`references/scaling-playbook.md`、`references/mcp-server.md`、`SKILL.md`、`README.md` | 文面 |
-| `info-hive-wiki/.claude-plugin/plugin.json`、`CHANGELOG.md` | 0.11.0（利用者に見える機能の追加。0.10.0 の次） |
+| `info-hive-wiki/.claude-plugin/plugin.json`、`CHANGELOG.md` | 0.12.0（利用者に見える機能の追加。前提の 0.11.2 の次） |
 | `tests/wiki/test_wiki_stats_raw.py`（新しく作る）、`tests/wiki/test_mcp_server.py`、`tests/wiki/check_commands_mcp.py` | 次の節の試験 |
 
 ## 試験
@@ -328,7 +328,7 @@ MCP とコマンド:
 
 ## リリース
 
-- バージョンは 0.11.0 にする（`plugin.json` と `CHANGELOG.md` をまとめて更新する）。
+- バージョンは 0.12.0 にする（`plugin.json` と `CHANGELOG.md` をまとめて更新する）。
 - マーケットプレイスの項目は直さない。
 - 設計と実装のそれぞれで、Sol の敵対的レビューを受ける。記録は `docs/agent-runs/2026-11-11-wiki-raw-size-in-stats/` に置く。
 
