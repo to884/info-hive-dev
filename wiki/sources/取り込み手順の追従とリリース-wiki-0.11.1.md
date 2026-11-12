@@ -6,7 +6,7 @@ authors: ["to884"]
 raw: "docs/agent-runs/2026-11-12-wiki-rag-pdf-header-docs"
 ingested: 2026-11-12
 created: 2026-11-12
-updated: 2026-11-12
+updated: 2026-11-13
 ---
 
 # wiki 0.11.1 の取り込み手順の追従と、wiki 0.11.1・rag 0.5.1 のリリースの記録
@@ -26,6 +26,7 @@ updated: 2026-11-12
 
 - 別のセッション（wiki の走査の修正）が、同じ wiki の 0.11.0 を準備していると知らせてきた。main ではすでに 0.11.0 が公開済みで、こちらが 0.11.1 を使ったので、相手は 0.11.2 以降になると伝えた。
 - 親の #78 の CI で、`browse (windows-latest)` の静的版の試験が、`file://` のページの `page.goto` で 30 秒のタイムアウトになった。同じジョブで Playwright の導入に 6 分かかっていた（いつもはジョブ全体で 5 分ほど）。再実行で通った。ランナーの遅さによる一時的な失敗と見ているが、観測は 1 回だけである。
+- Git Bash で `git show origin/main:.claude-plugin/plugin.json` を実行すると、引数が `origin\main;.claude-plugin\plugin.json` に書き換えられて失敗した。`MSYS_NO_PATHCONV=1` を付けて確かめ直した（[[git-bashのパス変換]]）。
 - to884/info-hive-dev#77（rag の参照の付け替え）を「まだマージされていない」と報告したが、実際には 12:54 にマージされていた。状態を確かめた後に、取り直さないまま報告していた。
 
 ## 残したこと
@@ -44,9 +45,11 @@ updated: 2026-11-12
 | 4 | 並行するセッションの版の衝突と、報告の前に状態を取り直すこと | 作業の記録 | create | [[リリースの確かめ方]] |
 | 5 | `browse (windows-latest)` の一時的なタイムアウト | 作業の記録 | source_only | 観測が 1 回で、傾向とは言えない |
 | 6 | CHANGELOG の比較リンクが v0.7.0 で止まっている | review-sol.md | source_only | 既存の食い違いで、直す作業は別にする |
+| 7 | Git Bash のパス変換で `git show <リビジョン>:<パス>` が壊れ、`MSYS_NO_PATHCONV=1` で避けられる | 作業の記録（2026-11-13 に形を変えて確かめ直した） | create | [[git-bashのパス変換]] |
 
 ## 関係するページ
 
 - [[pdfのヘッダーの判定の修正-rag-0.5.1]]
 - [[pdfのヘッダーの条件]]
 - [[リリースの確かめ方]]
+- [[git-bashのパス変換]]
