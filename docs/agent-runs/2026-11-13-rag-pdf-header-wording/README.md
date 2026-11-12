@@ -22,4 +22,6 @@ rag 0.5.1（to884/info-hive-rag#7、記録は [2026-11-12-rag-pdf-header-offset]
 
 - `tests/rag/test_jobs.py` の `test_pdf_header_may_start_up_to_1024_bytes_in` が通った（Python 3.12、CI と同じ依存）。
 - 公開済みの v0.5.1 の GitHub リリースの本文も、作者の了承を得て 2026-11-13 に直した。「`%PDF-` が先頭から 1024 バイト目までに始まれば受け付けます」を「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けます（0.5.2 で、この書き方を直しました）」に替え、ほかの文は変えていない。
+- 2026-11-13 に、CHANGELOG に 0.5.2 の日付を入れて（2ad7a93）to884/info-hive-rag#9 をマージした（f70385d）。v0.5.1 と同じく、注釈なしのタグ `v0.5.2` を f70385d に付け、GitHub リリース v0.5.2 を作った。本文は CHANGELOG の 0.5.2 の節と「更新のしかた」である。
+- 使い捨ての設定フォルダー（`CLAUDE_CONFIG_DIR`）で、マーケットプレイスから `rag@info-hive` を入れた。`claude plugin list` は rag 0.5.2（依存の wiki は 0.11.2）を示した。キャッシュの README と CHANGELOG に新しい書き方があり、README と `rag_index.py` に前の書き方が残っていないことを確かめてから、フォルダーを消した。
 - `git grep "1024 バイト目"` で、rag と親（`docs/agent-runs/` を除く）に、今の条件として書いた箇所が残っていないことを確かめた。
