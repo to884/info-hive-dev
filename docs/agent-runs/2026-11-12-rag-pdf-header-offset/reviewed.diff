@@ -1,0 +1,139 @@
+diff --git a/docs/adr/0013-rag-records-pdfs-by-absolute-path-and-hash.md b/docs/adr/0013-rag-records-pdfs-by-absolute-path-and-hash.md
+index e1fe42f..036d6c8 100644
+--- a/docs/adr/0013-rag-records-pdfs-by-absolute-path-and-hash.md
++++ b/docs/adr/0013-rag-records-pdfs-by-absolute-path-and-hash.md
+@@ -34,7 +34,7 @@ rag 0.3.0 は、PDF を「参照ルート」の下だけで扱う。`/rag:setup`
+ | 入力 | `register_pdf` と `ingest_pdf` の `source` は、PDF の絶対パスにする。先頭の `~` は展開する。相対パスと「名前:相対パス」は受け付けない。改行などの制御文字（C0 と C1、U+0085 を含む）を含むパスも、渡されたパスと解決したパスの両方で拒む（frontmatter に書くと、wiki の手書きのパーサーと PyYAML で値が食い違う）。ジョブには、解決したパスではなく、渡されたままの絶対パスを記録し、ワーカーで同じように確かめ直す。ネットワークドライブの PDF は解決すると UNC になるので、解決したパスを記録すると、ワーカーの確かめ直しで拒まれる |
+ | 拒むパス | UNC パス（`\\server\share\...`）と、Windows のデバイスのパス（`\\?\`、`\\.\`）は、解決する前に拒む。Windows では `/\server/...` のように区切りを混ぜても UNC になるので、文字列の先頭に加え、組み立てたパスのドライブでも判定する。モデルが渡したパスで、知らないサーバーに接続して認証情報を送ることを防ぐ。ドライブ文字を割り当てたネットワークドライブは、利用者が自分で用意したものなので受け付ける。Windows で、ネットワークドライブでないドライブのパスが UNC に解決されたとき（ローカルのフォルダーに置かれたリンクがネットワーク上のファイルを指すとき）も拒む。ただし、解決の途中でそのサーバーへの接続は起きうる。そうしたリンクを置けるのは、その PC に書き込める者に限られる |
+ | 登録のときの確認 | パスを解決し（シンボリックリンクとジャンクションをたどる）、解決したパスを `lstat` で調べる。通常のファイルで、拡張子が `.pdf`（大文字と小文字を問わない）で、派生データ（`data_dir`）、モデルのキャッシュ、uv のキャッシュの外にあることを確かめる。中身は読まない。ファイルの識別子（`st_dev` と `st_ino`）、大きさ、更新時刻をジョブに記録する。解決と `lstat` は待つことがある（応答しないネットワークドライブなど） |
+-| 読み込みのときの確認 | ワーカーは、解決したパスを 1 回だけ開き、開いたファイルの `fstat` が、開く直前の `lstat` と同じファイル（`st_dev`、`st_ino`、大きさ、更新時刻）であることを確かめる。開いたファイルは、登録したときに記録したファイルの識別子、大きさ、更新時刻とも同じでなければならない。登録のあとで親のフォルダーを差し替えられても、確かめていないファイルを読まないためである。識別子を返さないファイルシステム（`st_ino` が 0）では、大きさと更新時刻だけを比べる。そのファイルからすべてのバイト列を読み、読み終えたあとの `fstat` も同じであることを確かめる。先頭の 5 バイトが `%PDF-` であることは、この読んだバイト列で確かめる。SHA-256 と抽出も、同じバイト列に対して行う |
++| 読み込みのときの確認 | ワーカーは、解決したパスを 1 回だけ開き、開いたファイルの `fstat` が、開く直前の `lstat` と同じファイル（`st_dev`、`st_ino`、大きさ、更新時刻）であることを確かめる。開いたファイルは、登録したときに記録したファイルの識別子、大きさ、更新時刻とも同じでなければならない。登録のあとで親のフォルダーを差し替えられても、確かめていないファイルを読まないためである。識別子を返さないファイルシステム（`st_ino` が 0）では、大きさと更新時刻だけを比べる。そのファイルからすべてのバイト列を読み、読み終えたあとの `fstat` も同じであることを確かめる。`%PDF-` が先頭から 1024 バイト目までに始まることは、この読んだバイト列で確かめる（2026年11月12日に、先頭の 5 バイトが `%PDF-` であることから改めた。先頭に改行が 1 バイトあるだけの PDF を、PDFium は開けるのに拒んでいたため。PDFium が開ける前置きの上限に合わせた）。SHA-256 と抽出も、同じバイト列に対して行う |
+ | 同意の層 | どの PDF を読むかを利用者が決めるのは、ホストのツールの許可（Claude Code が `register_pdf` の呼び出しを確かめる）と、wiki の取り込みの手順（利用者が指定したパスを渡す）である。上の確認は、読めるものを PDF に限るだけで、利用者が選んだフォルダーに限ることはしない。利用者が `register_pdf` を許可の一覧に入れて確認を省いたときは、モデルが利用者の指定と違う PDF を渡しても、人は呼び出しを見ない。wiki の手順はモデルへの指示であり、rag は渡されたパスと利用者の指定を照らさない。参照ルートより弱いことを受け入れる |
+ | 書く場所 | rag が書くのは、`data_dir` とキャッシュ、版が変わったときに要再確認の印を付ける wiki のページだけである。PDF の場所には何も書かない |
+ 
+@@ -98,7 +98,7 @@ rag 0.3.0 は、PDF を「参照ルート」の下だけで扱う。`/rag:setup`
+   - 大きさと更新時刻を変えずに中身を差し替えた PDF を、取り込み直せる
+   - 同じ内容の A と B を登録し、B だけを書き換えたあと、古い版の出典が A を指す
+   - UNC パスと、派生データの中の PDF を拒む
+-  - 先頭が `%PDF-` でないファイルを拒む
++  - 先頭が `%PDF-` でないファイルを拒む（2026年11月12日に、先頭から 1024 バイト目までに `%PDF-` が始まらないファイルを拒み、先頭に改行や空白があるだけの PDF は読む、に改めた）
+   - 0.3.0 の `jobs.sqlite` と `wikis/` を開かず、`status` がそれを伝える
+   - ハードリンクの片方で書き換えた PDF を取り込むと、もう片方も新しい版を指す
+   - 内容を H、G、H と戻して取り込んでも、H の索引の行がそろう
+diff --git a/tests/rag/test_jobs.py b/tests/rag/test_jobs.py
+index 3dfd290..f407a24 100644
+--- a/tests/rag/test_jobs.py
++++ b/tests/rag/test_jobs.py
+@@ -239,6 +239,36 @@ class JobTests(unittest.TestCase):
+         with self.assertRaisesRegex(ValueError, "%PDF-"):
+             self.engine().ingest_pdf(str(self.wiki), str(fake), "sources/偽物.md")
+ 
++    def test_pdf_with_leading_newline_is_ingested(self):
++        # 検証データに、先頭に改行 1 バイト（\n%PDF-1.5）がある PDF があった。PDFium は開けるので拒まない。
++        leading = self.refs / "先頭に改行.pdf"
++        self.make_pdf(leading, "Leading newline")
++        leading.write_bytes(b"\n" + leading.read_bytes())
++        self.jobs.register(self.config, str(self.wiki), str(leading), "sources/先頭に改行.md")
++        result = self.engine().ingest_pdf(str(self.wiki), str(leading), "sources/先頭に改行.md")
++        self.assertEqual(result["pages"], 4)
++        # ハッシュと抽出は、前置きを含む読んだままのバイト列に対して行う。
++        self.assertEqual(result["sha256"], hashlib.sha256(leading.read_bytes()).hexdigest())
++        found = self.engine().search(str(self.wiki), "Leading newline", limit=1)["results"][0]
++        self.assertEqual(found["sha256"], result["sha256"])
++
++    def test_pdf_header_may_start_up_to_1024_bytes_in(self):
++        from rag_index import PDF_HEADER_OFFSET_LIMIT, read_pdf
++        self.assertEqual(PDF_HEADER_OFFSET_LIMIT, 1024)
++        original = self.refs / "元.pdf"
++        self.make_pdf(original, "Offset", pages=1)
++        body = original.read_bytes()
++        for prefix in (b"\r\n", b" \t\n", b" " * 1024):
++            with self.subTest(prefix=len(prefix)):
++                path = self.refs / f"前置き{len(prefix)}.pdf"
++                path.write_bytes(prefix + body)
++                data, _ = read_pdf(path)
++                self.assertEqual(data, prefix + body)
++        too_far = self.refs / "前置き1025.pdf"
++        too_far.write_bytes(b" " * 1025 + body)
++        with self.assertRaisesRegex(ValueError, "先頭の 1024 バイトに %PDF- がない"):
++            read_pdf(too_far)
++
+     def test_completed_job_is_not_reused_when_registered_again(self):
+         first = self.register()
+         self.assertEqual(self.register()["job_id"], first["job_id"])
+diff --git a/info-hive-rag/.claude-plugin/plugin.json b/info-hive-rag/.claude-plugin/plugin.json
+index 7737dfe..1158980 100644
+--- a/info-hive-rag/.claude-plugin/plugin.json
++++ b/info-hive-rag/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "rag",
+-  "version": "0.5.0",
++  "version": "0.5.1",
+   "description": "wiki@info-hive に依存し、PDF の抽出・OCR・埋め込みを永続ジョブで進め、中断後の再開とローカル検索を提供する Claude Code プラグイン。",
+   "dependencies": [
+     "wiki@info-hive"
+diff --git a/info-hive-rag/CHANGELOG.md b/info-hive-rag/CHANGELOG.md
+index fb90451..1250d45 100644
+--- a/info-hive-rag/CHANGELOG.md
++++ b/info-hive-rag/CHANGELOG.md
+@@ -6,6 +6,13 @@
+ 
+ ## [Unreleased]
+ 
++## [0.5.1] - 未定
++
++### 修正
++
++- 先頭に改行が 1 バイトある（`
++%PDF-1.5` で始まる）だけの PDF を、「PDF の形式ではありません」として拒んでいました。`%PDF-` が先頭から 1024 バイト目までに始まれば受け付けます。PDFium が開ける前置きの上限に合わせました。SHA-256 と抽出は、前置きを含む読んだままのバイト列に対して行います。今まで受け付けていた PDF の扱いは変わらないので、抽出の版（ADR-0014）は上げず、取り込み直しも要りません。
++
+ ## [0.5.0] - 2026-11-08
+ 
+ ### 追加
+diff --git a/info-hive-rag/README.md b/info-hive-rag/README.md
+index c21d83d..a910234 100644
+--- a/info-hive-rag/README.md
++++ b/info-hive-rag/README.md
+@@ -32,7 +32,7 @@ Claude Code で、マーケットプレイスを追加してから `rag` を入
+ 
+ `queued`、`running`、`paused` は処理中です。PDF の索引化が完了したことや、wiki の要約ページが完成したことを意味しません。
+ PDF の原本はコピーも書き換えもしません。要約ページの `raw` は `C:/Books/日本語資料.pdf` のような `/` 区切りの絶対パスに、`raw_sha256` は PDF の内容の SHA-256 になります。別の PC では、同じ PDF を取り込み直すと SHA-256 で同じ文書と分かります。
+-受け付けるのは、拡張子が `.pdf` で先頭が `%PDF-` の通常のファイルです。UNC パス（`\\server\share\...`）と、派生データの保存先の中の PDF は拒みます。ネットワークの PDF は、ドライブ文字を割り当ててから指定します。
++受け付けるのは、拡張子が `.pdf` で、先頭から 1024 バイト目までに `%PDF-` が始まる通常のファイルです。先頭に改行や空白があるだけの PDF も読みます。UNC パス（`\\server\share\...`）と、派生データの保存先の中の PDF は拒みます。ネットワークの PDF は、ドライブ文字を割り当ててから指定します。
+ 派生データの保存先、埋め込みモデル、OCR、検索の設定を変えるときは `/rag:setup` を使います。
+ PDF のページごとの抽出と OCR の結果は、PDF の内容の SHA-256 と OCR の設定（`ocr_mode`、`ocr_dpi`）ごとに保存し、同じ保存先を使う wiki のあいだで共有します。埋め込みモデルを変えて取り込み直しても OCR はやり直さず、埋め込みと索引だけを作り直します。
+ 埋め込みモデルや OCR の設定を変えると、その wiki の索引は次の取り込みで空になります。取り込み直す PDF は `/rag:status` の `reingest` で確かめられます。
+diff --git a/info-hive-rag/scripts/rag_index.py b/info-hive-rag/scripts/rag_index.py
+index c83057d..3c30bca 100644
+--- a/info-hive-rag/scripts/rag_index.py
++++ b/info-hive-rag/scripts/rag_index.py
+@@ -31,6 +31,17 @@ def _same_file(first: os.stat_result, second: os.stat_result) -> bool:
+         second.st_dev, second.st_ino, second.st_size, second.st_mtime_ns)
+ 
+ 
++# PDF のヘッダー（%PDF-）の前に置けるバイト数の上限。PDFium は、先頭から 1024 バイト目までに始まる
++# ヘッダーを探して開く（pypdfium2 5.14.0、PDFium 156 で、前置きが 1024 バイトなら開け、1025 バイトなら
++# 開けないことを確かめた）。先頭に改行などがあるだけの PDF を、PDFium が開けるのに拒まないため。
++PDF_HEADER_OFFSET_LIMIT = 1024
++
++
++def has_pdf_header(data: bytes) -> bool:
++    """%PDF- が、先頭から PDF_HEADER_OFFSET_LIMIT バイト目までのどこかで始まっていれば True。"""
++    return data.find(b"%PDF-", 0, PDF_HEADER_OFFSET_LIMIT + len(b"%PDF-")) != -1
++
++
+ def read_pdf(path: Path, expected: tuple | None = None) -> tuple[bytes, os.stat_result]:
+     """確かめたファイルを 1 回だけ開いて読み、読んだバイト列が PDF であることを確かめる（ADR-0013）。
+ 
+@@ -60,8 +71,8 @@ def read_pdf(path: Path, expected: tuple | None = None) -> tuple[bytes, os.stat_
+         after = os.fstat(handle.fileno())
+     if not _same_file(opened, after) or len(data) != after.st_size:
+         raise ValueError("読み込み中に PDF が変更されました。もう一度取り込んでください。")
+-    if not data.startswith(b"%PDF-"):
+-        raise ValueError("PDF の形式ではありません（先頭が %PDF- ではない）。")
++    if not has_pdf_header(data):
++        raise ValueError(f"PDF の形式ではありません（先頭の {PDF_HEADER_OFFSET_LIMIT} バイトに %PDF- がない）。")
+     return data, after
+ 
+ 
