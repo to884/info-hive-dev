@@ -32,8 +32,8 @@ import sys
 import tempfile
 import unicodedata
 import unittest
-from collections import Counter
 from pathlib import Path, PurePath
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 WIKI_REPO = ROOT / "info-hive-wiki"
@@ -170,7 +170,18 @@ def build(base: Path, spec: dict) -> bool:
                 os.symlink(target, path, target_is_directory=(kind == "dlink"))
         except (OSError, AttributeError, NotImplementedError):
             return False
-    return True
+
+    # 表と同じ木ができたかを確かめる。ファイルシステムが名前を同じものとみなすと（macOS の APFS は、NFC と NFD だけが
+    # 違う名前を、大文字と小文字だけが違う名前を区別しない設定もある）、あとから書いた項目が先の項目を上書きする。
+    def same(directory, node):
+        try:
+            names = os.listdir(directory)
+        except OSError:
+            return False
+        if len(names) != len(node):
+            return False
+        return all(same(directory / name, value) for name, value in node.items() if isinstance(value, dict))
+    return same(base, spec)
 
 
 def remove_tree(base: Path) -> None:
@@ -584,6 +595,34 @@ def control_ignore_block_device(root):
         return wiki_pages.walk_pages(root)
 
 
+def control_raise_on_unresolvable(root):
+    """解けないリンクの失敗を、障害として送出する（自分を指すリンクが 1 つあるだけで止まる）。"""
+    def strict(call, *args, **kwargs):
+        try:
+            return "ok", call(*args, **kwargs)
+        except (FileNotFoundError, NotADirectoryError):
+            return "absent", None
+        except (PermissionError, wiki_pages.NoFileId):
+            return "denied", None
+    with swapped(wiki_pages, "read_os", strict):
+        return wiki_pages.walk_pages(root)
+
+
+def control_identity_everywhere(root):
+    """ジャンクションでないディレクトリにも、識別子を取る呼び出しをする（道筋の識別子が兄弟に漏れるのと同じ形）。"""
+    with swapped(wiki_pages, "_is_junction", lambda entry: ("ok", True)):
+        return wiki_pages.walk_pages(root)
+
+
+def control_os_stat_identity(root):
+    """識別子を os.stat() から取る（3.12 以降、識別子の取得の失敗で形が変わる）。"""
+    def identity(path):
+        st = os.stat(path)
+        return "ok", (st.st_dev, st.st_ino)
+    with swapped(wiki_pages, "_identity", identity):
+        return wiki_pages.walk_pages(root)
+
+
 def control_nfc_key(root):
     found = wiki_pages.walk_pages(root)
     files = sorted(found.files, key=lambda f: (unicodedata.normalize("NFC", f.rel), f.rel))
@@ -591,10 +630,13 @@ def control_nfc_key(root):
 
 
 CONTROLS = [("どの失敗も「ない」にする", control_swallow_all), ("権限を知らせずに飛ばす", control_silent),
-            ("知らせがあったら全ページを捨てる", control_discard_all)]
+            ("知らせがあったら全ページを捨てる", control_discard_all),
+            ("解けないリンクで送出する", control_raise_on_unresolvable)]
 if NT:
     CONTROLS += [("識別子の代わりにパスの文字列を使う", control_path_string_identity),
-                 ("os.stat() の S_IFBLK の成功を、そのまま受け取る", control_ignore_block_device)]
+                 ("os.stat() の S_IFBLK の成功を、そのまま受け取る", control_ignore_block_device),
+                 ("ジャンクションでないディレクトリにも識別子を取る", control_identity_everywhere),
+                 ("識別子を os.stat() から取る", control_os_stat_identity)]
 else:
     CONTROLS.append(("並びの鍵を NFC だけにする", control_nfc_key))
 
@@ -682,7 +724,7 @@ class AnswerTests(TreeCase):
             with self.subTest(tree=label):
                 wiki = self.make(label, spec)
                 if wiki is None:
-                    self.skipTest(f"{label}: リンクを作れない")
+                    self.skipTest(f"{label}: 表と同じ木を作れない（リンクを作れないか、名前を区別しないファイルシステム）")
                 pages, index = wiki_pages.walk_pages(wiki), wiki_pages.walk_index_files(wiki)
                 self.assertEqual([f.rel for f in pages.files], model_pages(spec))
                 self.assertEqual([f.rel for f in index.files], model_index(spec))
@@ -737,6 +779,8 @@ class ExploreTests(TreeCase):
         for label, spec in TREES.items():
             wiki = self.make(label, spec)
             if wiki is None:
+                with self.subTest(tree=label):
+                    self.skipTest(f"{label}: 表と同じ木を作れない（リンクを作れないか、名前を区別しないファイルシステム）")
                 continue
             targets = (("ページ", wiki_pages.walk_pages, model_pages(spec), expected_calls(spec, ("wiki",), "", True)),
                        ("索引", wiki_pages.walk_index_files, model_index(spec),
@@ -797,9 +841,13 @@ class IdentityTests(TreeCase):
                 raise wiki_pages.NoFileId(None, "入れた失敗", path, 50)
             return real(path)
 
+        def zero_start(path):
+            value = real(path)
+            return (value[0], bytes(16)) if os.fspath(path) == str(wiki) else value
+
         found = self.walk(wiki)
         self.assertEqual(([f.rel for f in found.files], found.unknown), (["a.md", "junc/c.md"], []))
-        for label, fake in (("FileId が 0", zero), ("識別子を持たない", noid)):
+        for label, fake in (("FileId が 0", zero), ("識別子を持たない", noid), ("起点の FileId が 0", zero_start)):
             with self.subTest(case=label):
                 found = self.walk(wiki, win_file_id=fake)
                 self.assertEqual(([f.rel for f in found.files], found.unknown), (["a.md"], ["junc"]))
@@ -852,10 +900,8 @@ class PortTests(unittest.TestCase):
 
     FUNCTIONS = ("read_os", "win_file_id", "_stat_entry", "_list_dir", "_identity", "_chain_identities", "_is_junction",
                  "walk_markdown", "walk_pages", "walk_index_files")
-    # 口と、口でない（OS を呼ばない）呼び出しとして許すもの
-    ALLOWED_ATTRS = {"scandir", "stat", "is_symlink", "is_dir", "fspath", "join", "append", "sort", "pop", "rstrip",
-                     "lower", "endswith", "get_last_error", "FormatError", "strip", "CreateFileW", "byref", "sizeof",
-                     "c_void_p", "GetFileInformationByHandleEx", "CloseHandle", "S_ISBLK", "S_ISREG", "WinDLL"}
+    # 走査の関数が参照してよい os の名前（口と、OS を呼ばない文字列の操作）
+    ALLOWED_OS = {"os.scandir", "os.stat", "os.fspath", "os.path.join"}
     FORBIDDEN_NAMES = {"open", "walk", "isfile", "isdir", "exists", "realpath", "samefile", "lstat", "rglob", "glob",
                        "iterdir", "resolve", "is_file", "read_text", "read_bytes"}
 
@@ -866,6 +912,10 @@ class PortTests(unittest.TestCase):
         for name in self.FUNCTIONS:
             self.assertIn(name, functions)
             for node in ast.walk(functions[name]):
+                if isinstance(node, ast.Attribute) and ast.unparse(node.value) in ("os", "os.path"):
+                    ref = ast.unparse(node)
+                    if ref != "os.path" and ref not in self.ALLOWED_OS:
+                        found.append(f"{name}: {ref}")
                 if isinstance(node, ast.Call):
                     callee = node.func
                     called = callee.attr if isinstance(callee, ast.Attribute) else getattr(callee, "id", None)
@@ -886,6 +936,9 @@ class PortTests(unittest.TestCase):
                                  "    files, unlistable, unknown = [], [], []\n    os.path.isfile(start)\n", 1)
         self.assertNotEqual(planted, source)
         self.assertIn("walk_markdown: isfile()", self.violations(planted))
+        planted = source.replace("    files, unlistable, unknown = [], [], []\n",
+                                 "    files, unlistable, unknown = [], [], []\n    os.listdir(start)\n", 1)
+        self.assertIn("walk_markdown: os.listdir", self.violations(planted))
         planted = source.replace("        state, entries = read_os(_list_dir, directory)\n",
                                  "        try:\n            entries = _list_dir(directory)\n        except OSError:\n"
                                  "            continue\n        state = \"ok\"\n", 1)
@@ -950,6 +1003,49 @@ class UseTests(TreeCase):
         self.assertNotEqual(wiki_index.stat_signature(wiki), before)
         listed = wiki_index.list_index(wiki)
         self.assertEqual([f["name"] for f in listed["indexes"]], ["concepts.md"])
+
+    def test_refresh_keeps_rows_on_eio(self):
+        """索引を作ったあとで、たどる途中に EIO が起きると、refresh() は失敗し、索引の行は 1 つも消えない。"""
+        try:
+            import numpy  # noqa: F401
+            import tantivy  # noqa: F401
+            import usearch  # noqa: F401
+            import wiki_index
+        except (ImportError, SystemExit) as exc:
+            self.skipTest(f"索引の依存がない: {exc}")
+        wiki = self.wiki_with_raw()
+        with mock.patch.dict(os.environ, {"INFO_HIVE_DATA_DIR": str(self.tmp / "data")}):
+            index = wiki_index.WikiIndex(wiki)
+            try:
+                index.refresh()
+                before = dict(index.collection.hashes())
+                self.assertTrue(before)
+                (wiki / "a.md").write_text("---\ntype: concept\n---\n# a changed\n", encoding="utf-8")
+
+                def broken(path):
+                    raise OSError(errno.EIO, "入れた失敗")
+                with swapped(os, "scandir", broken):
+                    with self.assertRaises(OSError):
+                        index.refresh()
+                self.assertEqual(dict(index.collection.hashes()), before)
+                index.refresh()  # 障害がなくなると、今までどおり動く
+                self.assertNotEqual(dict(index.collection.hashes()), before)
+            finally:
+                index.close()
+
+    def test_list_index_upper_extension(self):
+        """一覧に出す Upper.MD を、名前で渡すと、そのファイルを返す（.md に置き換えない）。"""
+        try:
+            import wiki_index
+        except (ImportError, SystemExit) as exc:
+            self.skipTest(f"索引の依存がない: {exc}")
+        wiki = self.make("upper", {"wiki": {"indexes": {"Upper.MD": "UPPER", "Upper.md": "lower"}}})
+        if wiki is None:
+            self.skipTest("大文字と小文字を区別しないファイルシステム")
+        self.assertEqual([f["name"] for f in wiki_index.list_index(wiki)["indexes"]], ["Upper.MD", "Upper.md"])
+        self.assertEqual(wiki_index.list_index(wiki, "Upper.MD")["content"], "UPPER")
+        self.assertEqual(wiki_index.list_index(wiki, "Upper.md")["content"], "lower")
+        self.assertEqual(wiki_index.list_index(wiki, "Upper")["content"], "lower")
 
     def test_signature_raises_on_eio(self):
         try:
