@@ -1,0 +1,285 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index eff4d2c..8defe1b 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "wiki",
+-  "version": "0.10.2",
++  "version": "0.11.0",
+   "description": "日本語による Markdown の wiki を構築し、ローカルのハイブリッド検索、出典つきの回答、グラフ、タスクの経験からのスキル改善を提供する。praneybehl/llm-wiki-plugin v4.0.1 の日本語向け移植版。",
+   "author": {
+     "name": "to884"
+diff --git a/.github/workflows/wiki-tests.yml b/.github/workflows/wiki-tests.yml
+index ed24f80..7c65923 100644
+--- a/.github/workflows/wiki-tests.yml
++++ b/.github/workflows/wiki-tests.yml
+@@ -13,7 +13,7 @@ jobs:
+     runs-on: ubuntu-latest
+     strategy:
+       matrix:
+-        python: ['3.10', '3.12']
++        python: ['3.12', '3.14']
+     steps:
+       - uses: actions/checkout@v4
+       - uses: actions/setup-python@v5
+@@ -45,7 +45,7 @@ jobs:
+     strategy:
+       fail-fast: false
+       matrix:
+-        python: ['3.10', '3.12']
++        python: ['3.12', '3.14']
+     env:
+       PYTHONUTF8: '0'
+     defaults:
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 4626e1d..d521e29 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,17 +6,21 @@
+ 
+ ## [Unreleased]
+ 
+-## [0.10.2] - 2026-11-12
++## [0.11.0] - 2026-11-12
++
++### Changed
++
++- 同梱の Python スクリプトに、Python 3.12 以上が要るようになった（今までは 3.10 以上）。uv で動くスクリプト（MCP のサーバー、検索、グラフ、閲覧、セットアップ）は、uv が 3.12 以上の Python を選び、なければ取得する。`python` で直接動かす lint、stats、語彙の検索、グラフの問い合わせなどは、3.12 より古い版では理由を書いて止まる。更新のあとの最初の接続で、MCP のサーバーの環境を作り直し、動いているサーバーを 1 度起動し直す。
+ 
+ ### Fixed
+ 
+ - wiki をたどるとき、最上位の `raw/`、`assets/`、`graph/`、`indexes/`、`.evolution/`、`.wiki-cache/` の下を列挙しなくなった。今までは、lint、検索、グラフ、統計、MCP の索引が、wiki の全体を列挙してから除いていたので、`raw/` が外の書庫を指すジャンクションだったり、大きな Raw があったりすると、その全体をたどっていた。MCP の索引は、ツールの呼び出しのたびにたどる。たどる経路を `wiki_pages.walk_markdown()` の 1 つにまとめ、除く名前の項目には種類を調べる呼び出しもしない。ページの集合と並びは今までどおりである。
+-  - Windows で、同じ場所を回るジャンクション（`sub/loop` が wiki を指すなど）があると、Python 3.10 では lint や検索が止まり、3.14 では同じページを何度も数えていたのを直した。ジャンクションを通った道筋で、入ろうとするディレクトリが、そこまでに通ったディレクトリと同じなら降りない。同じかどうかは、Win32 から直接取るファイルの識別子で決める。
+-  - Windows の Python 3.10 で、大文字と小文字を区別するフォルダーにある、大文字と小文字だけが違う 2 つのページ（`a.md` と `A.md`）の片方を落としていたのを直した。
++  - Windows で、同じ場所を回るジャンクション（`sub/loop` が wiki を指すなど）があると、同じページを何度も数えていた（Python 3.12〜3.14 で、`sub/loop/sub/loop/…` と 127 階層まで降りた）のを直した。ジャンクションを通った道筋で、入ろうとするディレクトリが、そこまでに通ったディレクトリと同じなら降りない。同じかどうかは、Win32 から直接取るファイルの識別子で決める。
+   - 統計（`/wiki:stats`）が、`raw/` などの下の Markdown を読まなくなった。`most_linked`、`pages_by_type`、`pages_by_dir` で件数が同じ項目は、名前の順に並ぶようになった（今までは、ファイルを列挙した順で、環境によって違った）。ふつうのファイルでない `.md`（`/dev/null` へのリンクなど）を、ページとして数えなくなった（lint と検索は今までも数えていない）。
+   - 索引のファイル（`index.md` と `indexes/` の下）は、ふつうのファイルだけを集めるようになった。`.md` で終わる名前のディレクトリがあると、MCP の `list_index` が失敗していた。Linux と macOS では、`indexes/` の下の `Upper.MD` も索引として読む（ページの側と同じ）。MCP の `list_index` に名前で `Upper.MD` を渡すと、そのファイルを返す（今までは `.md` に置き換えていた）。
+   - ディレクトリをたどる途中で読み取りの障害が起きたときは、ページがなくなったとみなさずに失敗するようにした。MCP の索引の行が、たどる途中の障害で消えなくなった。ページの中身を読むときの障害の扱いは、変えていない。
+ - 走査の結果に、一覧を作れなかったディレクトリと、種類を調べられなかった項目を、知らせとして付けた（`wiki_pages.walk_pages()` と `walk_index_files()`）。lint などは今までどおり知らせを見ない。閲覧の次の版が使う。
++- Python 3.13 と 3.14 で、lint が `%00` を含む画像の参照を、「ファイルのパスにできない」ではなく「見つからない」と報告していたのを直した。3.13 から、`Path.resolve()` が NUL を含むパスで例外を出さなくなったためである。
+ 
+ ## [0.10.1] - 2026-11-11
+ 
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index 60543a6..bc72249 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -31,7 +31,7 @@ claude --plugin-dir /absolute/path/to/info-hive-wiki
+ 
+ 変更したら、`/reload-plugins` で読み込み直す。ビルドの手順はない。スキル、コマンド、スクリプトは、ファイルシステムにあるものがそのまま動く。
+ 
+-同梱の Python スクリプトは Python 3.10 以上を対象にする。改善のワークフロー、語彙ベースの検索、lint、stats、グラフのクエリは標準ライブラリだけを使う。実行環境のセットアップ、ハイブリッド検索、グラフのコンパイルは、uv を通じて、バージョンを固定した既存の PEP 723 の依存パッケージを使う。新しい補助の処理には標準ライブラリを優先し、改善のワークフローには依存パッケージを加えない。
++同梱の Python スクリプトは Python 3.12 以上を対象にする。標準ライブラリだけのスクリプトは `wiki_text.py` を読み込んだときに版を確かめるので、`wiki_text.py` と入口のスクリプトには 3.12 だけの構文（PEP 695 の型の宣言、PEP 701 の f 文字列の書き方など）を使わない。古い版で、版の確かめより先に構文の誤りで止まるからである。改善のワークフロー、語彙ベースの検索、lint、stats、グラフのクエリは標準ライブラリだけを使う。実行環境のセットアップ、ハイブリッド検索、グラフのコンパイルは、uv を通じて、バージョンを固定した既存の PEP 723 の依存パッケージを使う。新しい補助の処理には標準ライブラリを優先し、改善のワークフローには依存パッケージを加えない。
+ 
+ ## 変更を確かめる
+ 
+diff --git a/README.md b/README.md
+index 7016134..aeabcf3 100644
+--- a/README.md
++++ b/README.md
+@@ -219,7 +219,7 @@ LLM Wiki パターンで最大の失敗は、wiki が大きくなるにつれて
+ 
+ wiki をセットアップしたら、どの Markdown ビューアーでもページを読んで編集できる。[Obsidian](https://obsidian.md) は、グラフビューと `[[wikilinks]]` の構文があるので特に相性がよいが、必須ではない。Web ページは `/wiki:ingest <URL>` で取り込める（Obsidian Web Clipper で保存した Markdown も取り込める）。wiki はプロジェクトの中にある、ただの Markdown ファイルのディレクトリである。
+ 
+-ツールには Python 3.10 以上と `uv` が必要である。初期化とアップグレードでは `setup_wiki.py` を呼び出す。その PEP 723 の環境では、FastEmbed 0.8.0、sqlite-vec 0.1.9、PyYAML 6.0.3 のバージョンを固定しており、モデルをキャッシュし、wiki のインデックス全体を同期する。検索、グラフの lint、グラフの抽出も、それぞれバージョンを固定したスクリプトのメタデータを持つ。語彙ベースの `wiki_search.py --no-embed`、`wiki_lint.py`、`wiki_stats.py`、グラフのクエリは、標準ライブラリだけの Python で直接実行できる。同梱のスクリプトは、インストール後は `skills/info-hive/scripts/` にある。
++ツールには Python 3.12 以上と `uv` が必要である。初期化とアップグレードでは `setup_wiki.py` を呼び出す。その PEP 723 の環境では、FastEmbed 0.8.0、sqlite-vec 0.1.9、PyYAML 6.0.3 のバージョンを固定しており、モデルをキャッシュし、wiki のインデックス全体を同期する。検索、グラフの lint、グラフの抽出も、それぞれバージョンを固定したスクリプトのメタデータを持つ。語彙ベースの `wiki_search.py --no-embed`、`wiki_lint.py`、`wiki_stats.py`、グラフのクエリは、標準ライブラリだけの Python で直接実行できる。同梱のスクリプトは、インストール後は `skills/info-hive/scripts/` にある。
+ 
+ ## トラブルシューティング
+ 
+diff --git a/skills/info-hive/references/retrieval-setup.md b/skills/info-hive/references/retrieval-setup.md
+index 72d4657..1c42175 100644
+--- a/skills/info-hive/references/retrieval-setup.md
++++ b/skills/info-hive/references/retrieval-setup.md
+@@ -15,7 +15,7 @@
+ 
+ 状態は正確に報告する。
+ 
+-- **前提条件が整っている:** `uv` と Python 3.10 以上が使える。
++- **前提条件が整っている:** `uv` と Python 3.12 以上が使える。
+ - **セマンティック検索の依存パッケージが整っている:** バージョンを固定した実行環境で、FastEmbed、sqlite-vec、PyYAML を読み込める。
+ - **モデルがキャッシュされている:** ローカルの `intfloat/multilingual-e5-small` モデルがダウンロード済みである。
+ - **wiki が同期されている:** `setup_wiki.py` が `"status": "ready"` を出力し、そのセクション数がベクトル数と一致している。
+diff --git a/skills/info-hive/scripts/setup_wiki.py b/skills/info-hive/scripts/setup_wiki.py
+index 466df3c..7967274 100644
+--- a/skills/info-hive/scripts/setup_wiki.py
++++ b/skills/info-hive/scripts/setup_wiki.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env python3
+ # /// script
+-# requires-python = ">=3.10"
++# requires-python = ">=3.12"
+ # dependencies = [
+ #   "fastembed==0.8.0",
+ #   "pyyaml==6.0.3",
+diff --git a/skills/info-hive/scripts/wiki_browse.py b/skills/info-hive/scripts/wiki_browse.py
+index 90c3691..6a7365e 100644
+--- a/skills/info-hive/scripts/wiki_browse.py
++++ b/skills/info-hive/scripts/wiki_browse.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env python3
+ # /// script
+-# requires-python = ">=3.10"
++# requires-python = ">=3.12"
+ # dependencies = [
+ #   "pyyaml==6.0.3",
+ # ]
+diff --git a/skills/info-hive/scripts/wiki_graph_extract.py b/skills/info-hive/scripts/wiki_graph_extract.py
+index b872743..26ba859 100644
+--- a/skills/info-hive/scripts/wiki_graph_extract.py
++++ b/skills/info-hive/scripts/wiki_graph_extract.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env python3
+ # /// script
+-# requires-python = ">=3.10"
++# requires-python = ">=3.12"
+ # dependencies = [
+ #   "pyyaml==6.0.3",
+ # ]
+diff --git a/skills/info-hive/scripts/wiki_graph_lint.py b/skills/info-hive/scripts/wiki_graph_lint.py
+index 1947ae4..2a993fc 100644
+--- a/skills/info-hive/scripts/wiki_graph_lint.py
++++ b/skills/info-hive/scripts/wiki_graph_lint.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env python3
+ # /// script
+-# requires-python = ">=3.10"
++# requires-python = ">=3.12"
+ # dependencies = [
+ #   "pyyaml==6.0.3",
+ # ]
+diff --git a/skills/info-hive/scripts/wiki_lint.py b/skills/info-hive/scripts/wiki_lint.py
+index ee95776..0374a79 100644
+--- a/skills/info-hive/scripts/wiki_lint.py
++++ b/skills/info-hive/scripts/wiki_lint.py
+@@ -272,10 +272,15 @@ def missing_assets(body: str, md_path: Path, wiki_root: Path) -> list[dict]:
+             rel = urllib.parse.unquote(rel)
+             if not rel:
+                 continue
++            # %00 のように、ファイルのパスにできない参照先。lint を止めずに報告する。NUL は先に確かめる。Path.resolve() が
++            # NUL で ValueError を出すのは 3.12 までで、3.13 からは出さず、そのまま「見つからない」になるからである。
++            if chr(0) in rel:
++                found.append({"target": target, "invalid": True})
++                continue
+             try:
+                 resolved = (md_path.parent / rel).resolve()
+             except (ValueError, OSError):
+-                # %00 のように、ファイルのパスにできない参照先。lint を止めずに報告する。
++                # NUL のほかにも、OS がパスとして受け付けない参照先。同じく、lint を止めずに報告する。
+                 found.append({"target": target, "invalid": True})
+                 continue
+             inside = _inside(resolved, root)
+diff --git a/skills/info-hive/scripts/wiki_mcp_launch.py b/skills/info-hive/scripts/wiki_mcp_launch.py
+index 5c00fa1..c119e04 100644
+--- a/skills/info-hive/scripts/wiki_mcp_launch.py
++++ b/skills/info-hive/scripts/wiki_mcp_launch.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env python3
+ # /// script
+-# requires-python = ">=3.10"
++# requires-python = ">=3.12"
+ # dependencies = []
+ # ///
+ """wiki の MCP の中継（wiki_mcp_relay.py）を起動する入口。プラグインの .mcp.json から起動する。
+diff --git a/skills/info-hive/scripts/wiki_mcp_relay.py b/skills/info-hive/scripts/wiki_mcp_relay.py
+index 335dc2e..31bfeb3 100644
+--- a/skills/info-hive/scripts/wiki_mcp_relay.py
++++ b/skills/info-hive/scripts/wiki_mcp_relay.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env python3
+ # /// script
+-# requires-python = ">=3.10"
++# requires-python = ">=3.12"
+ # dependencies = [
+ #   "mcp==1.30.0",
+ #   "filelock==4.2.9",
+diff --git a/skills/info-hive/scripts/wiki_mcp_server.py b/skills/info-hive/scripts/wiki_mcp_server.py
+index 08b1a6f..0d349d0 100644
+--- a/skills/info-hive/scripts/wiki_mcp_server.py
++++ b/skills/info-hive/scripts/wiki_mcp_server.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env python3
+ # /// script
+-# requires-python = ">=3.10"
++# requires-python = ">=3.12"
+ # dependencies = [
+ #   "mcp==1.30.0",
+ #   "uvicorn==0.54.0",
+diff --git a/skills/info-hive/scripts/wiki_pages.py b/skills/info-hive/scripts/wiki_pages.py
+index 49cecf2..2a99235 100644
+--- a/skills/info-hive/scripts/wiki_pages.py
++++ b/skills/info-hive/scripts/wiki_pages.py
+@@ -62,7 +62,7 @@ def is_page_path(rel: "str | PurePosixPath") -> bool:
+ # ---------------------------------------------------------------------------
+ #
+ # 走査が OS を呼ぶ口は、os.scandir()（開く、項目を 1 つ取り出す、閉じる）、項目の is_symlink()、is_dir()、
+-# stat(follow_symlinks=False)、os.stat()、Windows の win_file_id() だけである。どれも、呼ぶたびに os から引いて呼ぶ
++# is_junction()、os.stat()、Windows の win_file_id() だけである。どれも、呼ぶたびに os から引いて呼ぶ
+ # （試験が差し替えられるように）。pathlib の入出力、os.walk、os.path.realpath、os.path.isfile は使わない。内側で
+ # いくつもの呼び出しをして、失敗を版ごとに違う形で読み替えるからである。口の各行の内側の扱いと、それが結果を
+ # 変えない理由は、設計の「決めること」の 1 の表にある。
+@@ -88,7 +88,7 @@ class NoFileId(OSError):
+     """ファイルシステムが、識別子（FileIdInfo）を返さない。"""
+ 
+ 
+-# 失敗の分け方（設計の「決めること」の 2）。今の実装の扱い（3.10〜3.12 の pathlib の _ignore_error は ENOENT、ENOTDIR、
++# 失敗の分け方（設計の「決めること」の 2）。今の実装の扱い（3.12 と 3.13 の pathlib の _ignore_error は ENOENT、ENOTDIR、
+ # EBADF、ELOOP と Windows のエラー 21、123、1921 を無視する。3.14 の glob と os.path.isfile は、どの OSError も無視する）と
+ # 並べて決めた。木の状態として、障害なしに必ず起きる失敗（解けないリンク）は、送出しない。
+ _ABSENT = (FileNotFoundError, NotADirectoryError)
+@@ -221,14 +221,9 @@ def _chain_identities(chain: tuple):
+ 
+ 
+ def _is_junction(entry):
+-    """(状態, ジャンクションか)。Windows のほかでは、呼び出しをせずに偽を返す。DirEntry.is_junction() は 3.12 から。"""
+-    if not NT:
+-        return "ok", False
+-    state, st = read_os(entry.stat, follow_symlinks=False)
+-    if state != "ok":
+-        return state, False
+-    return "ok", bool(st.st_file_attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT) \
+-        and st.st_reparse_tag == stat.IO_REPARSE_TAG_MOUNT_POINT
++    """(状態, ジャンクションか)。DirEntry.is_junction()（3.12 から）は、Windows では一覧の情報（再解析のタグ）から答え、
++    OS を呼ばない。Windows のほかでは、いつも偽を返す。"""
++    return read_os(entry.is_junction)
+ 
+ 
+ def walk_markdown(start, prefix: str = "", skip_top: bool = False) -> Walk:
+diff --git a/skills/info-hive/scripts/wiki_search.py b/skills/info-hive/scripts/wiki_search.py
+index 0795864..3645674 100644
+--- a/skills/info-hive/scripts/wiki_search.py
++++ b/skills/info-hive/scripts/wiki_search.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env python3
+ # /// script
+-# requires-python = ">=3.10"
++# requires-python = ">=3.12"
+ # dependencies = [
+ #   "fastembed==0.8.0",
+ #   "sqlite-vec==0.1.9",
+diff --git a/skills/info-hive/scripts/wiki_text.py b/skills/info-hive/scripts/wiki_text.py
+index 42970c6..fdb699f 100644
+--- a/skills/info-hive/scripts/wiki_text.py
++++ b/skills/info-hive/scripts/wiki_text.py
+@@ -17,8 +17,21 @@ wiki_text.py — 日本語の wiki を扱うための文字列の正規化と、
+ from __future__ import annotations
+ 
+ import re
++import sys
+ import unicodedata
+ 
++# 同梱のスクリプトは Python 3.12 以上を対象にする（info-hive-dev の ADR-0018）。lint、stats、語彙の検索などの
++# 標準ライブラリだけのスクリプトは、利用者の python で直接動くので、ここで版を確かめ、古い版では理由を書いて止める。
++# どのスクリプトもこのモジュールを最初に読み込む。古い版でもここまで届くよう、このファイルと入口のスクリプトには、
++# 3.12 だけの構文（PEP 695 の型の宣言、PEP 701 の f 文字列の書き方など）を使わない。
++MIN_PYTHON = (3, 12)
++if sys.version_info < MIN_PYTHON:
++    sys.stderr.write(
++        f"info-hive の wiki のスクリプトには Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} 以上が必要である"
++        f"（今の Python は {sys.version.split()[0]}）。"
++        f"`uv run --python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} python <スクリプト>` で実行する。\n")
++    raise SystemExit(1)
++
+ # frontmatter のキーの日本語の別名。値は英語のキー。
+ # 比較の前に NFKC をかけるので、全角・半角の違いはここに並べなくてよい。
+ KEY_ALIASES: dict[str, str] = {

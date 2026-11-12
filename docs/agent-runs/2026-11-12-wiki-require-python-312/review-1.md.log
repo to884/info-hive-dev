@@ -1,0 +1,78 @@
+[ask-codex 21:51:36] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-walk-excluded-dirs）
+主要経路を壊す反例は、ここまで見つかっていません。確認できた問題は、3.6以前では版の検査より先に構文エラーになることと、入口の試験一覧・検査方法に穴があることです。最終報告では、これらと、3.14のCIで飛ばされる索引の試験を軽微な問題として扱います。
+## 判定
+
+**条件付きで採用可。確信度：中。** 通常の入口、ジャンクション判定、NUL の変更について、採用を妨げる反例は見つからなかった。ただし「3.12 より古い版では理由を書いて止める」という保証には例外があり、追加試験にも検出漏れがある。
+
+## 致命的・重大な欠陥
+
+なし。
+
+## 崩れる前提
+
+- **3.10 の構文で解析できれば、さらに古い Python でも版の検査まで届く。** 3.6 以前では `from __future__ import annotations` 自体が認識されない。
+- **最初の `wiki_*` の import が `wiki_text` なら、その入口は安全である。** それより前の標準ライブラリの import や実行文は、追加試験の判定対象になっていない。
+- **CI の行列が 3.12・3.14 なら、索引を使う試験も両方で確認される。** 依存を追加するステップは 3.12 に限定されている。
+- **PEP 723 の宣言が Python の選択に常に優先する。** uv 0.12.0 の実装では、明示的な Python 要求が優先され、不一致は警告になる。`UV_PYTHON=3.10` などを継承した MCP 起動の最終結果は、今回 uv を実行できず未検証である。これはソースからの推測である。[uv 0.12.0 の実装](https://github.com/astral-sh/uv/blob/0.12.0/crates/uv/src/commands/project/mod.rs#L1584)
+
+## 見落としと軽微な問題
+
+1. **軽微：3.6 以前では、最低版の説明に到達しない。**
+
+   反例は、Python 3.6 で `python wiki_lint.py --help` を実行する場合である。`wiki_text.py:17` の `from __future__ import annotations` により、`SyntaxError: future feature annotations is not defined` で止まる。追加した `wiki_text.py:28` の検査と説明は実行されない。`wiki_fetch.py:32` などは入口自身にも同じ future 文がある。
+
+   ADR の「古い版でもそこまで届く」という記述とは食い違う。実機の 3.6 では未実行だが、この失敗は [CPython 3.6 の future 定義](https://github.com/python/cpython/blob/v3.6.15/Lib/__future__.py)から確定できる。`ast.parse(feature_version=...)` は、過去版の future 定義まで再現しない。
+
+   根拠：`info-hive-wiki/skills/info-hive/scripts/wiki_text.py:17`、`docs/adr/0018-wiki-requires-python-312.md:22`、`tests/wiki/test_python_version.py:56`。
+
+2. **軽微：`DIRECT` は、文書にある直接実行の入口を網羅していない。**
+
+   次の入口が一覧から漏れている。
+
+   - `wiki_decide.py`
+   - `wiki_evolve.py`
+   - `wiki_evolve_loop.py`
+   - `wiki_evolve_agent.py`
+   - `wiki_evolve_api.py`
+   - 旧来の `wiki_evolve_claude.py`
+
+   呼び出しは `references/decision-models.md:68`、`references/evolution-workflow.md:46`・`:59`・`:89`・`:116` にあり、旧来の入口を引き続き使える旨も同文書の `:109` にある。
+
+   反例として、これらのファイルだけに非互換な構文を入れても、追加試験の入口検査はそのファイルを読まない。**現行の前五者については、版情報を3.10に差し替えた実行で検査への到達を確認した。現在の実装が壊れているという指摘ではなく、試験の対象漏れである。**
+
+   根拠：`tests/wiki/test_python_version.py:25`・`:53`。
+
+3. **軽微：入口の試験は「検査まで到達する」ことを保証していない。**
+
+   反例として、`wiki_lint.py` の `import argparse` より前に `import tomllib` を追加したソースを、メモリ上だけで試験に渡した。`test_entry_scripts_reach_the_guard` は通った。
+
+   このソースを実際の Python 3.10 で実行すれば、`tomllib` がないため `wiki_text` より先に `ModuleNotFoundError` になる。試験は `wiki_*` で始まる import しか比較せず、動的試験も入口ではなく `wiki_text` 単体を読み込むため、この後退を検出できない。
+
+   根拠：`tests/wiki/test_python_version.py:31`、`:60`〜`:70`。リポジトリのファイルは変更していない。
+
+4. **軽微：3.14 の CI では、索引の行を保持する試験が飛ばされる。**
+
+   反例となる実行は、`.github/workflows/wiki-walk.yml` の `matrix.python == '3.14'` のジョブである。最初の走査試験には索引の依存を追加せず、依存を追加する次のステップは `matrix.python == '3.12'` に限定される。
+
+   したがって、`test_refresh_keeps_rows_on_eio` は 3.14 では依存不足による skip になり、CI が成功しても、この版で索引の行が保たれることは確認されない。これは実装の障害ではなく、検証範囲の穴である。
+
+   根拠：`.github/workflows/wiki-walk.yml:67`・`:71`・`:72`、`tests/wiki/test_walk.py:1013`〜`:1021`。
+
+## 検証した事実
+
+- Python 3.14.6 で `test_python_version.py` の4試験と、`test_walk.PortTests` の2試験は通った。
+- 13個の CLI 入口を、版情報を3.10に差し替えて実行し、すべて最低版の説明と終了コード1を確認した。実際の3.10・3.11による検証とは区別する。
+- PEP 723 の宣言は8ファイルにあり、すべて `>=3.12` と一致した。
+- 3.14で `%00`、実際の NUL、NUL と `..` を含む画像参照は `invalid: True` になった。`from_root` も同じ `rel` を使い、NUL 検査より後にあるため、この分岐への抜け道は見つからなかった。
+- `plugin.json` と `CHANGELOG.md` はともに0.11.0。未公開の0.10.2をまとめる判断について、AGENTS.md のリリース規則との食い違いは確認されなかった。
+- uv による環境移行と、走査試験全体の再実行は行っていない。
+
+## 崩せなかった点
+
+- `DirEntry.is_junction()` への置き換え。CPython 3.12 では、旧方式の `stat(follow_symlinks=False)` も新方式も、一覧時に保持した `win32_lstat` を参照する。古い一覧情報を使うこと自体は今回の置き換えによる後退ではない。[CPython の実装](https://github.com/python/cpython/blob/v3.12.0/Modules/posixmodule.c#L13590)
+- 通常の3.10・3.11の入口で、`_vendor` の読み込みが版の検査に先行する経路。
+- NUL 検査の追加によって、有効な `%2500` というファイル名まで NUL と誤判定する経路。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 22:04:04] 完了。session 01a1cfd0-4c11-7353-ade8-0788a0b4b251  usage {"input_tokens": 3620018, "cached_input_tokens": 3405184, "cache_write_input_tokens": 0, "output_tokens": 17557, "reasoning_output_tokens": 8334}

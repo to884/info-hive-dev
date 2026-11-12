@@ -1,6 +1,7 @@
 name: Wiki MCP server
 
 # wiki の MCP サーバー（info-hive-wiki）を Linux で確かめる。Windows は手元で確かめる。
+# - tests/wiki/test_python_version.py: 同梱のスクリプトの Python の版の扱い（3.12 以上。標準ライブラリだけ。入口を本物の 3.10 と 3.11 で動かす）
 # - tests/wiki/test_wiki_lint.py: lint の索引、出典、原本、タグの検査（標準ライブラリだけ）
 # - tests/wiki/test_source_claims.py: ソースの要約ページの「主張と行き先」の規定とひな形の整合（標準ライブラリだけ）
 # - tests/wiki/test_template_script_paths.py: ひな形が書き出すコマンドのスクリプトのパスと、検索の例の実行（標準ライブラリだけ）
@@ -72,6 +73,13 @@ jobs:
           uv --version
           uv run --python 3.12 python -c "import platform, sys; print(platform.platform(), platform.machine(), sys.version)"
       # 前の試験が失敗しても続けて動かす。wiki を取得できなかったときは動かさない。
+      - name: Python の版の扱いの試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        env:
+          WIKI_TEST_REQUIRE_OLD_PYTHON: '1'
+        run: |
+          uv python install 3.10 3.11
+          uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_python_version.py -v
       - name: lint の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_wiki_lint.py -v

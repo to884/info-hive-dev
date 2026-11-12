@@ -1,0 +1,133 @@
+## 判定
+
+**却下。確信度：高。** 試作には、列挙順によって通常ディレクトリのページが欠ける反例と、宣言した例外以外に索引の並びが変わる反例があります。また、標準ライブラリ内部で失敗を握り潰さないという原則は、`scandir` を閉じる経路で成立していません。
+
+以下、対象文書を「計画」と呼びます。
+
+## 致命的・重大な欠陥
+
+1. **【重大】ジャンクションの検査状態が兄弟へ漏れ、ジャンクションを通らないページまで落ちる。**
+
+   次の状態をメモリ上に作り、試作の `walk_pages()` を実行しました。
+
+   ```text
+   wiki/
+     j/             外へのジャンクション。識別子は正常
+     plain/
+       x.md         通常のファイル
+
+   plain は列挙可能だが、os.stat(plain) の st_ino は0
+   ```
+
+   同じ木で、起点の列挙順だけを変えた結果です。
+
+   | 列挙順 | files | unknown |
+   | --- | --- | --- |
+   | `j`, `plain` | `[]` | `["plain"]` |
+   | `plain`, `j` | `["plain/x.md"]` | `[]` |
+
+   原因は、最初のジャンクションを調べた際、現在のディレクトリのループ変数 `ids` に祖先の識別子を代入していることです。その値が後続の兄弟にも残り、通常ディレクトリにも識別子の検査を要求します。
+
+   `plain/x.md` への道筋はジャンクションを通りません。本文が認めた「識別子を返さないジャンクションに降りない」という代償には入りません。通知を捨てる既存の呼び出し元では、そのページが集合から消えます。
+
+   探索の答えも、この余分な呼び出しを排除できません。`answer_with_failure()` は、走査が実際に行ったディレクトリへの `stat` と `last_entry` から欠落範囲を作るため、兄弟への不要な検査が失敗しても、その欠落を正解として扱います。識別子0の別試験には、ジャンクションと通常の兄弟を併置したケースがありません。
+
+   根拠：[本文の道筋ごとの規則](/C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:178)、[試作の `ids` 更新と再利用](/C:/Works/info-hive-dev/docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/walk_v3.py:123)、[失敗時の答え](/C:/Works/info-hive-dev/docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/walk_v3.py:565)、[識別子0の試験](/C:/Works/info-hive-dev/docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/zero_ino_probe.py:49)。
+
+2. **【重大】Windows の索引では、同じ `Path` ソートをかけ直しても旧順序を復元できない。**
+
+   大小文字を区別する Windows フォルダーに、次の2ファイルがある場合です。
+
+   ```text
+   indexes/a.md
+   indexes/A.md
+   ```
+
+   旧 `rglob()` が `a.md`, `A.md` の順に返す条件を差し替えで作り、実際の旧 `wiki_lint.index_files()` と試作を比較しました。
+
+   ```text
+   Windows Path の比較: a.md == A.md は True
+   旧 index_files():   indexes/a.md → indexes/A.md
+   試作 index_files(): indexes/A.md → indexes/a.md
+   ```
+
+   旧実装の `sorted(Path…)` は、この2件を同値として元の順序を保ちます。試作では先に walker が大小文字を区別して並べ、その後の `Path` ソートも同値の順序を保つため、旧順序には戻りません。
+
+   この2名は `posix_rel()` の同じ鍵にはなりません。したがって、7の表が認めた「鍵が同じになる名前の組の順」には該当せず、失敗のないときの並びの契約に反します。358行の「文字列を比べないので、関わる箇所がないはず」という説明も、索引のソートには当てはまりません。
+
+   根拠：[索引の並びの契約](/C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:168)、[許容する違いの表](/C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:214)、[試作のソート](/C:/Works/info-hive-dev/docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/walk_v3.py:183)、[旧実装](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:137)。
+
+3. **【重大・失敗契約】`scandir` を閉じる内部処理の失敗は外へ出ない。外側への注入では確認できない。**
+
+   CPython 3.10〜3.14 の `ScandirIterator_closedir()` は、Windows の `FindClose()` と POSIX の `closedir()` の戻り値を検査していません。`close()` と `__exit__()` も、その失敗を Python の例外にしません。[CPython 3.10](https://github.com/python/cpython/blob/v3.10.0/Modules/posixmodule.c#L13101)、[CPython 3.14](https://github.com/python/cpython/blob/v3.14.0/Modules/posixmodule.c#L15112)。
+
+   ソース上の反例は、ネイティブのクローズが失敗を返す場合です。一般の `OSError` 相当でも `read_os()` に届かず、走査は通常の結果を返します。ネイティブ失敗の実行再現はしていませんが、戻り値を捨てることはソースで確認できます。
+
+   `Injector` が行うのは、実際の `__exit__()` が終わった**後**に別の例外を発生させる操作です。これは、その内部の失敗が外へ届くことの検証にはなりません。計画は未確認と明記していますが、W1の成立条件と、一般の障害を必ず送出する契約が未成立のままです。
+
+   根拠：[口の表](/C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:97)、[W1](/C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:79)、[送出の契約](/C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:116)、[閉じた後の注入](/C:/Works/info-hive-dev/docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/walk_v3.py:531)。
+
+## 崩れる前提
+
+- **「識別子の検査状態は道筋ごとに独立している」**  
+  試作では同じディレクトリの兄弟へ漏れます。先にジャンクションを列挙した場合に崩れます。
+
+- **「最後に旧ソートをかければ旧順序になる」〔前提B〕**  
+  旧比較が同値とする名前を、その前段で並べ替えると崩れます。Windows の `Path` 比較が具体例です。
+
+- **「許可した口なら、必要な内部失敗は読み替え関数へ届く」〔前提A〕**  
+  ネイティブのディレクトリクローズで崩れます。
+
+- **「木から求めた答えとの完全一致で、検査範囲も正しいと分かる」〔前提C〕**  
+  失敗時の答えが、対象自身の行った呼び出しを無条件に正当な検査として扱うと崩れます。重大1の不要な識別子検査が、その例です。
+
+前提Dについては、他文書の動作を正しさの根拠にする依存は、今回の本文からは崩せませんでした。
+
+## 見落としと軽微な問題
+
+1. **【軽微】「Windows では NFC で同じになる名前の組を置けない」は誤り。**
+
+   `é.md` と `e\u0301.md` は、Windows のファイル名として別の文字列です。Windows のファイルAPIは、名前を正規化せず扱います。[Microsoft の説明](https://learn.microsoft.com/windows/win32/fileio/maximum-file-path-limitation)。
+
+   したがって、200行と7の表が同じ鍵の名前を Linux・macOS に限定する根拠はありません。試作の Windows の木には、NFD名はありますが、そのNFC名との併置がありません。
+
+   根拠：[計画の環境限定](/C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:200)、[試作の木](/C:/Works/info-hive-dev/docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/walk_v3.py:212)。
+
+2. **【軽微・決め残し】stats の既存の `indexes.exists()` と、「除く名前に口を呼ばない」試験が接続されていない。**
+
+   7の表にある変更だけを施す前提では、`compute_stats()` の末尾にある `(wiki / "indexes").exists()` が残ります。この引数はページ数にかかわらず評価され、Python 3.10では `stat()` を通ります。`indexes` が外へのジャンクションなら、その先の存在を調べます。
+
+   一方、318行は `compute_stats()` も除く名前に口を呼ばないとしています。新しい `Walk` は `indexes` の存在を返さず、この既存処理をどうするかも本文にありません。
+
+   根拠：[既存の呼び出し](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_stats.py:184)、[使う側の変更](/C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:210)、[試験の要求](/C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:318)。
+
+3. **【軽微・事実の過大表現】「走査が送出すると、`refresh()` は索引を変えずに失敗する」には例外がある。**
+
+   `collection.needs_reconcile` が真の場合、`refresh()` は走査より前に `reconcile()` を実行します。そこでは検索索引、ベクトル、台帳の `has_vector` を変更します。その後に走査が `EIO` を送出しても、呼び出し全体が無変更とは限りません。
+
+   根拠：[計画の記述](/C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:231)、[走査前の修復](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:843)、[修復の変更内容](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:479)。
+
+## 検証した事実
+
+| 確かめた主張 | 結果 |
+| --- | --- |
+| 前回重大1：旧 `posix_rel()` と違う鍵を使う | **元の反例は解消。** 実際の関数と旧モジュールを使っています。ただし、索引の別の同値比較について重大2が残ります。 |
+| 前回重大2：`realpath(strict=True)` 内部の失敗と文字列への退避 | **元の経路は解消。** 試作の走査から両方なくなっています。前提A全体は重大3のとおり未解消です。 |
+| 前回重大3：browse の未定義の2回走査への依存 | **解消。** 計画は自分の結果だけを約束しています。現在の browse 本文にも、前後2回の走査が書かれています。 |
+| 前回軽微1：全ページを捨てる実装が探索を通る | **その対照は検出。** 完全一致で比較し、保存出力にも検出件数があります。 |
+| 前回軽微2：列挙途中への注入がない | **`next()` への注入は解消。** ネイティブのクローズ内部は重大3の範囲です。 |
+| 検証環境の集計 | Windows の11の木・各版1,536回、Linux の7の木・852回、5つのwiki、対照の件数は、保存された3版目の出力と一致しました。 |
+| 比較対象のコミット | 現在のサブモジュールの HEAD は `f0a758f1f0a82486c1f7897fec36e961967aea3f` でした。 |
+
+今回の実行検証は、Windows／Python 3.14.6 上でのメモリ内の差し替えです。実ファイルシステム上のリンク作成、他OSでの再実行、製品実装の試験はしていません。リポジトリのファイルは変更していません。
+
+## 崩せなかった点
+
+- 最上位の除外名を、項目の種類を調べる前に飛ばす walker 自身の処理。
+- `indexes` を独立した起点としてたどり、ページ側と訪問記録を共有しない方式。
+- ファイルの大きさ・更新時刻を、新しい `os.stat()` の結果から返す処理。
+- 識別子を取得でき、道筋ごとの状態が正しく保たれる条件での、本文の循環判定規則。
+- ページ用ジャンクション、ファイルのシンボリックリンク、通知を見ない呼び出し元、走査中の変化を残すという宣言との整合。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

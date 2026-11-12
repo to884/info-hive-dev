@@ -1,0 +1,124 @@
+[ask-codex 20:01:30] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev）
+CPython 内部の失敗で `os.stat()` が `S_IFBLK` の成功を返し、試作が知らせなしにページを落とす経路を確認しました。再現はソースから求めた戻り値を使うメモリ上の差し替えです。保存された探索件数は本文と一致しており、この経路は既存の注入対象に含まれていません。
+## 判定
+
+**却下。確信度：高。** 分類2の反例がある。Windows の `os.stat()` は、識別子以外の内部失敗でも成功を返して通常ファイル判定を変えるため、W1 と「知らせが空なら欠けていない」という約束が成立しない。第一・第二の約束を破る無障害の反例は、今回の確認では見つからなかった。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大・分類2】`os.stat()` の内部失敗が、知らせのないページ消失に変わる
+
+[口の表の `os.stat()` の説明](C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:108)は、内部の読み替えが結果を「ファイルである」の向きにしか変えないとしている。**通常ファイルをブロックデバイスとして成功させる分岐が残っている。**
+
+CPython の Windows 実装は、`GetFileInformationByHandle()`、または `GetFileInformationByHandleEx(FileBasicInfo)` がエラー1・50・87で失敗すると、構造体をゼロにし、`st_mode = S_IFBLK` を設定して成功として返す。対象が実際に物理ディスクかどうかの追加確認はない。この分岐を、対象の4版すべてで確認した。[3.10.11](https://github.com/python/cpython/blob/v3.10.11/Modules/posixmodule.c#L1894)、[3.12.13](https://github.com/python/cpython/blob/v3.12.13/Modules/posixmodule.c#L1935)、[3.13.7](https://github.com/python/cpython/blob/v3.13.7/Modules/posixmodule.c#L1989)、[3.14.6](https://github.com/python/cpython/blob/v3.14.6/Modules/posixmodule.c#L2072)。
+
+反例の入力と失敗位置は次のとおり。
+
+```text
+wiki/
+  target.txt       通常ファイル
+  a.md → target.txt（ファイルのシンボリックリンク）
+```
+
+1. 木は変化させない。`DirEntry.is_dir()` は正常に偽を返す。
+2. 続く `os.stat(a.md)` の内部で、上記の属性取得だけをエラー87で失敗させる。
+3. CPython は例外を出さず、`S_IFBLK` の結果を返す。
+4. 試作の `S_ISREG` 判定が偽になり、`a.md` が消える。
+
+3.14.6でも、リンクをたどる `stat()` は再解析点のため高速経路を使えず、この処理に入る。[高速経路の条件](https://github.com/python/cpython/blob/v3.14.6/Modules/posixmodule.c#L2118)。
+
+ソースから求めた戻り値を試作へ与えた実行結果は次だった。
+
+```text
+通常:
+  files=['a.md'], unlistable=[], unknown=[]
+
+内部失敗後の S_IFBLK:
+  files=[], unlistable=[], unknown=[]
+```
+
+これは `FileIdInfo` の失敗ではなく、`win_file_id()` への切り替えでは消えない。木の変化も、`win_file_id()` が呼ぶ API 内部の問題も必要ない。
+
+[試作の通常ファイル判定](C:/Works/info-hive-dev/docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/walk_v6.py:276)には、この成功に見える失敗を知らせる経路がない。[9の約束](C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:259)に反して、存在するページを落とし、両方の知らせを空で返す。
+
+**検証範囲:** ネイティブ API の失敗自体は実機へ注入していない。CPython の分岐を確認し、その戻り値による走査結果をメモリ上で再現した。
+
+### 2. 【重大・分類3】`is_symlink()` が内部で消失を握り潰すと、ディレクトリのシンボリックリンクへ降りる
+
+これは `d_type=DT_UNKNOWN` を返すPOSIXファイルシステムでの反例である。**確認済みのLinux実測環境で、この条件になるかは未確認**なので、分類2の件数には含めない。
+
+[口の表](C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:105)は、`is_symlink()` が `FileNotFoundError` を偽に変えても、後続の `os.stat()` が項目を落とすとしている。しかし、後続処理はファイル判定へ進むとは限らない。
+
+```text
+wiki/
+  dlink → ../outside（ディレクトリのシンボリックリンク）
+outside/
+  outside.md
+```
+
+木を変えず、最初の `is_symlink()` 内部の `lstat()` だけへ `ENOENT` を注入すると、次の順で崩れる。
+
+1. `is_symlink()` は例外を消し、偽を返す。
+2. 続く `is_dir()` では属性取得が成功し、真を返す。
+3. 試作は保存済みの `is_link=False` を使い、通常ディレクトリとして降りる。
+
+CPython 3.12.3では、失敗した `lstat()` の結果はキャッシュされず、次の問い合わせで再取得される。[再取得処理](https://github.com/python/cpython/blob/v3.12.3/Modules/posixmodule.c#L13713)、[例外を偽に変える処理](https://github.com/python/cpython/blob/v3.12.3/Modules/posixmodule.c#L13786)。
+
+この戻り値列を試作へ与えた結果は次だった。
+
+```text
+通常:       files=[]
+内部失敗後: files=['dlink/outside.md']
+いずれも unlistable=[], unknown=[]
+```
+
+[試作の判定順](C:/Works/info-hive-dev/docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/walk_v6.py:245)と、[途中のディレクトリリンクには降りないという規則](C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:166)が矛盾する。実ファイルシステムでの再現ではなく、ソースに基づく戻り値列の再現である。
+
+## 崩れる前提
+
+- **前提A：「識別子を取る役割を外せば、`os.stat()` の内部失敗は通常ファイル判定に響かない」**  
+  `S_IFBLK` を成功として返す分岐で崩れる。識別子を使わなくても、ページの集合が変わる。
+
+- **前提A：「`is_symlink()` の偽は、消失と同じ向きにしか働かない」**  
+  次の `is_dir()` が成功すると、リンクへ降りる判断に変わる。
+
+- **前提C：「外側の口への失敗注入と、内部処理の説明がそろえば検証できている」**  
+  探索は、例外を送出せず種類だけを変える内部経路や、内部で消された例外による問い合わせ間の不整合を扱わない。
+
+B・D・Eについて、今回新たに根拠を示せる反例は見つからなかった。
+
+## 見落としと軽微な問題
+
+**【軽微・分類4】内部 API への失敗注入を行ったという記述が、試作と一致しない。**
+
+[385行](C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:385)は、`win_file_id()` 内部のAPIへの失敗注入を、`NoFileId` と識別子ゼロの場合には行ったと読める。
+
+実際の `cmd_identity()` は、`win_file_id()` 自体を差し替えて `NoFileId` を送出するか、正常取得した識別子を後からゼロにしている。`CreateFileW`、`GetFileInformationByHandleEx`、`CloseHandle` の失敗を注入してはいない。そのため、これらの試験は内部のエラー変換処理を検証していない。
+
+根拠：[試作の `cmd_identity()`](C:/Works/info-hive-dev/docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/walk_v6.py:1005)以降。これは検証範囲の記述の誤りであり、単独では約束を破る反例ではない。
+
+## 検証した事実
+
+| 確認対象 | 結果 |
+| --- | --- |
+| 比較対象のサブモジュール | **一致。** HEADは `f0a758f1f0a82486c1f7897fec36e961967aea3f`。作業差分なし |
+| 6版目の保存集計 | **一致。** Windows各版4,277回、Linux1,835回、対照の各件数は本文と一致 |
+| 長いパスの記録 | **一致。** 保存出力は `LongPathsEnabled=1`、440文字、3.10・3.14とも取得成功 |
+| statsの変更箇所 | **一致。** 現行コードは除外前に本文を読み、末尾で `indexes.exists()` を呼ぶ |
+| MCPの更新順 | **一致。** `reconcile()`、印の計算、ページ収集、差集合の削除という順序 |
+| 本番実装の検証 | **未実施。** 実装はまだなく、利用側の変更も動作確認できない |
+
+今回の実行はWindows／Python 3.14.6上のメモリ内の差し替えである。他版・Linuxはソースと保存出力を照合した。ファイルの作成・変更はしていない。
+
+## 崩せなかった点
+
+- 最上位の除外名を、種類の問い合わせより先に飛ばす処理。
+- 識別子が正常に取得できる条件での、道筋ごとの循環判定。
+- 最初のジャンクションのために取得した識別子を、通常の兄弟へ引き継がない処理。
+- `indexes` を独立した起点として扱う方式。
+- 現行関数ごとの比較鍵で同値になる組だけ、順序差を許す規則。
+- 解けないリンクを「ない」に分類する6版目の修正。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 20:15:54] 完了。session 01a1cf6b-8175-76e3-9a2b-30e69bc43a4b  usage {"input_tokens": 2657710, "cached_input_tokens": 2479232, "cache_write_input_tokens": 0, "output_tokens": 19921, "reasoning_output_tokens": 11651}

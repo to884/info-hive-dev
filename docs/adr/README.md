@@ -20,5 +20,6 @@ info-hive の設計で決めたことと、その理由を残す。1 つの判�
 | [0014](0014-rag-keeps-extraction-independent-of-embedding.md) | rag は抽出と OCR の結果を、埋め込みと分割の方針から切り離して保存する | 承認 | 2026年11月8日 |
 | [0015](0015-wiki-article-methodology-adopted-in-stages.md) | wiki の記事作成の方法論は、提案を一括で入れず、検査と記録から段階を分けて入れる | 承認 | 2026年11月9日 |
 | [0016](0016-wiki-browse-stage1-accepts-two-delivery-methods.md) | `/wiki:browse` の第 1 段階は、サーバーと静的 HTML の 2 方式で合格とし、アプリでの確認はアプリを作るときに行う | 承認 | 2026年11月9日 |
+| [0018](0018-wiki-requires-python-312.md) | info-hive の wiki の同梱のスクリプトは、Python 3.12 以上を対象にする | 承認 | 2026年11月12日 |
 
 各 ADR には、状態、決定日、決定者、関連を表で書き、続けて背景、決定、理由、検討した選択肢、影響、参照を書く。判断を変えるときは元の ADR を書き換えず、新しい ADR を書いて、元の ADR の状態を「置き換え済み」にする。

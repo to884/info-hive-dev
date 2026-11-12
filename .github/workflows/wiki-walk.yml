@@ -1,0 +1,75 @@
+name: Wiki walk
+
+# wiki をたどる経路（info-hive-wiki の wiki_pages.walk_markdown、wiki 0.11.2）を、Windows、macOS、Linux と、
+# 対象のいちばん古い版（3.12）といちばん新しい版（3.14）で確かめる（ADR-0018）。設計は docs/plans/wiki-walk-excluded-dirs-2026-11-11.md にある。
+# - tests/wiki/test_walk.py: 木から計算した答え、今（0.10.1）の実装との照合、失敗を入れる探索と対照、口の一覧
+# - tests/wiki/test_page_set.py、test_wiki_lint.py: ページの集合と lint の今ある試験
+#
+# test_walk.py は、今の実装を info-hive-wiki のコミット 2756a4e から git で取り出すので、info-hive-wiki の履歴を
+# すべて取得する（fetch-depth: 0）。info-hive-wiki は、シークレット WIKI_READ_TOKEN の読み取り専用のトークンで取得する。
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - info-hive-wiki
+      - tests/wiki/test_walk.py
+      - tests/wiki/test_page_set.py
+      - tests/wiki/test_wiki_lint.py
+      - .github/workflows/wiki-walk.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wiki-walk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  walk:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ['3.12', '3.14']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - name: info-hive-wiki の参照を調べる
+        id: wiki
+        env:
+          WIKI_READ_TOKEN: ${{ secrets.WIKI_READ_TOKEN }}
+        run: |
+          if [ -z "$WIKI_READ_TOKEN" ]; then
+            echo "::error::シークレット WIKI_READ_TOKEN がない。to884/info-hive-wiki を読める fine-grained PAT を置く"
+            exit 1
+          fi
+          echo "sha=$(git ls-tree HEAD info-hive-wiki | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+      - id: checkout-wiki
+        uses: actions/checkout@v4
+        with:
+          repository: to884/info-hive-wiki
+          ref: ${{ steps.wiki.outputs.sha }}
+          path: info-hive-wiki
+          token: ${{ secrets.WIKI_READ_TOKEN }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - name: 環境を記録する
+        run: uv run --python ${{ matrix.python }} python -c "import platform, sys; print(platform.platform(), platform.machine(), sys.version)"
+      - name: 走査の試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python ${{ matrix.python }} python -X utf8 -B -m unittest tests/wiki/test_walk.py -v
+      # 索引の更新が、たどる途中の障害で行を消さないこと（UseTests の test_refresh_keeps_rows_on_eio）は、索引の依存が
+      # ないと飛ばすので、依存を入れて流す。版は info-hive-wiki の wiki_mcp_server.py の宣言にそろえる。
+      - name: 索引の依存を入れた、使う側の試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python ${{ matrix.python }} --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 python -X utf8 -B -m unittest tests.wiki.test_walk.UseTests -v
+      - name: ページの集合と lint の試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python ${{ matrix.python }} python -X utf8 -B -m unittest tests/wiki/test_page_set.py tests/wiki/test_wiki_lint.py -v
