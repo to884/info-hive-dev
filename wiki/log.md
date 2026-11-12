@@ -43,3 +43,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-13] ingest | browse のスコープ表示、wiki 0.12.0 のリリースと画面の確かめの記録
    ページ: sources/browseのスコープ表示とリリース-wiki-0.12.0、concepts/browseの画面の確かめ方（concepts/リリースの確かめ方 を更新）
+
+## [2026-11-13] ingest | 検索の結果の tags と sources の修正、wiki 0.12.1 のリリースの記録
+   ページ: sources/検索の結果のtagsとsourcesの修正-wiki-0.12.1、concepts/frontmatterのリストの値（concepts/リリースの確かめ方、concepts/git-bashのパス変換 を更新。SCHEMA.md のタグの体系に `検索` を足した）
