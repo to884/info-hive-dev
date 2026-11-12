@@ -1,4 +1,4 @@
-"""wiki をたどる経路（wiki_pages.walk_markdown、walk_pages、walk_index_files。wiki 0.10.2）の試験。
+"""wiki をたどる経路（wiki_pages.walk_markdown、walk_pages、walk_index_files。wiki 0.11.2）の試験。
 
 設計は `docs/plans/wiki-walk-excluded-dirs-2026-11-11.md`（7 版目、2026年11月12日に承認）にある。試作と実測は
 `docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/` の walk_v7.py と results.md にある。
@@ -15,7 +15,7 @@
 リンクを作れない環境では、その木を飛ばす。ジャンクションは Windows だけ、FIFO と名前に \\ を含むファイルは
 Linux と macOS だけで作る。大文字と小文字を区別するフォルダーは、Windows で fsutil が使えるときだけ作る。
 
-実行（標準ライブラリだけで動く。MCP の索引の試験は、索引の依存がなければ飛ばす）:
+実行（Python 3.12 以上。標準ライブラリだけで動く。MCP の索引の試験は、索引の依存がなければ飛ばす）:
     python -X utf8 -B -m unittest tests/wiki/test_walk.py -v
 """
 from __future__ import annotations
@@ -353,8 +353,6 @@ def expected_calls(spec, start, prefix="", skip_top=False, top_index=False):
                 target_kind, target = link_target(spec, value)
                 child = target if target_kind == "dir" else None
             if child is not None:
-                if NT:
-                    add("entry.stat", rel, ("entry", rel))
                 if junction or through:
                     add("file_id", rel, ("self", rel))
                     if junction and not through:
@@ -454,9 +452,9 @@ class Injector:
                 injector.hit("is_dir", self.path)
                 return self._entry.is_dir(**kwargs)
 
-            def stat(self, **kwargs):
-                injector.hit("entry.stat", self.path)
-                return self._entry.stat(**kwargs)
+            def is_junction(self):
+                # Windows では一覧の情報（再解析のタグ）から答え、OS を呼ばない（3.12 から）。失敗を入れる先がないので数えない。
+                return self._entry.is_junction()
 
         class Listing:
             def __enter__(self):
@@ -730,7 +728,7 @@ class AnswerTests(TreeCase):
                 self.assertEqual([f.rel for f in index.files], model_index(spec))
                 self.assertEqual((pages.unlistable, pages.unknown, index.unlistable, index.unknown), ([], [], [], []))
                 if label in CYCLIC:
-                    continue  # 今の実装は、循環するジャンクションで壊れる（3.10 は送出、3.14 は同じページを何度も返す）
+                    continue  # 今の実装は、循環するジャンクションで壊れる（3.12〜3.14 は、同じページを何度も返す）
                 self.assertTrue(same_up_to_ties(old_pages(wiki), new_pages(wiki), wiki_text.posix_rel),
                                 (old_pages(wiki), new_pages(wiki)))
                 old_idx, new_idx = old_index(wiki), new_index(wiki)
@@ -739,7 +737,7 @@ class AnswerTests(TreeCase):
                                                 PurePath), (old_idx, new_idx))
 
     def test_case_sensitive_folder(self):
-        """Windows で、大文字と小文字を区別するフォルダーの a.md と A.md。今の 3.10 は片方を落とす（設計の 7 の表）。"""
+        """Windows で、大文字と小文字を区別するフォルダーの a.md と A.md。今の実装と同じく、両方を返す。"""
         if not NT:
             self.skipTest("Windows だけ")
         wiki = self.tmp / "cs" / "wiki"
@@ -752,14 +750,8 @@ class AnswerTests(TreeCase):
             (folder / "A.md").write_text("2", encoding="utf-8")
         self.assertEqual(sorted(new_pages(wiki)), ["p/A.md", "p/a.md"])
         self.assertEqual(sorted(new_index(wiki)), ["indexes/A.md", "indexes/a.md"])
-        old_p, old_i = old_pages(wiki), old_index(wiki)
-        if sys.version_info >= (3, 12):
-            self.assertEqual(old_p, new_pages(wiki))
-            self.assertTrue(same_up_to_ties(old_i, new_index(wiki), PurePath))
-        else:
-            # 3.10 の rglob は、返したパスを Path の比較で重複除去する
-            self.assertEqual(len(old_p), 1)
-            self.assertEqual(len(old_i), 1)
+        self.assertEqual(old_pages(wiki), new_pages(wiki))
+        self.assertTrue(same_up_to_ties(old_index(wiki), new_index(wiki), PurePath))
 
     def test_eval_wikis(self):
         """今ある試験用の wiki で、今の実装と並びまで一致する。"""
