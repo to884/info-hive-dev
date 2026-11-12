@@ -1,0 +1,201 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index 8a1185f..13bbd6f 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "wiki",
+-  "version": "0.12.0",
++  "version": "0.12.1",
+   "description": "日本語による Markdown の wiki を構築し、ローカルのハイブリッド検索、出典つきの回答、グラフ、タスクの経験からのスキル改善を提供する。praneybehl/llm-wiki-plugin v4.0.1 の日本語向け移植版。",
+   "author": {
+     "name": "to884"
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 0606804..11ad209 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,14 @@
+ 
+ ## [Unreleased]
+ 
++## [0.12.1] - 2026-11-13
++
++### Fixed
++
++- 検索の `--json` の結果と MCP の `query` の結果で、`tags` と `sources` をいつも文字の配列にした。今までは、frontmatter に `tags: 検索` や `sources: paper` のように値を 1 つだけ書くと、配列でなく文字のまま返していた（`tags: 2024` も `"2024"` になった）。値を 1 つだけ書いたものは 1 要素の配列にし、キーがないか値が空なら空の配列にする。lint が `sources` を読むのと同じ `wiki_pages.ref_values()` を使う。
++  - 配列の要素の前後の空白を除き、空の要素を除くようにした。`tags: ["", " x "]` は、今までの `["", " x "]` でなく `["x"]` になる。規約どおりに配列で書いたページの結果は変わらない（評価のコーパスの英語と日本語の全クエリで、修正の前後の `--json` の出力が同じだった）。
++  - パースキャッシュ（`--cache`）から読んだ値も同じようにそろえる。
++
+ ## [0.12.0] - 2026-11-13
+ 
+ ### Added
+diff --git a/docs/search.md b/docs/search.md
+index 3fb3185..f4264da 100644
+--- a/docs/search.md
++++ b/docs/search.md
+@@ -70,7 +70,8 @@ flowchart LR
+ | `score` | BM25 のスコア（ハイブリッドモードでは RRF のスコア）。小数点以下 4 桁に丸める。 |
+ | `retrievers` | この行を見つけた検索器: `["bm25"]`、`["embedding"]`、またはその両方。 |
+ | `snippet` | セクションの本文。空白をまとめたうえで、先頭 400 文字。 |
+-| `updated`、`tags`、`sources` | frontmatter の値をそのまま使う（ない場合は `null` / `[]`）。 |
++| `updated` | frontmatter の値をそのまま使う（ない場合は `null`）。 |
++| `tags`、`sources` | いつも文字の配列。frontmatter に値を 1 つだけ書いたもの（`tags: 検索`）は 1 要素の配列にし、要素の前後の空白と空の要素は除く。ない場合や値が空の場合は `[]`。 |
+ | `neighbors` | 同じページで隣り合うセクションの見出し（ページの先頭や末尾では `null`）。 |
+ 
+ セマンティック検索の候補は、RRF の前に、控えめに設定したコサイン類似度の下限も超える必要がある。これにより、無関係なベクトルの近傍のせいで、wiki の範囲外の質問に、いかにも確かそうな結果が返ることを防ぐ。BM25 の完全一致には影響しない。
+diff --git a/eval/retrieval/test_search_contracts.py b/eval/retrieval/test_search_contracts.py
+index 13a59eb..a22ad31 100644
+--- a/eval/retrieval/test_search_contracts.py
++++ b/eval/retrieval/test_search_contracts.py
+@@ -5,6 +5,7 @@ import importlib.util
+ import json
+ import subprocess
+ import sys
++import tempfile
+ import unittest
+ from pathlib import Path
+ 
+@@ -171,5 +172,118 @@ class EmptyTokenQueryTest(unittest.TestCase):
+         self.assertIn("クエリに検索できる語がない。", proc.stderr.decode("utf-8", "replace"))
+ 
+ 
++# --json の結果の tags と sources に入る frontmatter の書き方と、期待する値。
++# 値が 1 つだけの書き方（`tags: 検索`）も、1 要素の配列にする。空の文字と空白だけの要素は除く。
++LIST_FIELD_PAGES = {
++    "single": ("tags: 検索\nsources: paper", ["検索"], ["paper"]),
++    "alias": ("タグ: 検索\n出典: paper", ["検索"], ["paper"]),
++    "empty_value": ("tags:\nsources:", [], []),
++    "empty_string": ('tags: ""\nsources: ""', [], []),
++    "empty_array": ("tags: []\nsources: []", [], []),
++    "array": ("tags: [a, b]\nsources: [p, q]", ["a", "b"], ["p", "q"]),
++    "number": ("tags: 2024\nsources: 7", ["2024"], ["7"]),
++    "blank_items": ('tags: ["", " x "]\nsources: [" ", y]', ["x"], ["y"]),
++    "missing": ("", [], []),
++}
++LIST_FIELD_QUERY = "共通語"
++
++
++def is_string_list(value) -> bool:
++    return isinstance(value, list) and all(isinstance(item, str) for item in value)
++
++
++class JsonListFieldsContractTest(unittest.TestCase):
++    """--json の結果の tags と sources は、frontmatter の書き方によらず、いつも文字の配列にする。
++
++    browse の埋め込みの検索の契約（info-hive-dev の tests/wiki/browse/search_result_contract.json）が、
++    この形を前提にする。MCP の query も同じ json_result() で結果を作る。
++    """
++
++    def setUp(self):
++        self._tmp = tempfile.TemporaryDirectory()
++        self.wiki = Path(self._tmp.name) / "wiki"
++        (self.wiki / "concepts").mkdir(parents=True)
++        for name, (fields, _tags, _sources) in LIST_FIELD_PAGES.items():
++            text = f"---\ntitle: {name}\n{fields}\n---\n{LIST_FIELD_QUERY}の本文。\n"
++            (self.wiki / "concepts" / f"{name}.md").write_bytes(text.encode("utf-8"))
++
++    def tearDown(self):
++        self._tmp.cleanup()
++
++    def search(self, granularity: str, *extra) -> list[dict]:
++        proc = subprocess.run(
++            [sys.executable, "-X", "utf8", str(SCRIPT), LIST_FIELD_QUERY, "--wiki", str(self.wiki), "--no-embed",
++             "--json", "--granularity", granularity, "--top", "100", *extra],
++            capture_output=True, cwd=str(REPO),
++        )
++        self.assertEqual(proc.returncode, 0, proc.stderr.decode("utf-8", "replace"))
++        results = json.loads(proc.stdout.decode("utf-8"))["results"]
++        self.assertEqual({row["slug"] for row in results}, set(LIST_FIELD_PAGES))
++        return results
++
++    def assert_list_fields(self, results: list[dict], expected: dict | None = None) -> None:
++        for row in results:
++            with self.subTest(slug=row["slug"]):
++                self.assertTrue(is_string_list(row["tags"]), row["tags"])
++                self.assertTrue(is_string_list(row["sources"]), row["sources"])
++                if expected is not None:
++                    self.assertEqual((row["tags"], row["sources"]), expected[row["slug"]])
++
++    def test_section_and_page_granularity(self):
++        expected = {name: (tags, sources) for name, (_fields, tags, sources) in LIST_FIELD_PAGES.items()}
++        for granularity in ("section", "page"):
++            with self.subTest(granularity=granularity):
++                self.assert_list_fields(self.search(granularity), expected)
++
++    def test_parse_cache(self):
++        # 2 回目は、パースキャッシュに残した meta から結果を作る。
++        expected = {name: (tags, sources) for name, (_fields, tags, sources) in LIST_FIELD_PAGES.items()}
++        cache = Path(self._tmp.name) / "cache.json"
++        for _ in range(2):
++            self.assert_list_fields(self.search("section", "--cache", str(cache)), expected)
++
++    def test_parse_cache_with_non_string_values(self):
++        # キャッシュの meta は辞書であることしか確かめないので、文字でない値が入っていても配列にする。
++        cache = Path(self._tmp.name) / "cache.json"
++        self.search("section", "--cache", str(cache))
++        payload = json.loads(cache.read_text(encoding="utf-8"))
++        values = {"single": 5, "alias": None, "array": [1, None, "a"], "number": 2.5, "empty_value": True,
++                  "empty_string": {"k": "v"}}
++        for name, value in values.items():
++            meta = payload["files"][f"concepts/{name}.md"]["meta"]
++            meta["tags"] = value
++            meta["sources"] = value
++        cache.write_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
++        results = self.search("section", "--cache", str(cache))
++        self.assert_list_fields(results)
++        by_slug = {row["slug"]: row for row in results}
++        self.assertEqual(by_slug["single"]["tags"], ["5"])
++        self.assertEqual(by_slug["alias"]["tags"], [])
++        self.assertEqual(by_slug["array"]["tags"], ["1", "a"])
++
++    def test_json_result_direct(self):
++        # パーサーは文字か文字の配列しか返さないが、json_result() は渡された meta の値によらず配列を返す。
++        sections = [{"heading_path": [], "level": 0, "text": "本文", "links": [], "section_index": 0}]
++        cases = [
++            ("検索", ["検索"]), ("[a, b", ["[a, b"]), ("", []), ("  ", []), (None, []), ([], []),
++            (["x"], ["x"]), ([1, None, "a", " "], ["1", "a"]), (5, ["5"]), (2.5, ["2.5"]), (True, None),
++            ({"k": "v"}, None),
++        ]
++        for value, expected in cases:
++            for key in ("tags", "sources"):
++                with self.subTest(key=key, value=value):
++                    page = {"slug": "p", "rel_path": "concepts/p.md", "meta": {"title": "t", key: value},
++                            "sections": sections}
++                    for row in (WIKI_SEARCH.json_result(1.0, page),
++                                WIKI_SEARCH.json_result(1.0, page, sections[0], sections, ["bm25"])):
++                        self.assertTrue(is_string_list(row[key]), row[key])
++                        if expected is not None:
++                            self.assertEqual(row[key], expected)
++        # キーがないときも空の配列にする。
++        page = {"slug": "p", "rel_path": "concepts/p.md", "meta": {}, "sections": sections}
++        row = WIKI_SEARCH.json_result(1.0, page)
++        self.assertEqual((row["tags"], row["sources"]), ([], []))
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/skills/info-hive/scripts/wiki_search.py b/skills/info-hive/scripts/wiki_search.py
+index 3645674..53da9e1 100644
+--- a/skills/info-hive/scripts/wiki_search.py
++++ b/skills/info-hive/scripts/wiki_search.py
+@@ -72,6 +72,7 @@ from wiki_pages import (  # noqa: E402
+     split_lines,
+     extract_wikilinks,
+     iter_page_files,
++    ref_values,
+     resolve_link,
+ )
+ 
+@@ -831,8 +832,10 @@ def json_result(
+         "retrievers": retrievers or ["bm25"],
+         "snippet": snippet,
+         "updated": meta.get("updated"),
+-        "tags": meta.get("tags", []) or [],
+-        "sources": meta.get("sources", []) or [],
++        # tags と sources は、値を 1 つだけ書いたページ（tags: 検索）でも文字の配列にする。lint が sources を
++        # 読むのと同じ wiki_pages.ref_values() を使う。MCP の query も、この関数で結果を作る。
++        "tags": ref_values(meta.get("tags")),
++        "sources": ref_values(meta.get("sources")),
+         "neighbors": {"prev": prev_heading, "next": next_heading},
+     }
+ 

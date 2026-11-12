@@ -84,6 +84,29 @@ class WikiIndexTests(Base):
         per_page = index.search("熱中症", top=20, per_page=1, embedder=self.embedder)["results"]
         self.assertEqual(len({r["rel_path"] for r in per_page}), len(per_page))
 
+    def test_search_list_fields_are_string_arrays(self):
+        # MCP の query の結果の tags と sources は、wiki_search.py --json と同じく、値を 1 つだけ書いた
+        # frontmatter（tags: 検索）でも文字の配列にする（wiki 0.12.1）。
+        pages = {
+            "single": ("tags: 検索\nsources: paper", ["検索"], ["paper"]),
+            "alias": ("タグ: 検索\n出典: paper", ["検索"], ["paper"]),
+            "number": ("tags: 2024\nsources: 7", ["2024"], ["7"]),
+            "empty": ('tags: ""\nsources:', [], []),
+            "array": ("tags: [a, b]\nsources: [p]", ["a", "b"], ["p"]),
+        }
+        for name, (fields, _tags, _sources) in pages.items():
+            text = f"---\ntitle: 一覧の欄の{name}\n{fields}\n---\nほげぴよの本文。\n"
+            (self.wiki / "concepts" / f"list-fields-{name}.md").write_bytes(text.encode("utf-8"))
+        index = self.open_index()
+        index.refresh()
+        wiki_index.embed_pending(index.collection, self.embedder)
+        for embedder in (None, self.embedder):
+            with self.subTest(mode="lexical" if embedder is None else "hybrid"):
+                rows = {row["slug"]: row for row in index.search("ほげぴよ", top=50, embedder=embedder)["results"]}
+                for name, (_fields, tags, sources) in pages.items():
+                    row = rows[f"list-fields-{name}"]
+                    self.assertEqual((row["tags"], row["sources"]), (tags, sources), name)
+
     def test_reconcile_after_interrupted_write(self):
         index = self.open_index()
         index.refresh()
