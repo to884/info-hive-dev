@@ -721,9 +721,12 @@ class Server:
         self.state_dir, self.lock, self.instance, self.owner = state_dir, lock, instance, owner
 
 
-def _enter_state(root, state_dir, owner):
+def _enter_state(root, state_dir, owner, create=False):
+    """状態のディレクトリに触れる前の確かめ。起動（create）だけは、ない祖先（<data_dir>/browse）を上から作る。"""
     global G
     G = Guard(root)
+    if create:
+        ensure_dirs(os.path.dirname(state_dir))
     use_territory(state_dir, SERVER_MARKER, STATE_KNOWN, owner=owner, lock_name="server.lock")
 
 
@@ -741,7 +744,7 @@ def read_record(state_dir):
 
 def serve_start(root, state_dir, instance, owner):
     """起動。('started', Server) か、('reuse', 記録) を返す。使い回せなければ Stop。"""
-    _enter_state(root, state_dir, owner)
+    _enter_state(root, state_dir, owner, create=True)
     lock = Lock(os.path.join(state_dir, "server.lock"))
     if not lock.try_acquire():
         rec = read_record(state_dir)

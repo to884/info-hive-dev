@@ -540,12 +540,12 @@ def sweep_build(out_state, work_state, default, modes, depth2=False):
 # サーバーの記録の探索
 # ---------------------------------------------------------------------------
 
-STATE_STATES = ("absent", "stale-record", "leftover-new", "unmarked-empty", "stale+leftover", "other-owner")
+STATE_STATES = ("absent", "stale-record", "leftover-new", "unmarked-empty", "stale+leftover", "other-owner", "nodata")
 
 
 def make_state(sb, state):
     d = sb.state_dir
-    if state == "absent":
+    if state in ("absent", "nodata"):      # nodata は、<data_dir> そのものがない（砂場の作りで決まる）
         return
     os.makedirs(d)
     if state == "unmarked-empty":
@@ -587,7 +587,7 @@ def run_server(sb, injector, phase):
 
 
 def check_server(state, phase, at, mode):
-    sb = Sandbox("absent", "asis", True)
+    sb = Sandbox("nodata" if state == "nodata" else "absent", "asis", True)
     problems = []
     try:
         make_state(sb, state)
