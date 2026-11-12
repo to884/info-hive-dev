@@ -1,18 +1,25 @@
-"""browse の書く側（設計の 5、6）の規則を写した、小さな試作。製品のコードではない。
+"""browse の書く側（設計の 6、7.1）の規則を写した、小さな試作。製品のコードではない。
 
-規則を文章だけで決めると、規則どうしのぶつかりが残る（3 回目のレビューの重大 3）。そこで、規則を動く形にし、
-OS の呼び出しの N 回目に失敗か強制停止を入れる探索（write_sweep.py）をかけて、決めた状態で終わることを確かめる。
+規則を文章だけで決めると、規則どうしのぶつかりが残る。そこで、規則を動く形にし、OS の呼び出しの N 回目に
+失敗か強制停止を入れる探索（write_sweep.py）をかけて、決めた状態で終わることを確かめる。
 
 写している規則:
-- 領分（目印のある作業用と状態のディレクトリ）の中は、browse のものとして扱う。消すときは、リンクをたどらず、
-  属性を変えない。
-- 書き出し先は、ない、空、一覧と中身が合う世代、のどれかのときだけ置き換える（門）。既定の書き出し先は領分で、
-  門を通さない。
-- 確定の点は、新しい世代を書き出し先の名前にする、名前の付け替えである。
+- 書き込みの口は、どれも、Wiki のルートと重なる場所への書き込みを拒む（6.1）。どこに書くかを列挙して確かめるの
+  ではなく、口そのものが確かめる。
+- 領分（作業用と状態のディレクトリ）の中は、browse のものとして扱う。消すときは、リンクをたどらず、属性を変えない。
+- wiki_key から場所を決める領分は、目印に Wiki のルートの識別子を書き、使うたびに照らす（7.1）。
+- `--out` の書き出し先は、ない、空、一覧と中身が合う世代、のどれかのときだけ置き換える（門）。既定の書き出し先は
+  領分で、前の世代を読まない。
+- 確定の点は、新しい世代を書き出し先の名前にする、名前の付け替えである。終了コードは、単位の真実だけで決める。
+  確定のあとの失敗（片付け、知らせの出力）は、警告にする。
 - サーバーの真実はロックで、記録は手がかりである。
+
+写していないもの: 走査と中核、待ち受け、ロックを待つ時間、2 つのプロセスの同時の実行、入れ子の書き出しの拒否、
+Windows の識別子の関数（win_file_id。ここでは os.stat の st_dev と st_ino で代える）。
 """
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
 import os
@@ -22,10 +29,12 @@ WORK_MARKER = ".browse-work"
 SERVER_MARKER = ".browse-server"
 MANIFEST = ".browse-generation"
 LEGACY = ("seq", "build-report.json")
+STATE_KNOWN = ("server.lock", "server.json", "server.json.new", SERVER_MARKER + ".new")
 O_BINARY = getattr(os, "O_BINARY", 0)
 
 MUTANTS: set = set()      # 対照（わざと破った規則）の名前
 WARNINGS: list = []
+STATE = {"committed": False}
 
 
 class Unknown(Exception):
@@ -46,9 +55,22 @@ class Os:
     def lstat(self, path):
         return os.lstat(path)
 
-    def listdir(self, path):
-        with os.scandir(path) as it:
-            return sorted(entry.name for entry in it)
+    def stat_id(self, path):
+        st = os.stat(path)
+        return st.st_dev, st.st_ino
+
+    def realpath(self, path):
+        return os.path.realpath(path, strict=True)
+
+    def scandir_open(self, path):
+        return os.scandir(path)
+
+    def scandir_next(self, it):
+        """項目を 1 つ取り出す。終わりなら None。閉じる操作は、失敗が見えないので口に入れない（設計の 3.1）。"""
+        try:
+            return next(it).name
+        except StopIteration:
+            return None
 
     def mkdir(self, path):
         os.mkdir(path)
@@ -82,6 +104,10 @@ class Os:
 
     def rmdir(self, path):
         os.rmdir(path)
+
+    def stdout_write(self, text):
+        """知らせの出力。試作では書き先を持たない。"""
+        return len(text)
 
     def chmod(self, path, mode):      # 対照だけが使う。規則では、属性を変えない
         os.chmod(path, mode)
@@ -119,20 +145,117 @@ X = Os()
 
 
 def x(name, *args):
-    """失敗の読み替えは、ここだけで行う。"""
+    """失敗の読み替えは、ここだけで行う（設計の 3.2）。"""
     try:
         return getattr(X, name)(*args)
     except (FileNotFoundError, NotADirectoryError) as e:
         raise Absent(str(e)) from None
     except OSError as e:
-        # 解けないリンクと正しくない名前は、木の状態として必ず起きる失敗なので「ない」（設計の 3.2）
-        if e.errno == getattr(__import__("errno"), "ELOOP", None) or getattr(e, "winerror", None) in (1921, 123):
+        if e.errno == getattr(errno, "ELOOP", None) or getattr(e, "winerror", None) in (1921, 123):
             raise Absent(str(e)) from None
         raise Unknown(f"{name}: {type(e).__name__}") from None
 
 
 def warn(message):
     WARNINGS.append(message)
+
+
+def listdir(path):
+    it = x("scandir_open", path)
+    try:
+        names = []
+        while True:
+            name = x("scandir_next", it)
+            if name is None:
+                return sorted(names)
+            names.append(name)
+    finally:
+        it.close()
+
+
+# ---------------------------------------------------------------------------
+# Wiki のルートと重ならないことの確かめ（6.1）。書き込みの口が、どれもこれを通す。
+# ---------------------------------------------------------------------------
+
+class Guard:
+    """1 つの仕事の単位のあいだ、Wiki のルートの識別子と、確かめた場所を覚えておく。"""
+
+    def __init__(self, root):
+        self.root = root
+        self.root_id = None
+        self.root_chain = None
+        self.ids = {}
+        self.ok = set()
+
+    def ident(self, path):
+        if path not in self.ids:
+            dev, ino = x("stat_id", path)
+            if ino == 0:
+                raise Unknown(f"識別子が 0: {os.path.basename(path)}")
+            self.ids[path] = (dev, ino)
+        return self.ids[path]
+
+    def chain(self, path):
+        """path（解いたもの）と、その親の識別子を、根まで。"""
+        found = []
+        while True:
+            found.append(self.ident(path))
+            parent = os.path.dirname(path)
+            if parent == path:
+                return found
+            path = parent
+
+    def _root(self):
+        if self.root_chain is None:
+            r = x("realpath", self.root)
+            self.root_chain = set(self.chain(r))
+            self.root_id = self.ident(r)
+
+    def place(self, directory):
+        """directory の中に名前を足す、変える、消すことができるか。Wiki のルートかその下なら Stop。"""
+        if "no_root_guard" in MUTANTS or directory in self.ok:
+            return
+        self._root()
+        p = directory
+        while kind(p) == "absent":
+            parent = os.path.dirname(p)
+            if parent == p:
+                raise Unknown("今ある祖先がない")
+            p = parent
+        r = x("realpath", p)
+        if self.ident(r) != self.ident(p):
+            raise Unknown("解いたパスの識別子が違う")
+        if self.root_id in self.chain(r):
+            raise Stop(f"Wiki のルートの下には書かない: {os.path.basename(directory)}")
+        self.ok.add(directory)
+
+    def not_root_ancestor(self, path):
+        """path（今あるディレクトリ）が、Wiki のルートか、その祖先なら Stop。"""
+        if "no_root_guard" in MUTANTS:
+            return
+        self._root()
+        if self.ident(x("realpath", path)) in self.root_chain:
+            raise Stop(f"Wiki のルートか、その祖先は動かさない: {os.path.basename(path)}")
+
+
+G = Guard(None)
+
+
+def w(name, *paths_and_args):
+    """書き込みの口。対象の場所を確かめてから、x() を呼ぶ。"""
+    if name in ("mkdir", "open_excl", "open_lock", "unlink"):
+        G.place(os.path.dirname(paths_and_args[0]))
+    elif name == "rmdir":
+        G.place(os.path.dirname(paths_and_args[0]))
+        if kind(paths_and_args[0]) == "dir":
+            G.not_root_ancestor(paths_and_args[0])
+    elif name in ("rename", "replace"):
+        src, dst = paths_and_args[:2]
+        G.place(os.path.dirname(src))
+        G.place(os.path.dirname(dst))
+        if kind(src) == "dir":
+            G.not_root_ancestor(src)
+    return x(name, *paths_and_args)
 
 
 # ---------------------------------------------------------------------------
@@ -156,6 +279,8 @@ def kind(path):
         return "dir"
     if stat.S_ISREG(st.st_mode):
         return "file"
+    if os.name == "nt" and stat.S_ISBLK(st.st_mode):
+        raise Unknown("属性を取れない（S_IFBLK）")      # 設計の 3.1
     return "other"
 
 
@@ -174,7 +299,7 @@ def read_file(path):
 
 def create_file(path, data):
     """排他で作る。今あるファイルは開かない。短い書き込みは、書き終わるまで続ける。"""
-    fd = x("open_excl", path)
+    fd = w("open_excl", path)
     try:
         view = memoryview(data)
         while view:
@@ -183,7 +308,10 @@ def create_file(path, data):
     except BaseException:
         _close(fd)
         raise
-    x("close", fd)      # 書いたあとの close の失敗は、書けなかったこととして扱う（握りつぶさない）
+    if "swallow_close" in MUTANTS:
+        _close(fd)
+        return
+    x("close", fd)      # 書いたあとの close の失敗は、書けなかったこととして扱う（設計の 3.2）
 
 
 def _close(fd):
@@ -200,59 +328,95 @@ def remove_tree(path):
         return
     if k == "link":
         try:
-            x("unlink", path)
+            w("unlink", path)
         except Unknown:
-            x("rmdir", path)      # Windows のジャンクションとディレクトリのリンクは rmdir で外す
+            w("rmdir", path)      # Windows のジャンクションとディレクトリのリンクは rmdir で外す
         return
     if k == "dir":
         # 世代の一覧は最後に消す（0.10.0 と同じ順）。途中で止まった世代が一覧を持ったまま残る形を、
         # わざと作る。del-N に付け替える規則が、その形を戻す候補から外すことを、探索で確かめるためである。
-        for name in sorted(x("listdir", path), key=lambda n: n == MANIFEST):
+        for name in sorted(listdir(path), key=lambda n: n == MANIFEST):
             remove_tree(os.path.join(path, name))
-        x("rmdir", path)
+        w("rmdir", path)
         return
     try:
-        x("unlink", path)
+        w("unlink", path)
     except Unknown:
         if "chmod_on_delete" not in MUTANTS:
             raise
         X.chmod(path, 0o666)          # 対照: 属性を変えて消す
-        x("unlink", path)
+        w("unlink", path)
 
 
 def move(src, dst):
     """名前を付け替える。先があれば、付け替えない。"""
     if kind(dst) != "absent":
         raise Unknown(f"付け替える先がある: {os.path.basename(dst)}")
-    x("rename", src, dst)
+    w("rename", src, dst)
+
+
+def replace_file(path, data):
+    """領分の中のファイルを置き換える。前の残りの .new を消し、.new を排他で作り、置き換える。"""
+    new = path + ".new"
+    remove_tree(new)
+    create_file(new, data)
+    w("replace", new, path)
 
 
 # ---------------------------------------------------------------------------
 # 領分
 # ---------------------------------------------------------------------------
 
-def use_territory(path, marker, known=()):
-    """目印があるか、空なら、領分として使う。目印がなく、空でもないディレクトリは、使わない。"""
+def read_text(path):
+    if kind(path) != "file":
+        return None
+    try:
+        return read_file(path).decode("utf-8")
+    except Absent:
+        return None
+    except UnicodeDecodeError:
+        return None
+
+
+def use_territory(path, marker, known=(), owner=None, lock_name=None):
+    """目印があるか、空なら、領分として使う。目印がなく、空でもないディレクトリは、使わない。
+
+    owner を渡すと、目印に Wiki のルートの識別子を書き、使うたびに照らす。違えば、領分のロックが空いて
+    いるときだけ、警告を出して引き継ぐ。ロックが取られていれば（別の Wiki が使っている）、止まる。
+    """
     k = kind(path)
     if k == "absent":
-        x("mkdir", path)
+        w("mkdir", path)
         k = "dir"
     if k != "dir":
         raise Stop(f"ディレクトリでない: {os.path.basename(path)}")
-    entries = x("listdir", path)
+    entries = listdir(path)
+    marker_path = os.path.join(path, marker)
+    content = (owner or "").encode("utf-8")
     if marker not in entries:
         if entries:
             raise Stop(f"目印がなく、空でもない: {os.path.basename(path)}")
         try:
-            create_file(os.path.join(path, marker), b"")
+            create_file(marker_path, content)
         except Unknown:
-            if kind(os.path.join(path, marker)) != "file":
+            if kind(marker_path) != "file":
                 raise
     elif "refuse_unknown_entries" in MUTANTS:
         # 3 版目の規則: 記録と、ロックと、目印のほかの項目があれば使わない（置き換えの一時ファイルも拒む）
         extra = [e for e in entries if e != marker and e not in known or e.endswith(".new")]
         if extra:
             raise Stop(f"決まった名前のほかの項目がある: {extra[0]}")
+    if owner is not None and "skip_owner" not in MUTANTS:
+        current = read_text(marker_path)
+        if current != owner:
+            probe = Lock(os.path.join(path, lock_name))
+            if not probe.try_acquire():
+                raise Stop("別の Wiki が、同じ場所を使っている")
+            try:
+                replace_file(marker_path, content)
+                warn("別の Wiki が使っていた場所を引き継いだ")
+            finally:
+                probe.release()
 
 
 class Lock:
@@ -261,7 +425,7 @@ class Lock:
         self.fd = None
 
     def try_acquire(self):
-        fd = x("open_lock", self.path)
+        fd = w("open_lock", self.path)
         try:
             got = x("try_lock", fd)
         except BaseException:
@@ -296,13 +460,11 @@ def make_manifest(files, seq):
 
 def read_manifest(directory):
     """一覧を読む。ないか、形が違えば None。読めなければ Unknown。"""
-    path = os.path.join(directory, MANIFEST)
-    if kind(path) != "file":
+    text = read_text(os.path.join(directory, MANIFEST))
+    if text is None:
         return None
     try:
-        data = json.loads(read_file(path).decode("utf-8"))
-    except Absent:
-        return None
+        data = json.loads(text)
     except ValueError:
         return None
     if not isinstance(data, dict) or not isinstance(data.get("published_seq"), int):
@@ -320,7 +482,7 @@ def verify_generation(directory, manifest):
     seen = set()
 
     def walk(rel):
-        for name in x("listdir", os.path.join(directory, rel) if rel else directory):
+        for name in listdir(os.path.join(directory, rel) if rel else directory):
             child = f"{rel}/{name}" if rel else name
             k = kind(os.path.join(directory, child))
             if child == MANIFEST:
@@ -346,17 +508,22 @@ def verify_generation(directory, manifest):
     return f"一覧にあるものがない: {sorted(missing)[0]}" if missing else None
 
 
-def out_state(out):
-    """('absent' | 'empty' | 'generation' | 'foreign', 理由, 通し番号)。
+def out_state(out, verify):
+    """('absent' | 'empty' | 'generation' | 'foreign' | 'present', 理由, 通し番号)。
 
-    一覧は 1 度だけ読み、判定にも通し番号にも、その 1 度の結果を使う。読み直すと、2 度目が違うことがある。
+    verify が偽（既定の書き出し先）なら、前の世代を読まない。'present' を返す。
+    一覧は 1 度だけ読み、判定にも通し番号にも、その 1 度の結果を使う。
     """
     k = kind(out)
     if k == "absent":
         return "absent", None, 0
+    if not verify and "default_verifies" not in MUTANTS:
+        if k == "dir" and not listdir(out):
+            return "empty", None, 0
+        return "present", None, 0
     if k != "dir":
         return "foreign", "ディレクトリでない", 0
-    if not x("listdir", out):
+    if not listdir(out):
         return "empty", None, 0
     manifest = read_manifest(out)
     seq = manifest["published_seq"] if manifest is not None else 0
@@ -371,10 +538,17 @@ def _number(name):
         return 0
 
 
-def build(out, files, default=False):
+def build(root, out, files, default=False, owner=None):
     """静的の書き出し。0 を返せば、書き出し先は新しい世代である。Stop と Unknown は、前のままで止まる。"""
+    global G
+    G = Guard(root)
+    STATE["committed"] = False
     work = out + ".browse-work"
-    use_territory(work, WORK_MARKER)
+    # 作る前に、書き出し先そのものを確かめる。書き込みの口も確かめるが、ここで止めれば作業用も作らない。
+    G.place(os.path.dirname(out))
+    if kind(out) == "dir":
+        G.not_root_ancestor(out)
+    use_territory(work, WORK_MARKER, owner=owner if default else None, lock_name="build.lock")
     lock = Lock(os.path.join(work, "build.lock"))
     if not lock.try_acquire():
         raise Stop("同じ書き出し先に、ほかの書き出しが動いている")
@@ -395,14 +569,15 @@ def _discard(work, names):
                 path = target
             remove_tree(path)
         except (Unknown, Absent) as e:
-            warn(f"消せなかったので残す: {name}（{e}）")
+            if "silent_post_commit" not in MUTANTS:
+                warn(f"消せなかったので残す: {name}（{e}）")
 
 
 def _build_locked(out, work, files, default):
-    entries = x("listdir", work)
+    entries = listdir(work)
     _discard(work, [n for n in entries if n.startswith(("tmp-", "del-")) or n in LEGACY])
-    olds = [n for n in x("listdir", work) if n.startswith("old-")]
-    state, reason, out_seq = out_state(out)
+    olds = [n for n in listdir(work) if n.startswith("old-")]
+    state, reason, out_seq = out_state(out, verify=not default)
 
     # 途中で止まった入れ替えから、最後に公開した世代を戻す。
     if state in ("absent", "empty") and olds:
@@ -414,38 +589,41 @@ def _build_locked(out, work, files, default):
         if seqs:
             best = max(seqs, key=seqs.get)
             if state == "empty":
-                x("rmdir", out)
+                w("rmdir", out)
             move(os.path.join(work, best), out)
-            state, reason, out_seq = out_state(out)
+            state, reason, out_seq = out_state(out, verify=not default)
+            if default:
+                out_seq = seqs[best]
 
     # 門: 書き出し先が browse の書き出しと確かめられなければ、止まる。既定の書き出し先は領分なので、通さない。
-    if state == "foreign" and not default and "skip_gate" not in MUTANTS:
+    if state == "foreign" and "skip_gate" not in MUTANTS:
         raise Stop(f"書き出し先に、browse が作っていないものがある（{reason}）")
 
-    used = [_number(n) for n in x("listdir", work) if n.startswith(("tmp-", "old-", "del-"))]
+    used = [_number(n) for n in listdir(work) if n.startswith(("tmp-", "old-", "del-"))]
     used.append(out_seq)
     seq = max(used, default=0) + 1
 
     tmp = os.path.join(work, f"tmp-{seq}")
     try:
-        x("mkdir", tmp)
+        w("mkdir", tmp)
         create_file(os.path.join(tmp, MANIFEST), make_manifest(files, seq))
         for name in sorted(files):
             parts = name.split("/")
             for i in range(1, len(parts)):
                 sub = os.path.join(tmp, *parts[:i])
                 if kind(sub) == "absent":
-                    x("mkdir", sub)
+                    w("mkdir", sub)
             create_file(os.path.join(tmp, *parts), files[name])
         # 入れ替え
         old = None
         if state == "empty":
-            x("rmdir", out)
+            w("rmdir", out)
         elif state != "absent":
             old = os.path.join(work, f"old-{seq}")
             move(out, old)
         try:
             move(tmp, out)              # 確定の点
+            STATE["committed"] = True
         except (Unknown, Absent):
             if old is not None:
                 try:
@@ -456,7 +634,7 @@ def _build_locked(out, work, files, default):
     except (Unknown, Absent, Stop):
         try:
             remove_tree(tmp)
-        except (Unknown, Absent):
+        except (Unknown, Absent, Stop):
             pass
         raise
 
@@ -466,13 +644,24 @@ def _build_locked(out, work, files, default):
     _discard(work, leftovers)
     if "commit_then_fail" in MUTANTS and len(WARNINGS) > before:
         raise Unknown("確定のあとの片付けに失敗した")
+    report(json.dumps({"published_seq": seq}))
     return 0
+
+
+def report(text):
+    """知らせを出す。確定のあとなので、失敗しても終了コードを変えない（設計の 7）。"""
+    try:
+        x("stdout_write", text)
+    except (Unknown, Absent) as e:
+        if "report_fails_unit" in MUTANTS:
+            raise
+        warn(f"知らせを出せなかった（{e}）")
 
 
 def x_or_empty(work):
     """確定のあとの一覧。作れなければ、片付けをあきらめて警告する（単位は失敗にしない）。"""
     try:
-        return x("listdir", work)
+        return listdir(work)
     except (Unknown, Absent) as e:
         warn(f"作業用のディレクトリの一覧を作れない（{e}）")
         return []
@@ -482,52 +671,76 @@ def x_or_empty(work):
 # サーバーの記録
 # ---------------------------------------------------------------------------
 
-STATE_KNOWN = ("server.lock", "server.json", "server.json.new")
-
-
 class Server:
-    def __init__(self, state_dir, lock, instance):
-        self.state_dir, self.lock, self.instance = state_dir, lock, instance
+    def __init__(self, state_dir, lock, instance, owner):
+        self.state_dir, self.lock, self.instance, self.owner = state_dir, lock, instance, owner
 
 
-def serve_start(state_dir, instance):
-    """起動。ロックを取り、記録を置き換える。動いていれば Stop。失敗したら、ロックを離して終わる。"""
-    use_territory(state_dir, SERVER_MARKER, STATE_KNOWN)
+def _enter_state(root, state_dir, owner):
+    global G
+    G = Guard(root)
+    use_territory(state_dir, SERVER_MARKER, STATE_KNOWN, owner=owner, lock_name="server.lock")
+
+
+def read_record(state_dir):
+    """記録を読む。ないか、形が違えば None。読めなければ Unknown。"""
+    text = read_text(os.path.join(state_dir, "server.json"))
+    if text is None:
+        return None
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def serve_start(root, state_dir, instance, owner):
+    """起動。('started', Server) か、('reuse', 記録) を返す。使い回せなければ Stop。"""
+    _enter_state(root, state_dir, owner)
     lock = Lock(os.path.join(state_dir, "server.lock"))
     if not lock.try_acquire():
-        raise Stop("動いているサーバーがある")
+        rec = read_record(state_dir)
+        if rec is None or (rec.get("owner") != owner and "skip_owner" not in MUTANTS):
+            raise Stop("動いているサーバーを使い回せない")
+        return "reuse", rec
     try:
-        new = os.path.join(state_dir, "server.json.new")
-        remove_tree(new)                                   # 前の起動が置き換えの途中で止まった残り
-        create_file(new, json.dumps({"instance": instance}).encode("utf-8"))
-        x("replace", new, os.path.join(state_dir, "server.json"))
+        replace_file(os.path.join(state_dir, "server.json"),
+                     json.dumps({"instance": instance, "owner": owner}).encode("utf-8"))
     except BaseException:
         lock.release()
         raise
-    return Server(state_dir, lock, instance)
+    return "started", Server(state_dir, lock, instance, owner)
 
 
 def serve_finish(server):
     """終了。記録を消せなくても、ロックは離す。"""
     try:
-        x("unlink", os.path.join(server.state_dir, "server.json"))
+        w("unlink", os.path.join(server.state_dir, "server.json"))
     except Absent:
         pass
-    except Unknown as e:
+    except (Unknown, Stop) as e:
         warn(f"記録を消せなかった（{e}）。次の起動が置き換える")
     finally:
         server.lock.release()
 
 
-def is_running(state_dir):
-    """真実はロックである。記録の有無は見ない。"""
+def stop(root, state_dir, owner):
+    """'not-running' か、'stop-sent'（止める要求を送る相手が決まった）を返す。相手が違えば Stop。"""
     if kind(state_dir) == "absent":
-        return False
-    # 状態のディレクトリに触れる操作は、どれも領分の確かめを先に通す。目印のない空のディレクトリに
-    # ロックのファイルだけを作ると、次の起動が「目印がなく、空でもない」として止まる（探索が見つけた）。
-    use_territory(state_dir, SERVER_MARKER, STATE_KNOWN)
+        return "not-running"
+    _enter_state(root, state_dir, owner)
     lock = Lock(os.path.join(state_dir, "server.lock"))
     if lock.try_acquire():
         lock.release()
-        return False
-    return True
+        return "not-running"
+    rec = read_record(state_dir)
+    if rec is None:
+        raise Stop("記録がないので、止める相手が分からない")
+    if rec.get("owner") != owner and "skip_owner" not in MUTANTS:
+        raise Stop("動いているのは、別の Wiki のサーバーである")
+    return "stop-sent"
+
+
+def is_running(root, state_dir, owner):
+    """真実はロックである。記録の有無は見ない。"""
+    return stop(root, state_dir, owner) == "stop-sent"
