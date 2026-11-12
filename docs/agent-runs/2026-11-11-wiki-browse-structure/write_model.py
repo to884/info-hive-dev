@@ -144,16 +144,24 @@ class Os:
 X = Os()
 
 
+def failure(cls, message, path=None):
+    """失敗の例外に、対象のパスを持たせる。警告が、どの項目の失敗かを名指せるようにする（設計の 6.2）。"""
+    e = cls(message)
+    e.path = path
+    return e
+
+
 def x(name, *args):
-    """失敗の読み替えは、ここだけで行う（設計の 3.2）。"""
+    """失敗の読み替えは、ここだけで行う（設計の 3.2）。例外は、失敗した口と、その対象のパスを持つ。"""
+    path = args[0] if args and isinstance(args[0], str) else None
     try:
         return getattr(X, name)(*args)
     except (FileNotFoundError, NotADirectoryError) as e:
-        raise Absent(str(e)) from None
+        raise failure(Absent, f"{name}: {type(e).__name__}", path) from None
     except OSError as e:
         if e.errno == getattr(errno, "ELOOP", None) or getattr(e, "winerror", None) in (1921, 123):
-            raise Absent(str(e)) from None
-        raise Unknown(f"{name}: {type(e).__name__}") from None
+            raise failure(Absent, f"{name}: {type(e).__name__}", path) from None
+        raise failure(Unknown, f"{name}: {type(e).__name__}", path) from None
 
 
 def warn(message):
@@ -191,7 +199,7 @@ class Guard:
         if path not in self.ids:
             dev, ino = x("stat_id", path)
             if ino == 0:
-                raise Unknown(f"識別子が 0: {os.path.basename(path)}")
+                raise failure(Unknown, "stat_id: 識別子が 0", path)
             self.ids[path] = (dev, ino)
         return self.ids[path]
 
@@ -212,19 +220,32 @@ class Guard:
             self.root_id = self.ident(r)
 
     def place(self, directory):
-        """directory の中に名前を足す、変える、消すことができるか。Wiki のルートかその下なら Stop。"""
+        """directory（今あるディレクトリ）の中に名前を足す、変える、消すことができるか。Wiki のルートかその下なら Stop。
+
+        directory そのものを見て、祖先にはさかのぼらない。書き込みの口は、どれも親がなければ成り立たないので、
+        「ない」の答えは、そのまま失敗にする。「ない」という答えから、あとの書き込みが安全だと決めない（設計の 6.1）。
+        覚えるのは、あると見て、識別子を取ったディレクトリだけである。
+        """
         if "no_root_guard" in MUTANTS or directory in self.ok:
             return
         self._root()
         p = directory
-        while kind(p) == "absent":
-            parent = os.path.dirname(p)
-            if parent == p:
-                raise Unknown("今ある祖先がない")
-            p = parent
+        if "climb_on_absent" in MUTANTS:
+            # 対照: 6 版目の初めの形。「ない」なら祖先にさかのぼり、祖先で確かめた結論を、ないと答えた名前に残す
+            while kind(p) == "absent":
+                parent = os.path.dirname(p)
+                if parent == p:
+                    raise failure(Unknown, "今ある祖先がない", directory)
+                p = parent
+        else:
+            k = kind(p)
+            if k == "absent":
+                raise failure(Absent, "lstat: 書き込む場所がない", p)
+            if k not in ("dir", "link"):
+                raise failure(Unknown, "lstat: 書き込む場所がディレクトリでない", p)
         r = x("realpath", p)
         if self.ident(r) != self.ident(p):
-            raise Unknown("解いたパスの識別子が違う")
+            raise failure(Unknown, "realpath: 解いたパスの識別子が違う", p)
         if self.root_id in self.chain(r):
             raise Stop(f"Wiki のルートの下には書かない: {os.path.basename(directory)}")
         self.ok.add(directory)
@@ -280,7 +301,7 @@ def kind(path):
     if stat.S_ISREG(st.st_mode):
         return "file"
     if os.name == "nt" and stat.S_ISBLK(st.st_mode):
-        raise Unknown("属性を取れない（S_IFBLK）")      # 設計の 3.1
+        raise failure(Unknown, "lstat: 属性を取れない（S_IFBLK）", path)      # 設計の 3.1
     return "other"
 
 
@@ -327,10 +348,14 @@ def remove_tree(path):
     if k == "absent":
         return
     if k == "link":
-        try:
-            w("unlink", path)
-        except Unknown:
-            w("rmdir", path)      # Windows のジャンクションとディレクトリのリンクは rmdir で外す
+        if "fallback_rmdir" in MUTANTS:
+            try:
+                w("unlink", path)
+            except Unknown:
+                w("rmdir", path)      # 対照: 0.10.0 と 6 版目の初めの規則の形（どの失敗も rmdir で試し直す）
+            return
+        # os.unlink は、Windows でもジャンクションとディレクトリのリンクを外す。失敗しても、別の口で試し直さない（設計の 3.2）
+        w("unlink", path)
         return
     if k == "dir":
         # 世代の一覧は最後に消す（0.10.0 と同じ順）。途中で止まった世代が一覧を持ったまま残る形を、
@@ -351,7 +376,7 @@ def remove_tree(path):
 def move(src, dst):
     """名前を付け替える。先があれば、付け替えない。"""
     if kind(dst) != "absent":
-        raise Unknown(f"付け替える先がある: {os.path.basename(dst)}")
+        raise failure(Unknown, "rename: 付け替える先がある", dst)
     w("rename", src, dst)
 
 
@@ -396,11 +421,14 @@ def use_territory(path, marker, known=(), owner=None, lock_name=None):
     if marker not in entries:
         if entries:
             raise Stop(f"目印がなく、空でもない: {os.path.basename(path)}")
-        try:
+        if "swallow_marker_failure" in MUTANTS:
+            try:
+                create_file(marker_path, content)
+            except Unknown:
+                if kind(marker_path) != "file":     # 5 版目の試作の形: ファイルがあれば失敗を捨てる
+                    raise
+        else:
             create_file(marker_path, content)
-        except Unknown:
-            if kind(marker_path) != "file":
-                raise
     elif "refuse_unknown_entries" in MUTANTS:
         # 3 版目の規則: 記録と、ロックと、目印のほかの項目があれば使わない（置き換えの一時ファイルも拒む）
         extra = [e for e in entries if e != marker and e not in known or e.endswith(".new")]
@@ -544,6 +572,8 @@ def build(root, out, files, default=False, owner=None):
     G = Guard(root)
     STATE["committed"] = False
     work = out + ".browse-work"
+    if default:
+        ensure_dirs(os.path.dirname(out))
     # 作る前に、書き出し先そのものを確かめる。書き込みの口も確かめるが、ここで止めれば作業用も作らない。
     G.place(os.path.dirname(out))
     if kind(out) == "dir":
@@ -558,6 +588,20 @@ def build(root, out, files, default=False, owner=None):
         lock.release()
 
 
+def ensure_dirs(path):
+    """ない祖先を、上から順に作る（既定の書き出し先の <data_dir>/browse）。"""
+    missing = []
+    p = path
+    while kind(p) == "absent":
+        missing.append(p)
+        parent = os.path.dirname(p)
+        if parent == p:
+            raise failure(Unknown, "今ある祖先がない", path)
+        p = parent
+    for d in reversed(missing):
+        w("mkdir", d)
+
+
 def _discard(work, names):
     """領分の残りを消す。消せなければ、警告して残す。"""
     for name in names:
@@ -569,8 +613,13 @@ def _discard(work, names):
                 path = target
             remove_tree(path)
         except (Unknown, Absent) as e:
-            if "silent_post_commit" not in MUTANTS:
-                warn(f"消せなかったので残す: {name}（{e}）")
+            if "coarse_warning" in MUTANTS:
+                warn(f"消せなかったので残す: {name}（{e}）")      # 対照: 6 版目の初めの形（付け替える前の名前だけ）
+            elif "silent_post_commit" not in MUTANTS:
+                # 残した項目の今の名前（付け替えたあとなら del-N）と、失敗した口とその対象を書く（設計の 6.2）
+                failed = getattr(e, "path", None)
+                target = os.path.relpath(failed, work).replace(os.sep, "/") if failed else "?"
+                warn(f"消せなかったので残す: {os.path.basename(path)}（{target} の {e}）")
 
 
 def _build_locked(out, work, files, default):
@@ -579,28 +628,24 @@ def _build_locked(out, work, files, default):
     olds = [n for n in listdir(work) if n.startswith("old-")]
     state, reason, out_seq = out_state(out, verify=not default)
 
-    # 途中で止まった入れ替えから、最後に公開した世代を戻す。
+    # 途中で止まった入れ替えから、最後に退避した世代を戻す。番号は、作業用にあるどの名前よりも大きく取るので、
+    # 作業用にある old-N のあいだでは、番号の大きいほうが新しい。一覧（published_seq）には頼らない。
     if state in ("absent", "empty") and olds:
-        seqs = {}
-        for name in olds:
-            manifest = read_manifest(os.path.join(work, name))      # 読めなければ Unknown で止まる
-            if manifest is not None:
-                seqs[name] = manifest["published_seq"]
-        if seqs:
-            best = max(seqs, key=seqs.get)
-            if state == "empty":
-                w("rmdir", out)
-            move(os.path.join(work, best), out)
-            state, reason, out_seq = out_state(out, verify=not default)
-            if default:
-                out_seq = seqs[best]
+        if "recover_by_published_seq" in MUTANTS:
+            seqs = {n: (read_manifest(os.path.join(work, n)) or {}).get("published_seq", 0) for n in olds}
+            best = max(olds, key=lambda n: seqs[n])
+        else:
+            best = max(olds, key=_number)
+        if state == "empty":
+            w("rmdir", out)
+        move(os.path.join(work, best), out)
+        state, reason, out_seq = out_state(out, verify=not default)
 
     # 門: 書き出し先が browse の書き出しと確かめられなければ、止まる。既定の書き出し先は領分なので、通さない。
     if state == "foreign" and "skip_gate" not in MUTANTS:
         raise Stop(f"書き出し先に、browse が作っていないものがある（{reason}）")
 
     used = [_number(n) for n in listdir(work) if n.startswith(("tmp-", "old-", "del-"))]
-    used.append(out_seq)
     seq = max(used, default=0) + 1
 
     tmp = os.path.join(work, f"tmp-{seq}")

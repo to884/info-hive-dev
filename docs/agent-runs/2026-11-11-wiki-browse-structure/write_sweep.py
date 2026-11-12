@@ -16,7 +16,9 @@
   （P）か、入れ替えの途中の形。
 - browse の書き出しと確かめられない書き出し先（--out）と、Wiki のルートは、どの場合も変わらない。
 - 既定の書き出し先では、前の世代を読まない。
-- 確定のあとに「分からない」の失敗を入れて 0 で終わったら、警告がある。
+- 「分からない」の失敗を入れて 0 で終わったら、確定の前でも後でも、同じ状態で手を入れない実行にない、新しい警告がある。
+  手を入れなくても同じ呼び出しが同じ型で失敗する場所に入れたときは、新しい失敗ではないので、この基準を当てない。
+  その代わり、手を入れない実行で「分からない」の失敗が起きて 0 で終わったなら、警告がある。
 - 次の実行: 手を入れずにもう一度実行すると、決めた状態に着く。作業用に残りがない。
 - サーバー: 終了、失敗、強制停止のあとは「動いていない」。次の起動は成功する。別の Wiki のサーバーを、
   使い回さず、止めない。
@@ -33,6 +35,7 @@ import stat
 import sys
 import tempfile
 import time
+from collections import Counter
 
 import write_model as m
 
@@ -59,8 +62,9 @@ class Injector(m.Os):
         self.fds = set()
         self.writing = {}
         self.hit = None
-        self.hit_committed = False
         self.reads = []
+        self.names = []
+        self.failed = {}        # 手を入れずに失敗した呼び出し: {番号: 例外の型}
 
     def _fail_close(self, fd):
         """close の失敗。書いたファイルなら、遅れて出た書き込みの失敗として、中身を失わせる。"""
@@ -77,11 +81,12 @@ class Injector(m.Os):
         if self.crashed:
             raise Crash()
         self.count += 1
+        self.names.append(name)
         if name == "open_read":
             self.reads.append(os.fspath(args[0]))
         if self.count == self.at:
-            self.hit = name
-            self.hit_committed = m.STATE["committed"]
+            # 書いたファイルの close は、書き込みの失敗なので別の名前にする（読んだファイルとロックの close と分ける）
+            self.hit = "close-write" if name == "close" and args[0] in self.writing else name
             if name == "close" and self.mode in ("denied", "absent"):
                 self._fail_close(args[0])
             if self.mode == "denied":
@@ -94,6 +99,12 @@ class Injector(m.Os):
                 self._crash()
             if self.mode == "short" and name == "write":
                 return os.write(args[0], bytes(args[1])[: max(1, len(args[1]) // 2)])
+            if self.mode == "zero" and name == "stat_id":
+                return (os.stat(args[0]).st_dev, 0)          # 識別子 0 の成功（Windows の os.stat の形）
+            if self.mode == "blk" and name == "lstat":
+                import types                                 # 属性を取れずにブロックデバイスと返る形
+                return types.SimpleNamespace(st_mode=stat.S_IFBLK | 0o666, st_file_attributes=0, st_ino=0,
+                                             st_dev=0, st_size=0, st_mtime_ns=0)
         if self.second is not None and self.count == self.second:
             if name == "close":
                 self._fail_close(args[0])
@@ -118,7 +129,11 @@ def _wrap(name):
         early = self._before(name, args)
         if early is not None:
             return early
-        result = real(self, *args)
+        try:
+            result = real(self, *args)
+        except OSError as e:
+            self.failed[self.count] = type(e)
+            raise
         if name.startswith("open_"):
             self.fds.add(result)
             if name == "open_excl":
@@ -160,7 +175,7 @@ def junction(link, target):
 
 
 OUT_STATES = ("absent", "empty", "gen", "gen+extra", "gen+edited", "userdir", "legacy", "gen+hardlink",
-              "absent+old", "empty+old", "wikiroot", "insidewiki")
+              "absent+old", "empty+old", "wikiroot", "insidewiki", "nodata")
 WORK_STATES = ("asis", "leftovers", "junction", "unmarked-empty")
 FOREIGN = ("gen+extra", "gen+edited", "userdir", "legacy")
 WHOLE = ("wikiroot", "insidewiki", "datainwiki")     # 砂場の全体が変わってはならない（Wiki のルートと重なる）
@@ -176,7 +191,8 @@ class Sandbox:
         write(os.path.join(r, "user", "keep.txt"), b"keep")
         write(os.path.join(r, "user", "assets", "app.js"), b"user asset")
         put_generation(os.path.join(r, "exports", "other"), FILES_P, 4)
-        os.makedirs(os.path.join(r, "data", "browse"))
+        if out_state != "nodata":
+            os.makedirs(os.path.join(r, "data", "browse"))
         self.wiki = os.path.join(r, "wiki")
         if default:
             self.out = os.path.join(r, "data", "browse", "KEY")
@@ -299,29 +315,70 @@ def rel(sb, path):
 
 
 def world(sb):
-    """領分と、指した書き出し先の外の木。書き出し先の親は、更新時刻を除いて比べる。"""
-    t = tree(sb.root)
+    """砂場の全体の木。"""
+    return tree(sb.root)
+
+
+def _parent(k):
+    return k.rsplit("/", 1)[0] if "/" in k else "."
+
+
+def world_same(sb, before, after, injected=False):
+    """領分と、指した書き出し先の外が変わっていないか（設計の 9.1）。
+
+    browse が新しく作るディレクトリと、名前を付け替えるディレクトリの親だけは、更新時刻の変化を許す（設計の 2.1）。
+    新しく作ってよいのは、領分と書き出し先そのものと、その祖先（data_dir がないとき）だけである。
+    Wiki のルートと重なる状態では、手を入れない実行は、砂場の全体が変わらない（止まり、何も変えない）。
+    失敗を入れた実行（とそのあとの実行）は、Wiki のルートの下が、ルートそのものの属性を含めて変わらず、
+    ほかは上の規則に従う（Wiki のルートの外にある領分は、作ってよい）。
+    """
     if sb.out_state in WHOLE:
-        return t
+        if not injected:
+            return before == after
+        top = rel(sb, sb.wiki)
+
+        def under(k):
+            return k == top or k.startswith(top + "/")
+        if {k: v for k, v in before.items() if under(k)} != {k: v for k, v in after.items() if under(k)}:
+            return False
     skip = [rel(sb, p) for p in (sb.out, sb.work, sb.state_dir)] + ["data/browse"]
-    parent = rel(sb, os.path.dirname(sb.out))
-    out = {}
-    for k, v in t.items():
-        if any(k == s or k.startswith(s + "/") for s in skip):
+
+    def inside(k):
+        return any(k == p or k.startswith(p + "/") for p in skip)
+
+    def ancestor_of_skip(k):
+        return any(p.startswith(k + "/") for p in skip)
+
+    allowed_mtime = {_parent(rel(sb, sb.out))}
+    for k in after:
+        if k not in before and (inside(k) or ancestor_of_skip(k)):
+            allowed_mtime.add(_parent(k))
+    for k in set(before) | set(after):
+        if inside(k):
             continue
-        out[k] = v[:3] if k == parent else v
-    return out
+        if k not in before:
+            if not ancestor_of_skip(k):
+                return False
+            continue
+        if k not in after:
+            return False
+        a, b = before[k], after[k]
+        if k in allowed_mtime:
+            a, b = a[:3], b[:3]
+        if a != b:
+            return False
+    return True
 
 
 # ---------------------------------------------------------------------------
 # 書き出しの探索
 # ---------------------------------------------------------------------------
 
-def run_build(sb, injector):
+def run_build(sb, injector, files=None):
     m.X = injector
     m.WARNINGS.clear()
     try:
-        return m.build(sb.wiki, sb.out, FILES_N, sb.default, owner="A")
+        return m.build(sb.wiki, sb.out, files or FILES_N, sb.default, owner="A")
     except m.Stop:
         return "stop"
     except (m.Unknown, m.Absent):
@@ -332,14 +389,28 @@ def run_build(sb, injector):
         m.X = m.Os()
 
 
-def check_build(sb, at, mode, second=None):
-    """1 回の実行と、そのあとの手を入れない実行を確かめる。破れた決まりの一覧を返す。"""
+def check_build(sb, at, mode, second=None, baseline=None, natural=None):
+    """1 回の実行と、そのあとの手を入れない実行を確かめる。破れた決まりの一覧を返す。
+
+    baseline は、同じ状態で手を入れない実行が出した警告（多重集合）。手を入れた実行の警告は、これと比べて、
+    新しいものがなければならない。別の理由の警告（読み取り専用のファイルを消せない、など）で、
+    入れた失敗の警告を代えさせない。
+    natural は、同じ状態で手を入れない実行が失敗した呼び出し（{番号: 例外の型}）。N 回目までの呼び出しは、
+    手を入れない実行と同じなので、N 回目が同じ型で失敗しているなら、入れた失敗は新しい失敗ではない。
+    """
     problems = []
     before_world, before_out = world(sb), tree(sb.out)
     old5 = content(tree(os.path.join(sb.work, "old-5")))
     protected = (sb.out_state in FOREIGN and not sb.default) or sb.out_state in WHOLE
     injector = Injector(at, mode, second)
     rc = run_build(sb, injector)
+    warnings = Counter(m.WARNINGS)
+    LAST_WARNINGS.clear()
+    LAST_WARNINGS.update(warnings)
+    LAST_FAILED.clear()
+    LAST_FAILED.update(injector.failed)
+    new_warnings = warnings - (baseline or Counter())
+    already_failing = mode == "denied" and (natural or {}).get(at) is PermissionError
     after_out = tree(sb.out)
     N, P = expected(FILES_N), content(before_out)
 
@@ -347,15 +418,19 @@ def check_build(sb, at, mode, second=None):
         return f"{label}（{sb.out_state}/{sb.work_state}/{'default' if sb.default else 'out'}、{mode}@{at}" \
                f"{'+' + str(second) if second else ''}、{injector.hit}、rc={rc}）"
 
-    if world(sb) != before_world:
+    if not world_same(sb, before_world, world(sb), injected=at is not None):
         problems.append(where("書き出し先と領分の外が変わった"))
     if sb.default and sb.out_state not in WHOLE:
         prefix = sb.out + os.sep
         if any(p.startswith(prefix) for p in injector.reads):
             problems.append(where("既定の書き出し先の前の世代を読んだ"))
-    if (mode == "denied" and injector.hit_committed and injector.hit not in ("unlock", "close", "try_lock")
-            and rc == 0 and not m.WARNINGS):
-        problems.append(where("確定のあとの失敗に、警告がない"))
+    if (mode in ("denied", "zero", "blk") and injector.hit not in ("unlock", "close")
+            and rc == 0 and not new_warnings and not already_failing):
+        problems.append(where("「分からない」の失敗を、警告なしに吸収して 0 で終わった"))
+    # 上で基準を当てない場所（手を入れなくても失敗する呼び出し）は、手を入れない実行の側で、警告があるかを確かめる
+    if (at is None and rc == 0 and not warnings
+            and any(t not in (FileNotFoundError, NotADirectoryError) for t in injector.failed.values())):
+        problems.append(where("手を入れない実行で起きた「分からない」の失敗を、警告なしに吸収して 0 で終わった"))
     if protected:
         if after_out != before_out:
             problems.append(where("browse のものでない書き出し先か、Wiki のルートが変わった"))
@@ -382,7 +457,7 @@ def check_build(sb, at, mode, second=None):
     counter = Injector()
     rc2 = run_build(sb, counter)
     after2 = tree(sb.out)
-    if world(sb) != before_world:
+    if not world_same(sb, before_world, world(sb), injected=at is not None):
         problems.append(where("次の実行で、書き出し先と領分の外が変わった"))
     if protected:
         if rc2 != "stop" or after2 != before_out:
@@ -400,35 +475,43 @@ def check_build(sb, at, mode, second=None):
 
 
 NOTES: set = set()
+LAST_WARNINGS: Counter = Counter()      # check_build の 1 回目の実行の警告（手を入れない実行の警告を、基準の側で覚える）
+LAST_FAILED: dict = {}                  # 同じく、1 回目の実行で、手を入れずに失敗した呼び出し
 
 
-def count_calls(make):
+def count_calls(make, names=False):
     sb = make()
     try:
         injector = Injector()
         run_build(sb, injector)
-        return injector.count
+        return (injector.count, injector.names) if names else injector.count
     finally:
         sb.close()
+
+
+ONLY = {"zero": "stat_id", "blk": "lstat"}     # 正常復帰の異常は、その名前の呼び出しにだけ入れる
 
 
 def sweep_build(out_state, work_state, default, modes, depth2=False):
     def make():
         return Sandbox(out_state, work_state, default)
-    total = count_calls(make)
+    total, names = count_calls(make, names=True)
     problems, runs = [], 0
     sb = make()
     try:
         found, _ = check_build(sb, None, None)        # 失敗のないときの約束
         problems += found
         runs += 1
+        baseline, natural = Counter(LAST_WARNINGS), dict(LAST_FAILED)
     finally:
         sb.close()
     for mode in modes:
         for at in range(1, total + 1):
+            if mode in ONLY and (os.name != "nt" and mode == "blk" or names[at - 1] != ONLY[mode]):
+                continue
             sb = make()
             try:
-                found, _ = check_build(sb, at, mode)
+                found, _ = check_build(sb, at, mode, baseline=baseline, natural=natural)
                 problems += found
                 runs += 1
             finally:
@@ -445,7 +528,7 @@ def sweep_build(out_state, work_state, default, modes, depth2=False):
             for second in range(at + 1, min(last, at + SECOND_WINDOW) + 1):
                 sb = make()
                 try:
-                    found, _ = check_build(sb, at, "denied", second)
+                    found, _ = check_build(sb, at, "denied", second, baseline=baseline, natural=natural)
                     problems += found
                     runs += 1
                 finally:
@@ -518,14 +601,11 @@ def check_server(state, phase, at, mode):
             problems.append(where("失敗のない起動と終了が成功しなかった"))
         if rc == "reused":
             problems.append(where("動いていないのに、使い回した"))
-        if world(sb) != before_world:
+        if not world_same(sb, before_world, world(sb)):
             problems.append(where("状態のディレクトリの外が変わった"))
-        try:
-            if m.is_running(sb.wiki, sb.state_dir, "A"):
-                problems.append(where("終わったあとも、ロックが残っている"))
-        except (m.Stop, m.Unknown, m.Absent) as e:
-            problems.append(where(f"動いているかを確かめられない: {e}"))
-            return problems, injector.count
+        lock_path = os.path.join(sb.state_dir, "server.lock")
+        if os.path.exists(lock_path) and lock_held(lock_path):      # 試験の側で確かめる（試作の関数を使わない）
+            problems.append(where("終わったあとも、ロックが残っている"))
         # 次の起動は成功する。動いているあいだ、もう 1 つは起動せず、使い回す。
         try:
             outcome, server = m.serve_start(sb.wiki, sb.state_dir, "next", "A")
@@ -641,6 +721,75 @@ def sweep_shared(modes):
     return runs, problems
 
 
+FILES_N2 = {"index.html": b"<p>newer</p>", "concepts/a.html": b"<p>a v3</p>"}
+
+
+def find_call(injector_names_args, predicate):
+    for i, (name, args) in enumerate(injector_names_args, start=1):
+        if predicate(name, args):
+            return i
+    return None
+
+
+class Recorder(Injector):
+    """呼び出しの名前と引数を記録する（手は入れない）。"""
+
+    def __init__(self):
+        super().__init__()
+        self.calls = []
+
+    def _before(self, name, args):
+        self.calls.append((name, args))
+        return super()._before(name, args)
+
+
+def scenario_rewind():
+    """0.10.0 の既定の書き出し先から始め、1 つずつの失敗を 3 回の実行に分けて入れる。最後に公開した世代が残ること。"""
+    problems = []
+    for default in (True, False):
+        sb = Sandbox("legacy" if default else "gen", "asis", default)
+        try:
+            # 1 回目: 新しい世代 G1 を公開する。確定のあとの old → del の付け替えだけを失敗させる
+            rec = Recorder()
+            sb2 = Sandbox(sb.out_state, "asis", default)
+            try:
+                run_build(sb2, rec)
+            finally:
+                sb2.close()
+            at = find_call(rec.calls, lambda n, a: n == "rename" and os.path.basename(a[1]).startswith("del-"))
+            rc1 = run_build(sb, Injector(at, "denied"))
+            # 2 回目: G2 を作り、前の世代（G1）を old-N に退避した直後に、強制停止する
+            rec = Recorder()
+            # 呼び出しの順は、今の砂場の写しで、手を入れずに流して得る
+            shadow = Sandbox(sb.out_state, "asis", default)
+            try:
+                shutil.rmtree(shadow.root)
+                shutil.copytree(sb.root, shadow.root, symlinks=True)
+                run_build(shadow, rec, FILES_N2)
+            finally:
+                shadow.close()
+            at = find_call(rec.calls, lambda n, a: n == "rename" and os.path.basename(a[1]).startswith("old-"))
+            rc2 = run_build(sb, Injector(at + 1, "crash"), FILES_N2)
+            # 3 回目: 復旧のあと、新しい世代を作り始めたところで失敗させる
+            rec = Recorder()
+            shadow = Sandbox(sb.out_state, "asis", default)
+            try:
+                shutil.rmtree(shadow.root)
+                shutil.copytree(sb.root, shadow.root, symlinks=True)
+                run_build(shadow, rec, FILES_N2)
+            finally:
+                shadow.close()
+            at = find_call(rec.calls, lambda n, a: n == "mkdir" and os.path.basename(a[0]).startswith("tmp-"))
+            rc3 = run_build(sb, Injector(at, "denied"), FILES_N2)
+            got = content(tree(sb.out))
+            if got != expected(FILES_N):
+                problems.append(f"最後に公開した世代（G1）が残っていない（{'既定' if default else '--out'}、"
+                                f"rc={rc1},{rc2},{rc3}、書き出し先の中身 {sorted(got or {})[:3]}）")
+        finally:
+            sb.close()
+    return problems
+
+
 USER_DELETES = [("gen", "asis", False), ("gen", "leftovers", False), ("absent+old", "asis", False),
                 ("gen", "asis", True)]
 
@@ -669,7 +818,7 @@ def sweep_user_deletes(cases, modes=("crash", "half")):
                         problems.append(f"書き出し先を消したあとの書き出しが、新しい世代に着かなかった（rc={rc2}）"
                                         f"（{out_state}/{work_state}/{'default' if default else 'out'}、{mode}@{at}、"
                                         f"{injector.hit}）")
-                    if world(sb) != before_world:
+                    if not world_same(sb, before_world, world(sb)):
                         problems.append(f"書き出し先を消したあとの書き出しで、領分の外が変わった（{out_state}、{mode}@{at}）")
                 finally:
                     sb.close()
@@ -680,7 +829,7 @@ def sweep_user_deletes(cases, modes=("crash", "half")):
 # 実行
 # ---------------------------------------------------------------------------
 
-MODES = ("denied", "absent", "short", "crash", "half")
+MODES = ("denied", "absent", "short", "crash", "half", "zero", "blk")
 SECOND_WINDOW = 30      # 2 つ目の失敗は、1 つ目のあとの 30 回の呼び出しまでに入れる（片付けと戻しは、すぐあとに来る）
 CONTROLS = {
     "skip_gate": [("gen+extra", "asis", False), ("userdir", "asis", False)],
@@ -688,10 +837,16 @@ CONTROLS = {
     "commit_then_fail": [("gen", "asis", False)],
     "chmod_on_delete": [("gen+hardlink", "asis", False)],
     "no_root_guard": [("wikiroot", "asis", False), ("insidewiki", "asis", False), ("datainwiki", "asis", True)],
+    "climb_on_absent": [("insidewiki", "asis", False)],
     "default_verifies": [("gen", "asis", True)],
     "swallow_close": [("absent", "asis", False)],
-    "silent_post_commit": [("gen", "asis", False)],
+    # 2 つ目は、手を入れなくても消せないファイルがある状態（手を入れない実行の側の確かめで見つかる）
+    "silent_post_commit": [("gen", "asis", False), ("gen+hardlink", "asis", False)],
+    "coarse_warning": [("gen+hardlink", "asis", False)],
     "report_fails_unit": [("absent", "asis", False)],
+    "swallow_marker_failure": [("absent", "asis", False)],
+    # 2 つ目は、手を入れない実行も警告を出す状態（読み取り専用のファイル）。警告の基準を、新しい警告で量ることを確かめる
+    "fallback_rmdir": [("absent", "junction", False), ("gen+hardlink", "junction", True)],
 }
 
 
@@ -715,22 +870,29 @@ def build_cases(quick):
 
 
 def main():
+    """速く済むものから流し、節ごとにすぐ出す（途中で止まっても、そこまでの結果が残る）。"""
     quick = "--quick" in sys.argv
     started = time.time()
-    lines, all_problems = [], []
-    for out_state, work_state, default in build_cases(quick):
-        depth2 = (not quick) and not default and out_state in ("gen", "absent+old") and work_state in ("asis", "leftovers")
-        total, runs, problems = sweep_build(out_state, work_state, default, MODES, depth2)
-        all_problems += problems
-        lines.append(f"| {'既定' if default else '--out'} | {out_state} | {work_state} | {total} | {runs} | {len(problems)} |")
+    all_problems = []
+
+    def out(text=""):
+        print(text, flush=True)
+
+    out(f"Python {sys.version.split()[0]}、{sys.platform}")
     server_runs, server_problems = sweep_server(MODES)
     all_problems += server_problems
+    out(f"\n## サーバーの記録\n\n実行 {server_runs} 回、破れた決まり {len(server_problems)} 件")
     shared_runs, shared_problems = sweep_shared(MODES)
     all_problems += shared_problems
+    out(f"\n## 同じ場所を使う別の Wiki\n\n実行 {shared_runs} 回、破れた決まり {len(shared_problems)} 件")
     deletes_runs, deletes_problems = sweep_user_deletes(USER_DELETES)
     all_problems += deletes_problems
+    out(f"\n## 強制停止のあとで、利用者が書き出し先を消す\n\n実行 {deletes_runs} 回、破れた決まり {len(deletes_problems)} 件")
+    rewind_problems = scenario_rewind()
+    all_problems += rewind_problems
+    out(f"\n## 番号の巻き戻りと復旧（3 回の実行に 1 つずつの失敗）\n\n破れた決まり {len(rewind_problems)} 件")
 
-    control_lines = []
+    out("\n## 対照\n\n| 対照 | 見つけた件数 | 最初の 1 件 |\n| --- | --- | --- |")
     for mutant, cases in CONTROLS.items():
         m.MUTANTS.add(mutant)
         try:
@@ -740,8 +902,9 @@ def main():
                 found += problems
         finally:
             m.MUTANTS.discard(mutant)
-        control_lines.append(f"| {mutant} | {len(found)} | {found[0] if found else '見つからなかった'} |")
-    for mutant, run in (("delete_in_place", lambda: sweep_user_deletes(USER_DELETES)[1]),
+        out(f"| {mutant} | {len(found)} | {found[0] if found else '見つからなかった'} |")
+    for mutant, run in (("recover_by_published_seq", scenario_rewind),
+                        ("delete_in_place", lambda: sweep_user_deletes(USER_DELETES)[1]),
                         ("refuse_unknown_entries", lambda: sweep_server(MODES)[1]),
                         ("skip_owner", lambda: sweep_shared(MODES)[1])):
         m.MUTANTS.add(mutant)
@@ -749,28 +912,28 @@ def main():
             found = run()
         finally:
             m.MUTANTS.discard(mutant)
-        control_lines.append(f"| {mutant} | {len(found)} | {found[0] if found else '見つからなかった'} |")
+        out(f"| {mutant} | {len(found)} | {found[0] if found else '見つからなかった'} |")
 
-    print(f"Python {sys.version.split()[0]}、{sys.platform}、{time.time() - started:.0f} 秒")
-    print("\n## 書き出し\n\n| 書き出し先の種類 | 書き出し先の状態 | 作業用の状態 | 口の呼び出し | 実行 | 破れた決まり |\n| --- | --- | --- | --- | --- | --- |")
-    print("\n".join(lines))
-    print(f"\n## サーバーの記録\n\n実行 {server_runs} 回、破れた決まり {len(server_problems)} 件")
-    print(f"\n## 同じ場所を使う別の Wiki\n\n実行 {shared_runs} 回、破れた決まり {len(shared_problems)} 件")
-    print(f"\n## 強制停止のあとで、利用者が書き出し先を消す\n\n実行 {deletes_runs} 回、破れた決まり {len(deletes_problems)} 件")
-    print("\n## 対照\n\n| 対照 | 見つけた件数 | 最初の 1 件 |\n| --- | --- | --- |")
-    print("\n".join(control_lines))
+    out("\n## 書き出し\n\n| 書き出し先の種類 | 書き出し先の状態 | 作業用の状態 | 口の呼び出し | 実行 | 破れた決まり |\n| --- | --- | --- | --- | --- | --- |")
+    for out_state, work_state, default in build_cases(quick):
+        depth2 = (not quick) and not default and out_state in ("gen", "absent+old") and work_state in ("asis", "leftovers")
+        total, runs, problems = sweep_build(out_state, work_state, default, MODES, depth2)
+        all_problems += problems
+        out(f"| {'既定' if default else '--out'} | {out_state} | {work_state} | {total} | {runs} | {len(problems)} |")
+
     if NOTES:
-        print("\n## 気づき\n")
+        out("\n## 気づき\n")
         for note in sorted(NOTES):
-            print("- " + note)
+            out("- " + note)
     if all_problems:
-        print(f"\n## 破れた決まり（{len(all_problems)} 件。先頭 40 件）\n")
+        out(f"\n## 破れた決まり（{len(all_problems)} 件。先頭 40 件）\n")
         seen = []
         for p in all_problems:
             if p not in seen:
                 seen.append(p)
         for p in seen[:40]:
-            print("- " + p)
+            out("- " + p)
+    out(f"\n{time.time() - started:.0f} 秒")
     return 1 if all_problems else 0
 
 

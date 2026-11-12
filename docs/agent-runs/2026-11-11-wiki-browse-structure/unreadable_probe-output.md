@@ -10,8 +10,8 @@ Python 3.14.6、win32
 | 被リンク | {'concepts/a': ['concepts/b'], 'concepts/b': ['concepts/a'], 'concepts/c': ['concepts/a']} | {} | {} | {'concepts/a': ['concepts/b']} |
 
 - lint の broken_links（読めなくしたとき）: [('concepts/b.md', 'a')]
-- U と R: リンクの解決が同じ True、被リンクが同じ True、未解決リンクが同じ True。中身が違う出力のファイル ['data/diagnostics.js', 'index.html']
-- E と R: リンクの解決が同じ False、被リンクが同じ False、未解決リンクが同じ False。中身が違う出力のファイル ['concepts/a.html', 'concepts/b.html', 'data/diagnostics.js', 'data/manifest.js', 'index.html', 'nav.js']
+- U と R: リンクの解決が同じ True、被リンクが同じ True、未解決リンクが同じ True。世代の識別子をそろえて、中身が違う出力のファイル ['data/diagnostics.js', 'index.html']（そろえないと 6 個）
+- E と R: リンクの解決が同じ False、被リンクが同じ False、未解決リンクが同じ False。世代の識別子をそろえて、中身が違う出力のファイル ['concepts/a.html', 'concepts/b.html', 'data/diagnostics.js', 'data/manifest.js', 'index.html', 'nav.js']（そろえないと 7 個）
 
 ## `two/x.md` を読めなくする
 
@@ -23,5 +23,5 @@ Python 3.14.6、win32
 | 被リンク | {} | {'one/x': ['b']} | {'one/x': ['b']} | {} |
 
 - lint の broken_links（読めなくしたとき）: []
-- U と R: リンクの解決が同じ True、被リンクが同じ True、未解決リンクが同じ True。中身が違う出力のファイル ['data/diagnostics.js', 'index.html']
-- E と R: リンクの解決が同じ False、被リンクが同じ False、未解決リンクが同じ True。中身が違う出力のファイル ['b.html', 'data/diagnostics.js', 'data/manifest.js', 'index.html', 'nav.js', 'one/x.html', 'two/x.html']
+- U と R: リンクの解決が同じ True、被リンクが同じ True、未解決リンクが同じ True。世代の識別子をそろえて、中身が違う出力のファイル ['data/diagnostics.js', 'index.html']（そろえないと 6 個）
+- E と R: リンクの解決が同じ False、被リンクが同じ False、未解決リンクが同じ True。世代の識別子をそろえて、中身が違う出力のファイル ['b.html', 'data/diagnostics.js', 'data/manifest.js', 'index.html', 'nav.js', 'one/x.html', 'two/x.html']（そろえないと 7 個）
