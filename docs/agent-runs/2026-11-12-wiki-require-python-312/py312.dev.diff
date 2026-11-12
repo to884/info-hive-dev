@@ -1,0 +1,454 @@
+diff --git a/.github/workflows/wiki-mcp.yml b/.github/workflows/wiki-mcp.yml
+index 6106a01..87f6b86 100644
+--- a/.github/workflows/wiki-mcp.yml
++++ b/.github/workflows/wiki-mcp.yml
+@@ -1,6 +1,7 @@
+ name: Wiki MCP server
+ 
+ # wiki の MCP サーバー（info-hive-wiki）を Linux で確かめる。Windows は手元で確かめる。
++# - tests/wiki/test_python_version.py: 同梱のスクリプトの Python の版の扱い（3.12 以上。標準ライブラリだけ）
+ # - tests/wiki/test_wiki_lint.py: lint の索引、出典、原本、タグの検査（標準ライブラリだけ）
+ # - tests/wiki/test_source_claims.py: ソースの要約ページの「主張と行き先」の規定とひな形の整合（標準ライブラリだけ）
+ # - tests/wiki/test_template_script_paths.py: ひな形が書き出すコマンドのスクリプトのパスと、検索の例の実行（標準ライブラリだけ）
+@@ -72,6 +73,9 @@ jobs:
+           uv --version
+           uv run --python 3.12 python -c "import platform, sys; print(platform.platform(), platform.machine(), sys.version)"
+       # 前の試験が失敗しても続けて動かす。wiki を取得できなかったときは動かさない。
++      - name: Python の版の扱いの試験
++        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
++        run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_python_version.py -v
+       - name: lint の試験
+         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_wiki_lint.py -v
+diff --git a/.github/workflows/wiki-walk.yml b/.github/workflows/wiki-walk.yml
+index 5977f45..651c101 100644
+--- a/.github/workflows/wiki-walk.yml
++++ b/.github/workflows/wiki-walk.yml
+@@ -1,7 +1,7 @@
+ name: Wiki walk
+ 
+-# wiki をたどる経路（info-hive-wiki の wiki_pages.walk_markdown、wiki 0.10.2）を、Windows、macOS、Linux と、
+-# Python 3.10 と 3.12 で確かめる。設計は docs/plans/wiki-walk-excluded-dirs-2026-11-11.md にある。
++# wiki をたどる経路（info-hive-wiki の wiki_pages.walk_markdown、wiki 0.11.0）を、Windows、macOS、Linux と、
++# 対象のいちばん古い版（3.12）といちばん新しい版（3.14）で確かめる（ADR-0018）。設計は docs/plans/wiki-walk-excluded-dirs-2026-11-11.md にある。
+ # - tests/wiki/test_walk.py: 木から計算した答え、今（0.10.1）の実装との照合、失敗を入れる探索と対照、口の一覧
+ # - tests/wiki/test_page_set.py、test_wiki_lint.py: ページの集合と lint の今ある試験
+ #
+@@ -31,7 +31,7 @@ jobs:
+       fail-fast: false
+       matrix:
+         os: [ubuntu-latest, windows-latest, macos-latest]
+-        python: ['3.10', '3.12']
++        python: ['3.12', '3.14']
+     runs-on: ${{ matrix.os }}
+     timeout-minutes: 20
+     defaults:
+diff --git a/docs/adr/0018-wiki-requires-python-312.md b/docs/adr/0018-wiki-requires-python-312.md
+new file mode 100644
+index 0000000..86e5510
+--- /dev/null
++++ b/docs/adr/0018-wiki-requires-python-312.md
+@@ -0,0 +1,53 @@
++# ADR-0018：info-hive の wiki の同梱のスクリプトは、Python 3.12 以上を対象にする
++
++| 項目 | 内容 |
++| --- | --- |
++| 状態 | 承認 |
++| 決定日 | 2026年11月12日 |
++| 決定者 | info-hive の開発者（このリポジトリの作者） |
++| 関連 | ADR-0002（「Python 3.10 以上と uv の前提を変えない」）、ADR-0008（設定を JSON にした理由の 1 つに「`tomllib` は 3.11 から」を挙げた）、ADR-0012（MCP サーバー）、[wiki をたどる経路の計画](../plans/wiki-walk-excluded-dirs-2026-11-11.md) |
++
++## 背景
++
++`info-hive-wiki` の同梱のスクリプトは、Python 3.10 以上を対象にしてきた（ADR-0002、`CONTRIBUTING.md`）。rag は、はじめから `>=3.12,<3.13` である。info-hive-dev の CI は、wiki の試験のほとんどを 3.12 で流している。
++
++wiki をたどる経路の計画（7 版目）の実測で、0.10 の実装の結果が、Python の版によって違うことが分かった。3.10 の `rglob` は、返したパスを `Path` の比較で重複除去し、Windows の大文字と小文字を区別するフォルダーで、片方のページを落とす。読み取りの障害の扱い、`Path.is_file()` の失敗の扱いも、版で違った。版ごとの違いを、決めることと試験で追い続ける費用が大きい。
++
++## 決定
++
++| 項目 | 決定 |
++| --- | --- |
++| 対象 | Python 3.12 以上。上限は付けない（3.14 まで試験が通っている） |
++| uv で動くスクリプト | PEP 723 の `requires-python` を `">=3.12"` にする。uv が 3.12 以上の Python を選び、なければ取得する |
++| `python` で直接動くスクリプト | lint、stats、語彙の検索などは、利用者の `python` で動く。どれも最初に読み込む `wiki_text.py` で版を確かめ、3.12 より古い版では理由を書いて止める。古い版でもそこまで届くよう、`wiki_text.py` と入口のスクリプトには 3.12 だけの構文を使わない |
++| CI | 対象のいちばん古い版（3.12）と、いちばん新しい版（3.14）で流す |
++| 版 | 0.11.0。最低の版を上げるのは、利用者に見える互換性の変更なので、0.x の minor を上げる。まだリリースしていない wiki をたどる経路の修正（0.10.2 として準備していたもの）と一緒に出す |
++
++コマンドの呼び方を `python` から `uv run --script` にそろえるかは、この決定に含めない。
++
++## 理由
++
++- 3.10 と 3.11 のための分岐と記述が、走査の計画の決めること、試験、変更履歴に入り込んでいた。3.12 以上にすると、`DirEntry.is_junction()` が使え、ジャンクションの見分けで項目の `stat()` を呼ばなくてよくなる。
++- rag はすでに 3.12 である。wiki と rag の MCP サーバーは、同じ利用者の手元で動く。
++- 3.12 は、2028 年 10 月まで保守される。
++
++## 検討した選択肢
++
++| 選択肢 | 採らなかった理由 |
++| --- | --- |
++| 3.10 以上のままにする | 版ごとの違いを追い続けることになる（背景） |
++| 3.12 以上で、上限を付ける（rag と同じ `<3.13`） | wiki は、3.14 まで試験が通っている。上限は、依存の都合があるときに付ける |
++| 版の確かめをせず、宣言と文書だけを変える | `python` で直接動くスクリプトは、古い版で途中から壊れ、理由が分からない |
++
++## 影響
++
++- ADR-0002 の「Python 3.10 以上と uv の前提を変えない」と、ADR-0008 の「`tomllib` は 3.11 から」は、この ADR で前提が変わった。どちらの決定も変えないので、元の ADR は書き換えない。
++- 利用者の手元の `python` が 3.12 より古いと、lint などのコマンドが理由を書いて止まる。uv で動くものは、uv が 3.12 以上の Python を取得する。
++- 更新のあとの最初の接続で、MCP のサーバーの環境を作り直し、動いているサーバーを 1 度起動し直す。
++- Raw の大きさの設計の版は、0.12.0 にずらす。
++
++## 参照
++
++- [wiki をたどる経路の計画](../plans/wiki-walk-excluded-dirs-2026-11-11.md)（背景と実測の表）
++- `info-hive-wiki/skills/info-hive/scripts/wiki_text.py`（版の確かめ）
++- `tests/wiki/test_python_version.py`
+diff --git a/docs/adr/README.md b/docs/adr/README.md
+index c94453a..fb51160 100644
+--- a/docs/adr/README.md
++++ b/docs/adr/README.md
+@@ -20,5 +20,6 @@ info-hive の設計で決めたことと、その理由を残す。1 つの判
+ | [0014](0014-rag-keeps-extraction-independent-of-embedding.md) | rag は抽出と OCR の結果を、埋め込みと分割の方針から切り離して保存する | 承認 | 2026年11月8日 |
+ | [0015](0015-wiki-article-methodology-adopted-in-stages.md) | wiki の記事作成の方法論は、提案を一括で入れず、検査と記録から段階を分けて入れる | 承認 | 2026年11月9日 |
+ | [0016](0016-wiki-browse-stage1-accepts-two-delivery-methods.md) | `/wiki:browse` の第 1 段階は、サーバーと静的 HTML の 2 方式で合格とし、アプリでの確認はアプリを作るときに行う | 承認 | 2026年11月9日 |
++| [0018](0018-wiki-requires-python-312.md) | info-hive の wiki の同梱のスクリプトは、Python 3.12 以上を対象にする | 承認 | 2026年11月12日 |
+ 
+ 各 ADR には、状態、決定日、決定者、関連を表で書き、続けて背景、決定、理由、検討した選択肢、影響、参照を書く。判断を変えるときは元の ADR を書き換えず、新しい ADR を書いて、元の ADR の状態を「置き換え済み」にする。
+diff --git a/docs/plans/wiki-raw-size-in-stats-2026-11-11.md b/docs/plans/wiki-raw-size-in-stats-2026-11-11.md
+index 56cf9c5..5357383 100644
+--- a/docs/plans/wiki-raw-size-in-stats-2026-11-11.md
++++ b/docs/plans/wiki-raw-size-in-stats-2026-11-11.md
+@@ -8,7 +8,7 @@
+ | きっかけ | 作者の問い「Raw が 10 GB 以上になったら圧縮するなど、ファイルサイズが増大したときの対策を考慮しているか」 |
+ | 関連 | ADR-0004（Raw に置く Web ページ）、ADR-0008（作業領域）、ADR-0012（MCP サーバー）、ADR-0013（PDF は絶対パスで記録する）、`references/scaling-playbook.md` |
+ | レビュー | Sol の敵対的レビューを 2 回受け、2 回とも却下された（[design-review-1.md](../agent-runs/2026-11-11-wiki-raw-size-in-stats/design-review-1.md)、[design-review-2.md](../agent-runs/2026-11-11-wiki-raw-size-in-stats/design-review-2.md)）。この版は、2 回目の指摘までを反映したものである。指摘と対応の対照は、この文書の最後にある。**この版のレビューは、まだ受けていない。** 2 回目の重大な指摘の 2（MCP の索引がリンクの先をたどる）は、この設計の前に入れる別の変更（[wiki をたどるとき、除くディレクトリに降りない](wiki-walk-excluded-dirs-2026-11-11.md)）で直す |
+-| 前提 | [wiki をたどるとき、除くディレクトリに降りない](wiki-walk-excluded-dirs-2026-11-11.md)（0.10.2）が先に入っていること。`compute_stats()` が wiki をたどる経路の修正は、そちらの変更が持つ |
++| 前提 | [wiki をたどるとき、除くディレクトリに降りない](wiki-walk-excluded-dirs-2026-11-11.md)（0.11.0）が先に入っていること。`compute_stats()` が wiki をたどる経路の修正は、そちらの変更が持つ |
+ | 直していないこと | 走査の計画は、7 版目で承認された（2026年11月12日）。そこでは、同じディレクトリかどうかを Win32 から直接取る識別子で決め、失敗の分け方を今の実装の扱いの表から決めている。走査の計画は、3 版目で、同じディレクトリかどうかを識別子だけで決め、`os.path.realpath()`、`os.path.samefile()`、`Path.resolve()` を使わない作りに変わった（[root-causes.md](../agent-runs/2026-11-11-wiki-walk-excluded-dirs/root-causes.md) の前提 A と B）。この設計の「1. Raw の場所」のルートの検査（`Path.resolve()` と `samefile()`）と、「2. 測り方」の走査は、同じ前提に頼ったままである。走査の計画が固まってから、同じ作りに書き直す |
+ 
+ ## 背景
+@@ -257,7 +257,7 @@ Raw の大きさ:
+ | `info-hive-wiki/skills/info-hive/scripts/wiki_pages.py`、`wiki_lint.py` | `raw:` の値を URL、絶対パス、相対パスに分ける見分け方を、lint と stats が同じ関数で使えるようにする（今は `wiki_lint.missing_raw()` の中にある）。lint の結果は変えない |
+ | `info-hive-wiki/skills/info-hive/scripts/wiki_mcp_server.py` | `stats` の引数 |
+ | `info-hive-wiki/commands/stats.md`、`references/scaling-playbook.md`、`references/mcp-server.md`、`SKILL.md`、`README.md` | 文面 |
+-| `info-hive-wiki/.claude-plugin/plugin.json`、`CHANGELOG.md` | 0.11.0（利用者に見える機能の追加。0.10.0 の次） |
++| `info-hive-wiki/.claude-plugin/plugin.json`、`CHANGELOG.md` | 0.12.0（利用者に見える機能の追加。0.10.0 の次） |
+ | `tests/wiki/test_wiki_stats_raw.py`（新しく作る）、`tests/wiki/test_mcp_server.py`、`tests/wiki/check_commands_mcp.py` | 次の節の試験 |
+ 
+ ## 試験
+@@ -328,7 +328,7 @@ MCP とコマンド:
+ 
+ ## リリース
+ 
+-- バージョンは 0.11.0 にする（`plugin.json` と `CHANGELOG.md` をまとめて更新する）。
++- バージョンは 0.12.0 にする（`plugin.json` と `CHANGELOG.md` をまとめて更新する）。
+ - マーケットプレイスの項目は直さない。
+ - 設計と実装のそれぞれで、Sol の敵対的レビューを受ける。記録は `docs/agent-runs/2026-11-11-wiki-raw-size-in-stats/` に置く。
+ 
+diff --git a/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md b/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md
+index 3f3e6b0..25008dd 100644
+--- a/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md
++++ b/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md
+@@ -4,7 +4,7 @@
+ 
+ | 項目 | 内容 |
+ | --- | --- |
+-| 状態 | **承認**（2026年11月12日、作者）。7 版目を承認した。「作者が決めること」の 1〜6 は、推奨のとおりに決めた。実装は、`info-hive-wiki` の main から、新しいブランチで 0.10.2 として始める（2026年11月12日の時点で、browse の第 1 段階の 0.10.0 と、MCP の画面の修正の 0.10.1 が、main に入っている）。7 版目は、作者の止める条件（「レビューの進め方」）により、レビューにかけずに承認した |
++| 状態 | **承認**（2026年11月12日、作者）。7 版目を承認した。「作者が決めること」の 1〜6 は、推奨のとおりに決めた。実装は、`info-hive-wiki` の main から、新しいブランチで始める（2026年11月12日の時点で、browse の第 1 段階の 0.10.0 と、MCP の画面の修正の 0.10.1 が、main に入っている）。同じ日に、作者が同梱のスクリプトの対象を Python 3.12 以上にした（[ADR-0018](../adr/0018-wiki-requires-python-312.md)）。この変更は、それと一緒に 0.11.0 として出す。この設計の 3.10 についての記述は、背景と検証環境の記録として残し、決めることと試験は 3.12 以上を対象にする。7 版目は、作者の止める条件（「レビューの進め方」）により、レビューにかけずに承認した |
+ | 版 | 7 版目。1〜5 回目のレビューは、どれも却下だった（[design-review-1.md](../agent-runs/2026-11-11-wiki-walk-excluded-dirs/design-review-1.md)〜[design-review-5.md](../agent-runs/2026-11-11-wiki-walk-excluded-dirs/design-review-5.md)。4 回目と 5 回目は、それぞれ別の Sol のセッションに、経緯を書いた依頼文で頼んだ）。2 回続けての却下を受けて、指摘を原因の構造で分けた（[root-causes.md](../agent-runs/2026-11-11-wiki-walk-excluded-dirs/root-causes.md)）。3 版目はその「構造を変える案」から書き直し、4〜7 版目は、残っていた同じ前提を、レビューの指摘と、自分で見つけた後退から直したものである。7 版目は、5 回目のレビューの重大 1（Windows の `os.stat()` が、属性の取得の失敗をブロックデバイスの成功に読み替える）を、作者の決定で直したもので、レビューは受けていない |
+ | 作者が決めたこと | 2026年11月11日: Raw の機能の前に、別の変更として直す。browse は走査を持たず、この計画の関数に乗る。同じディレクトリかどうかは、識別子だけで決める（文字列の比較への逃げ道を残さない）。識別子は、Win32 の呼び出しから直接取る（4 回目のレビューのあと）。失敗の分け方は、今の実装の扱いの表から決め、木の状態として必ず起きる失敗を送出しない（5 版目のあと） |
+ | 関連 | [ページの集合とリンクの規則の計画](wiki-page-set-and-links-2026-11-09.md)、[browse の構造の直し](wiki-browse-structure-2026-11-11.md)の 3、ADR-0010、ADR-0012 |
+@@ -37,7 +37,7 @@ wiki をたどる箇所は、次のとおりである（info-hive-wiki 0.10.0、
+ 
+ ### 実測
+ 
+-Windows 11（Python 3.10.11、3.12.13、3.13.7、3.14.6）と Linux（WSL の Ubuntu 24.04、Python 3.12.3）で確かめた。
++Windows 11（Python 3.10.11、3.12.13、3.13.7、3.14.6）と Linux（WSL の Ubuntu 24.04、Python 3.12.3）で確かめた。3.10.11 の結果は、対象を 3.12 以上にする前の記録である。
+ 
+ ページの側:
+ 
+@@ -105,7 +105,7 @@ Windows 11（Python 3.10.11、3.12.13、3.13.7、3.14.6）と Linux（WSL の Ub
+ | `os.scandir()`（開く、項目を 1 つ取り出す、閉じる） | ディレクトリの一覧 | 開くときと、取り出すときの失敗は、`OSError` で外に出る（`ScandirIterator_iternext` が `path_error()` を呼ぶ）。閉じるときの失敗は、CPython が捨てる（`ScandirIterator_closedir` が戻り値を見ない）。走査は、閉じる前に項目を最後まで取り出すので、閉じるときの失敗は結果を変えない |
+ | 項目の `is_symlink()` | シンボリックリンクか | Windows は、一覧の情報（`win32_lstat`）から答え、OS を呼ばない。POSIX は `d_type` から答え、`DT_UNKNOWN` のときだけ `DirEntry_test_mode` で `lstat` する。そこでは `FileNotFoundError` を偽に読み替え、ほかの失敗は送出する（3.10.11 と 3.14.0 の `os_DirEntry_is_symlink_impl`、`DirEntry_test_mode`）。偽は、「ない」と同じ向きである（項目は、ファイルかどうかを調べる `os.stat()` で、ないものとして落ちる） |
+ | 項目の `is_dir()` | ディレクトリか（リンクの先で判定する） | `DirEntry_test_mode`。Windows はシンボリックリンクのときだけ、POSIX は `d_type` が `DT_UNKNOWN` かシンボリックリンクのときだけ `stat` する。`FileNotFoundError` を偽に読み替え、ほかの失敗は送出する（同じ箇所）。偽は、「ない」と同じ向きである |
+-| 項目の `stat(follow_symlinks=False)` | Windows で、ジャンクションかどうかを、属性とタグから見分ける | Windows では、一覧の情報（`win32_lstat`）を返し、OS を呼ばない（`DirEntry_get_lstat`）。読み替える失敗はない。POSIX では呼ばない |
++| 項目の `is_junction()` | ジャンクションか（3.12 から） | Windows では、一覧の情報（`win32_lstat` の再解析のタグ）から答え、OS を呼ばない（`os_DirEntry_is_junction_impl`）。読み替える失敗はない。POSIX では、いつも偽を返す |
+ | `os.stat()` | `.md` の項目がファイルかどうかと、その大きさと更新時刻。識別子には使わない | Windows では、ファイルを開けないとき（`ERROR_ACCESS_DENIED`、`ERROR_SHARING_VIOLATION` など）に、ディレクトリの一覧の情報（`attributes_from_dir`、`FindFirstFileW`）で、成功として答える。そのとき `st_ino` は 0 である（3.10.11 と 3.14.0 の `win32_xstat_impl`）。3.12 以降は、識別子の取得（`FileIdInfo`）の失敗も捨てる（背景の表）。この役割では識別子を使わない。開けないときの読み替えは、結果を「ファイルである」の向きにしか変えず、その向きは、ファイルとして返すと決めている（2 の表。「作者が決めること」の 5）。もう 1 つ、属性の取得がエラー 1、50、87 で失敗すると、`st_mode` を `S_IFBLK` にして成功として返す（背景の表。5 回目のレビュー）。一覧に載る項目がボリュームや物理ディスクであることはないので、Windows で `S_IFBLK` が返ったら「分からない」にする（2 の表）。これで、どの読み替えも、結果を変えないか、知らせになる。POSIX では読み替えない |
+ | `wiki_pages.win_file_id()`（Windows だけ） | ディレクトリの識別子（`VolumeSerialNumber` と `FileId`） | この計画で書く関数である。`ctypes` で `CreateFileW`（`FILE_READ_ATTRIBUTES`、`FILE_FLAG_BACKUP_SEMANTICS`）、`GetFileInformationByHandleEx(FileIdInfo)`、`CloseHandle` を呼び、どの失敗も読み替えずに `OSError` で送出する。ないパスは `FileNotFoundError`、拒まれたパスは `PermissionError` になる（`OSError` の第 4 引数に Windows のエラーの番号を渡すと、Python が分ける）。ファイルシステムが `FileIdInfo` を返さないとき（エラーの番号 1、50、87）は、`NoFileId`（`OSError` の子）を送出する。リンクの先をたどる。ジャンクションは Windows にしかないので、POSIX では呼ばない |
+ 
+@@ -118,14 +118,14 @@ Windows 11（Python 3.10.11、3.12.13、3.13.7、3.14.6）と Linux（WSL の Ub
+ 
+ 読み替えは、`wiki_pages.py` の 1 つの関数だけが行う。走査のほかの箇所は、`OSError` を受けない。
+ 
+-| 失敗 | 読み方 | 走査の動き | 今の実装（3.10〜3.12 / 3.14） |
++| 失敗 | 読み方 | 走査の動き | 今の実装（3.12、3.13 / 3.14） |
+ | --- | --- | --- | --- |
+ | `FileNotFoundError`、`NotADirectoryError` | ない | その項目やディレクトリを、ないものとして続ける。知らせは出さない | 無視する / 無視する |
+ | 解けないリンク（errno の `ELOOP`、Windows のエラー 1921）、正しくない名前（Windows のエラー 123） | ない | 同じ。先のないリンクと同じく、ページにならない | 無視する / 無視する |
+-| `PermissionError`、`NoFileId`（識別子を返さないファイルシステム）、`FileId` がすべて 0 の `win_file_id()` | 分からない | 知らせに入れて、ほかを続ける | 権限は無視しない（3.10〜3.12 の `rglob` の一覧は黙って飛ばし、`Path.is_file()` は送出する） / 無視する |
++| `PermissionError`、`NoFileId`（識別子を返さないファイルシステム）、`FileId` がすべて 0 の `win_file_id()` | 分からない | 知らせに入れて、ほかを続ける | 権限は無視しない（3.12 の `rglob` の一覧は黙って飛ばし、`Path.is_file()` は送出する） / 無視する |
+ | `EBADF`、準備のできていないドライブ（Windows のエラー 21） | 分からない | 同じ | 無視する / 無視する |
+ | Windows で、`.md` の項目と最上位の `index.md` への `os.stat()` が返した `S_IFBLK` の成功 | 分からない | 同じ | ブロックデバイスとして、ページにしない / 同じ |
+-| そのほかの `OSError`（読み取りの障害など） | 送出する | 走査の全体が失敗する。結果を返さない | 送出する / 無視する |
++| そのほかの `OSError`（読み取りの障害など） | 送出する | 走査の全体が失敗する。結果を返さない | 3.12 の `rglob` の一覧は黙って飛ばし（`os.scandir` を差し替えて確かめた。3.13 は差し替えが届かず確かめられなかった）、`Path.is_file()` は送出する / 無視する |
+ 
+ 呼び出しごとの当てはめは、次のとおりである。
+ 
+@@ -133,7 +133,7 @@ Windows 11（Python 3.10.11、3.12.13、3.13.7、3.14.6）と Linux（WSL の Ub
+ | --- | --- | --- |
+ | 起点のディレクトリの一覧（開く、取り出す） | 空の結果（索引で、`indexes` がない、またはファイルである場合を含む） | 起点を `unlistable` に入れる |
+ | 途中のディレクトリの一覧 | そのディレクトリの下を飛ばす | そのディレクトリを `unlistable` に入れ、下を飛ばす |
+-| 項目の `is_symlink()`、`is_dir()`、`stat()` | その項目を飛ばす | その項目を `unknown` に入れる。降りず、ファイルにもしない |
++| 項目の `is_symlink()`、`is_dir()`、`is_junction()` | その項目を飛ばす | その項目を `unknown` に入れる。降りず、ファイルにもしない |
+ | `.md` の項目の `os.stat()` | ファイルでない（先のないリンク） | その項目を `unknown` に入れる。Windows で、開けないファイルに識別子が 0 の成功が返ったときは、「分からない」にせず、ファイルとして返す（1 の表。「作者が決めること」の 5） |
+ | 識別子を取る `win_file_id()`（5） | 調べていた項目に降りない | 調べていた項目を `unknown` に入れ、降りない |
+ 
+@@ -194,14 +194,14 @@ def walk_markdown(start: Path, prefix: str = "", skip_top: bool = False) -> Walk
+ - ジャンクションを通らない道筋の項目には、識別子を取る呼び出しを 1 度もしない。ジャンクションのない wiki では、識別子を 1 度も取らない。ジャンクションのない OS では、この節の全体が働かない。
+ - ジャンクションを通るまでは、識別子を比べなくてよい。リンクを通らずに降りるだけでは、同じディレクトリに戻れないからである。
+ - **識別子が分からないときは、降りない。** 入ろうとするディレクトリか、道筋のどれかのディレクトリの識別子を取れなかったとき（権限のエラー、識別子を返さないファイルシステム、`FileId` がすべて 0）は、調べていた項目を `unknown` に入れ、降りない。「ない」のときは、知らせずに、降りない。
+-- ジャンクションかどうかは、Windows で、項目の `stat(follow_symlinks=False)` の `st_file_attributes` に `FILE_ATTRIBUTE_REPARSE_POINT` があり、`st_reparse_tag` が `IO_REPARSE_TAG_MOUNT_POINT` であることで見分ける（`DirEntry.is_junction()` は 3.12 からなので使わない）。
++- ジャンクションかどうかは、`DirEntry.is_junction()`（3.12 から）で見分ける。Windows では、一覧の情報の再解析のタグが `IO_REPARSE_TAG_MOUNT_POINT` であるかを返し、OS を呼ばない。
+ - 輪でないジャンクション（下を指す `a/j` → `a/b`、別名の `alias` → `a`、外を指すもの）には、今までどおり降りる。同じファイルが 2 つのパスでページになるのも、今と同じである。
+ 
+ 結果は、次のとおりである。
+ 
+ | 置いたもの | 今 | 変更のあと |
+ | --- | --- | --- |
+-| `sub/loop` → wiki | 例外（3.10）か、128 ページ（3.14） | `a.md` と `sub/b.md` の 2 ページ |
++| `sub/loop` → wiki | 128 ページ（3.12〜3.14。3.10 は例外で止まった） | `a.md` と `sub/b.md` の 2 ページ |
+ | `a/b/j` → `a`、`a/me` → `a` | 同じく壊れる | どちらにも降りない |
+ | `x/j1` → 外、外の `j2` → `x` | 同じく壊れる | `j1` には降り、`j2` には降りない |
+ | `up` → wiki の親 | 同じく壊れる | `up` には降りる。その中の wiki には降りない。親のほかの中身（`up/side/s.md`）は、ページになる |
+@@ -237,7 +237,6 @@ def walk_markdown(start: Path, prefix: str = "", skip_top: bool = False) -> Walk
+ | 同じ場所を回るジャンクション（5 の表の上の 4 行） | Windows |
+ | 先のファイルシステムが識別子を返さないジャンクションに、降りない | Windows |
+ | 今の関数の並びの鍵で同じになる名前の組の中の順（6） | すべて |
+-| 大文字と小文字を区別するフォルダーにある、大文字と小文字だけが違う 2 つの名前を、今は片方しか返さない。変更のあとは両方を返す | Windows の Python 3.10（3.10 の `rglob` が `Path` の比較で重複を除く。3.11 は確かめていない） |
+ | stats の推奨で、`indexes` が先のないリンクのときに、分けたインデックスがあるとみなす | すべて |
+ | stats が、ふつうのファイルでない `.md`（デバイスや FIFO へのリンク、`/dev/null` へのリンクなど）を、ページとして数えない。今の stats は、中身を読めれば数える（今の `iter_page_files()` は `Path.is_file()` で除くので、lint と検索は今も数えない。そろう向きの違いである。実装の 2 回目のレビューの軽微 1） | Linux、macOS |
+ | 準備のできていないドライブ（エラー 21）を指すジャンクションの下: 今は黙って飛ばす。変更のあとは、`unknown` に入れる | Windows |
+@@ -325,7 +324,7 @@ browse との関係は、次のとおりである。
+ | `info-hive-wiki/skills/info-hive/scripts/wiki_lint.py` | `index_files()` |
+ | `info-hive-wiki/skills/info-hive/scripts/wiki_stats.py` | たどり方、読む前の確認、同点の並び |
+ | `info-hive-wiki/skills/info-hive/scripts/wiki_index.py` | `stat_signature()`、`list_index()` |
+-| `info-hive-wiki/.claude-plugin/plugin.json`、`CHANGELOG.md` | 0.10.2（0.10.1 は、MCP の画面の修正に使われた） |
++| `info-hive-wiki/.claude-plugin/plugin.json`、`CHANGELOG.md` | 0.11.0（Python 3.12 以上を対象にする変更（[ADR-0018](../adr/0018-wiki-requires-python-312.md)）と一緒に出す。0.10.1 は、MCP の画面の修正に使われた） |
+ | `tests/wiki/` | 次の節の試験 |
+ 
+ ## 試験（W3）
+@@ -386,7 +385,7 @@ browse との関係は、次のとおりである。
+ | 木から計算した答えとの比較（Windows、Python 3.10、3.12、3.13、3.14） | 15 の木で、`walk_pages()` と `walk_index_files()` の結果が、答えと等しかった |
+ | 同じ比較（Linux、Python 3.12） | ジャンクションの要る木を除き、名前に `\` を含む 2 つの木を足した 10 の木で、等しかった |
+ | 実物の今の実装（コミット `f0a758f`）との照合 | 同じ場所を回る形を除く木のすべてで、今の関数の規則で木から計算した今の集合と一致し、今の鍵で同じになる組の中の順を除いて、並びも一致した。索引の下に、ふつうのファイルでない項目を置いた木と、解けないリンクの木では、今の実装が、その名前も索引として返し、新しい走査は返さなかった（7 の違いの表） |
+-| 大文字と小文字を区別するフォルダー（Windows、`fsutil` で作った実物） | 3.12、3.13、3.14 では、今の実装と一致した。3.10 では、今の実装が `a.md` と `A.md` の片方を落とした（7 の違いの表）。新しい走査は、どの版でも両方を返した |
++| 大文字と小文字を区別するフォルダー（Windows、`fsutil` で作った実物） | 3.12、3.13、3.14 では、今の実装と一致した。新しい走査は、どの版でも両方を返した（3.10 の今の実装は、片方を落とした。対象の外の版の記録である） |
+ | 実物の wiki 5 つ（このリポジトリの `wiki/`、`~/info-hive/W0_Wiki`、`eval/` の下の 3 つ） | ページ、索引とも、今の実装と一致した |
+ | 識別子を取れない場合（Windows、4 つの版） | `FileId` が 0 のとき、`NoFileId` のときのどちらも、調べていた項目が `unknown` に入り、降りなかった。ジャンクションでない兄弟のディレクトリには、`win_file_id()` を呼ばなかった。`.md` の項目の `os.stat()` が識別子 0 の成功を返すと、ファイルとして返った。`S_IFBLK` の成功を返すと、`unknown` に入った |
+ | 探索（Windows、4 つの版） | 版ごとに 4,353 回の失敗を入れた（8 種類）。答えと違った実行は 0 件。失敗のない実行は、どの木でも送出せず、呼び出しの集合は、木から計算した集合と等しかった |
+@@ -404,7 +403,6 @@ browse との関係は、次のとおりである。
+ 確かめていないことは、次のとおりである。
+ 
+ - macOS。
+-- Python 3.11。3.10 の `rglob` の重複除去が、3.11 にもあるか。
+ - 2 つ以上の失敗が同時に起きる場合。探索が入れる失敗は、1 回の実行に 1 つである。
+ - 識別子（`FileIdInfo`）を返さないファイルシステムの実物（FAT32、exFAT、古いネットワークのドライブなど）。差し替えで確かめただけである。
+ - 準備のできていないドライブ（エラー 21）の実物。差し替えで確かめただけである。
+diff --git a/tests/wiki/README.md b/tests/wiki/README.md
+index a8d6025..7682b5d 100644
+--- a/tests/wiki/README.md
++++ b/tests/wiki/README.md
+@@ -14,7 +14,8 @@
+ | `test_wiki_fetch.py` | Web ページの取得（`wiki_fetch.py`）の、Medium の形の取りこぼし（info-hive-wiki#42）。`<picture>` の `<source srcset>` にだけ URL がある図を保存し、WebP でない `<source>` の幅のいちばん大きい候補を選ぶこと、`<img>` の URL があればそれを使うこと、`<pre>` の中の `<br>` を改行にし、`<pre>` の外の `<br>` は変えないこと。取得を差し替え、ネットにはつながない。標準ライブラリだけで動く |
+ | `test_frontmatter_parser.py` | frontmatter のパーサー（`wiki_text.parse_frontmatter_text`）が読む YAML の書き方（wiki 0.9.7）。字下げの違うブロックの配列、複数行にまたがる `[...]`、引用符つきのキーとコロンの前の空白、二重引用符の中の YAML のエスケープ、`\|` と `>` のブロックのスカラーの値が、PyYAML の `BaseLoader`（型に直さない）と等しいこと（値の表と、種を固定した無作為の入力）。YAML と違ってよいと決めた箇所と、読まないまま残す書き方の値。規約どおりのページと、読み方を変えない書き方で、値が 0.9.5 のパーサーそのものの出力（`frontmatter_parser_golden.json`）と等しいこと。`]` を書き忘れた配列が後ろの欄を取り込まないこと、YAML にないエスケープを含む値を今までどおり読むこと。書き手（`format_frontmatter`）との往復、lint・検索・統計が読めるようになった欄を読むこと、検索の古いパースキャッシュを使い続けないこと、制御文字のある値でも GraphML が読める XML になること。PyYAML が要る |
+ | `test_frontmatter_raw.py` | rag が返す PDF の絶対パスと SHA-256 を、ソースの要約ページの frontmatter に書いて読み戻す（ADR-0013）。手書きのパーサーと PyYAML が同じ値に読むこと、`\` を重ねていない Windows のパスの読み方。PyYAML が要る |
+-| `test_walk.py` | wiki をたどる経路（`wiki_pages.walk_markdown()`、wiki 0.10.2。設計は `docs/plans/wiki-walk-excluded-dirs-2026-11-11.md`）。木の表から計算した答えと等しいこと、info-hive-wiki のコミット `2756a4e`（0.10.1）の実装を git から取り出して照らし、違いが設計の表のものだけであること、OS を呼ぶ口のすべてに失敗を 1 つずつ入れる探索と、わざと決まりを破った対照、口の一覧の構文木の確かめ、統計と MCP の索引の印。標準ライブラリだけで動く（索引の試験は、依存がなければ飛ばす）。ジャンクション、識別子、大文字と小文字を区別するフォルダーの試験は Windows だけ |
++| `test_python_version.py` | 同梱のスクリプトの Python の版の扱い（3.12 以上、wiki 0.11.0、ADR-0018）。古い版を真似て `wiki_text.py` を読み込むと理由を書いて止まること、直接動かす入口のスクリプトが 3.10 の構文で読め、最初に `wiki_text` を読み込むこと、PEP 723 の宣言がどれも `>=3.12` であること。標準ライブラリだけで動く |
++| `test_walk.py` | wiki をたどる経路（`wiki_pages.walk_markdown()`、wiki 0.11.0。設計は `docs/plans/wiki-walk-excluded-dirs-2026-11-11.md`）。木の表から計算した答えと等しいこと、info-hive-wiki のコミット `2756a4e`（0.10.1）の実装を git から取り出して照らし、違いが設計の表のものだけであること、OS を呼ぶ口のすべてに失敗を 1 つずつ入れる探索と、わざと決まりを破った対照、口の一覧の構文木の確かめ、統計と MCP の索引の印。標準ライブラリだけで動く（索引の試験は、依存がなければ飛ばす）。ジャンクション、識別子、大文字と小文字を区別するフォルダーの試験は Windows だけ |
+ | `test_mcp_spawn_flags.py` | 入口、中継、サーバーの子プロセスの起動が、すべて `child_creationflags` か `server_creationflags` を通し、`DETACHED_PROCESS` を使わないこと（info-hive-wiki#36）。子はコンソールがあれば引き継ぎ、なければ窓のないコンソールで起動すること、引き継いだコンソールの標準出力に書けること。サーバーを窓のない自分のコンソールと新しいプロセスグループで起動すること。依存は要らない |
+ | `test_uv_tls.py` | TLS を検査する社内ネットワークで uv が証明書を検証できないとき（info-hive-wiki#30）。`UV_SYSTEM_CERTS=true` での 1 回だけのやり直し、利用者の設定の尊重、入れ直しに進まないこと。自己署名の証明書の HTTPS の索引を手元に立て、入口が理由と対処を `logs/launch.log` に書いてすぐ止まることも確かめる（`--with cryptography` で動かす） |
+ | `run_mcp_gate.py`、`mcp_eval_search.py` | wiki の評価ゲート（`eval/retrieval/run_eval.py`）を新しい基盤で通す |
+@@ -31,7 +32,7 @@
+ 
+ ## 動かし方
+ 
+-依存はサーバーのスクリプトの宣言と同じ版にそろえる。Windows では一時ディレクトリが遅いドライブにあると試験が遅くなるので、`TMP` を速いドライブに向けるとよい。
++Python 3.12 以上で動かす（ADR-0018）。依存はサーバーのスクリプトの宣言と同じ版にそろえる。Windows では一時ディレクトリが遅いドライブにあると試験が遅くなるので、`TMP` を速いドライブに向けるとよい。
+ 
+ ```bat
+ python -X utf8 -m unittest tests/wiki/test_wiki_lint.py -v
+@@ -39,6 +40,7 @@ python -X utf8 -m unittest tests/wiki/test_source_claims.py -v
+ python -X utf8 -m unittest tests/wiki/test_template_script_paths.py -v
+ python -X utf8 -m unittest tests/wiki/test_wiki_fetch.py -v
+ python -X utf8 -B -m unittest tests/wiki/test_walk.py -v
++python -X utf8 -B -m unittest tests/wiki/test_python_version.py -v
+ uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_graph_duplicate_slugs.py -v
+ uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_graph_frontmatter_values.py -v
+ uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_frontmatter_parser.py tests/wiki/test_frontmatter_raw.py -v
+diff --git a/tests/wiki/test_python_version.py b/tests/wiki/test_python_version.py
+new file mode 100644
+index 0000000..cfc5c34
+--- /dev/null
++++ b/tests/wiki/test_python_version.py
+@@ -0,0 +1,86 @@
++"""同梱のスクリプトの Python の版の扱い（Python 3.12 以上を対象にする。wiki 0.11.0、ADR-0018）の試験。
++
++- 標準ライブラリだけのスクリプトは、利用者の python で直接動くので、どれも最初に読み込む wiki_text.py で版を確かめ、
++  古い版では理由を書いて止まる。古い版の Python を真似て（sys.version_info を差し替えて）読み込み、止まることを確かめる。
++- 古い版でも版の確かめまで届くよう、wiki_text.py と、直接動かす入口のスクリプトが、3.10 の構文で読めること、
++  ほかの wiki のモジュールより先に wiki_text を読み込むことを確かめる。
++- uv で動かすスクリプトの PEP 723 の宣言が、どれも 3.12 以上を求めること。
++
++実行（標準ライブラリだけで動く）:
++    python -X utf8 -B -m unittest tests/wiki/test_python_version.py -v
++"""
++from __future__ import annotations
++
++import ast
++import re
++import subprocess
++import sys
++import unittest
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[2]
++SCRIPTS = ROOT / "info-hive-wiki/skills/info-hive/scripts"
++
++# コマンドとスキルの手順が `python "<スクリプト>"` で直接動かすもの
++DIRECT = ("wiki_lint.py", "wiki_stats.py", "wiki_search.py", "wiki_graph_query.py", "init_wiki.py", "wiki_help.py",
++          "wiki_fetch.py", "wiki_encoding.py")
++
++
++class GuardTests(unittest.TestCase):
++    def run_with_version(self, version):
++        code = (f"import sys; sys.version_info = {version!r}; sys.path.insert(0, {str(SCRIPTS)!r}); "
++                "import wiki_text; print('読み込めた')")
++        return subprocess.run([sys.executable, "-X", "utf8", "-B", "-c", code], capture_output=True,
++                              encoding="utf-8", errors="replace")
++
++    def test_old_python_stops_with_a_reason(self):
++        for version in ((3, 11, 9, "final", 0), (3, 10, 11, "final", 0)):
++            with self.subTest(version=version[:2]):
++                done = self.run_with_version(version)
++                self.assertEqual(done.returncode, 1, done.stderr)
++                self.assertIn("Python 3.12 以上が必要である", done.stderr)
++                self.assertNotIn("読み込めた", done.stdout)
++
++    def test_supported_python_passes(self):
++        done = self.run_with_version((3, 12, 0, "final", 0))
++        self.assertEqual(done.returncode, 0, done.stderr)
++        self.assertIn("読み込めた", done.stdout)
++
++
++class SourceTests(unittest.TestCase):
++    def test_entry_scripts_reach_the_guard(self):
++        """wiki_text.py と入口のスクリプトが 3.10 の構文で読め、ほかの wiki のモジュールより先に wiki_text を読み込む。"""
++        for name in ("wiki_text.py",) + DIRECT:
++            with self.subTest(script=name):
++                source = (SCRIPTS / name).read_text(encoding="utf-8")
++                tree = ast.parse(source, feature_version=(3, 10))
++                if name == "wiki_text.py":
++                    continue
++                first = None
++                for node in ast.walk(tree):
++                    if isinstance(node, ast.Import):
++                        names = [alias.name for alias in node.names if alias.name.startswith("wiki_")]
++                    elif isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("wiki_"):
++                        names = [node.module]
++                    else:
++                        continue
++                    if names and (first is None or node.lineno < first[0]):
++                        first = (node.lineno, names[0])
++                self.assertIsNotNone(first, f"{name} が wiki のモジュールを読み込んでいない")
++                self.assertEqual(first[1], "wiki_text", f"{name} は、wiki_text より先に {first[1]} を読み込む")
++
++    def test_pep723_headers_require_312(self):
++        pattern = re.compile(r'^# requires-python = "(.+)"$', re.MULTILINE)
++        found = {}
++        for path in sorted(SCRIPTS.glob("*.py")):
++            source = path.read_text(encoding="utf-8")
++            if "# /// script" not in source:
++                continue
++            match = pattern.search(source)
++            found[path.name] = match.group(1) if match else None
++        self.assertGreaterEqual(len(found), 8)
++        self.assertEqual({name: value for name, value in found.items() if value != ">=3.12"}, {})
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/wiki/test_walk.py b/tests/wiki/test_walk.py
+index 6c85c4e..1c7c05e 100644
+--- a/tests/wiki/test_walk.py
++++ b/tests/wiki/test_walk.py
+@@ -1,4 +1,4 @@
+-"""wiki をたどる経路（wiki_pages.walk_markdown、walk_pages、walk_index_files。wiki 0.10.2）の試験。
++"""wiki をたどる経路（wiki_pages.walk_markdown、walk_pages、walk_index_files。wiki 0.11.0）の試験。
+ 
+ 設計は `docs/plans/wiki-walk-excluded-dirs-2026-11-11.md`（7 版目、2026年11月12日に承認）にある。試作と実測は
+ `docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/` の walk_v7.py と results.md にある。
+@@ -15,7 +15,7 @@
+ リンクを作れない環境では、その木を飛ばす。ジャンクションは Windows だけ、FIFO と名前に \\ を含むファイルは
+ Linux と macOS だけで作る。大文字と小文字を区別するフォルダーは、Windows で fsutil が使えるときだけ作る。
+ 
+-実行（標準ライブラリだけで動く。MCP の索引の試験は、索引の依存がなければ飛ばす）:
++実行（Python 3.12 以上。標準ライブラリだけで動く。MCP の索引の試験は、索引の依存がなければ飛ばす）:
+     python -X utf8 -B -m unittest tests/wiki/test_walk.py -v
+ """
+ from __future__ import annotations
+@@ -353,8 +353,6 @@ def expected_calls(spec, start, prefix="", skip_top=False, top_index=False):
+                 target_kind, target = link_target(spec, value)
+                 child = target if target_kind == "dir" else None
+             if child is not None:
+-                if NT:
+-                    add("entry.stat", rel, ("entry", rel))
+                 if junction or through:
+                     add("file_id", rel, ("self", rel))
+                     if junction and not through:
+@@ -454,9 +452,9 @@ class Injector:
+                 injector.hit("is_dir", self.path)
+                 return self._entry.is_dir(**kwargs)
+ 
+-            def stat(self, **kwargs):
+-                injector.hit("entry.stat", self.path)
+-                return self._entry.stat(**kwargs)
++            def is_junction(self):
++                # Windows では一覧の情報（再解析のタグ）から答え、OS を呼ばない（3.12 から）。失敗を入れる先がないので数えない。
++                return self._entry.is_junction()
+ 
+         class Listing:
+             def __enter__(self):
+@@ -730,7 +728,7 @@ class AnswerTests(TreeCase):
+                 self.assertEqual([f.rel for f in index.files], model_index(spec))
+                 self.assertEqual((pages.unlistable, pages.unknown, index.unlistable, index.unknown), ([], [], [], []))
+                 if label in CYCLIC:
+-                    continue  # 今の実装は、循環するジャンクションで壊れる（3.10 は送出、3.14 は同じページを何度も返す）
++                    continue  # 今の実装は、循環するジャンクションで壊れる（3.12〜3.14 は、同じページを何度も返す）
+                 self.assertTrue(same_up_to_ties(old_pages(wiki), new_pages(wiki), wiki_text.posix_rel),
+                                 (old_pages(wiki), new_pages(wiki)))
+                 old_idx, new_idx = old_index(wiki), new_index(wiki)
+@@ -739,7 +737,7 @@ class AnswerTests(TreeCase):
+                                                 PurePath), (old_idx, new_idx))
+ 
+     def test_case_sensitive_folder(self):
+-        """Windows で、大文字と小文字を区別するフォルダーの a.md と A.md。今の 3.10 は片方を落とす（設計の 7 の表）。"""
++        """Windows で、大文字と小文字を区別するフォルダーの a.md と A.md。今の実装と同じく、両方を返す。"""
+         if not NT:
+             self.skipTest("Windows だけ")
+         wiki = self.tmp / "cs" / "wiki"
+@@ -752,14 +750,8 @@ class AnswerTests(TreeCase):
+             (folder / "A.md").write_text("2", encoding="utf-8")
+         self.assertEqual(sorted(new_pages(wiki)), ["p/A.md", "p/a.md"])
+         self.assertEqual(sorted(new_index(wiki)), ["indexes/A.md", "indexes/a.md"])
+-        old_p, old_i = old_pages(wiki), old_index(wiki)
+-        if sys.version_info >= (3, 12):
+-            self.assertEqual(old_p, new_pages(wiki))
+-            self.assertTrue(same_up_to_ties(old_i, new_index(wiki), PurePath))
+-        else:
+-            # 3.10 の rglob は、返したパスを Path の比較で重複除去する
+-            self.assertEqual(len(old_p), 1)
+-            self.assertEqual(len(old_i), 1)
++        self.assertEqual(old_pages(wiki), new_pages(wiki))
++        self.assertTrue(same_up_to_ties(old_index(wiki), new_index(wiki), PurePath))
+ 
+     def test_eval_wikis(self):
+         """今ある試験用の wiki で、今の実装と並びまで一致する。"""
