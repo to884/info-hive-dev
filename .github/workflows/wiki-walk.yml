@@ -1,7 +1,7 @@
 name: Wiki walk
 
-# wiki をたどる経路（info-hive-wiki の wiki_pages.walk_markdown、wiki 0.10.2）を、Windows、macOS、Linux と、
-# Python 3.10 と 3.12 で確かめる。設計は docs/plans/wiki-walk-excluded-dirs-2026-11-11.md にある。
+# wiki をたどる経路（info-hive-wiki の wiki_pages.walk_markdown、wiki 0.11.2）を、Windows、macOS、Linux と、
+# 対象のいちばん古い版（3.12）といちばん新しい版（3.14）で確かめる（ADR-0018）。設計は docs/plans/wiki-walk-excluded-dirs-2026-11-11.md にある。
 # - tests/wiki/test_walk.py: 木から計算した答え、今（0.10.1）の実装との照合、失敗を入れる探索と対照、口の一覧
 # - tests/wiki/test_page_set.py、test_wiki_lint.py: ページの集合と lint の今ある試験
 #
@@ -31,7 +31,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python: ['3.10', '3.12']
+        python: ['3.12', '3.14']
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     defaults:
@@ -68,8 +68,8 @@ jobs:
       # 索引の更新が、たどる途中の障害で行を消さないこと（UseTests の test_refresh_keeps_rows_on_eio）は、索引の依存が
       # ないと飛ばすので、依存を入れて流す。版は info-hive-wiki の wiki_mcp_server.py の宣言にそろえる。
       - name: 索引の依存を入れた、使う側の試験
-        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' && matrix.python == '3.12' }}
-        run: uv run --python 3.12 --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 python -X utf8 -B -m unittest tests.wiki.test_walk.UseTests -v
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python ${{ matrix.python }} --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 python -X utf8 -B -m unittest tests.wiki.test_walk.UseTests -v
       - name: ページの集合と lint の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python ${{ matrix.python }} python -X utf8 -B -m unittest tests/wiki/test_page_set.py tests/wiki/test_wiki_lint.py -v
