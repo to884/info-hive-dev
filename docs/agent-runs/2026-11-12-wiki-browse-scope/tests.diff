@@ -1,0 +1,171 @@
+diff --git a/tests/wiki/test_browse.py b/tests/wiki/test_browse.py
+index 3d4f973..58702b6 100644
+--- a/tests/wiki/test_browse.py
++++ b/tests/wiki/test_browse.py
+@@ -876,5 +876,137 @@ class CoreLoopTest(TempWiki):
+         self.assertEqual([p["id"] for p in second["pages"]], ["a"])
+ 
+ 
++# ---------------------------------------------------------------------------
++# wiki のスコープの表示
++# ---------------------------------------------------------------------------
++
++def has_git_above(path: Path) -> bool:
++    return any((d / ".git").exists() for d in path.parents)
++
++
++class ScopeTest(TempWiki):
++    """wiki_browse.wiki_scope() の決め方と、画面への出し方。"""
++
++    def setUp(self):
++        super().setUp()
++        self.home = self.base / "home"
++        self.user_root = self.base / "user-ws"
++        self.environ = {"INFO_HIVE_HOME": str(self.user_root)}
++
++    def scope(self, root: Path) -> dict:
++        return wiki_browse.wiki_scope(root.resolve(), environ=self.environ, home=self.home)
++
++    def workspace(self, root: Path, config: dict) -> None:
++        write(root, ".info-hive/workspace.json", json.dumps(config, ensure_ascii=False))
++
++    def test_workspace_kind_decides(self):
++        project = self.base / "proj"
++        self.workspace(project, {"version": 1, "kind": "project", "id": "my-proj", "dirs": {"wiki": "kb/wiki"}})
++        wiki = project / "kb" / "wiki"
++        wiki.mkdir(parents=True)
++        self.assertEqual(self.scope(wiki), {"kind": "project", "name": "my-proj", "basis": "workspace"})
++        user = self.base / "elsewhere"
++        self.workspace(user, {"version": 1, "kind": "user", "dirs": {"wiki": "W0_Wiki"}})
++        (user / "W0_Wiki").mkdir()
++        self.assertEqual(self.scope(user / "W0_Wiki"), {"kind": "user", "name": None, "basis": "workspace"})
++
++    def test_workspace_that_points_elsewhere_is_not_used(self):
++        project = self.base / "proj"
++        self.workspace(project, {"version": 1, "kind": "user", "dirs": {"wiki": "wiki"}})
++        (project / ".git").mkdir()
++        other = project / "docs" / "wiki"
++        other.mkdir(parents=True)
++        self.assertEqual(self.scope(other), {"kind": "project", "name": "proj", "basis": "git"})
++
++    def test_broken_workspace_falls_back(self):
++        project = self.base / "proj"
++        write(project, ".info-hive/workspace.json", "{ 壊れている")
++        (project / ".git").mkdir()
++        (project / "wiki").mkdir()
++        self.assertEqual(self.scope(project / "wiki")["basis"], "git")
++
++    def test_user_workspace_and_legacy_home_wiki(self):
++        wiki = self.user_root / "W0_Wiki"
++        wiki.mkdir(parents=True)
++        self.assertEqual(self.scope(wiki), {"kind": "user", "name": None, "basis": "user_home"})
++        legacy = self.home / "wiki"
++        legacy.mkdir(parents=True)
++        self.assertEqual(self.scope(legacy)["kind"], "user")
++        # 既定の ~/info-hive は、INFO_HIVE_HOME がないときに使う。
++        default = self.home / "info-hive" / "wiki"
++        default.mkdir(parents=True)
++        with mock.patch.object(Path, "home", return_value=self.home):
++            self.assertEqual(wiki_browse.wiki_scope(default.resolve(), environ={}, home=self.home)["kind"], "user")
++
++    def test_user_workspace_wins_over_git(self):
++        (self.user_root / ".git").mkdir(parents=True)
++        wiki = self.user_root / "wiki"
++        wiki.mkdir()
++        self.assertEqual(self.scope(wiki)["kind"], "user")
++
++    def test_git_of_the_wiki_itself_is_ignored(self):
++        wiki = self.base / "kb" / "wiki"
++        (wiki / ".git").mkdir(parents=True)
++        if has_git_above(wiki):
++            self.skipTest("一時ディレクトリが Git のリポジトリの中にある")
++        self.assertEqual(self.scope(wiki), {"kind": "unknown", "name": None, "basis": None})
++
++    def test_label_and_title(self):
++        write(self.wiki, "a.md", page("# A", title="A"))
++        snap = core.take_snapshot(self.wiki)
++        cases = [({"kind": "user", "name": None, "basis": "user_home"}, "scope-user", "ユーザースコープの wiki",
++                  "A · ユーザースコープ"),
++                 ({"kind": "project", "name": "<p>&x", "basis": "git"}, "scope-project", "プロジェクトの wiki",
++                  "A · &lt;p&gt;&amp;x"),
++                 ({"kind": "project", "name": None, "basis": "workspace"}, "scope-project", "プロジェクトの wiki",
++                  "A · プロジェクト"),
++                 ({"kind": "unknown", "name": None, "basis": None}, "scope-unknown", "スコープ不明の wiki", "A")]
++        for scope, cls, heading, title in cases:
++            with self.subTest(scope=scope):
++                c = core.Core(snap, scope=scope)
++                for html in (c.render_page("a"), c.render_index()):
++                    self.assertIn(f'class="scope {cls}"', html)
++                    self.assertIn(heading, html)
++                    # スコープの表示は、スクリプトが足すナビゲーションより前（サイドバーの先頭）にある。
++                    self.assertLess(html.index('id="_scope"'), html.index("<noscript>"))
++                self.assertIn(f"<title>{title}</title>", c.render_page("a"))
++                if scope["name"]:
++                    self.assertIn('<span class="scope-name">&lt;p&gt;&amp;x</span>', c.render_page("a"))
++                self.assertEqual(c.manifest()["scope"], {"kind": scope["kind"], "name": scope["name"]})
++
++    def test_no_scope_draws_nothing(self):
++        write(self.wiki, "a.md", page("# A", title="A"))
++        c = build_core(self.wiki)
++        self.assertNotIn('id="_scope"', c.render_page("a"))
++        self.assertIn("<title>A</title>", c.render_page("a"))
++        self.assertNotIn("scope", c.manifest())
++
++    def test_build_shows_scope_and_keeps_paths_out(self):
++        write(self.wiki, "a.md", page("# A"))
++        (self.base / ".git").mkdir()
++        report = self.build()
++        out = Path(report["out"])
++        index = (out / "index.html").read_text(encoding="utf-8")
++        self.assertIn("scope-project", index)
++        self.assertIn(f'<span class="scope-name">{self.base.name}</span>', index)
++        self.assertEqual(report["leaks"], [])
++
++    def test_workspace_id_with_a_home_path_is_a_warning_not_a_leak(self):
++        write(self.wiki, "a.md", page("# A"))
++        home = str(Path.home())
++        self.workspace(self.base / "work", {"version": 1, "kind": "project", "id": home, "dirs": {"wiki": "Wiki"}})
++        report = self.build()
++        self.assertEqual(report["leaks"], [])
++        self.assertTrue(report["warnings"])
++
++    def test_core_loop_manifest_has_scope(self):
++        write(self.wiki, "a.md", page("# A"))
++        (self.base / ".git").mkdir()
++        out = io.StringIO()
++        wiki_browse.core_loop(io.StringIO(json.dumps({"op": "manifest", "wiki": str(self.wiki)}) + "\n"), out)
++        res = json.loads(out.getvalue())
++        self.assertEqual(res["manifest"]["scope"], {"kind": "project", "name": self.base.name})
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/tests/wiki/test_browse_server.py b/tests/wiki/test_browse_server.py
+index 071c3ef..0ffb778 100644
+--- a/tests/wiki/test_browse_server.py
++++ b/tests/wiki/test_browse_server.py
+@@ -595,6 +595,24 @@ class ProcessTest(Base):
+                 if p.poll() is None:
+                     p.kill()
+ 
++    def test_serve_reports_the_scope_shown_on_screen(self):
++        # 一時ディレクトリをユーザースコープの作業領域にする。使い回したときは、動いているサーバーの記録を伝える。
++        self.env = {**self.env, "INFO_HIVE_HOME": str(self.base)}
++        a = self.serve()
++        ra = self.first_line(a)
++        self.assertEqual((ra["scope"], ra["scope_name"]), ("user", None))
++        port = ra["port"]
++        path = ra["url"].split(str(port), 1)[1]
++        code, body, _ = request(port, "GET", path)
++        self.assertEqual(code, 200)
++        self.assertIn('class="scope scope-user"', body)
++        self.env = {**self.env, "INFO_HIVE_HOME": str(self.base / "elsewhere")}
++        b = self.serve()
++        rb = self.first_line(b)
++        self.assertTrue(rb["reused"])
++        self.assertEqual(rb["scope"], "user")
++        self.assertEqual(b.wait(30), 0)
++
+     def test_tokens_change_on_restart_and_page_states(self):
+         p1 = self.serve("--page", "b")
+         r1 = self.first_line(p1)

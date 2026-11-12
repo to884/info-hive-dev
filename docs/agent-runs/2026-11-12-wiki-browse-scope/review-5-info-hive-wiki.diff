@@ -1,0 +1,399 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index 6ddc56b..8a1185f 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "wiki",
+-  "version": "0.11.2",
++  "version": "0.12.0",
+   "description": "日本語による Markdown の wiki を構築し、ローカルのハイブリッド検索、出典つきの回答、グラフ、タスクの経験からのスキル改善を提供する。praneybehl/llm-wiki-plugin v4.0.1 の日本語向け移植版。",
+   "author": {
+     "name": "to884"
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 960abec..ff3b884 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,15 @@
+ 
+ ## [Unreleased]
+ 
++## [0.12.0] - 2026-11-12
++
++### Added
++
++- 閲覧（`/wiki:browse`）の画面に、wiki のスコープを出すようにした。サイドバーの先頭に「ユーザースコープの wiki」か「プロジェクトの wiki」を色つきで出し、タブの題名にも「索引 · ユーザースコープ」「索引 · プロジェクト」のように添える。今までは、ユーザースコープの wiki とプロジェクトの wiki を開くと、見た目で区別できなかった。
++  - スコープは、その wiki が指示や設定で何として登録されているかで、`/wiki:browse` が決める。グローバルなエージェントの指示がユーザースコープの wiki として指す wiki はユーザースコープ、プロジェクトの指示がそのプロジェクトの wiki として指す wiki と現在のプロジェクトの `wiki/` はプロジェクトとし、作業領域の設定で見つけた wiki は設定の `kind` に従う。手がかりがないか、食い違えば出さない。スクリプトは、スコープを決めるために何も読まない。
++  - `wiki_browse.py serve` と `build` に `--scope user|project` を足した。省くと、今までどおりスコープを出さない。
++  - `serve` の出力の JSON と、操作の口の `status` の答えに `scope` を足した。開いた画面が出しているスコープであり、使い回したサーバーなら、そのサーバーに操作の口で聞いたものである（スコープなしで起動したサーバーと、スコープを出さない前の版のサーバーなら `null`）。
++
+ ## [0.11.2] - 2026-11-12
+ 
+ ### Changed
+diff --git a/commands/browse.md b/commands/browse.md
+index 0b55225..7186735 100644
+--- a/commands/browse.md
++++ b/commands/browse.md
+@@ -8,11 +8,15 @@ wiki を、日本語の CSS と、ナビゲーション、メタ欄、被リン
+ 
+ 引数: $ARGUMENTS
+ 
+-0. `<WIKI_ROOT>` は、ユーザーが明示したパス、もっとも近いプロジェクトの指示、グローバルなエージェントの指示の順に探し、どれにもなければ作業領域の設定（`.info-hive/workspace.json`）の `dirs.wiki`、それもなければ現在のプロジェクトの `wiki/` とする。指示が別の wiki を指定しているときに、`${PWD}/wiki` を前提にしてはならない。
++0. `<WIKI_ROOT>` は、ユーザーが明示したパス、もっとも近いプロジェクトの指示、グローバルなエージェントの指示の順に探し、どれにもなければ作業領域の設定（`.info-hive/workspace.json`）の `dirs.wiki`、それもなければ現在のプロジェクトの `wiki/` とする。指示が別の wiki を指定しているときに、`${PWD}/wiki` を前提にしてはならない。あわせて、`<WIKI_ROOT>` が指示や設定で何として登録されているかで、wiki のスコープを決める。どの指示のファイルで見つけたかでは決めず、wiki の場所から推し量ってもならない。
++   - グローバルなエージェントの指示が、ユーザースコープの wiki（どのプロジェクトにも属さない wiki）として指している場所なら、ユーザースコープ（`user`）とする。プロジェクトの指示が、共有のユーザースコープの wiki を使うと書いている場合も同じである。
++   - プロジェクトの指示が、そのプロジェクトの wiki として指している場所か、最後の既定（現在のプロジェクトの `wiki/`）なら、プロジェクト（`project`）とする。
++   - 作業領域の設定の `dirs.wiki` で `<WIKI_ROOT>` を見つけたときは、その設定の `kind` に従う。指示で見つけたときに、スコープのためだけに設定を読みには行かない。
++   - 手がかりが 1 つも当てはまらないとき、または手がかりどうしが食い違うとき（グローバルな指示がユーザースコープの wiki と書き、プロジェクトの指示がそのプロジェクトの wiki と書くなど）は、スコープを決めない。
+ 1. 引数が `--stop` なら、`uv run --script "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_browse.py" stop "<WIKI_ROOT>"` を実行し、結果（標準出力の JSON の `stopped`）を伝えて終わる。止められなかったときは、標準エラーの文をそのまま伝える。
+-2. それ以外なら、`uv run --script "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_browse.py" serve "<WIKI_ROOT>"` を**裏で**（終わるのを待たずに）起動する。slug があれば `--page "<slug>"` を足す。Claude Code のデスクトップアプリでは `--no-open` を足し、URL をブラウザペインで開く。それ以外では、`--no-open` を付けずに起動すると、既定のブラウザで開く。
+-3. 標準出力の最初の 1 行の JSON を読む。`url` を利用者に示す。`reused` が真なら、すでに動いていたサーバーを使い回した。`page` が `ambiguous` か `unresolved` なら、slug のページを 1 つに決められなかったので、索引を開いたことを伝える。起動に失敗したら（JSON が出ずにプロセスが終わったら）、標準エラーの文をそのまま伝える。
++2. それ以外なら、`uv run --script "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_browse.py" serve "<WIKI_ROOT>"` を**裏で**（終わるのを待たずに）起動する。slug があれば `--page "<slug>"` を足す。スコープを決めたなら、`--scope user` か `--scope project` を足す。決めなかったら付けない。Claude Code のデスクトップアプリでは `--no-open` を足し、URL をブラウザペインで開く。それ以外では、`--no-open` を付けずに起動すると、既定のブラウザで開く。
++3. 標準出力の最初の 1 行の JSON を読む。`url` を利用者に示す。`scope` は、そのサーバーが wiki のページ（サイドバーの先頭とタブの題名）に出すスコープである。wiki を組み立てられないときは、画面はエラーになり、スコープは出ない。`user` ならユーザースコープの wiki、`project` ならプロジェクトの wiki を開いたと伝える。`null` なら、ページにスコープを出さない。`reused` が真なら、すでに動いていたサーバーを使い回した。使い回したサーバーは、前に起動したときのスコープを出している（スコープを出さない前の版のサーバーなら `null`）。`scope` が手順 2 で渡したものと違えば、そのことを伝え、`/wiki:browse --stop` で止めてから開き直すと、今のスコープで出ることを案内する。`page` が `ambiguous` か `unresolved` なら、slug のページを 1 つに決められなかったので、索引を開いたことを伝える。起動に失敗したら（JSON が出ずにプロセスが終わったら）、標準エラーの文をそのまま伝える。
+ 4. サーバーは、操作がない状態が 30 分続くと終わる（`--idle-timeout <秒>` で変えられる）。Claude Code を終えても終わる。止めるには `/wiki:browse --stop` を使う。サーバーの URL のトークンは起動ごとに変わるので、終わったあとに開いていたタブのリンクは動かない。もう一度 `/wiki:browse` を実行する。
+ 5. ページの内容に問題を見つけても、閲覧の画面からは直せない。lint（`/wiki:lint`）で確かめ、ページを編集する。サーバーは次の要求で新しい内容を表示する。
+ 
+-持ち出せる静的の HTML が要るときは、`uv run --script "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_browse.py" build "<WIKI_ROOT>" --out <書き出し先>` を実行する。書き出し先は、wiki の外の、空のディレクトリにする。`--out` を付けると、`raw:` の絶対パスは既定でファイル名だけになる（`--raw text|link|basename|none` で選べる）。
++持ち出せる静的の HTML が要るときは、`uv run --script "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_browse.py" build "<WIKI_ROOT>" --out <書き出し先>` を実行する。書き出し先は、wiki の外の、空のディレクトリにする。`--out` を付けると、`raw:` の絶対パスは既定でファイル名だけになる（`--raw text|link|basename|none` で選べる）。手順 0 でスコープを決めたなら、serve と同じに `--scope` を足す。
+diff --git a/docs/commands.md b/docs/commands.md
+index c20f725..6278179 100644
+--- a/docs/commands.md
++++ b/docs/commands.md
+@@ -108,6 +108,8 @@ wiki を、日本語の CSS と、ナビゲーション、メタ欄、被リン
+ /wiki:browse --stop
+ ```
+ 
++サイドバーの先頭とタブの題名に、wiki のスコープ（ユーザースコープか、プロジェクトか）を出す。スコープは、その wiki が指示や設定で何として登録されているかで、コマンドが決める。グローバルなエージェントの指示がユーザースコープの wiki として指す wiki はユーザースコープ、プロジェクトの指示がそのプロジェクトの wiki として指す wiki と現在のプロジェクトの `wiki/` はプロジェクトとし、作業領域の設定で見つけた wiki は設定の `kind` に従う。手がかりがないか、食い違えば、スコープを出さない。スコープを wiki の場所から推し量ることはしない。
++
+ slug を付けると、`[[slug]]` と同じ規則でページを探して開く。リンクの判定は lint と同じで、未解決リンクの一覧は lint の「リンク切れの wikilink」と一致する。ページを開いたときに Markdown を HTML に変換するので、ページを編集して再読み込みすれば、新しい内容が出る。URL には起動ごとのトークンが入り、ほかのページや、同じ PC のほかの利用者からは開けない。
+ 
+ 持ち出せる静的の HTML は、`wiki_browse.py build <WIKI_ROOT> --out <書き出し先>` で書き出せる。書き出し先は wiki の外の空のディレクトリにする。
+diff --git a/skills/info-hive/scripts/browse_assets/style.css b/skills/info-hive/scripts/browse_assets/style.css
+index 0660358..e96373e 100644
+--- a/skills/info-hive/scripts/browse_assets/style.css
++++ b/skills/info-hive/scripts/browse_assets/style.css
+@@ -38,6 +38,11 @@ a.ext::after { content: " ↗"; }
+ .nav-group ul { margin: 0; padding-left: 1.2rem; }
+ .nav-depth-1, .nav-depth-2, .nav-depth-3, .nav-depth-4, .nav-depth-5, .nav-depth-6 { padding-left: 0.5rem; }
+ .nav-home { display: block; font-weight: bold; margin-bottom: 0.5rem; }
++/* wiki のスコープ。ユーザースコープとプロジェクトを、文字と色の両方で見分けられるようにする。 */
++.scope { margin: 0 0 0.75rem; padding: 0.25rem 0.5rem; border: 1px solid; border-radius: 0.25rem;
++  font-size: 0.875rem; font-weight: bold; line-height: 1.5; }
++.scope-user { color: #0550ae; background: #ddf4ff; border-color: #54aeff; }
++.scope-project { color: #116329; background: #dafbe1; border-color: #4ac26b; }
+ img { max-width: 100%; }
+ @media (max-width: 40rem) {
+   body { display: block; }
+@@ -52,4 +57,6 @@ img { max-width: 100%; }
+   .stale, .notice { background: #3b2e00; border-color: #9e6a03; }
+   .notice-error { background: #3d0f12; border-color: #da3633; }
+   a { color: #58a6ff; }
++  .scope-user { color: #a5d6ff; background: #0c2d6b; border-color: #1f6feb; }
++  .scope-project { color: #aff5b4; background: #0f3d1a; border-color: #2ea043; }
+ }
+diff --git a/skills/info-hive/scripts/wiki_browse.py b/skills/info-hive/scripts/wiki_browse.py
+index 6a7365e..62f6eff 100644
+--- a/skills/info-hive/scripts/wiki_browse.py
++++ b/skills/info-hive/scripts/wiki_browse.py
+@@ -8,8 +8,8 @@
+ """
+ wiki_browse.py — wiki の閲覧（browse）の入口。
+ 
+-    uv run --script wiki_browse.py build <WIKI_ROOT> [--out DIR] [--raw text|link|basename|none]
+-    uv run --script wiki_browse.py serve <WIKI_ROOT> [--page SLUG] [--no-open] [--idle-timeout 秒]
++    uv run --script wiki_browse.py build <WIKI_ROOT> [--out DIR] [--raw text|link|basename|none] [--scope user|project]
++    uv run --script wiki_browse.py serve <WIKI_ROOT> [--page SLUG] [--no-open] [--idle-timeout 秒] [--scope user|project]
+     uv run --script wiki_browse.py stop <WIKI_ROOT>
+     uv run --script wiki_browse.py core          （標準入力から 1 行に 1 つの JSON の要求を読む）
+ 
+@@ -177,7 +177,7 @@ def write_tree(guard: fs.Guard, base: Path, files: dict) -> None:
+         guard.write_bytes(target, data)
+ 
+ 
+-def build(root: Path, out_arg: "str | None", raw: "str | None") -> dict:
++def build(root: Path, out_arg: "str | None", raw: "str | None", scope: "str | None" = None) -> dict:
+     root = Path(root)
+     key = common.wiki_key(root)
+     bdir = browse_dir()
+@@ -209,10 +209,11 @@ def build(root: Path, out_arg: "str | None", raw: "str | None") -> dict:
+         with fs.Lock(guard, work / "build.lock") as work_lock:
+             if not work_lock.try_acquire():
+                 raise Failed("同じ書き出し先に、ほかの書き出しが動いている")
+-            return _build_locked(guard, root, out, work, raw)
++            return _build_locked(guard, root, out, work, raw, scope)
+ 
+ 
+-def _build_locked(guard: fs.Guard, root: Path, out: Path, work: Path, raw: str) -> dict:
++def _build_locked(guard: fs.Guard, root: Path, out: Path, work: Path, raw: str,
++                  scope: "str | None" = None) -> dict:
+     started = time.perf_counter()
+     fs.check_output_dir(out)
+     fs.check_work_dir(work)
+@@ -229,7 +230,7 @@ def _build_locked(guard: fs.Guard, root: Path, out: Path, work: Path, raw: str)
+         # 目印を最初に置く。組み立てが途中で失敗しても、作りかけの世代として見つけて消せる。
+         guard.write_text(tmp / fs.GENERATION_MARKER,
+                          json.dumps({"generation": snap.generation, "published_seq": seq}) + "\n")
+-        c = core.Core(snap)
++        c = core.Core(snap, scope=scope)
+         files = c.render_all(raw, generated_at)
+         write_tree(guard, tmp, files)
+         write_tree(guard, tmp, {name: core.asset_bytes(name) for name in core.ASSETS})
+@@ -341,11 +342,13 @@ def _quote_path(name: str) -> str:
+ class BrowseState:
+     """サーバーが持つ中核と、作り直しの状態（設計の 8.3）。"""
+ 
+-    def __init__(self, root: Path, guard: fs.Guard, state_dir: Path, raw: str = "text"):
++    def __init__(self, root: Path, guard: fs.Guard, state_dir: Path, raw: str = "text",
++                 scope: "str | None" = None):
+         self.root = root
+         self.guard = guard
+         self.state_dir = state_dir
+         self.raw = raw
++        self.scope = scope
+         self.current: "core.Core | None" = None
+         self.failed: "str | None" = None
+         self.build_lock = threading.Lock()
+@@ -388,7 +391,7 @@ class BrowseState:
+                     # 状態のディレクトリが守る場所と重なった。記録に触れずに終わる（設計の 6.1）。
+                     self.shutdown_requested = True
+                     return self._answer(cur, request_sig, "failed")
+-                new = core.Core(snap, record=False)
++                new = core.Core(snap, record=False, scope=self.scope)
+             except Exception as e:  # noqa: BLE001  前の中核を使い続ける
+                 self.failed = type(e).__name__
+                 return self._answer(cur, request_sig, "failed")
+@@ -564,7 +567,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
+         app = self.server.app
+         op = rest[0] if rest else ""
+         if op == "status" and self.command in ("GET", "HEAD") and len(rest) == 1:
+-            return self._json(200, {"instance": app.instance, "wiki_key": app.key})
++            # scope は、このサーバーが wiki のページに描くスコープである。起動の出力は、使い回すときにこれを伝える。
++            return self._json(200, {"instance": app.instance, "wiki_key": app.key, "scope": app.scope})
+         if op == "stop" and self.command == "POST" and len(rest) == 1:
+             self._json(200, {"stopping": True})
+             app.request_shutdown()
+@@ -603,7 +607,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
+ 
+ 
+ class App:
+-    def __init__(self, root: Path, guard: fs.Guard, state_dir: Path, idle: float, verbose: bool = False):
++    def __init__(self, root: Path, guard: fs.Guard, state_dir: Path, idle: float, verbose: bool = False,
++                 scope: "str | None" = None):
+         self.root = root
+         self.key = common.wiki_key(root)
+         self.guard = guard
+@@ -613,7 +618,8 @@ class App:
+         self.view_token = secrets.token_urlsafe(24)
+         self.control_token = secrets.token_urlsafe(24)
+         self.instance = secrets.token_hex(12)
+-        self.state = BrowseState(root, guard, state_dir)
++        self.scope = scope
++        self.state = BrowseState(root, guard, state_dir, scope=scope)
+         self.last = time.monotonic()
+         self.httpd = None
+         self.port = 0
+@@ -661,16 +667,33 @@ def _http(port: int, method: str, path: str, timeout: float = 3.0):
+         conn.close()
+ 
+ 
+-def _status(rec: dict) -> "str | None":
++def _live_status(rec: dict) -> "dict | None":
++    """動いているサーバーに、操作の口で状態を聞く。答えなければ None。"""
+     try:
+         code, body = _http(int(rec["port"]), "GET", f"/{rec['control_token']}/control/status")
+         if code != 200:
+             return None
+-        return json.loads(body).get("instance")
++        data = json.loads(body)
++        return data if isinstance(data, dict) else None
+     except (OSError, ValueError, KeyError, TypeError, http.client.HTTPException):
+         return None
+ 
+ 
++def _status(rec: dict) -> "str | None":
++    live = _live_status(rec)
++    return live.get("instance") if live else None
++
++
++def _shown_scope(live: dict) -> "str | None":
++    """動いているサーバーが操作の口で答えたスコープ。そのサーバーが wiki のページに描くものと同じである。
++
++    答えにないもの（スコープなしで起動したサーバーと、スコープを出さない前の版のサーバー）と、正しくないものは
++    None（ページに出さない）とする。記録のファイル（server.json）からは読まない。記録は画面を描かないからである。
++    """
++    scope = live.get("scope")
++    return scope if isinstance(scope, str) and scope in core.SCOPE_KINDS else None
++
++
+ def _read_record(state_dir: Path) -> "dict | None":
+     try:
+         rec = json.loads((state_dir / "server.json").read_text(encoding="utf-8"))
+@@ -710,8 +733,15 @@ def _locate(port: int, control_token: str, target: str) -> dict:
+         return {"state": "unavailable"}
+ 
+ 
+-def _emit(url: str, port: int, reused: bool, page_state: "str | None", open_browser: bool) -> None:
+-    print(json.dumps({"url": url, "port": port, "reused": reused, "page": page_state}, ensure_ascii=False), flush=True)
++def _emit(url: str, port: int, reused: bool, page_state: "str | None", open_browser: bool,
++          shown: "str | None") -> None:
++    """起動の出力。scope は、URL の先のサーバーが wiki のページに描くスコープだけを書く。
++
++    wiki を組み立てられないあいだ、サーバーはエラー（503）を返し、wiki のページもスコープの表示も描かない。
++    そのときも scope は、組み立てられたときにページに描くスコープである。違うスコープのページは描かない。
++    """
++    print(json.dumps({"url": url, "port": port, "reused": reused, "page": page_state, "scope": shown},
++                     ensure_ascii=False), flush=True)
+     if open_browser:
+         import webbrowser
+         webbrowser.open(url)
+@@ -738,19 +768,23 @@ def _refresh_guard(guard: fs.Guard, root: Path, state_dir: Path) -> None:
+         raise fs.Refused("サーバーの状態の場所が、Wiki か Wiki が読む入力と重なる。何も書かずに止める")
+ 
+ 
+-def serve(root: Path, page: "str | None", open_browser: bool, idle: float, verbose: bool = False) -> int:
++def serve(root: Path, page: "str | None", open_browser: bool, idle: float, verbose: bool = False,
++          scope: "str | None" = None) -> int:
+     guard, state_dir = _prepare_state(root)
+     lock = fs.Lock(guard, state_dir / "server.lock")
+     deadline = time.monotonic() + RECORD_WAIT
+     while not lock.try_acquire():
+         rec = _read_record(state_dir)
+-        if rec is not None and _status(rec) == rec["instance"]:
++        live = _live_status(rec) if rec is not None else None
++        if live is not None and live.get("instance") == rec["instance"]:
+             key = rec.get("wiki_key") or common.wiki_key(root)
+ 
+             def url_for(name, rec=rec, key=key):
+                 return f"http://127.0.0.1:{rec['port']}/{rec['view_token']}/w/{key}/{_quote_path(name)}"
+             url, state = _page_url(url_for, int(rec["port"]), rec["control_token"], page)
+-            _emit(url, int(rec["port"]), True, state, open_browser)
++            # 画面に出ているのは、動いているサーバーが起動したときのスコープである。今回の指定ではなく、
++            # そのサーバー自身が答えたものを伝える。
++            _emit(url, int(rec["port"]), True, state, open_browser, _shown_scope(live))
+             return EXIT_OK
+         if time.monotonic() >= deadline:
+             raise Failed("動いているサーバーを使い回せない。/wiki:browse --stop で止めてからやり直す")
+@@ -760,7 +794,7 @@ def serve(root: Path, page: "str | None", open_browser: bool, idle: float, verbo
+         # 守る場所を今の入力から決め直し、重なれば何も書かずに止まる（設計の 6.1）。
+         _refresh_guard(guard, root, state_dir)
+         guard.unlink(state_dir / "server.json")
+-        app = App(root, guard, state_dir, idle, verbose)
++        app = App(root, guard, state_dir, idle, verbose, scope)
+         httpd = _Server(("127.0.0.1", 0), Handler)
+         httpd.app = app
+         app.httpd = httpd
+@@ -770,7 +804,7 @@ def serve(root: Path, page: "str | None", open_browser: bool, idle: float, verbo
+         server_thread = threading.Thread(target=httpd.serve_forever, kwargs={"poll_interval": 0.2}, daemon=True)
+         server_thread.start()
+         url, state = _page_url(app.url, app.port, app.control_token, page)
+-        _emit(url, app.port, False, state, open_browser)
++        _emit(url, app.port, False, state, open_browser, scope)
+         server_thread.join()
+         httpd.server_close()
+         return _finish(root, app, guard, state_dir)
+@@ -860,12 +894,13 @@ def main(argv=None) -> int:
+     b.add_argument("--out", default=None, help="書き出し先（既定は <data_dir>/browse/<wiki_key>/）")
+     b.add_argument("--raw", choices=core.RAW_MODES, default=None,
+                    help="raw: の出し方（既定は、既定の書き出し先で link、--out で basename）")
++    _add_scope_arguments(b)
+     sub.add_parser("core", help="中核を、標準入力と標準出力の JSON で呼ぶ")
+     _add_server_commands(sub)
+     args = parser.parse_args(argv)
+     try:
+         if args.cmd == "build":
+-            report = build(wiki_root(args.wiki), args.out, args.raw)
++            report = build(wiki_root(args.wiki), args.out, args.raw, args.scope)
+             print(json.dumps({"out": report["out"], "generation": report["generation"], "pages": report["pages"],
+                               "warnings": len(report["warnings"])}, ensure_ascii=False), flush=True)
+             return EXIT_OK
+@@ -881,6 +916,13 @@ def main(argv=None) -> int:
+         return EXIT_FAILED
+ 
+ 
++def _add_scope_arguments(p) -> None:
++    """画面に出す wiki のスコープ。wiki を選んだ側（/wiki:browse）が、その wiki が指示や設定で何として登録されて
++    いるかで決めて渡す。このスクリプトは、スコープを決めるために何も読まず、wiki の場所から推し量らない。"""
++    p.add_argument("--scope", choices=core.SCOPE_KINDS, default=None,
++                   help="wiki のスコープ（user か project）。省くと画面に出さない")
++
++
+ def _add_server_commands(sub) -> None:
+     """serve と stop（設計の 8）。"""
+     s = sub.add_parser("serve", help="127.0.0.1 のサーバーを起動して開く（動いていれば使い回す）")
+@@ -889,13 +931,15 @@ def _add_server_commands(sub) -> None:
+     s.add_argument("--no-open", action="store_true", help="ブラウザで開かない（URL を出すだけ）")
+     s.add_argument("--idle-timeout", type=float, default=DEFAULT_IDLE, help="操作がないときに終わるまでの秒数（既定 1800）")
+     s.add_argument("--verbose", action="store_true", help="要求の方法、口の種類、状態の番号を標準エラーに出す")
++    _add_scope_arguments(s)
+     t = sub.add_parser("stop", help="動いているサーバーを止める")
+     t.add_argument("wiki")
+ 
+ 
+ def _run_server_command(args) -> int:
+     if args.cmd == "serve":
+-        return serve(wiki_root(args.wiki), args.page, not args.no_open, args.idle_timeout, args.verbose)
++        return serve(wiki_root(args.wiki), args.page, not args.no_open, args.idle_timeout, args.verbose,
++                     args.scope)
+     if args.cmd == "stop":
+         return stop(wiki_root(args.wiki))
+     raise Failed(f"未対応のコマンド: {args.cmd}")
+diff --git a/skills/info-hive/scripts/wiki_browse_core.py b/skills/info-hive/scripts/wiki_browse_core.py
+index 864b3b5..544588d 100644
+--- a/skills/info-hive/scripts/wiki_browse_core.py
++++ b/skills/info-hive/scripts/wiki_browse_core.py
+@@ -52,6 +52,11 @@ DATA_FILES = ("nav.js", "data/manifest.js", "data/diagnostics.js")
+ EXTERNAL_SCHEMES = ("http", "https", "mailto")
+ ONTOLOGY_REL = "graph/ontology.yaml"
+ 
++# wiki のスコープの表示。スコープは、wiki を選んだ側（/wiki:browse）が --scope で指定する。
++SCOPE_KINDS = ("user", "project")
++SCOPE_LABELS = {"user": "ユーザースコープ", "project": "プロジェクト"}
++SCOPE_HEADINGS = {"user": "ユーザースコープの wiki", "project": "プロジェクトの wiki"}
++
+ 
+ _DISPLAY = wiki_pages.new_parser()
+ 
+@@ -519,8 +524,11 @@ class Recorder:
+ class Core:
+     """1 つの写しから組み立てた中核。描く関数は静的の書き出しとサーバーで同じものを使う。"""
+ 
+-    def __init__(self, snapshot: Snapshot, name_limit: int = NAME_LIMIT, record: bool = True):
++    def __init__(self, snapshot: Snapshot, name_limit: int = NAME_LIMIT, record: bool = True,
++                 scope: "str | None" = None):
+         self.snapshot = snapshot
++        # wiki のスコープ（user か project）。呼び出し元の指定で、中核は決めない。None なら出さない。
++        self.scope = scope if scope in SCOPE_KINDS else None
+         self.generation = snapshot.generation
+         self.parser = wiki_pages.new_parser()
+         self.diagnostics = []
+@@ -1037,6 +1045,12 @@ class Core:
+             lis.append(f"<li>{html.escape(' / '.join(map(str, parts)))}</li>")
+         return f'<section id="_diagnostics"><h2>診断</h2><ul>{"".join(lis)}</ul></section>\n'
+ 
++    def _scope_html(self) -> str:
++        """サイドバーの先頭に置く、スコープの表示。スクリプトなしでも見える。"""
++        if not self.scope:
++            return ""
++        return f'<p id="_scope" class="scope scope-{self.scope}">{SCOPE_HEADINGS[self.scope]}</p>'
++
+     def _head(self, path: str, title: str, stale: "str | None") -> str:
+         prefix = root_prefix(path)
+         self.recorder.add(path, title)
+@@ -1044,14 +1058,16 @@ class Core:
+         if stale:
+             banner = (f'<p id="_stale" class="stale">Wiki の最新の内容を表示できていない。前の内容を表示している'
+                       f"（{html.escape(stale)}）</p>\n")
++        full_title = f"{title} · {SCOPE_LABELS[self.scope]}" if self.scope else title
+         return (f'<!doctype html>\n<html lang="ja" data-root="{prefix}" data-generation="{self.generation}">\n'
+                 f'<head>\n<meta charset="utf-8">\n'
+                 f'<meta http-equiv="Content-Security-Policy" content="{CSP}">\n'
+                 f'<meta name="referrer" content="no-referrer">\n'
+                 f'<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+-                f"<title>{html.escape(title)}</title>\n"
++                f"<title>{html.escape(full_title)}</title>\n"
+                 f'<link rel="stylesheet" href="{prefix}assets/style.css">\n</head>\n<body>\n'
+-                f'<nav id="_nav"><noscript><a href="{prefix}index.html">索引へ</a></noscript></nav>\n'
++                f'<nav id="_nav">{self._scope_html()}'
++                f'<noscript><a href="{prefix}index.html">索引へ</a></noscript></nav>\n'
+                 f'<main id="_main">\n{banner}')
+ 
+     def _tail(self, path: str, extra_data: tuple = ()) -> str:
