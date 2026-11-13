@@ -1,11 +1,11 @@
-# 初期化していないディレクトリを wiki として扱わない（2026年11月13日、1 版目）
+# 初期化していないディレクトリを wiki として扱わない（2026年11月13日、2 版目）
 
 `/wiki:init` をしていないディレクトリに、ほかのコマンドを向けたときの扱いを決める設計である。「初期化された wiki」の判定を 1 か所に置き、wiki を読む入口と、wiki のために書く入口のすべてがその判定を通るようにする。未初期化なら、何も書かずに止まり、`/wiki:init` を案内する。判定の決定は [ADR-0019](../adr/0019-wiki-root-is-marked-by-schema.md) に記録する。
 
 | 項目 | 内容 |
 | --- | --- |
 | 状態 | 案（作者の承認待ち） |
-| 版 | 1 版目 |
+| 版 | 2 版目。1 版目の 1 回目のレビューは却下だった（[design-review-1.md](../agent-runs/2026-11-13-wiki-uninitialized-root/design-review-1.md)）。指摘を、崩れた前提ごとに分けて直した（「1 回目のレビューの指摘と直し方」）。2 版目の確かめは、実装のレビューと一緒に頼む |
 | 対象 | `info-hive-wiki` 0.12.1（`origin/main` の `5326bf9`）から始める |
 | 関連 | [ADR-0019](../adr/0019-wiki-root-is-marked-by-schema.md)、ADR-0004（Web ページの raw）、ADR-0008（作業領域の設定）、ADR-0010（browse）、ADR-0012（MCP サーバー）、ADR-0018（Python 3.12） |
 
@@ -20,6 +20,8 @@
 - **閉じないこと**: 判定は「`SCHEMA.md` があるか」だけである。`SCHEMA.md` の中身、`index.md` や `log.md` の有無は見ない。`SCHEMA.md` だけを置いた別の用途のディレクトリは wiki とみなす。
 - **閉じないこと**: ライブラリの関数（`wiki_lint.lint()`、`collect_pages()`、`compute_stats()`、`wiki_index.WikiIndex` など）は判定しない。判定は入口で行う（「決めること」の 3）。
 - **閉じないこと**: 今までに未初期化のディレクトリについて作られた MCP の索引（データの場所の `index/<wiki_key>/`）と `.wiki-cache/` は、消さない。
+- **閉じないこと**: Python が入口のスクリプトを読み込むときに、プラグイン自身のディレクトリに書くバイトコードのキャッシュ（`scripts/__pycache__/`）。判定より前に起きるが、書く先は wiki でも raw でも索引でもなく、プラグインの置き場所である。プラグインを wiki の中に置いた場合も、初期化済みの wiki で同じことが起きるので、初期化の判定とは別の問題である。閲覧だけは、wiki を読むだけという約束（ADR-0010）のために、読み込む前にバイトコードを書かないようにしている（今のまま）。この設計の「何も書かない」は、wiki のディレクトリ、raw、データの場所の索引と状態、書き出し先を指す。
+- **閉じないこと**: 評価のランナー（`wiki_evolve_agent.py`、`wiki_evolve_claude.py`、`wiki_evolve_api.py`、`wiki_evolve_stream.py`）が標準入力の JSON で受け取る `wiki_root`。評価ループ（`wiki_evolve_loop.py`、`wiki_evolve.py evaluate`）が、`suite.json` の事実情報のコーパスを一時ディレクトリに写して渡すもので、利用者の wiki ではない（`/wiki:evolve` の文章も「学習用 wiki」と「事実情報のコーパス」を分けている）。学習用の wiki は、ループの側の `locked()` で確かめる。info-hive のスキルを評価するコーパスは、スキルが `SCHEMA.md` のない場所では止まるので、`SCHEMA.md` を置いておく必要がある（`eval/evolution/pilot/wiki/` と `workflows/wiki/` にはある。`project-smoke/wiki/` は空のスキルの評価なので要らない）。
 
 ## 背景
 
@@ -95,9 +97,14 @@
 - `wiki_mcp_common.SERVER_FILES` に足す。サーバーのコードの版が変わり、更新のあとに動いているサーバーが入れ替わる。
 - `__main__` を持たない。読み込む入口は、どれも先に `wiki_text` を読み込む（ADR-0018 の版の確かめ）。
 
-### 3. 判定する場所は入口だけ
+### 3. 判定する場所は、wiki を読み始めるところ
 
-判定は、利用者やエージェントが wiki のパスを渡す入口で行う。ライブラリの関数は判定しない。MCP のサーバーと既存の試験が、ライブラリの関数を素のディレクトリに対して呼んでいるためであり、入口で 1 回確かめれば、その後の処理は同じ wiki を扱う。
+判定は、利用者やエージェントが wiki のパスを渡す入口で、wiki を読み始める前に行う。ライブラリの関数は判定しない。MCP のサーバーと既存の試験が、ライブラリの関数を素のディレクトリに対して呼んでいるためである。
+
+- 1 回で終わる CLI では、引数を読んだ直後が「読み始めるところ」である。
+- 長く動くプロセス（MCP のサーバー、閲覧のサーバー）は、要求のたびに wiki を読み直す。起動のときの判定は、そのあとの `SCHEMA.md` の有無を保証しない。そこで、要求のたびに、wiki を読み直す前に判定する。
+- 判定は、パスの解決（`resolve(strict=True)` など）より前に行う。ない、ディレクトリでない、調べられないも、判定の同じ文と案内で止まる。
+- 入口は、表を手で保つだけでなく、試験でファイルから機械的に数える（「試験」の入口の一覧）。wiki のパスを受け取る新しい入口を足したのに判定も試験もなければ、その試験が落ちる。判定しない入口は、理由とともに例外の一覧に書く。
 
 | 入口 | 変更後 |
 | --- | --- |
@@ -107,14 +114,15 @@
 | `setup_wiki.py` | 今の `is_dir()` の確かめを `require_or_exit()` に替える。init と upgrade は `SCHEMA.md` を置いてから呼ぶので、影響しない |
 | `wiki_evolve.py`（`capture` と `verify-bundle` 以外）、`wiki_evolve_loop.py` | `locked()` の `SCHEMA.md` の確かめを `require()` に替え、文をそろえる。`.evolution/` を作るのは、確かめのあとである（今と同じ） |
 | `wiki_evolve.py capture` | 「決めること」の 5 |
-| `wiki_browse.py build`、`serve`、`core` | `wiki_root()` で確かめる。`core` は今と同じく `{"ok": false, "error": "no_wiki"}` を返す（中核の契約の誤りの値を増やさない） |
-| `wiki_browse.py stop` | 確かめない。動いているサーバーを止めるだけで、wiki を読みも書きもしない。`SCHEMA.md` をあとで消した wiki のサーバーも止められるようにする |
-| MCP の `wiki_root()`（`query` の `wiki`、`get_page`、`list_index`、`lint`、`stats`、`graph`） | 今のパスの正規化（NFC、`resolve(strict=True)`）のあとで `require()` を呼ぶ。`NotInitialized` は `ValueError` なので、ツールのエラーになる。索引のキャッシュ（`State.wikis`）を引く前に毎回確かめるので、`SCHEMA.md` を消した wiki には答えない |
+| `wiki_browse.py build`、`serve`、`stop`、`core` | `wiki_root()` で、パスを解決する前に確かめる。`core` は要求ごとに確かめ、今と同じく `{"ok": false, "error": "no_wiki"}` を返す（中核の契約の誤りの値を増やさない）。`stop` も確かめる。確かめないと、未初期化のディレクトリのために、データの場所に状態のディレクトリを作るからである |
+| 閲覧のサーバーの要求（`BrowseState.get()`） | 要求のたびに、入力の印を取る前に確かめる。`SCHEMA.md` がなくなっていたら、前の中核も使わずに 503（`初期化された wiki ではない（SCHEMA.md がない）。` と案内）を返す。中核は捨てないので、`SCHEMA.md` が戻れば、入力の印が同じならそのまま答える。`SCHEMA.md` を消した wiki のサーバーは `stop` では止められないが、操作がなければ 30 分で終わり、Claude Code を終えても終わる（画面は定期的に要求しない） |
+| MCP の `wiki_root()`（`query` の `wiki`、`get_page`、`list_index`、`lint`、`stats`、`graph`） | パスを NFC にそろえたあと、解決（`resolve(strict=True)`）の前に `require()` を呼ぶ。解決の失敗（`OSError`）も、案内を付けたツールのエラーにする。`NotInitialized` は `ValueError` なので、ツールのエラーになる。索引のキャッシュ（`State.wikis`）を引く前に毎回確かめるので、`SCHEMA.md` を消した wiki には答えない |
 | MCP の `query` の `collection`、`index_chunks` | 確かめない。wiki を受け取らない（rag が使う） |
 | `wiki_fetch.py` | 「決めること」の 4 |
 | `init_wiki.py --upgrade` | 「決めること」の 6 |
 | `wiki_workspace.default_wiki_or_exit()` | 変えない。場所を決めるだけで、判定は呼び出し元が続けて行う |
 | `wiki_help.py`、`wiki_encoding.py`、MCP の入口と中継 | wiki を受け取らないので変えない |
+| 評価のランナー（`wiki_evolve_agent.py` など 4 つ） | 確かめない（「閉じないこと」）。入口の一覧の試験で、理由とともに例外にする |
 
 ### 4. Web ページの取得は、取り込み先の wiki を受け取る
 
@@ -147,7 +155,7 @@ raw のルートは wiki から決まった位置にない（既定は wiki と�
 
 ### 7. コマンドとスキルの文章
 
-どのコマンドも、`<WIKI_ROOT>` を決めた直後に `SCHEMA.md` を確かめる。文は 1 つに決め、`commands/query.md`、`lint.md`、`stats.md`、`graph.md`、`browse.md`、`ingest.md`、`learn.md`、`evolve.md` に同じ形で入れる。
+どのコマンドも、`<WIKI_ROOT>` を決めた直後に `SCHEMA.md` を確かめる。`/wiki:browse --stop` も同じである（スクリプトの `stop` も確かめるので、文章とスクリプトが食い違わない）。文は 1 つに決め、`commands/query.md`、`lint.md`、`stats.md`、`graph.md`、`browse.md`、`ingest.md`、`learn.md`、`evolve.md` に同じ形で入れる。
 
 > `<WIKI_ROOT>/SCHEMA.md` がなければ、初期化された wiki ではない（ほかの用途の `wiki/` のこともある）。MCP のツールもスクリプトも呼ばず、何も書かずに止まり、ユーザースコープの wiki なら `/wiki:init --user`、プロジェクトの wiki なら `/wiki:init` を提案する。指示や設定で wiki の場所を探し直したり、`SCHEMA.md` を自分で作ったりしてはならない。ツールやスクリプトが「初期化された wiki ではない」と返したときも同じにする。
 
@@ -170,15 +178,17 @@ raw のルートは wiki から決まった位置にない（既定は wiki と�
 
 | 試験 | 中身 |
 | --- | --- |
-| 判定の表 | 「決めること」の 1 の表の各行を、`problem()` で確かめる。ない、ファイル、空のディレクトリ、Markdown のページだけのディレクトリ、`SCHEMA.md` がディレクトリ、壊れたリンク（作れる環境だけ）、`SCHEMA.md` がある |
-| CLI の入口 | 各入口を、`SCHEMA.md` のない、ページのあるディレクトリに向けて子プロセスで動かす。終了コード 1、標準エラーに理由と `/wiki:init`、前後でディレクトリの木（基準のディレクトリの下のすべてのパス、大きさ、更新時刻）が変わらないこと。同じディレクトリに `SCHEMA.md` を置くと終了コード 0 になること（試験が空振りしていないことの確かめ） |
+| 判定の表 | 「決めること」の 1 の表の各行を、`problem()` で確かめる。ない、親がファイル、ファイル、空のディレクトリ、Markdown のページだけのディレクトリ、`SCHEMA.md` がディレクトリ、壊れたリンクと通常のファイルへのリンク（作れる環境だけ）、ルートと `SCHEMA.md` を調べられない（`os.stat` を差し替えて `PermissionError`）、`schema.md` だけがある（結果がファイルシステムの大文字と小文字の扱いと一致すること）、`SCHEMA.md` がある、中身が読めない `SCHEMA.md` |
+| CLI の入口 | 各入口を、`SCHEMA.md` のない、ページのあるディレクトリと、ないパスと、ファイルに向けて子プロセスで動かす。終了コード 1、標準エラーに理由と `/wiki:init`、前後でディレクトリの木（基準のディレクトリの下のすべてのパス、大きさ、更新時刻）が変わらないこと。同じディレクトリに `SCHEMA.md` を置くと終了コード 0 になること（試験が空振りしていないことの確かめ） |
 | `wiki_search.py --cache` | 上に加え、`.wiki-cache/` ができないこと |
 | `wiki_graph_extract.py --ontology <外>` | `graph/` ができないこと |
 | `wiki_fetch.py` | 届かない URL（`http://127.0.0.1:9/`）で、未初期化の `--wiki` は終了コード 1（取得の失敗の 2 ではない）で raw ができないこと。初期化済みの wiki と、ない `--raw-root` で、終了コード 1 で raw ができないこと。`--wiki` を省くと終了コード 2 |
-| `init_wiki.py --upgrade` | 基準のディレクトリに `SCHEMA.md` のない `wiki/` があると、終了コード 1 で、何もできず、uv を呼ばないこと（`UV` を存在しないパスにして確かめる） |
+| `init_wiki.py --upgrade` | 基準のディレクトリに `SCHEMA.md` のない `wiki/` があるときと、`wiki/` がないときに、終了コード 1 で、何もできず、uv を呼ばないこと（`init_wiki.py` は `shutil.which("uv")` で探すので、`PATH` を空のディレクトリにして確かめる。確かめが効かなければ、ファイルを作ってから「uv が必要」で止まる） |
 | `wiki_evolve.py capture` | 未初期化の wiki で終了コード 1、`experiences/` ができないこと。raw がないときの文に「先に作っておく」がなく、`/wiki:upgrade` があること |
-| `wiki_browse.py build`、`core` | 書き出し先とデータの場所（環境変数で一時ディレクトリに向ける）が変わらないこと。`core` が `no_wiki` を返すこと。`stop` は未初期化でも今と同じに動くこと |
-| MCP | `test_mcp_server.py` に足す。`query`、`stats`、`lint`、`get_page`、`list_index`、`graph` が「初期化された wiki ではない」のエラーを返し、データの場所の `index/` に、その wiki のディレクトリができないこと。`collection` の `query` と `index_chunks` は今までどおり動くこと |
+| `wiki_browse.py build`、`stop`、`core` | 書き出し先とデータの場所（環境変数で一時ディレクトリに向ける）が変わらないこと。`core` が `no_wiki` を返すこと |
+| 閲覧のサーバー | `tests/wiki/test_browse_server.py` に足す。ページを開いたあとで `SCHEMA.md` を消すと、503 で「初期化された wiki ではない」と案内し、前の本文を出さないこと。`locate` が `unavailable` になること。`SCHEMA.md` を戻すと、また答えること |
+| 入口の一覧 | `scripts/` の `__main__` を持つスクリプトのうち、wiki のパスを引数（`args.wiki`、`args.wiki_dir`）か標準入力の JSON（`wiki`、`wiki_root`）から受け取るものを数え、どれも `wiki_initialized` を使い、どこかで振る舞いを試験していること。例外（評価のランナー）は理由つきで書き、数え方が空振りしていないことも確かめる |
+| MCP | `test_mcp_server.py` に足す。ないパスとファイルを渡すと、解決より前の判定の文と `/wiki:init` を返すこと。`query`、`stats`、`lint`、`get_page`、`list_index`、`graph` が「初期化された wiki ではない」のエラーを返し、データの場所の `index/` に、その wiki のディレクトリができないこと。`collection` の `query` と `index_chunks` は今までどおり動くこと |
 | 文章 | `commands/*.md` のうち wiki を扱うものがすべて同じ手順の文を含むこと、`SKILL.md` が「初期化の手順を実行する」と書いていないこと |
 
 既存の試験の素材で `SCHEMA.md` のない wiki を CLI、MCP、browse に渡しているものは、素材に `SCHEMA.md` を足して直す。判定を緩めて通すことはしない。影響しそうなのは、`tests/workspace/cases.json` の cli の場合、`tests/wiki/test_browse*.py` と `tests/wiki/browse/*.mjs`（親の CI でだけ動く）、`tests/wiki/test_mcp_server.py`、`tests/wiki/test_wiki_index.py`、子の `eval/scripts/` と `eval/retrieval/` の試験である。
@@ -190,3 +200,16 @@ Windows 11、Python 3.12（uv）と 3.14.6。CI は子の `wiki-tests.yml`（Ubu
 ## レビューの進め方
 
 AGENTS.md に従い、この設計と、実装のそれぞれのあとに、ask-codex で Sol に敵対的レビューを頼む。記録は `docs/agent-runs/2026-11-13-wiki-uninitialized-root/` に置く。
+
+## 1 回目のレビューの指摘と直し方
+
+1 版目は却下だった。指摘を 1 つずつ塞がず、崩れた前提ごとに分けて直した。
+
+| 崩れた前提 | 指摘 | 直し方 |
+| --- | --- | --- |
+| 入口で 1 回確かめれば、そのあとも同じ wiki を扱う | 閲覧のサーバーは、起動のあとの要求ごとに wiki を読み直す。起動のあとで `SCHEMA.md` を消しても、前の中核や新しい中核で答える（重大 1） | 判定の場所を「wiki を読み始めるところ」と決め直した。長く動くプロセスは要求ごとに確かめる（「決めること」の 3）。MCP はもともと要求ごとだった |
+| wiki を受け取る入口は、手で表にできる | 標準入力の JSON で `wiki_root` を受け取る評価のランナーが、表になかった（重大 2） | 入口をファイルから機械的に数える試験を足した。評価のランナーは、利用者の wiki ではなくコーパスの写しを受け取るので、理由を書いて例外にした（「閉じないこと」） |
+| 判定の前は何も書かない | プラグインを対象のディレクトリの中に置くと、読み込みでバイトコードを書く（重大 3） | 書く先はプラグインの置き場所で、初期化済みの wiki でも同じに起きるので、この設計の対象の外と決め、「何も書かない」の範囲を書いた（「閉じないこと」） |
+| `stop` だけは確かめなくてよい | 文章は `--stop` の前で止めるのに、設計は `stop` を確かめないとしていた（重大 4） | `stop` も確かめると決め、文章とスクリプトをそろえた。`stop` が確かめないと、未初期化のディレクトリのために状態のディレクトリを作る。`SCHEMA.md` を消した wiki のサーバーは、503 を返し、操作がなければ終わる（「決めること」の 3） |
+| 判定は正規化のあとでよい | ないルートは解決で先に失敗し、案内が出なかった（軽微） | 判定を解決より前に置いた（MCP と閲覧）。試験で、ないパスとファイルを CLI と MCP に渡す |
+| 試験の書き方 | `UV` の環境変数は `init_wiki.py` に効かない。判定の表の行と試験が合わない（軽微） | `PATH` を空にして確かめる。表の各行を試験に足した |
