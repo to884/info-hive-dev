@@ -17,6 +17,7 @@ PyYAML が要る（グラフ、閲覧、セットアップの入口がサーバ�
 """
 from __future__ import annotations
 
+import ast
 import json
 import os
 import shutil
@@ -221,8 +222,8 @@ class EntryCase(unittest.TestCase):
 class ReaderEntryTests(EntryCase):
     """wiki を読む CLI の入口。"""
 
-    def cases(self):
-        w = self.wiki
+    def cases(self, w=None):
+        w = self.wiki if w is None else w
         return {
             "lint": [SCRIPTS / "wiki_lint.py", w, "--json"],
             "stats": [SCRIPTS / "wiki_stats.py", w, "--json"],
@@ -236,12 +237,37 @@ class ReaderEntryTests(EntryCase):
                                  "--no-embed"],
             "decide-contradictions": [SCRIPTS / "wiki_decide.py", "contradictions", "--wiki", w],
             "evolve-history": [SCRIPTS / "wiki_evolve.py", "--wiki", w, "history"],
+            "evolve-show": [SCRIPTS / "wiki_evolve.py", "--wiki", w, "show", "x"],
+            "evolve-apply": [SCRIPTS / "wiki_evolve.py", "--wiki", w, "apply", "x"],
+            "evolve-rollback": [SCRIPTS / "wiki_evolve.py", "--wiki", w, "rollback", "x"],
+            "evolve-export": [SCRIPTS / "wiki_evolve.py", "--wiki", w, "export", "x", "--destination",
+                              self.base / "bundle"],
+            "evolve-capture": [SCRIPTS / "wiki_evolve.py", "--wiki", w, "capture", "--raw", self.raw, "--record",
+                               self.outside / "record.json"],
             "evolve-loop": [SCRIPTS / "wiki_evolve_loop.py", "--wiki", w, "--skill", self.outside, "--suite",
                             self.outside / "suite.json", "--config", self.outside / "config.json", "--id", "x"],
             "setup": [SCRIPTS / "setup_wiki.py", "--wiki", w],
             "browse-build": [SCRIPTS / "wiki_browse.py", "build", w, "--out", self.base / "site"],
+            "browse-serve": [SCRIPTS / "wiki_browse.py", "serve", w, "--no-open", "--idle-timeout", "5"],
             "browse-stop": [SCRIPTS / "wiki_browse.py", "stop", w],
+            "fetch": [SCRIPTS / "wiki_fetch.py", "http://127.0.0.1:9/", "--wiki", w, "--raw-root", self.raw,
+                      "--slug", "記事", "--json"],
         }
+
+    def test_path_through_missing_directory_is_refused(self):
+        """判定は、パスを解決する前の、渡されたとおりのパスで行う。初期化された wiki を指す `<wiki>/ない/..` は、
+        途中のディレクトリがないので、POSIX ではないパスである（解決すると縮んで wiki になる）。Windows は、
+        ファイルシステムを呼ぶ前に `..` を縮めるので、同じパスがあるものになり、この試験は当てはまらない。"""
+        write(self.wiki / "SCHEMA.md", "# スキーマ\n")
+        through = self.wiki / "ない" / ".."
+        try:
+            os.stat(through)
+            self.skipTest("この OS は、ないディレクトリの .. を、ファイルシステムを呼ぶ前に縮める")
+        except OSError:
+            pass
+        for name, args in self.cases(through).items():
+            with self.subTest(entry=name):
+                self.assertIn("wiki のディレクトリが見つからない", self.assert_refused(args).stderr)
 
     def test_entries_refuse_and_write_nothing(self):
         for name, args in self.cases().items():
@@ -353,6 +379,34 @@ class WriterEntryTests(EntryCase):
         self.assertIn(INIT, done.stderr)
         self.assertNotIn("uv が必要", done.stderr)
 
+    def test_upgrade_refuses_missing_base_with_hint(self):
+        """基準のディレクトリがないときも、判定の文と /wiki:init を示す。"""
+        empty = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, empty, True)
+        before = snapshot(self.base)
+        done = run([SCRIPTS / "init_wiki.py", self.base / "ない", "--upgrade"], self.base,
+                   {**self.env, "PATH": str(empty)})
+        self.assertEqual(snapshot(self.base), before)
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("アップグレードする wiki がない", done.stderr)
+        self.assertIn(INIT, done.stderr)
+
+    def test_upgrade_judges_the_path_before_resolving(self):
+        write(self.wiki / "SCHEMA.md", "# スキーマ\n")
+        through = self.base / "ない" / ".."
+        try:
+            os.stat(through / "wiki")
+            self.skipTest("この OS は、ないディレクトリの .. を、ファイルシステムを呼ぶ前に縮める")
+        except OSError:
+            pass
+        empty = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, empty, True)
+        before = snapshot(self.base)
+        done = run([SCRIPTS / "init_wiki.py", through, "--upgrade"], self.base, {**self.env, "PATH": str(empty)})
+        self.assertEqual(snapshot(self.base), before)
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("見つからない", done.stderr)
+
     def test_upgrade_refuses_missing_wiki_dir(self):
         shutil.rmtree(self.wiki)
         empty = Path(tempfile.mkdtemp())
@@ -365,64 +419,112 @@ class WriterEntryTests(EntryCase):
 
 
 class EntranceInventoryTests(unittest.TestCase):
-    """wiki のパスを受け取る入口を、ファイルから機械的に数える（設計の「決めること」の 3）。
+    """入口の一覧（設計の「決めること」の 3）。
 
-    入口は、最上位に `__main__` の分岐を持つスクリプトのうち、wiki のパスを引数（`args.wiki`、`args.wiki_dir`）か
-    標準入力の JSON（`wiki`、`wiki_root`）から受け取るもの。どの入口も wiki_initialized を使い、この試験か
-    ほかの試験で振る舞いを確かめていなければならない。判定しない入口は、理由とともに EXEMPT に書く。
+    `scripts/` のスクリプトのうち、`__main__` の分岐を持つもの（入口）を構文木で見つけ、閉じた一覧で分類する。
+    どの分類にもない入口を足すと、この試験が落ちる。分類は 3 つある。
+
+    - TAKES_WIKI: wiki のパスを受け取る入口。wiki_initialized を読み込んで呼び、どこかで振る舞いを試験している。
+    - RUNNERS: 評価のランナー。評価ループ（wiki_evolve_loop.py、wiki_evolve.py evaluate）が、suite.json の事実情報の
+      コーパスを一時ディレクトリに写して渡す。利用者の wiki ではないので判定しない。学習用の wiki はループの側で確かめる。
+    - NO_WIKI: wiki のパスを受け取らない入口。wiki のパスを受け取るような書き方（args.wiki、wiki_root など）が
+      ないことも確かめ、分類の誤りに気づけるようにする。
     """
 
-    TAKES_WIKI = re.compile(r"args\.wiki(_dir)?\b|\[['\"]wiki_root['\"]\]|\.get\(\s*['\"]wiki(_root)?['\"]")
-    EXEMPT = {
-        # 評価ループ（wiki_evolve_loop.py、wiki_evolve.py evaluate）が、suite.json の事実情報のコーパスを
-        # 一時ディレクトリに写して渡す。利用者の wiki ではない。学習用の wiki はループの側で確かめる。
-        "wiki_evolve_agent.py": "評価のランナー",
-        "wiki_evolve_claude.py": "評価のランナー",
-        "wiki_evolve_api.py": "評価のランナー",
-        "wiki_evolve_stream.py": "評価のランナー",
-    }
-    # 入口ごとの振る舞いの試験。ReaderEntryTests.cases() の入口に加えて、ほかで確かめるもの。
-    TESTED_ELSEWHERE = {
-        "wiki_fetch.py": "WriterEntryTests",
+    TAKES_WIKI = {
         "init_wiki.py": "WriterEntryTests（--upgrade）",
+        "setup_wiki.py": "ReaderEntryTests の setup",
+        "wiki_browse.py": "ReaderEntryTests の browse-*、test_browse_core_answers_no_wiki、test_browse_server.py",
+        "wiki_decide.py": "ReaderEntryTests の decide-*",
+        "wiki_evolve.py": "ReaderEntryTests の evolve-*",
+        "wiki_evolve_loop.py": "ReaderEntryTests の evolve-loop",
+        "wiki_fetch.py": "ReaderEntryTests の fetch、WriterEntryTests",
+        "wiki_graph_extract.py": "ReaderEntryTests の graph-extract",
+        "wiki_graph_lint.py": "ReaderEntryTests の graph-lint",
+        "wiki_graph_query.py": "ReaderEntryTests の graph-query",
+        "wiki_lint.py": "ReaderEntryTests の lint",
         "wiki_mcp_server.py": "tests/wiki/test_mcp_server.py の UninitializedWikiTests",
+        "wiki_search.py": "ReaderEntryTests の search、search-cache、backlinks",
+        "wiki_stats.py": "ReaderEntryTests の stats",
     }
+    RUNNERS = {
+        "wiki_evolve_agent.py": "評価のランナー（インストール済みのエージェント）",
+        "wiki_evolve_api.py": "評価のランナー（API）",
+        "wiki_evolve_claude.py": "評価のランナー（Claude Code）",
+    }
+    NO_WIKI = {
+        "wiki_encoding.py": "1 つのファイルの文字コードを調べる",
+        "wiki_help.py": "コマンドの一覧を出す",
+        "wiki_mcp_launch.py": "MCP の入口。wiki はツールの引数でサーバーが受け取る",
+        "wiki_mcp_relay.py": "MCP の中継。同上",
+        "wiki_workspace.py": "作業領域の設定から wiki の場所を出すだけで、wiki を読まない",
+    }
+    # wiki のパスを受け取る書き方。NO_WIKI の入口にあれば、分類を見直す。
+    WIKI_PATTERN = re.compile(r"args\.wiki(_dir)?\b|wiki_root|['\"]--wiki['\"]|add_argument\(\s*['\"]wiki['\"]")
 
     @staticmethod
-    def is_entry(source: str) -> bool:
-        return re.search(r"^if __name__ == ['\"]__main__['\"]:", source, re.MULTILINE) is not None
+    def is_entry(tree: ast.Module) -> bool:
+        """最上位に `if __name__ == "__main__":`（左右が逆の書き方も）がある。"""
+        for node in tree.body:
+            if isinstance(node, ast.If) and isinstance(node.test, ast.Compare) and len(node.test.comparators) == 1:
+                sides = [node.test.left, node.test.comparators[0]]
+                names = [s.id for s in sides if isinstance(s, ast.Name)]
+                consts = [s.value for s in sides if isinstance(s, ast.Constant)]
+                if names == ["__name__"] and consts == ["__main__"]:
+                    return True
+        return False
 
-    def entrances(self) -> set[str]:
-        found = set()
+    @staticmethod
+    def calls_shared_check(tree: ast.Module) -> bool:
+        """wiki_initialized を読み込み、その関数を呼んでいる（読み込むだけ、コメントだけでは足りない）。"""
+        aliases, imported = set(), set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                aliases |= {a.asname or a.name for a in node.names if a.name == "wiki_initialized"}
+            elif isinstance(node, ast.ImportFrom) and node.module == "wiki_initialized":
+                imported |= {a.asname or a.name for a in node.names}
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name) and func.value.id in aliases:
+                return True
+            if isinstance(func, ast.Name) and func.id in imported:
+                return True
+        return False
+
+    def entries(self) -> dict:
+        found = {}
         for path in sorted(SCRIPTS.glob("*.py")):
             if path.name.startswith("test_"):
                 continue
             source = path.read_text(encoding="utf-8")
-            if self.is_entry(source) and self.TAKES_WIKI.search(source):
-                found.add(path.name)
-        # MCP のツールは関数の引数で wiki を受け取る。サーバーの入口は wiki_root() である。
-        found.add("wiki_mcp_server.py")
+            tree = ast.parse(source)
+            if self.is_entry(tree):
+                found[path.name] = (source, tree)
         return found
 
-    def test_inventory_is_not_empty(self):
-        # 数え方が壊れて、何も確かめなくなるのを防ぐ。
-        self.assertTrue({"wiki_lint.py", "wiki_search.py", "wiki_browse.py", "wiki_fetch.py", "init_wiki.py",
-                         "wiki_evolve.py", "wiki_evolve_loop.py"} <= self.entrances(), sorted(self.entrances()))
+    def test_every_entry_is_classified_once(self):
+        classes = [set(self.TAKES_WIKI), set(self.RUNNERS), set(self.NO_WIKI)]
+        self.assertEqual(sum(len(c) for c in classes), len(set().union(*classes)), "2 つの分類に入っている")
+        self.assertEqual(sorted(self.entries()), sorted(set().union(*classes)))
 
-    def test_every_entrance_uses_the_shared_check(self):
-        for name in sorted(self.entrances() - set(self.EXEMPT)):
-            with self.subTest(script=name):
-                source = (SCRIPTS / name).read_text(encoding="utf-8")
-                # wiki_evolve_loop.py は wiki_evolve.locked() を通る。
-                self.assertTrue("wiki_initialized" in source or (name == "wiki_evolve_loop.py" and "locked(" in source))
+    def test_wiki_entries_call_the_shared_check(self):
+        for name, (_source, tree) in self.entries().items():
+            if name in self.TAKES_WIKI:
+                with self.subTest(script=name):
+                    self.assertTrue(self.calls_shared_check(tree))
 
-    def test_every_entrance_is_tested(self):
+    def test_no_wiki_entries_do_not_take_a_wiki(self):
+        for name, (source, _tree) in self.entries().items():
+            if name in self.NO_WIKI:
+                with self.subTest(script=name):
+                    self.assertIsNone(self.WIKI_PATTERN.search(source))
+
+    def test_reader_cases_cover_the_cli_entries(self):
         cases = ReaderEntryTests.cases(EntryCaseStub())
-        tested = {Path(str(args[0])).name for args in cases.values()} | set(self.TESTED_ELSEWHERE)
-        self.assertEqual(sorted(self.entrances() - set(self.EXEMPT) - tested), [])
-
-    def test_exempt_scripts_still_exist(self):
-        self.assertEqual(sorted(name for name in self.EXEMPT if not (SCRIPTS / name).is_file()), [])
+        tested = {Path(str(args[0])).name for args in cases.values()}
+        self.assertEqual(sorted(set(self.TAKES_WIKI) - tested - {"init_wiki.py", "wiki_mcp_server.py"}), [])
 
 
 class EntryCaseStub:
@@ -430,6 +532,7 @@ class EntryCaseStub:
     wiki = Path("wiki")
     outside = Path("outside")
     base = Path("base")
+    raw = Path("raw")
 
 
 class DocumentTests(unittest.TestCase):
