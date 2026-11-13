@@ -781,8 +781,13 @@ class ReviewCounterexample6Test(RawCheckCase):
         self.setup_fetch(src)
         self.write_raw("# A\n\n| A |\n|---|\n| 1 | `SELECT 1;` [safe](https://safe.example/) |\n")
         self.assertIn("table", self.kinds(self.freeze()))
-        # 見出しとすべての行から列を消すのは通る（対照）。
+        # 列は、見出しとすべての行から消しても止まる（7 回目のレビューで、列を消せないことにした）。
         self.write_raw("# A\n\n| A |\n|---|\n| 1 |\n")
+        self.assertIn("table", self.kinds(self.freeze()))
+        # 行を丸ごと消すのは通る（対照）。
+        src2 = "# A\n\n| A | B |\n|---|---|\n| 1 | 2 |\n| Share | Tweet |\n"
+        self.setup_fetch(src2)
+        self.write_raw("# A\n\n| A | B |\n|---|---|\n| 1 | 2 |\n")
         result = self.freeze()
         self.assertTrue(result["ok"], result["errors"])
 
@@ -794,9 +799,68 @@ class ReviewCounterexample6Test(RawCheckCase):
         self.assertIn("caption", self.kinds(self.check()))
 
 
+class ReviewCounterexample7Test(RawCheckCase):
+    """実装の 7 回目のレビュー（impl-review-7.md）の反例。"""
+
+    def test_table_inside_list_cannot_hide_cells(self):
+        src = "# A\n\n- | A | B |\n  |---|---|\n  | 1 | `SELECT 1;` [safe](https://safe.example/) |\n"
+        self.setup_fetch(src)
+        self.write_raw("# A\n\n- | A |\n  |---|\n  | 1 | `SELECT 1;` [safe](https://safe.example/) |\n")
+        self.assertIn("table", self.kinds(self.freeze()))
+        # 訳と補足の段で、表のセルの区切りを書き足しても止まる。
+        self.setup_fetch(src)
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw("# A\n\n- | A | B |\n  |---|---|\n  | 1 | `SELECT 1;` [safe](https://safe.example/) | 足した |\n",
+                       fm=FM_T)
+        self.assertIn("table", self.kinds(self.check()))
+
+    def test_entity_in_image_path(self):
+        rel = "assets/a&amp;b/a&amp;b-01.png"
+        src = f"# A\n\nBody.\n\n![]({rel} \"https://site.example/i.png\")\n"
+        self.setup_fetch(src, images=[rel])
+        result = self.freeze()
+        self.assertTrue(result["ok"], result["errors"])
+        self.write_raw(src.replace("Body.", "本文。"), fm=FM_T)
+        self.assertIn("caption", self.kinds(self.check()))
+        (self.raw / rel).unlink()
+        self.write_raw(src)
+        self.assertIn("image_file", self.kinds(self.freeze()))
+
+    def test_failed_freeze_leaves_no_cleaned(self):
+        src = "# A\n\nOpening paragraph.\n\n```\nSELECT 1;\n```\n"
+        self.setup_fetch(src)
+        real_replace = os.replace
+
+        def failing(a, b):
+            if str(b).endswith("cleaned.md"):
+                raise OSError("書けない")
+            return real_replace(a, b)
+
+        with mock.patch.object(wiki_rawcheck.os, "replace", failing):
+            with self.assertRaises(OSError):
+                wiki_rawcheck.freeze(self.wiki, self.raw, "a")
+        self.assertFalse((self.wd / "cleaned.md").exists())
+
+
 class ResumeTest(FetchCase):
+    def test_resume_after_translation(self):
+        """訳したあとに止まった取り込みを取り直すと frozen になり、訳した raw が check を通る。"""
+        html = html_page(f"<p>{LONG}</p>")
+        _, text, _ = self.build(html)
+        self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "page")[0], 0)
+        out = text.replace('translated_by: ""', 'translated_by: "Claude Sonnet 5.5"').replace(LONG.strip(), "本文の訳である。")
+        (self.raw / "page.md").write_text(out, encoding="utf-8", newline="\n")
+        stub = FetchStub(html)
+        with mock.patch.object(wiki_fetch, "fetch", stub), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
+            code, result = wiki_fetch.build(self.args())
+        # 原文の HTML が同じなので unchanged。raw は訳したあとのものだが、比べるのは原文のハッシュである。
+        self.assertTrue(result["unchanged"])
+        self.assertEqual(result["work_stage"], "frozen")
+        self.assertEqual(wiki_rawcheck.check(self.wiki, self.raw, "page", None, None)[0], 0)
+
     def test_unchanged_reports_stage_and_values(self):
-        """訳したあとに止まった取り込みを取り直すと、削除を固定した段まで進んだことと、手順の値を返す。"""
+        """削除を固定したあとに止まった取り込みを取り直すと、その段まで進んだことと、手順の値を返す。"""
         html = html_page(f"<p>{LONG}</p>")
         self.build(html)
         self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "page")[0], 0)

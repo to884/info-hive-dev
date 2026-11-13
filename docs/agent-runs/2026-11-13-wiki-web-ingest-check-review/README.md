@@ -11,9 +11,10 @@
 | 実装 4 | | 却下 | 3 | [impl-root-causes-4.md](impl-root-causes-4.md) |
 | 実装 5 | | 却下 | 2 | [impl-root-causes-5.md](impl-root-causes-5.md) |
 | 実装 6 | | 却下 | 2 | [impl-root-causes-6.md](impl-root-causes-6.md) |
+| 実装 7 | | 却下 | 3 | [impl-root-causes-7.md](impl-root-causes-7.md) |
 
-実装の各回とも、前の回の指摘の反例はすべて「崩せなかった」とされた。反例は、`tests/wiki/test_wiki_web_check.py` の `ReviewCounterexampleTest`〜`ReviewCounterexample6Test` などに回帰試験として入れた。
+実装の各回とも、前の回の指摘の反例はすべて「崩せなかった」とされた。反例は、`tests/wiki/test_wiki_web_check.py` の `ReviewCounterexampleTest`〜`ReviewCounterexample7Test` などに回帰試験として入れた。
 
-6 回目の指摘を直したあとの版は、まだレビューしていない。
+7 回目の指摘を直したあとの版は、まだレビューしていない。
 
 各回の依頼文は、結果の隣の `*.task.md` にある。`impl-N.submodule.diff` は、その回にレビューした `info-hive-wiki` の差分（`origin/main` から）である。
