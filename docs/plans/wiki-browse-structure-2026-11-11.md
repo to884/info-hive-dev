@@ -4,7 +4,7 @@ wiki 0.10.0 の閲覧（browse）は、Sol の実装のレビューで 7 回却�
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 設計の案（8 版目）。1〜7 版目は、Sol の設計のレビューで却下された（[design-review-1.md](../agent-runs/2026-11-11-wiki-browse-structure/design-review-1.md)〜[design-review-7.md](../agent-runs/2026-11-11-wiki-browse-structure/design-review-7.md)）。5 回目から 7 回目は、止める条件の A（失敗のないときの約束を破る指摘）が 1 件ずつだった。8 版目は、8 回目のレビューで「条件付きで採用可」、A は 0 件だった（[design-review-8.md](../agent-runs/2026-11-11-wiki-browse-structure/design-review-8.md)）。止める条件（「作者が決めたこと」）に従い、残りの指摘を 11 に書き、**作者の承認を待っている** |
+| 状態 | 設計の案（8 版目）。1〜7 版目は、Sol の設計のレビューで却下された（[design-review-1.md](../agent-runs/2026-11-11-wiki-browse-structure/design-review-1.md)〜[design-review-7.md](../agent-runs/2026-11-11-wiki-browse-structure/design-review-7.md)）。5 回目から 7 回目は、止める条件の A（失敗のないときの約束を破る指摘）が 1 件ずつだった。8 版目は、8 回目のレビューで「条件付きで採用可」、A は 0 件だった（[design-review-8.md](../agent-runs/2026-11-11-wiki-browse-structure/design-review-8.md)）。止める条件（「作者が決めたこと」）に従い、残りの指摘を 11 に書いた。作者は、設計の文の食い違い 3 つを直す形で**承認した**（2026年11月13日）。試作と探索に残した C は、12 の 1 で直す |
 | 対象 | `info-hive-wiki` の `wiki_browse.py`、`wiki_browse_core.py`、`wiki_browse_fs.py` と、開発リポジトリの `tests/wiki/` |
 | 元の設計 | [browse の第 1 段階の設計](wiki-browse-stage1-2026-11-09.md)。「守ること」の 1 を言い換える（[ADR-0017](../adr/0017-wiki-browse-changes-only-what-it-created.md)）。2〜9 は変えない。実装のあとで、元の設計の該当の節（守ること 1、2、3.8、5、6、7、8.3）を書き換える |
 | 版 | 走査の計画（[wiki をたどる経路を 1 つにし、除くディレクトリに降りない](wiki-walk-excluded-dirs-2026-11-11.md)）のあとに出す。info-hive-wiki の main は 0.11.0（対応する Python の下限を 3.12 に上げた。to884/info-hive-wiki#46）まで進んでいるので、番号はマージの前に決める。機能は足さない。振る舞いが変わる点は 10 に挙げる |
