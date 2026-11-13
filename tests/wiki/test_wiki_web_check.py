@@ -191,7 +191,8 @@ class WorkDirTest(FetchCase):
         self.assertFalse(result["work_dir"])
 
     def test_raw_is_not_written_when_snapshot_fails(self):
-        """fetch.json を一時の名前から正式な名前に変える前に失敗すると、raw は書かず、写しは「そろっていない」になる。"""
+        """名前の変更（raw の一時のファイルから正式な名前へ）に失敗すると、raw は書かれず、写しの印（fetch.json）も
+        置かれないので、写しは「そろっていない」になる。"""
         stub = FetchStub(html_page(f"<p>{LONG}</p>"))
         with mock.patch.object(wiki_fetch, "fetch", stub), \
                 mock.patch.object(wiki_fetch, "is_private_host", lambda host: False), \
@@ -1078,15 +1079,19 @@ class FetchCounterexample8Test(FetchCase):
         edits += [("check", i, translated[:i] + translated[i + 1:]) for i in range(t_start, len(translated))]
         edits += [("check", None, translated[:i] + "|" + translated[i:]) for i in range(t_start, len(translated))]
         passed = 0
+        # 取り直さずに raw だけを書き換える（freeze はいつも取得の写しの fetched.md と照らす）。取り直しは raw を
+        # 名前の変更で置き換えるので、何百回もくり返すと、Windows でほかのプロセスがファイルを開いていて失敗しうる。
+        baseline_frozen = False
         for stage, deleted, out in edits:
             if stage == "freeze":
-                self.build(html_page(f"<p>{LONG}</p>" + self.TABLE), force=True)
                 self.write_raw(out)
                 code, _ = wiki_rawcheck.freeze(self.wiki, self.raw, "page")
             else:
-                if not (wiki_rawcheck.work_dir(self.wiki, "page") / "cleaned.md").is_file():
-                    self.build(html_page(f"<p>{LONG}</p>" + self.TABLE), force=True)
+                if not baseline_frozen:
+                    # 訳の段の基準は、手を入れていない取得の内容（通った削除の内容ではない）。
+                    self.write_raw(text)
                     self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "page")[0], 0)
+                    baseline_frozen = True
                 self.write_raw(out)
                 code, _ = wiki_rawcheck.check(self.wiki, self.raw, "page", None, None)
             if deleted in separators:
@@ -1130,7 +1135,8 @@ class FetchCounterexample8Test(FetchCase):
         self.assertEqual(code, 0, result["errors"])
 
     def test_work_dir_of_another_fetch_is_not_resumed(self):
-        """--force で写しを書いたあとに raw を書けずに止まると、写しは raw と別の取得のものになる。"""
+        """--force で写しを書いたあとに raw を書けずに止まると、前の raw が残る。写しがそろった印は raw のあとに
+        置くので、写しはそろわず、途中から続けられない（9 回目のレビューで、印を置く順に改めた）。"""
         page_a = html_page(f"<p>{LONG}</p>")
         page_b = html_page(f"<p>{LONG} Changed.</p>")
         self.build(page_a)
@@ -1140,7 +1146,7 @@ class FetchCounterexample8Test(FetchCase):
                 mock.patch.object(wiki_fetch, "write_outputs", side_effect=OSError("書けない")):
             with self.assertRaises(OSError):
                 wiki_fetch.build(self.args(force=True))
-        self.assertTrue(wiki_rawcheck.work_dir_complete(self.wiki, "page"))
+        self.assertFalse(wiki_rawcheck.work_dir_complete(self.wiki, "page"))
         stub = FetchStub(page_a)
         with mock.patch.object(wiki_fetch, "fetch", stub), \
                 mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
@@ -1165,6 +1171,94 @@ class FetchCounterexample8Test(FetchCase):
             code, again = wiki_fetch.build(self.args())
         self.assertEqual(again["work_stage"], "frozen")
         self.assertEqual([img["path"] for img in again["images"]], [second])
+
+
+class ReviewCounterexample9Test(RawCheckCase):
+    """実装の 9 回目のレビュー（impl-review-9.md）の指摘。"""
+
+    def test_error_in_table_cell_has_line_and_code(self):
+        src = "# A\n\n| A | B |\n|---|---|\n| 1 | `SELECT 1;` [safe](https://safe.example/) |\n"
+        self.setup_fetch(src)
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw(src.replace("SELECT 1;", "DROP TABLE users;"), fm=FM_T)
+        error = next(e for e in self.check()["errors"] if e["kind"] == "code_span")
+        lines = (self.raw / "a.md").read_text(encoding="utf-8").split("\n")
+        self.assertTrue(lines[error["line"] - 1].startswith("| 1 |"))
+        self.assertIn("SELECT 1;", error["source"])
+        self.assertIn("DROP TABLE users;", error["raw"])
+
+    def test_ordered_item_number_is_checked(self):
+        src = "# A\n\n1. One.\n2. Two.\n"
+        self.setup_fetch(src)
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw("# A\n\n1. 一。\n999. 二。\n", fm=FM_T)
+        self.assertIn("structure", self.kinds(self.check()))
+        self.write_raw("# A\n\n1. 一。\n2. 二。\n", fm=FM_T)
+        result = self.check()
+        self.assertTrue(result["ok"], result["errors"])
+
+
+class FetchCounterexample9Test(FetchCase):
+    """実装の 9 回目のレビューの指摘のうち、取得器が書いた raw から始めるもの。"""
+
+    def write_raw(self, text: str):
+        (self.raw / "page.md").write_text(text, encoding="utf-8", newline="\n")
+
+    def test_raw_with_other_frontmatter_is_not_resumed(self):
+        """写しがそろっていても、raw の frontmatter が写しと違えば（書き換えた、別の版に戻した）、途中から続けない。"""
+        html = html_page(f"<p>{LONG}</p>")
+        _, text, _ = self.build(html)
+        self.assertTrue(wiki_rawcheck.work_dir_complete(self.wiki, "page"))
+        self.write_raw(text.replace("fetched_at: ", "fetched_at: 2000-01-01T00:00:00+09:00\nold_fetched_at: ", 1))
+        stub = FetchStub(html)
+        with mock.patch.object(wiki_fetch, "fetch", stub), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
+            code, result = wiki_fetch.build(self.args())
+        self.assertTrue(result["unchanged"])
+        self.assertFalse(result["work_dir"])
+
+    def test_remaining_images_keep_their_own_alt(self):
+        html = html_page(f'<p>{LONG}</p><img src="i.png" alt="Before treatment" width="300" height="200">'
+                         f'<p>Middle.</p><img src="i.png" alt="After treatment" width="300" height="200">')
+        result, text, _ = self.build(html)
+        self.assertEqual([img["alt"] for img in result["images"]], ["Before treatment", "After treatment"])
+        code, frozen = wiki_rawcheck.freeze(self.wiki, self.raw, "page")
+        self.assertEqual(code, 0, frozen["errors"])
+        self.assertEqual([img["alt"] for img in frozen["images"]], ["Before treatment", "After treatment"])
+        # 後ろの画像の行だけを消すと、残った前の画像だけが、前の画像の alt で並ぶ。
+        line = next(x for x in text.split("\n") if x.startswith("![After treatment]"))
+        self.write_raw(text.replace("\n\n" + line, ""))
+        code, frozen = wiki_rawcheck.freeze(self.wiki, self.raw, "page")
+        self.assertEqual(code, 0, frozen["errors"])
+        self.assertEqual([(img["alt"], img["url"]) for img in frozen["images"]],
+                         [("Before treatment", "https://site.example/request/i.png")])
+
+    def test_failed_refetch_in_the_same_second_is_not_resumed(self):
+        """同じ秒に、画像を取らずに --force で取り直し、raw を書けずに止まると、写しはそろわない（frontmatter が
+        前の raw と同じでも、途中から続けられない）。"""
+        import datetime as dt
+
+        class FixedNow(dt.datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return dt.datetime(2026, 11, 14, 8, 0, 0)
+
+        html = html_page(f'<p>{LONG}</p><img src="i.png" width="300" height="200">')
+        with mock.patch.object(wiki_fetch, "datetime", FixedNow):
+            self.build(html)
+            stub = FetchStub(html)
+            with mock.patch.object(wiki_fetch, "fetch", stub), \
+                    mock.patch.object(wiki_fetch, "is_private_host", lambda host: False), \
+                    mock.patch.object(wiki_fetch, "write_outputs", side_effect=OSError("書けない")):
+                with self.assertRaises(OSError):
+                    wiki_fetch.build(self.args(force=True, no_images=True))
+            self.assertFalse(wiki_rawcheck.work_dir_complete(self.wiki, "page"))
+            stub = FetchStub(html)
+            with mock.patch.object(wiki_fetch, "fetch", stub), \
+                    mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
+                code, result = wiki_fetch.build(self.args())
+        self.assertTrue(result["unchanged"])
+        self.assertFalse(result["work_dir"])
 
 
 class SonnetTrialTest(RawCheckCase):
