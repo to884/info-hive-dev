@@ -53,8 +53,14 @@
   }
   // 当たった文字に <mark> を付けて、要素に入れる（innerHTML は使わない）
   function highlight(node, text, terms) {
-    var low = norm(text), pos = 0, marks = [];
-    terms.forEach(function (t) { var k = low.indexOf(t); if (k >= 0) { marks.push([k, k + t.length]); } });
+    // 符号位置ごとに小文字にした列で探し、元の文字の境界に戻す（全体を一度に小文字にした位置は使わない）
+    text = String(text).normalize("NFC");
+    var chars = Array.from(text), low = "", starts = [], acc = 0, pos = 0, marks = [];
+    chars.forEach(function (c) { starts.push([low.length, acc]); low += c.toLowerCase(); acc += c.length; });
+    starts.push([low.length, acc]);
+    function back(k) { for (var j = starts.length - 1; j >= 0; j--) { if (starts[j][0] <= k) { return starts[j][1]; } } return 0; }
+    function fwd(k) { for (var j = 0; j < starts.length; j++) { if (starts[j][0] >= k) { return starts[j][1]; } } return acc; }
+    terms.forEach(function (t) { var k = low.indexOf(t); if (k >= 0) { marks.push([back(k), fwd(k + t.length)]); } });
     marks.sort(function (a, b) { return a[0] - b[0]; });
     marks.forEach(function (m) {
       if (m[0] < pos) { return; }
@@ -101,6 +107,7 @@
     if (!S) { input.disabled = true; hint.textContent = "検索の索引を読めない"; return input; }
     input.addEventListener("input", function () { opts.onQuery(input.value, search(input.value)); });
     input.addEventListener("keydown", function (e) {
+      if (e.isComposing || e.keyCode === 229) { return; }   // かな漢字の変換中
       if (e.key === "Enter") {
         var first = (opts.resultsBox() || document).querySelector(".sr-results a");
         if (first) { location.href = first.href; }
@@ -128,18 +135,19 @@
   }
 
   // 現在のページを含むグループの道
-  function pathTo(groups, id) {
-    for (var k = 0; k < groups.length; k++) {
-      var g = groups[k];
-      for (var j = 0; j < g.items.length; j++) { if (g.items[j].i === id) { return [g]; } }
-      var sub = pathTo(g.children, id);
-      if (sub) { return [g].concat(sub); }
-    }
-    return null;
+  // 今のページへの道を、最初の 1 本で止めずにすべて集める
+  function pathsTo(groups, id, prefix, out) {
+    groups.forEach(function (g) {
+      var here = prefix.concat([g]);
+      if (g.items.some(function (it) { return it.i === id; })) { out.push(here); }
+      pathsTo(g.children, id, here, out);
+    });
+    return out;
   }
-  var trail = current ? (pathTo(NAV.groups, current) || []) : [];
+  var trails = current ? pathsTo(NAV.groups, current, [], []) : [];
+  var trail = trails[0] || [];
   var openIds = {};
-  trail.forEach(function (g) { openIds[g.id] = true; });
+  trails.forEach(function (t) { t.forEach(function (g) { openIds[g.id] = true; }); });
 
   function itemLink(it) {
     var li = el("li");
@@ -296,10 +304,10 @@
       chips.appendChild(b);
     });
     bar.appendChild(chips);
-    var tagSel = el("select"), tags = {};
-    items.forEach(function (li) { (li.getAttribute("data-tags") || "").split("\u001f").forEach(function (t) { if (t) { tags[t] = (tags[t] || 0) + 1; } }); });
+    var tagSel = el("select"), tags = new Map();
+    items.forEach(function (li) { (li.getAttribute("data-tags") || "").split("\u001f").forEach(function (t) { if (t) { tags.set(t, (tags.get(t) || 0) + 1); } }); });
     tagSel.appendChild(new Option("タグ: すべて", ""));
-    Object.keys(tags).sort().forEach(function (t) { tagSel.appendChild(new Option(t + "（" + tags[t] + "）", t)); });
+    Array.from(tags.keys()).sort().forEach(function (t) { tagSel.appendChild(new Option(t + "（" + tags.get(t) + "）", t)); });
     tagSel.setAttribute("aria-label", "タグで絞る");
     tagSel.addEventListener("change", function () { state.tag = tagSel.value; apply(); });
     bar.appendChild(tagSel);
