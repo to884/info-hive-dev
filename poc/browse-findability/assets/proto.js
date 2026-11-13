@@ -19,7 +19,8 @@
     if (text != null) { e.textContent = text; }
     return e;
   }
-  function norm(s) { return String(s || "").normalize("NFC").toLowerCase(); }
+  // 照合と強調で同じそろえ方にする。全体を一度に小文字にしない（語末の Σ が前後で変わるため）
+  function norm(s) { return Array.from(String(s || "").normalize("NFC")).map(function (c) { return c.toLowerCase(); }).join(""); }
   function badge(t) { return el("span", "badge t-" + (t || "none"), TYPE[t] || t || "種類なし"); }
 
   // --- 検索 ---
