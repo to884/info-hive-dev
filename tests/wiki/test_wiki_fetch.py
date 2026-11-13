@@ -365,7 +365,8 @@ class ReplaceRetryTest(unittest.TestCase):
         # 一時の本文と新しい画像の置き場は残さない。
         self.assertEqual([p.name for p in self.raw.rglob(".*")], [backup.name])
 
-    def test_old_images_survive_when_restoring_keeps_failing(self):
+    def keep_old_images_by_failing_restore(self) -> FlakyReplace:
+        """本文の置き換えを EIO で、古い画像を戻す名前の変更をずっと失敗させ、古い画像を退避の場所に残す。"""
         target = FlakyReplace(self.to_target, None, OSError(errno.EIO, "入出力のエラー"))
         restore = FlakyReplace(lambda src, dst: src.parent.name.endswith(".old"), None)
 
@@ -375,6 +376,10 @@ class ReplaceRetryTest(unittest.TestCase):
             return target(src, dst)
 
         self.check_old_images_survive_unfinished_restore(replace, PermissionError)
+        return restore
+
+    def test_old_images_survive_when_restoring_keeps_failing(self):
+        restore = self.keep_old_images_by_failing_restore()
         self.assertEqual(restore.attempts, len(wiki_fetch._REPLACE_RETRY_DELAYS) + 1)
 
     def test_old_images_survive_interrupt_while_waiting_to_restore(self):
@@ -393,6 +398,53 @@ class ReplaceRetryTest(unittest.TestCase):
         with mock.patch.object(wiki_fetch.time, "sleep", interrupted):
             self.check_old_images_survive_unfinished_restore(replace, KeyboardInterrupt)
         self.assertEqual(restore.attempts, 1)
+
+    def test_old_image_moved_just_before_interrupt_is_restored(self):
+        # 古い画像を退避の場所に移した直後（記録する前）に止められても、その画像を元の場所に戻す。
+        def replace(src, dst):
+            REAL_REPLACE(src, dst)
+            if Path(dst).parent.name.endswith(".old"):
+                raise KeyboardInterrupt
+
+        with self.assertRaises(KeyboardInterrupt):
+            self.write_with(replace)
+        self.assert_previous_kept()
+
+    def kept_old_images(self) -> list[tuple[str, bytes]]:
+        return sorted((p.name, p.read_bytes()) for p in self.raw.rglob("*")
+                      if p.is_file() and p.parent.name.endswith(".old"))
+
+    def test_kept_old_images_survive_next_successful_save(self):
+        # 同じプロセス（同じプロセス ID）の次の保存が成功しても、前に残した古い画像を消さない。
+        self.keep_old_images_by_failing_restore()
+        self.write(self.NEW_TEXT, self.NEW_IMAGES)
+        self.assertEqual(self.target.read_bytes().decode("utf-8"), self.NEW_TEXT)
+        for name, data in self.NEW_IMAGES:
+            self.assertEqual((self.asset_dir / name).read_bytes(), data)
+        self.assertEqual(self.kept_old_images(), sorted(self.OLD_IMAGES))
+
+    def test_kept_old_images_survive_next_failed_save(self):
+        # 1 回目の保存: 本文の置き換えが失敗し、置いた新しい画像を消すところで止まる。古い画像は退避の場所に、
+        # 新しい画像は正式な場所に残る。2 回目の保存（同じプロセス ID）も本文の置き換えで失敗する。
+        # 2 回目に新しい画像を退避するとき、1 回目に残した古い画像を上書きしてはならない。
+        self.write(self.OLD_TEXT, self.OLD_IMAGES[:1])
+        target = FlakyReplace(self.to_target, None, OSError(errno.EIO, "入出力のエラー"))
+        real_unlink = Path.unlink
+        blocked = self.asset_dir / "article-1-01.png"
+
+        def unlink(path, *args, **kwargs):
+            if path == blocked and not getattr(unlink, "done", False):
+                unlink.done = True
+                raise PermissionError(errno.EACCES, "アクセスが拒否されました。", str(path))
+            return real_unlink(path, *args, **kwargs)
+
+        with mock.patch.object(Path, "unlink", unlink), self.assertRaises(PermissionError):
+            self.write_with(target)
+        self.assertEqual(self.kept_old_images(), sorted(self.OLD_IMAGES[:1]))
+        with self.assertRaises(OSError):
+            self.write_with(target)
+        self.assertEqual(self.target.read_bytes().decode("utf-8"), self.OLD_TEXT)
+        self.assertIn(self.OLD_IMAGES[0], self.kept_old_images())
 
     def test_other_errors_are_not_retried(self):
         flaky = FlakyReplace(self.to_target, None, OSError(errno.EIO, "入出力のエラー"))
