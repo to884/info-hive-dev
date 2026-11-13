@@ -164,6 +164,14 @@
       d.open = !!openIds[g.id] || (isIndex && depth === 0 && NAV.groups.length <= 2);
       var s = el("summary", null, g.title || "索引");
       s.appendChild(el("span", "count", String(g.count)));
+      s.setAttribute("data-gid", g.id);
+      if (variant === "d") {
+        // D: グループの名前の横の「一覧」で、索引のページの一覧をこのグループに絞る
+        var f = el("a", "tree-filter", "一覧");
+        f.href = href("index.html") + "#group=" + g.id;
+        f.setAttribute("aria-label", g.title + " のページを一覧で見る");
+        s.appendChild(f);
+      }
       d.appendChild(s);
       if (g.items.length) {
         var ul = el("ul");
@@ -189,7 +197,7 @@
       li.appendChild(a); ul.appendChild(li);
       g.children.forEach(function (c) {
         var sl = el("li", "sub"), sa = el("a");
-        sa.href = href("index.html") + "#group=" + g.id;
+        sa.href = href("index.html") + "#group=" + c.id;
         sa.appendChild(el("span", null, c.title)); sa.appendChild(el("span", "count", String(c.count)));
         sl.appendChild(sa); ul.appendChild(sl);
       });
@@ -219,14 +227,15 @@
     sideResults.appendChild(resultList(found, q, 30, false));
   }
   var navMain;
-  if (variant === "a") { navMain = treeA(); }
+  if (variant === "a" || variant === "d") { navMain = treeA(); }
   else if (variant === "b") { navMain = groupsB(); }
   else { navMain = placeC(); }
 
   if (variant === "c" && isIndex) {
     // C の索引のページでは、検索欄は本文の上の大きな 1 つだけにする
     navbody.appendChild(drawer(groupsB()));
-  } else if (variant === "b" && isIndex) {
+  } else if ((variant === "b" || variant === "d") && isIndex) {
+    // 索引のページでは、検索欄は一覧の上の 1 つだけにする
     navbody.appendChild(drawer(navMain));
   } else {
     makeSearch(navbody, { onQuery: sideQuery, resultsBox: function () { return sideResults; } });
@@ -237,7 +246,9 @@
   if (cur && cur.scrollIntoView) { cur.scrollIntoView({ block: "center" }); window.scrollTo(0, 0); }
 
   // --- B の索引: 絞り込みと並べ替え ---
-  if (variant === "b" && isIndex) {
+  if ((variant === "b" || variant === "d") && isIndex) {
+    var allGroups = [];
+    (function flat(gs) { gs.forEach(function (g) { allGroups.push(g); flat(g.children); }); })(NAV.groups);
     var bar = document.getElementById("_filters"), list = document.getElementById("_list");
     var count = document.getElementById("_count");
     var items = Array.prototype.slice.call(list.children);
@@ -284,7 +295,7 @@
         var p = li.querySelector(".ix-title").getAttribute("href");
         var vis = (!found || ok[decodeURIComponent(p)]) && (!state.type || li.getAttribute("data-type") === state.type)
           && (!state.tag || (li.getAttribute("data-tags") || "").split("\u001f").indexOf(state.tag) >= 0)
-          && (!state.group || li.getAttribute("data-group") === state.group);
+          && (!state.group || (li.getAttribute("data-groups") || "").split(" ").indexOf(state.group) >= 0);
         li.hidden = !vis;
         if (vis) { shown++; }
       });
@@ -295,9 +306,15 @@
         return a.getAttribute("data-order") - b.getAttribute("data-order");
       }).forEach(function (li) { list.appendChild(li); });
       count.textContent = items.length + " 件中 " + shown + " 件";
-      var g = NAV.groups.filter(function (x) { return x.id === state.group; })[0];
+      var g = allGroups.filter(function (x) { return x.id === state.group; })[0];
       groupNote.hidden = !g;
       groupNote.textContent = g ? "グループ: " + g.title + " ×" : "";
+      // D: 絞っているグループを木の中で強調し、開く
+      Array.prototype.forEach.call(navbody.querySelectorAll(".tree summary"), function (s) {
+        var on = s.getAttribute("data-gid") === state.group;
+        s.classList.toggle("is-current", on);
+        if (on) { for (var p = s.parentNode; p && p !== navbody; p = p.parentNode) { if (p.tagName === "DETAILS") { p.open = true; } } }
+      });
     }
     function fromHash() {
       var m = /group=(_g\d+)/.exec(location.hash);

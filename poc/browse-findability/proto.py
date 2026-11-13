@@ -22,7 +22,7 @@ CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' 
        "base-uri 'none'; form-action 'none'")
 TYPE_LABELS = {"source": "ソース", "entity": "エンティティ", "concept": "コンセプト", "synthesis": "シンセシス"}
 WIKILINK = re.compile(r"\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|([^\]]+))?\]\]")
-VARIANTS = {"a": "A. 分類の木", "b": "B. 絞り込める一覧", "c": "C. 検索が主役"}
+VARIANTS = {"a": "A. 分類の木", "b": "B. 絞り込める一覧", "c": "C. 検索が主役", "d": "D. 木と絞り込める一覧"}
 
 
 def read(path: Path) -> str:
@@ -308,18 +308,26 @@ def index_b(groups, pages, root) -> str:
     for pid in pages:
         if pid not in order:
             order.append(pid)
-    top_of = {}
+    # ページを含むグループの ID（どの深さも）。木のグループで一覧を絞るのに使う
+    groups_of = {}
+
+    def mark(g, trail):
+        trail = trail + [g["id"]]
+        for it in g["items"]:
+            if it["state"] == "resolved":
+                groups_of.setdefault(it["i"], set()).update(trail)
+        for c in g["children"]:
+            mark(c, trail)
+
     for g in groups:
-        for gg in walk([g]):
-            for it in gg["items"]:
-                if it["state"] == "resolved":
-                    top_of.setdefault(it["i"], g["id"])
+        mark(g, [])
     rows = []
     for n, pid in enumerate(order):
         p = pages[pid]
         gp = " › ".join(p["gp"])
         extra = (f' data-type="{esc(p["y"])}" data-tags="{esc(chr(31).join(p["g"]))}" data-updated="{esc(p["u"])}"'
-                 f' data-title="{esc(p["t"])}" data-order="{n}" data-group="{esc(top_of.get(pid, ""))}"')
+                 f' data-title="{esc(p["t"])}" data-order="{n}"'
+                 f' data-groups="{esc(" ".join(sorted(groups_of.get(pid, ()))))}"')
         r = row_html(p, root, "fx-row", extra)
         if gp:
             r = r.replace('<div class="ix-line">', f'<div class="fx-path">{esc(gp)}</div><div class="ix-line">', 1)
@@ -390,7 +398,7 @@ def build(variant: str, wiki: Path, exported: Path, out: Path, name: str) -> Non
         write(out / "assets" / f, read(HERE / "assets" / f))
     write(out / "data" / "nav.js", js_data("PROTO_NAV", nav_data(groups, pages)))
     write(out / "data" / "search.js", js_data("WIKI_SEARCH", search_data(pages)))
-    body = {"a": index_a, "b": index_b, "c": index_c}[variant](groups, pages, "")
+    body = {"a": index_a, "b": index_b, "c": index_c, "d": index_b}[variant](groups, pages, "")
     write(out / "index.html", head(variant, "", "索引", name) + body + "\n" + tail(""))
     for p in pages.values():
         write(out / p["p"], head(variant, p["root"], p["t"], name) + p["main"] + tail(p["root"]))

@@ -15,7 +15,7 @@ for (const s of shots) {
                                        colorScheme: s.dark ? "dark" : "light" });
   const errors = [];
   page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
-  await page.goto(pathToFileURL(s.file).href);
+  await page.goto(pathToFileURL(s.file).href + (s.hash || ""));
   if (s.type) {
     await page.locator(s.typeInto || "#_q").fill(s.type);
     await page.waitForTimeout(150);

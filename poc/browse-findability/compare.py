@@ -29,11 +29,18 @@ VARIANTS = [
      "今のページの場所と、同じグループのページだけを出す。",
      ["名前やキーワードを覚えているときにいちばん速い", "サイドバーが短く、記事を読むときに邪魔にならない",
       "Wiki 全体の分類を見渡すには、索引のページに戻る"]),
+    ("d", "D. 木と絞り込める一覧（A の左 + B の右）",
+     "左のペインは A の木（件数つき、折りたたみ、今のページの強調）。右の索引のページは B の一覧（種類、タグ、グループで"
+     "絞り、並べ替える）。木のグループの「一覧」で、右の一覧をそのグループに絞り、絞っているグループを木の中で強調する。"
+     "記事のページでは、左に検索欄と木を出す。",
+     ["分類をたどることと、条件で絞ることを、同じ画面でできる", "木と一覧が同じグループの ID を使うので、件数がそろう",
+      "索引のページでは、木と一覧の 2 つにページの名前が出る（今の画面と同じ重なり）"]),
 ]
 SHOTS = [("large-index-1280", "索引（400 ページ、indexes/ に分割）"), ("large-search", "「形態素 検索」と打ったところ"),
          ("large-article-1280", "記事のページのサイドバー"), ("indexed-index-1280", "索引（索引が整った 27 ページ）"),
          ("noindex-index-1280", "索引（index.md のない Wiki）"), ("large-index-1280-dark", "暗い配色"),
-         ("large-article-390", "狭い幅（記事）"), ("large-index-390", "狭い幅（索引）")]
+         ("large-article-390", "狭い幅（記事）"), ("large-index-390", "狭い幅（索引）"),
+         ("large-index-filtered", "木の「健康」から一覧を絞ったところ")]
 WIKIS = [("large", "400 ページ"), ("indexed", "索引つき 27 ページ"), ("noindex", "索引なし 27 ページ")]
 
 CSS = """
@@ -46,7 +53,7 @@ header { padding: 1.5rem 2rem 0.5rem; max-width: 90rem; margin: 0 auto; }
 header h1 { margin: 0; font-size: 1.5rem; }
 header p { color: var(--muted); margin: 0.25rem 0; }
 .base { max-width: 90rem; margin: 0 auto; padding: 0 2rem; }
-.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; padding: 1rem 2rem 3rem;
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr)); gap: 1.25rem; padding: 1rem 2rem 3rem;
   max-width: 90rem; margin: 0 auto; }
 .col { border: 1px solid var(--border); border-radius: 0.75rem; padding: 1rem; background: var(--sub); min-width: 0; }
 .col h2 { margin: 0 0 0.25rem; font-size: 1.25rem; }
@@ -74,6 +81,8 @@ def main() -> int:
         figs = []
         narrow = []
         for key, cap in SHOTS:
+            if not (shots / f"{v}-{key}.png").exists():
+                continue
             img = f'<figure><img src="shots/{v}-{key}.png" alt="{name}: {cap}" loading="lazy"><figcaption>{cap}</figcaption></figure>'
             (narrow if key.endswith("390") else figs).append(img)
         cols.append(f'<section class="col"><h2>{name}</h2><p>{desc}</p><ul>'
