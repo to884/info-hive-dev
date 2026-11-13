@@ -22,6 +22,7 @@ import os
 import struct
 import sys
 import tempfile
+import time
 import unittest
 import zlib
 from pathlib import Path
@@ -211,13 +212,29 @@ class PreLineBreakTest(FetchTestCase):
 
 
 REAL_REPLACE = os.replace
+REAL_SLEEP = time.sleep
+
+
+def real_replace(src, dst) -> None:
+    """本物の os.replace。試験の PC でほかのプロセス（ウイルス対策の検査など）が本当にファイルを開いていて
+    PermissionError になったときは、本物の sleep で待って試し直す。試験が差し替えた sleep と、試し直しの
+    回数の記録には影響しない。"""
+    for delay in (0.05, 0.1, 0.2, 0.4):
+        try:
+            REAL_REPLACE(src, dst)
+            return
+        except PermissionError:
+            if os.name != "nt":
+                raise
+            REAL_SLEEP(delay)
+    REAL_REPLACE(src, dst)
 
 
 class FlakyReplace:
     """os.replace の代わり。fails(src, dst) が真の呼び出しを、先頭から times 回だけ失敗させる。
 
     times が None なら、当たる呼び出しをすべて失敗させる。当たらない呼び出しと、失敗させ終えたあとの
-    呼び出しは本物の os.replace に任せる。当たった呼び出しの回数を attempts に数える。
+    呼び出しは本物の os.replace（real_replace）に任せる。当たった呼び出しの回数を attempts に数える。
     """
 
     def __init__(self, fails, times: int | None, error: OSError | None = None):
@@ -231,14 +248,15 @@ class FlakyReplace:
             self.attempts += 1
             if self.times is None or self.attempts <= self.times:
                 raise self.error or PermissionError(errno.EACCES, "アクセスが拒否されました。", str(dst))
-        REAL_REPLACE(src, dst)
+        real_replace(src, dst)
 
 
 class ReplaceRetryTest(unittest.TestCase):
     """保存（write_outputs）の名前の変更が、Windows の一時的な PermissionError を試し直すこと。
 
     CI は Linux でも走るので、Windows かどうかの判定（_RETRY_REPLACE_ON_WINDOWS）を試験ごとに明示する。
-    待つ時間（time.sleep）は記録するだけで、実際には待たない。
+    偽の os.replace で書く間（write_with）だけ、待つ時間（time.sleep）を記録するものに差し替え、実際には
+    待たない。ほかの書き込み（前の取得で書いた raw と画像を置くときなど）は、本物の待ち時間で試し直す。
     """
 
     SLUG = "article-1"
@@ -254,19 +272,17 @@ class ReplaceRetryTest(unittest.TestCase):
         self.target = self.raw / f"{self.SLUG}.md"
         self.asset_dir = self.raw / "assets" / self.SLUG
         self.sleeps: list[float] = []
-        patcher = mock.patch.object(wiki_fetch.time, "sleep", self.sleeps.append)
-        patcher.start()
-        self.addCleanup(patcher.stop)
         # 前の取得で書いた raw と画像を、本物の os.replace で置く。
         self.write(self.OLD_TEXT, [("article-1-01.png", self.OLD_IMAGE)])
-        self.sleeps.clear()
 
     def write(self, text: str, images: list[tuple[str, bytes]]) -> None:
         wiki_fetch.write_outputs(self.raw, self.target, self.asset_dir, self.SLUG, text, images)
 
-    def write_with(self, flaky: FlakyReplace, *, windows: bool = True) -> None:
+    def write_with(self, flaky, *, windows: bool = True, sleep=None) -> None:
+        """偽の os.replace（flaky）で新しい本文と画像を書く。待つ時間は self.sleeps に記録するか、sleep で置き換える。"""
         with mock.patch.object(wiki_fetch, "_RETRY_REPLACE_ON_WINDOWS", windows), \
-                mock.patch.object(wiki_fetch.os, "replace", flaky):
+                mock.patch.object(wiki_fetch.os, "replace", flaky), \
+                mock.patch.object(wiki_fetch.time, "sleep", sleep or self.sleeps.append):
             self.write(self.NEW_TEXT, self.NEW_IMAGES)
 
     def to_target(self, src: Path, dst: Path) -> bool:
@@ -344,12 +360,11 @@ class ReplaceRetryTest(unittest.TestCase):
 
     OLD_IMAGES = [("article-1-01.png", png(11, 11)), ("article-1-02.png", png(12, 12))]
 
-    def check_old_images_survive_unfinished_restore(self, replace, expected: type[BaseException]):
+    def check_old_images_survive_unfinished_restore(self, replace, expected: type[BaseException], sleep=None):
         """本文の置き換えが失敗し、退避した古い画像を戻しきれないとき、古い画像を消さずに退避の場所に残す。"""
         self.write(self.OLD_TEXT, self.OLD_IMAGES)
-        self.sleeps.clear()
         with self.assertRaises(expected) as caught:
-            self.write_with(replace)
+            self.write_with(replace, sleep=sleep)
         self.assertEqual(self.target.read_bytes().decode("utf-8"), self.OLD_TEXT)
         # 新しい画像は置いたものを消し、戻していない古い画像は 1 つ目から退避の場所に残る。
         self.assertEqual(list(self.asset_dir.iterdir()), [])
@@ -395,14 +410,13 @@ class ReplaceRetryTest(unittest.TestCase):
         def interrupted(delay):
             raise KeyboardInterrupt
 
-        with mock.patch.object(wiki_fetch.time, "sleep", interrupted):
-            self.check_old_images_survive_unfinished_restore(replace, KeyboardInterrupt)
+        self.check_old_images_survive_unfinished_restore(replace, KeyboardInterrupt, sleep=interrupted)
         self.assertEqual(restore.attempts, 1)
 
     def test_old_image_moved_just_before_interrupt_is_restored(self):
         # 古い画像を退避の場所に移した直後（記録する前）に止められても、その画像を元の場所に戻す。
         def replace(src, dst):
-            REAL_REPLACE(src, dst)
+            real_replace(src, dst)
             if Path(dst).parent.name.endswith(".old"):
                 raise KeyboardInterrupt
 
@@ -495,7 +509,7 @@ class MainReportsKeptBackupTest(unittest.TestCase):
                 raise OSError(errno.EIO, "入出力のエラー")
             if src.parent.name.endswith(".old"):
                 raise PermissionError(errno.EACCES, "アクセスが拒否されました。", str(dst))
-            REAL_REPLACE(src, dst)
+            real_replace(src, dst)
 
         with mock.patch.object(wiki_fetch, "_RETRY_REPLACE_ON_WINDOWS", True), \
                 mock.patch.object(wiki_fetch.os, "replace", replace), \
