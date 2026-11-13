@@ -135,6 +135,20 @@ class ProblemTests(unittest.TestCase):
         self.assertIsNone(wiki_initialized.problem(wiki))
         self.assertEqual(wiki_initialized.require(wiki), wiki)
 
+    def test_findings_have_kinds_and_certainty(self):
+        """理由の種類（閲覧のサーバーがパスなしの文に使う）と、調べられたかどうか。"""
+        self.assertEqual(wiki_initialized.check(self.base / "ない").kind, "missing")
+        self.assertTrue(wiki_initialized.check(self.base / "ない").certain)
+        wiki = foreign_wiki(self.base)
+        self.assertEqual(wiki_initialized.check(wiki).kind, "no_marker")
+        with self.stat_failing_for(wiki / "SCHEMA.md"):
+            found = wiki_initialized.check(wiki)
+        self.assertEqual(found.kind, "marker_unreadable")
+        self.assertFalse(found.certain)
+        for kind, reason in wiki_initialized.REASONS.items():
+            with self.subTest(kind=kind):
+                self.assertNotIn(str(self.base), reason)
+
     def test_require_raises_value_error_with_hint(self):
         with self.assertRaises(ValueError) as caught:
             wiki_initialized.require(foreign_wiki(self.base))
@@ -365,6 +379,16 @@ class WriterEntryTests(EntryCase):
                     self.outside / "record.json"], self.base, self.env)
         self.assertEqual(done.returncode, 0, done.stderr)
         self.assertTrue((self.raw / "experiences" / "uninit-check.json").is_file())
+
+    def test_evolve_loop_does_not_create_raw(self):
+        """評価ループは、初期化された wiki でも raw のディレクトリがなければ、評価を始める前に止まる。"""
+        write(self.wiki / "SCHEMA.md", "# スキーマ\n")
+        args = [SCRIPTS / "wiki_evolve_loop.py", "--wiki", self.wiki, "--skill", self.outside, "--suite",
+                self.outside / "suite.json", "--config", self.outside / "config.json", "--id", "x",
+                "--raw", self.base / "raw-new"]
+        done = self.assert_refused(args, hint="/wiki:upgrade")
+        self.assertIn("raw のディレクトリがない", done.stderr)
+        self.assertFalse((self.wiki / ".evolution").exists())
 
     def test_upgrade_refuses_uninitialized_wiki(self):
         # uv を見つけられないようにする。確かめが効かなければ、ファイルを作ってから uv がないと止まる。

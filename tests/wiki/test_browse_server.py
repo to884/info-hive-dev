@@ -347,6 +347,16 @@ class RebuildTest(InProcess):
         self.assertEqual(code, 200)
         self.assertIn("本文 1", body)
 
+    def test_uncertain_check_keeps_serving(self):
+        """判定が「調べられない」（アクセス権など）を返したときは、未初期化と決めず、503 にしない。"""
+        self.assertIn("本文 1", self.get("concepts/a.html")[1])
+        uncertain = wiki_browse.initialized.Finding("marker_unreadable", "調べられない")
+        self.assertFalse(uncertain.certain)
+        with mock.patch.object(wiki_browse.initialized, "check", return_value=uncertain):
+            code, body, _h = self.get("concepts/a.html")
+        self.assertEqual(code, 200)
+        self.assertIn("本文 1", body)
+
     def test_first_build_failure_is_503_but_control_works(self):
         with mock.patch.object(core, "Core", side_effect=RuntimeError("x")):
             code, _body, headers = self.get("index.html")

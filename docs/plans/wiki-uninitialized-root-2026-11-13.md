@@ -104,7 +104,8 @@
 - 1 回で終わる CLI では、引数を読んだ直後が「読み始めるところ」である。
 - 長く動くプロセス（MCP のサーバー、閲覧のサーバー）は、要求のたびに wiki を読み直す。起動のときの判定は、そのあとの `SCHEMA.md` の有無を保証しない。そこで、要求のたびに、wiki を読み直す前に判定する。
 - 判定は、パスの解決（`resolve()` など）より前に、渡されたとおりのパスで行う。パスを解決して使う入口は、自分で解決せず、判定と解決を一度に行う `wiki_initialized.resolve()` の戻り値を使う。判定したパスと使うパスが、いつも同じになる。先に解決すると、ない途中のディレクトリと `..` を含むパス（`kb/ない/..`）が、POSIX では解決で縮んで初期化された wiki になりうる。ない、ディレクトリでない、調べられない、解決できないも、判定の同じ文と案内で止まる。
-- サブコマンドを持つ入口は、判定をサブコマンドの振り分けより前の 1 か所に置き、判定しないサブコマンドを名前で除く（`wiki_evolve.py` の `WIKI_FREE_ACTIONS`、`wiki_decide.py` の `--wiki` を持つかどうか）。新しいサブコマンドは、既定で判定を通る。
+- サブコマンドを持つ入口は、判定をサブコマンドの振り分けより前の 1 か所に置き、判定しないサブコマンドを名前で除く（`wiki_evolve.py` の `WIKI_FREE_ACTIONS`、`wiki_decide.py` と `wiki_browse.py` は wiki の引数を持つかどうか）。新しいサブコマンドは、既定で判定を通る。閲覧の `core` は、要求ごとに wiki を受け取り、要求ごとに判定する。
+- 長く動く閲覧のサーバーは、調べたうえで未初期化と決まったとき（ない、ディレクトリでない、`SCHEMA.md` がないか通常のファイルでない）だけ 503 を返す。調べられなかったとき（アクセス権や一時的な読み取りの障害）は未初期化と決めず、今までどおり、入力を読めなければ前の内容を古いと示して出す。503 の文は、パスを含まない理由の文（`wiki_initialized.REASONS`）にする（応答にパスを出さない。browse の第 1 段階の設計の 8.1）。
 - 入口は、試験で閉じた一覧に分類する（「試験」の入口の一覧）。`__main__` を持つスクリプトを構文木で見つけ、wiki を受け取る、評価のランナー、wiki を受け取らない、のどれかに入れる。どれにもない入口を足すと試験が落ちる。wiki を受け取る入口は、`wiki_initialized` の関数を呼んでいなければ落ちる。
 
 | 入口 | 変更後 |
@@ -116,7 +117,7 @@
 | `wiki_evolve.py`（`verify-bundle` 以外のすべての操作）、`wiki_evolve_loop.py` | 振り分けの前に `wiki_initialized.resolve()` で判定と解決を一度に行う（今までの `args.wiki.resolve()` をやめる）。`locked()` の `SCHEMA.md` の確かめも `require()` に替える。`.evolution/` を作るのは、確かめのあとである（今と同じ） |
 | `wiki_evolve.py capture` | 「決めること」の 5 |
 | `wiki_browse.py build`、`serve`、`stop`、`core` | `wiki_root()` で、パスを解決する前に確かめる。`core` は要求ごとに確かめ、今と同じく `{"ok": false, "error": "no_wiki"}` を返す（中核の契約の誤りの値を増やさない）。`stop` も確かめる。確かめないと、未初期化のディレクトリのために、データの場所に状態のディレクトリを作るからである |
-| 閲覧のサーバーの要求（`BrowseState.get()`） | 要求のたびに、入力の印を取る前に確かめる。`SCHEMA.md` がなくなっていたら、前の中核も使わずに 503（`初期化された wiki ではない（SCHEMA.md がない）。` と案内）を返す。中核は捨てないので、`SCHEMA.md` が戻れば、入力の印が同じならそのまま答える。`SCHEMA.md` を消した wiki のサーバーは `stop` では止められないが、操作がなければ 30 分で終わり、Claude Code を終えても終わる（画面は定期的に要求しない） |
+| 閲覧のサーバーの要求（`BrowseState.get()`） | 要求のたびに、入力の印を取る前に確かめる。調べたうえで未初期化と決まったら（`SCHEMA.md` がなくなったなど）、前の中核も使わずに 503（パスを含まない理由の文と案内）を返す。調べられなかったときは、今までどおり進む。中核は捨てないので、`SCHEMA.md` が戻れば、入力の印が同じならそのまま答える。`SCHEMA.md` を消した wiki のサーバーは `stop` では止められないが、操作がなければ 30 分で終わり、Claude Code を終えても終わる（画面は定期的に要求しない） |
 | MCP の `wiki_root()`（`query` の `wiki`、`get_page`、`list_index`、`lint`、`stats`、`graph`） | パスを NFC にそろえたあと、解決（`resolve(strict=True)`）の前に `require()` を呼ぶ。解決の失敗（`OSError`）も、案内を付けたツールのエラーにする。`NotInitialized` は `ValueError` なので、ツールのエラーになる。索引のキャッシュ（`State.wikis`）を引く前に毎回確かめるので、`SCHEMA.md` を消した wiki には答えない |
 | MCP の `query` の `collection`、`index_chunks` | 確かめない。wiki を受け取らない（rag が使う） |
 | `wiki_fetch.py` | 「決めること」の 4 |
@@ -142,6 +143,7 @@ raw のルートは wiki から決まった位置にない（既定は wiki と�
 - `capture` でも、ほかの操作と同じく wiki の場所を決め（`--wiki`、なければ作業領域の設定、なければ `./wiki`）、`require()` で確かめる。確かめは `main()` で、`capture()` を呼ぶ前に行う。`capture()` の関数は判定しない（`eval/evolution/test_evolution.py` が関数を直接呼ぶ）。
 - raw のディレクトリがないときの文を、`raw のディレクトリがない: <パス>。--raw が正しいかを確かめる。初期化した wiki の raw をなくしたときは、/wiki:upgrade で作り直せる。` に替える。「先に作っておく」は使わない。
 - `capture` で作業領域の設定を読まないという今の扱い（`main()` のコメント）は、やめる。`verify-bundle` は今までどおり wiki を使わない。
+- 評価ループ（`wiki_evolve_loop.py`）も、学習の証拠を raw（`--raw`、なければ wiki と同じ階層の `raw`）の `experiences/` に書く。raw のディレクトリがなければ、費用のかかる評価を始める前に、同じ文で止まる（今は `publish_learning()` が `mkdir(parents=True)` で作る）。
 
 ### 6. アップグレードは、初期化された wiki だけを対象にする
 
@@ -185,9 +187,9 @@ raw のルートは wiki から決まった位置にない（既定は wiki と�
 | `wiki_graph_extract.py --ontology <外>` | `graph/` ができないこと |
 | `wiki_fetch.py` | 届かない URL（`http://127.0.0.1:9/`）で、未初期化の `--wiki` は終了コード 1（取得の失敗の 2 ではない）で raw ができないこと。初期化済みの wiki と、ない `--raw-root` で、終了コード 1 で raw ができないこと。`--wiki` を省くと終了コード 2 |
 | `init_wiki.py --upgrade` | 基準のディレクトリに `SCHEMA.md` のない `wiki/` があるときと、`wiki/` がないときに、終了コード 1 で、何もできず、uv を呼ばないこと（`init_wiki.py` は `shutil.which("uv")` で探すので、`PATH` を空のディレクトリにして確かめる。確かめが効かなければ、ファイルを作ってから「uv が必要」で止まる） |
-| `wiki_evolve.py capture` | 未初期化の wiki で終了コード 1、`experiences/` ができないこと。raw がないときの文に「先に作っておく」がなく、`/wiki:upgrade` があること |
+| `wiki_evolve.py capture`、`wiki_evolve_loop.py` | 未初期化の wiki で終了コード 1、`experiences/` ができないこと。raw がないときの文に「先に作っておく」がなく、`/wiki:upgrade` があること。評価ループは、初期化された wiki でも raw がなければ、`.evolution/` も作らずに止まること |
 | `wiki_browse.py build`、`stop`、`core` | 書き出し先とデータの場所（環境変数で一時ディレクトリに向ける）が変わらないこと。`core` が `no_wiki` を返すこと |
-| 閲覧のサーバー | `tests/wiki/test_browse_server.py` に足す。ページを開いたあとで `SCHEMA.md` を消すと、503 で「初期化された wiki ではない」と案内し、前の本文を出さないこと。`locate` が `unavailable` になること。`SCHEMA.md` を戻すと、また答えること |
+| 閲覧のサーバー | `tests/wiki/test_browse_server.py` に足す。ページを開いたあとで `SCHEMA.md` を消すと、503 で「初期化された wiki ではない」と案内し、前の本文を出さないこと。`locate` が `unavailable` になること。`SCHEMA.md` を戻すと、また答えること。判定が「調べられない」を返したときは、503 にせず前の内容で答えること |
 | 入口の一覧 | `scripts/` の `__main__` を持つスクリプト（`if "__main__" == __name__:` の書き方も）を構文木で見つけ、閉じた一覧（wiki を受け取る、評価のランナー、wiki を受け取らない）にちょうど 1 回ずつ入っていること。wiki を受け取る入口が `wiki_initialized` の関数を呼んでいること（読み込むだけ、コメントだけでは落ちる）、CLI の入口がどれも `ReaderEntryTests` の入口の表にあること。wiki を受け取らない入口に、wiki を受け取る書き方（`args.wiki`、`wiki_root`、`--wiki`）がないこと |
 | 解決の前の判定 | 初期化された wiki を指す `<wiki>/ない/..` を、入口の表のすべてに渡すと、「見つからない」で止まり、何も書かないこと。アップグレードの基準のディレクトリにも同じ形を渡す。Windows はファイルシステムを呼ぶ前に `..` を縮めるので、そのパスがあるものになり、試験を飛ばす（Linux の CI で動く） |
 | MCP | `test_mcp_server.py` に足す。ないパスとファイルを渡すと、解決より前の判定の文と `/wiki:init` を返すこと。`query`、`stats`、`lint`、`get_page`、`list_index`、`graph` が「初期化された wiki ではない」のエラーを返し、データの場所の `index/` に、その wiki のディレクトリができないこと。`collection` の `query` と `index_chunks` は今までどおり動くこと |
