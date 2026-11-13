@@ -76,6 +76,12 @@ kbd { font-family: inherit; font-size: 0.75em; border: 1px solid var(--border); 
 .tree summary:hover { background: var(--bg-hover); }
 .tree details details { margin-left: 0.75rem; }
 .tree summary.is-current { background: var(--accent-bg); color: var(--accent); }
+.tree-groups ul { margin: 0; }
+.tree-groups ul ul { margin-left: 0.9rem; }
+.tree-groups > ul:last-child > li > a { font-weight: 600; margin-top: 0.25rem; }
+.tree-groups a { display: flex; justify-content: space-between; gap: 0.5rem; }
+.tree-groups a.is-current { background: var(--accent-bg); color: var(--accent); font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--accent); }
 .tree-filter { float: right; font-size: 0.6875rem; font-weight: normal; text-decoration: none; padding: 0 0.35rem;
   border: 1px solid var(--border); border-radius: 1rem; color: var(--fg-muted); visibility: hidden; }
 .tree summary:hover .tree-filter, .tree summary:focus-within .tree-filter, .tree summary.is-current .tree-filter,

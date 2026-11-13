@@ -185,6 +185,32 @@
     return box;
   }
 
+  // --- D の索引のページ: 木をグループの名前と件数までに畳む。名前を押すと、右の一覧をそのグループに絞る ---
+  function groupTreeD() {
+    function list(groups) {
+      var ul = el("ul");
+      groups.forEach(function (g) {
+        var li = el("li"), a = el("a");
+        a.href = "#group=" + g.id;
+        a.setAttribute("data-gid", g.id);
+        a.appendChild(el("span", null, g.title || "索引"));
+        a.appendChild(el("span", "count", String(g.count)));
+        li.appendChild(a);
+        if (g.children.length) { li.appendChild(list(g.children)); }
+        ul.appendChild(li);
+      });
+      return ul;
+    }
+    var box = el("div", "tree tree-groups");
+    var all = el("a", null, "すべてのページ");
+    all.href = "#"; all.setAttribute("data-gid", "");
+    var top = el("ul"), li = el("li");
+    li.appendChild(all); top.appendChild(li);
+    box.appendChild(top);
+    box.appendChild(list(NAV.groups));
+    return box;
+  }
+
   // --- B. グループの名前だけ ---
   function groupsB() {
     var ul = el("ul", "groups");
@@ -227,7 +253,8 @@
     sideResults.appendChild(resultList(found, q, 30, false));
   }
   var navMain;
-  if (variant === "a" || variant === "d") { navMain = treeA(); }
+  if (variant === "d" && isIndex) { navMain = groupTreeD(); }
+  else if (variant === "a" || variant === "d") { navMain = treeA(); }
   else if (variant === "b") { navMain = groupsB(); }
   else { navMain = placeC(); }
 
@@ -309,11 +336,11 @@
       var g = allGroups.filter(function (x) { return x.id === state.group; })[0];
       groupNote.hidden = !g;
       groupNote.textContent = g ? "グループ: " + g.title + " ×" : "";
-      // D: 絞っているグループを木の中で強調し、開く
-      Array.prototype.forEach.call(navbody.querySelectorAll(".tree summary"), function (s) {
-        var on = s.getAttribute("data-gid") === state.group;
-        s.classList.toggle("is-current", on);
-        if (on) { for (var p = s.parentNode; p && p !== navbody; p = p.parentNode) { if (p.tagName === "DETAILS") { p.open = true; } } }
+      // D: 絞っているグループを、畳んだ木の中で強調する
+      Array.prototype.forEach.call(navbody.querySelectorAll(".tree-groups a[data-gid]"), function (a) {
+        var on = a.getAttribute("data-gid") === state.group;
+        a.classList.toggle("is-current", on);
+        if (on) { a.setAttribute("aria-current", "true"); } else { a.removeAttribute("aria-current"); }
       });
     }
     function fromHash() {
