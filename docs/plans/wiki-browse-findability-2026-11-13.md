@@ -4,7 +4,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 設計の案（7 版目）。7 回目のレビュー（[design-review-7.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-7.md)）で「条件付きで採用可」、分類 A は 0 件だった。止める条件（「作者が決めたこと」）に従い、残りを直すか 11 に書いて、作者の承認に回す。1〜6 版目は、Sol の設計のレビューで却下された（[design-review-1.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-1.md) は重大 4 件、[design-review-2.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-2.md) と [design-review-3.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-3.md) は重大 1 件ずつ、[design-review-4.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-4.md) と [design-review-5.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-5.md) は重大 2 件ずつ、止める条件を付けた [design-review-6.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-6.md) は分類 A が 1 件） |
+| 状態 | 7 版目を、作者が**承認した**（2026年11月14日）。7 回目のレビュー（[design-review-7.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-7.md)）で「条件付きで採用可」、分類 A は 0 件だった。止める条件（「作者が決めたこと」）に従い、残りを直すか「7 回目のレビューのあとに残したもの」に書いた。実装は、構造の直しが main に入ってから始める。1〜6 版目は、Sol の設計のレビューで却下された（[design-review-1.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-1.md) は重大 4 件、[design-review-2.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-2.md) と [design-review-3.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-3.md) は重大 1 件ずつ、[design-review-4.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-4.md) と [design-review-5.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-5.md) は重大 2 件ずつ、止める条件を付けた [design-review-6.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-6.md) は分類 A が 1 件） |
 | 対象 | `info-hive-wiki` の `wiki_browse_core.py`、`wiki_browse.py`、`browse_assets/app.js`、`browse_assets/style.css`、`commands/browse.md` と、開発リポジトリの `tests/wiki/` |
 | 前提 | [browse の構造の直し](wiki-browse-structure-2026-11-11.md)が `info-hive-wiki` の main に入ってから実装する。この設計は、描く側が機械の情報を持たず（構造の直しの P7）、読めない入力に「不完全」の印が付く（同 4.1）形を前提に書く |
 | 元の設計 | [browse の第 1 段階の設計](wiki-browse-stage1-2026-11-09.md)。3.7（ナビゲーション）、4（画面の契約）、「範囲の外」の検索を書き換える |
@@ -21,6 +21,7 @@
 | 同 | 4 つの試作（A 分類の木、B 絞り込める一覧、C 検索が主役、D は A と B の組み合わせ）から、D を選んだ。左のペインは A の木、索引のページの本文は B の一覧にする |
 | 同 | 索引のページでは、左の木をグループの名前と件数までに畳む。ページの名前が左右に二重に出ないようにするためである |
 | 2026年11月14日（5 回目のレビューのあと） | レビューを止める条件を付ける。**失敗も競合も入れない正しい使い方で、設計の約束を破る反例**（分類 A）が出なければ、残りの指摘は限界（11）に書いて、作者の承認に回す。参照の実装や試作だけの欠陥で、設計の文が正しいもの（分類 B）と、表現や試験の網羅の指摘（分類 C）は、止める理由にしない。構造の直しの設計と同じ条件である |
+| 2026年11月14日（7 回目のレビューのあと） | 7 版目を承認した。木の 2 段目より下は、索引のファイルの見出しで決まり、記事のタグや種類では決めないことを確かめた。木の深さに上限は設けない |
 
 ## 今の画面で探しにくいところ
 
