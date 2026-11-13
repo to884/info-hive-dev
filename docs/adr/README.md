@@ -20,6 +20,7 @@ info-hive の設計で決めたことと、その理由を残す。1 つの判�
 | [0014](0014-rag-keeps-extraction-independent-of-embedding.md) | rag は抽出と OCR の結果を、埋め込みと分割の方針から切り離して保存する | 承認 | 2026年11月8日 |
 | [0015](0015-wiki-article-methodology-adopted-in-stages.md) | wiki の記事作成の方法論は、提案を一括で入れず、検査と記録から段階を分けて入れる | 承認 | 2026年11月9日 |
 | [0016](0016-wiki-browse-stage1-accepts-two-delivery-methods.md) | `/wiki:browse` の第 1 段階は、サーバーと静的 HTML の 2 方式で合格とし、アプリでの確認はアプリを作るときに行う | 承認 | 2026年11月9日 |
+| [0017](0017-wiki-browse-changes-only-what-it-created.md) | `/wiki:browse` は、自分が作ったものだけを置き換え、消す。入力の実体は、置き場所によらず Wiki の内容として読む | 承認 | 2026年11月11日 |
 | [0018](0018-wiki-requires-python-312.md) | info-hive の wiki の同梱のスクリプトは、Python 3.12 以上を対象にする | 承認 | 2026年11月12日 |
 | [0019](0019-wiki-root-is-marked-by-schema.md) | wiki とみなすのは、ルートに SCHEMA.md がある（初期化された）ディレクトリだけにする | 提案 | （承認の日を入れる） |
 
