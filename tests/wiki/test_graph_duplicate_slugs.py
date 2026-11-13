@@ -71,6 +71,8 @@ class DuplicateSlugGraphTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.wiki, ignore_errors=True)
         (self.wiki / "graph").mkdir()
         shutil.copyfile(TEMPLATE, self.wiki / "graph" / "ontology.yaml")
+        # CLI は SCHEMA.md のないディレクトリを断る（ADR-0019）。SCHEMA.md はページに数えない。
+        (self.wiki / "SCHEMA.md").write_bytes("# スキーマ\n".encode("utf-8"))
         self.ontology = extract.read_ontology(self.wiki / "graph" / "ontology.yaml")
         write(self.wiki / "concepts" / "other.md", """
             ---
@@ -213,6 +215,8 @@ class GraphContractTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.wiki, ignore_errors=True)
         (self.wiki / "graph").mkdir()
         shutil.copyfile(TEMPLATE, self.wiki / "graph" / "ontology.yaml")
+        # CLI は SCHEMA.md のないディレクトリを断る（ADR-0019）。SCHEMA.md はページに数えない。
+        (self.wiki / "SCHEMA.md").write_bytes("# スキーマ\n".encode("utf-8"))
         self.ontology = extract.read_ontology(self.wiki / "graph" / "ontology.yaml")
         write(self.wiki / "concepts" / "y.md", "---\ntype: concept\ntitle: y\n---\n本文\n")
         write(self.wiki / "sources" / "paper.md", "---\ntype: source\ntitle: paper\n---\n本文\n")

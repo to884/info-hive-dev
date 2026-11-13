@@ -92,6 +92,8 @@ class WikiCase(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.wiki, ignore_errors=True)
         (self.wiki / "graph").mkdir()
         shutil.copyfile(TEMPLATE, self.wiki / "graph" / "ontology.yaml")
+        # CLI は SCHEMA.md のないディレクトリを断る（ADR-0019）。SCHEMA.md はページに数えない。
+        (self.wiki / "SCHEMA.md").write_bytes("# スキーマ\n".encode("utf-8"))
         self.ontology = extract.read_ontology(self.wiki / "graph" / "ontology.yaml")
 
     def build(self):
@@ -619,6 +621,7 @@ class ConventionalPagesUnchangedTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, wiki, ignore_errors=True)
         for rel, text in CONVENTIONAL_PAGES.items():
             write(wiki / rel, text)
+        write(wiki / "SCHEMA.md", "# スキーマ\n")
         ontology = extract.read_ontology(TEMPLATE)
         golden = json.loads(GOLDEN.read_text(encoding="utf-8"))
         pages = extract.collect_pages(wiki)
@@ -656,6 +659,7 @@ class ConventionalPagesUnchangedTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, wiki, ignore_errors=True)
         for rel, text in CONVENTIONAL_PAGES.items():
             write(wiki / rel, text)
+        write(wiki / "SCHEMA.md", "# スキーマ\n")
         ontology = extract.read_ontology(TEMPLATE)
         self.compare(wiki, ontology)
         # 比べた中身が空でないこと（型付きの関係、sourced_from、summarizes_raw、別名がある）。

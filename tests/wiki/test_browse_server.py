@@ -57,6 +57,8 @@ class Base(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.base = Path(self._tmp.name).resolve()
         self.wiki = self.base / "wiki"
+        # 入口（wiki_root）は SCHEMA.md のないディレクトリを断る（ADR-0019）。SCHEMA.md はページではない。
+        write(self.wiki, "SCHEMA.md", "# スキーマ\n")
         write(self.wiki, "concepts/a.md", '---\ntype: "concept"\n---\n# A\n\n本文 1。 [[b]] [[missing]]\n')
         write(self.wiki, "concepts/b.md", "# B\n")
         self.data = self.base / "data"
@@ -324,6 +326,26 @@ class RebuildTest(InProcess):
         time.sleep(0.4)
         body = self.get("concepts/a.html")[1]
         self.assertNotIn("最新の内容を表示できていない", body)
+
+    def test_schema_removed_while_serving_is_503(self):
+        """要求のたびに初期化を確かめる（ADR-0019）。起動のあとで SCHEMA.md が消えたら、前の中核でも答えない。"""
+        self.assertIn("本文 1", self.get("concepts/a.html")[1])
+        schema = self.wiki / "SCHEMA.md"
+        original = schema.read_bytes()
+        schema.unlink()
+        code, body, headers = self.get("concepts/a.html")
+        self.assertEqual(code, 503)
+        self.assertIn("初期化された wiki ではない", body)
+        self.assertIn("/wiki:init", body)
+        self.assertNotIn("本文 1", body)
+        self.assertIn("Retry-After", headers)
+        code, body, _h = request(self.port, "GET", f"/{self.app.control_token}/control/locate/b")
+        self.assertEqual(json.loads(body)["state"], "unavailable")
+        schema.write_bytes(original)
+        time.sleep(0.4)
+        code, body, _h = self.get("concepts/a.html")
+        self.assertEqual(code, 200)
+        self.assertIn("本文 1", body)
 
     def test_first_build_failure_is_503_but_control_works(self):
         with mock.patch.object(core, "Core", side_effect=RuntimeError("x")):

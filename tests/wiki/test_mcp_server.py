@@ -564,6 +564,75 @@ class WorkspaceConfigTests(ServerCase):
         self.assertTrue(client.call("query", {**arguments, "query": "熱中症"})["results"])
 
 
+class UninitializedWikiTests(ServerCase):
+    """SCHEMA.md のないディレクトリには、wiki を受け取るツールのどれも答えず、索引も作らない（ADR-0019）。
+    wiki を受け取らない index_chunks と collection の query は、今までどおり動く。"""
+
+    def setUp(self):
+        super().setUp()
+        (self.wiki / "SCHEMA.md").unlink()
+        self.client_ = self.client()
+        self.client_.initialize()
+
+    def index_dirs(self) -> set[str]:
+        index = self.data / "index"
+        return {p.name for p in index.iterdir()} if index.is_dir() else set()
+
+    def test_tools_refuse_uninitialized_wiki(self):
+        arguments = {"wiki": str(self.wiki)}
+        calls = {
+            "query": {**arguments, "query": "熱中症"},
+            "stats": arguments,
+            "lint": arguments,
+            "get_page": {**arguments, "page": "熱中症"},
+            "list_index": arguments,
+            "graph": {**arguments, "command": "neighbors", "node": "concept:熱中症"},
+        }
+        before = self.index_dirs()
+        for name, args in calls.items():
+            with self.subTest(tool=name):
+                with self.assertRaises(RuntimeError) as caught:
+                    self.client_.call(name, args)
+                self.assertIn("初期化された wiki ではない", str(caught.exception))
+                self.assertIn("/wiki:init", str(caught.exception))
+        self.assertEqual(self.index_dirs(), before)
+        sys.path.insert(0, str(SCRIPTS))
+        import wiki_mcp_common
+        key = wiki_mcp_common.wiki_key(wiki_mcp_common.normalize_wiki_root(self.wiki))
+        self.assertFalse((self.data / "index" / key).exists())
+        self.assertFalse((self.wiki / ".wiki-cache").exists())
+
+    def test_missing_and_non_directory_roots_show_hint(self):
+        """ない、ディレクトリでないルートも、パスを解決する前の同じ判定で止まり、/wiki:init を示す。"""
+        not_dir = self.root / "file.md"
+        not_dir.write_text("x", encoding="utf-8")
+        for wiki, reason in ((self.root / "ない", "見つからない"), (not_dir, "ディレクトリではない")):
+            for name in ("query", "stats", "lint", "list_index"):
+                with self.subTest(wiki=wiki.name, tool=name):
+                    args = {"wiki": str(wiki), **({"query": "x"} if name == "query" else {})}
+                    with self.assertRaises(RuntimeError) as caught:
+                        self.client_.call(name, args)
+                    self.assertIn(reason, str(caught.exception))
+                    self.assertIn("/wiki:init", str(caught.exception))
+
+    def test_schema_removed_after_indexing_is_refused(self):
+        """索引を開いたあとで SCHEMA.md を消した wiki にも答えない（索引のキャッシュより前に確かめる）。"""
+        (self.wiki / "SCHEMA.md").write_text("# スキーマ\n", encoding="utf-8")
+        self.assertTrue(self.client_.call("query", {"wiki": str(self.wiki), "query": "熱中症"})["results"])
+        (self.wiki / "SCHEMA.md").unlink()
+        with self.assertRaises(RuntimeError) as caught:
+            self.client_.call("query", {"wiki": str(self.wiki), "query": "熱中症"})
+        self.assertIn("初期化された wiki ではない", str(caught.exception))
+
+    def test_collection_tools_do_not_need_a_wiki(self):
+        chunks = [{"id": "c1", "doc": "d.pdf", "text": "熱中症の対策", "tokens": ["熱中", "中症"]}]
+        self.client_.call("index_chunks", {"collection": "uninit", "tokenizer": "x", "generation": 1,
+                                           "chunks": chunks})
+        result = self.client_.call("query", {"query": "熱中症", "collection": "uninit",
+                                             "query_tokens": ["熱中", "中症"]})
+        self.assertTrue(result["results"])
+
+
 class IdleTests(ServerCase):
     idle = "4"
 

@@ -33,6 +33,8 @@ for (let i = 0; i < PAGES; i++) {
     "| 項目 | 値 |", "| --- | --- |", `| 番号 | ${i} |`, "",
   ].join("\n"), "utf8");
 }
+// 入口は SCHEMA.md のないディレクトリを断る（ADR-0019）。
+writeFileSync(join(wiki, "SCHEMA.md"), "# スキーマ\n", "utf8");
 writeFileSync(join(wiki, "index.md"), ["# 索引", "", ...Array.from({ length: PAGES }, (_, i) => `- [[ページ${i}]]`), ""].join("\n"), "utf8");
 
 function serveOnce(browser) {
