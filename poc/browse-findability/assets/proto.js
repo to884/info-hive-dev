@@ -19,8 +19,9 @@
     if (text != null) { e.textContent = text; }
     return e;
   }
-  // 照合と強調で同じそろえ方にする。全体を一度に小文字にしない（語末の Σ が前後で変わるため）
-  function norm(s) { return Array.from(String(s || "").normalize("NFC")).map(function (c) { return c.toLowerCase(); }).join(""); }
+  // 照合と強調で同じそろえ方にする。1 文字ずつ、大文字にしてから小文字にする（語末の ς と σ をそろえる）
+  function fold(c) { return c.toUpperCase().toLowerCase(); }
+  function norm(s) { return Array.from(String(s || "").normalize("NFC")).map(fold).join(""); }
   function badge(t) { return el("span", "badge t-" + (t || "none"), TYPE[t] || t || "種類なし"); }
 
   // --- 検索 ---
@@ -57,7 +58,7 @@
     // 符号位置ごとに小文字にした列で探し、元の文字の境界に戻す（全体を一度に小文字にした位置は使わない）
     text = String(text).normalize("NFC");
     var chars = Array.from(text), low = "", starts = [], acc = 0, pos = 0, marks = [];
-    chars.forEach(function (c) { starts.push([low.length, acc]); low += c.toLowerCase(); acc += c.length; });
+    chars.forEach(function (c) { starts.push([low.length, acc]); low += fold(c); acc += c.length; });
     starts.push([low.length, acc]);
     function back(k) { for (var j = starts.length - 1; j >= 0; j--) { if (starts[j][0] <= k) { return starts[j][1]; } } return 0; }
     function fwd(k) { for (var j = 0; j < starts.length; j++) { if (starts[j][0] >= k) { return starts[j][1]; } } return acc; }
