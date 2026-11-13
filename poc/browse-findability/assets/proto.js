@@ -165,7 +165,7 @@
       if (it.i === current) { a.setAttribute("aria-current", "page"); }
       li.appendChild(a);
     } else if (it.state === "group") {
-      var g = el("a", null, it.t + " →"); g.href = href("index.html") + "#" + it.g; li.appendChild(g);
+      var g = el("a", null, it.t + " →"); g.href = href("index.html") + "#group=" + it.g; li.appendChild(g);
     } else {
       li.appendChild(el("span", "unresolved", it.t));
     }
@@ -312,8 +312,10 @@
       chips.appendChild(b);
     });
     bar.appendChild(chips);
+    // タグは属性に詰めず、行の span.tag の文字から読む（区切りの文字がタグに入っても読み戻せる）
+    function tagsOf(li) { return Array.prototype.map.call(li.querySelectorAll(".tag"), function (t) { return t.textContent; }); }
     var tagSel = el("select"), tags = new Map();
-    items.forEach(function (li) { (li.getAttribute("data-tags") || "").split("\u001f").forEach(function (t) { if (t) { tags.set(t, (tags.get(t) || 0) + 1); } }); });
+    items.forEach(function (li) { tagsOf(li).forEach(function (t) { if (t) { tags.set(t, (tags.get(t) || 0) + 1); } }); });
     tagSel.appendChild(new Option("タグ: すべて", ""));
     Array.from(tags.keys()).sort().forEach(function (t) { tagSel.appendChild(new Option(t + "（" + tags.get(t) + "）", t)); });
     tagSel.setAttribute("aria-label", "タグで絞る");
@@ -337,7 +339,7 @@
       items.forEach(function (li) {
         var p = li.querySelector(".ix-title").getAttribute("href");
         var vis = (!found || ok[decodeURIComponent(p)]) && (!state.type || li.getAttribute("data-type") === state.type)
-          && (!state.tag || (li.getAttribute("data-tags") || "").split("\u001f").indexOf(state.tag) >= 0)
+          && (!state.tag || tagsOf(li).indexOf(state.tag) >= 0)
           && (!state.group || (li.getAttribute("data-groups") || "").split(" ").indexOf(state.group) >= 0);
         li.hidden = !vis;
         if (vis) { shown++; }

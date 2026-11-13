@@ -33,7 +33,29 @@ SEPARATORS = ":：—–-"
 
 
 class StageOneCore(core.Core):
-    """今の Core そのもの。項目に、4.2 の 2 の取り方で、最初の wikilink より後ろの表示の文字を足すだけ。"""
+    """今の Core に、2 つの違いだけを持たせたもの。
+
+    - 索引のファイルのグループの ID を、`_gf` と索引のファイルの並びの番号にする（設計 2.2）。今の ID は
+      ディスク上の綴りの SHA-256 の先頭 10 桁で、重なりうる（6 回目のレビューの A）。
+    - 項目に、4.2 の 2 の取り方で、最初の wikilink より後ろの表示の文字を足す。
+    """
+
+    def _nav(self):
+        # 今の _nav() は、索引のファイルのグループの ID を "_g" + short_hash(disk_rel, 10) で作る。
+        # その 2 か所だけを、並びの番号に差し替えて呼ぶ。ほかの short_hash の呼び出し（出力の名前）は桁が違う。
+        order = {f.disk_rel: k for k, f in enumerate(self.snapshot.by_kind("index"))}
+        original = core.short_hash
+
+        def file_id(text, digits=8):
+            if digits == 10 and text in order:
+                return f"f{order[text]}"
+            return original(text, digits)
+
+        core.short_hash = file_id
+        try:
+            super()._nav()
+        finally:
+            core.short_hash = original
 
     def _nav_item(self, inline_tok, group_of_file):
         item = super()._nav_item(inline_tok, group_of_file)
@@ -65,10 +87,11 @@ def stage_one(root: Path) -> tuple:
     索引のファイルを、今の Core は別のグループ（ディスク上の綴りのハッシュの ID）にするからである。
     """
     c = StageOneCore(core.take_snapshot(root), record=False)
+    order = {f.disk_rel: k for k, f in enumerate(c.snapshot.by_kind("index"))}
     readable = [f for f in c.snapshot.by_kind("index") if f.text is not None]
     file_groups = list(zip(readable, c.nav_groups[:len(readable)]))
     for f, g in file_groups:
-        assert g["id"] == "_g" + core.short_hash(f.disk_rel, 10), "ファイルのグループの並びが想定と違う"
+        assert g["id"] == f"_gf{order[f.disk_rel]}", "ファイルのグループの並びが想定と違う"
     rest = c.nav_groups[len(readable):]
     assert len(rest) <= 1 and all(g["title"] == "索引にないページ" for g in rest)
     return file_groups, rest, c
@@ -265,6 +288,9 @@ CASES = [
      {"index.md": "- [[indexes/caf\u00e9]]\n", "indexes/cafe\u0301.md": "# First\n- [[a]]\n",
       "indexes/caf\u00e9.md": "# Second\n- [[b]]\n"}, {"a": "concept", "b": "concept"}),
     ("空白を含む種類（5 回目のレビューの重大 2）", {}, {"a": "research note", "b": "concept"}),
+    ("SHA-256 の先頭 10 桁が同じ 2 つの索引のファイル（6 回目のレビューの A）",
+     {"indexes/probe-910039.md": "# A\n- [[a]]\n", "indexes/probe-1542287.md": "# B\n- [[b]]\n"},
+     {"a": "concept", "b": "concept"}),
     ("グループへの行の別名（5 回目のレビューの軽微）",
      {"index.md": "- [[a]]\n- [[indexes/x|User alias]]\n", "indexes/x.md": "---\ntitle: Custom\n---\n- [[b]]\n"},
      {"a": "concept", "b": "concept"}),

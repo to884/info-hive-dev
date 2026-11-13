@@ -325,7 +325,7 @@ def index_b(groups, pages, root) -> str:
     for n, pid in enumerate(order):
         p = pages[pid]
         gp = " › ".join(p["gp"])
-        extra = (f' data-type="{esc(p["y"])}" data-tags="{esc(chr(31).join(p["g"]))}" data-updated="{esc(p["u"])}"'
+        extra = (f' data-type="{esc(p["y"])}" data-updated="{esc(p["u"])}"'
                  f' data-title="{esc(p["t"])}" data-order="{n}"'
                  f' data-groups="{esc(" ".join(sorted(groups_of.get(pid, ()))))}"')
         r = row_html(p, root, "fx-row", extra)
