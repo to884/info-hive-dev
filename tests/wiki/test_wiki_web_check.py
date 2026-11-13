@@ -842,13 +842,19 @@ class ReviewCounterexample7Test(RawCheckCase):
         self.assertFalse((self.wd / "cleaned.md").exists())
 
 
-def visible_text(tree) -> str:
-    """木に現れる文字（インラインの文字とコード、リンク先、コードブロックの中身）。画面と検査が見る範囲である。"""
+def rendered_text(body: str) -> str:
+    """lint と閲覧のパーサー（wiki_pages.new_parser()）が読む文字（インラインの文字とコード、リンク先、
+    コードブロックの中身）。画面に出る範囲である。検査の木（表の規則を差し替えたもの）とは別に作る。"""
+    import wiki_pages
     parts = []
-    for node in wiki_rawcheck.walk(tree):
-        parts.append(wiki_rawcheck.inline_text(node.inline, code=True))
-        parts.extend(href for href, _title in wiki_rawcheck.links_of(node.inline))
-        parts.append(node.content)
+    for tok in wiki_pages.new_parser().parse(body):
+        if tok.type in ("fence", "code_block"):
+            parts.append(tok.content)
+        for child in tok.children or []:
+            if child.type in ("text", "code_inline"):
+                parts.append(child.content)
+            elif child.type == "link_open":
+                parts.append(child.attrGet("href") or "")
     return "\n".join(parts)
 
 
@@ -875,24 +881,39 @@ class ReviewCounterexample8Test(RawCheckCase):
         result = self.freeze()
         self.assertTrue(result["ok"], result["errors"])
 
-    def test_table_rule_keeps_the_tokens(self):
-        """差し替えた表の規則は、トークンの並びを変えず、見出しより多いセルを持つ行だけを記録する。"""
+    def test_table_rows_have_their_real_cells(self):
+        """検査の木の表の行は、本文の行に実際にあるセルだけを持つ（補った空のセルを除き、捨てたセルを足す）。
+        どの行も見出しと同じセルの数なら、トークンの並びは lint のパーサーと同じ。"""
         import wiki_pages
-        bodies = {
-            self.TABLE: [],
-            "- | A | B |\n  |---|---|\n  | 1 | 2 | 3 |\n": [3],
-            "> | A |\n> |---|\n> | 1 \\| 2 |\n> | 1 | 2 |\n\nText | not a table\n": [4],
-            "| A | B |\n|---|---|\n1 | 2 | 3\n| 4 | 5 |\n": [3],
-            "Para\n| A |\n|---|\n| 1 |\n": [],
-        }
         plain = wiki_pages.new_parser()
+        for body in (self.TABLE, "- | A | B |\n  |---|---|\n  | 1 | 2 |\n", "Para\n| A |\n|---|\n| 1 |\n"):
+            with self.subTest(body=body):
+                self.assertEqual([(t.type, t.content, t.map, t.level) for t in wiki_rawcheck._PARSER.parse(body)],
+                                 [(t.type, t.content, t.map, t.level) for t in plain.parse(body)])
+        bodies = {
+            "- | A | B |\n  |---|---|\n  | 1 | 2 | `x` [l](https://l.example/) |\n": [["A", "B"], ["1", "2", "x l"]],
+            "> | A |\n> |---|\n> | 1 \\| 2 |\n> | 1 | 2 |\n": [["A"], ["1 | 2"], ["1", "2"]],
+            "| A | B | C |\n|---|---|---|\n1 | 2\n| |\n|\n": [["A", "B", "C"], ["1", "2"], [""], []],
+        }
         for body, rows in bodies.items():
             with self.subTest(body=body):
-                ours = wiki_rawcheck._PARSER.parse(body)
-                theirs = plain.parse(body)
-                self.assertEqual([(t.type, t.content, t.map) for t in ours], [(t.type, t.content, t.map) for t in theirs])
                 tree = wiki_rawcheck.parse_tree(body)
-                self.assertEqual([r for n in wiki_rawcheck.walk(tree) for r in n.surplus_cell_rows], rows)
+                got = [[wiki_rawcheck.inline_text(c.inline, code=True) for c in tr.children]
+                       for tr in wiki_rawcheck.walk(tree) if tr.type == "tr"]
+                self.assertEqual(got, rows)
+        # 足したセルのリンクも、インラインの解析を通っている。
+        tree = wiki_rawcheck.parse_tree("| A |\n|---|\n| 1 | [l](https://l.example/) |\n")
+        links = [link for n in wiki_rawcheck.walk(tree) for link in wiki_rawcheck.links_of(n.inline)]
+        self.assertEqual(links, [("https://l.example/", "")])
+
+    def test_short_row_is_rejected_in_check(self):
+        src = "# A\n\n| A | B | C |\n|---|---|---|\n| 1 | 2 | 3 |\n"
+        self.setup_fetch(src)
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw(src.replace("| 1 | 2 | 3 |", "| 2 | 3 |"), fm=FM_T)
+        self.assertIn("table", self.kinds(self.check()))
+        self.write_raw(src.replace("| 1 | 2 | 3 |", "| 2 | 3 |"))
+        self.assertIn("table", self.kinds(self.freeze()))
 
     def test_cells_cannot_shift_to_another_column(self):
         self.setup_fetch("# A\n\n| A | B |\n|---|---|\n| 1 | `x()` |\n")
@@ -1023,18 +1044,41 @@ class FetchCounterexample8Test(FetchCase):
         self.assertIn("table", {e["kind"] for e in result["errors"]})
 
     def test_single_character_edits_never_hide_content(self):
-        """表の 1 文字を消すか | を 1 つ足した raw が検査を通るなら、コードとリンク先は木に見えている。"""
+        """表の 1 文字を消すか | を 1 つ足した raw が検査を通るなら、表のどの行も見出しと同じセルの数で、
+        コードとリンク先は画面に出る（lint と閲覧のパーサーで読む）。データの行のセルの区切りを消せば止まる。"""
         text = self.fetch_table()
         start = text.index("| A | B |")
         targets = ("SELECT 1;", "https://safe.example/")
         translated = text.replace('translated_by: ""', 'translated_by: "Claude Sonnet 5.5"') \
             .replace(LONG.strip(), "本文の訳。")
         t_start = translated.index("| A | B |")
-        edits = [("freeze", text[:i] + text[i + 1:]) for i in range(start, len(text))]
-        edits += [("check", translated[:i] + translated[i + 1:]) for i in range(t_start, len(translated))]
-        edits += [("check", translated[:i] + "|" + translated[i:]) for i in range(t_start, len(translated))]
+        row_start = translated.index("| 1 | Prefix")
+        row_end = translated.index("\n", row_start)
+        separators = {k for k in range(row_start + 1, row_end - 1)
+                      if translated[k] == "|" and translated[k - 1] != "\\"}
+        self.assertEqual(len(separators), 1)
+        table_rule = wiki_rawcheck._TABLE_RULE
+
+        def cell_counts(body: str) -> list[int]:
+            """lint のパーサーが表と読んだ行の、セルの数（見出しと各データ行。区切りの行は除く）。"""
+            import wiki_pages
+            table = next(t for t in wiki_pages.new_parser().parse(body) if t.type == "table_open")
+            lines = body.split("\n")[table.map[0]:table.map[1]]
+            counts = []
+            for line in lines[:1] + lines[2:]:
+                cells = table_rule.escapedSplit(line.strip())
+                if cells and cells[0] == "":
+                    cells.pop(0)
+                if cells and cells[-1] == "":
+                    cells.pop()
+                counts.append(len(cells))
+            return counts
+
+        edits = [("freeze", None, text[:i] + text[i + 1:]) for i in range(start, len(text))]
+        edits += [("check", i, translated[:i] + translated[i + 1:]) for i in range(t_start, len(translated))]
+        edits += [("check", None, translated[:i] + "|" + translated[i:]) for i in range(t_start, len(translated))]
         passed = 0
-        for stage, out in edits:
+        for stage, deleted, out in edits:
             if stage == "freeze":
                 self.build(html_page(f"<p>{LONG}</p>" + self.TABLE), force=True)
                 self.write_raw(out)
@@ -1045,15 +1089,37 @@ class FetchCounterexample8Test(FetchCase):
                     self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "page")[0], 0)
                 self.write_raw(out)
                 code, _ = wiki_rawcheck.check(self.wiki, self.raw, "page", None, None)
+            if deleted in separators:
+                self.assertEqual(code, 1, f"セルの区切りを消した raw が通った: {out[start - 10:]}")
             if code != 0:
                 continue
             passed += 1
             body = wiki_rawcheck.split_frontmatter(out)[1]
-            seen = visible_text(wiki_rawcheck.parse_tree(body))
+            self.assertEqual(set(cell_counts(body)), {2}, f"{stage}: {out[start - 10:]}")
+            seen = rendered_text(body)
             for target in targets:
                 if target in body:
                     self.assertIn(target, seen, f"{stage}: {out[start - 10:]}")
         self.assertGreater(passed, 0)  # 通る編集（セルの中の文字の削除など）も照らしている
+
+    def test_table_from_lines_of_a_paragraph(self):
+        """<br> で区切った段落の行が表に読めるとき（取得器は文の中の Markdown の記法を外さない）、見出しより多い
+        セルも検査の木にあり、手を入れていない raw は通り、訳の段でそのセルを変えれば止まる。"""
+        html = html_page(f"<p>{LONG}</p><p>a | b<br>--- | ---<br>1 | 2 | <code>SELECT 1;</code></p>")
+        _, text, _ = self.build(html)
+        self.assertIn("1 | 2 | `SELECT 1;`", text)
+        code, result = wiki_rawcheck.freeze(self.wiki, self.raw, "page")
+        self.assertEqual(code, 0, result["errors"])
+        base = text.replace('translated_by: ""', 'translated_by: "Claude Sonnet 5.5"').replace(LONG.strip(), "本文の訳。")
+        for changed, kind in (("1 | 2 | `DROP TABLE users;`", "code_span"), ("1 | 2", "table")):
+            with self.subTest(changed=changed):
+                self.write_raw(base.replace("1 | 2 | `SELECT 1;`", changed))
+                code, result = wiki_rawcheck.check(self.wiki, self.raw, "page", None, None)
+                self.assertEqual(code, 1)
+                self.assertIn(kind, {e["kind"] for e in result["errors"]})
+        self.write_raw(base)
+        code, result = wiki_rawcheck.check(self.wiki, self.raw, "page", None, None)
+        self.assertEqual(code, 0, result["errors"])
 
     def test_noise_between_lists_from_the_fetcher(self):
         _, text, _ = self.build(html_page(f"<p>{LONG}</p>"
