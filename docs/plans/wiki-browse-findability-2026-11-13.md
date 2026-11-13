@@ -4,7 +4,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 設計の案（7 版目）。1〜6 版目は、Sol の設計のレビューで却下された（[design-review-1.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-1.md) は重大 4 件、[design-review-2.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-2.md) と [design-review-3.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-3.md) は重大 1 件ずつ、[design-review-4.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-4.md) と [design-review-5.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-5.md) は重大 2 件ずつ、止める条件を付けた [design-review-6.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-6.md) は分類 A が 1 件） |
+| 状態 | 設計の案（7 版目）。7 回目のレビュー（[design-review-7.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-7.md)）で「条件付きで採用可」、分類 A は 0 件だった。止める条件（「作者が決めたこと」）に従い、残りを直すか 11 に書いて、作者の承認に回す。1〜6 版目は、Sol の設計のレビューで却下された（[design-review-1.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-1.md) は重大 4 件、[design-review-2.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-2.md) と [design-review-3.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-3.md) は重大 1 件ずつ、[design-review-4.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-4.md) と [design-review-5.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-5.md) は重大 2 件ずつ、止める条件を付けた [design-review-6.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-6.md) は分類 A が 1 件） |
 | 対象 | `info-hive-wiki` の `wiki_browse_core.py`、`wiki_browse.py`、`browse_assets/app.js`、`browse_assets/style.css`、`commands/browse.md` と、開発リポジトリの `tests/wiki/` |
 | 前提 | [browse の構造の直し](wiki-browse-structure-2026-11-11.md)が `info-hive-wiki` の main に入ってから実装する。この設計は、描く側が機械の情報を持たず（構造の直しの P7）、読めない入力に「不完全」の印が付く（同 4.1）形を前提に書く |
 | 元の設計 | [browse の第 1 段階の設計](wiki-browse-stage1-2026-11-09.md)。3.7（ナビゲーション）、4（画面の契約）、「範囲の外」の検索を書き換える |
@@ -135,6 +135,7 @@
 | グループの要約の表示の文字（4 回目のレビューの軽微 1） | `index.md`: `- [[indexes/x]]: **bold** [[a\|Alias]]⏎`<br>`indexes/x.md`: `# X⏎- [[b]]⏎` | X（1）「bold Alias」: b<br>索引にないページ（1）<br>　コンセプト（1）: a |
 | NFC で同じになる 2 つの索引のファイル（5 回目のレビューの重大 1） | `index.md`: `- [[indexes/café]]⏎`<br>`indexes/cafe\u0301.md`: `# First⏎- [[a]]⏎`<br>`indexes/café.md`: `# Second⏎- [[b]]⏎` | First（1）: a<br>Second（1）: b |
 | 空白を含む種類（5 回目のレビューの重大 2） |  | 索引にないページ（2）<br>　コンセプト（1）: b<br>　research note（1）: a |
+| SHA-256 の先頭 10 桁が同じ 2 つの索引のファイル（6 回目のレビューの A） | `indexes/probe-910039.md`: `# A⏎- [[a]]⏎`<br>`indexes/probe-1542287.md`: `# B⏎- [[b]]⏎` | B（1）: b<br>A（1）: a |
 | グループへの行の別名（5 回目のレビューの軽微） | `index.md`: `- [[a]]⏎- [[indexes/x\|User alias]]⏎`<br>`indexes/x.md`: `---⏎title: Custom⏎---⏎- [[b]]⏎` | 索引（1）: a、→Custom<br>Custom（1）: b |
 
 木の順は、索引のページの一覧の「索引の順」（4.1）も決める。
@@ -286,7 +287,7 @@ window.WIKI_NAV = {
 - 絞り込みは、検索、種類、タグ、グループのすべてを満たす行だけを残す。外した行には `hidden` を付ける。
 - 並べ替えは、行の要素を並べ直す。「更新の新しい順」は `data-updated` の文字の大きい順、同じなら索引の順である。値のない行は最後に置く。「題名の順」は `localeCompare(…, "ja")` で、同じなら索引の順である。
 - 件数は「400 件中 27 件」と出す。何も絞っていないときは「400 件」にする。
-- グループの絞り込みは、URL の `#group=<ID>` で決める。`hashchange` で読み直すので、記事のページの「一覧」のリンクと、左の木のどちらから来ても同じに絞れる。知らない ID なら、絞り込みをせず、印も出さない。
+- グループの絞り込みは、URL の `#group=<ID>` で決める。`hashchange` で読み直すので、記事のページの「一覧」のリンクと、左の木のどちらから来ても同じに絞れる。URL の断片が `#group=` と ID の全体（`_g` と英小文字か数字だけ）でできていて、その ID が木にあるときだけ絞る。そうでなければ（知らない ID、`#group=_g1garbage` のように ID の後ろに文字が続くもの）、絞り込みをせず、印も出さない。
 - 検索で絞っているときも、並びは選んだ並べ方に従う。当たりの強さの順には並べない（右の一覧は、条件で絞った表であるため）。当たりの強さの順は、記事のページの検索の結果（5.3）で使う。
 - 絞り込みの状態は保存しない。検索欄の文字も URL に入れない。
 
@@ -464,6 +465,19 @@ ADR-0010 の決定 5 のとおり、NFC にそろえ、小文字にして、部�
 - **索引のページの一覧は、全ページを 1 つの HTML に持つ。** 1,000 ページで数百 KB になる見込みである。実装の段で測り、起動の速さの合格の目安を超えるなら、一覧の事前の描き方を見直す。
 - **グループへの項目は、件数にも、グループでの絞り込みにも入らない。** `indexes/` のファイルのうち、ほかの索引への行だけを持つもの（2.1 の「中継」）は、件数が 0 で、そのグループで絞ると 0 件になる。行き先のグループは、木のいちばん上にあるので、そこから絞れる。
 - **JavaScript を切ったとき、索引のページはグループで絞れない。** 一覧は索引の順に並び、各行にグループの階層が出るので、分類はたどれる。
+
+## 7 回目のレビューのあとに残したもの
+
+7 回目のレビューの指摘は、どれも分類 A ではなかった。作者の止める条件に従い、直したものと、限界として残すものを分ける。
+
+| 分類 | 指摘 | 扱い |
+| --- | --- | --- |
+| B | 試作が、木にない `#group=` の ID で全ページを隠す。`_gf0` の形の ID も読めない | 試作の `fromHash()` を、ID の全体の一致と、木にあることの確かめに直した。4.3 の文も、ID の全体で読むと書き足した |
+| B | 試作が、題名と違う h1 にしかない語を探せない | 試作の `proto.py` の見出しの取り出しに h1 を含めた。設計の 5.1 は、すでに h1 を含めている |
+| C | 試作は `data/search.js` を最初から読むので、5.4 の後からの読み込みの証拠にならない | 限界として残す。後からの読み込みは、実装の段（10 の 5）で作り、9 の試験で確かめる |
+| C | 2.1 の表に、19 番目の例がなかった | 表を参照の実装の出力から出し直した |
+| C | 参照の実装の `check()` が、5 つ目の性質（`label`）を確かめていない | `check()` に足した |
+| ― | 実際のブラウザでの、後からの読み込み、CSP、`file://`、サーバーのトークンつきの URL、起動の速さは、レビューで確かめていない | 実装の段（10 の 6）で、9 の試験として確かめる |
 
 ## 範囲の外
 

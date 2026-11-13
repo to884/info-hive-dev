@@ -79,7 +79,7 @@ def load_pages(wiki: Path, exported: Path) -> dict:
         pid = html.unescape(m.group(1))
         main = re.search(r'<main id="_main">\n(.*)</main>', src, flags=re.S).group(1)
         body = re.search(r'<div id="_body">\n(.*?)</div>\n</article>', src, flags=re.S).group(1)
-        heads = [strip_tags(h) for lv, h in re.findall(r"<h([2-6])[^>]*>(.*?)</h\1>", body)]
+        heads = [strip_tags(h) for lv, h in re.findall(r"<h([1-6])[^>]*>(.*?)</h\1>", body)]   # 設計 5.1: h1 も含める
         lead = ""
         pm = re.search(r"<p>(.*?)</p>", body, flags=re.S)
         if pm:

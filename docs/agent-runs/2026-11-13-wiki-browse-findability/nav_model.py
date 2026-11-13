@@ -213,6 +213,10 @@ def check(top: list) -> None:
     for pid, gids in data_groups(top).items():
         attr = " ".join(sorted(gids))
         assert set(attr.split(" ")) == gids and gids <= shown, f"data-groups を読み戻せない: {pid}"
+    titles = {g["id"]: g["title"] for g in walk(top)}
+    for g in walk(top):
+        for it in g["items"]:
+            assert it["state"] != "group" or it["label"] == titles[it["group"]], f"label が行き先の名前と違う: {it}"
 
 
 def render(top: list) -> list:

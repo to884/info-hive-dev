@@ -362,8 +362,10 @@
       });
     }
     function fromHash() {
-      var m = /group=(_g\d+)/.exec(location.hash);
-      state.group = m ? m[1] : "";
+      // #group= の後ろの全体を ID として読み、木にない ID なら絞らない（設計 4.3）
+      var m = /^#group=(_g[0-9a-z]+)$/.exec(location.hash);
+      var known = m && allGroups.some(function (g) { return g.id === m[1]; });
+      state.group = known ? m[1] : "";
       apply();
     }
     window.addEventListener("hashchange", fromHash);
