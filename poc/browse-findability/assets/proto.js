@@ -64,8 +64,13 @@
     function fwd(k) { for (var j = 0; j < starts.length; j++) { if (starts[j][0] >= k) { return starts[j][1]; } } return acc; }
     terms.forEach(function (t) { var k = low.indexOf(t); if (k >= 0) { marks.push([back(k), fwd(k + t.length)]); } });
     marks.sort(function (a, b) { return a[0] - b[0]; });
+    // 重なるか接する範囲はつないで 1 つにする。範囲は捨てない
+    var merged = [];
     marks.forEach(function (m) {
-      if (m[0] < pos) { return; }
+      var last = merged[merged.length - 1];
+      if (last && m[0] <= last[1]) { last[1] = Math.max(last[1], m[1]); } else { merged.push([m[0], m[1]]); }
+    });
+    merged.forEach(function (m) {
       node.appendChild(document.createTextNode(text.slice(pos, m[0])));
       node.appendChild(el("mark", null, text.slice(m[0], m[1])));
       pos = m[1];
@@ -293,9 +298,9 @@
     makeSearch(bar, { placeholder: "この一覧を絞る（題名、タグ、見出し、要約）",
                       onQuery: function (q) { state.q = q; apply(); }, resultsBox: function () { return list; } });
     var chips = el("div", "chips");
-    var types = {};
-    items.forEach(function (li) { types[li.getAttribute("data-type")] = true; });
-    [""].concat(Object.keys(types).sort()).forEach(function (t) {
+    var types = new Set();
+    items.forEach(function (li) { types.add(li.getAttribute("data-type")); });
+    [""].concat(Array.from(types).sort()).forEach(function (t) {
       var b = el("button", null, t ? (TYPE[t] || t) : "すべて");
       b.type = "button"; b.setAttribute("aria-pressed", t === "" ? "true" : "false");
       b.addEventListener("click", function () {
