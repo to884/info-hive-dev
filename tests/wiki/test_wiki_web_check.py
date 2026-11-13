@@ -723,6 +723,56 @@ class ReviewCounterexample4Test(RawCheckCase):
         self.assertIn("translated_by", self.kinds(self.check()))
 
 
+class ReviewCounterexample5Test(RawCheckCase):
+    """実装の 5 回目のレビュー（impl-review-5.md）の反例。"""
+
+    def test_image_inside_caption_is_rejected(self):
+        src = ('# A\n\n![](assets/a/a-01.png "https://x.example/i.png")\n\n'
+               '![](assets/a/a-02.png "https://x.example/j.png")\n')
+        self.setup_fetch(src, images=["assets/a/a-01.png", "assets/a/a-02.png"])
+        out = src.split("\n\n![](assets/a/a-02.png")[0] + "\n"
+        (self.raw / "assets/a/a-02.png").unlink()
+        self.write_raw(out)
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw(out + '\n> Claude Sonnet 5.5 補足: 説明 ![](assets/a/a-02.png "https://x.example/j.png")\n', fm=FM_T)
+        self.assertIn("caption", self.kinds(self.check()))
+
+    def test_deep_quotes_are_fast(self):
+        """入れ子の深い引用でも、照らし直しで呼び出しが指数的に増えない。"""
+        depth = 20
+        noise = "> " * depth + "noise\n"
+        body = "> " * depth + "Body.\n"
+        src = "# A\n\n" + noise + "\n" + body
+        self.setup_fetch(src)
+        self.write_raw("# A\n\n" + body)
+        calls = []
+        original = wiki_rawcheck.derivable
+
+        def counting(*a, **k):
+            calls.append(1)
+            return original(*a, **k)
+
+        with mock.patch.object(wiki_rawcheck, "derivable", counting):
+            result = self.freeze()
+        self.assertTrue(result["ok"], result["errors"])
+        self.assertLess(len(calls), 2000)
+
+    def test_code_only_caption_is_not_empty(self):
+        src = "# A\n\n![x](assets/a/1.png)\n"
+        self.setup_fetch(src, images=["assets/a/1.png"])
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw(src + "\n> Claude Sonnet 5.5 補足: `foo()`\n", fm=FM_T)
+        result = self.check()
+        self.assertTrue(result["ok"], result["errors"])
+
+    def test_link_title_must_not_be_added(self):
+        src = "# A\n\nSee [docs](https://x.example/).\n"
+        self.setup_fetch(src)
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw("# A\n\n[文書](https://x.example/ \"NEW RAW PAYLOAD\")を見る。\n", fm=FM_T)
+        self.assertIn("links", self.kinds(self.check()))
+
+
 class FetchCounterexample3Test(FetchCase):
     def test_visible_text_is_counted_by_the_parser(self):
         """コードの中の * と、# で始まる段落の文字も数える（4 回目のレビュー）。"""
