@@ -49,3 +49,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-13] ingest | title が値なしや配列のときの修正、wiki 0.12.2 のリリースの記録
    ページ: sources/titleが値なしや配列のときの修正-wiki-0.12.2（concepts/frontmatterのリストの値、concepts/リリースの確かめ方、concepts/pythonの書き戻しの改行 を更新）
+
+## [2026-11-13] ingest | 初期化していないディレクトリを wiki として扱わない修正、wiki 0.13.0 のリリースの記録
+   ページ: sources/初期化していないディレクトリの扱い-wiki-0.13.0、concepts/初期化されたwikiの判定（concepts/リリースの確かめ方、sources/titleが値なしや配列のときの修正-wiki-0.12.2 を更新）
