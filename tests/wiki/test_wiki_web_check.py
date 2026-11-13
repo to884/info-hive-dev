@@ -191,7 +191,7 @@ class WorkDirTest(FetchCase):
         self.assertFalse(result["work_dir"])
 
     def test_raw_is_not_written_when_snapshot_fails(self):
-        """fetch.json の書き込みの途中で失敗すると、raw は書かず、写しは「そろっていない」になる。"""
+        """fetch.json を一時の名前から正式な名前に変える前に失敗すると、raw は書かず、写しは「そろっていない」になる。"""
         stub = FetchStub(html_page(f"<p>{LONG}</p>"))
         with mock.patch.object(wiki_fetch, "fetch", stub), \
                 mock.patch.object(wiki_fetch, "is_private_host", lambda host: False), \
@@ -686,7 +686,51 @@ class ReviewCounterexample3Test(RawCheckCase):
                 self.assertFalse(self.freeze()["ok"])
 
 
+class ReviewCounterexample4Test(RawCheckCase):
+    """実装の 4 回目のレビュー（impl-review-4.md）の反例。"""
+
+    TABLE = "# A\n\n| A | B |\n|---|---|\n| 1 | 2 |\n"
+
+    def test_extra_table_cell_is_rejected(self):
+        self.setup_fetch(self.TABLE)
+        self.write_raw(self.TABLE.replace("| 1 | 2 |", "| 1 | 2 | NEW RAW PAYLOAD |"))
+        self.assertFalse(self.freeze()["ok"])
+        self.setup_fetch(self.TABLE)
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw(self.TABLE.replace("| 1 | 2 |", "| 1 | 2 | NEW RAW PAYLOAD |"), fm=FM_T)
+        self.assertIn("table", self.kinds(self.check()))
+
+    def test_paragraph_line_that_looks_like_a_reference(self):
+        src = "# A\n\nReferences:  \n[x]: active\n"
+        self.setup_fetch(src)
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw("# A\n\n参照:  \n[x]: 有効\n", fm=FM_T)
+        result = self.check()
+        self.assertTrue(result["ok"], result["errors"])
+
+    def test_first_ordered_item_can_be_removed(self):
+        src = "# A\n\n1. Share\n2. Body text.\n"
+        self.setup_fetch(src)
+        self.write_raw("# A\n\n2. Body text.\n")
+        result = self.freeze()
+        self.assertTrue(result["ok"], result["errors"])
+
+    def test_duplicate_translated_by_is_rejected(self):
+        self.setup_fetch("# A\n\nText.\n")
+        self.assertTrue(self.freeze()["ok"])
+        fm = FM.replace('translated_by: ""', 'translated_by: "Model"\ntranslated_by: ""')
+        self.write_raw("# A\n\n文。\n", fm=fm)
+        self.assertIn("translated_by", self.kinds(self.check()))
+
+
 class FetchCounterexample3Test(FetchCase):
+    def test_visible_text_is_counted_by_the_parser(self):
+        """コードの中の * と、# で始まる段落の文字も数える（4 回目のレビュー）。"""
+        for first in ("<p><code>" + "x*" * 40 + "</code></p>", "<p>#hashtag " + "y" * 80 + "</p>"):
+            with self.subTest(first=first):
+                result, text, _ = self.build(html_page(first + "<p>Top highlight</p>" + f"<p>{LONG}</p>"), force=True)
+                self.assertIn("Top highlight", text)
+
     def test_underscores_count_as_text(self):
         body = "<p>" + "x_" * 40 + "</p><p>Top highlight</p>" + f"<p>{LONG}</p>"
         result, text, _ = self.build(html_page(body))
