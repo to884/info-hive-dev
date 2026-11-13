@@ -627,6 +627,77 @@ class ReviewCounterexample2Test(RawCheckCase):
         self.assertFalse(wiki_rawcheck.work_dir_complete(self.wiki, "a"))
 
 
+class ReviewCounterexample3Test(RawCheckCase):
+    """実装の 3 回目のレビュー（impl-review-3.md）の反例。"""
+
+    def check_with(self, src: str, out: str, images=(), fm=FM, needs_translation=False) -> dict:
+        self.setup_fetch(src, images=images, needs_translation=needs_translation)
+        result = self.freeze()
+        self.assertTrue(result["ok"], result["errors"])
+        self.write_raw(out, fm=fm)
+        return self.check()
+
+    def test_percent_in_image_path(self):
+        rel = "assets/a%20b/a%20b-01.png"
+        src = f"# A\n\n![x]({rel} \"https://x.example/i.png\")\n"
+        out = src + "\n> Claude Sonnet 5.5 補足: 図の説明である。\n"
+        self.assertTrue(self.check_with(src, out, images=[rel])["ok"])
+        (self.raw / rel).unlink()
+        self.write_raw(src)
+        self.assertIn("image_file", self.kinds(self.freeze()))
+
+    def test_untranslated_caption_inside_quote_and_list(self):
+        cases = [
+            ("# A\n\n> 前書きである。\n>\n> ![](assets/a/a-01.png \"https://x.example/i.png\")\n>\n> 後書きである。\n",
+             "# A\n\n> 前書きである。\n>\n> ![](assets/a/a-01.png \"https://x.example/i.png\")\n>\n"
+             "> > Claude Sonnet 5.5 補足: 図である。\n>\n> 後書きである。\n"),
+            ("# A\n\n- 項目 1 ![](assets/a/a-01.png \"https://x.example/i.png\")\n- 項目 2\n",
+             "# A\n\n- 項目 1 ![](assets/a/a-01.png \"https://x.example/i.png\")\n\n"
+             "  > Claude Sonnet 5.5 補足: 図である。\n- 項目 2\n"),
+        ]
+        for src, out in cases:
+            with self.subTest(src=src):
+                result = self.check_with(src, out, images=["assets/a/a-01.png"])
+                self.assertTrue(result["ok"], result["errors"])
+
+    def test_reference_definitions_ignore_line_numbers(self):
+        src = "# A\n\nnoise\n\n[x]: https://x.example/path\n\nBody [x].\n"
+        self.setup_fetch(src)
+        self.write_raw(src.replace("noise\n\n", ""))
+        self.assertTrue(self.freeze()["ok"])
+        src2 = "# A\n\n![x](assets/a/a-01.png)\n\n[r]: https://x.example/r\n\nSee [r].\n"
+        out2 = src2.replace("![x](assets/a/a-01.png)\n", "![x](assets/a/a-01.png)\n\n> Claude Sonnet 5.5 補足: 図である。\n")
+        self.assertTrue(self.check_with(src2, out2, images=["assets/a/a-01.png"])["ok"])
+
+    def test_duplicate_reference_definition_is_rejected(self):
+        src = "# A\n\nSee [x].\n\n[x]: https://x.example/path\n"
+        self.setup_fetch(src)
+        self.write_raw(src + "\n[x]: https://evil.example/path\n")
+        self.assertFalse(self.freeze()["ok"])
+        result = self.check_with(src, src + "\n[x]: https://evil.example/path\n")
+        self.assertIn("references", self.kinds(result))
+
+    def test_markup_rewrites_are_rejected_in_freeze(self):
+        src = "# A\n\n## Section\n\nText.\n\n```\ncode\n```\n"
+        for out in (src.replace("## Section", "Section\n-------"), src.replace("```", "~~~")):
+            with self.subTest(out=out):
+                self.setup_fetch(src)
+                self.write_raw(out)
+                self.assertFalse(self.freeze()["ok"])
+
+
+class FetchCounterexample3Test(FetchCase):
+    def test_underscores_count_as_text(self):
+        body = "<p>" + "x_" * 40 + "</p><p>Top highlight</p>" + f"<p>{LONG}</p>"
+        result, text, _ = self.build(html_page(body))
+        self.assertIn("Top highlight", text)
+
+    def test_tag_link_with_escaped_bracket(self):
+        body = '<p><a href="https://site.example/tag/a">a]b</a></p>' + f"<p>{LONG}</p>"
+        result, text, _ = self.build(html_page(body))
+        self.assertEqual([r["rule"] for r in result["removed_by_rule"]], ["tag_links"])
+
+
 class UntranslatedTest(RawCheckCase):
     BODY = "# 題名\n\n本文である。\n\n![図](assets/a/a-01.png \"https://x.example/1.png\")\n"
 
