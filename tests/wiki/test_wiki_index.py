@@ -107,6 +107,30 @@ class WikiIndexTests(Base):
                     row = rows[f"list-fields-{name}"]
                     self.assertEqual((row["tags"], row["sources"]), (tags, sources), name)
 
+    def test_non_string_titles_do_not_stop_the_index(self):
+        # title が値なし（空の配列）や配列のページがあっても、索引を作れて、結果の title は文字になる。
+        # 0.12.1 までは、こうしたページが 1 つあると、ページを集める段階で TypeError になり、検索が全体で止まった。
+        pages = {
+            "empty": ("title:", "title-values-empty"),
+            "one": ("title: [下書き]", "下書き"),
+            "two": ("title: [甲板, 乙板]", "甲板, 乙板"),
+        }
+        for name, (field, _title) in pages.items():
+            text = f"---\n{field}\n---\nふがぴよの本文。\n"
+            (self.wiki / "concepts" / f"title-values-{name}.md").write_bytes(text.encode("utf-8"))
+        (self.wiki / "indexes").mkdir(exist_ok=True)
+        (self.wiki / "indexes" / "title-values.md").write_bytes("---\ntitle: [索引, 一覧]\n---\n# 見出し\n".encode("utf-8"))
+        index = self.open_index()
+        index.refresh()
+        wiki_index.embed_pending(index.collection, self.embedder)
+        for embedder in (None, self.embedder):
+            with self.subTest(mode="lexical" if embedder is None else "hybrid"):
+                rows = {row["slug"]: row for row in index.search("ふがぴよ", top=50, embedder=embedder)["results"]}
+                for name, (_field, title) in pages.items():
+                    self.assertEqual(rows[f"title-values-{name}"]["title"], title, name)
+        listing = {f["name"]: f["title"] for f in wiki_index.list_index(self.root)["indexes"]}
+        self.assertEqual(listing["title-values.md"], "索引, 一覧")
+
     def test_reconcile_after_interrupted_write(self):
         index = self.open_index()
         index.refresh()
