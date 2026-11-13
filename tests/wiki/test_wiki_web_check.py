@@ -1,0 +1,506 @@
+"""URL の取り込みの検査（wiki_rawcheck.py）と、wiki_fetch.py の雑音の規則・--html-file・作業用の写しの試験。
+
+設計: docs/plans/wiki-web-ingest-check-2026-11-13.md
+
+取得（`fetch`）を差し替えるので、ネットにはつながない。
+
+実行（標準ライブラリだけで動く）:
+    python -X utf8 -m unittest tests/wiki/test_wiki_web_check.py -v
+"""
+from __future__ import annotations
+
+import argparse
+import contextlib
+import io
+import json
+import os
+import struct
+import sys
+import tempfile
+import unittest
+import zlib
+from pathlib import Path
+from unittest import mock
+
+ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS = ROOT / "info-hive-wiki/skills/info-hive/scripts"
+sys.path.insert(0, str(SCRIPTS))
+
+import wiki_fetch  # noqa: E402
+import wiki_rawcheck  # noqa: E402
+
+PAGE_URL = "https://site.example/request/start"
+LONG = "This is the body text of the article and it is long enough to count as the first paragraph. " * 2
+
+
+def png(width: int = 200, height: int = 120) -> bytes:
+    ihdr = struct.pack(">II", width, height) + b"\x08\x06\x00\x00\x00"
+    chunk = b"IHDR" + ihdr
+    return (b"\x89PNG\r\n\x1a\n" + struct.pack(">I", len(ihdr)) + chunk
+            + struct.pack(">I", zlib.crc32(chunk) & 0xFFFFFFFF))
+
+
+class FetchStub:
+    def __init__(self, html: bytes):
+        self.html = html
+        self.requested: list[str] = []
+
+    def __call__(self, url, timeout, max_bytes, accept="", block_private=False):
+        self.requested.append(url)
+        if url == PAGE_URL:
+            return self.html, url, "text/html; charset=utf-8"
+        return png(), url, "image/png"
+
+
+def html_page(article: str, *, head: str = "", body_before: str = "") -> bytes:
+    return ("<!doctype html><html lang=\"en\"><head><title>Article</title>" + head + "</head><body>"
+            + body_before + "<article><h1>Article</h1>" + article + "</article></body></html>").encode("utf-8")
+
+
+class FetchCase(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.base = Path(tmp.name)
+        self.wiki = self.base / "wiki"
+        self.raw = self.base / "raw"
+        self.wiki.mkdir()
+        self.raw.mkdir()
+        (self.wiki / "SCHEMA.md").write_text("# s\n", encoding="utf-8")
+
+    def args(self, **kw) -> argparse.Namespace:
+        values = dict(url=PAGE_URL, wiki=self.wiki, raw_root=self.raw, slug="page", json=True, no_images=False,
+                      timeout=5, max_bytes=wiki_fetch.DEFAULT_MAX_BYTES, max_images=50, force=False,
+                      keep_noise=False, html_file=None, page_url=None)
+        values.update(kw)
+        return argparse.Namespace(**values)
+
+    def build(self, html: bytes, **kw) -> tuple[dict, str, FetchStub]:
+        stub = FetchStub(html)
+        with mock.patch.object(wiki_fetch, "fetch", stub), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
+            code, result = wiki_fetch.build(self.args(**kw))
+        self.assertEqual(code, 0, result)
+        text = (self.raw / "page.md").read_text(encoding="utf-8")
+        return result, text, stub
+
+
+class NoiseRuleTest(FetchCase):
+    def test_header_rules_drop_tags_and_phrases(self):
+        article = ('<p><a href="https://site.example/tag/ai">AI</a></p>'
+                   '<p>Member-only story</p><p>Article</p>'
+                   '<p>Read this story for free: <a href="https://site.example/x?source=friends_link&amp;sk=1">link</a></p>'
+                   f"<p>{LONG}</p><p>Press enter or click to view image in full size</p><p>{LONG}</p>")
+        result, text, _ = self.build(html_page(article))
+        rules = sorted(r["rule"] for r in result["removed_by_rule"])
+        self.assertEqual(rules, ["duplicate_title", "medium_friend_link", "medium_member_only",
+                                 "medium_view_image", "tag_links"])
+        self.assertNotIn("Member-only", text)
+        self.assertNotIn("/tag/ai", text)
+        self.assertIn(LONG.strip(), text)
+
+    def test_same_strings_in_body_are_kept(self):
+        """本文の前の部分の規則は、本文の中では当てない（対照）。"""
+        article = (f"<p>{LONG}</p><p><a href=\"https://docs.example/tag/release-1\">Tag specification</a></p>"
+                   "<p>Top highlight</p><p>Article</p>")
+        result, text, _ = self.build(html_page(article))
+        self.assertEqual(result["removed_by_rule"], [])
+        self.assertIn("[Tag specification](https://docs.example/tag/release-1)", text)
+        self.assertIn("Top highlight", text)
+
+    def test_keep_noise_disables_rules(self):
+        article = '<p><a href="https://site.example/tag/ai">AI</a></p>' + f"<p>{LONG}</p>"
+        result, text, _ = self.build(html_page(article), keep_noise=True)
+        self.assertEqual(result["removed_by_rule"], [])
+        self.assertIn("/tag/ai", text)
+
+    def test_mediawiki_parts_only_on_mediawiki(self):
+        article = ('<a class="mw-jump-link" href="#c">スキップ</a><div id="siteSub">出典: 百科事典</div>'
+                   '<table><tr><td class="metadata">i</td><td>曖昧さ回避の注記</td></tr></table>'
+                   f"<p>{LONG}</p>")
+        mw = '<meta name="generator" content="MediaWiki 1.48.0">'
+        result, text, _ = self.build(html_page(article, head=mw))
+        self.assertEqual(sorted(r["rule"] for r in result["removed_by_rule"]),
+                         ["mediawiki_metadata_table", "mediawiki_site_sub", "mediawiki_skip_link"])
+        self.assertNotIn("曖昧さ回避", text)
+        # MediaWiki でないページの metadata の表は、本文のデータ表であり得るので残す（対照）。
+        result, text, _ = self.build(html_page(article), force=True)
+        self.assertEqual(result["removed_by_rule"], [])
+        self.assertIn("曖昧さ回避", text)
+
+    def test_mediawiki_rule_works_when_html_class_hits_noise_words(self):
+        """<html> の class が NOISE_WORDS に当たる Wikipedia でも、部品を落とせること。"""
+        page = ('<!doctype html><html class="client-nojs vector-toc-available"><head><title>T</title>'
+                '<meta name="generator" content="MediaWiki 1.48"></head><body>'
+                '<a class="mw-jump-link" href="#c">スキップ</a>'
+                f"<main><h1>T</h1><p>{LONG}</p></main></body></html>").encode("utf-8")
+        result, text, _ = self.build(page)
+        self.assertEqual([r["rule"] for r in result["removed_by_rule"]], ["mediawiki_skip_link"])
+
+
+class HtmlFileTest(FetchCase):
+    def test_page_url_is_the_base(self):
+        html = html_page(f'<p>{LONG}</p><img src="img.png" width="300" height="200"><p><a href="next.html">n</a></p>')
+        path = self.base / "page.html"
+        path.write_bytes(html)
+        stub = FetchStub(b"")
+        with mock.patch.object(wiki_fetch, "fetch", stub), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
+            code, result = wiki_fetch.build(self.args(html_file=path, page_url="https://site.example/actual/article/"))
+        self.assertEqual(code, 0)
+        text = (self.raw / "page.md").read_text(encoding="utf-8")
+        self.assertIn("https://site.example/actual/article/img.png", stub.requested)
+        self.assertNotIn(PAGE_URL, stub.requested)
+        self.assertIn("(https://site.example/actual/article/next.html)", text)
+        self.assertIn('source_sha256_of: "dom"', text)
+        self.assertIn('final_url: "https://site.example/actual/article/"', text)
+
+    def test_non_utf8_file_is_rejected(self):
+        path = self.base / "page.html"
+        path.write_bytes(html_page(f"<p>{LONG}</p>").replace(b"body text", "café".encode("cp1252")))
+        with self.assertRaises(ValueError):
+            wiki_fetch.build(self.args(html_file=path, page_url=PAGE_URL))
+        self.assertFalse((self.raw / "page.md").exists())
+
+
+class WorkDirTest(FetchCase):
+    def test_snapshot_matches_raw_and_records_language(self):
+        result, text, _ = self.build(html_page(f"<p>{LONG}</p>"))
+        wd = wiki_rawcheck.work_dir(self.wiki, "page")
+        self.assertEqual((wd / "fetched.md").read_text(encoding="utf-8"), text)
+        fetch = json.loads((wd / "fetch.json").read_text(encoding="utf-8"))
+        self.assertTrue(fetch["needs_translation"])
+        self.assertTrue(result["work_dir"])
+
+    def test_unchanged_reports_missing_work_dir(self):
+        self.build(html_page(f"<p>{LONG}</p>"))
+        wiki_rawcheck.remove_work_dir(self.wiki, "page")
+        stub = FetchStub(html_page(f"<p>{LONG}</p>"))
+        with mock.patch.object(wiki_fetch, "fetch", stub), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
+            code, result = wiki_fetch.build(self.args())
+        self.assertTrue(result["unchanged"])
+        self.assertFalse(result["work_dir"])
+
+    def test_raw_is_not_written_when_snapshot_fails(self):
+        with mock.patch.object(wiki_rawcheck, "work_dir", side_effect=OSError("書けない")):
+            stub = FetchStub(html_page(f"<p>{LONG}</p>"))
+            with mock.patch.object(wiki_fetch, "fetch", stub), \
+                    mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
+                with self.assertRaises(OSError):
+                    wiki_fetch.build(self.args())
+        self.assertFalse((self.raw / "page.md").exists())
+
+
+class LanguageAndSlugTest(unittest.TestCase):
+    def test_needs_translation(self):
+        self.assertTrue(wiki_fetch.needs_translation("en", 0.0))
+        self.assertFalse(wiki_fetch.needs_translation("ja", 0.8))
+        self.assertFalse(wiki_fetch.needs_translation("", 0.7))
+        self.assertTrue(wiki_fetch.needs_translation("", 0.1))
+        # lang="ja" なのに本文が英語なら、割合で決める（取り込みの手順と同じ）。
+        self.assertTrue(wiki_fetch.needs_translation("ja", 0.05))
+        self.assertFalse(wiki_fetch.needs_translation("en", 0.9))
+
+    def test_slug_rejects_aliases_and_reserved_names(self):
+        for bad in ("x.", "CON", "nul", "com1.txt", "LPT¹"):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                wiki_fetch.check_slug(bad)
+        for ok in ("x.v2", "x.lock", "console", "COM10x"):
+            with self.subTest(ok=ok):
+                wiki_fetch.check_slug(ok)
+
+
+# ---------------------------------------------------------------- wiki_rawcheck
+
+FM = '---\nurl: "https://site.example/a"\ntitle: "A"\nsource_sha256: "x"\ntranslated_by: ""\n---\n'
+
+
+class RawCheckCase(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.base = Path(tmp.name)
+        self.wiki = self.base / "wiki"
+        self.raw = self.base / "raw"
+        self.wd = wiki_rawcheck.work_dir(self.wiki, "a")
+        self.wd.mkdir(parents=True)
+        self.raw.mkdir()
+        (self.wiki / "SCHEMA.md").write_text("# s\n", encoding="utf-8")
+
+    def setup_fetch(self, body: str, *, images: list[str] = (), needs_translation: bool = True, fm: str = FM):
+        text = fm + "\n" + body
+        (self.wd / "fetched.md").write_text(text, encoding="utf-8", newline="\n")
+        (self.raw / "a.md").write_text(text, encoding="utf-8", newline="\n")
+        for rel in images:
+            p = self.raw / rel
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_bytes(png())
+        fetch = {"needs_translation": needs_translation, "images": [{"path": r} for r in images],
+                 "removed_by_rule": []}
+        (self.wd / "fetch.json").write_text(json.dumps(fetch), encoding="utf-8")
+
+    def write_raw(self, body: str, fm: str = FM):
+        (self.raw / "a.md").write_text(fm + "\n" + body, encoding="utf-8", newline="\n")
+
+    def freeze(self) -> dict:
+        code, result = wiki_rawcheck.freeze(self.wiki, self.raw, "a")
+        self.assertEqual(code, 0 if result["ok"] else 1)
+        return result
+
+    def check(self, override=None) -> dict:
+        code, result = wiki_rawcheck.check(self.wiki, self.raw, "a", override, "試験" if override else None)
+        self.assertEqual(code, 0 if result["ok"] else 1)
+        return result
+
+    def kinds(self, result: dict) -> list[str]:
+        return sorted({e["kind"] for e in result["errors"]})
+
+
+SRC = """# A
+
+Tag line
+
+Alpha Share beta Tweet gamma with `code(1)` and [link](https://x.example/l).
+
+## About the author
+
+Writer bio.
+
+```
+SELECT 1; -- rationale
+```
+
+![](assets/a/a-01.png "https://x.example/1.png")
+
+![](assets/a/a-01.png "https://x.example/1.png")
+"""
+
+
+class FreezeTest(RawCheckCase):
+    def setUp(self):
+        super().setUp()
+        self.setup_fetch(SRC, images=["assets/a/a-01.png"])
+
+    def test_deletions_pass_and_are_recorded(self):
+        out = SRC.replace("Tag line\n\n", "").replace(" Share", "").replace(" Tweet", "")
+        out = out.replace("## About the author\n\nWriter bio.\n\n", "")
+        # 共有のファイルを使う 2 つの画像の行の片方だけを消す。ファイルは残す。
+        out = out.replace('![](assets/a/a-01.png "https://x.example/1.png")\n\n', "", 1)
+        self.write_raw(out)
+        result = self.freeze()
+        self.assertTrue(result["ok"], result["errors"])
+        removed = [r["text"] for r in result["removed"]]
+        self.assertIn("Tag line", removed)
+        self.assertIn("## About the author", removed)
+        self.assertTrue((self.wd / "cleaned.md").is_file())
+
+    def test_rejected_edits(self):
+        cases = {
+            "added": SRC.replace("Tag line", "Tag line\n\nNew line"),
+            "rewrite": SRC.replace("Writer bio.", "Writer biography."),
+            "reorder": SRC.replace("Tag line\n\n", "").replace("Writer bio.\n", "Writer bio.\n\nTag line\n"),
+            "title": SRC.replace("# A\n\n", ""),
+            "code": SRC.replace("SELECT 1; -- rationale", "SELECT 1;"),
+            "code_span": SRC.replace("`code(1)`", "`code`"),
+            "link": SRC.replace("[link](https://x.example/l)", "[link]"),
+        }
+        for name, body in cases.items():
+            with self.subTest(name=name):
+                self.write_raw(body)
+                result = self.freeze()
+                self.assertFalse(result["ok"], name)
+                self.assertFalse((self.wd / "cleaned.md").exists())
+
+    def test_frontmatter_must_not_change(self):
+        self.write_raw(SRC, fm=FM.replace('title: "A"', 'title: "B"'))
+        self.assertIn("frontmatter", self.kinds(self.freeze()))
+
+    def test_image_files(self):
+        # 両方の行を消したのに、ファイルが残っている。
+        self.write_raw(SRC.replace('![](assets/a/a-01.png "https://x.example/1.png")\n', ""))
+        self.assertIn("image_file", self.kinds(self.freeze()))
+        # 行は残したのに、ファイルを消した。
+        self.write_raw(SRC)
+        (self.raw / "assets/a/a-01.png").unlink()
+        self.assertIn("image_file", self.kinds(self.freeze()))
+
+
+CLEAN = """# Title
+
+The model uses `run(x)` and see [docs](https://x.example/d). The city of Greenwich is a place.
+
+- item one
+- item two ![i](assets/a/a-01.png "https://x.example/1.png")
+
+> Quote text.
+>
+> ![q](assets/a/a-02.png "https://x.example/2.png")
+
+| a | b |
+|---|---|
+| 1 | 2 |
+
+```
+print("hi")
+```
+
+![missing](https://x.example/3.png "https://x.example/3.png")（未取得）
+"""
+
+GOOD = """# 題名
+
+モデルは `run(x)` を使い、[文書](https://x.example/d)を参照する。Greenwich の町は地名である。
+
+- 項目 1
+- 項目 2 ![i](assets/a/a-01.png "https://x.example/1.png")
+
+  > Claude Sonnet 5.5 補足: 項目の中の図の説明である。
+
+> 引用の文である。
+>
+> ![q](assets/a/a-02.png "https://x.example/2.png")
+>
+> > Claude Sonnet 5.5 補足: 引用の中の図の説明である。
+
+| a | b |
+|---|---|
+| 1 | 2 |
+
+```
+print("hi")
+```
+
+![missing](https://x.example/3.png "https://x.example/3.png")（未取得）
+"""
+
+FM_T = FM.replace('translated_by: ""', 'translated_by: "Claude Sonnet 5.5"')
+
+
+class CheckTest(RawCheckCase):
+    def setUp(self):
+        super().setUp()
+        self.setup_fetch(CLEAN, images=["assets/a/a-01.png", "assets/a/a-02.png"])
+        self.assertTrue(self.freeze()["ok"])
+
+    def test_good_translation_passes(self):
+        self.write_raw(GOOD, fm=FM_T)
+        result = self.check()
+        self.assertTrue(result["ok"], result["errors"])
+        self.assertEqual(result["warnings"], [])
+
+    def test_errors(self):
+        cases = {
+            "translated_by": (GOOD, FM),
+            "caption": (GOOD.replace("  > Claude Sonnet 5.5 補足: 項目の中の図の説明である。\n\n", ""), FM_T),
+            "caption_name": (GOOD.replace("> > Claude Sonnet 5.5", "> > Claude Haiku 5.5"), FM_T),
+            "caption_unavailable": (GOOD + "\n> Claude Sonnet 5.5 補足: 見ていない図。\n", FM_T),
+            "links": (GOOD.replace("[文書](https://x.example/d)", "文書"), FM_T),
+            "code_span": (GOOD.replace("`run(x)`", "`run(y)`"), FM_T),
+            "code": (GOOD.replace('print("hi")', 'print("やあ")'), FM_T),
+            "image_line": (GOOD.replace("![q]", "![引用の図]"), FM_T),
+            "table": (GOOD.replace("| 1 | 2 |", "| 1 | 2 |\n| 3 | 4 |"), FM_T),
+            "list": (GOOD.replace("- 項目 1\n", ""), FM_T),
+            "blocks": (GOOD.replace("> 引用の文である。\n>\n", "> 引用の文である。\n\n"), FM_T),
+        }
+        for name, (body, fm) in cases.items():
+            with self.subTest(name=name):
+                self.write_raw(body, fm=fm)
+                result = self.check()
+                self.assertFalse(result["ok"], name)
+
+    def test_warnings_and_controls(self):
+        body = GOOD.replace("Greenwich の町は地名である。", "グリニッジの町は地名である。<> を使う。")
+        self.write_raw(body, fm=FM_T)
+        result = self.check()
+        self.assertTrue(result["ok"], result["errors"])
+        kinds = sorted({w["kind"] for w in result["warnings"]})
+        self.assertEqual(kinds, ["missing_names", "new_tokens"])
+        # 名前を文の先頭に移しただけなら、警告しない（対照）。
+        self.write_raw(GOOD.replace("モデルは `run(x)` を使い、[文書](https://x.example/d)を参照する。Greenwich の町は地名である。",
+                                    "Greenwich は地名である。モデルは `run(x)` を使い、[文書](https://x.example/d)を参照する。"),
+                       fm=FM_T)
+        self.assertEqual(self.check()["warnings"], [])
+
+    def test_style_mix_warns(self):
+        body = GOOD.replace("Greenwich の町は地名である。", "Greenwich の町は地名です。これは例です。")
+        body = body.replace("引用の文である。", "引用の文である。次の文である。")
+        self.write_raw(body, fm=FM_T)
+        self.assertIn("style", {w["kind"] for w in self.check()["warnings"]})
+
+
+class UntranslatedTest(RawCheckCase):
+    BODY = "# 題名\n\n本文である。\n\n![図](assets/a/a-01.png \"https://x.example/1.png\")\n"
+
+    def setUp(self):
+        super().setUp()
+        self.setup_fetch(self.BODY, images=["assets/a/a-01.png"], needs_translation=False)
+        self.assertTrue(self.freeze()["ok"])
+
+    def test_only_captions_may_be_added(self):
+        self.write_raw(self.BODY + "\n> Claude Sonnet 5.5 補足: 図の説明である。\n")
+        self.assertTrue(self.check()["ok"])
+        self.write_raw(self.BODY.replace("本文である。", "本文です。") + "\n> Claude Sonnet 5.5 補足: 図の説明。\n")
+        self.assertIn("text", self.kinds(self.check()))
+
+    def test_language_override(self):
+        self.write_raw(self.BODY + "\n> Claude Sonnet 5.5 補足: 図の説明である。\n",
+                       fm=FM.replace('translated_by: ""', 'translated_by: "Claude Sonnet 5.5"'))
+        self.assertIn("translated_by", self.kinds(self.check()))
+        result = self.check(override="translate")
+        self.assertTrue(result["ok"], result["errors"])
+        self.assertEqual(result["language_override"]["value"], "translate")
+
+
+class MainAndWorkDirTest(RawCheckCase):
+    def test_check_requires_freeze(self):
+        self.setup_fetch("# A\n\nText.\n")
+        with self.assertRaises(FileNotFoundError):
+            wiki_rawcheck.check(self.wiki, self.raw, "a", None, None)
+
+    def test_finish_removes_work_dir_only_on_success(self):
+        self.setup_fetch("# A\n\nText.\n", needs_translation=False)
+        argv = ["--wiki", str(self.wiki), "--raw-root", str(self.raw), "--slug", "a", "--json"]
+
+        def run(*a):
+            with contextlib.redirect_stdout(io.StringIO()):
+                return wiki_rawcheck.main(list(a))
+
+        self.assertEqual(run("freeze", *argv), 0)
+        self.write_raw("# A\n\nChanged.\n")
+        self.assertEqual(run("check", *argv, "--finish"), 1)
+        self.assertTrue(self.wd.is_dir())
+        self.write_raw("# A\n\nText.\n")
+        self.assertEqual(run("check", *argv, "--finish"), 0)
+        self.assertFalse(self.wd.exists())
+
+    def test_uninitialized_wiki_is_refused(self):
+        """SCHEMA.md のない wiki では、何も読み書きせずに終了コード 1 で止まる（ADR-0019）。"""
+        self.setup_fetch("# A\n\nText.\n")
+        (self.wiki / "SCHEMA.md").unlink()
+        argv = ["--wiki", str(self.wiki), "--raw-root", str(self.raw), "--slug", "a"]
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(wiki_rawcheck.main(["freeze", *argv]), 1)
+            self.assertEqual(wiki_rawcheck.main(["check", *argv, "--finish"]), 1)
+        self.assertIn("/wiki:init", err.getvalue())
+        self.assertFalse((self.wd / "cleaned.md").exists())
+        self.assertTrue(self.wd.is_dir())
+
+    @unittest.skipUnless(os.name == "nt", "ジャンクションは Windows だけ")
+    def test_remove_refuses_junction(self):
+        import _winapi
+        outside = self.base / "outside"
+        target = outside / "ingest" / "a"
+        target.mkdir(parents=True)
+        (target / "keep.txt").write_text("消してはならない", encoding="utf-8")
+        wiki = self.base / "wiki2"
+        wiki.mkdir()
+        _winapi.CreateJunction(str(outside), str(wiki / ".wiki-cache"))
+        with self.assertRaises(ValueError):
+            wiki_rawcheck.remove_work_dir(wiki, "a")
+        self.assertTrue((target / "keep.txt").is_file())
+
+
+if __name__ == "__main__":
+    unittest.main()
