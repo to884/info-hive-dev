@@ -54,6 +54,8 @@ class LintCase(unittest.TestCase):
         self.wiki = self.base / "wiki"
         for d in ("sources", "concepts", "entities", "synthesis"):
             (self.wiki / d).mkdir(parents=True)
+        # CLI は SCHEMA.md のないディレクトリを断る（ADR-0019）。SCHEMA.md はページに数えない。
+        (self.wiki / "SCHEMA.md").write_bytes("# スキーマ\n".encode("utf-8"))
 
     def write(self, rel: str, text: str) -> Path:
         path = self.wiki / rel

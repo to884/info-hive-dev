@@ -136,6 +136,8 @@ class TempWiki(unittest.TestCase):
         self.base = Path(self._tmp.name).resolve()
         self.wiki = self.base / "work" / "Wiki"
         self.wiki.mkdir(parents=True)
+        # 入口（wiki_root）は SCHEMA.md のないディレクトリを断る（ADR-0019）。SCHEMA.md はページではない。
+        write(self.wiki, "SCHEMA.md", "# スキーマ\n")
         self.data = self.base / "data"
         self._env = mock.patch.dict(os.environ, {"INFO_HIVE_DATA_DIR": str(self.data)})
         self._env.start()

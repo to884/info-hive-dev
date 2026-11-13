@@ -1,0 +1,84 @@
+## 判定
+
+**却下。確信度：高。** 指定された変更だけでは、稼働中の browse サーバーと評価用アダプターに判定を通らない経路が残る。また、「何も書かない」という保証と、停止コマンドの扱いにも欠落・矛盾がある。
+
+未実装の設計として評価した。以下の実測は現コードに対する読み取りだけの確認であり、完成版の試験結果ではない。
+
+## 致命的・重大な欠陥
+
+1. **重大：browse の HTTP 要求が共通判定を通らない。**
+
+   **反例：** 初期化済み wiki で `serve` を起動し、`SCHEMA.md` を削除してから、開いたページを再読み込みする。設計が変更する `wiki_root()` は起動時にしか通らない。HTTP 要求は `BrowseState.get()` から直接 `core.signature()`、`core.take_snapshot()` を呼ぶため、未初期化になったディレクトリを再び wiki として読む。再構築に失敗しても、現在のコードには古い中核を返す経路がある。
+
+   現コードの `BrowseState.get()` に、`SCHEMA.md` のない既存の `eval/evolution/project-smoke/wiki/` を渡した読み取りだけの確認では、`has_core=True`、`stale=None`、描画対象 4 ページになった。
+
+   **根拠：** [設計:110](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/docs/plans/wiki-uninitialized-root-2026-11-13.md:110)、[再構築とキャッシュの処理](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:369)、[HTTP の閲覧経路](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:529)。試験表の browse 欄も `build`、`core` が中心で、この手順を含まない。
+
+2. **重大：JSON の `wiki_root` を受け取る評価用 CLI が入口の表から漏れている。**
+
+   **反例：** `wiki_evolve_agent.py codex` に、未初期化ディレクトリを `wiki_root` とする inference 要求を標準入力で渡す。ほかの必須項目と実行環境が有効なら、wiki の判定をせず、一時ファイルを作り、子エージェントを起動する。生成する指示は、その場所を factual wiki として読み、許された成果物をその中に書くよう求める。
+
+   `wiki_evolve_claude.py` にも同じ入口がある。これは除外対象とされた「ライブラリ関数の直接呼び出し」ではなく、`__main__` を持つ CLI である。評価用 CLI を初期化判定の対象外にする例外は、設計にも ADR にも記載されていない。
+
+   **根拠：** [設計の入口一覧](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/docs/plans/wiki-uninitialized-root-2026-11-13.md:102)、[アダプターの CLI](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_evolve_agent.py:219)、[判定なしで始まる実行](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_evolve_agent.py:116)、[wiki として扱う指示](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_evolve_agent.py:45)、[Claude 用入口](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_evolve_claude.py:43)。
+
+3. **重大：`main()` の判定より前に、対象ディレクトリ内へバイトコードを書ける。**
+
+   **反例：** 未初期化ディレクトリの下にプラグインを配置し、`PYTHONDONTWRITEBYTECODE` を設定せず、`-B` なしで lint や stats を実行する。キャッシュがなければ、`wiki_text` などの import により、対象内の `scripts/__pycache__/` に `.pyc` が作られる。後から `require_or_exit()` で拒否しても、「何も書かない」は成立しない。
+
+   プラグインが wiki 内にある配置は、既存の browse 試験が明示的に扱っている。browse はその理由で import 前に `sys.dont_write_bytecode=True` を設定しているが、設計にはほかの入口への対応がない。
+
+   **根拠：** [設計:104](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/docs/plans/wiki-uninitialized-root-2026-11-13.md:104)、[stats の import](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_stats.py:28)、[stats の判定位置](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_stats.py:263)、[browse の対策と理由](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:24)、[既存の配置試験](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/tests/wiki/test_browse.py:856)。
+
+4. **重大：`/wiki:browse --stop` の文章が、設計上許した停止を禁止する。**
+
+   **反例：** browse サーバーの起動後に `SCHEMA.md` を削除し、`/wiki:browse --stop` を依頼する。設計の節 7 は、wiki の場所を決めた直後に「スクリプトも呼ばず……止まる」という共通文を `browse.md` に入れる。この指示に従うと、停止スクリプトに到達しない。
+
+   節 3 の「`SCHEMA.md` をあとで消した wiki のサーバーも止められるようにする」と矛盾する。CLI 単独の `stop` 試験では、コマンド文による遮断を検出できない。
+
+   **根拠：** [停止を許す決定](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/docs/plans/wiki-uninitialized-root-2026-11-13.md:111)、[browse にも入れる共通の停止指示](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/docs/plans/wiki-uninitialized-root-2026-11-13.md:150)、[現在の停止分岐](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/commands/browse.md:16)。
+
+## 崩れる前提
+
+- **「入口で一度確かめれば、その後も同じ wiki を扱う」**  
+  browse では、起動後の各 HTTP 要求が新しい読み取りを始める。起動時点の判定は、その時点の `SCHEMA.md` の存在を保証しない。
+
+- **「wiki を受け取る入口は表に列挙できている」**  
+  CLI 引数だけでなく、標準入力の JSON にも `wiki_root` がある。評価用アダプターがこの条件に当たる。
+
+- **「判定前には書き込み処理を実行しない」**  
+  Python の import 自体が書き込みを起こす。プラグインが検査対象内にある配置で崩れる。
+
+- **「正規化の後でも、すべての異常を共通判定で処理できる」**  
+  `resolve(strict=True)` が失敗した入力は、後ろに置いた判定へ到達しない。
+
+## 見落としと軽微な問題
+
+- **軽微：存在しない MCP のルートには、共通の初期化案内が出ない。**  
+  設計は既存の正規化の「あと」に `require()` を置く。しかし、存在しないルートは先に `resolve(strict=True)` で失敗し、現在の `wiki_root()` が独自の `ValueError` に変換する。実測した文も `wiki のルートが見つからない: …` だけで、`/wiki:init` はない。設計どおり後ろに判定を足しても、この入力には効かない。アクセス拒否などの `OSError` にも共通判定へ届かない経路がある。  
+  根拠：[設計:112](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/docs/plans/wiki-uninitialized-root-2026-11-13.md:112)、[正規化](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_common.py:75)、[既存の例外変換](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_server.py:90)。
+
+- **軽微：`UV` 環境変数を変えても、uv を呼ばない試験にならない。**  
+  [試験計画:178](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/docs/plans/wiki-uninitialized-root-2026-11-13.md:178) は `UV` を存在しないパスにするとしている。実コードは [`shutil.which("uv")`](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/init_wiki.py:153) を使い、`UV` を参照しない。PATH 上の実物が選ばれる。
+
+- **軽微：判定表を全行試験するという説明と、列挙した試験条件が一致しない。**  
+  [判定試験の欄](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/docs/plans/wiki-uninitialized-root-2026-11-13.md:173) には、ルートとマーカーそれぞれのアクセス拒否、正常なリンク先、大文字と小文字の条件がない。CLI・MCP に異常なルートを渡して、共通判定まで到達することも確かめていない。`problem()` 単体の成功だけでは、上記 MCP の抜けを検出できない。
+
+## 検証した事実
+
+- **一致：** 読み取ったサブモジュールの HEAD は `5326bf9a229f18b5a9992d91d522072eee81827d`、`plugin.json` は `0.12.1`。
+- **一致：** `State.wiki()` はキャッシュ参照前に毎回 `wiki_root()` を呼ぶ。
+- **食い違い：** browse の HTTP 要求は `wiki_root()` を呼ばない。未初期化の既存素材から中核を作ることも確認した。
+- **一致：** rag の `workspace()` は `SCHEMA.md` を `is_file()` で確認する。rag 内に `wiki_fetch.py` や `wiki_evolve.py capture` の呼び出しは見つからなかった。
+- **一致：** 通常の init は、既存ファイルを `copy_template()` で飛ばし、欠けた `SCHEMA.md` を追加できる。
+- **確認方法：** バイトコードについては、書き込み先を捕捉するモックで生成要求を確認した。実際の書き込みは行っていない。こちらからリポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- `os.stat()` とファイル種別で判定し、中身を読まないという定義そのものには、確実な反例を見つけられなかった。別用途の `SCHEMA.md` を受け入れる点は、明示された対象外である。
+- MCP のキャッシュ参照前に毎回判定する構成なら、要求間で `SCHEMA.md` を削除したケースでも、キャッシュだけを理由に回答する経路は塞がる。
+- `SCHEMA.md` を失った wiki の upgrade を断り、明示的な init で復旧する扱い自体には矛盾を見つけられなかった。
+- `0.13.0` は、リポジトリ内の 0.x における互換性変更の扱いと整合する。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
