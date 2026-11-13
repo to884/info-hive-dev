@@ -4,8 +4,8 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 案（作者の承認待ち） |
-| 版 | 3 版目。1 版目の設計のレビューは却下だった（[design-review-1.md](../agent-runs/2026-11-13-wiki-uninitialized-root/design-review-1.md)）。2 版目と実装の 1 回目のレビューも却下だった（[impl-review-1.md](../agent-runs/2026-11-13-wiki-uninitialized-root/impl-review-1.md)）。3 版目と実装の 2 回目のレビューも却下だった（[impl-review-2.md](../agent-runs/2026-11-13-wiki-uninitialized-root/impl-review-2.md)。重大 1 件）。どの指摘も、崩れた前提ごとに分けて直した（「レビューの指摘と直し方」）。4 版目は、2 回目の重大の直しを、同じレビューの続きで確かめる |
+| 状態 | 案（作者の承認待ち）。敵対的レビューは採用可（実装の 2 回目の続き） |
+| 版 | 4 版目。1 版目の設計のレビューは却下だった（[design-review-1.md](../agent-runs/2026-11-13-wiki-uninitialized-root/design-review-1.md)）。2 版目と実装の 1 回目のレビューも却下だった（[impl-review-1.md](../agent-runs/2026-11-13-wiki-uninitialized-root/impl-review-1.md)）。3 版目と実装の 2 回目のレビューも却下だった（[impl-review-2.md](../agent-runs/2026-11-13-wiki-uninitialized-root/impl-review-2.md)。重大 1 件）。どの指摘も、崩れた前提ごとに分けて直した（「レビューの指摘と直し方」）。4 版目の直しは、同じレビューの続きで「採用可」になった（[impl-review-3.md](../agent-runs/2026-11-13-wiki-uninitialized-root/impl-review-3.md)。残った軽微は、この欄の版の表記で、直した） |
 | 対象 | `info-hive-wiki` 0.12.1（`origin/main` の `5326bf9`）から始める |
 | 関連 | [ADR-0019](../adr/0019-wiki-root-is-marked-by-schema.md)、ADR-0004（Web ページの raw）、ADR-0008（作業領域の設定）、ADR-0010（browse）、ADR-0012（MCP サーバー）、ADR-0018（Python 3.12） |
 
