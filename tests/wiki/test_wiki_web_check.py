@@ -290,9 +290,10 @@ class FreezeTest(RawCheckCase):
         self.write_raw(out)
         result = self.freeze()
         self.assertTrue(result["ok"], result["errors"])
-        removed = [r["text"] for r in result["removed"]]
-        self.assertIn("Tag line", removed)
-        self.assertIn("## About the author", removed)
+        self.assertIn("Tag line", result["removed_lines"])
+        self.assertIn("## About the author", result["removed_lines"])
+        self.assertIn("Alpha beta gamma with `code(1)` and [link](https://x.example/l).",
+                      [c["raw"] for c in result["shortened_lines"]])
         self.assertTrue((self.wd / "cleaned.md").is_file())
 
     def test_rejected_edits(self):
@@ -390,24 +391,25 @@ class CheckTest(RawCheckCase):
         self.assertEqual(result["warnings"], [])
 
     def test_errors(self):
-        cases = {
-            "translated_by": (GOOD, FM),
-            "caption": (GOOD.replace("  > Claude Sonnet 5.5 補足: 項目の中の図の説明である。\n\n", ""), FM_T),
-            "caption_name": (GOOD.replace("> > Claude Sonnet 5.5", "> > Claude Haiku 5.5"), FM_T),
-            "caption_unavailable": (GOOD + "\n> Claude Sonnet 5.5 補足: 見ていない図。\n", FM_T),
-            "links": (GOOD.replace("[文書](https://x.example/d)", "文書"), FM_T),
-            "code_span": (GOOD.replace("`run(x)`", "`run(y)`"), FM_T),
-            "code": (GOOD.replace('print("hi")', 'print("やあ")'), FM_T),
-            "image_line": (GOOD.replace("![q]", "![引用の図]"), FM_T),
-            "table": (GOOD.replace("| 1 | 2 |", "| 1 | 2 |\n| 3 | 4 |"), FM_T),
-            "list": (GOOD.replace("- 項目 1\n", ""), FM_T),
-            "blocks": (GOOD.replace("> 引用の文である。\n>\n", "> 引用の文である。\n\n"), FM_T),
-        }
-        for name, (body, fm) in cases.items():
+        # （名前、raw、frontmatter、出るはずの誤りの種類）
+        cases = [
+            ("translated_by", GOOD, FM, "translated_by"),
+            ("caption", GOOD.replace("  > Claude Sonnet 5.5 補足: 項目の中の図の説明である。\n\n", ""), FM_T, "caption"),
+            ("caption_name", GOOD.replace("> > Claude Sonnet 5.5", "> > Claude Haiku 5.5"), FM_T, "caption"),
+            ("caption_unavailable", GOOD + "\n> Claude Sonnet 5.5 補足: 見ていない図。\n", FM_T, "caption"),
+            ("links", GOOD.replace("[文書](https://x.example/d)", "文書"), FM_T, "links"),
+            ("code_span", GOOD.replace("`run(x)`", "`run(y)`"), FM_T, "code_span"),
+            ("code", GOOD.replace('print("hi")', 'print("やあ")'), FM_T, "code"),
+            ("image", GOOD.replace("![q]", "![引用の図]"), FM_T, "image"),
+            ("table", GOOD.replace("| 1 | 2 |", "| 1 | 2 |\n| 3 | 4 |"), FM_T, "blocks"),
+            ("list", GOOD.replace("- 項目 1\n", ""), FM_T, "blocks"),
+            ("quote_split", GOOD.replace("> 引用の文である。\n>\n", "> 引用の文である。\n\n"), FM_T, "blocks"),
+        ]
+        for name, body, fm, kind in cases:
             with self.subTest(name=name):
                 self.write_raw(body, fm=fm)
                 result = self.check()
-                self.assertFalse(result["ok"], name)
+                self.assertIn(kind, self.kinds(result), result["errors"])
 
     def test_warnings_and_controls(self):
         body = GOOD.replace("Greenwich の町は地名である。", "グリニッジの町は地名である。<> を使う。")
@@ -427,6 +429,94 @@ class CheckTest(RawCheckCase):
         body = body.replace("引用の文である。", "引用の文である。次の文である。")
         self.write_raw(body, fm=FM_T)
         self.assertIn("style", {w["kind"] for w in self.check()["warnings"]})
+
+
+class ReviewCounterexampleTest(RawCheckCase):
+    """実装の 1 回目のレビュー（impl-review-1.md）の反例。どれも取得器が実際に出す形である。"""
+
+    def freeze_with(self, src: str, out: str, images=()) -> dict:
+        self.setup_fetch(src, images=images)
+        self.write_raw(out)
+        return self.freeze()
+
+    def check_with(self, src: str, out: str, images=(), fm=FM_T) -> dict:
+        self.setup_fetch(src, images=images)
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw(out, fm=fm)
+        return self.check()
+
+    def test_code_in_list_item_is_protected(self):
+        src = "# A\n\n- item\n  ```\n  SELECT 1; -- rationale\n  ```\n"
+        self.assertFalse(self.freeze_with(src, src.replace(" -- rationale", ""))["ok"])
+        result = self.check_with(src, src.replace("item", "項目").replace(" -- rationale", ""))
+        self.assertIn("code", self.kinds(result))
+
+    def test_code_content_that_looks_like_a_prefix(self):
+        src = "# A\n\n```\n- 1\n> - dangerous\n```\n"
+        result = self.check_with(src, src.replace("- 1", "1"))
+        self.assertIn("code", self.kinds(result))
+
+    def test_link_with_escaped_bracket(self):
+        src = "# A\n\nRead [a\\]b](https://x.example/safe).\n"
+        self.assertFalse(self.freeze_with(src, src.replace("/safe", "/"))["ok"])
+
+    def test_valid_deletions_are_not_mistaken_for_reordering(self):
+        src = "# A\n\na\n\nb\n\nShare a\n"
+        result = self.freeze_with(src, "# A\n\nb\n\na\n")
+        self.assertTrue(result["ok"], result["errors"])
+
+    def test_caption_on_list_continuation_image(self):
+        src = "# A\n\n- item\n  ![x](assets/a/1.png)\n"
+        out = "# A\n\n- 項目\n  ![x](assets/a/1.png)\n\n  > Claude Sonnet 5.5 補足: 図の説明である。\n"
+        result = self.check_with(src, out, images=["assets/a/1.png"])
+        self.assertTrue(result["ok"], result["errors"])
+
+    def test_image_with_escaped_bracket_in_alt(self):
+        src = "# A\n\n![a\\]b](assets/a/1.png)\n"
+        self.assertTrue(self.freeze_with(src, src, images=["assets/a/1.png"])["ok"])
+        out = src + "\n> Claude Sonnet 5.5 補足: 図の説明である。\n"
+        self.write_raw(out, fm=FM_T)
+        result = self.check()
+        self.assertTrue(result["ok"], result["errors"])
+
+    def test_nested_structure_changes(self):
+        cases = [
+            ("# A\n\n- Parent\n  - Child\n", "# A\n\n- 親\n- 子\n"),
+            ("# A\n\n| a | b |\n|---|---|\n| 1 | 2 |\n", "# A\n\n| a | b |\n| あ | い |\n| 1 | 2 |\n"),
+        ]
+        for src, out in cases:
+            with self.subTest(src=src):
+                result = self.check_with(src, out)
+                self.assertFalse(result["ok"])
+
+    def test_two_captions_in_one_quote(self):
+        src = "# A\n\n![x](assets/a/1.png)\n"
+        out = src + "\n> Claude Sonnet 5.5 補足: 説明 1。\n> Other 補足: 説明 2。\n"
+        result = self.check_with(src, out, images=["assets/a/1.png"])
+        self.assertIn("caption", self.kinds(result))
+
+    def test_image_syntax_inside_code_needs_no_caption(self):
+        src = "# A\n\n```\n![x](assets/a/1.png)\n```\n\n![x](assets/a/1.png)\n"
+        out = src + "\n> Claude Sonnet 5.5 補足: 図の説明である。\n"
+        result = self.check_with(src, out, images=["assets/a/1.png"])
+        self.assertTrue(result["ok"], result["errors"])
+
+    def test_fetched_image_deleted_after_freeze(self):
+        src = "# A\n\n![x](assets/a/1.png)\n"
+        self.setup_fetch(src, images=["assets/a/1.png"])
+        self.assertTrue(self.freeze()["ok"])
+        (self.raw / "assets/a/1.png").unlink()
+        self.write_raw(src, fm=FM_T)
+        result = self.check()
+        self.assertIn("image_file", self.kinds(result))
+        self.assertIn("caption", self.kinds(result))
+
+    def test_incomplete_work_dir_is_reported(self):
+        self.setup_fetch("# A\n\nText.\n")
+        (self.wd / "fetch.json").unlink()
+        self.assertFalse(wiki_rawcheck.work_dir_complete(self.wiki, "a"))
+        with self.assertRaises(FileNotFoundError):
+            wiki_rawcheck.freeze(self.wiki, self.raw, "a")
 
 
 class UntranslatedTest(RawCheckCase):
