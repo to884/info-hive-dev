@@ -347,15 +347,25 @@ class RebuildTest(InProcess):
         self.assertEqual(code, 200)
         self.assertIn("本文 1", body)
 
-    def test_uncertain_check_keeps_serving(self):
-        """判定が「調べられない」（アクセス権など）を返したときは、未初期化と決めず、503 にしない。"""
-        self.assertIn("本文 1", self.get("concepts/a.html")[1])
+    def test_uncertain_check_builds_nothing(self):
+        """判定が「調べられない」（アクセス権、循環するリンクなど）を返したときは、新しい中核を組み立てない。
+        前の中核がなければ 503、あれば前の内容を古いと示して出し、wiki の変更を取り込まない。"""
         uncertain = wiki_browse.initialized.Finding("marker_unreadable", "調べられない")
         self.assertFalse(uncertain.certain)
         with mock.patch.object(wiki_browse.initialized, "check", return_value=uncertain):
             code, body, _h = self.get("concepts/a.html")
+        self.assertEqual(code, 503)
+        self.assertNotIn("本文 1", body)
+        self.assertIsNone(self.app.state.current)
+        self.assertIn("本文 1", self.get("concepts/a.html")[1])
+        write(self.wiki, "concepts/a.md", '---\ntype: "concept"\n---\n# A\n\n本文 2 が新しい。\n')
+        with mock.patch.object(wiki_browse.initialized, "check", return_value=uncertain):
+            code, body, _h = self.get("concepts/a.html")
         self.assertEqual(code, 200)
         self.assertIn("本文 1", body)
+        self.assertNotIn("本文 2", body)
+        self.assertIn("最新の内容を表示できていない", body)
+        self.assertIn("本文 2", self.get("concepts/a.html")[1])
 
     def test_first_build_failure_is_503_but_control_works(self):
         with mock.patch.object(core, "Core", side_effect=RuntimeError("x")):
