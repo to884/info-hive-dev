@@ -1,0 +1,255 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index 13bbd6f..4e32759 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "wiki",
+-  "version": "0.12.1",
++  "version": "0.12.2",
+   "description": "日本語による Markdown の wiki を構築し、ローカルのハイブリッド検索、出典つきの回答、グラフ、タスクの経験からのスキル改善を提供する。praneybehl/llm-wiki-plugin v4.0.1 の日本語向け移植版。",
+   "author": {
+     "name": "to884"
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 1953b1a..abc13ee 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,15 @@
+ 
+ ## [Unreleased]
+ 
++## [0.12.2] - 2026-11-13
++
++### Fixed
++
++- frontmatter の `title` を値なし（`title:`）や配列（`title: [WIP]`、`title: [x, y]`、ブロックの `- a`）で書いたページが 1 つあると、検索が全体で止まっていたのを直した。パーサーは書かれた形のまま返すので、`title:` は空の配列、`title: [WIP]` は 1 要素の配列になり、ページを集める段階で `TypeError` になっていた。CLI の検索のすべての機能（`--backlinks`、`--top-linked` を含む）と、MCP の `query` の索引が止まった。
++  - `title` を、新しい `wiki_pages.text_value()` で文字にそろえる。文字の `title` はそのまま使い、結果は変わらない。配列は、空でない要素を「, 」でつないで題名にする（`title: [WIP]` は「WIP」、`title: [x, y]` は「x, y」）。値がないか空の配列なら、`title: ""` と同じく題名なしとし、スラッグを出す。つないだ題名の語も検索の語になる。
++  - 同じ原因で、lint の `--suggest-pages`（MCP の `lint` の候補）とグラフの抽出も止まっていた。どちらも同じ規則で直した。グラフのノードの `title`、グラフの lint、判定レイヤー、MCP の `list_index` の索引のファイルの題名も、同じ規則で文字にする。
++  - 閲覧（`/wiki:browse`）は止まらないが、配列の `title` を `['x', 'y']` と表示する。この版では直していない。
++
+ ## [0.12.1] - 2026-11-13
+ 
+ ### Fixed
+diff --git a/docs/search.md b/docs/search.md
+index f4264da..2ab1df8 100644
+--- a/docs/search.md
++++ b/docs/search.md
+@@ -65,6 +65,7 @@ flowchart LR
+ 
+ | フィールド | 意味 |
+ | --- | --- |
++| `title` | いつも文字。frontmatter の `title` を配列で書いたもの（`title: [WIP]`）は、空でない要素を「, 」でつなぐ。ない場合や値が空の場合は、ページのスラッグ。 |
+ | `heading_path` | 一致したセクションの見出しの階層（祖先の見出しから順に並び、このセクションの見出しで終わる）。ページ単位では空。 |
+ | `section_index` | ページ内でのセクションの位置。ページ単位では `null`。 |
+ | `score` | BM25 のスコア（ハイブリッドモードでは RRF のスコア）。小数点以下 4 桁に丸める。 |
+diff --git a/skills/info-hive/scripts/wiki_decide.py b/skills/info-hive/scripts/wiki_decide.py
+index 9cd7504..87f2c5b 100644
+--- a/skills/info-hive/scripts/wiki_decide.py
++++ b/skills/info-hive/scripts/wiki_decide.py
+@@ -476,7 +476,7 @@ def strip_frontmatter(text: str) -> tuple[str, str]:
+     """Markdown ファイルの (title, body) を返す。"""
+     ws = load_search_module()
+     meta, body = ws.parse_frontmatter(text)
+-    title = meta.get("title") if isinstance(meta, dict) else None
++    title = ws.text_value(meta.get("title")) if isinstance(meta, dict) else ""
+     if not title:
+         m = re.search(r"^#\s+(.+)$", body, re.MULTILINE)
+         title = m.group(1).strip() if m else ""
+@@ -543,10 +543,11 @@ def contradiction_pairs(wiki: Path, max_pairs: int) -> list[tuple[str, dict, dic
+     ws = load_search_module()
+     pages = ws.collect_pages(wiki)
+     by_path, by_slug = ws.build_link_index(pages)
+-    entity_titles = {p["slug"]: p["meta"].get("title") or p["slug"] for p in pages if p["meta"].get("type") == "entity"}
++    entity_titles = {p["slug"]: ws.text_value(p["meta"].get("title")) or p["slug"]
++                     for p in pages if p["meta"].get("type") == "entity"}
+     mentions: dict[str, list[dict]] = {}
+     for page in pages:
+-        title = page["meta"].get("title") or page["slug"]
++        title = ws.text_value(page["meta"].get("title")) or page["slug"]
+         for section in page["sections"]:
+             linked = set()
+             # セクションの links は、本文全体の解析から集めたもの（コードの中と参照リンクの定義の中は数えない）。
+diff --git a/skills/info-hive/scripts/wiki_graph_extract.py b/skills/info-hive/scripts/wiki_graph_extract.py
+index 26ba859..c499b2d 100644
+--- a/skills/info-hive/scripts/wiki_graph_extract.py
++++ b/skills/info-hive/scripts/wiki_graph_extract.py
+@@ -77,6 +77,7 @@ from wiki_pages import (  # noqa: E402
+     link_candidates,
+     link_lookup,
+     ref_values,
++    text_value,
+ )
+ from wiki_pages import resolve_link as resolve_link_slug  # noqa: E402
+ 
+@@ -574,7 +575,7 @@ def build_nodes(pages: list[dict], ontology: dict,
+         node = {
+             "id": node_id,
+             "slug": p["slug"],
+-            "title": meta.get("title") or p["slug"],
++            "title": text_value(meta.get("title")) or p["slug"],
+             "page_type": meta.get("type") or "",
+             "node_type": node_type,
+             "kind": meta.get("kind") or "",
+diff --git a/skills/info-hive/scripts/wiki_graph_lint.py b/skills/info-hive/scripts/wiki_graph_lint.py
+index 2a993fc..2355b53 100644
+--- a/skills/info-hive/scripts/wiki_graph_lint.py
++++ b/skills/info-hive/scripts/wiki_graph_lint.py
+@@ -64,6 +64,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
+ sys.path.insert(0, str(SCRIPT_DIR))
+ import wiki_graph_extract as _extract  # noqa: E402
+ import wiki_graph_common as common  # noqa: E402
++from wiki_pages import text_value  # noqa: E402
+ from wiki_text import localize_argparse, nfc  # noqa: E402
+ import wiki_workspace  # noqa: E402
+ 
+@@ -352,7 +353,8 @@ def decide_evidence(pages: list[dict], ontology: dict, threshold: float | None)
+         client = None
+     predicates = ontology.get("predicates", {})
+     sources = {p["slug"]: p for p in pages if p["meta"].get("type") == "source"}
+-    titles = {derive_node_id(p["meta"], p["slug"], ontology): p["meta"].get("title") or p["slug"] for p in pages}
++    titles = {derive_node_id(p["meta"], p["slug"], ontology): text_value(p["meta"].get("title")) or p["slug"]
++              for p in pages}
+     items = []
+     for p in pages:
+         graph_meta = p["meta"].get("graph") if isinstance(p["meta"].get("graph"), dict) else {}
+diff --git a/skills/info-hive/scripts/wiki_index.py b/skills/info-hive/scripts/wiki_index.py
+index fdca940..20f342c 100644
+--- a/skills/info-hive/scripts/wiki_index.py
++++ b/skills/info-hive/scripts/wiki_index.py
+@@ -973,7 +973,7 @@ def list_index(root: Path, name: str | None = None) -> dict:
+         text = path.read_text(encoding="utf-8-sig")
+         meta, body = wiki_search.parse_frontmatter(text)
+         heading = next((line.lstrip("#").strip() for line in body.splitlines() if line.startswith("#")), None)
+-        files.append({"name": path.relative_to(folder).as_posix(), "title": meta.get("title") or heading,
++        files.append({"name": path.relative_to(folder).as_posix(), "title": wiki_pages.text_value(meta.get("title")) or heading,
+                       "bytes": f.size})
+     return {"wiki": root.as_posix(),
+             "index": index_md.read_text(encoding="utf-8-sig") if index_md.is_file() else None,
+diff --git a/skills/info-hive/scripts/wiki_lint.py b/skills/info-hive/scripts/wiki_lint.py
+index e4a549c..0a66e85 100644
+--- a/skills/info-hive/scripts/wiki_lint.py
++++ b/skills/info-hive/scripts/wiki_lint.py
+@@ -94,6 +94,7 @@ from wiki_pages import (  # noqa: E402
+     iter_page_files,
+     ref_values,
+     resolve_link,
++    text_value,
+     walk_index_files,
+ )
+ 
+@@ -621,7 +622,7 @@ def lint(pages: list[dict], soft_cap: int, hard_cap: int, required_fm: list[str]
+                 phrase_pages[phrase].add(p["slug"])
+ 
+         # 絞り込みに使うタイトルの集合
+-        existing_titles = {nfkc(p["meta"].get("title", "")).lower() for p in pages}
++        existing_titles = {nfkc(text_value(p["meta"].get("title"))).lower() for p in pages}
+         existing_slugs_normalized = {nfkc(s).lower().replace("-", " ") for s in all_slugs}
+ 
+         candidates = []
+diff --git a/skills/info-hive/scripts/wiki_pages.py b/skills/info-hive/scripts/wiki_pages.py
+index 2a99235..6798dd0 100644
+--- a/skills/info-hive/scripts/wiki_pages.py
++++ b/skills/info-hive/scripts/wiki_pages.py
+@@ -545,6 +545,18 @@ def ref_values(value) -> list[str]:
+     return [str(v).strip() for v in value if v is not None and str(v).strip()]
+ 
+ 
++def text_value(value) -> str:
++    """frontmatter の 1 つの文字を入れる欄（title など）の値を、文字にする。
++
++    パーサーは書かれた形のまま返すので、`title:` は空の配列、`title: [WIP]` は 1 要素の配列になる。
++    文字はそのまま（前後の空白も変えずに）返す。それ以外は ref_values() でそろえ、要素を「, 」でつなぐ。
++    値がないか、空でない要素がなければ "" を返す。呼ぶ側は、"" ならスラッグなどを使う。
++    """
++    if isinstance(value, str):
++        return value
++    return ", ".join(ref_values(value))
++
++
+ def ref_link(ref: str) -> str:
+     """frontmatter のページへの参照（`sources:` の値など）を、wikilink の中身にする。
+ 
+diff --git a/skills/info-hive/scripts/wiki_search.py b/skills/info-hive/scripts/wiki_search.py
+index 53da9e1..5eb7ef8 100644
+--- a/skills/info-hive/scripts/wiki_search.py
++++ b/skills/info-hive/scripts/wiki_search.py
+@@ -74,6 +74,7 @@ from wiki_pages import (  # noqa: E402
+     iter_page_files,
+     ref_values,
+     resolve_link,
++    text_value,
+ )
+ 
+ 
+@@ -285,7 +286,7 @@ def collect_pages(wiki_root: Path, cache_path: Path | None = None) -> list[dict]
+                 continue
+             meta, body = parse_frontmatter(text)
+             links = extract_wikilinks(body)
+-            title = meta.get("title") or slug_from_path(md_path, wiki_root)
++            title = text_value(meta.get("title")) or slug_from_path(md_path, wiki_root)
+             sections = split_sections(title, body)
+         next_cache[rel_path] = {
+             "sha256": digest,
+@@ -307,7 +308,7 @@ def collect_pages(wiki_root: Path, cache_path: Path | None = None) -> list[dict]
+             "slug": slug_from_path(md_path, wiki_root),
+             "meta": meta,
+             "body": body,
+-            "tokens": tokenize(body + " " + meta.get("title", "")),
++            "tokens": tokenize(body + " " + text_value(meta.get("title"))),
+             "links": links,
+             "sections": [
+                 {**section, "section_index": index}
+@@ -376,7 +377,7 @@ def collect_sections(pages: list[dict]) -> list[dict]:
+     """ページを、検索できるセクションの行に、決まった順序で展開する。"""
+     rows = []
+     for page in pages:
+-        title = page["meta"].get("title") or page["slug"]
++        title = text_value(page["meta"].get("title")) or page["slug"]
+         for section in page.get("sections") or split_sections(title, page["body"]):
+             searchable = title + " " + " ".join(section["heading_path"]) + " " + section["text"]
+             rows.append({
+@@ -825,7 +826,7 @@ def json_result(
+         "slug": page["slug"],
+         "rel_path": page["rel_path"],
+         "type": meta.get("type"),
+-        "title": meta.get("title") or page["slug"],
++        "title": text_value(meta.get("title")) or page["slug"],
+         "heading_path": heading_path,
+         "section_index": section_index,
+         "score": round(score, 4),
+@@ -961,7 +962,7 @@ def cmd_search(args, pages: list[dict]) -> None:
+         print(results_heading(args.query, len(top)))
+         print()
+         for score, page in top:
+-            title = page["meta"].get("title") or page["slug"]
++            title = text_value(page["meta"].get("title")) or page["slug"]
+             page_type = page["meta"].get("type", "?")
+             print(f"  [{score:6.2f}] [{type_cell(page_type)}] {title}")
+             print(f"             {page['rel_path']}")
+@@ -1063,7 +1064,7 @@ def cmd_search(args, pages: list[dict]) -> None:
+     print()
+     for score, section, _retrievers in top_sections:
+         page = section["page"]
+-        title = page["meta"].get("title") or page["slug"]
++        title = text_value(page["meta"].get("title")) or page["slug"]
+         page_type = page["meta"].get("type", "?")
+         print(f"  [{score:6.2f}] [{type_cell(page_type)}] {title}")
+         print(f"             {page['rel_path']}")
+@@ -1084,7 +1085,7 @@ def cmd_backlinks(args, pages: list[dict]) -> None:
+         return
+     print(f"[[{target}]] にリンクしているページ（{len(inbound)} 件）:")
+     for page in inbound:
+-        title = page["meta"].get("title") or page["slug"]
++        title = text_value(page["meta"].get("title")) or page["slug"]
+         print(f"  - {title}  ({page['rel_path']})")
+ 
+ 
+@@ -1104,7 +1105,7 @@ def cmd_top_linked(args, pages: list[dict]) -> None:
+     for slug, count in top:
+         # タイトルに対応するページを探す
+         match = next((p for p in pages if p["slug"] == slug), None)
+-        title = (match["meta"].get("title") if match else None) or slug
++        title = (text_value(match["meta"].get("title")) if match else "") or slug
+         marker = "" if match else "  ［リンク切れ］"
+         print(f"  {count:4d}  {title}  ({slug}){marker}")
+ 

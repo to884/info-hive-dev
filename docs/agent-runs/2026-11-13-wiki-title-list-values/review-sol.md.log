@@ -1,0 +1,65 @@
+[ask-codex 09:18:07] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\full-ocr-continue-94ee76\info-hive-wiki）
+## 判定
+
+**条件付きで採用可。** 検索停止が残る反例は確認できなかったが、`list_index` には「結果の title はいつも文字」という完了条件に反する入力がある。確信度：中。
+
+## 致命的・重大な欠陥
+
+なし。
+
+## 崩れる前提
+
+- **空題名の索引には代わりの見出しがある。** 見出しのない索引ファイルでは成立せず、`list_index` が `title: null` を返す。
+- **`--decide` の試験で判定モデルへの入力も検証できている。** 試験ではバックエンドを `off` に固定しており、モデルへの要求を作る前に fail-open になる。
+- 「browse 以外では配列の title が一切出ない」という広い前提も成立しない。`get_page` は `meta.title` を配列のまま返す。ただし、これは frontmatter を返す API であり、パーサーの型を維持するという指定と整合するため、今回の欠陥には数えていない。根拠：[wiki_index.py:945](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:945)。
+
+## 見落としと軽微な問題
+
+1. **【軽微】`list_index` の title が文字にならない入力が残る。**
+
+   `indexes/x.md` が次の内容なら、一覧の結果は `"title": null` になる。
+
+   ```markdown
+   ---
+   title: []
+   ---
+   本文だけ
+   ```
+
+   `title:`、`title: ["", " "]` でも同じ。`text_value()` は `""` を返すが、代替の `heading` も `None` になるためである。ファイル読み取りをメモリ上で置き換えて、実際の `list_index()` で再現した。
+
+   根拠：[wiki_index.py:975](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:975)。親リポジトリの試験は非空の配列題名だけを確認し、この組み合わせを捕まえない。[test_wiki_index.py:122](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/tests/wiki/test_wiki_index.py:122)。
+
+   **既存の空文字題名でも起きる挙動で、新たな回帰ではない。** ただし、今回の完了条件と、CHANGELOG の「`list_index` の題名も文字にする」という説明には反する。
+
+2. **【軽微】グラフ lint の試験は、変更した判定経路を実行しない。**
+
+   試験は `wiki_graph_lint.py` に `--decide` を渡していない。今回変更した `decide_evidence()` は、そのオプションがある場合だけ呼ばれる。また、確認は stderr に `Traceback` がないことだけなので、通常のエラー表示で非ゼロ終了しても試験は通る。
+
+   根拠：[test_title_values.py:203](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/info-hive-wiki/eval/scripts/test_title_values.py:203)、[wiki_graph_lint.py:547](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/info-hive-wiki/skills/info-hive/scripts/wiki_graph_lint.py:547)。
+
+3. **【軽微】検索の `test_decide` が確認するのは判定不能時の継続だけである。**
+
+   `run_script()` は `INFO_HIVE_DECISIONS=off` に固定する。そのため `gate_pool()` は `score_relevance()` を呼ばず、検索結果をそのまま返す。判定が成功する経路については、この試験の成功を根拠にできない。
+
+   根拠：[test_title_values.py:82](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/info-hive-wiki/eval/scripts/test_title_values.py:82)、[wiki_decide.py:303](C:/Works/info-hive-dev/.claude/worktrees/full-ocr-continue-94ee76/info-hive-wiki/skills/info-hive/scripts/wiki_decide.py:303)。
+
+## 検証した事実
+
+- **一致：** 英日評価コーパスの全85クエリについて、page／section の計170通りを、HEAD版と作業版の検索関数で実行した。`--no-embed --json` 相当の出力を UTF-8 バイト列で比較し、差分はなかった。
+- **一致：** 新試験の title 入力群をメモリ上のファイルとして収集し、page／section の検索結果が期待する文字列になることを確認した。
+- **一致：** パースキャッシュ経由の `None`、配列、数値、真偽値、辞書など12入力で、page／section の検索が完了し、結果の title はすべて文字だった。
+- **一致：** `text_value()` の非文字入力は `ref_values()` の規則と一致する。文字列は空白を含めてそのまま返す。
+- **実装と一致：** `docs/search.md` の検索結果の title の説明。
+- **未確認：** 評価ゲート自体と、グラフ／MCP の統合試験の実行結果。読み取り専用環境で、PyYAML・numpy・tantivy・usearch・fastembed も未導入だった。対象の試験ファイル2本は読んだが、全試験を実行済みとは判断していない。
+
+## 崩せなかった点
+
+- 検索の収集、セクション化、JSON、文字表示、被リンク表示に残る、title の型による停止。
+- グラフのノードから SQLite へ配列の title が渡る経路。
+- 文字の title の検索結果が変わるという反例。
+- 0.12.2 をパッチ版とする判断。既存の正常入力を維持する不具合修正という範囲では矛盾しない。
+
+使用した MCP サーバー：なし  
+使用した Agent Skills：research
+[ask-codex 09:26:27] 完了。session 01a1d244-d3be-7fc3-8497-3448fd7ea788  usage {"input_tokens": 1740255, "cached_input_tokens": 1640064, "cache_write_input_tokens": 0, "output_tokens": 12580, "reasoning_output_tokens": 5254}

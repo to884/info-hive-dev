@@ -4,7 +4,7 @@
 
 | ファイル | 中身 |
 | --- | --- |
-| `test_wiki_index.py` | 検索の基盤（`wiki_index.py`）の試験。差分の更新、途中で止まったときのそろえ直し、Tantivy の commit のやり直し、fingerprint が変わったときの作り直し、書き手のロック、`index_chunks` の世代。MCP の `query` の結果の `tags` と `sources` が、値を 1 つだけ書いた frontmatter でも文字の配列になること（wiki 0.12.1） |
+| `test_wiki_index.py` | 検索の基盤（`wiki_index.py`）の試験。差分の更新、途中で止まったときのそろえ直し、Tantivy の commit のやり直し、fingerprint が変わったときの作り直し、書き手のロック、`index_chunks` の世代。MCP の `query` の結果の `tags` と `sources` が、値を 1 つだけ書いた frontmatter でも文字の配列になること（wiki 0.12.1）。`title` が値なしや配列のページがあっても索引が止まらず、`query` と `list_index` の題名が文字になること（wiki 0.12.2） |
 | `test_mcp_server.py` | サーバーと中継の試験。トークンと Host ヘッダー、127.0.0.1 だけで待ち受けること、中継を 4 つ同時に起動してもサーバーが 1 つ、中継の終了後もサーバーが残ること、サーバーが止まった後や呼び出しの途中で止まったときの接続し直し、版の違うサーバーの入れ替え、要求がないときの停止。ツール `lint`、`stats`、`graph` が CLI の `--json` と同じ結果を返すこと |
 | `test_uninitialized_wiki.py` | 初期化していないディレクトリを wiki として扱わないこと（ADR-0019、wiki 0.13.0。設計は `docs/plans/wiki-uninitialized-root-2026-11-13.md`）。判定（`wiki_initialized.problem()`）の表の各行、wiki のパスを受け取る CLI の入口が、`SCHEMA.md` のないディレクトリ、ないパス、ファイルを断って理由と `/wiki:init` を示し、基準のディレクトリ（wiki、raw、データの場所）の木を変えないこと、`SCHEMA.md` を置くと断らないこと。Web ページの取得がネットより先に確かめ、raw のルートを作らないこと、経験の記録とアップグレードの扱い。入口をファイルから機械的に数え、どれも判定を使い、試験されていること。コマンドの文章とスキルの指示。PyYAML が要る。MCP のツールと閲覧のサーバーの分は、`test_mcp_server.py` の `UninitializedWikiTests` と `test_browse_server.py` の `test_schema_removed_while_serving_is_503` にある |
 | `test_wiki_lint.py` | lint の索引、出典、原本、タグの検査（0.7.0 の `index_type_mismatch`、`unresolved_sources`、`missing_raw`、`unknown_tags`）。標準ライブラリだけで動く |
