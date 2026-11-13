@@ -1193,6 +1193,40 @@ class SonnetTrialTest(RawCheckCase):
         self.assertIn("NOCASE", names)
 
 
+class SonnetTrial2Test(RawCheckCase):
+    """Sonnet 5.5 で 2 回目に試したときの改善点（sonnet-trial-2.md）。"""
+
+    def test_japanese_abbreviations_are_not_new_tokens(self):
+        self.setup_fetch("# A\n\nIt runs on a laptop.\n")
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw("# A\n\nノート PC で動く。\n", fm=FM_T)
+        result = self.check()
+        self.assertEqual([w for w in result["warnings"] if w["kind"] == "new_tokens"], [])
+        # 略語の一覧にない英字は、今までどおり警告する（対照）。
+        self.write_raw("# A\n\nノート PC と Kubernetes で動く。\n", fm=FM_T)
+        warning = next(w for w in self.check()["warnings"] if w["kind"] == "new_tokens")
+        self.assertIn("Kubernetes", warning["message"])
+        self.assertNotIn("'PC'", warning["message"])
+
+    def test_original_word_in_parentheses_clears_the_name_warning(self):
+        self.setup_fetch("# A\n\nIt follows the Domain Model pattern.\n")
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw("# A\n\nドメインモデルのパターンに従う。\n", fm=FM_T)
+        warning = next(w for w in self.check()["warnings"] if w["kind"] == "missing_names")
+        self.assertIn("原語を括弧で添える", warning["message"])
+        self.write_raw("# A\n\nドメインモデル（Domain Model）のパターンに従う。\n", fm=FM_T)
+        self.assertEqual(self.check()["warnings"], [])
+
+    def test_caption_may_have_several_paragraphs(self):
+        src = "# A\n\n![x](assets/a/1.png)\n"
+        self.setup_fetch(src, images=["assets/a/1.png"])
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw(src + "\n> Claude Sonnet 5.5 補足: 4 つのパネルを並べた図。\n>\n"
+                       "> 左上は遅延、右上は誤り率を示す。\n", fm=FM_T)
+        result = self.check()
+        self.assertTrue(result["ok"], result["errors"])
+
+
 class ResumeTest(FetchCase):
     def test_resume_after_translation(self):
         """訳したあとに止まった取り込みを取り直すと frozen になり、訳した raw が check を通る。"""
