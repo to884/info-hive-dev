@@ -218,4 +218,63 @@ try:
 finally:
     m.MUTANTS.discard("cache_ids_by_name")
 
+
+# 8. --out の親がリンク（利用者のディレクトリへのジャンクション、Wiki の中へのジャンクション）と、
+#    既定の書き出し先の前の世代の中に、Wiki へのジャンクションがある（8 版目の、2 回目の位置の確かめで足した）
+def out_parent_case(label, make, expect_stop):
+    sb = s.Sandbox("absent", "asis", False)
+    try:
+        watch = make(sb)                     # 変わってはならない木の根（リンクの先）
+        before_all, before_watch = s.tree(sb.root), s.tree(watch)
+        rcs, warns = run_two(sb)
+        after_all, after_watch = s.tree(sb.root), s.tree(watch)
+        out_c = s.content(s.tree(sb.out)) if m.kind(sb.out) == "dir" else None
+        left = sorted(os.listdir(sb.work)) if os.path.isdir(sb.work) else None
+        print(f"### {label}\n")
+        print(f"- 終わり方: {rcs[0]}、次の実行: {rcs[1]}（期待: {'止まる' if expect_stop else '0'}）")
+        print(f"- 警告: {warns[0]} / {warns[1]}")
+        print(f"- 書き出し先が新しい世代か: {out_c == s.expected(s.FILES_N)}、作業用の中: {left}")
+        print(f"- 見張った木（{os.path.relpath(watch, sb.root)}）で変わった名前: {diff(before_watch, after_watch)}")
+        print(f"- 砂場で変わった名前: {diff(before_all, after_all)}\n")
+    finally:
+        sb.close()
+
+
+def parent_to_user(with_generation):
+    def make(sb):
+        real = os.path.join(sb.root, "userparent")
+        s.write(os.path.join(real, "keep.txt"), b"keep")
+        if with_generation:
+            s.put_generation(os.path.join(real, "site"), s.FILES_P, 3)
+        s.junction(os.path.join(sb.root, "linkparent"), real)
+        sb.out = os.path.join(sb.root, "linkparent", "site")
+        sb.work = sb.out + ".browse-work"
+        return os.path.join(real, "keep.txt")
+    return make
+
+
+def parent_to_wiki(sb):
+    s.junction(os.path.join(sb.root, "linkwiki"), sb.wiki)
+    sb.out = os.path.join(sb.root, "linkwiki", "site")
+    sb.work = sb.out + ".browse-work"
+    return sb.wiki
+
+
+out_parent_case("--out の親が、利用者のディレクトリへのジャンクション（書き出し先がない）", parent_to_user(False), False)
+out_parent_case("--out の親が、利用者のディレクトリへのジャンクション（その先に前の世代がある）", parent_to_user(True), False)
+out_parent_case("--out の親が、Wiki のルートへのジャンクション", parent_to_wiki, True)
+
+sb = s.Sandbox("gen", "asis", True)
+try:
+    s.junction(os.path.join(sb.out, "concepts", "wikilink"), sb.wiki)
+    before_wiki = s.tree(sb.wiki)
+    rcs, warns = run_two(sb)
+    print("### 既定の書き出し先の前の世代の中に、Wiki のルートへのジャンクションがある\n")
+    print(f"- 終わり方: {rcs[0]}、次の実行: {rcs[1]}（期待: 0）")
+    print(f"- 警告: {warns[0]} / {warns[1]}")
+    print(f"- 書き出し先が新しい世代か: {s.content(s.tree(sb.out)) == s.expected(s.FILES_N)}、作業用の中: {sorted(os.listdir(sb.work))}")
+    print(f"- Wiki で変わった名前: {diff(before_wiki, s.tree(sb.wiki))}\n")
+finally:
+    sb.close()
+
 print(f"\n{time.time() - started:.0f} 秒")

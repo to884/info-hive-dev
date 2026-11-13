@@ -1,6 +1,6 @@
 # 探索の状態になかったリンクの位置（8 版目の試作）
 
-[link_positions_probe.py](link_positions_probe.py) の出力である。探索（`write_sweep.py`）の状態になかったリンクの位置で、手を入れない実行を 2 回続けて流し、リンクの先の木と砂場の全体の木を、前と後で比べた。経緯は [results.md](results.md) の 8.3 にある。
+[link_positions_probe.py](link_positions_probe.py) の出力である。探索（`write_sweep.py`）の状態になかったリンクの位置で、手を入れない実行を 2 回続けて流し、リンクの先の木と砂場の全体の木を、前と後で比べた。経緯は [results.md](results.md) の 8.3 にある。直したあとは、`--out` の親がリンクの位置と、既定の書き出し先の中のジャンクションも足して流した（末尾の 4 つ）。
 
 直す前は、`--out` の書き出し先がなく、作業用の `old-5` の名前そのものがリンクのとき、復旧がそのリンクを書き出し先の名前に付け替え、門で止まった（書き出し先の名前の種類が `link` になる）。既定の書き出し先の名前がリンクのときは、止まらずに置き換えた。どちらも、リンクの先は変わらなかった。
 
@@ -421,5 +421,36 @@ Python 3.14.6、win32
 
 - gen+datajunction/asis/default: 破れた決まり 0 件 []
 - gen+datajunction/leftovers/default: 破れた決まり 0 件 []
+#### --out の親が、利用者のディレクトリへのジャンクション（書き出し先がない）
+
+- 終わり方: 0、次の実行: 0（期待: 0）
+- 警告: [] / []
+- 書き出し先が新しい世代か: True、作業用の中: ['.browse-work', 'build.lock']
+- 見張った木（userparent\keep.txt）で変わった名前: []
+- 砂場で変わった名前: ['userparent', 'userparent/site', 'userparent/site.browse-work', 'userparent/site.browse-work/.browse-work', 'userparent/site.browse-work/build.lock', 'userparent/site/.browse-generation', 'userparent/site/assets', 'userparent/site/assets/app.js', 'userparent/site/concepts', 'userparent/site/concepts/a.html', 'userparent/site/concepts/b.html', 'userparent/site/index.html']
+
+#### --out の親が、利用者のディレクトリへのジャンクション（その先に前の世代がある）
+
+- 終わり方: 0、次の実行: 0（期待: 0）
+- 警告: [] / []
+- 書き出し先が新しい世代か: True、作業用の中: ['.browse-work', 'build.lock']
+- 見張った木（userparent\keep.txt）で変わった名前: []
+- 砂場で変わった名前: ['userparent', 'userparent/site', 'userparent/site.browse-work', 'userparent/site.browse-work/.browse-work', 'userparent/site.browse-work/build.lock', 'userparent/site/.browse-generation', 'userparent/site/assets', 'userparent/site/assets/app.js', 'userparent/site/concepts', 'userparent/site/concepts/a.html', 'userparent/site/concepts/b.html', 'userparent/site/index.html']
+
+#### --out の親が、Wiki のルートへのジャンクション
+
+- 終わり方: stop、次の実行: stop（期待: 止まる）
+- 警告: [] / []
+- 書き出し先が新しい世代か: False、作業用の中: None
+- 見張った木（wiki）で変わった名前: []
+- 砂場で変わった名前: []
+
+#### 既定の書き出し先の前の世代の中に、Wiki のルートへのジャンクションがある
+
+- 終わり方: 0、次の実行: 0（期待: 0）
+- 警告: [] / []
+- 書き出し先が新しい世代か: True、作業用の中: ['.browse-work', 'build.lock']
+- Wiki で変わった名前: []
+
 
 3 秒
