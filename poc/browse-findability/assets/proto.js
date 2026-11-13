@@ -117,7 +117,11 @@
     input.addEventListener("keydown", function (e) {
       if (e.isComposing || e.keyCode === 229) { return; }   // かな漢字の変換中
       if (e.key === "Enter") {
-        var first = (opts.resultsBox() || document).querySelector(".sr-results a");
+        // 記事のページは検索の結果の先頭、索引のページは絞り込んだ一覧で見えている先頭の行を開く
+        var box = opts.resultsBox() || document;
+        var first = box.querySelector(".sr-results a") ||
+          Array.prototype.filter.call(box.querySelectorAll(".fx-row"), function (li) { return !li.hidden; })
+            .map(function (li) { return li.querySelector(".ix-title"); })[0];
         if (first) { location.href = first.href; }
       } else if (e.key === "Escape") { input.value = ""; opts.onQuery("", []); }
     });
