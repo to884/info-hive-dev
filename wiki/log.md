@@ -15,3 +15,40 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-11] ingest | wiki 0.9.2 のグラフの抽出の修正の記録
    ページ: sources/グラフの抽出の修正-0.9.2、concepts/グラフの抽出の契約、concepts/エッジの識別子、concepts/グラフのlintの期待値
+
+## [2026-11-12] schema | タグの体系に rag を足した
+
+## [2026-11-12] ingest | rag 0.5.1 の PDF のヘッダーの判定の修正の記録
+   ページ: sources/pdfのヘッダーの判定の修正-rag-0.5.1、concepts/pdfのヘッダーの条件
+
+## [2026-11-12] ingest | wiki 0.11.1 の取り込み手順の追従と、wiki 0.11.1・rag 0.5.1 のリリースの記録
+   ページ: sources/取り込み手順の追従とリリース-wiki-0.11.1、concepts/リリースの確かめ方
+
+## [2026-11-13] schema | タグの体系に windows を足した
+
+## [2026-11-13] ingest | Git Bash のパス変換で git の引数が壊れる件
+   ページ: concepts/git-bashのパス変換（sources/取り込み手順の追従とリリース-wiki-0.11.1 を更新）
+
+## [2026-11-13] ingest | rag 0.5.2 の PDF のヘッダーの境界の書き方の修正
+   ページ: concepts/pdfのヘッダーの条件（sources/取り込み手順の追従とリリース-wiki-0.11.1 を更新）
+
+## [2026-11-13] ingest | rag 0.5.3 の PDF のヘッダーのエラーメッセージの修正
+   ページ: concepts/pdfのヘッダーの条件（sources/pdfのヘッダーの判定の修正-rag-0.5.1 を更新）
+
+## [2026-11-13] ingest | rag 0.5.2・0.5.3 の書き方とメッセージの修正、リリースの記録
+   ページ: sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3（concepts/リリースの確かめ方、concepts/pdfのヘッダーの条件 を更新）
+
+## [2026-11-13] ingest | Windows の Python で書き戻すと LF が CRLF に変わる件
+   ページ: concepts/pythonの書き戻しの改行（sources/取り込み手順の追従とリリース-wiki-0.11.1 を更新）
+
+## [2026-11-13] ingest | browse のスコープ表示、wiki 0.12.0 のリリースと画面の確かめの記録
+   ページ: sources/browseのスコープ表示とリリース-wiki-0.12.0、concepts/browseの画面の確かめ方（concepts/リリースの確かめ方 を更新）
+
+## [2026-11-13] ingest | 検索の結果の tags と sources の修正、wiki 0.12.1 のリリースの記録
+   ページ: sources/検索の結果のtagsとsourcesの修正-wiki-0.12.1、concepts/frontmatterのリストの値（concepts/リリースの確かめ方、concepts/git-bashのパス変換 を更新。SCHEMA.md のタグの体系に `検索` を足した）
+
+## [2026-11-13] ingest | title が値なしや配列のときの修正、wiki 0.12.2 のリリースの記録
+   ページ: sources/titleが値なしや配列のときの修正-wiki-0.12.2（concepts/frontmatterのリストの値、concepts/リリースの確かめ方、concepts/pythonの書き戻しの改行 を更新）
+
+## [2026-11-13] ingest | 初期化していないディレクトリを wiki として扱わない修正、wiki 0.13.0 のリリースの記録
+   ページ: sources/初期化していないディレクトリの扱い-wiki-0.13.0、concepts/初期化されたwikiの判定（concepts/リリースの確かめ方、sources/titleが値なしや配列のときの修正-wiki-0.12.2 を更新）

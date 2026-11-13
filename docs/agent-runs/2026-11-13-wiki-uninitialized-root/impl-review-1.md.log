@@ -1,0 +1,89 @@
+[ask-codex 09:22:50] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\zealous-williams-ceb572）
+## 判定
+
+**却下。確信度：高。** 改善系 CLI に「判定より前のパス解決」が残り、存在しない入力経路を既存の wiki に変換して書き込む反例がある。入口一覧の試験も、この欠落を検出しない。
+
+## 致命的・重大な欠陥
+
+### 1. 重大：存在しない入力経路が、解決によって受理される
+
+Linux で、`/tmp/kb/SCHEMA.md` があり、`/tmp/kb/missing` と `/tmp/kb/.evolution` がない状態を考える。
+
+```bash
+python <scripts>/wiki_evolve.py --wiki /tmp/kb/missing/.. history
+```
+
+元の `/tmp/kb/missing/..` は、途中のディレクトリが存在しないため、`os.stat()` では失敗する。しかし、現在の実装は先に非 strict の `resolve()` を呼び、`/tmp/kb` に変換する。その後の共通判定は通り、`locked()` が `.evolution/` を作る。
+
+したがって、「ないパスなら何も書かずに拒否する」「パス解決より前に判定する」という要件を満たさない。`wiki_evolve_loop.py` と、アップグレードの基準ディレクトリにも同じ順序が残る。
+
+根拠：
+
+- [wiki_evolve.py:575](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:575)：`resolve()` の後に `locked()`。
+- [wiki_evolve.py:128](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:128)：判定後、131 行でディレクトリを作る。
+- [wiki_evolve_loop.py:701](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_evolve_loop.py:701)：同じ順序。
+- [init_wiki.py:183](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/init_wiki.py:183)：基準ディレクトリを解決してから判定。
+- [設計:93](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/docs/plans/wiki-uninitialized-root-2026-11-13.md:93)：解決前に判定する決定。
+
+POSIX の `realpath(..., strict=False)` がこの入力を縮めることは実行して確認した。Linux でのディレクトリ作成自体は実行しておらず、その結果はコードからの判定である。
+
+## 崩れる前提
+
+- **「解決してから判定しても、同じ入力を調べている」**  
+  存在しない中間要素と `..` を含む経路では崩れる。解決前は存在しない経路でも、解決後は初期化済み wiki になりうる。
+
+- **「入口一覧は、wiki を受け取るスクリプトを機械的に網羅する」**  
+  特定の変数名と構文への正規表現である。実際に `wiki_evolve_agent.py` と `wiki_evolve_stream.py` は列挙結果に含まれなかった。例外一覧への記載はあるが、列挙されたうえで除外されているわけではない。
+
+- **「評価ランナーに渡るのは必ずコーパスの写しである」**  
+  ループ経由では一致する。単独 CLI は標準入力の任意の `wiki_root` を受け取れ、その由来を検証しない。例外の理由は、呼び出し元が契約を守る場合に限って成立する。
+
+## 見落としと軽微な問題
+
+### 2. 軽微：解決時のアクセス拒否が共通判定を迂回する
+
+`Path.resolve()` に `PermissionError` を返す読み取りだけの再現では、次の結果になった。
+
+- `wiki_evolve.py`：終了値 1、標準エラーは OS のエラーだけ。共通判定の呼び出しは 0 回。
+- `wiki_evolve_loop.py`：`PermissionError` が外へ出る。共通判定の呼び出しは 0 回。解決が `try` の外なので、CLI ではトレースバックになる。
+
+「調べられない場合も同じ理由と `/wiki:init` を示す」という説明と食い違う。根拠は上記の解決箇所と [wiki_evolve_loop.py:702](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_evolve_loop.py:702)。
+
+### 3. 軽微：入口一覧の試験は、追加漏れを保証できない
+
+[EntranceInventoryTests](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/tests/wiki/test_uninitialized_wiki.py:375) には次の抜けがある。
+
+- `args.root`、`getattr(args, "wiki")` などは検出しない。
+- `if "__main__" == __name__:` は入口と認識しない。
+- 共通判定の確認は、ソースに `"wiki_initialized"` が含まれるかだけ。import やコメントだけでも通る。
+- 試験済みかの確認はファイル単位。既存スクリプトへ判定を通らないサブコマンドを足しても検出しない。
+
+現物の入口一覧・文書試験 7 件はすべて成功した。それでも上記の欠落が残るため、「判定も試験もない新しい入口なら落ちる」という設計の説明は過大である。
+
+### 4. 軽微：基準ディレクトリがない upgrade は初期化を案内しない
+
+存在しない基準ディレクトリで `init_wiki.py <base> --upgrade` を実行すると、終了コード 1 で「基準のディレクトリがない」だけを出す。`/wiki:init` は出ない。
+
+実行して確認した。共通判定より前の [init_wiki.py:189](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/init_wiki.py:189) で終了するためである。設計の節 6 はこの順序を残しており、未初期化時の一般原則との食い違いが設計にも残る。
+
+## 検証した事実
+
+- **一致：** `wiki_initialized.py` はルートのディレクトリ種別と、直下の通常ファイル `SCHEMA.md` を `os.stat()` で確認し、中身を読まない。
+- **一致：** MCP はキャッシュ参照前に毎回判定する。既存の未初期化素材と存在しないパスを渡し、初期化案内付きの拒否を確認した。
+- **一致：** `BrowseState.get()` は既存の中核があっても未初期化なら `(None, "uninitialized")` を返し、走査へ進まない。`core_loop` の `no_wiki` も確認した。
+- **一致：** `--stop` は文章・CLI とも拒否する。削除後に止められない点は、2 版目で明示された制約になっている。
+- **一致：** 確認した既存素材への `SCHEMA.md` 追加は、ページ列挙の除外規則と整合する。workspace 試験では囮側にも追加され、選択先の検証は残っている。
+- **一致：** `plugin.json` は `0.13.0`。CHANGELOG は必須引数と互換性変更を記載している。
+- **確かめられず：** PyYAML・MCP 依存がなく、書き込みを伴う全試験と HTTP 統合試験は実行していない。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 共通判定そのもののファイル種別・例外処理。
+- 要求間に `SCHEMA.md` がなくなった場合、閲覧の古い中核を返さない処理。
+- 判定後にキャッシュを参照する MCP の構造。
+- 評価コーパスの例外と、プラグイン内バイトコードの例外が明文化されたこと。ただし、当初の無条件な「どの入口も」「何も書かない」より保証範囲は狭い。
+- `0.x` の互換性変更として `0.13.0` を選ぶ判断。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 09:31:39] 完了。session 01a1d249-21f0-7e50-9661-7be5310a9111  usage {"input_tokens": 3153649, "cached_input_tokens": 2993024, "cache_write_input_tokens": 0, "output_tokens": 11610, "reasoning_output_tokens": 4335}

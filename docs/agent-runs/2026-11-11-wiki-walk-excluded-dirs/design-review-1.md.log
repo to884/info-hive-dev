@@ -1,0 +1,122 @@
+[ask-codex 13:24:18] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev）
+## 判定
+
+**却下。確信度：高。** browse の更新検知に入力を取りこぼす反例があります。また、列挙時のエラー処理は Python 3.10 の既存動作と異なり、I/O 障害をページの削除として索引へ反映する経路があります。
+
+以下、対象文書を「計画」と表記します。
+
+## 致命的・重大な欠陥
+
+1. **【重大】`indexes/` がディレクトリのシンボリックリンクの場合、browse の入力が印に含まれず、変更後も古いナビゲーションを返す。**
+
+   次の配置が反例です。
+
+   ```text
+   wiki/indexes -> 外部の索引ディレクトリ
+   外部の索引ディレクトリ/sources.md
+   ```
+
+   計画の `walk_markdown(root, keep_top_dirs={"indexes"})` は、除外を解除しても、ディレクトリのシンボリックリンクには降りません。一方、変更しない `wiki_lint.index_files()` は、`indexes` 自体を起点に `rglob()` するため、その先の `sources.md` を返します。つまり、**読む入力と、変更検知の対象が一致しません。**
+
+   初回のスナップショット作成後、`sources.md` の内容・サイズ・更新時刻を変えても、予定されている印は変わりません。browse のサーバーと `core` のキャッシュは、印が同じなら既存の中核を返すため、古いナビゲーションを返し続けます。
+
+   モックで、試作の `walk_markdown(..., keep={"indexes"})` が空のリストを返す一方、実際の `wiki_lint.index_files()` が `indexes/sources.md` を返すことを確認しました。既存にもある穴ですが、計画128行の「入力の集合を含む」という根拠は成立しません。
+
+   根拠：[計画:77](C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:77)、同78・108–109・128行、[wiki_lint.py:137](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:137)、[wiki_browse_core.py:95](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:95)、[wiki_browse.py:285](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:285)、同367–377行。
+
+   試験199行には、この配置で索引だけを変更するケースがありません。
+
+2. **【重大】列挙時の `OSError` をすべて握り潰すと、Python 3.10 では I/O 障害が索引の大量削除に変わる。**
+
+   wiki の索引を正常に作った後、ページのあるディレクトリへの `os.scandir()` が、読み取り障害の `OSError(errno.EIO)` を返す反例です。
+
+   Python 3.10.11 の `rglob()` は、このエラーを呼び出し元へ送出します。計画と試作では「一覧を作れない」として飛ばすため、通常終了した空または部分的なページ集合になります。試作に `EIO` を注入すると、例外ではなく `[]` が返り、`unlistable` にだけ記録されることを確認しました。
+
+   MCP の `stat_signature()` と `collect_pages()` が、この状態の集合を受け取ると、`WikiIndex.refresh()` は以前あったページを消えたものとして扱います。`known` にあって `current` にない索引行を `deletes` に入れるためです。障害が両方の走査中に続けば、検索結果が欠落し、既存の埋め込みを含む索引行が削除されます。
+
+   「今の `rglob` と同じ」という説明は、少なくとも Python 3.10 について誤りです。3.10.11 の実装がここで捕捉するのは主に `PermissionError` であり、一般の `EIO` ではありません。[CPython 3.10.11 の実装](https://github.com/python/cpython/blob/v3.10.11/Lib/pathlib.py#L403)で確認しました。
+
+   根拠：[計画:82](C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:82)、同83・107行、[walk_probe.py:93](C:/Works/info-hive-dev/docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/walk_probe.py:93)、[wiki_index.py:849](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:849)、同852–863行。
+
+   試験189行は例外を出さないことだけを求めており、既存索引を持つ MCP で障害を起こしたときの削除を検証しません。
+
+## 崩れる前提
+
+- **「`keep_top_dirs={"indexes"}` の結果は、索引入力を含む」**  
+  `indexes/` 自体がディレクトリのシンボリックリンクなら崩れます。除外解除と、リンクをたどるかどうかは別です。
+
+- **「一覧を作れない場合を飛ばす動作は、Python 3.10 以上で共通」**  
+  エラーの種類と Python の版で異なります。権限エラー一種類の実測から、一般の `OSError` へは広げられません。
+
+- **「`samefile()` が返す同一性を、そのまま循環検出の根拠にできる」**  
+  同じ `st_dev` と `st_ino=0` を返す条件では、別ディレクトリも同一扱いになります。Raw の設計はこの条件を扱っていますが、試作には対応がありません。
+
+- **「旧版と同じ並びを返す」**  
+  NFC にすると同じになる別名が共存すると、追加した綴り順によって旧版の安定ソート順が変わります。
+
+## 見落としと軽微な問題
+
+1. **【軽微・本文と試作の不一致】循環判定に、参照先の Raw 設計と同じフォールバックがない。**
+
+   Raw の設計89行は、`st_ino=0` や `stat()` 失敗時のフォールバックを明記しています。対象の計画95行は「同じ決め方」としますが、試作の `same_or_ancestor()` は無条件に `samefile()` を使い、失敗時は比較を諦めます。
+
+   同じ `st_dev`、`st_ino=0` を返す `stat()` をモックすると、別の `wiki/a` と外部ディレクトリについて、試作は「同じか祖先」と判定しました。これをそのまま採用すると、循環でないジャンクションのページが消えます。
+
+   本文が Raw 側のフォールバックまで含むなら試作が未実装、含まないならこの条件で本文の判定が誤ります。どちらの契約なのか明確ではありません。実際の該当ファイルシステムでの再現はしていません。
+
+   根拠：[計画:95](C:/Works/info-hive-dev/docs/plans/wiki-walk-excluded-dirs-2026-11-11.md:95)、[walk_probe.py:65](C:/Works/info-hive-dev/docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/walk_probe.py:65)、[Raw の計画:89](C:/Works/info-hive-dev/docs/plans/wiki-raw-size-in-stats-2026-11-11.md:89)。循環試験には、この識別子条件と比較失敗がありません。
+
+2. **【軽微】NFC 衝突時には、`iter_page_files()` の並びが変わる。**
+
+   Linux などで、`ガ.md` と NFD の `ガ.md` が別ファイルとして存在し、旧 `rglob()` が NFC 側を先に返すケースです。旧版は NFC のキーだけで安定ソートするため、その順を維持します。新設計は綴りを第二キーにするため、NFD 側が先になります。
+
+   モックで次の差を確認しました。
+
+   ```text
+   旧版:     ['ガ.md', 'ガ.md']
+   新設計:   ['ガ.md', 'ガ.md']
+   ```
+
+   集合は同じですが、85・104行の「並びは同じ」とは一致しません。試験172行も、NFD 名を置くだけでは、この衝突を検証できません。
+
+3. **【軽微】試作は本文の並び順を実装していないため、「並びも一致」の実測を新設計へそのまま使えない。**
+
+   試作の `walk_markdown()` は `out` をソートせず返します。`new_iter_page_files()` も、旧版と同じ NFC のキーだけでソートし、本文81行の綴りによる第二キーを実装していません。
+
+   したがって、記録された一致は試作同士の比較としては一致しますが、本文の新しい順序規則の検証ではありません。
+
+   根拠：[walk_probe.py:119](C:/Works/info-hive-dev/docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/walk_probe.py:119)、同124–127行、計画81・205行。
+
+4. **【軽微】試作は、名前による除外より先にリンク先の種類を調べる。**
+
+   本文76行は、除外を名前だけで決め、リンクかどうかを調べないとしています。試作は先に `is_symlink()` と、リンク先を判定する `is_dir()` を呼び、その後で除外します。
+
+   ディレクトリのシンボリックリンクでは、`is_dir()` のためにリンク先の属性取得が起き得ます。`SCANNED` の記録だけでは、このアクセスを検出できません。下への列挙を防ぐ実測ではありますが、本文どおりの判定順を実測したものではありません。
+
+   根拠：[walk_probe.py:103](C:/Works/info-hive-dev/docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/walk_probe.py:103)、同109行、計画76行。
+
+## 検証した事実
+
+| 確認対象 | 結果 |
+| --- | --- |
+| 背景表のページ収集経路 | **一致。** lint、search、グラフ、browse のページ収集は `iter_page_files()` を使う。stats と MCP の署名は別走査。 |
+| browse の現行走査 | **一致。** `check_enumerable()` と `signature()` は `os.walk()` を使う。 |
+| 実測表のページ数・循環の結果 | **保存された出力と一致。** Windows 13ページ、Linux 11ページ、検出なしの循環128ページ等の記録がある。今回独立した実機再測定はしていない。 |
+| 循環検出の実測 | **範囲は記載どおり。** 検出有効の試験は循環4形・非循環2形。通常の比較は検出無効。 |
+| MCP の署名を狭める理由 | **通常状態では整合。** 除外下はページでなく、`_signature` はメモリ上。起動後の最初の更新で再収集する。 |
+| search のパースキャッシュ | **今回の除外変更による独立した陳腐化経路は崩せず。** 現在のページ集合を列挙し、各ページのバイト列のハッシュで再利用を判断する。 |
+| browse の入力を署名が包含する | **不一致。** `indexes/` のディレクトリシンボリックリンクが反例。 |
+| Raw の設計との関係 | **直接の Raw 列挙を前提変更で閉じる点は一致。** ページ用ジャンクションを残す例外も両文書で一致する。 |
+
+今回実行したのは、試作・既存関数に対するメモリ上のモックです。Python 3.10 のエラー伝播は上流ソースで確認しました。リポジトリのファイルは変更していません。
+
+## 崩せなかった点
+
+- 実体の同一性を正しく判定でき、木が走査中に変わらない条件では、現在と過去のジャンクション配置先の親を使う循環検出の論証は崩せませんでした。
+- 最上位の `raw` を名前で除外してから降下判定する仕様なら、前回の重大2の直接の反例である `wiki/raw` ジャンクション経由の MCP 走査は閉じます。
+- `Raw/`、下位の `concepts/raw/`、隠しディレクトリ、`.md` という名前のディレクトリを扱う決定に、通常時のページ集合を変える反例は見つかりませんでした。
+- ページ用ジャンクションとファイルのシンボリックリンクを残すこと自体は、宣言された範囲と一致しています。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 13:37:22] 完了。session 01a1c89d-227a-7840-9834-86276dcdb536  usage {"input_tokens": 7384587, "cached_input_tokens": 7118464, "cache_write_input_tokens": 0, "output_tokens": 51092, "reasoning_output_tokens": 30299}

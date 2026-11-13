@@ -1,0 +1,169 @@
+diff --git a/tests/wiki/test_browse.py b/tests/wiki/test_browse.py
+index 3d4f973..50f532a 100644
+--- a/tests/wiki/test_browse.py
++++ b/tests/wiki/test_browse.py
+@@ -876,5 +876,112 @@ class CoreLoopTest(TempWiki):
+         self.assertEqual([p["id"] for p in second["pages"]], ["a"])
+ 
+ 
++# ---------------------------------------------------------------------------
++# wiki のスコープの表示
++# ---------------------------------------------------------------------------
++
++class ScopeTest(TempWiki):
++    """呼び出し元が指定したスコープの確かめ方と、画面への出し方。"""
++
++    def test_make_scope_accepts_and_rejects(self):
++        self.assertIsNone(wiki_browse.make_scope(None, None))
++        self.assertEqual(wiki_browse.make_scope("user", None), {"kind": "user", "name": None})
++        self.assertEqual(wiki_browse.make_scope("project", " info-hive-dev "),
++                         {"kind": "project", "name": "info-hive-dev"})
++        bad = [(None, "x"), ("user", "x"), ("global", None), ("project", "  "), ("project", "a" * 101),
++               ("project", "a\nb"), ("project", "a\x00b"), ("project", "a\u2028b"), ("project", "a\ud800b")]
++        for kind, name in bad:
++            with self.subTest(kind=kind, name=name):
++                with self.assertRaises(ValueError):
++                    wiki_browse.make_scope(kind, name)
++
++    def test_cli_rejects_bad_scope_before_doing_anything(self):
++        write(self.wiki, "a.md", page("# A"))
++        for args in (["--scope-name", "x"], ["--scope", "user", "--scope-name", "x"], ["--scope", "global"]):
++            with self.subTest(args=args):
++                with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as cm:
++                    wiki_browse.main(["build", str(self.wiki), *args])
++                self.assertEqual(cm.exception.code, 2)
++        self.assertFalse(self.data.exists())
++
++    def test_label_and_title(self):
++        write(self.wiki, "a.md", page("# A", title="A"))
++        snap = core.take_snapshot(self.wiki)
++        cases = [({"kind": "user", "name": None}, "scope-user", "ユーザースコープの wiki", "A · ユーザースコープ"),
++                 ({"kind": "project", "name": "<p>&x"}, "scope-project", "プロジェクトの wiki", "A · &lt;p&gt;&amp;x"),
++                 ({"kind": "project", "name": None}, "scope-project", "プロジェクトの wiki", "A · プロジェクト")]
++        for scope, cls, heading, title in cases:
++            with self.subTest(scope=scope):
++                c = core.Core(snap, scope=scope)
++                for html in (c.render_page("a"), c.render_index()):
++                    self.assertIn(f'<p id="_scope" class="scope {cls}">{heading}', html)
++                    # スコープの表示は、スクリプトが足すナビゲーションより前（サイドバーの先頭）にある。
++                    self.assertLess(html.index('id="_scope"'), html.index("<noscript>"))
++                    self.assertLess(html.index('<nav id="_nav">'), html.index('id="_scope"'))
++                self.assertIn(f"<title>{title}</title>", c.render_page("a"))
++                if scope["name"]:
++                    self.assertIn('<span class="scope-name">&lt;p&gt;&amp;x</span>', c.render_page("a"))
++                # データのファイル（世代だけで食い違いを確かめる）は、スコープで変わらない。
++                plain = core.Core(snap)
++                for name in core.DATA_FILES:
++                    self.assertEqual(c.render_data(name), plain.render_data(name))
++
++    def test_no_scope_draws_nothing(self):
++        write(self.wiki, "a.md", page("# A", title="A"))
++        for scope in (None, {"kind": "unknown", "name": None}, {}):
++            with self.subTest(scope=scope):
++                c = core.Core(core.take_snapshot(self.wiki), scope=scope)
++                self.assertNotIn('id="_scope"', c.render_page("a"))
++                self.assertIn("<title>A</title>", c.render_page("a"))
++
++    def test_build_shows_given_scope(self):
++        write(self.wiki, "a.md", page("# A"))
++        with redirect_stderr(io.StringIO()):
++            report = wiki_browse.build(self.wiki, None, None, {"kind": "project", "name": "proj"})
++        index = (Path(report["out"]) / "index.html").read_text(encoding="utf-8")
++        self.assertIn('<p id="_scope" class="scope scope-project">プロジェクトの wiki'
++                      '<span class="scope-name">proj</span></p>', index)
++        self.assertEqual(report["leaks"], [])
++        report = self.build()
++        self.assertNotIn('id="_scope"', (Path(report["out"]) / "index.html").read_text(encoding="utf-8"))
++
++    def test_scope_name_with_a_home_path_is_a_warning_not_a_leak(self):
++        write(self.wiki, "a.md", page("# A"))
++        with redirect_stderr(io.StringIO()):
++            report = wiki_browse.build(self.wiki, None, None, {"kind": "project", "name": str(Path.home())})
++        self.assertEqual(report["leaks"], [])
++        self.assertIn("index.html", report["warnings"])
++
++    def test_scope_reads_nothing_outside_the_wiki(self):
++        # スコープを決めるために、wiki の外の作業領域の設定や .git を読まない。
++        write(self.wiki, "a.md", page("# A"))
++        write(self.base / "work", ".info-hive/workspace.json", json.dumps({"version": 1, "kind": "user"}))
++        (self.base / ".git").mkdir()
++        report = self.build()
++        self.assertNotIn('id="_scope"', (Path(report["out"]) / "index.html").read_text(encoding="utf-8"))
++
++    def test_shown_scope_comes_from_the_live_answer(self):
++        shown = wiki_browse._shown_scope
++        self.assertIsNone(shown({}))                                   # 前の版のサーバーは答えに scope がない
++        self.assertIsNone(shown({"scope": None}))                      # スコープなしで起動した
++        for bad in ({"kind": "unknown"}, "user", {"kind": "project", "name": 3},
++                    {"kind": "project", "name": "a\ud800b"}, {"kind": None, "name": "x"}):
++            with self.subTest(bad=bad):
++                self.assertIsNone(shown({"scope": bad}))
++        self.assertEqual(shown({"scope": {"kind": "user", "name": None}}), {"kind": "user", "name": None})
++        self.assertEqual(shown({"scope": {"kind": "project", "name": "p"}}), {"kind": "project", "name": "p"})
++
++    def test_scope_name_is_allowed_only_in_html(self):
++        # スコープの名前は HTML のページにだけ出る。同じ文字列がデータのファイルに出れば、漏れとして見つける。
++        write(self.wiki, "a.md", page("# A"))
++        home = str(Path.home())
++        c = core.Core(core.take_snapshot(self.wiki), scope={"kind": "project", "name": home})
++        files = c.render_all("text")
++        files["nav.js"] = files["nav.js"] + "// " + home + chr(10)
++        leaks, warnings = core.find_leaks(files, [home], c.recorder)
++        self.assertEqual(leaks, ["nav.js"])
++        self.assertIn("index.html", warnings)
++
++
+ if __name__ == "__main__":
+     unittest.main()
+diff --git a/tests/wiki/test_browse_server.py b/tests/wiki/test_browse_server.py
+index 071c3ef..7976a4e 100644
+--- a/tests/wiki/test_browse_server.py
++++ b/tests/wiki/test_browse_server.py
+@@ -595,6 +595,47 @@ class ProcessTest(Base):
+                 if p.poll() is None:
+                     p.kill()
+ 
++    def screen(self, r: dict) -> str:
++        port = r["port"]
++        code, body, _ = request(port, "GET", r["url"].split(str(port), 1)[1])
++        self.assertEqual(code, 200)
++        return body
++
++    def test_serve_reports_the_scope_shown_on_screen(self):
++        a = self.serve("--scope", "project", "--scope-name", "proj")
++        ra = self.first_line(a)
++        self.assertEqual((ra["reused"], ra["scope"], ra["scope_name"]), (False, "project", "proj"))
++        self.assertIn('<p id="_scope" class="scope scope-project">', self.screen(ra))
++        self.assertIn("<title>索引 · proj</title>", self.screen(ra))
++        # 使い回したときは、今回の指定ではなく、画面を出しているサーバーのスコープを伝える。
++        # 記録のファイルは画面を描かないので、記録にスコープを書き足しても使わない。
++        record = self.state_dir() / "server.json"
++        rec = json.loads(record.read_text(encoding="utf-8"))
++        self.assertNotIn("scope", rec)
++        record.write_text(json.dumps({**rec, "scope": {"kind": "user", "name": None}}), encoding="utf-8")
++        b = self.serve("--scope", "user")
++        rb = self.first_line(b)
++        self.assertEqual((rb["reused"], rb["scope"], rb["scope_name"]), (True, "project", "proj"))
++        self.assertEqual(b.wait(30), 0)
++        code, body, _ = request(ra["port"], "GET", f"/{rec['control_token']}/control/status")
++        self.assertEqual(json.loads(body)["scope"], {"kind": "project", "name": "proj"})
++
++    def test_serve_without_scope_reports_none_even_when_reused_with_one(self):
++        a = self.serve()
++        ra = self.first_line(a)
++        self.assertEqual((ra["scope"], ra["scope_name"]), (None, None))
++        self.assertNotIn('id="_scope"', self.screen(ra))
++        b = self.serve("--scope", "user")
++        rb = self.first_line(b)
++        self.assertTrue(rb["reused"])
++        self.assertEqual((rb["scope"], rb["scope_name"]), (None, None))
++        self.assertEqual(b.wait(30), 0)
++
++    def test_bad_scope_is_a_usage_error(self):
++        proc = self.serve("--scope", "user", "--scope-name", "x")
++        self.assertEqual(proc.wait(30), 2)
++        self.assertFalse((self.state_dir() / "server.json").exists())
++
+     def test_tokens_change_on_restart_and_page_states(self):
+         p1 = self.serve("--page", "b")
+         r1 = self.first_line(p1)

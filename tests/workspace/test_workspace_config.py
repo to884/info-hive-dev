@@ -191,7 +191,9 @@ class WikiCliDefaultTests(unittest.TestCase):
         """値を省いた --cache は、設定から決めた wiki の下に置き、2 回目はそれを使う。"""
         files = {
             ".info-hive/workspace.json": {"version": 1, "kind": "user", "dirs": {"wiki": "知識/wiki"}},
+            "知識/wiki/SCHEMA.md": "# スキーマ\n",
             "知識/wiki/target-page.md": "# 目印\n\n目印の本文。\n",
+            "src/wiki/SCHEMA.md": "# スキーマ\n",
             "src/wiki/decoy-page.md": "# 目印\n\n目印の本文。\n",
         }
         with tempfile.TemporaryDirectory() as temp:

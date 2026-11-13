@@ -4,8 +4,9 @@
 
 | ファイル | 中身 |
 | --- | --- |
-| `test_wiki_index.py` | 検索の基盤（`wiki_index.py`）の試験。差分の更新、途中で止まったときのそろえ直し、Tantivy の commit のやり直し、fingerprint が変わったときの作り直し、書き手のロック、`index_chunks` の世代 |
+| `test_wiki_index.py` | 検索の基盤（`wiki_index.py`）の試験。差分の更新、途中で止まったときのそろえ直し、Tantivy の commit のやり直し、fingerprint が変わったときの作り直し、書き手のロック、`index_chunks` の世代。MCP の `query` の結果の `tags` と `sources` が、値を 1 つだけ書いた frontmatter でも文字の配列になること（wiki 0.12.1）。`title` が値なしや配列のページがあっても索引が止まらず、`query` と `list_index` の題名が文字になること（wiki 0.12.2） |
 | `test_mcp_server.py` | サーバーと中継の試験。トークンと Host ヘッダー、127.0.0.1 だけで待ち受けること、中継を 4 つ同時に起動してもサーバーが 1 つ、中継の終了後もサーバーが残ること、サーバーが止まった後や呼び出しの途中で止まったときの接続し直し、版の違うサーバーの入れ替え、要求がないときの停止。ツール `lint`、`stats`、`graph` が CLI の `--json` と同じ結果を返すこと |
+| `test_uninitialized_wiki.py` | 初期化していないディレクトリを wiki として扱わないこと（ADR-0019、wiki 0.13.0。設計は `docs/plans/wiki-uninitialized-root-2026-11-13.md`）。判定（`wiki_initialized.problem()`）の表の各行、wiki のパスを受け取る CLI の入口が、`SCHEMA.md` のないディレクトリ、ないパス、ファイルを断って理由と `/wiki:init` を示し、基準のディレクトリ（wiki、raw、データの場所）の木を変えないこと、`SCHEMA.md` を置くと断らないこと。Web ページの取得がネットより先に確かめ、raw のルートを作らないこと、経験の記録とアップグレードの扱い。入口をファイルから機械的に数え、どれも判定を使い、試験されていること。コマンドの文章とスキルの指示。PyYAML が要る。MCP のツールと閲覧のサーバーの分は、`test_mcp_server.py` の `UninitializedWikiTests` と `test_browse_server.py` の `test_schema_removed_while_serving_is_503` にある |
 | `test_wiki_lint.py` | lint の索引、出典、原本、タグの検査（0.7.0 の `index_type_mismatch`、`unresolved_sources`、`missing_raw`、`unknown_tags`）。標準ライブラリだけで動く |
 | `test_source_claims.py` | 取り込みでソースの要約ページに残す `## 主張と行き先`（0.8.0、ADR-0015 の段階 2）。手順書、ページの規約、`SCHEMA.md` とページのひな形が同じ見出し、列、行き先の値を示すこと、作例の表の形、作例を入れた source のページが lint を通ること、`init_wiki.py --upgrade` が新しいセクションを案内すること、段階 3 の規定が混ざっていないこと。標準ライブラリだけで動く |
 | `test_template_script_paths.py` | `init_wiki.py` が書き出す `SCHEMA.md` と `graph/README.md` のコマンドの例のスクリプトのパス（wiki 0.9.1）。ひな形に `<skill-root>/` の付かない `scripts/` がないこと、`<skill-root>` の説明があり、置き換えると実在するスクリプトを指すこと、パスが `"` で囲まれていること、`SCHEMA_SECTION_MARKERS` が変わっていないこと。書き出した `SCHEMA.md` の `--no-embed` の検索の例を、既定の名前と別の名前の wiki で実行する。スキルの `SKILL.md` と `references/*.md` のコマンドも同じ `"<skill-root>/scripts/..."` の書き方で、実在するスクリプトを指し、`SKILL.md` の「スクリプトのパス」が定義していること（wiki 0.9.3）。標準ライブラリだけで動く |
@@ -14,6 +15,8 @@
 | `test_wiki_fetch.py` | Web ページの取得（`wiki_fetch.py`）の、Medium の形の取りこぼし（info-hive-wiki#42）。`<picture>` の `<source srcset>` にだけ URL がある図を保存し、WebP でない `<source>` の幅のいちばん大きい候補を選ぶこと、`<img>` の URL があればそれを使うこと、`<pre>` の中の `<br>` を改行にし、`<pre>` の外の `<br>` は変えないこと。取得を差し替え、ネットにはつながない。標準ライブラリだけで動く |
 | `test_frontmatter_parser.py` | frontmatter のパーサー（`wiki_text.parse_frontmatter_text`）が読む YAML の書き方（wiki 0.9.7）。字下げの違うブロックの配列、複数行にまたがる `[...]`、引用符つきのキーとコロンの前の空白、二重引用符の中の YAML のエスケープ、`\|` と `>` のブロックのスカラーの値が、PyYAML の `BaseLoader`（型に直さない）と等しいこと（値の表と、種を固定した無作為の入力）。YAML と違ってよいと決めた箇所と、読まないまま残す書き方の値。規約どおりのページと、読み方を変えない書き方で、値が 0.9.5 のパーサーそのものの出力（`frontmatter_parser_golden.json`）と等しいこと。`]` を書き忘れた配列が後ろの欄を取り込まないこと、YAML にないエスケープを含む値を今までどおり読むこと。書き手（`format_frontmatter`）との往復、lint・検索・統計が読めるようになった欄を読むこと、検索の古いパースキャッシュを使い続けないこと、制御文字のある値でも GraphML が読める XML になること。PyYAML が要る |
 | `test_frontmatter_raw.py` | rag が返す PDF の絶対パスと SHA-256 を、ソースの要約ページの frontmatter に書いて読み戻す（ADR-0013）。手書きのパーサーと PyYAML が同じ値に読むこと、`\` を重ねていない Windows のパスの読み方。PyYAML が要る |
+| `test_python_version.py` | 同梱のスクリプトの Python の版の扱い（3.12 以上、wiki 0.11.2、ADR-0018）。`python` で直接動かす入口（ファイルから機械的に集める）を、本物の 3.10 と 3.11 で `--help` つきで動かすと、どれも理由を書いて止まること。古い版を真似て `wiki_text.py` を読み込むと止まること、PEP 723 の宣言がどれも `>=3.12` であること。標準ライブラリだけで動く。3.10 と 3.11 は `uv python find` で探し、なければ飛ばす（`WIKI_TEST_REQUIRE_OLD_PYTHON=1` のときは失敗する） |
+| `test_walk.py` | wiki をたどる経路（`wiki_pages.walk_markdown()`、wiki 0.11.2。設計は `docs/plans/wiki-walk-excluded-dirs-2026-11-11.md`）。木の表から計算した答えと等しいこと、info-hive-wiki のコミット `2756a4e`（0.10.1）の実装を git から取り出して照らし、違いが設計の表のものだけであること、OS を呼ぶ口のすべてに失敗を 1 つずつ入れる探索と、わざと決まりを破った対照、口の一覧の構文木の確かめ、統計と MCP の索引の印。標準ライブラリだけで動く（索引の試験は、依存がなければ飛ばす）。ジャンクション、識別子、大文字と小文字を区別するフォルダーの試験は Windows だけ |
 | `test_mcp_spawn_flags.py` | 入口、中継、サーバーの子プロセスの起動が、すべて `child_creationflags` か `server_creationflags` を通し、`DETACHED_PROCESS` を使わないこと（info-hive-wiki#36）。子はコンソールがあれば引き継ぎ、なければ窓のないコンソールで起動すること、引き継いだコンソールの標準出力に書けること。サーバーを窓のない自分のコンソールと新しいプロセスグループで起動すること。依存は要らない |
 | `test_uv_tls.py` | TLS を検査する社内ネットワークで uv が証明書を検証できないとき（info-hive-wiki#30）。`UV_SYSTEM_CERTS=true` での 1 回だけのやり直し、利用者の設定の尊重、入れ直しに進まないこと。自己署名の証明書の HTTPS の索引を手元に立て、入口が理由と対処を `logs/launch.log` に書いてすぐ止まることも確かめる（`--with cryptography` で動かす） |
 | `run_mcp_gate.py`、`mcp_eval_search.py` | wiki の評価ゲート（`eval/retrieval/run_eval.py`）を新しい基盤で通す |
@@ -30,13 +33,16 @@
 
 ## 動かし方
 
-依存はサーバーのスクリプトの宣言と同じ版にそろえる。Windows では一時ディレクトリが遅いドライブにあると試験が遅くなるので、`TMP` を速いドライブに向けるとよい。
+Python 3.12 以上で動かす（ADR-0018）。依存はサーバーのスクリプトの宣言と同じ版にそろえる。Windows では一時ディレクトリが遅いドライブにあると試験が遅くなるので、`TMP` を速いドライブに向けるとよい。
 
 ```bat
 python -X utf8 -m unittest tests/wiki/test_wiki_lint.py -v
+uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_uninitialized_wiki.py -v
 python -X utf8 -m unittest tests/wiki/test_source_claims.py -v
 python -X utf8 -m unittest tests/wiki/test_template_script_paths.py -v
 python -X utf8 -m unittest tests/wiki/test_wiki_fetch.py -v
+python -X utf8 -B -m unittest tests/wiki/test_walk.py -v
+python -X utf8 -B -m unittest tests/wiki/test_python_version.py -v
 uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_graph_duplicate_slugs.py -v
 uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_graph_frontmatter_values.py -v
 uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_frontmatter_parser.py tests/wiki/test_frontmatter_raw.py -v

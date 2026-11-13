@@ -57,6 +57,8 @@ class Base(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.base = Path(self._tmp.name).resolve()
         self.wiki = self.base / "wiki"
+        # 入口（wiki_root）は SCHEMA.md のないディレクトリを断る（ADR-0019）。SCHEMA.md はページではない。
+        write(self.wiki, "SCHEMA.md", "# スキーマ\n")
         write(self.wiki, "concepts/a.md", '---\ntype: "concept"\n---\n# A\n\n本文 1。 [[b]] [[missing]]\n')
         write(self.wiki, "concepts/b.md", "# B\n")
         self.data = self.base / "data"
@@ -325,6 +327,46 @@ class RebuildTest(InProcess):
         body = self.get("concepts/a.html")[1]
         self.assertNotIn("最新の内容を表示できていない", body)
 
+    def test_schema_removed_while_serving_is_503(self):
+        """要求のたびに初期化を確かめる（ADR-0019）。起動のあとで SCHEMA.md が消えたら、前の中核でも答えない。"""
+        self.assertIn("本文 1", self.get("concepts/a.html")[1])
+        schema = self.wiki / "SCHEMA.md"
+        original = schema.read_bytes()
+        schema.unlink()
+        code, body, headers = self.get("concepts/a.html")
+        self.assertEqual(code, 503)
+        self.assertIn("初期化された wiki ではない", body)
+        self.assertIn("/wiki:init", body)
+        self.assertNotIn("本文 1", body)
+        self.assertIn("Retry-After", headers)
+        code, body, _h = request(self.port, "GET", f"/{self.app.control_token}/control/locate/b")
+        self.assertEqual(json.loads(body)["state"], "unavailable")
+        schema.write_bytes(original)
+        time.sleep(0.4)
+        code, body, _h = self.get("concepts/a.html")
+        self.assertEqual(code, 200)
+        self.assertIn("本文 1", body)
+
+    def test_uncertain_check_builds_nothing(self):
+        """判定が「調べられない」（アクセス権、循環するリンクなど）を返したときは、新しい中核を組み立てない。
+        前の中核がなければ 503、あれば前の内容を古いと示して出し、wiki の変更を取り込まない。"""
+        uncertain = wiki_browse.initialized.Finding("marker_unreadable", "調べられない")
+        self.assertFalse(uncertain.certain)
+        with mock.patch.object(wiki_browse.initialized, "check", return_value=uncertain):
+            code, body, _h = self.get("concepts/a.html")
+        self.assertEqual(code, 503)
+        self.assertNotIn("本文 1", body)
+        self.assertIsNone(self.app.state.current)
+        self.assertIn("本文 1", self.get("concepts/a.html")[1])
+        write(self.wiki, "concepts/a.md", '---\ntype: "concept"\n---\n# A\n\n本文 2 が新しい。\n')
+        with mock.patch.object(wiki_browse.initialized, "check", return_value=uncertain):
+            code, body, _h = self.get("concepts/a.html")
+        self.assertEqual(code, 200)
+        self.assertIn("本文 1", body)
+        self.assertNotIn("本文 2", body)
+        self.assertIn("最新の内容を表示できていない", body)
+        self.assertIn("本文 2", self.get("concepts/a.html")[1])
+
     def test_first_build_failure_is_503_but_control_works(self):
         with mock.patch.object(core, "Core", side_effect=RuntimeError("x")):
             code, _body, headers = self.get("index.html")
@@ -495,6 +537,78 @@ class RebuildTest(InProcess):
         self.assertFalse(self.app.state.current.recorder.enabled)
 
 
+class ServeScopeTest(Base):
+    """serve の出力の scope と、そのサーバーが描くスコープ（BrowseState.scope）の一致。
+
+    実際の serve() を試験のプロセスの中で動かし、最初の組み立てに失敗しているあいだの、新しく起動したときと
+    使い回したときの出力を確かめる。出力は wiki_browse の print を差し替えて集める（裏のスレッドの出力も取れる）。
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.lines: list = []
+        self.thread = None
+        self._print = mock.patch.object(wiki_browse, "print", create=True, new=self._capture)
+        self._print.start()
+
+    def tearDown(self):
+        if self.thread is not None and self.thread.is_alive():
+            wiki_browse.stop(self.wiki)
+            self.thread.join(30)
+        self._print.stop()
+        super().tearDown()
+
+    def _capture(self, *args, file=None, **_kwargs):
+        if file is None:   # 標準エラーへの文（say）は集めない
+            self.lines.append(" ".join(map(str, args)))
+
+    def start(self, scope) -> dict:
+        """新しいサーバーを裏のスレッドで起動し、起動の出力を返す。"""
+        self.thread = threading.Thread(target=wiki_browse.serve, args=(self.wiki, None, False, 60),
+                                       kwargs={"scope": scope}, daemon=True)
+        self.thread.start()
+        return self.emitted(1)
+
+    def reuse(self, scope) -> dict:
+        self.assertEqual(wiki_browse.serve(self.wiki, None, False, 60, scope=scope), wiki_browse.EXIT_OK)
+        return self.emitted(2)
+
+    def emitted(self, n: int) -> dict:
+        deadline = time.monotonic() + 30
+        while len(self.lines) < n and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertGreaterEqual(len(self.lines), n, "起動の出力がない")
+        return json.loads(self.lines[n - 1])
+
+    def view(self, out: dict) -> tuple:
+        port = out["port"]
+        return request(port, "GET", out["url"].split(str(port), 1)[1])
+
+    def test_output_is_the_scope_drawn_once_built_even_while_the_first_build_fails(self):
+        with mock.patch.object(core, "Core", side_effect=RuntimeError("x")):
+            new = self.start("project")
+            code, body, _ = self.view(new)
+            self.assertEqual(code, 503)                    # wiki のページも、スコープの表示も描かない
+            self.assertNotIn('id="_scope"', body)
+            reused = self.reuse("user")
+        self.assertEqual((new["reused"], new["scope"]), (False, "project"))
+        # 使い回したときも、今回の指定（user）ではなく、動いているサーバーが描くスコープを書く。
+        self.assertEqual((reused["reused"], reused["scope"]), (True, "project"))
+        with mock.patch.object(wiki_browse, "RETRY_INTERVAL", 0.0):   # 失敗のあとの待ちを飛ばす
+            code, body, _ = self.view(new)
+        self.assertEqual(code, 200)                        # 組み立てられたら、出力のスコープを描く
+        self.assertIn('<p id="_scope" class="scope scope-project">', body)
+
+    def test_server_keeps_one_normalized_scope(self):
+        # コマンドラインを通さずに正しくない値を渡しても、出力、操作の口、ページは同じもの（出さない）になる。
+        new = self.start("global")
+        self.assertIsNone(new["scope"])
+        code, body, _ = self.view(new)
+        self.assertEqual(code, 200)
+        self.assertNotIn('id="_scope"', body)
+        self.assertIsNone(self.reuse("project")["scope"])
+
+
 class MarkersTest(unittest.TestCase):
     """Wiki、ホーム、data_dir、Wiki の外の入力を別々の目印の場所にして、サーバーの応答と記録に出ないことを確かめる。"""
 
@@ -594,6 +708,48 @@ class ProcessTest(Base):
             for p in (a, b):
                 if p.poll() is None:
                     p.kill()
+
+    def screen(self, r: dict) -> str:
+        port = r["port"]
+        code, body, _ = request(port, "GET", r["url"].split(str(port), 1)[1])
+        self.assertEqual(code, 200)
+        return body
+
+    def test_serve_reports_the_scope_the_server_draws(self):
+        a = self.serve("--scope", "project")
+        ra = self.first_line(a)
+        self.assertEqual((ra["reused"], ra["scope"]), (False, "project"))
+        self.assertNotIn("scope_name", ra)
+        self.assertIn('<p id="_scope" class="scope scope-project">', self.screen(ra))
+        self.assertIn("<title>索引 · プロジェクト</title>", self.screen(ra))
+        # 使い回したときは、今回の指定ではなく、ページを描くサーバーが操作の口で答えたスコープを書く。
+        # 記録のファイルは画面を描かないので、記録にスコープを書き足しても使わない。
+        record = self.state_dir() / "server.json"
+        rec = json.loads(record.read_text(encoding="utf-8"))
+        self.assertNotIn("scope", rec)
+        record.write_text(json.dumps({**rec, "scope": "user"}), encoding="utf-8")
+        b = self.serve("--scope", "user")
+        rb = self.first_line(b)
+        self.assertEqual((rb["reused"], rb["scope"]), (True, "project"))
+        self.assertEqual(b.wait(30), 0)
+        code, body, _ = request(ra["port"], "GET", f"/{rec['control_token']}/control/status")
+        self.assertEqual(json.loads(body)["scope"], "project")
+
+    def test_serve_without_scope_reports_none_even_when_reused_with_one(self):
+        a = self.serve()
+        ra = self.first_line(a)
+        self.assertIsNone(ra["scope"])
+        self.assertNotIn('id="_scope"', self.screen(ra))
+        b = self.serve("--scope", "user")
+        rb = self.first_line(b)
+        self.assertTrue(rb["reused"])
+        self.assertIsNone(rb["scope"])
+        self.assertEqual(b.wait(30), 0)
+
+    def test_bad_scope_is_a_usage_error(self):
+        proc = self.serve("--scope", "global")
+        self.assertEqual(proc.wait(30), 2)
+        self.assertFalse((self.state_dir() / "server.json").exists())
 
     def test_tokens_change_on_restart_and_page_states(self):
         p1 = self.serve("--page", "b")

@@ -1,0 +1,67 @@
+## 判定
+
+**却下。確信度：高。** 閲覧サーバーで、初期化判定の失敗を通過し、未初期化のディレクトリから新しい表示を組み立てる経路が残っている。
+
+## 致命的・重大な欠陥
+
+**重大：閲覧サーバーの「調べられない」は、古い表示の維持だけでなく、新規読み込みも許す。**
+
+反例は、`SCHEMA.md` が自己参照するシンボリックリンクになった場合である。
+
+1. 初期化済み wiki を `serve --no-open` で起動する。
+2. 最初の閲覧要求前に、`SCHEMA.md` を `SCHEMA.md -> SCHEMA.md` の循環リンクに置き換える。
+3. ページを要求する。
+
+POSIX ではマーカーの `stat()` が `ELOOP` になる。共通判定はこれを `marker_unreadable`、`certain=False` にする。`BrowseState.get()` はそのまま読み取りへ進み、通常ファイルのマーカーが存在しないディレクトリを wiki として表示する。
+
+書き込みなしの再現では、既存の未初期化素材 `eval/evolution/project-smoke/wiki/` を使い、マーカーへの `os.stat()` だけを `ELOOP` に差し替えた。結果は次のとおりだった。
+
+```text
+通常時: (None, 'uninitialized')
+ELOOP 時: has_core=True, stale=None, pages=4
+HTTP ハンドラー: status=200, 古い表示の警告なし
+```
+
+既存の表示がなくても成功するため、「以前の内容を古いと示して出す」という例外の範囲を超える。
+
+根拠：
+
+- [wiki_initialized.py:83](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py:83)：マーカーの一般的な `OSError` を不確定に分類する。
+- [wiki_browse.py:384](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:384)：不確定なら停止せず、408行以降で新しいスナップショットを読む。
+- [wiki_browse.py:551](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:551)：得られた表示を200で返す。
+
+## 崩れる前提
+
+- **「マーカーを調べられないなら、本文も読めない」**  
+  マーカーだけが循環リンク、またはアクセスできない場所へのリンクなら、本文の列挙・読み取りは成功する。
+- **「不確定な判定を通しても、以前の表示を維持するだけ」**  
+  `self.current is None` でも新規構築へ進む。既存の表示がある場合も、本文の変更に応じて再構築できる。
+- **「一般的な `OSError` は一時的な障害として扱える」**  
+  `ELOOP` のように、マーカーが通常ファイルへ到達しない恒久的な状態も含む。
+
+## 見落としと軽微な問題
+
+- **軽微：CHANGELOG の `core` の終了コード・出力先が実装と食い違う。**  
+  [CHANGELOG.md:14](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/info-hive-wiki/CHANGELOG.md:14) は `core` を含めて「標準エラーに案内」「終了コード1」と書く。実測では終了コード0、標準エラーは空、標準出力に `{"ok": false, "error": "no_wiki"}` だった。JSON応答についての追記はあるが、終了コードと案内の例外は明記されていない。
+- **上記の重大な欠陥を、既存の不確定判定の試験は検出しない。**  
+  [test_browse_server.py:350](C:/Works/info-hive-dev/.claude/worktrees/zealous-williams-ceb572/tests/wiki/test_browse_server.py:350) は、表示を一度作った後、本文を変えずに判定だけを差し替えている。新規構築や再構築を確認していない。
+
+## 検証した事実
+
+- **一致：** 入口一覧と文章の試験、計7件は通った。
+- **一致：** 通常の未初期化素材に対するCLIの19ケースは、終了コード1、初期化案内あり、トレースバックなしだった。
+- **一致：** MCP のルート判定は、未初期化・不存在・ファイルを拒否し、初期化案内を返した。
+- **一致：** 共通のパス解決とMCPで、解決時の `PermissionError` が案内付きのエラーになった。
+- **一致：** 基準ディレクトリがない upgrade は、終了コード1と初期化案内を返した。
+- **確認限界：** Git管理先にアクセスできず、指定コミット間の差分は取得できなかった。PyYAML がないため、グラフの lint・抽出と setup の正常な依存環境での実行は未確認。循環リンクは実際には作らず、該当する `stat()` の失敗をモックした。HTTPはハンドラーを直接呼び出して確認した。ファイルは変更していない。
+
+## 崩せなかった点
+
+- 改善系CLIで、共通判定より先に wiki のパスを解決していた前回の経路は、コード上では閉じている。POSIXの `ない/..` による再現は、この環境では未実施。
+- MCP がキャッシュ参照前に毎回ルートを判定する構成。
+- upgrade が、基準ディレクトリを解決する前に対象 wiki を判定する構成。
+- 評価ランナーとバイトコード生成を対象外とする例外は、今回の設計に明記されている。
+- `plugin.json` の版は `0.13.0` で、CHANGELOGにも互換性変更の記載がある。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

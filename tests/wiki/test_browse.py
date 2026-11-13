@@ -9,6 +9,7 @@ PyYAML がなければ飛ばす。Linux でしか作れない名前（NFC と NF
 """
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import io
 import json
@@ -68,12 +69,75 @@ def build_core(root: Path) -> core.Core:
     return core.Core(core.take_snapshot(root))
 
 
+# ファイルに触れた記録。集めているあいだだけ list にする。監査フックは外せないので、None のあいだは何もしない。
+_ACCESS: "list | None" = None
+LISTING = ("os.listdir", "os.scandir")
+_AUDIT_EVENTS = ("open", *LISTING)
+_HOOKED = False
+
+
+def _audit(event, args):
+    seen = _ACCESS
+    if seen is not None and event in _AUDIT_EVENTS and args:
+        seen.append((event, args[0]))
+
+
+def _recorder(seen: list, kind: str, real):
+    def call(path, *args, **kwargs):
+        seen.append((kind, path))
+        return real(path, *args, **kwargs)
+    return call
+
+
+@contextlib.contextmanager
+def recording_access():
+    """このブロックのあいだに開いた、一覧した、属性を調べたパスを、（種類, パス）の組で集める。
+
+    開く（open）と一覧（os.listdir、os.scandir）は監査フックで捕まえるので、どの API から呼んでも漏れない。
+    属性を調べるだけの呼び出しには監査の事象がないので、os.stat、os.lstat と os.path の判定を包んで捕まえる。
+    """
+    global _ACCESS, _HOOKED
+    if not _HOOKED:
+        sys.addaudithook(_audit)
+        _HOOKED = True
+    seen: list = []
+    with contextlib.ExitStack() as stack:
+        for name in ("stat", "lstat"):
+            stack.enter_context(mock.patch.object(os, name, new=_recorder(seen, f"os.{name}", getattr(os, name))))
+        for name in ("exists", "lexists", "isdir", "isfile", "islink"):
+            stack.enter_context(mock.patch.object(os.path, name,
+                                                  new=_recorder(seen, f"os.path.{name}", getattr(os.path, name))))
+        _ACCESS = seen
+        try:
+            yield seen
+        finally:
+            _ACCESS = None
+
+
+def touched_under(seen: list, dirs, kinds=None, exact: bool = False) -> list:
+    """集めた組のうち、パスが dirs のどれか（exact でなければ、その下も）であるもの。kinds で種類を絞る。"""
+    roots = [os.path.normcase(os.path.abspath(d)) for d in dirs]
+    hits = []
+    for kind, item in seen:
+        if item is None or isinstance(item, int) or (kinds is not None and kind not in kinds):
+            continue   # ファイル記述子と、絞った種類の外
+        try:
+            p = os.path.normcase(os.path.abspath(os.fsdecode(os.fspath(item))))
+        except (TypeError, ValueError):
+            continue
+        if any(p == r or (not exact and p.startswith(r + os.sep)) for r in roots):
+            hits.append((kind, p))
+    return hits
+
+
 class TempWiki(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.base = Path(self._tmp.name).resolve()
         self.wiki = self.base / "work" / "Wiki"
         self.wiki.mkdir(parents=True)
+        # 入口（wiki_root）は SCHEMA.md のないディレクトリを断る（ADR-0019）。SCHEMA.md はページではない。
+        write(self.wiki, "SCHEMA.md", "# スキーマ\n")
         self.data = self.base / "data"
         self._env = mock.patch.dict(os.environ, {"INFO_HIVE_DATA_DIR": str(self.data)})
         self._env.start()
@@ -874,6 +938,95 @@ class CoreLoopTest(TempWiki):
         first, second = [json.loads(x) for x in out.getvalue().splitlines()]
         self.assertEqual(first["pages"], [])
         self.assertEqual([p["id"] for p in second["pages"]], ["a"])
+
+
+# ---------------------------------------------------------------------------
+# wiki のスコープの表示
+# ---------------------------------------------------------------------------
+
+class ScopeTest(TempWiki):
+    """呼び出し元が --scope で指定したスコープの、画面への出し方。"""
+
+    def test_cli_rejects_bad_scope_before_doing_anything(self):
+        write(self.wiki, "a.md", page("# A"))
+        for args in (["--scope", "global"], ["--scope-name", "x"], ["--scope", "project", "--scope-name", "x"]):
+            with self.subTest(args=args):
+                with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as cm:
+                    wiki_browse.main(["build", str(self.wiki), *args])
+                self.assertEqual(cm.exception.code, 2)
+        self.assertFalse(self.data.exists())
+
+    def test_label_and_title(self):
+        write(self.wiki, "a.md", page("# A", title="A"))
+        snap = core.take_snapshot(self.wiki)
+        plain = core.Core(snap)
+        cases = [("user", "ユーザースコープの wiki", "A · ユーザースコープ"),
+                 ("project", "プロジェクトの wiki", "A · プロジェクト")]
+        for scope, heading, title in cases:
+            with self.subTest(scope=scope):
+                c = core.Core(snap, scope=scope)
+                for html in (c.render_page("a"), c.render_index()):
+                    self.assertIn(f'<p id="_scope" class="scope scope-{scope}">{heading}</p>', html)
+                    # スコープの表示は、スクリプトが足すナビゲーションより前（サイドバーの先頭）にある。
+                    self.assertLess(html.index('<nav id="_nav">'), html.index('id="_scope"'))
+                    self.assertLess(html.index('id="_scope"'), html.index("<noscript>"))
+                self.assertIn(f"<title>{title}</title>", c.render_page("a"))
+                self.assertIn(f"<title>索引 · {title.split(' · ')[1]}</title>", c.render_index())
+                # データのファイル（世代だけで食い違いを確かめる）は、スコープで変わらない。
+                for name in core.DATA_FILES:
+                    self.assertEqual(c.render_data(name), plain.render_data(name))
+
+    def test_no_scope_draws_nothing(self):
+        write(self.wiki, "a.md", page("# A", title="A"))
+        for scope in (None, "unknown", "", {"kind": "user"}):
+            with self.subTest(scope=scope):
+                c = core.Core(core.take_snapshot(self.wiki), scope=scope)
+                self.assertNotIn('id="_scope"', c.render_page("a"))
+                self.assertIn("<title>A</title>", c.render_page("a"))
+
+    def test_build_shows_given_scope(self):
+        write(self.wiki, "a.md", page("# A"))
+        with redirect_stderr(io.StringIO()):
+            report = wiki_browse.build(self.wiki, None, None, "project")
+        index = (Path(report["out"]) / "index.html").read_text(encoding="utf-8")
+        self.assertIn('<p id="_scope" class="scope scope-project">プロジェクトの wiki</p>', index)
+        self.assertEqual(report["leaks"], [])
+        report = self.build()
+        self.assertNotIn('id="_scope"', (Path(report["out"]) / "index.html").read_text(encoding="utf-8"))
+
+    def test_scope_is_not_inferred_from_the_surroundings(self):
+        # --scope を渡さなければ、wiki の外に作業領域の設定や .git があっても、スコープを出さない。
+        # 出さないだけでなく、それらを開かず、一覧せず、あるかどうかも調べない（推し量るために読まない）。
+        # wiki の祖先も一覧しない（一覧すれば、おとりに触れずに名前で見つけられる）。祖先の属性を調べるのは、
+        # 書き出し先と状態の場所の確かめで、もとからしている。
+        write(self.wiki, "a.md", page("# A"))
+        config = write(self.base / "work", ".info-hive/workspace.json", json.dumps({"version": 1, "kind": "user"}))
+        (self.base / ".git").mkdir()
+        decoys = [config.parent, self.base / ".git"]
+        ancestors = list(self.wiki.parents)
+        # 記録の仕組みが、おとりを読むこと、あるかどうかを調べること、祖先を一覧することを捕まえると確かめておく。
+        with recording_access() as seen:
+            config.read_text(encoding="utf-8")
+            (self.base / ".git").is_dir()
+            os.listdir(self.base)
+        self.assertEqual(len({Path(p).name for _k, p in touched_under(seen, decoys)}), 2)
+        self.assertTrue(touched_under(seen, ancestors, kinds=LISTING, exact=True))
+        with recording_access() as seen:
+            report = self.build()
+        self.assertTrue(touched_under(seen, [self.wiki]))   # wiki は読んでいる（記録が効いている）
+        self.assertEqual(touched_under(seen, decoys), [])
+        self.assertEqual(touched_under(seen, ancestors, kinds=LISTING, exact=True), [])
+        self.assertNotIn('id="_scope"', (Path(report["out"]) / "index.html").read_text(encoding="utf-8"))
+
+    def test_drawn_scope_comes_from_the_live_answer(self):
+        drawn = wiki_browse._drawn_scope
+        self.assertIsNone(drawn({}))                       # 前の版のサーバーは答えに scope がない
+        self.assertIsNone(drawn({"scope": None}))          # スコープなしで起動した
+        for bad in ("unknown", "", 3, ["user"], {"kind": "user", "name": None}):
+            with self.subTest(bad=bad):
+                self.assertIsNone(drawn({"scope": bad}))
+        self.assertEqual(drawn({"scope": "user"}), "user")
+        self.assertEqual(drawn({"scope": "project"}), "project")
 
 
 if __name__ == "__main__":
