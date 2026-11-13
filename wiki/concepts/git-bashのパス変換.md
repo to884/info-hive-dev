@@ -2,7 +2,7 @@
 type: "concept"
 title: "Git Bash のパス変換で git の引数が壊れる"
 tags: ["windows"]
-sources: ["取り込み手順の追従とリリース-wiki-0.11.1"]
+sources: ["取り込み手順の追従とリリース-wiki-0.11.1", "検索の結果のtagsとsourcesの修正-wiki-0.12.1"]
 created: 2026-11-13
 updated: 2026-11-13
 ---
@@ -40,3 +40,5 @@ fatal: ambiguous argument 'origin\main;.claude-plugin\plugin.json': unknown revi
 ## 起きた所
 
 wiki 0.11.1 と rag 0.5.1 のリリースで、`origin/main` の `plugin.json` の版を確かめるときに 2 回起きた。2 回とも `MSYS_NO_PATHCONV=1` を付けて確かめ直した（[[取り込み手順の追従とリリース-wiki-0.11.1]]）。`git grep <パターン> origin/main -- <パス>` と `git ls-tree origin/main <パス>` は、念のため同じものを付けて実行した。
+
+wiki 0.12.0 と 0.12.1 のリリースでも、同じ確かめで起きた。0.12.1 では、`MSYS_NO_PATHCONV=1` を付けたシェルで、タグの中身（`git show v0.12.1:<パス>`）と導入したファイルの SHA-256 も比べた（[[検索の結果のtagsとsourcesの修正-wiki-0.12.1]]）。
