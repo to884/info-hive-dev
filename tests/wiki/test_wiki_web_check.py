@@ -842,6 +842,265 @@ class ReviewCounterexample7Test(RawCheckCase):
         self.assertFalse((self.wd / "cleaned.md").exists())
 
 
+def visible_text(tree) -> str:
+    """木に現れる文字（インラインの文字とコード、リンク先、コードブロックの中身）。画面と検査が見る範囲である。"""
+    parts = []
+    for node in wiki_rawcheck.walk(tree):
+        parts.append(wiki_rawcheck.inline_text(node.inline, code=True))
+        parts.extend(href for href, _title in wiki_rawcheck.links_of(node.inline))
+        parts.append(node.content)
+    return "\n".join(parts)
+
+
+class ReviewCounterexample8Test(RawCheckCase):
+    """実装の 8 回目のレビュー（impl-review-8.md）の反例。"""
+
+    TABLE = "# A\n\n| A | B |\n|---|---|\n| 1 | `SELECT 1;` [safe](https://safe.example/) |\n"
+
+    def test_surplus_cell_without_leading_pipe_is_rejected_in_check(self):
+        self.setup_fetch(self.TABLE)
+        self.assertTrue(self.freeze()["ok"])
+        row = "| 1 | `SELECT 1;` [safe](https://safe.example/) |"
+        evil = "1 | `SELECT 1;` [safe](https://safe.example/) | `DROP TABLE users;` [evil](https://evil.example/) |"
+        self.write_raw(self.TABLE.replace(row, evil), fm=FM_T)
+        self.assertIn("table", self.kinds(self.check()))
+
+    def test_column_count_is_checked_on_the_same_table(self):
+        src = "# A\n\n| Noise |\n|---|\n| noise |\n\n" + self.TABLE.removeprefix("# A\n\n")
+        self.setup_fetch(src)
+        self.write_raw("# A\n\n| A |\n|---|\n| 1 | `SELECT 1;` [safe](https://safe.example/) |\n")
+        self.assertIn("table", self.kinds(self.freeze()))
+        # 1 つ目の表を丸ごと消すのは通る（対照）。
+        self.write_raw(self.TABLE)
+        result = self.freeze()
+        self.assertTrue(result["ok"], result["errors"])
+
+    def test_table_rule_keeps_the_tokens(self):
+        """差し替えた表の規則は、トークンの並びを変えず、見出しより多いセルを持つ行だけを記録する。"""
+        import wiki_pages
+        bodies = {
+            self.TABLE: [],
+            "- | A | B |\n  |---|---|\n  | 1 | 2 | 3 |\n": [3],
+            "> | A |\n> |---|\n> | 1 \\| 2 |\n> | 1 | 2 |\n\nText | not a table\n": [4],
+            "| A | B |\n|---|---|\n1 | 2 | 3\n| 4 | 5 |\n": [3],
+            "Para\n| A |\n|---|\n| 1 |\n": [],
+        }
+        plain = wiki_pages.new_parser()
+        for body, rows in bodies.items():
+            with self.subTest(body=body):
+                ours = wiki_rawcheck._PARSER.parse(body)
+                theirs = plain.parse(body)
+                self.assertEqual([(t.type, t.content, t.map) for t in ours], [(t.type, t.content, t.map) for t in theirs])
+                tree = wiki_rawcheck.parse_tree(body)
+                self.assertEqual([r for n in wiki_rawcheck.walk(tree) for r in n.surplus_cell_rows], rows)
+
+    def test_cells_cannot_shift_to_another_column(self):
+        self.setup_fetch("# A\n\n| A | B |\n|---|---|\n| 1 | `x()` |\n")
+        self.write_raw("# A\n\n| A | B |\n|---|---|\n| `x()` |\n")
+        self.assertIn("table", self.kinds(self.freeze()))
+
+    def test_noise_between_lists_can_be_removed(self):
+        for src, out, translated in (
+                ("# A\n\n- Body one.\n\nShare\n\n- Body two.\n", "# A\n\n- Body one.\n\n- Body two.\n",
+                 "# A\n\n- 本文一。\n\n- 本文二。\n"),
+                ("# A\n\n1. One.\n\n## Related\n\n1. Two.\n", "# A\n\n1. One.\n\n1. Two.\n",
+                 "# A\n\n1. 一。\n\n1. 二。\n")):
+            with self.subTest(src=src):
+                self.setup_fetch(src)
+                self.write_raw(out)
+                result = self.freeze()
+                self.assertTrue(result["ok"], result["errors"])
+                self.write_raw(translated, fm=FM_T)
+                result = self.check()
+                self.assertTrue(result["ok"], result["errors"])
+
+    def test_list_items_keep_their_structure(self):
+        # 記号の違うリストは、間を消してもつながらない（2 つのリストのまま）。通る（対照）。
+        self.setup_fetch("# A\n\n- a\n\nShare\n\n* b\n")
+        self.write_raw("# A\n\n- a\n\n* b\n")
+        result = self.freeze()
+        self.assertTrue(result["ok"], result["errors"])
+        # 項目の中の段落を、字下げを消してリストの外に出すのは、入れ子の変更なので止める。
+        self.setup_fetch("# A\n\n- a\n\n  more\n")
+        self.write_raw("# A\n\n- a\n\nmore\n")
+        self.assertIn("edit", self.kinds(self.freeze()))
+        # 空の行を消して段落をつなげるのは止め、空の行を残すように伝える。
+        self.setup_fetch("# A\n\nOne.\n\nTwo.\n")
+        self.write_raw("# A\n\nOne.\nTwo.\n")
+        result = self.freeze()
+        self.assertIn("空の行", next(e["message"] for e in result["errors"] if e["kind"] == "edit"))
+
+    def run_main(self, *args) -> tuple[int, dict]:
+        argv = ["--wiki", str(self.wiki), "--raw-root", str(self.raw), "--slug", "a", "--json"]
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            code = wiki_rawcheck.main([args[0], *argv, *args[1:]])
+        return code, (json.loads(out.getvalue()) if out.getvalue() else {})
+
+    def test_finish_keeps_work_dir_while_warnings_remain(self):
+        src = "# A\n\nThe town of Greenwich is old.\n"
+        self.setup_fetch(src)
+        self.assertEqual(self.run_main("freeze")[0], 0)
+        self.write_raw("# A\n\nグリニッジの町は古い。\n", fm=FM_T)
+        code, result = self.run_main("check", "--finish")
+        self.assertEqual(code, 0)
+        self.assertEqual(result["work_dir_kept"], "warnings")
+        self.assertTrue((self.wd / "cleaned.md").is_file())
+        # 警告を直して再検査できる。警告がなくなれば消す。
+        self.write_raw("# A\n\nGreenwich の町は古い。\n", fm=FM_T)
+        code, result = self.run_main("check", "--finish")
+        self.assertEqual(code, 0)
+        self.assertTrue(result["work_dir_removed"])
+        self.assertFalse(self.wd.exists())
+
+    def test_accept_warnings_removes_work_dir(self):
+        self.setup_fetch("# A\n\nThe town of Greenwich is old.\n")
+        self.assertEqual(self.run_main("freeze")[0], 0)
+        self.write_raw("# A\n\nグリニッジの町は古い。\n", fm=FM_T)
+        self.assertEqual(self.run_main("check", "--accept-warnings")[0], 1)  # --finish なしでは付けられない
+        code, result = self.run_main("check", "--finish", "--accept-warnings")
+        self.assertEqual(code, 0)
+        self.assertTrue(result["warnings"])
+        self.assertFalse(self.wd.exists())
+
+    def test_error_lines_are_file_lines(self):
+        """誤りと警告の行番号は、raw のファイルの行番号（frontmatter を含めて数える）。"""
+        self.setup_fetch("# A\n\nAlpha.\n\nThe town of Greenwich.\n")
+        self.write_raw("# A\n\nAlpha.\n\nThe city of Greenwich.\n")  # 書き換え
+        error = self.freeze()["errors"][0]
+        lines = (self.raw / "a.md").read_text(encoding="utf-8").split("\n")
+        self.assertEqual(lines[error["line"] - 1], "The city of Greenwich.")
+        self.setup_fetch("# A\n\nAlpha.\n\nThe town of Greenwich.\n")
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw("# A\n\nアルファ。\n\nグリニッジの町。\n", fm=FM_T)
+        warning = next(w for w in self.check()["warnings"] if w["kind"] == "missing_names")
+        lines = (self.raw / "a.md").read_text(encoding="utf-8").split("\n")
+        self.assertEqual(lines[warning["line"] - 1], "グリニッジの町。")
+
+    def test_freeze_lists_only_remaining_images(self):
+        src = ('# A\n\nIntro.\n\n![](assets/a/a-01.png "https://x.example/1.png")\n\n'
+               '![](assets/a/a-02.png "https://x.example/2.png")\n')
+        self.setup_fetch(src, images=["assets/a/a-01.png", "assets/a/a-02.png"])
+        (self.raw / "assets/a/a-01.png").unlink()
+        self.write_raw('# A\n\nIntro.\n\n![](assets/a/a-02.png "https://x.example/2.png")\n')
+        result = self.freeze()
+        self.assertTrue(result["ok"], result["errors"])
+        self.assertEqual([img["path"] for img in result["images"]], ["assets/a/a-02.png"])
+        lines = (self.raw / "a.md").read_text(encoding="utf-8").split("\n")
+        self.assertTrue(lines[result["images"][0]["line"] - 1].startswith("![](assets/a/a-02.png"))
+
+
+class FetchCounterexample8Test(FetchCase):
+    """実装の 8 回目のレビューの反例のうち、取得器が書いた raw から始めるもの。"""
+
+    TABLE = ('<table><tr><th>A</th><th>B</th></tr><tr><td>1</td><td>Prefix | <code>SELECT 1;</code>\n'
+             '<a href="https://safe.example/">safe</a></td></tr></table>')
+    ESCAPED = "Prefix \\| `SELECT 1;`"
+
+    def fetch_table(self) -> str:
+        _, text, _ = self.build(html_page(f"<p>{LONG}</p>" + self.TABLE))
+        self.assertIn(self.ESCAPED, text)
+        return text
+
+    def write_raw(self, text: str):
+        (self.raw / "page.md").write_text(text, encoding="utf-8", newline="\n")
+
+    def test_deleting_escape_backslash_in_a_cell_is_rejected(self):
+        text = self.fetch_table()
+        self.write_raw(text.replace(self.ESCAPED, "Prefix | `SELECT 1;`"))
+        code, result = wiki_rawcheck.freeze(self.wiki, self.raw, "page")
+        self.assertEqual(code, 1)
+        self.assertIn("table", {e["kind"] for e in result["errors"]})
+        # 訳の段で \ を消し、見えなくなったセルを書き換えても止まる。
+        self.write_raw(text)
+        self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "page")[0], 0)
+        out = text.replace('translated_by: ""', 'translated_by: "Claude Sonnet 5.5"').replace(LONG.strip(), "本文の訳。")
+        out = out.replace(self.ESCAPED + " [safe](https://safe.example/)",
+                          "Prefix | `DROP TABLE users;` [safe](https://evil.example/)")
+        self.write_raw(out)
+        code, result = wiki_rawcheck.check(self.wiki, self.raw, "page", None, None)
+        self.assertEqual(code, 1)
+        self.assertIn("table", {e["kind"] for e in result["errors"]})
+
+    def test_single_character_edits_never_hide_content(self):
+        """表の 1 文字を消すか | を 1 つ足した raw が検査を通るなら、コードとリンク先は木に見えている。"""
+        text = self.fetch_table()
+        start = text.index("| A | B |")
+        targets = ("SELECT 1;", "https://safe.example/")
+        translated = text.replace('translated_by: ""', 'translated_by: "Claude Sonnet 5.5"') \
+            .replace(LONG.strip(), "本文の訳。")
+        t_start = translated.index("| A | B |")
+        edits = [("freeze", text[:i] + text[i + 1:]) for i in range(start, len(text))]
+        edits += [("check", translated[:i] + translated[i + 1:]) for i in range(t_start, len(translated))]
+        edits += [("check", translated[:i] + "|" + translated[i:]) for i in range(t_start, len(translated))]
+        passed = 0
+        for stage, out in edits:
+            if stage == "freeze":
+                self.build(html_page(f"<p>{LONG}</p>" + self.TABLE), force=True)
+                self.write_raw(out)
+                code, _ = wiki_rawcheck.freeze(self.wiki, self.raw, "page")
+            else:
+                if not (wiki_rawcheck.work_dir(self.wiki, "page") / "cleaned.md").is_file():
+                    self.build(html_page(f"<p>{LONG}</p>" + self.TABLE), force=True)
+                    self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "page")[0], 0)
+                self.write_raw(out)
+                code, _ = wiki_rawcheck.check(self.wiki, self.raw, "page", None, None)
+            if code != 0:
+                continue
+            passed += 1
+            body = wiki_rawcheck.split_frontmatter(out)[1]
+            seen = visible_text(wiki_rawcheck.parse_tree(body))
+            for target in targets:
+                if target in body:
+                    self.assertIn(target, seen, f"{stage}: {out[start - 10:]}")
+        self.assertGreater(passed, 0)  # 通る編集（セルの中の文字の削除など）も照らしている
+
+    def test_noise_between_lists_from_the_fetcher(self):
+        _, text, _ = self.build(html_page(f"<p>{LONG}</p>"
+                                          "<ul><li>Body one.</li></ul><p>Share</p><ul><li>Body two.</li></ul>"))
+        self.assertIn("- Body one.\n\nShare\n\n- Body two.", text)
+        self.write_raw(text.replace("Share\n\n", ""))
+        code, result = wiki_rawcheck.freeze(self.wiki, self.raw, "page")
+        self.assertEqual(code, 0, result["errors"])
+
+    def test_work_dir_of_another_fetch_is_not_resumed(self):
+        """--force で写しを書いたあとに raw を書けずに止まると、写しは raw と別の取得のものになる。"""
+        page_a = html_page(f"<p>{LONG}</p>")
+        page_b = html_page(f"<p>{LONG} Changed.</p>")
+        self.build(page_a)
+        stub = FetchStub(page_b)
+        with mock.patch.object(wiki_fetch, "fetch", stub), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False), \
+                mock.patch.object(wiki_fetch, "write_outputs", side_effect=OSError("書けない")):
+            with self.assertRaises(OSError):
+                wiki_fetch.build(self.args(force=True))
+        self.assertTrue(wiki_rawcheck.work_dir_complete(self.wiki, "page"))
+        stub = FetchStub(page_a)
+        with mock.patch.object(wiki_fetch, "fetch", stub), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
+            code, result = wiki_fetch.build(self.args())
+        self.assertTrue(result["unchanged"])
+        self.assertFalse(result["work_dir"])
+
+    def test_unchanged_after_freeze_returns_remaining_images(self):
+        html = html_page(f'<p>{LONG}</p><img src="i.png" width="300" height="200">'
+                         f'<p>{LONG}</p><img src="j.png" width="300" height="200">')
+        result, text, _ = self.build(html)
+        first, second = (img["path"] for img in result["images"])
+        line = next(x for x in text.split("\n") if first in x)
+        self.write_raw(text.replace(line + "\n\n", ""))
+        (self.raw / first).unlink()
+        code, frozen = wiki_rawcheck.freeze(self.wiki, self.raw, "page")
+        self.assertEqual(code, 0, frozen["errors"])
+        self.assertEqual([img["path"] for img in frozen["images"]], [second])
+        stub = FetchStub(html)
+        with mock.patch.object(wiki_fetch, "fetch", stub), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
+            code, again = wiki_fetch.build(self.args())
+        self.assertEqual(again["work_stage"], "frozen")
+        self.assertEqual([img["path"] for img in again["images"]], [second])
+
+
 class SonnetTrialTest(RawCheckCase):
     """Sonnet 5.5 で試したときの改善点（sonnet-trial.md）。"""
 
