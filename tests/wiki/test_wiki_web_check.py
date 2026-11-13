@@ -108,6 +108,14 @@ class NoiseRuleTest(FetchCase):
         self.assertIn("[Tag specification](https://docs.example/tag/release-1)", text)
         self.assertIn("Top highlight", text)
 
+    def test_emphasis_marks_do_not_count_as_text(self):
+        """79 文字の段落を強調で囲んでも、本文の前の部分の判定は変わらない。"""
+        short = "x" * 79
+        for body in (f"<p>{short}</p>", f"<p><strong>{short}</strong></p>"):
+            with self.subTest(body=body):
+                result, text, _ = self.build(html_page(body + "<p>Top highlight</p>" + f"<p>{LONG}</p>"), force=True)
+                self.assertIn("medium_top_highlight", [r["rule"] for r in result["removed_by_rule"]])
+
     def test_keep_noise_disables_rules(self):
         article = '<p><a href="https://site.example/tag/ai">AI</a></p>' + f"<p>{LONG}</p>"
         result, text, _ = self.build(html_page(article), keep_noise=True)
@@ -183,13 +191,41 @@ class WorkDirTest(FetchCase):
         self.assertFalse(result["work_dir"])
 
     def test_raw_is_not_written_when_snapshot_fails(self):
-        with mock.patch.object(wiki_rawcheck, "work_dir", side_effect=OSError("書けない")):
-            stub = FetchStub(html_page(f"<p>{LONG}</p>"))
-            with mock.patch.object(wiki_fetch, "fetch", stub), \
-                    mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
-                with self.assertRaises(OSError):
-                    wiki_fetch.build(self.args())
+        """fetch.json の書き込みの途中で失敗すると、raw は書かず、写しは「そろっていない」になる。"""
+        stub = FetchStub(html_page(f"<p>{LONG}</p>"))
+        with mock.patch.object(wiki_fetch, "fetch", stub), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False), \
+                mock.patch.object(wiki_fetch.os, "replace", side_effect=OSError("書けない")):
+            with self.assertRaises(OSError):
+                wiki_fetch.build(self.args())
         self.assertFalse((self.raw / "page.md").exists())
+        self.assertTrue((wiki_rawcheck.work_dir(self.wiki, "page") / "fetched.md").is_file())
+        self.assertFalse(wiki_rawcheck.work_dir_complete(self.wiki, "page"))
+
+    def test_japanese_slug_round_trip(self):
+        """日本語のスラッグの画像を、取得から freeze と check まで通す。"""
+        html = html_page(f'<p>{LONG}</p><img src="i.png" width="300" height="200"><p>{LONG}</p>')
+        result, text, _ = self.build(html, slug="日本語")
+        rel = result["images"][0]["path"]
+        self.assertTrue(rel.startswith("assets/日本語/"))
+        self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "日本語")[0], 0)
+        raw = self.raw / "日本語.md"
+        out = text.replace('translated_by: ""', 'translated_by: "Claude Sonnet 5.5"')
+        out = out.replace(LONG.strip(), "本文の訳である。")
+        line = next(x for x in out.split("\n") if x.startswith("!["))
+        out = out.replace(line + "\n", line + "\n\n> Claude Sonnet 5.5 補足: 図の説明である。\n", 1)
+        raw.write_text(out, encoding="utf-8", newline="\n")
+        code, check = wiki_rawcheck.check(self.wiki, self.raw, "日本語", None, None)
+        self.assertEqual(code, 0, check["errors"])
+
+    def build(self, html: bytes, **kw):  # スラッグを変えられるように上書きする
+        stub = FetchStub(html)
+        with mock.patch.object(wiki_fetch, "fetch", stub), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
+            code, result = wiki_fetch.build(self.args(**kw))
+        self.assertEqual(code, 0, result)
+        text = (self.raw / f"{kw.get('slug', 'page')}.md").read_text(encoding="utf-8")
+        return result, text, stub
 
 
 class LanguageAndSlugTest(unittest.TestCase):
@@ -396,7 +432,8 @@ class CheckTest(RawCheckCase):
             ("translated_by", GOOD, FM, "translated_by"),
             ("caption", GOOD.replace("  > Claude Sonnet 5.5 補足: 項目の中の図の説明である。\n\n", ""), FM_T, "caption"),
             ("caption_name", GOOD.replace("> > Claude Sonnet 5.5", "> > Claude Haiku 5.5"), FM_T, "caption"),
-            ("caption_unavailable", GOOD + "\n> Claude Sonnet 5.5 補足: 見ていない図。\n", FM_T, "caption"),
+            # 取得できなかった画像の補足は、原文の引用と見分けられないので、ブロックの数の違いとして止まる。
+            ("caption_unavailable", GOOD + "\n> Claude Sonnet 5.5 補足: 見ていない図。\n", FM_T, "blocks"),
             ("links", GOOD.replace("[文書](https://x.example/d)", "文書"), FM_T, "links"),
             ("code_span", GOOD.replace("`run(x)`", "`run(y)`"), FM_T, "code_span"),
             ("code", GOOD.replace('print("hi")', 'print("やあ")'), FM_T, "code"),
@@ -517,6 +554,77 @@ class ReviewCounterexampleTest(RawCheckCase):
         self.assertFalse(wiki_rawcheck.work_dir_complete(self.wiki, "a"))
         with self.assertRaises(FileNotFoundError):
             wiki_rawcheck.freeze(self.wiki, self.raw, "a")
+
+
+class ReviewCounterexample2Test(RawCheckCase):
+    """実装の 2 回目のレビュー（impl-review-2.md）の反例。"""
+
+    def check_with(self, src: str, out: str, images=(), fm=FM_T, needs_translation=True) -> dict:
+        self.setup_fetch(src, images=images, needs_translation=needs_translation)
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw(out, fm=fm)
+        return self.check()
+
+    def test_japanese_image_path(self):
+        rel = "assets/日本語/日本語-01.png"
+        src = f"# A\n\n![x]({rel} \"https://x.example/i.png\")\n"
+        self.setup_fetch(src, images=[rel])
+        self.assertTrue(self.freeze()["ok"], self.freeze()["errors"])
+        out = src + "\n> Claude Sonnet 5.5 補足: 図の説明である。\n"
+        self.write_raw(out, fm=FM_T)
+        self.assertTrue(self.check()["ok"])
+        # ファイルを消すと、補足を書いても誤りになる。
+        (self.raw / rel).unlink()
+        self.assertIn("image_file", self.kinds(self.check()))
+
+    def test_caption_after_list_paragraph_with_tail(self):
+        src = "# A\n\n- item\n  ![x](assets/a/1.png \"https://x.example/i.png\")\n  tail\n"
+        out = ("# A\n\n- 項目\n  ![x](assets/a/1.png \"https://x.example/i.png\")\n  続き\n\n"
+               "  > Claude Sonnet 5.5 補足: 図の説明である。\n")
+        result = self.check_with(src, out, images=["assets/a/1.png"])
+        self.assertTrue(result["ok"], result["errors"])
+
+    def test_nested_second_caption_is_rejected(self):
+        src = "# A\n\n![x](assets/a/1.png)\n"
+        for extra in ("> Claude Sonnet 5.5 補足: 説明 1。\n>\n> > Other 補足: 説明 2。\n",
+                      "> Claude Sonnet 5.5 補足: 説明 1。\n>\n> - Other 補足: 説明 2。\n"):
+            with self.subTest(extra=extra):
+                result = self.check_with(src, src + "\n" + extra, images=["assets/a/1.png"])
+                self.assertIn("caption", self.kinds(result))
+
+    def test_original_caption_like_quote_is_kept(self):
+        src = "# A\n\n![x](assets/a/1.png)\n\n> Alice 補足: 図の前提。\n"
+        out = "# A\n\n![x](assets/a/1.png)\n\n> Claude Sonnet 5.5 補足: 図の説明である。\n\n> Alice 補足: 図の前提。\n"
+        result = self.check_with(src, out, images=["assets/a/1.png"], fm=FM, needs_translation=False)
+        self.assertTrue(result["ok"], result["errors"])
+
+    def test_link_inside_strong_can_be_removed(self):
+        src = "# A\n\n**Body text. [Share](https://x.example/share)**\n"
+        self.setup_fetch(src)
+        self.write_raw("# A\n\n**Body text.**\n")
+        result = self.freeze()
+        self.assertTrue(result["ok"], result["errors"])
+
+    def test_untranslated_markup_and_reference_changes(self):
+        src = "# A\n\n**hello** world.\n"
+        result = self.check_with(src, "# A\n\n__hello__ world.\n", fm=FM, needs_translation=False)
+        self.assertIn("text", self.kinds(result))
+        self.setup_fetch(src)
+        self.write_raw(src + "\n[x]: https://evil.example/\n")
+        self.assertFalse(self.freeze()["ok"])
+
+    def test_bad_slug_is_refused_before_removing(self):
+        with self.assertRaises(ValueError):
+            wiki_rawcheck.remove_work_dir(self.wiki, "../..")
+        argv = ["--wiki", str(self.wiki), "--raw-root", str(self.raw), "--slug", "../..", "--finish"]
+        with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(wiki_rawcheck.main(["check", *argv]), 1)
+        self.assertTrue(self.wiki.is_dir())
+
+    def test_corrupt_fetch_json_is_incomplete(self):
+        self.setup_fetch("# A\n\nText.\n")
+        (self.wd / "fetch.json").write_bytes(b"{")
+        self.assertFalse(wiki_rawcheck.work_dir_complete(self.wiki, "a"))
 
 
 class UntranslatedTest(RawCheckCase):
