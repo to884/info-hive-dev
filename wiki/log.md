@@ -46,3 +46,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-13] ingest | 検索の結果の tags と sources の修正、wiki 0.12.1 のリリースの記録
    ページ: sources/検索の結果のtagsとsourcesの修正-wiki-0.12.1、concepts/frontmatterのリストの値（concepts/リリースの確かめ方、concepts/git-bashのパス変換 を更新。SCHEMA.md のタグの体系に `検索` を足した）
+
+## [2026-11-13] ingest | title が値なしや配列のときの修正、wiki 0.12.2 のリリースの記録
+   ページ: sources/titleが値なしや配列のときの修正-wiki-0.12.2（concepts/frontmatterのリストの値、concepts/リリースの確かめ方、concepts/pythonの書き戻しの改行 を更新）
