@@ -193,10 +193,16 @@ OUT_STATES = ("absent", "empty", "gen", "gen+extra", "gen+edited", "userdir", "l
               "absent+old", "empty+old", "wikiroot", "insidewiki", "nodata")
 WORK_STATES = ("asis", "leftovers", "junction", "unmarked-empty")
 # 作業用のロックと目印の名前に、利用者が置いたリンク（7 版目。6 回目の設計のレビューの重大 1）
-LINK_STATES = ("lock-dangling", "lock-symlink", "lock-hardlink", "marker-symlink")
+LINK_STATES = ("lock-dangling", "lock-symlink", "lock-hardlink", "marker-symlink", "marker-owner-link")
 LINK_OUT_STATES = ("absent", "gen")
 FOREIGN = ("gen+extra", "gen+edited", "userdir", "legacy")
 WHOLE = ("wikiroot", "insidewiki", "datainwiki")     # 砂場の全体が変わってはならない（Wiki のルートと重なる）
+# <data_dir>/browse の名前がリンク（8 版目。7 回目の設計のレビューの重大 1）。どの実行も、砂場を変えずに止まる
+ROOT_LINK = ("browse-junction", "browse-symlink")
+# <data_dir> そのものがジャンクション（利用者が指した場所への道）。browse は、その先の実の browse を領分として使う
+DATA_LINK = ("gen+datajunction",)
+# 領分のディレクトリそのものの名前がジャンクション（作業用は書き出し、状態はサーバーの探索）。使わずに止まる
+WORK_LINK = "work-link"
 
 
 def place_link(state, lock, marker, wiki):
@@ -210,6 +216,11 @@ def place_link(state, lock, marker, wiki):
             os.link(os.path.join(wiki, "a.md"), lock)
         elif state == "marker-symlink":
             os.symlink(os.path.join(wiki, "a.md"), marker)
+        elif state == "marker-owner-link":
+            # リンクの先が、正しい持ち主の値（A）を持つ。試作は、リンクの先を持ち主の証にしない（設計の 6.2）
+            owner_file = os.path.join(os.path.dirname(wiki), "user", "owner.txt")
+            write(owner_file, b"A")
+            os.symlink(owner_file, marker)
     except OSError as e:
         return f"リンクを作れない: {type(e).__name__}"
     return None
@@ -225,7 +236,29 @@ class Sandbox:
         write(os.path.join(r, "user", "keep.txt"), b"keep")
         write(os.path.join(r, "user", "assets", "app.js"), b"user asset")
         put_generation(os.path.join(r, "exports", "other"), FILES_P, 4)
-        if out_state != "nodata":
+        self.skipped = None
+        self.data = self.data_real = os.path.join(r, "data")
+        if out_state in ROOT_LINK:
+            # レビューの反例: <data_dir>/browse が、利用者のディレクトリへのリンク。その先に、browse の名前と同じ
+            # ディレクトリと、利用者のファイルがある
+            os.makedirs(self.data)
+            elsewhere = os.path.join(r, "elsewhere")
+            write(os.path.join(elsewhere, "KEY", "private.txt"), b"keep me")
+            write(os.path.join(elsewhere, "KEY.browse-work", m.WORK_MARKER), b"A")
+            write(os.path.join(elsewhere, "KEY.server", m.SERVER_MARKER), b"A")
+            write(os.path.join(elsewhere, "KEY.server", "server.json"), b'{"instance": "x", "owner": "A"}')
+            try:
+                if out_state == "browse-junction":
+                    junction(os.path.join(self.data, "browse"), elsewhere)
+                else:
+                    os.symlink(elsewhere, os.path.join(self.data, "browse"), target_is_directory=True)
+            except OSError as e:
+                self.skipped = f"リンクを作れない: {type(e).__name__}"
+        elif out_state in DATA_LINK:
+            self.data_real = os.path.join(r, "udata")
+            os.makedirs(os.path.join(self.data_real, "browse"))
+            junction(self.data, self.data_real)
+        elif out_state != "nodata":
             os.makedirs(os.path.join(r, "data", "browse"))
         self.wiki = os.path.join(r, "wiki")
         if default:
@@ -265,10 +298,9 @@ class Sandbox:
             os.makedirs(work)
             write(os.path.join(work, m.WORK_MARKER), b"A" if default else b"")
             put_generation(os.path.join(work, "old-5"), FILES_P, 5)
-        self.skipped = None
-        if work_state != "asis" and not os.path.isdir(work):
+        if work_state not in ("asis", WORK_LINK) and not os.path.isdir(work):
             os.makedirs(work)
-            if work_state not in ("unmarked-empty", "marker-symlink"):
+            if work_state not in ("unmarked-empty", "marker-symlink", "marker-owner-link"):
                 write(os.path.join(work, m.WORK_MARKER), b"A" if default else b"")
         if work_state in LINK_STATES:
             self.skipped = place_link(work_state, os.path.join(work, "build.lock"), os.path.join(work, m.WORK_MARKER),
@@ -278,10 +310,22 @@ class Sandbox:
             write(os.path.join(work, "del-6", "concepts", "a.html"), b"<p>a v0</p>")
             write(os.path.join(work, "seq"), b"7\n")
             write(os.path.join(work, "build-report.json"), b"{}")
+        elif work_state == WORK_LINK:
+            # 作業用のディレクトリの名前が、目印を持つ利用者のディレクトリへのジャンクション
+            write(os.path.join(r, "elsewhere-work", m.WORK_MARKER), b"A" if default else b"")
+            write(os.path.join(r, "elsewhere-work", "keep.txt"), b"keep")
+            junction(work, os.path.join(r, "elsewhere-work"))
         elif work_state == "junction":
             os.makedirs(os.path.join(work, "tmp-8"))
             junction(os.path.join(work, "tmp-8", "assets"), os.path.join(r, "user", "assets"))
             junction(os.path.join(work, "tmp-8", "wiki"), os.path.join(r, "wiki"))
+
+    def real(self, path):
+        """名前を、砂場の中の実の場所に直す。<data_dir> がジャンクションなら、その先の名前にする（世界の差分は
+        リンクをたどらずに木を読むので、領分は実の場所で数える）。"""
+        if self.data_real != self.data and (path == self.data or path.startswith(self.data + os.sep)):
+            return self.data_real + path[len(self.data):]
+        return path
 
     def close(self):
         def onerror(func, path, exc):
@@ -297,6 +341,9 @@ class Sandbox:
                     os.rmdir(full) if os.name == "nt" else os.unlink(full)
                     dirnames.remove(d)
         shutil.rmtree(self.root, onerror=onerror)
+
+
+LOCK_NAMES = ("build.lock", "server.lock")
 
 
 def _attrs(st):
@@ -318,12 +365,15 @@ def tree(path):
             elif stat.S_ISDIR(st.st_mode):
                 found[rel] = ("dir", None, *_attrs(st))
                 walk(full, rel + "/")
-            elif name.endswith(".lock"):
-                # ロックのファイルは、作るだけで書かない。取られているあいだは読めない（Windows の範囲のロック）
-                found[rel] = ("file", "lock", *_attrs(st))
             else:
-                with open(full, "rb") as f:
-                    digest = hashlib.sha256(f.read()).hexdigest()
+                try:
+                    with open(full, "rb") as f:
+                        digest = hashlib.sha256(f.read()).hexdigest()
+                except PermissionError:
+                    # 取られているロックは読めない（Windows の範囲のロック）。browse のロックの名前のときだけ、中身を量らない
+                    if name not in LOCK_NAMES:
+                        raise
+                    digest = "lock"
                 found[rel] = ("file", digest, *_attrs(st))
     st = os.lstat(path)
     if os.path.isdir(path) and not os.path.islink(path):
@@ -370,6 +420,8 @@ def world_same(sb, before, after, injected=False):
     失敗を入れた実行（とそのあとの実行）は、Wiki のルートの下が、ルートそのものの属性を含めて変わらず、
     ほかは上の規則に従う（Wiki のルートの外にある領分は、作ってよい）。
     """
+    if sb.out_state in ROOT_LINK or sb.work_state == WORK_LINK:
+        return before == after          # 領分に入る確かめで、何も作らずに止まる（手を入れた実行も）
     if sb.out_state in WHOLE:
         if not injected:
             return before == after
@@ -379,7 +431,7 @@ def world_same(sb, before, after, injected=False):
             return k == top or k.startswith(top + "/")
         if {k: v for k, v in before.items() if under(k)} != {k: v for k, v in after.items() if under(k)}:
             return False
-    skip = [rel(sb, p) for p in (sb.out, sb.work, sb.state_dir)] + ["data/browse"]
+    skip = [rel(sb, sb.real(p)) for p in (sb.out, sb.work, sb.state_dir, os.path.join(sb.data, "browse"))]
 
     def inside(k):
         return any(k == p or k.startswith(p + "/") for p in skip)
@@ -387,7 +439,7 @@ def world_same(sb, before, after, injected=False):
     def ancestor_of_skip(k):
         return any(p.startswith(k + "/") for p in skip)
 
-    allowed_mtime = {_parent(rel(sb, sb.out))}
+    allowed_mtime = {_parent(rel(sb, sb.real(sb.out)))}
     for k in after:
         if k not in before and (inside(k) or ancestor_of_skip(k)):
             allowed_mtime.add(_parent(k))
@@ -437,8 +489,10 @@ def role_of(sb, injector, at, commit, leftovers):
         return "post"
     target = injector.targets[at - 1] if at - 1 < len(injector.targets) else None
     paths = target if isinstance(target, tuple) else (target,)
+    # 呼び出しの対象は、解く前の名前のことも、解いたパスのこともある（<data_dir> がジャンクションのとき）
+    dirs = list(leftovers) + [sb.real(d) for d in leftovers]
     for path in paths:
-        if path and any(path == d or path.startswith(d + os.sep) for d in leftovers):
+        if path and any(path == d or path.startswith(d + os.sep) for d in dirs):
             return "leftover"
     return "pre"
 
@@ -465,7 +519,8 @@ def check_build(sb, at, mode, second=None, baseline=None, natural=None, commit=N
     old5 = content(tree(os.path.join(sb.work, "old-5")))
     leftovers = [os.path.join(sb.work, n) for n in (os.listdir(sb.work) if os.path.isdir(sb.work) else [])
                  if n.startswith(("tmp-", "del-")) or n in m.LEGACY]
-    protected = (sb.out_state in FOREIGN and not sb.default) or sb.out_state in WHOLE
+    protected = ((sb.out_state in FOREIGN and not sb.default) or sb.out_state in WHOLE or sb.out_state in ROOT_LINK
+                 or sb.work_state == WORK_LINK)
     injector = Injector(at, mode, second)
     rc = run_build(sb, injector)
     warnings = Counter(m.WARNINGS)
@@ -511,18 +566,26 @@ def check_build(sb, at, mode, second=None, baseline=None, natural=None, commit=N
     elif at is None:
         problems.append(where("失敗のない実行が 0 で終わらなかった"))
     else:
+        # 9.2: 役目を先に決め、その役目が許す終わり方を、どの終わり方（0、0 でない、強制停止）にも当てる
         c = content(after_out)
-        olds = [content(tree(os.path.join(sb.work, n))) for n in (os.listdir(sb.work) if os.path.isdir(sb.work) else [])
-                if n.startswith("old-")]
-        # 最後に公開した世代 G は、砂場の作りで決まる（書き出し先にあった世代か、作業用の old-5）。
-        # 確定の前は、G はいつも、書き出し先か、作業用の old-N のどれかにある（設計の 6.4、7）
-        G = P if P not in (None, {}) else old5
-        if G is None:
-            ok = c in (None, {}) or after_out == before_out or (rc == "crash" and c == N)
+        if role_of(sb, injector, at, commit, leftovers) == "post":
+            # 確定のあとの失敗は、0 で終わり、書き出し先は新しい世代である。強制停止でも、書き出し先は新しい世代である
+            if rc != "crash":
+                problems.append(where("確定のあとの失敗で、0 でなく終わった"))
+            elif c != N:
+                problems.append(where("確定のあとの強制停止で、書き出し先が新しい世代でない"))
         else:
-            ok = c == G or G in olds or (rc == "crash" and c == N)
-        if not ok:
-            problems.append(where("0 でないのに、最後に公開した世代が、書き出し先にも作業用の退避にも残っていない"))
+            olds = [content(tree(os.path.join(sb.work, n)))
+                    for n in (os.listdir(sb.work) if os.path.isdir(sb.work) else []) if n.startswith("old-")]
+            # 最後に公開した世代 G は、砂場の作りで決まる（書き出し先にあった世代か、作業用の old-5）。
+            # 確定の前は、G はいつも、書き出し先か、作業用の old-N のどれかにある（設計の 6.4、7）
+            G = P if P not in (None, {}) else old5
+            if G is None:
+                ok = c in (None, {}) or after_out == before_out or (rc == "crash" and c == N)
+            else:
+                ok = c == G or G in olds or (rc == "crash" and c == N)
+            if not ok:
+                problems.append(where("0 でないのに、最後に公開した世代が、書き出し先にも作業用の退避にも残っていない"))
 
     # 次の実行（手を入れない）
     counter = Injector()
@@ -620,7 +683,7 @@ def sweep_build(out_state, work_state, default, modes, depth2=False):
 # ---------------------------------------------------------------------------
 
 STATE_STATES = ("absent", "stale-record", "leftover-new", "unmarked-empty", "stale+leftover", "other-owner", "nodata",
-                "lock-dangling", "lock-symlink", "lock-hardlink", "marker-symlink")
+                "lock-dangling", "lock-symlink", "lock-hardlink", "marker-symlink", "marker-owner-link")
 
 
 def make_state(sb, state):
@@ -631,7 +694,7 @@ def make_state(sb, state):
     if state == "unmarked-empty":
         return
     if state in LINK_STATES:
-        if state != "marker-symlink":
+        if state not in ("marker-symlink", "marker-owner-link"):
             write(os.path.join(d, m.SERVER_MARKER), b"A")
         return place_link(state, os.path.join(d, "server.lock"), os.path.join(d, m.SERVER_MARKER), sb.wiki)
     owner = b"B" if state == "other-owner" else b"A"
@@ -749,6 +812,76 @@ def sweep_server(modes):
                     found, _ = check_server(state, phase, at, mode, baseline, natural)
                     problems += found
                     runs += 1
+    return runs, problems
+
+
+def sweep_server_root(modes):
+    """<data_dir>/browse か、状態のディレクトリの名前がリンクのとき、起動、stop、動いているかの確かめが、
+    どれも砂場を変えずに止まる（8 版目）。"""
+    problems, runs = [], 0
+    ops = ("serve", "stop", "is_running")
+
+    def attempt(sb, op, injector):
+        m.X = injector
+        m.WARNINGS.clear()
+        server = None
+        try:
+            if op == "serve":
+                outcome, server = m.serve_start(sb.wiki, sb.state_dir, "new", "A")
+                return outcome
+            if op == "stop":
+                return m.stop(sb.wiki, sb.state_dir, "A")
+            return "running" if m.is_running(sb.wiki, sb.state_dir, "A") else "not-running"
+        except m.Stop:
+            return "stop"
+        except (m.Unknown, m.Absent):
+            return "unknown"
+        except Crash:
+            return "crash"
+        finally:
+            m.X = m.Os()
+            if isinstance(server, m.Server):
+                server.lock.release()
+    def make(state):
+        sb = Sandbox(state if state in ROOT_LINK else "absent", "asis", True)
+        if state == "state-link":
+            target = os.path.join(sb.root, "elsewhere-state")
+            write(os.path.join(target, m.SERVER_MARKER), b"A")
+            write(os.path.join(target, "server.json"), b'{"instance": "x", "owner": "A"}')
+            junction(sb.state_dir, target)
+        return sb
+    for state in ROOT_LINK + ("state-link",):
+        for op in ops:
+            sb = make(state)
+            try:
+                if sb.skipped:
+                    SKIPPED.append(f"サーバー {state}: {sb.skipped}")
+                    continue
+                counter = Injector()
+                attempt(sb, op, counter)
+                total, names = counter.count, list(counter.names)
+            finally:
+                sb.close()
+            for mode in (None, *modes):
+                for at in ([None] if mode is None else range(1, total + 1)):
+                    if mode in ONLY and (os.name != "nt" and mode == "blk" or names[at - 1] != ONLY[mode]):
+                        continue
+                    sb = make(state)
+                    try:
+                        before = tree(sb.root)
+                        injector = Injector(at, mode)
+                        result = attempt(sb, op, injector)
+                        runs += 1
+                        label = f"（{state}、{op}、{mode}@{at}、{injector.hit}、結果 {result}）"
+                        if mode is None and result != "stop":
+                            problems.append("失敗のない実行で、領分の名前のリンクで止まらなかった" + label)
+                        # 「ない」の答えから、何も作らずに「動いていない」と答えるのは許す（設計の 6.2）。その先を使った結果だけを破れにする
+                        if result in ("started", "reuse", "stop-sent", "running"):
+                            problems.append("領分の名前がリンクなのに、その先を使った" + label)
+                        if tree(sb.root) != before:
+                            problems.append("砂場が変わった" + label)
+                    finally:
+                        sb.close()
     return runs, problems
 
 
@@ -958,6 +1091,11 @@ CONTROLS = {
     "follow_on_open": [("absent", "lock-dangling", False), ("gen", "lock-dangling", True)],
     "discard_old_first": [("empty+old", "asis", False), ("absent+old", "asis", True)],
     "warn_on_marker_close": [("absent", "asis", False)],
+    # 8 版目（7 回目の設計のレビュー）
+    "enter_root_unchecked": [("browse-junction", "asis", True)],
+    "raise_post_listdir": [("gen", "asis", False)],
+    # 8 版目の探索で見つけた（6.1 の確かめが、名前ごとに識別子を覚えていた）
+    "cache_ids_by_name": [("gen+datajunction", "asis", True)],
 }
 
 
@@ -976,9 +1114,12 @@ def build_cases(quick):
                     continue
                 cases.append((out_state, work_state, default))
             if not quick and out_state in LINK_OUT_STATES:
-                cases += [(out_state, ls, default) for ls in LINK_STATES]
+                cases += [(out_state, ls, default) for ls in LINK_STATES + (WORK_LINK,)]
         if default:
             cases.append(("datainwiki", "asis", True))
+            if not quick:
+                cases += [(s, "asis", True) for s in ROOT_LINK]
+                cases += [(s, w, True) for s in DATA_LINK for w in ("asis", "leftovers")]
     return cases
 
 
@@ -995,6 +1136,9 @@ def main():
     server_runs, server_problems = sweep_server(MODES)
     all_problems += server_problems
     out(f"\n## サーバーの記録\n\n実行 {server_runs} 回、破れた決まり {len(server_problems)} 件")
+    root_runs, root_problems = sweep_server_root(MODES)
+    all_problems += root_problems
+    out(f"\n## 領分の名前がリンク（データの場所と状態のディレクトリ。起動、stop、動いているかの確かめ）\n\n実行 {root_runs} 回、破れた決まり {len(root_problems)} 件")
     shared_runs, shared_problems = sweep_shared(MODES)
     all_problems += shared_problems
     out(f"\n## 同じ場所を使う別の Wiki\n\n実行 {shared_runs} 回、破れた決まり {len(shared_problems)} 件")
@@ -1016,17 +1160,19 @@ def main():
         finally:
             m.MUTANTS.discard(mutant)
         out(f"| {mutant} | {len(found)} | {found[0] if found else '見つからなかった'} |")
-    for mutant, run in (("warn_on_record_failure", lambda: sweep_server(MODES)[1]),
-                        ("recover_by_published_seq", scenario_rewind),
-                        ("delete_in_place", lambda: sweep_user_deletes(USER_DELETES)[1]),
-                        ("refuse_unknown_entries", lambda: sweep_server(MODES)[1]),
-                        ("skip_owner", lambda: sweep_shared(MODES)[1])):
+    for label, mutant, run in (("warn_on_record_failure", "warn_on_record_failure", lambda: sweep_server(MODES)[1]),
+                               ("recover_by_published_seq", "recover_by_published_seq", scenario_rewind),
+                               ("delete_in_place", "delete_in_place", lambda: sweep_user_deletes(USER_DELETES)[1]),
+                               ("refuse_unknown_entries", "refuse_unknown_entries", lambda: sweep_server(MODES)[1]),
+                               ("skip_owner", "skip_owner", lambda: sweep_shared(MODES)[1]),
+                               ("enter_root_unchecked（サーバー）", "enter_root_unchecked",
+                                lambda: sweep_server_root(MODES)[1])):
         m.MUTANTS.add(mutant)
         try:
             found = run()
         finally:
             m.MUTANTS.discard(mutant)
-        out(f"| {mutant} | {len(found)} | {found[0] if found else '見つからなかった'} |")
+        out(f"| {label} | {len(found)} | {found[0] if found else '見つからなかった'} |")
 
     out("\n## 書き出し\n\n| 書き出し先の種類 | 書き出し先の状態 | 作業用の状態 | 口の呼び出し | 実行 | 破れた決まり |\n| --- | --- | --- | --- | --- | --- |")
     for out_state, work_state, default in build_cases(quick):

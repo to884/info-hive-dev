@@ -242,38 +242,62 @@ def listdir(path):
 # ---------------------------------------------------------------------------
 
 class Guard:
-    """1 つの仕事の単位のあいだ、Wiki のルートの識別子と、確かめた場所を覚えておく。"""
+    """1 つの仕事の単位のあいだ、Wiki のルートとその祖先の識別子と、確かめの結論を覚えておく。
+
+    ほかのディレクトリの識別子は覚えない。browse は、単位の中で、自分で名前を消し、付け替え、作り直す
+    （tmp-N、old-N、del-N、書き出し先）ので、名前の識別子は単位の中でも変わる（設計の 6.1）。
+    結論（その名前か、その解いたパスが、Wiki のルートでもその下でもない）は、名前を作り直しても変わらない。
+    作り直す名前は、領分の根より下で、リンクを通らずに届き、親が同じだからである（設計の 3.2）。
+    """
 
     def __init__(self, root):
         self.root = root
         self.root_id = None
         self.root_chain = None
-        self.ids = {}
-        self.ok = set()
+        self.ok = set()          # 確かめた名前
+        self.ok_real = set()     # 確かめた解いたパス（そのパスも、その親も、Wiki のルートでない）
 
     def ident(self, path):
-        if path not in self.ids:
-            dev, ino = x("stat_id", path)
-            if ino == 0:
-                raise failure(Unknown, "stat_id: 識別子が 0", path)
-            self.ids[path] = (dev, ino)
-        return self.ids[path]
+        if "cache_ids_by_name" in MUTANTS:
+            # 対照: 8 版目の初めの形（7 版目まで）。名前ごとに識別子を覚え、取り直さない
+            cache = self.__dict__.setdefault("ids", {})
+            if path not in cache:
+                cache[path] = self._ident(path)
+            return cache[path]
+        return self._ident(path)
 
-    def chain(self, path):
-        """path（解いたもの）と、その親の識別子を、根まで。"""
-        found = []
-        while True:
-            found.append(self.ident(path))
-            parent = os.path.dirname(path)
-            if parent == path:
-                return found
-            path = parent
+    def _ident(self, path):
+        dev, ino = x("stat_id", path)
+        if ino == 0:
+            raise failure(Unknown, "stat_id: 識別子が 0", path)
+        return (dev, ino)
 
     def _root(self):
         if self.root_chain is None:
-            r = x("realpath", self.root)
-            self.root_chain = set(self.chain(r))
-            self.root_id = self.ident(r)
+            p = x("realpath", self.root)
+            ids = []
+            while True:
+                ids.append(self.ident(p))
+                parent = os.path.dirname(p)
+                if parent == p:
+                    break
+                p = parent
+            self.root_id = ids[0]
+            self.root_chain = set(ids)
+
+    def _under_root(self, r, rid):
+        """r（解いたパス。識別子は rid）か、その親のどれかが、Wiki のルートなら True。確かめた解いたパスに着けば止める。"""
+        seen, p, pid = [], r, rid
+        while p not in self.ok_real:
+            if pid == self.root_id:
+                return True
+            seen.append(p)
+            parent = os.path.dirname(p)
+            if parent == p or parent in self.ok_real:
+                break
+            p, pid = parent, self.ident(parent)
+        self.ok_real.update(seen)
+        return False
 
     def place(self, directory):
         """directory（今あるディレクトリ）の中に名前を足す、変える、消すことができるか。Wiki のルートかその下なら Stop。
@@ -300,9 +324,10 @@ class Guard:
             if k not in ("dir", "link"):
                 raise failure(Unknown, "lstat: 書き込む場所がディレクトリでない", p)
         r = x("realpath", p)
-        if self.ident(r) != self.ident(p):
+        rid = self.ident(r)
+        if rid != self.ident(p):
             raise failure(Unknown, "realpath: 解いたパスの識別子が違う", p)
-        if self.root_id in self.chain(r):
+        if self._under_root(r, rid):
             raise Stop(f"Wiki のルートの下には書かない: {os.path.basename(directory)}")
         self.ok.add(directory)
 
@@ -496,14 +521,17 @@ def use_territory(path, marker, known=(), owner=None, lock_name=None):
         if extra:
             raise Stop(f"決まった名前のほかの項目がある: {extra[0]}")
     if owner is not None and "skip_owner" not in MUTANTS:
-        current = read_text(marker_path)
+        # 目印の名前がリンクなら、読まない（リンクの先の値を持ち主の証にしない）。持ち主が違うものとして扱う（設計の 6.2）
+        marker_kind = kind(marker_path)
+        current = read_text(marker_path) if marker_kind == "file" else None
         if current != owner:
             probe = Lock(os.path.join(path, lock_name))
             if not probe.try_acquire():
                 raise Stop("別の Wiki が、同じ場所を使っている")
             try:
                 replace_file(marker_path, content)
-                warn("別の Wiki が使っていた場所を引き継いだ")
+                warn("目印がリンクだったので、ファイルに置き換えた" if marker_kind == "link"
+                     else "別の Wiki が使っていた場所を引き継いだ")
             finally:
                 probe.release()
 
@@ -638,7 +666,7 @@ def build(root, out, files, default=False, owner=None):
     STATE["committed"] = False
     work = out + ".browse-work"
     if default:
-        ensure_dirs(os.path.dirname(out))
+        enter_root(os.path.dirname(out), create=True)
     # 作る前に、書き出し先そのものを確かめる。書き込みの口も確かめるが、ここで止めれば作業用も作らない。
     G.place(os.path.dirname(out))
     if kind(out) == "dir":
@@ -653,8 +681,35 @@ def build(root, out, files, default=False, owner=None):
         lock.release()
 
 
+def enter_root(root_dir, create):
+    """領分の根（<data_dir>/browse）に入る。根があれば True、なければ False（create なら作って True）。
+
+    <data_dir> は、どうたどって届いても、利用者が browse にデータを置かせる場所である（指定。設計の 2.3）。
+    領分は、そこにある実の browse ディレクトリと、その下でリンクを通らずに届くものである。根の名前そのものが
+    リンクか、ディレクトリでなければ、その先は利用者が指した場所でないので、使わずに止まる。
+    根より上（<data_dir> とその祖先）は、利用者が指した場所への道で、リンクでもよい。ないものだけを作る。
+    """
+    if "enter_root_unchecked" in MUTANTS:
+        # 対照: 7 版目の形。今ある根は、種類を見ずに使う（ジャンクションの先を領分として扱う）
+        if kind(root_dir) == "absent" and not create:
+            return False
+        if create:
+            ensure_dirs(root_dir)
+        return True
+    k = kind(root_dir)
+    if k == "absent":
+        if not create:
+            return False
+        ensure_dirs(os.path.dirname(root_dir))
+        w("mkdir", root_dir)
+        return True
+    if k != "dir":
+        raise Stop(f"browse のデータの場所がディレクトリでない（リンクを含む）: {os.path.basename(root_dir)}")
+    return True
+
+
 def ensure_dirs(path):
-    """ない祖先を、上から順に作る（既定の書き出し先の <data_dir>/browse）。"""
+    """ない祖先を、上から順に作る（<data_dir> とその上）。今ある祖先は、リンクでもそのまま通る。"""
     missing = []
     p = path
     while kind(p) == "absent":
@@ -771,6 +826,8 @@ def report(text):
 
 def x_or_empty(work):
     """確定のあとの一覧。作れなければ、片付けをあきらめて警告する（単位は失敗にしない）。"""
+    if "raise_post_listdir" in MUTANTS:
+        return listdir(work)        # 対照: 確定のあとの一覧の失敗を、単位の失敗にする
     try:
         return listdir(work)
     except (Unknown, Absent) as e:
@@ -788,12 +845,18 @@ class Server:
 
 
 def _enter_state(root, state_dir, owner, create=False):
-    """状態のディレクトリに触れる前の確かめ。起動（create）だけは、ない祖先（<data_dir>/browse）を上から作る。"""
+    """状態のディレクトリに触れる前の確かめ。使えば True、状態のディレクトリがなければ False（何も作らない）。
+
+    起動（create）だけは、ない祖先と領分の根（<data_dir>/browse）を上から作る。どの操作も、根の確かめを先に通す。
+    """
     global G
     G = Guard(root)
-    if create:
-        ensure_dirs(os.path.dirname(state_dir))
+    if not enter_root(os.path.dirname(state_dir), create):
+        return False
+    if not create and kind(state_dir) == "absent":
+        return False
     use_territory(state_dir, SERVER_MARKER, STATE_KNOWN, owner=owner, lock_name="server.lock")
+    return True
 
 
 def read_record(state_dir):
@@ -845,9 +908,8 @@ def serve_finish(server):
 
 def stop(root, state_dir, owner):
     """'not-running' か、'stop-sent'（止める要求を送る相手が決まった）を返す。相手が違えば Stop。"""
-    if kind(state_dir) == "absent":
+    if not _enter_state(root, state_dir, owner):
         return "not-running"
-    _enter_state(root, state_dir, owner)
     lock = Lock(os.path.join(state_dir, "server.lock"))
     if lock.try_acquire():
         lock.release()
