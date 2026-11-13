@@ -14,9 +14,11 @@
 """
 from __future__ import annotations
 
+import re
 import shutil
 import sys
 import tempfile
+import unicodedata
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -56,14 +58,20 @@ def after_first_link(inline_tok) -> str:
 
 
 def stage_one(root: Path) -> tuple:
-    """今の Core で 1 つ目の段を作る。ファイルのグループ（読めた索引のファイルの数だけ、先頭に並ぶ）と Core を返す。"""
+    """今の Core で 1 つ目の段を作る。
+
+    返すのは、(索引のファイル, そのグループ) の並び（今の Core の並び）、索引にないページのグループ（0 か 1 個）、Core。
+    グループは ID だけで見分ける。索引のファイルの NFC の名前では見分けない。NFC で同じになる 2 つの名前の
+    索引のファイルを、今の Core は別のグループ（ディスク上の綴りのハッシュの ID）にするからである。
+    """
     c = StageOneCore(core.take_snapshot(root), record=False)
     readable = [f for f in c.snapshot.by_kind("index") if f.text is not None]
-    files = {}
-    for f, g in zip(readable, c.nav_groups):
+    file_groups = list(zip(readable, c.nav_groups[:len(readable)]))
+    for f, g in file_groups:
         assert g["id"] == "_g" + core.short_hash(f.disk_rel, 10), "ファイルのグループの並びが想定と違う"
-        files[f.rel] = g
-    return files, c
+    rest = c.nav_groups[len(readable):]
+    assert len(rest) <= 1 and all(g["title"] == "索引にないページ" for g in rest)
+    return file_groups, rest, c
 
 
 def walk(groups):
@@ -72,68 +80,75 @@ def walk(groups):
         yield from walk(g["children"])
 
 
+def page_ids(groups) -> set:
+    return {it["id"] for g in walk(groups) for it in g["items"] if it["state"] == "resolved"}
+
+
+ID_RE = re.compile(r"_g[0-9a-z]+\Z")
+
+
 def build(root: Path) -> list:
-    files, c = stage_one(root)
-    id_to_rel = {g["id"]: rel for rel, g in files.items()}
-    for rel, g in files.items():
-        g["origin"] = rel
-        for x in walk(g["children"]):
-            x["origin"] = rel
-        g["summary"] = ""
-        if rel == "index.md":
+    file_groups, rest, c = stage_one(root)
+    listed_before = page_ids([g for _f, g in file_groups])
+    by_id = {g["id"]: g for _f, g in file_groups}
+    index_g = next((g for f, g in file_groups if f.rel == "index.md"), None)
+    for _f, g in file_groups:
+        origin = "index" if g is index_g else "indexes"
+        for x in walk([g]):
+            x["origin"] = origin
+            x.setdefault("summary", "")
+        if g is index_g:
             g["title"] = "索引"                      # N2
-        # N3: 1 度だけ畳む
-        if not g["items"] and len(g["children"]) == 1:
+        if not g["items"] and len(g["children"]) == 1:   # N3: 1 度だけ畳む
             child = g["children"][0]
             g["items"], g["children"] = child["items"], child["children"]
-    top = []
-    index_top = files.get("index.md")
-    if index_top is not None:                       # N4
-        if index_top["items"]:
-            top.append({**index_top, "title": "索引", "children": []})
-        top.extend(index_top["children"])
-    order, summaries = [], {}                       # N5
-    if index_top is not None:
-        for g in walk([index_top]):
-            for it in g["items"]:
+    for _f, g in file_groups:                         # N6: グループへの項目の名前は、行き先のグループの名前
+        for x in walk([g]):
+            for it in x["items"]:
                 if it["state"] == "group":
-                    rel = id_to_rel[it["group"]]
-                    if rel not in summaries:
-                        order.append(rel)
-                        summaries[rel] = it.get("after", "")
-    for rel in sorted(files):
-        if rel != "index.md" and rel not in order:
-            order.append(rel)
-    for rel in order:
-        files[rel]["summary"] = summaries.get(rel, "")
-        top.append(files[rel])
+                    it["label"] = by_id[it["group"]]["title"]
+    top = []
+    if index_g is not None:                           # N4
+        if index_g["items"]:
+            top.append({**index_g, "title": "索引", "children": []})
+        top.extend(index_g["children"])
+    order, summaries = [], {}                         # N5: 順と要約は、グループの ID で決める
+    if index_g is not None:
+        for x in walk([index_g]):
+            for it in x["items"]:
+                if it["state"] == "group" and it["group"] not in summaries:
+                    order.append(it["group"])
+                    summaries[it["group"]] = it.get("after", "")
+    for _f, g in file_groups:
+        if g is not index_g and g["id"] not in summaries:
+            order.append(g["id"])
+    for gid in order:
+        by_id[gid]["summary"] = summaries.get(gid, "")
+        top.append(by_id[gid])
 
     def only_group_items(g):
         return all(it["state"] == "group" for x in walk([g]) for it in x["items"])
 
-    def prune(groups):                               # N6
+    def prune(groups):                                 # N6: index.md から来たグループだけを外せる
         kept = []
         for g in groups:
-            if g.get("origin") == "index.md" and only_group_items(g):
+            if g.get("origin") == "index" and only_group_items(g):
                 continue
             g["children"] = prune(g["children"])
             kept.append(g)
         return kept
 
     top = prune(top)
-    listed = {it["id"] for g in walk(top) for it in g["items"] if it["state"] == "resolved"}
-    rest = sorted(pid for pid in c.drawn if pid not in listed)
-    if rest:                                         # N7
-        by_type = {}
-        for pid in rest:
-            by_type.setdefault(str(c.page(pid)["meta"].get("type") or ""), []).append(pid)
-        top.append({"id": "_rest", "title": "索引にないページ", "summary": "", "items": [], "origin": "",
-                    "children": [{"id": f"_rest_{t}", "title": TYPE_LABELS.get(t, t or "種類なし"), "summary": "",
-                                  "origin": "", "children": [],
-                                  "items": [{"state": "resolved", "id": pid, "label": c.title(pid)} for pid in pids]}
-                                 for t, pids in sorted(by_type.items())]})
+    assert page_ids(top) == listed_before, "2 つ目の段で、索引に載ったページが変わった"
+    for g in rest:                                     # N7: 今のグループと ID を使い、名前だけを変える
+        g["origin"], g["summary"] = "", ""
+        for sub in g["children"]:
+            t = str(c.page(sub["items"][0]["id"])["meta"].get("type") or "")
+            sub["title"] = TYPE_LABELS.get(t, t or "種類なし")
+            sub["origin"], sub["summary"] = "", ""
+        top.append(g)
 
-    def count(g):                                    # N8
+    def count(g):                                      # N8
         ids = {it["id"] for it in g["items"] if it["state"] == "resolved"}
         for ch in g["children"]:
             ids |= count(ch)
@@ -142,14 +157,43 @@ def build(root: Path) -> list:
 
     for g in top:
         count(g)
-    shown = {g["id"] for g in walk(top)}            # 2.1 の末尾の性質
-    for g in walk(top):
-        for it in g["items"]:
-            assert it["state"] != "group" or it["group"] in shown, f"木にないグループを指す: {g['title']}"
+    check(top)
     return top
 
 
-def render(top: list, id_to_title: dict) -> list:
+def data_groups(top: list) -> dict:
+    """4.1 の data-groups。ページごとに、そのページを項目に持つグループと祖先のグループの ID。"""
+    out = {}
+
+    def rec(g, trail):
+        trail = trail + [g["id"]]
+        for it in g["items"]:
+            if it["state"] == "resolved":
+                out.setdefault(it["id"], set()).update(trail)
+        for ch in g["children"]:
+            rec(ch, trail)
+
+    for g in top:
+        rec(g, [])
+    return out
+
+
+def check(top: list) -> None:
+    """2.1 の末尾の性質を確かめる。"""
+    ids = [g["id"] for g in walk(top)]
+    assert len(ids) == len(set(ids)), "グループの ID が重なる"
+    assert all(ID_RE.match(i) for i in ids), f"ID の形が違う: {ids}"
+    shown = set(ids)
+    for g in walk(top):
+        for it in g["items"]:
+            assert it["state"] != "group" or it["group"] in shown, f"木にないグループを指す: {g['title']}"
+    for pid, gids in data_groups(top).items():
+        attr = " ".join(sorted(gids))
+        assert set(attr.split(" ")) == gids and gids <= shown, f"data-groups を読み戻せない: {pid}"
+
+
+def render(top: list) -> list:
+    """木のデータ（nav.js に書くもの）を、そのまま 1 行ずつ描く。名前は項目の label を使い、引き直さない。"""
     out = []
 
     def rec(g, depth):
@@ -158,7 +202,7 @@ def render(top: list, id_to_title: dict) -> list:
             if it["state"] == "resolved":
                 items.append(it["id"].rsplit("/", 1)[-1] + (f"#{it['anchor']}" if it.get("anchor") else ""))
             elif it["state"] == "group":
-                items.append("→" + id_to_title.get(it["group"], "?"))
+                items.append("→" + it["label"])
             else:
                 items.append(f"?{it['label']}（{it['state']}）")
         line = "　" * depth + f"{g['title']}（{g['count']}）"
@@ -217,6 +261,13 @@ CASES = [
     ("グループの要約の表示の文字（4 回目のレビューの軽微 1）",
      {"index.md": "- [[indexes/x]]: **bold** [[a|Alias]]\n", "indexes/x.md": "# X\n- [[b]]\n"},
      {"a": "concept", "b": "concept"}),
+    ("NFC で同じになる 2 つの索引のファイル（5 回目のレビューの重大 1）",
+     {"index.md": "- [[indexes/caf\u00e9]]\n", "indexes/cafe\u0301.md": "# First\n- [[a]]\n",
+      "indexes/caf\u00e9.md": "# Second\n- [[b]]\n"}, {"a": "concept", "b": "concept"}),
+    ("空白を含む種類（5 回目のレビューの重大 2）", {}, {"a": "research note", "b": "concept"}),
+    ("グループへの行の別名（5 回目のレビューの軽微）",
+     {"index.md": "- [[a]]\n- [[indexes/x|User alias]]\n", "indexes/x.md": "---\ntitle: Custom\n---\n- [[b]]\n"},
+     {"a": "concept", "b": "concept"}),
 ]
 
 
@@ -236,7 +287,9 @@ def show_files(files: dict) -> str:
     parts = []
     for rel, text in files.items():
         shown = "（読めない）" if isinstance(text, bytes) else text.replace("\n", "⏎").replace("|", "\\|")
-        parts.append(f"`{rel}`: `{shown}`")
+        # NFC でない名前は、結合文字が見えるように、符号位置で書く
+        name = rel if unicodedata.is_normalized("NFC", rel) else rel.encode("ascii", "backslashreplace").decode("ascii")
+        parts.append(f"`{name}`: `{shown}`")
     return "<br>".join(parts)
 
 
@@ -244,9 +297,7 @@ def run_case(files: dict, pages: dict) -> list:
     tmp = Path(tempfile.mkdtemp(prefix="nav_model_"))
     try:
         make_wiki(tmp, files, pages)
-        top = build(tmp)
-        titles = {g["id"]: g["title"] for g in walk(top)}
-        return render(top, titles)
+        return render(build(tmp))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
