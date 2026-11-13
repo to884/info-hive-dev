@@ -1261,6 +1261,21 @@ class FetchCounterexample9Test(FetchCase):
         self.assertFalse(result["work_dir"])
 
 
+class PullRequestReviewTest(RawCheckCase):
+    """プラグインの PR（to884/info-hive-wiki#53）の Codex のレビューの指摘。"""
+
+    def test_polite_endings_are_not_counted_as_plain(self):
+        # ください、ました、でしょう の末尾（い、た、う）は、である調の語尾にも当たる。文ごとに 1 回だけ分ける。
+        styles = wiki_rawcheck.sentence_styles("設定を確認してください。結果を保存しました。次に進むでしょう。これは本です。")
+        self.assertEqual(styles, {"desu": 4})
+        styles = wiki_rawcheck.sentence_styles("これは本である。結果を保存した。次に移る。先に確かめてください。")
+        self.assertEqual(styles, {"dearu": 3, "desu": 1})
+        self.setup_fetch("# A\n\nCheck the settings. We saved the result. It will continue. This is a book.\n")
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw("# A\n\n設定を確認してください。結果を保存しました。次に進むでしょう。これは本です。\n", fm=FM_T)
+        self.assertNotIn("style", {w["kind"] for w in self.check()["warnings"]})
+
+
 class SonnetTrialTest(RawCheckCase):
     """Sonnet 5.5 で試したときの改善点（sonnet-trial.md）。"""
 
