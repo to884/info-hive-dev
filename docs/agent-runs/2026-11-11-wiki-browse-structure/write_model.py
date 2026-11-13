@@ -638,12 +638,14 @@ def out_state(out, verify):
     k = kind(out)
     if k == "absent":
         return "absent", None, 0
+    if k != "dir" and (verify or "accept_out_link" not in MUTANTS):
+        # 名前そのものがディレクトリでない（リンクを含む）。--out も既定も、門で止まる（設計の 6.2、6.3）。
+        # 書き出しの始めの確かめ（build）と同じ決まりである。始めの答えが誤っても、ここで同じ決まりが止める
+        return "foreign", "ディレクトリでない", 0
     if not verify and "default_verifies" not in MUTANTS:
         if k == "dir" and not listdir(out):
             return "empty", None, 0
         return "present", None, 0
-    if k != "dir":
-        return "foreign", "ディレクトリでない", 0
     if not listdir(out):
         return "empty", None, 0
     manifest = read_manifest(out)
@@ -669,8 +671,14 @@ def build(root, out, files, default=False, owner=None):
         enter_root(os.path.dirname(out), create=True)
     # 作る前に、書き出し先そのものを確かめる。書き込みの口も確かめるが、ここで止めれば作業用も作らない。
     G.place(os.path.dirname(out))
-    if kind(out) == "dir":
+    k = kind(out)
+    if k == "dir":
         G.not_root_ancestor(out)
+    elif k != "absent" and "accept_out_link" not in MUTANTS:
+        # 書き出し先の名前そのものが、ないか実のディレクトリでなければ、作業用も作らずに止まる（設計の 6.4 の 1。
+        # 0.10.0 の check_output_dir と同じ）。既定の書き出し先も領分の名前なので、6.2 の領分に入るときの決まりに従う。
+        # 対照 accept_out_link は、8 版目の初めの形（既定の書き出し先のリンクを、退避して外し、置き換える）
+        raise Stop(f"書き出し先がディレクトリでない（リンクを含む）: {os.path.basename(out)}")
     use_territory(work, WORK_MARKER, owner=owner if default else None, lock_name="build.lock")
     lock = Lock(os.path.join(work, "build.lock"))
     if not lock.try_acquire():
@@ -757,10 +765,15 @@ def _build_locked(out, work, files, default):
             best = max(olds, key=lambda n: seqs[n])
         else:
             best = max(olds, key=_number)
-        if state == "empty":
-            w("rmdir", out)
-        move(os.path.join(work, best), out)
-        state, reason, out_seq = out_state(out, verify=not default)
+        restored = _restorable(os.path.join(work, best), default)
+        if restored is not None:
+            if state == "empty":
+                w("rmdir", out)
+            move(os.path.join(work, best), out)
+            if default or restored[0] == "unchecked":
+                state, reason, out_seq = out_state(out, verify=not default)
+            else:
+                state, reason, out_seq = restored      # 門の読み取りは、戻す前の 1 度だけ（設計の 6.3）
 
     # 門: 書き出し先が browse の書き出しと確かめられなければ、止まる。既定の書き出し先は領分なので、通さない。
     if state == "foreign" and "skip_gate" not in MUTANTS:
@@ -812,6 +825,24 @@ def _build_locked(out, work, files, default):
         raise Unknown("確定のあとの片付けに失敗した")
     report(json.dumps({"published_seq": seq}))
     return 0
+
+
+def _restorable(path, default):
+    """途中で止まった入れ替えから戻せる世代か（設計の 6.4 の 3）。戻せれば out_state の形の結果、戻せなければ None。
+
+    戻すのは、名前そのものが実のディレクトリで、--out の書き出し先なら、その場で門（6.3）を通るものだけである。
+    書き出し先に置くものは、browse の世代と確かめられるものに限る（6.3 の門と同じ考え）。戻せないものは、戻さずに
+    残し、確定のあとの片付けで、ほかの old-N と一緒に消す（リンクは、たどらずに外す）。既定の書き出し先は、前の
+    世代を読まないので、種類だけを見る。
+    """
+    if "recover_unchecked" in MUTANTS:
+        return ("unchecked", None, 0)       # 対照: 8 版目の初めの形。確かめずに戻し、付け替えたあとで門を通す
+    if kind(path) != "dir":
+        return None
+    if default:
+        return ("present", None, 0)
+    result = out_state(path, verify=True)
+    return result if result[0] == "generation" else None
 
 
 def report(text):

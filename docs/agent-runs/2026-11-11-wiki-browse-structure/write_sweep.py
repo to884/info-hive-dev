@@ -203,6 +203,27 @@ ROOT_LINK = ("browse-junction", "browse-symlink")
 DATA_LINK = ("gen+datajunction",)
 # 領分のディレクトリそのものの名前がジャンクション（作業用は書き出し、状態はサーバーの探索）。使わずに止まる
 WORK_LINK = "work-link"
+# 書き出し先の名前そのものが、browse の世代を持つディレクトリへのリンク（8 版目の、探索の外の位置の確かめで足した）。
+# 作業用も作らずに止まる（設計の 6.4 の 1）
+OUT_LINK = ("outlink-junction", "outlink-symlink")
+# 作業用の old-N、tmp-N、del-N の名前そのものがリンク（同じく）。old-N は、書き出し先に戻さない（設計の 6.4 の 3）
+ENTRY_LINK = ("old-junction", "old-symlink", "left-links")
+
+
+def link_dir(kind_, link, target):
+    if kind_ == "junction":
+        junction(link, target)
+    else:
+        os.symlink(target, link, target_is_directory=True)
+
+
+def real_dir(path):
+    """名前そのものが、実のディレクトリか（リンクとジャンクションは違う）。"""
+    try:
+        st = os.lstat(path)
+    except FileNotFoundError:
+        return False
+    return stat.S_ISDIR(st.st_mode) and not getattr(st, "st_file_attributes", 0) & 0x400
 
 
 def place_link(state, lock, marker, wiki):
@@ -276,7 +297,14 @@ class Sandbox:
         self.work = self.out + ".browse-work"
         self.state_dir = os.path.join(r, "data", "browse", "KEY.server")
         out, work = self.out, self.work
-        if out_state == "empty":
+        if out_state in OUT_LINK:
+            elsewhere = os.path.join(r, "elsewhere-out")
+            put_generation(elsewhere, FILES_P, 3)
+            try:
+                link_dir("junction" if out_state == "outlink-junction" else "symlink", out, elsewhere)
+            except OSError as e:
+                self.skipped = f"リンクを作れない: {type(e).__name__}"
+        elif out_state == "empty":
             os.makedirs(out)
         elif out_state.startswith("gen"):
             put_generation(out, FILES_P, 3)
@@ -310,6 +338,21 @@ class Sandbox:
             write(os.path.join(work, "del-6", "concepts", "a.html"), b"<p>a v0</p>")
             write(os.path.join(work, "seq"), b"7\n")
             write(os.path.join(work, "build-report.json"), b"{}")
+        elif work_state in ENTRY_LINK:
+            # 作業用の browse の名前そのものが、領分の外へのリンク。old-N の先は、browse の世代の形をしている
+            elsewhere = os.path.join(r, "elsewhere-entry")
+            try:
+                if work_state == "left-links":
+                    write(os.path.join(elsewhere, "tmp", "private.txt"), b"keep me")
+                    write(os.path.join(elsewhere, "del", "private.txt"), b"keep me")
+                    link_dir("symlink", os.path.join(work, "tmp-7"), os.path.join(elsewhere, "tmp"))
+                    link_dir("junction", os.path.join(work, "del-6"), os.path.join(elsewhere, "del"))
+                else:
+                    put_generation(elsewhere, FILES_P, 5)
+                    link_dir("junction" if work_state == "old-junction" else "symlink",
+                             os.path.join(work, "old-5"), elsewhere)
+            except OSError as e:
+                self.skipped = f"リンクを作れない: {type(e).__name__}"
         elif work_state == WORK_LINK:
             # 作業用のディレクトリの名前が、目印を持つ利用者のディレクトリへのジャンクション
             write(os.path.join(r, "elsewhere-work", m.WORK_MARKER), b"A" if default else b"")
@@ -422,6 +465,8 @@ def world_same(sb, before, after, injected=False):
     """
     if sb.out_state in ROOT_LINK or sb.work_state == WORK_LINK:
         return before == after          # 領分に入る確かめで、何も作らずに止まる（手を入れた実行も）
+    if sb.out_state in OUT_LINK and not injected:
+        return before == after          # 書き出し先の名前の確かめで、作業用も作らずに止まる（設計の 6.4 の 1）
     if sb.out_state in WHOLE:
         if not injected:
             return before == after
@@ -516,11 +561,13 @@ def check_build(sb, at, mode, second=None, baseline=None, natural=None, commit=N
     """
     problems = []
     before_world, before_out = world(sb), tree(sb.out)
-    old5 = content(tree(os.path.join(sb.work, "old-5")))
+    # 退避の世代は、名前そのものが実のディレクトリの old-N だけである（リンクの先は、browse が退避した世代でない）
+    old5_path = os.path.join(sb.work, "old-5")
+    old5 = content(tree(old5_path)) if real_dir(old5_path) else None
     leftovers = [os.path.join(sb.work, n) for n in (os.listdir(sb.work) if os.path.isdir(sb.work) else [])
                  if n.startswith(("tmp-", "del-")) or n in m.LEGACY]
     protected = ((sb.out_state in FOREIGN and not sb.default) or sb.out_state in WHOLE or sb.out_state in ROOT_LINK
-                 or sb.work_state == WORK_LINK)
+                 or sb.work_state == WORK_LINK or sb.out_state in OUT_LINK)
     injector = Injector(at, mode, second)
     rc = run_build(sb, injector)
     warnings = Counter(m.WARNINGS)
@@ -576,7 +623,8 @@ def check_build(sb, at, mode, second=None, baseline=None, natural=None, commit=N
                 problems.append(where("確定のあとの強制停止で、書き出し先が新しい世代でない"))
         else:
             olds = [content(tree(os.path.join(sb.work, n)))
-                    for n in (os.listdir(sb.work) if os.path.isdir(sb.work) else []) if n.startswith("old-")]
+                    for n in (os.listdir(sb.work) if os.path.isdir(sb.work) else [])
+                    if n.startswith("old-") and real_dir(os.path.join(sb.work, n))]
             # 最後に公開した世代 G は、砂場の作りで決まる（書き出し先にあった世代か、作業用の old-5）。
             # 確定の前は、G はいつも、書き出し先か、作業用の old-N のどれかにある（設計の 6.4、7）
             G = P if P not in (None, {}) else old5
@@ -683,7 +731,8 @@ def sweep_build(out_state, work_state, default, modes, depth2=False):
 # ---------------------------------------------------------------------------
 
 STATE_STATES = ("absent", "stale-record", "leftover-new", "unmarked-empty", "stale+leftover", "other-owner", "nodata",
-                "lock-dangling", "lock-symlink", "lock-hardlink", "marker-symlink", "marker-owner-link")
+                "lock-dangling", "lock-symlink", "lock-hardlink", "marker-symlink", "marker-owner-link",
+                "record-link", "record-new-link")
 
 
 def make_state(sb, state):
@@ -693,6 +742,18 @@ def make_state(sb, state):
     os.makedirs(d)
     if state == "unmarked-empty":
         return
+    if state in ("record-link", "record-new-link"):
+        # 記録とその置き換えの一時ファイルの名前が、利用者のファイルへのシンボリックリンク（8 版目の、探索の外の位置の
+        # 確かめで足した）。先は、正しい持ち主の値を持つ記録の形をしている
+        write(os.path.join(d, m.SERVER_MARKER), b"A")
+        write(os.path.join(d, "server.lock"), b"")
+        target = os.path.join(sb.root, "elsewhere-rec", "rec.json")
+        write(target, json.dumps({"instance": "user", "owner": "A"}).encode())
+        try:
+            os.symlink(target, os.path.join(d, "server.json" if state == "record-link" else "server.json.new"))
+        except OSError as e:
+            return f"リンクを作れない: {type(e).__name__}"
+        return None
     if state in LINK_STATES:
         if state not in ("marker-symlink", "marker-owner-link"):
             write(os.path.join(d, m.SERVER_MARKER), b"A")
@@ -733,8 +794,9 @@ def run_server(sb, injector, phase):
             server.lock.release()
 
 
-def check_server(state, phase, at, mode, baseline=None, natural=None):
-    sb = Sandbox("nodata" if state == "nodata" else "absent", "asis", True)
+def check_server(state, phase, at, mode, baseline=None, natural=None, data_link=False):
+    # data_link: <data_dir> そのものがジャンクション（解く前の名前と解いたパスが違う。6.1 の確かめの覚えを量る）
+    sb = Sandbox("nodata" if state == "nodata" else DATA_LINK[0] if data_link else "absent", "asis", True)
     problems = []
     try:
         skipped = make_state(sb, state)
@@ -797,11 +859,13 @@ def check_server(state, phase, at, mode, baseline=None, natural=None):
         sb.close()
 
 
-def sweep_server(modes):
+def sweep_server(modes, data_link=False):
     problems, runs = [], 0
     for state in STATE_STATES:
+        if data_link and state == "nodata":
+            continue
         for phase in ("start", "finish"):
-            found, total = check_server(state, phase, None, None)
+            found, total = check_server(state, phase, None, None, data_link=data_link)
             if not total:
                 continue                      # 飛ばした状態
             baseline, natural = Counter(LAST_WARNINGS), dict(LAST_FAILED)
@@ -809,7 +873,7 @@ def sweep_server(modes):
             runs += 1
             for mode in modes:
                 for at in range(1, total + 1):
-                    found, _ = check_server(state, phase, at, mode, baseline, natural)
+                    found, _ = check_server(state, phase, at, mode, baseline, natural, data_link=data_link)
                     problems += found
                     runs += 1
     return runs, problems
@@ -1037,32 +1101,59 @@ USER_DELETES = [("gen", "asis", False), ("gen", "leftovers", False), ("absent+ol
 def sweep_user_deletes(cases, modes=("crash", "half")):
     """強制停止のあとで、利用者が書き出し先を消してから、手を入れずに書き出す。
 
-    途中で消していた前の世代を、公開した世代として戻さないことを確かめる。
+    途中で消していた前の世代を、公開した世代として戻さないことを確かめる。手を入れない次の実行は、戻したものを
+    新しい世代で置き換えるので、それだけでは見えない（既定の書き出し先は門を通さない）。そこで、次の実行の復旧の
+    付け替えの直後に失敗を入れ、0 でなく終わったときに、書き出し先が、ないか空か、全体のそろった世代（前の世代か
+    新しい世代）であることも確かめる（8 版目。途中まで消した世代は、どちらでもない）。
     """
     problems, runs = [], 0
+    whole = (expected(FILES_P), expected(FILES_N))
     for out_state, work_state, default in cases:
         total = count_calls(lambda: Sandbox(out_state, work_state, default))
         for mode in modes:
             for at in range(1, total + 1):
-                sb = Sandbox(out_state, work_state, default)
-                try:
-                    before_world = world(sb)
+                def after_delete():
+                    """強制停止の実行と、利用者の削除までを作る。強制停止で書き出し先が残らなければ None。"""
+                    sb = Sandbox(out_state, work_state, default)
+                    before = world(sb)
                     injector = Injector(at, mode)
-                    rc = run_build(sb, injector)
-                    if rc != "crash" or not os.path.isdir(sb.out):
-                        continue
-                    runs += 1
+                    if run_build(sb, injector) != "crash" or not os.path.isdir(sb.out):
+                        sb.close()
+                        return None, None, None
                     shutil.rmtree(sb.out)          # 利用者が書き出し先を消す
-                    rc2 = run_build(sb, Injector())
+                    return sb, before, injector
+                sb, before_world, injector = after_delete()
+                if sb is None:
+                    continue
+                label = f"（{out_state}/{work_state}/{'default' if default else 'out'}、{mode}@{at}、{injector.hit}）"
+                try:
+                    runs += 1
+                    counter = Injector()
+                    rc2 = run_build(sb, counter)
                     if rc2 != 0 or content(tree(sb.out)) != expected(FILES_N):
-                        problems.append(f"書き出し先を消したあとの書き出しが、新しい世代に着かなかった（rc={rc2}）"
-                                        f"（{out_state}/{work_state}/{'default' if default else 'out'}、{mode}@{at}、"
-                                        f"{injector.hit}）")
+                        problems.append(f"書き出し先を消したあとの書き出しが、新しい世代に着かなかった（rc={rc2}）{label}")
                     if not world_same(sb, before_world, world(sb)):
-                        problems.append(f"書き出し先を消したあとの書き出しで、領分の外が変わった（{out_state}、{mode}@{at}）")
+                        problems.append(f"書き出し先を消したあとの書き出しで、領分の外が変わった{label}")
+                    restore = next((i for i, (name, target) in enumerate(zip(counter.names, counter.targets), 1)
+                                    if name == "rename" and isinstance(target, tuple)
+                                    and os.path.normcase(target[1]) == os.path.normcase(sb.out)
+                                    and os.path.basename(target[0]).startswith("old-")), None)
+                finally:
+                    sb.close()
+                if restore is None:
+                    continue
+                sb, _, _ = after_delete()
+                try:
+                    runs += 1
+                    rc3 = run_build(sb, Injector(restore + 1, "denied"))
+                    c = content(tree(sb.out))
+                    if rc3 != 0 and c not in (None, {}) and c not in whole:
+                        problems.append(f"書き出し先を消したあとの、復旧の直後の失敗で、途中の世代が書き出し先に残った"
+                                        f"（rc={rc3}）{label}")
                 finally:
                     sb.close()
     return runs, problems
+
 
 
 # ---------------------------------------------------------------------------
@@ -1096,6 +1187,10 @@ CONTROLS = {
     "raise_post_listdir": [("gen", "asis", False)],
     # 8 版目の探索で見つけた（6.1 の確かめが、名前ごとに識別子を覚えていた）
     "cache_ids_by_name": [("gen+datajunction", "asis", True)],
+    # 8 版目の、探索の外の位置の確かめで見つけた（復旧が、名前がリンクの old-N を書き出し先に付け替えた）
+    "recover_unchecked": [("absent", "old-junction", False)],
+    # 同じく、設計と試作の食い違い（既定の書き出し先の名前のリンクを、止まらずに置き換えた）
+    "accept_out_link": [("outlink-junction", "asis", True)],
 }
 
 
@@ -1114,7 +1209,9 @@ def build_cases(quick):
                     continue
                 cases.append((out_state, work_state, default))
             if not quick and out_state in LINK_OUT_STATES:
-                cases += [(out_state, ls, default) for ls in LINK_STATES + (WORK_LINK,)]
+                cases += [(out_state, ls, default) for ls in LINK_STATES + (WORK_LINK,) + ENTRY_LINK]
+        if not quick:
+            cases += [(s, "asis", default) for s in OUT_LINK]
         if default:
             cases.append(("datainwiki", "asis", True))
             if not quick:
@@ -1136,6 +1233,9 @@ def main():
     server_runs, server_problems = sweep_server(MODES)
     all_problems += server_problems
     out(f"\n## サーバーの記録\n\n実行 {server_runs} 回、破れた決まり {len(server_problems)} 件")
+    dl_runs, dl_problems = sweep_server(MODES, data_link=True)
+    all_problems += dl_problems
+    out(f"\n## サーバーの記録（<data_dir> そのものがジャンクション）\n\n実行 {dl_runs} 回、破れた決まり {len(dl_problems)} 件")
     root_runs, root_problems = sweep_server_root(MODES)
     all_problems += root_problems
     out(f"\n## 領分の名前がリンク（データの場所と状態のディレクトリ。起動、stop、動いているかの確かめ）\n\n実行 {root_runs} 回、破れた決まり {len(root_problems)} 件")
