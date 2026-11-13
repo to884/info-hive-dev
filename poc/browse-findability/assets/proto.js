@@ -22,7 +22,8 @@
   // 照合と強調で同じそろえ方にする。1 文字ずつ、大文字にしてから小文字にする（語末の ς と σ をそろえる）
   function fold(c) { return c.toUpperCase().toLowerCase(); }
   function norm(s) { return Array.from(String(s || "").normalize("NFC")).map(fold).join(""); }
-  function badge(t) { return el("span", "badge t-" + (t || "none"), TYPE[t] || t || "種類なし"); }
+  function typeLabel(t) { return Object.prototype.hasOwnProperty.call(TYPE, t) ? TYPE[t] : (t || "種類なし"); }
+  function badge(t) { return el("span", "badge t-" + (t || "none"), typeLabel(t)); }
 
   // --- 検索 ---
   var rows = [];
@@ -301,7 +302,7 @@
     var types = new Set();
     items.forEach(function (li) { types.add(li.getAttribute("data-type")); });
     [""].concat(Array.from(types).sort()).forEach(function (t) {
-      var b = el("button", null, t ? (TYPE[t] || t) : "すべて");
+      var b = el("button", null, t ? typeLabel(t) : "すべて");
       b.type = "button"; b.setAttribute("aria-pressed", t === "" ? "true" : "false");
       b.addEventListener("click", function () {
         state.type = t;
