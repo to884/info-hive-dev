@@ -842,6 +842,32 @@ class ReviewCounterexample7Test(RawCheckCase):
         self.assertFalse((self.wd / "cleaned.md").exists())
 
 
+class SonnetTrialTest(RawCheckCase):
+    """Sonnet 5.5 で試したときの改善点（sonnet-trial.md）。"""
+
+    def test_link_error_names_the_missing_url(self):
+        src = "# A\n\nSee [a](https://x.example/a) and [b](https://x.example/b).\n"
+        self.setup_fetch(src)
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw("# A\n\n[a](https://x.example/a) を見る。\n", fm=FM_T)
+        message = next(e["message"] for e in self.check()["errors"] if e["kind"] == "links")
+        self.assertIn("足りないリンク: https://x.example/b", message)
+        self.assertIn("取得 2、raw 1", message)
+
+    def test_months_and_credit_words_are_not_names(self):
+        names = wiki_rawcheck.names_of("The fight was in November 2024 (Created by Fareed Khan). "
+                                       "It ran on a Monday.")
+        self.assertNotIn("November", names)
+        self.assertNotIn("Created", names)
+        self.assertNotIn("Monday", names)
+        self.assertIn("Fareed", names)
+
+    def test_word_after_term_dash_is_a_sentence_start(self):
+        names = wiki_rawcheck.names_of("**NOCASE** - Similar to binary, except it folds case.")
+        self.assertNotIn("Similar", names)
+        self.assertIn("NOCASE", names)
+
+
 class ResumeTest(FetchCase):
     def test_resume_after_translation(self):
         """訳したあとに止まった取り込みを取り直すと frozen になり、訳した raw が check を通る。"""
