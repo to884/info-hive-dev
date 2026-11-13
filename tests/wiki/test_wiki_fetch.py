@@ -3,6 +3,9 @@
 - `<picture>` の `<source srcset>` にだけ URL がある図を保存すること（`<img>` に URL がない）。
 - `<pre>` の中で `<br>` で区切った行を、改行のまま保つこと。
 
+保存（`write_outputs`）では、Windows でほかのプロセスがファイルを開いているために名前の変更が
+`PermissionError` になっても試し直して書くこと、試し直しても失敗したら前の raw と画像を残すことを確かめる。
+
 取得（`fetch`）を差し替えるので、ネットにはつながない。
 
 実行（標準ライブラリだけで動く）:
@@ -11,6 +14,8 @@
 from __future__ import annotations
 
 import argparse
+import errno
+import os
 import struct
 import sys
 import tempfile
@@ -200,6 +205,156 @@ class PreLineBreakTest(FetchTestCase):
     def test_br_outside_pre_is_unchanged(self):
         _, text, _ = self.run_build("<p>一行目<br>二行目</p>")
         self.assertIn("一行目  \n二行目", text)
+
+
+REAL_REPLACE = os.replace
+
+
+class FlakyReplace:
+    """os.replace の代わり。fails(src, dst) が真の呼び出しを、先頭から times 回だけ失敗させる。
+
+    times が None なら、当たる呼び出しをすべて失敗させる。当たらない呼び出しと、失敗させ終えたあとの
+    呼び出しは本物の os.replace に任せる。当たった呼び出しの回数を attempts に数える。
+    """
+
+    def __init__(self, fails, times: int | None, error: OSError | None = None):
+        self.fails = fails
+        self.times = times
+        self.error = error
+        self.attempts = 0
+
+    def __call__(self, src, dst):
+        if self.fails(Path(src), Path(dst)):
+            self.attempts += 1
+            if self.times is None or self.attempts <= self.times:
+                raise self.error or PermissionError(errno.EACCES, "アクセスが拒否されました。", str(dst))
+        REAL_REPLACE(src, dst)
+
+
+class ReplaceRetryTest(unittest.TestCase):
+    """保存（write_outputs）の名前の変更が、Windows の一時的な PermissionError を試し直すこと。
+
+    CI は Linux でも走るので、Windows かどうかの判定（_RETRY_REPLACE_ON_WINDOWS）を試験ごとに明示する。
+    待つ時間（time.sleep）は記録するだけで、実際には待たない。
+    """
+
+    SLUG = "article-1"
+    OLD_TEXT = "---\ntitle: 前の本文\n---\n\n前の本文である。\n"
+    NEW_TEXT = "---\ntitle: 新しい本文\n---\n\n新しい本文である。\n"
+    OLD_IMAGE = png(10, 10)
+    NEW_IMAGES = [("article-1-01.png", png(20, 20)), ("article-1-02.png", png(30, 30))]
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.raw = Path(tmp.name)
+        self.target = self.raw / f"{self.SLUG}.md"
+        self.asset_dir = self.raw / "assets" / self.SLUG
+        self.sleeps: list[float] = []
+        patcher = mock.patch.object(wiki_fetch.time, "sleep", self.sleeps.append)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        # 前の取得で書いた raw と画像を、本物の os.replace で置く。
+        self.write(self.OLD_TEXT, [("article-1-01.png", self.OLD_IMAGE)])
+        self.sleeps.clear()
+
+    def write(self, text: str, images: list[tuple[str, bytes]]) -> None:
+        wiki_fetch.write_outputs(self.raw, self.target, self.asset_dir, self.SLUG, text, images)
+
+    def write_with(self, flaky: FlakyReplace, *, windows: bool = True) -> None:
+        with mock.patch.object(wiki_fetch, "_RETRY_REPLACE_ON_WINDOWS", windows), \
+                mock.patch.object(wiki_fetch.os, "replace", flaky):
+            self.write(self.NEW_TEXT, self.NEW_IMAGES)
+
+    def to_target(self, src: Path, dst: Path) -> bool:
+        return dst == self.target
+
+    def assert_new_written(self):
+        self.assertEqual(self.target.read_bytes().decode("utf-8"), self.NEW_TEXT)
+        for name, data in self.NEW_IMAGES:
+            self.assertEqual((self.asset_dir / name).read_bytes(), data)
+        self.assert_no_leftovers()
+
+    def assert_previous_kept(self):
+        self.assertEqual(self.target.read_bytes().decode("utf-8"), self.OLD_TEXT)
+        self.assertEqual(sorted(p.name for p in self.asset_dir.iterdir()), ["article-1-01.png"])
+        self.assertEqual((self.asset_dir / "article-1-01.png").read_bytes(), self.OLD_IMAGE)
+        self.assert_no_leftovers()
+
+    def assert_no_leftovers(self):
+        # 一時の本文（.<スラッグ>.md.<pid>.tmp）、新しい画像の置き場（.new）、退避の場所（.old）が残らない。
+        self.assertEqual([p.name for p in self.raw.rglob(".*")], [])
+
+    def check_transient_error_on_raw(self, times: int):
+        flaky = FlakyReplace(self.to_target, times)
+        self.write_with(flaky)
+        self.assert_new_written()
+        self.assertEqual(flaky.attempts, times + 1)
+        self.assertEqual(self.sleeps, list(wiki_fetch._REPLACE_RETRY_DELAYS[:times]))
+
+    def test_raw_is_written_after_one_transient_error(self):
+        self.check_transient_error_on_raw(1)
+
+    def test_raw_is_written_after_two_transient_errors(self):
+        self.check_transient_error_on_raw(2)
+
+    def test_transient_error_on_images_is_retried(self):
+        # 古い画像の退避（移動先が .old の中）と、新しい画像の配置の両方で、1 回ずつ失敗させる。
+        backup = FlakyReplace(lambda src, dst: dst.parent.name.endswith(".old"), 1)
+        place = FlakyReplace(lambda src, dst: dst == self.asset_dir / "article-1-02.png", 1)
+
+        def replace(src, dst):
+            if backup.fails(Path(src), Path(dst)):
+                return backup(src, dst)
+            return place(src, dst)
+
+        self.write_with(replace)
+        self.assert_new_written()
+        self.assertEqual((backup.attempts, place.attempts), (2, 2))
+        self.assertEqual(len(self.sleeps), 2)
+
+    def test_persistent_error_keeps_previous_raw_and_images(self):
+        flaky = FlakyReplace(self.to_target, None)
+        with self.assertRaises(PermissionError):
+            self.write_with(flaky)
+        self.assert_previous_kept()
+        delays = wiki_fetch._REPLACE_RETRY_DELAYS
+        self.assertEqual(flaky.attempts, len(delays) + 1)
+        self.assertEqual(self.sleeps, list(delays))
+        self.assertAlmostEqual(sum(self.sleeps), 1.0)
+
+    def test_restoring_old_images_is_retried(self):
+        # 本文の置き換えがずっと失敗し、退避した古い画像を戻す名前の変更も 1 回だけ失敗する。
+        target = FlakyReplace(self.to_target, None)
+        restore = FlakyReplace(lambda src, dst: src.parent.name.endswith(".old"), 1)
+
+        def replace(src, dst):
+            if restore.fails(Path(src), Path(dst)):
+                return restore(src, dst)
+            return target(src, dst)
+
+        with self.assertRaises(PermissionError):
+            self.write_with(replace)
+        self.assert_previous_kept()
+        self.assertEqual(restore.attempts, 2)
+        self.assertEqual(len(self.sleeps), len(wiki_fetch._REPLACE_RETRY_DELAYS) + 1)
+
+    def test_other_errors_are_not_retried(self):
+        flaky = FlakyReplace(self.to_target, None, OSError(errno.EIO, "入出力のエラー"))
+        with self.assertRaises(OSError) as caught:
+            self.write_with(flaky)
+        self.assertNotIsInstance(caught.exception, PermissionError)
+        self.assert_previous_kept()
+        self.assertEqual(flaky.attempts, 1)
+        self.assertEqual(self.sleeps, [])
+
+    def test_not_retried_outside_windows(self):
+        flaky = FlakyReplace(self.to_target, 1)
+        with self.assertRaises(PermissionError):
+            self.write_with(flaky, windows=False)
+        self.assert_previous_kept()
+        self.assertEqual(flaky.attempts, 1)
+        self.assertEqual(self.sleeps, [])
 
 
 if __name__ == "__main__":
