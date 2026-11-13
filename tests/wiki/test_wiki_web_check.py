@@ -773,6 +773,44 @@ class ReviewCounterexample5Test(RawCheckCase):
         self.assertIn("links", self.kinds(self.check()))
 
 
+class ReviewCounterexample6Test(RawCheckCase):
+    """実装の 6 回目のレビュー（impl-review-6.md）の反例。"""
+
+    def test_hidden_cells_after_removing_a_header_column(self):
+        src = "# A\n\n| A | B |\n|---|---|\n| 1 | `SELECT 1;` [safe](https://safe.example/) |\n"
+        self.setup_fetch(src)
+        self.write_raw("# A\n\n| A |\n|---|\n| 1 | `SELECT 1;` [safe](https://safe.example/) |\n")
+        self.assertIn("table", self.kinds(self.freeze()))
+        # 見出しとすべての行から列を消すのは通る（対照）。
+        self.write_raw("# A\n\n| A |\n|---|\n| 1 |\n")
+        result = self.freeze()
+        self.assertTrue(result["ok"], result["errors"])
+
+    def test_second_caption_with_code_name(self):
+        src = "# A\n\n![x](assets/a/1.png)\n"
+        self.setup_fetch(src, images=["assets/a/1.png"])
+        self.assertTrue(self.freeze()["ok"])
+        self.write_raw(src + "\n> Claude Sonnet 5.5 補足: 一つ目の説明。\n>\n> `Other` 補足: 二つ目の説明。\n", fm=FM_T)
+        self.assertIn("caption", self.kinds(self.check()))
+
+
+class ResumeTest(FetchCase):
+    def test_unchanged_reports_stage_and_values(self):
+        """訳したあとに止まった取り込みを取り直すと、削除を固定した段まで進んだことと、手順の値を返す。"""
+        html = html_page(f"<p>{LONG}</p>")
+        self.build(html)
+        self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "page")[0], 0)
+        stub = FetchStub(html)
+        with mock.patch.object(wiki_fetch, "fetch", stub), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
+            code, result = wiki_fetch.build(self.args())
+        self.assertTrue(result["unchanged"])
+        self.assertTrue(result["work_dir"])
+        self.assertEqual(result["work_stage"], "frozen")
+        self.assertTrue(result["needs_translation"])
+        self.assertIn("images", result)
+
+
 class FetchCounterexample3Test(FetchCase):
     def test_visible_text_is_counted_by_the_parser(self):
         """コードの中の * と、# で始まる段落の文字も数える（4 回目のレビュー）。"""
