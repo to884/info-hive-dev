@@ -1,0 +1,156 @@
+[ask-codex 16:51:19] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\web-ingest-check）
+W5 の取り直しで、承認した18文字の本文が未承認の空本文に変わるケースを再現しました。W3 を通さず W4 から進むと、取得後の `freeze` と `check` は通ります。実モデルがこの経路を選ぶかは未確認です。既存の実取り込み記録2件は、現行スクリプトでも15/15で通ることを確認しました。## 判定
+
+**却下。確信度：高。** 承認の再照合を飛ばせる手順が残り、実地検証スクリプトも、実行担当の違反や未実行の W8 を合格させる。Windows のパス正規化にも、実ファイルで確認できる取りこぼしがある。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】W5 の取り直しは、承認を照合する W3 に戻らない
+
+W3 は、取り直してハッシュが変われば `needs_browser` を返すと書く。一方、W5 は明示的に「`--force` で取り直して **W4 から**やり直す」と指示する。**承認の照合条件と、そこを通らない復旧経路が競合している。**
+
+反例は次のとおり。
+
+1. ユーザーが「訳さない」と指定した取り込みで、保存済み HTML から18文字の本文を取得する。
+2. `needs_browser` に対し、ユーザーがその `fetched_sha256` の本文で続けることを承認する。
+3. 再呼び出しは同じ写しを再開し、W3 の承認照合を通る。
+4. W4 で本文を誤って削除する。W5 の報告を読んで誤削除に気づく。
+5. W5 の指示どおり URL を `--force` で取り直す。今回は本文を返さないページだったため、本文が空になり、ハッシュも変わる。
+6. W5 の指示どおり W4 から再開すると、新しい本文への承認を照合しないまま W5・W8 へ進める。
+
+通信とファイル操作をメモリ上に置き換え、現行の `build()`、`freeze()`、`check()` で確認した結果は次のとおり。
+
+```text
+初回の本文: 18文字
+再開時のハッシュ: 初回と一致
+誤削除に対する freeze の警告: あり
+取り直した本文: 0文字、ハッシュ変更
+取り直し後の freeze: 成功
+check（ユーザー指定の keep）: 終了コード0、誤り・警告なし
+```
+
+**実モデルがこの遷移を選ぶことは未確認**である。確認できた欠陥は、手順の明示的な遷移に従うと照合箇所を迂回でき、下流の検査も止めないこと。
+
+根拠：
+
+- [references/web-raw.md:117](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references/web-raw.md:117)：ハッシュの照合条件は W3 にある。
+- [references/web-raw.md:120](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references/web-raw.md:120)：W5 の取り直し後は W4 から再開する。
+- [wiki_fetch.py:1297](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:1297)、1322・1503行：`--force` は再開を外し、URL を取得して写しと raw を作り直す。
+- [wiki_rawcheck.py:980](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:980)：W8 が比較するのは新しい `cleaned.md` と raw で、ユーザーの承認ではない。
+
+### 2. 【重大】出力を捨てた担当違反は、合否判定にも手動確認一覧にも出ない
+
+正常な合成記録のメイン側へ、次の PowerShell 呼び出しと、空の成功結果を追加する。
+
+```powershell
+$s = Join-Path $env:CLAUDE_PLUGIN_ROOT ('skills/info-hive/scripts/wiki_' + 'rawcheck.py')
+& python $s freeze --wiki (Join-Path $PWD wiki) --raw-root (Join-Path $PWD raw) --slug cqrs > $null
+```
+
+実行に成功しても標準出力は返らないため、`ran()` はこれを `freeze` の実行と数えない。コマンドには連続したスクリプト名も `raw/` 形式のパスもなく、手動確認一覧にも載らない。
+
+**現行の `analyze_paths()` は15/15、`ok: true` を返した。追加したコマンドは `bash_to_review` にもなかった。** シェルから対象スクリプト自体は実行せず、記録を入力して判定を確認した。
+
+「結果の形で判定する」は、引用符の問題を避けても、**実行結果が表示されることを必須条件にしてしまう。** 出力のリダイレクト、変数への代入、部分表示でも同じ前提が崩れる。
+
+根拠：
+
+- [check_web_raw_agent.py:231](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:231)：`ran()` は結果の本文が正規表現に一致する呼び出しだけを数える。
+- 同291〜297行：その検出結果だけで実行担当を判定する。
+- 同353〜364行：手動確認一覧も、限定した文字列パターンで抽出する。
+- [test_web_raw_agent.py:344](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/test_web_raw_agent.py:344)：追加試験は、いずれの呼び出しにも認識可能な `"freeze: 通った"` を与えており、出力を捨てる場合を扱わない。
+
+### 3. 【重大】W8 は、過去の出力の再表示や、別担当による実行でも合格する
+
+正常な合成記録に対して、それぞれ独立に次の変更を加えた。
+
+- Sonnet の W8 コマンドを `cat previous-check-output.json` に変更し、以前の成功 JSON を結果として返す。
+- 警告なしの W8 呼び出しとその成功結果を、Sonnet 側からメイン側へ移す。
+
+**どちらも15/15、`ok: true` だった。** 後者の W8 の判定詳細は `{"main": 1}` であり、担当の取り違えも確認できた。
+
+`check_finished()` は文字列を検索するだけで、その出力が今回の `check --finish` から生じたかを確認しない。さらに W8 は `any(finished.values())` なので、成功結果を受け取った担当が誰でも通る。呼び出しと結果を id で対応させても、**対応先が過去の出力を読むコマンドなら、今回の検査の証拠にはならない。**
+
+根拠：
+
+- [check_web_raw_agent.py:224](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:224)：`stage`、`work_dir_removed`、`ok` の文字列、または日本語の成功表示だけを見る。
+- 同298〜301行：コマンドの内容と担当を制約せず、どこかの担当で一致すれば W8 を合格にする。
+- 同349〜350行：現在の作業用ディレクトリが空という確認も、今回 W8 を実行した証明にはならない。
+- [agents/web-raw.md:21](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/agents/web-raw.md:21)：通常の W1〜W8 は `wiki:web-raw` の担当である。
+
+警告を親が受け入れて終了処理を行う経路とは別の反例であり、ここで移した結果の警告は空である。
+
+### 4. 【重大】Windows の `\\?\` 付きパスで、構造化された raw への書き込みを見逃す
+
+`norm()` は `resolve()` 後にも残る Windows の拡張パス接頭辞を統一しない。そのため、同じ実ファイルでも比較文字列が異なる。
+
+リポジトリに実在するファイルで確認した。
+
+```text
+通常パスと \\?\ 付きパスの samefile(): True
+通常パスの under(): True
+\\?\ 付きパスの under(): False
+```
+
+さらに、正常な合成記録のメイン側へ次の `Write` を追加した。
+
+```text
+\\?\C:\ReviewMemory\proj\raw\cqrs.md
+```
+
+**現行の `analyze_paths()` は15/15、`ok: true` を返した。** raw への構造化された書き込みであるにもかかわらず、担当違反として検出されない。
+
+リンクにも別の不一致が残る。`project/raw` 自体が別ディレクトリへのリンクなら、書き込み先だけがリンク先へ解決され、比較ルートは `project/raw` のままである。このケースはリンク解決をモックにして `under() == False` を確認した。実リンクは作成していない。
+
+根拠：
+
+- [check_web_raw_agent.py:141](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:141)：`norm()` は `resolve().as_posix()` を返す。
+- 同172〜176行：`under()` は区切り・大小文字をそろえた接頭辞比較であり、拡張パス接頭辞を統一しない。
+- 同239・251行：解決するのは `project` であり、その後に付けた `wiki`・`raw` 自体は解決しない。
+- 同303〜308行：この比較結果で書き込みの担当違反を判定する。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| 新しい短い本文を取得したら、必ず承認照合を通る | W5 の取り直し後に、明記された W4 から再開する |
+| スクリプトの実行結果は、そのまま道具の結果に表示される | リダイレクト、変数への代入、部分表示、出力の切り詰め |
+| スクリプト形式の出力を受け取った担当が、その処理を実行した | 保存済み JSON やログを `cat` する |
+| W8 の成功出力があれば、今回の対象を所定の担当が検査した | 過去の出力の再表示、別担当での実行 |
+| `resolve()` 後の書き込み先と比較ルートは同じ表記になる | `\\?\` 接頭辞、`raw`・`wiki` 自体がリンク |
+| エラー指定がなければ書き込みは成功した | 失敗を本文だけで返す記録。実際の `Write` がこの形を返すかは未確認 |
+
+## 見落としと軽微な問題
+
+- **【軽微・条件付き】`is_error` のない失敗は成功として数える。**  
+  古い要約を残し、今回の `Write` の結果を `Permission denied`、`is_error` なしにした合成記録は全項目合格した。`events()` は欠落を `False` にし、`succeeded()` は本文を見ない。実際の `Write` がこの形式で失敗を返すかは未確認である。根拠は [check_web_raw_agent.py:111](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:111)、124〜127行。
+
+- **【軽微】古い要約への部分的な `Edit` 成功でも、今回の要約を作った扱いになる。**  
+  要約本文を残したまま、題名などだけを編集する成功記録でも通る。判定は書き込み先とファイルの存在だけで、今回の raw に対応する要約本文になったかは調べない。成功 `Edit` に置き換えた合成記録で全項目合格を確認した。根拠は同314〜319行。
+
+- **【軽微】読み取りだけでも担当違反になる。**  
+  メインが Bash で `fetch.json` を読むだけで、取得担当の違反として不合格になった。これは `root-causes-6.md` に明記された意図的な判定だが、合否を「実行した担当」の証拠として扱うことはできない。根拠は同213〜219行、231〜234行。
+
+- **【軽微】試験が重要な反例を構築しない。**  
+  ハッシュ承認の試験は W3 の文言の存在を確認するだけで、W5 からの遷移を確認しない。また `paired()` は結果のない呼び出しへ成功結果を自動追加するため、結果欠落のケースをそのまま試験できない。根拠は [test_web_raw_agent.py:151](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/test_web_raw_agent.py:151)、248〜269行。`\\?\` やリンクになった比較ルートの試験もない。
+
+## 検証した事実
+
+- 指定された差分、前回レビュー、原因分析、現行コード・手順・関連試験を照合した。
+- 書き込みを伴わない既存15テストはすべて成功した。
+- `trial-cqrs.json`、`trial-bloom.json` のセッションを現行の `analyze()` で再解析し、**双方15/15、`ok: true`** を確認した。依頼元の説明と一致する。ただし、上記反例を排除する証拠にはならない。
+- `fetched_sha256` は本文だけでなく、`fetched_at`、取得元のハッシュなどを含む **`fetched.md` 全体のバイト列**を対象とする。画像ファイルのバイト列は含まない。根拠は `wiki_fetch.py` の1434・1450〜1463・1491〜1493行。
+- `RESUME_KEYS` の追加は、`resume_fields()` を通じて再開時の JSON に値を返す。メモリ上の取得・再開・固定済み再開で、元の値が保持されることを確認した。
+- 反例の検証では通信とファイル操作をモックにした。実モデルによる新しい取り込みは実行していない。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 整合する写しから通常どおり再開する場合、ハッシュは保持される。承認付きの再呼び出しが、再開だけを理由に再質問し続ける反例は見つからなかった。
+- **W3 を通る限り**、異なるハッシュや値の欠落を承認として扱う記述ではない。値の転記間違いだけで承認が通る根拠は見つからなかった。
+- 終了コード3は `existing_differs`、取得失敗は `failed` へ分岐するため、それらの出力に `fetched_sha256` がないこと自体による承認迂回は崩せなかった。
+- `--keep-noise` によって `fetched.md` のバイト列が変われば、ハッシュも変わる。同一バイト列の別取得を同じ承認対象とすること自体は、今回の「本文に結ぶ」という目的と矛盾しない。
+- 明示的な `is_error: true` の失敗、通常の `..` を含むパス、Windows の単純な大小文字の違いに対する修正は、確認した反例を止めた。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 17:03:14] 完了。session 01a1d90a-17aa-7820-8e72-a25f490b25ea  usage {"input_tokens": 2111685, "cached_input_tokens": 1990656, "cache_write_input_tokens": 0, "output_tokens": 19423, "reasoning_output_tokens": 8933}
