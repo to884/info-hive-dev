@@ -1,0 +1,128 @@
+[ask-codex 21:59:05] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\web-ingest-check）
+## 判定
+
+**却下。確信度：高。** 補足の中に置いた取得済み画像は、ファイルが欠落していても検査を通る。また、木の比較には指数的な再計算があり、正しい削除でも極端に遅くなる入力を作れる。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】補足の中の画像は、ファイル欠落と画像追加の検査をすり抜ける
+
+実物の `build()`・`freeze()`・`check()` を、ネットワークとファイル入出力だけメモリに置き換えて再現した。
+
+取得する HTML：
+
+```html
+<img src="i.png"><img src="j.png">
+```
+
+取得器は、次の2画像を別の段落として出す。
+
+```markdown
+![](assets/a/a-01.png "https://site.example/i.png")
+
+![](assets/a/a-02.png "https://site.example/j.png")
+```
+
+再現手順：
+
+1. 2番目の画像の段落と画像ファイルを削除する。
+2. `freeze` を実行する。終了コード0になる。
+3. 残した画像へ、次の補足を追加する。`translated_by` は `Model` にする。
+
+```markdown
+> Model 補足: 説明 ![](assets/a/a-02.png "https://site.example/j.png")
+```
+
+**`check` は終了コード0、誤り・警告ともに空になる。** 削除済みの画像ファイルへの参照が raw に復活している。
+
+`strip_captions()` は、補足直下の子が段落であることだけを確認し、そのインラインにある画像を調べず、引用全体を取り除く。そのため、この画像はファイル存在検査にも、その後の画像比較にも到達しない。
+
+設計の「取得した画像のファイルがなければ誤り」という両段共通の条件、および画像保持の条件と**食い違う**。`impl-root-causes-1.md` の画像欠落対策は、補足の内側には成立していない。
+
+根拠：[wiki_rawcheck.py:450](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:450)、[補足の内容確認:482](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:482)、[画像比較:557](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:557)。
+
+### 2. 【重大】`derivable()` の診断処理が、正しい削除でも指数的な再計算を起こす
+
+次の HTML を作る。`N` 段の引用を2つ並べたものである。
+
+```python
+html = (
+    "<blockquote>" * N + "<p>noise</p>" + "</blockquote>" * N
+    + "<blockquote>" * N + "<p>Body.</p>" + "</blockquote>" * N
+)
+```
+
+実物の取得器に通し、最初の引用だけを丸ごと削除して `freeze` した。いずれも正しい削除として成功するが、`derivable()` の呼び出し回数は次のとおりだった。
+
+| 引用の深さ | 呼び出し回数 |
+|---:|---:|
+| 8 | 522 |
+| 12 | 8,206 |
+| 16 | 131,090 |
+
+深さ16の例は、取得後の本文が83文字しかない。深さが4増えるごとに、呼び出し回数がおおむね16倍になる。
+
+原因は、子の部分列判定が失敗すると、失敗箇所の特定のために同じ比較を再実行すること。再帰先でも同じ処理が起きる。`failure=[]` を渡して診断を捨てる比較でも再計算するため、最初の候補となる引用が一致しないだけで指数的に増える。候補の引用を複数並べれば、正しい削除の処理時間をさらに増やせる。
+
+貪欲な部分列判定の**正否**ではなく、対応判定を繰り返す実装の計算量の欠陥である。
+
+根拠：[wiki_rawcheck.py:340](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:340)、[失敗時の再探索:343](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:343)。
+
+## 崩れる前提
+
+- **補足直下が段落だけなら、取り除いても画像の検査に穴は開かない。** 段落のインラインには画像を置ける。引用全体を除去すると、その画像は検査対象から消える。
+- **貪欲に対応を探す実装なら、木全体の照合も効率的である。** 対応判定の再帰処理が、失敗時に同じ探索を繰り返すと成立しない。
+- **リンクのトークン列が同じなら、リンクを丸ごと保存している。** エスケープの有無など、元の記法が違ってもトークン列は一致し得る。
+- **コードを除いた文字列で、補足の本文が空か判定できる。** 本文がインラインコードだけの場合に崩れる。
+
+## 見落としと軽微な問題
+
+- **【軽微】空でない補足を空と判定する。**
+
+  取得画像の後ろに次を追加し、表示名と `translated_by` をそろえても、`check` は `補足の本文が空` として拒否した。
+
+  ```markdown
+  > Model 補足: `foo()`
+  ```
+
+  `caption_of()` が使う `inline_text()` はコードを除外する。段落だけからなる補足という条件は満たしている。根拠：[inline_text:188](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:188)、[caption_of:439](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:439)。
+
+- **【軽微】リンク内の記法を部分削除しても `freeze` を通せる。**
+
+  HTML の `href="https://x.example/a\!"` から取得器が出した次のリンクについて、バックスラッシュだけを削除すると終了コード0になる。
+
+  ```markdown
+  [docs](https://x.example/a\!)
+  ```
+  ```markdown
+  [docs](https://x.example/a!)
+  ```
+
+  パーサーが解釈する URL の意味は同じであり、リンク先変更の反例ではない。ただし、リンクの記法を丸ごと保存するという説明とは**食い違う**。根拠：[inline_units:282](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:282)。
+
+- **【軽微】リンクの `title` への新規文字列は検査・警告されない。**
+
+  翻訳段階で `[docs](https://x.example/)` を `[docs](https://x.example/ "NEW RAW PAYLOAD")` に変えると、`check` は誤り・警告なしで通った。比較するリンク属性は `href` だけで、英字警告用の文字列にも `title` は入らない。根拠：[links_of:194](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:194)、[compare:553](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:553)。
+
+- **【軽微】回帰試験は、今回の境界を確かめていない。** `test_fetched_image_deleted_after_freeze` は通常の本文中の画像だけを扱い、補足中の画像を扱わない。`test_snapshot_matches_raw_and_records_language` は最終内容の一致を確認するが、書き込み順序自体は確認しない。根拠：[test_wiki_web_check.py:541](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/test_wiki_web_check.py:541)、[同:175](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/test_wiki_web_check.py:175)。
+
+## 検証した事実
+
+- **一致：** 差分内の追加 `wiki_rawcheck.py` は実ファイルと完全一致した。指定された設計、過去4回のレビューと原因分類、試験を確認した。
+- **一致：** `wiki_pages.new_parser()` は同梱パーサーを使い、`commonmark`、HTML無効、表有効である。
+- **一致：** ファイル入出力をメモリに置き換え、検査関連38試験と取得関連15試験が成功した。上記の追加反例も実物の変換・検査処理で再現した。
+- **一致：** 作業用の写しは `fetched.md`、一時JSON、`fetch.json` への名前変更、raw出力の順になる。名前変更失敗時にはrawを出力せず、写しを不完全と判定した。
+- **確かめられず：** 実ファイル入出力による全試験の成功。指定コマンドに `-B` を加えた実行では、77試験中70試験が一時ディレクトリを作れずエラーになった。実装の試験失敗とは判定していない。
+- リポジトリのファイルは変更していない。実ネットワーク取得、実ジャンクション作成、実際の再帰削除は行っていない。
+
+## 崩せなかった点
+
+- 貪欲な部分列判定そのものの正当性と、重複段落による過去の誤拒否。
+- リスト内コード、エスケープした `]` を含むリンク・画像、強調内のリンク削除に関する既存反例。
+- 日本語・`%20` の画像パス、引用・リスト内の補足、原文の補足形式の引用を保存する既存反例。
+- 4回目の重大3件、すなわち表の余分なセルへの追記、参照定義に似た通常段落の翻訳、番号付きリストの先頭項目削除。
+- 雑音規則の既存対照と、`--html-file` の基準URL・UTF-8拒否に関する試験範囲。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 22:12:56] 完了。session 01a1d4fd-8069-7f20-ba8d-01b396993c11  usage {"input_tokens": 2351481, "cached_input_tokens": 2207360, "cache_write_input_tokens": 0, "output_tokens": 21099, "reasoning_output_tokens": 12018}
