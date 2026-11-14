@@ -1,0 +1,204 @@
+[ask-codex 08:23:49] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-apply-design）
+指摘を、通常の開始・復旧が完結しない箇所と、保証の記述が実際の手順より強い箇所に分けました。ハッシュ照合、操作の順次合成、参照定義を含む構造検査については、今回確認した範囲で新しい変更消失の反例は得られていません。## 判定
+
+**却下。確信度：高。** 管理領域の検査と復旧手順に、通常の開始・復旧を完了できない欠落がある。Windows の生存確認用ロックも、持ち主情報を読み取る手順と両立していない。
+
+未実装の設計への判定である。以下では、設計から導いた反例と、既存コードで実測した結果を区別する。
+
+## 致命的・重大な欠陥
+
+### 1.【重大】環境の違う書き手は、前の書き手の作業フォルダーに完了印を書けない
+
+12版目は、`INFO_HIVE_DATA_DIR` が違う書き手も、同じ wiki の日誌を復旧する設計になった。一方、作業用の書き込み先は、復旧するプロセス自身の `K` に限定されたままである。
+
+次の配置を考える。すべて通常のディレクトリで、wiki、raw、Git の外にある。
+
+```text
+A の K = /data/a/apply/work
+B の K = /data/b/apply/work
+
+A の D = /data/a/apply/work/draft-123
+wiki と raw は A・Bで共通
+```
+
+1. A が7bの途中で終了する。日誌と `D` は残る。
+2. 死んだAのロックを、通常の `unlock --lock-id` で外す。
+3. B が自分の計画を適用し、手順2でAの日誌を前に進める。
+4. ページの配置を終え、490行の規則に従って、存在するAの `D/applied.json` を書こうとする。
+5. その親の祖先には `K_A` があり、**Bの `K_B` はない**。`Writer` の作業用検査dが拒む。
+
+日誌から作り直すと書かれている情報は wiki と raw のルートであり、作業領域をAのものへ切り替える規則はない。`D` の絶対パスが記録されていても、現在の `K` に対する領域検査は通らない。
+
+そのため、ページを復旧できても日誌を `done` にできず、Bは自分の計画へ進めない。この拒否をどう状態遷移させるかも記載されていない。1節の失敗一覧にはない、**参加する書き手同士の復旧停止**である。
+
+根拠：[Kの定義・238行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:238)、[Writerの検査d・279行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:279)、[復旧時のWriter作成・479行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:479)、[完了印の書き込み・490行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:490)。
+
+### 2.【重大】管理領域自身の検査と `.gitignore` の作成が、Writerの許可範囲に入らない
+
+283行は、`.wiki-cache`、`L`、`P` 自身にもa〜dを当てる。一方、管理用の検査dは、**対象の親の祖先に `L` または `P` があること**を要求する。
+
+通常の配置でも次の結果になる。
+
+| 検査対象 `p` | `p` の親 | 親の祖先に `L` または `P` があるか |
+| --- | --- | --- |
+| `W/.wiki-cache` | `W` | ない |
+| `L` | `W/.wiki-cache` | ない |
+| `P` | `W/.wiki-cache` | ない |
+
+`K` 自身には別の条件があるが、これらにはない。したがって、記載どおりなら正常な管理領域も最初の検査で拒まれる。`bootstrap()` の例外は作成時のもので、作成後の283行の検査には適用されない。
+
+さらに、古い wiki に作る `W/.wiki-cache/.gitignore` は、管理用の許可範囲である `L` と `P` の外である。ページ用の検査でも `.wiki-cache` の内部なので拒まれる。`bootstrap()` が例外として扱うのは `os.mkdir()` であり、このファイルの作成ではない。
+
+**2回目の重大5と4回目の軽微2が、12版目の領域分割で戻っている。** 対照表806行・822行の「生じない」は成立しない。
+
+根拠：[Git除外ファイルの作成・243行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:243)、[検査dとbootstrap・279行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:279)、[管理領域自身の検査・283行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:283)。
+
+### 3.【重大・仕様の欠落】`unlock` は、Writerに必要なrawのルートを取得できない
+
+42行は「計画を持たずに `Writer` を作る操作がなくなった」としてBDを外している。しかし、`unlock` は計画を受け取らず、ファイルを削除する操作である。
+
+次の状態は、指定された操作だけで作れる。
+
+1. 任意の場所Rを指定して `begin` する。
+2. `apply` がロックを公開したあと、日誌を書く前に終了する。
+3. `abort --apply-dir D` で作業フォルダーを消す。
+4. `unlock --wiki W --lock-id <残ったID>` を実行する。
+
+この時点では、計画も日誌もない。ロックの保存項目にも **`raw_root` はない**。`unlock` の引数にもない。
+
+それでも272行は、ロックの削除を含む全書き込みを、rawの実体集合を持つ `Writer` に通す。283行も、`unlock` の開始時にrawを含む検査を要求する。
+
+したがって、検査を守れば必要な `Writer` を構成できず、検査を省けば全書き込みに検査を当てる契約から外れる。`recover` が最初のロックを取得する経路にも、同じ取得元の欠落がある。
+
+これは10回目の重大1と同じ種類の欠落であり、対照表846行の「どの操作も計画か日誌から読む」は事実と食い違う。
+
+根拠：[BDを外した理由・42行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:42)、[ロックの保存項目・247行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:247)、[全書き込みの入口・272行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:272)、[recoverの入力・521行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:521)。
+
+### 4.【重大】Windowsでは、生きている持ち主のロック情報を通常の読み取りで取得できない
+
+247行は、持ち主情報を書いたファイルの**先頭1バイト**に、`wiki_graph_common._try_lock()` でロックをかける。
+
+Windowsで、既存の同ヘルパーを使って実測した。
+
+```text
+既存ファイルを読み取り専用で開く
+_try_lock(fd)                         → True
+別のPythonプロセスで read_bytes()    → PermissionError、errno 13
+解放後のバイト列                     → 元と一致
+```
+
+Windowsのこのロックは、別ハンドルによる対象バイトの読み取りも妨げる。JSON全体を通常どおり読むと、最初のバイトで失敗する。
+
+そのため、持ち主が動いている通常の状態で、次の要求をそのまま実行できない。
+
+- `unlock --wiki W` が持ち主情報を表示する。
+- 待ち切れた書き手が、持ち主情報を `pending.json` に保存する。
+- 読めない理由を、268行の「道具の外で壊された」場合から区別する。
+
+ロックされた部分を含む情報を、別プロセスがどう取得するかは設計されていない。**外部破損も `--force` も不要な、通常の競合時の失敗**である。
+
+根拠：[取得時の先頭1バイトのロック・247行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:247)、[保存する持ち主情報・251行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:251)、[情報表示・255行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:255)、[既存ヘルパー・138行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_graph_common.py:138)。
+
+### 5.【重大】Gitから作業中の文と日誌を隔離する保証を、記載された検査は満たさない
+
+独立した二つの反例がある。
+
+**作業フォルダーKには、Gitの作業ツリー外であることの検査がない。**
+
+```text
+Gitリポジトリ = /project
+W             = /project/wiki
+R             = /archive/raw
+INFO_HIVE_DATA_DIR = /project/apply-data
+```
+
+この配置では、Kはwikiとrawの外にあり、Writerの領域検査を通る。しかしDは `/project/apply-data/apply/work/...` にでき、Gitの作業ツリー内にある。`apply-data` が無視されない構成なら、`scan` 前の記事案もGitの対象になる。
+
+既存の `data_dir()` がこの指定をそのまま受け取ることは確認した。228行・644行の「DはGitの外」は、現在の規則から導けない。
+
+**wiki内のGit検査も、固定した二つの `x` しか調べない。**
+
+既存の `.wiki-cache/.gitignore` が次の場合を考える。
+
+```gitignore
+/apply/journal/x
+/apply-pending/x
+```
+
+追跡済みファイルがなければ、243行の二つの `check-ignore` と `ls-files` は要求を満たす。しかし、実際に作る次のファイルは無視されない。
+
+```text
+apply/journal/<plan_id>/before/0
+apply/journal/<plan_id>/after/0
+apply-pending/<plan_id>/plan.diff
+```
+
+既存の `.gitignore` は置き換えない規則なので、この配置は排除されない。保証しないこと8にある「日誌と差分はGitで無視されることを確かめる」も成立しない。
+
+根拠：[配置の保証・228行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:228)、[Git検査・243行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:243)、[Writerの領域検査・279行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:279)、[既存data_dir・47行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_common.py:47)。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| 同じwikiの日誌を読めれば、元の書き手の完了処理も実行できる | 復旧する側のKと、日誌に残るDの所属するKが異なる |
+| 管理領域の内容に使う所属検査を、その領域自身にも使える | 対象がL、P、`.wiki-cache` 自身である |
+| `adopt` を外せば、計画なしでWriterを作る操作がなくなる | `unlock`、`recover` が、計画や日誌のない状態で書き込む |
+| 生存確認用のOSロックは、持ち主情報の読み取りを妨げない | Windowsで、情報を含む先頭1バイトをロックする |
+| 利用者のデータディレクトリはGitの外にある | `INFO_HIVE_DATA_DIR` がGitの作業ツリー内を指す |
+| 代表パスが無視されれば、管理領域全体も無視される | `.gitignore` が代表パスだけに一致する、または別の名前を除外解除する |
+
+## 見落としと軽微な問題
+
+### 1.【軽微・保証の記述の誤り】`--force` 後は、日誌があっても変更消失を検出できるとは限らない
+
+266行は、並行状態になっても「日誌が残るので `stuck` になり、黙っては消えない」とする。しかし次の順序が可能である。
+
+1. Aが手順5で `L0＋A` を計算し、日誌を書く前に止まる。
+2. `unlock --force` で外す。
+3. Bが手順2で未完の日誌がないことを確認し、手順5で `L0＋B` を計算する。
+4. Aが再開し、日誌、配置、読み直し、`done` まで進んで成功する。
+5. Bが配置してAの行を消し、自分の読み直しも通って `done` になる。
+
+両方が成功し、両日誌が `done` なので、次の手順2でも `stuck` にならない。
+
+`--force` で並びうるという作者の判断への指摘ではない。**その限界に付け加えた「日誌によって消失を検出できる」という説明が誤っている。**
+
+根拠：[失敗一覧・266行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:266)、[日誌探索・453行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:453)、[計算から完了まで・456行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:456)。
+
+### 2.【軽微】試験に、12版目と両立しない期待が残る
+
+- **665行**：W_Bの適用がW_Aの日誌を進めることを要求する。12版目の日誌探索はwikiごとである。
+- **666行**：wiki間のbind mountを介した書き込みも排他されることを要求する。保証しないこと12は、その保証を外している。
+- **671行**：途中終了後、次の `apply` が日誌を進める期待に、残ったロックを明示的に外す段がない。そのままなら終了コード4になる。
+
+根拠：[該当する試験・665行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:665)、[停止後の試験・671行](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:671)。
+
+## 検証した事実
+
+| 確かめた事項 | 結果 |
+| --- | --- |
+| サブモジュールの参照版 | **一致。** `83dbb30abcce7d4ed56babee134cd6247ad7803d` |
+| 新しい適用処理の存在 | **未実装。** `wiki_apply.py`、`wiki_fsguard.py` は存在しない |
+| Windowsの既存 `_try_lock()` | **実測。** ロック中、別プロセスの通常の読み取りが `PermissionError` になった |
+| 管理領域自身への検査d | **不一致。** 通常の祖先関係でもL、P、`.wiki-cache`、その `.gitignore` は通らない |
+| 環境を変えた `data_dir()` | **確認。** KをGitの作業ツリー内にも、別の書き手と異なる場所にもできる |
+| 親の実際の索引への通常追記 | **解析結果は一致。** 項目一つ分の5トークンが増えた |
+| 空のSetext見出し | **一致。** 同梱パーサーの見出し範囲には下線の行も含まれる |
+| 既存参照定義を使う追加文 | **一致。** 既存の `env` を渡すとリンクとして解析された |
+| `concurrency-check.md` の消失数 | 記録を確認した。今回の独立再測定はしていない |
+
+ファイルは変更していない。Windowsの検証で取得したロックは解放し、対象のバイト列が変わっていないことを確認した。実際のmount、電源断、新しい適用処理の停止・復旧試験は行っていない。
+
+## 崩せなかった点
+
+- `edit` の全体ハッシュ照合では、別の節にある完成形を「適用済み」の証拠にする旧反例は成立しない。
+- `plan_id` を含むハッシュと、同じファイルの操作を順に合成する規則から、旧版の計画取り違え・計画内の上書き消失は導けなかった。
+- 入力を一度だけ読み、その写しを使う条件では、ロック待ち中の `D/edit` の変更を未承認のまま置く旧反例は成立しない。
+- 静的な入れ子wiki、祖先へ戻るリンク、途中に `.md` を持つ親子パス、新しい `schema.md` は、明示された拒否条件に当たる。
+- 正しいWriterを構成でき、排他が保たれ、前後ハッシュが異なる条件では、日誌と完了印の順序から新たな二重適用の反例は得られなかった。
+- AS・AX・BFの変更から、以前の参照定義の行番号、解析文脈、Setext見出しと同じ反例は得られなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 08:39:43] 完了。session 01a1dc5f-d4c6-79f2-9ddb-ec8f5f245c33  usage {"input_tokens": 4547536, "cached_input_tokens": 4320640, "cache_write_input_tokens": 0, "output_tokens": 26419, "reasoning_output_tokens": 13680}
