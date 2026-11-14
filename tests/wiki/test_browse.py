@@ -257,13 +257,13 @@ class LintAgreementTest(TempWiki):
         site1.mkdir()
         (site1 / "a.html").write_bytes(b"keep")
         write(self.wiki, "\\" + str(site1).lstrip("/").replace("/", "\\") + "\\a.md", page("# evil"))
-        with redirect_stderr(io.StringIO()):
+        with redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
             report = wiki_browse.build(self.wiki, str(self.base / "site2"), None)
         self.assertEqual((site1 / "a.html").read_bytes(), b"keep")
         self.assertEqual(sorted(p.name for p in site1.iterdir()), ["a.html"])
-        out = Path(report["out"])
+        out = Path(os.path.realpath(report["out"]))
         for f in out.rglob("*.html"):
-            self.assertTrue(fs.is_within(f, out))
+            self.assertTrue(os.path.realpath(f).startswith(str(out) + os.sep), f)
 
     @unittest.skipUnless(LINUX and hasattr(os, "geteuid") and os.geteuid() != 0, "読めないファイルを作れる環境だけ")
     def test_unreadable_collision_member_is_ignored(self):
