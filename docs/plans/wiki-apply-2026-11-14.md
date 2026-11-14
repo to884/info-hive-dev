@@ -4,12 +4,12 @@ wiki のページ、索引、ログへの書き込みを、モデルの Edit と
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 3 版目。1 回目と 2 回目のレビュー（どちらも却下）の指摘を、原因の構造で直した（「1 回目のレビューで崩れた前提」「2 回目のレビューで崩れた前提」）。実装はまだ始めていない |
+| 状態 | 4 版目。1〜3 回目のレビュー（どれも却下。重大は 8 件、6 件、4 件と減った）の指摘を、原因の構造で直した（「1 回目のレビューで崩れた前提」〜「3 回目のレビューで崩れた前提」）。実装はまだ始めていない |
 | きっかけ | [セッションの取り込みの設計](wiki-session-ingest-2026-11-14.md)の 4 版目で、書く段（`wiki_apply.py`）を足した。4 回目のレビュー（[design-review-4.md](../agent-runs/2026-11-14-wiki-session-ingest/design-review-4.md)）の重大の 7 件のうち 6 件が書く段に出たので、作者の判断で、別の設計書に分けた |
 | 4 版目の案 | [design-v4.md](../agent-runs/2026-11-14-wiki-session-ingest/design-v4.md) の 9 節と 10 節 |
 | 関連 | [concurrency-check.md](../agent-runs/2026-11-14-wiki-session-ingest/concurrency-check.md)（Claude Code の Edit と Write を並べた試験）、`wiki_graph_common.py` のファイルのロック、`wiki_browse_fs.py` の実体の検査（`Guard`）、`wiki_pages.new_parser()`、`commands/ingest.md` の手順 6〜7、`references/ingest-workflow.md`、`graph-workflow.md`、`query-workflow.md`、`commands/query.md`、`commands/learn.md`、`commands/lint.md`、ADR-0008（作業領域の構成）、ADR-0019（wiki の根は `SCHEMA.md` で決まる） |
 | 基準にした版 | `info-hive-wiki` の 83dbb30、親のリポジトリは dfced80（どちらも origin/main） |
-| 記録 | [docs/agent-runs/2026-11-14-wiki-apply/](../agent-runs/2026-11-14-wiki-apply/)（1 版目は [design-v1.md](../agent-runs/2026-11-14-wiki-apply/design-v1.md)、2 版目は [design-v2.md](../agent-runs/2026-11-14-wiki-apply/design-v2.md)、レビューは [design-review-1.md](../agent-runs/2026-11-14-wiki-apply/design-review-1.md) と [design-review-2.md](../agent-runs/2026-11-14-wiki-apply/design-review-2.md)） |
+| 記録 | [docs/agent-runs/2026-11-14-wiki-apply/](../agent-runs/2026-11-14-wiki-apply/)（1 版目は [design-v1.md](../agent-runs/2026-11-14-wiki-apply/design-v1.md)、2 版目は [design-v2.md](../agent-runs/2026-11-14-wiki-apply/design-v2.md)、3 版目は [design-v3.md](../agent-runs/2026-11-14-wiki-apply/design-v3.md)、レビューは [design-review-1.md](../agent-runs/2026-11-14-wiki-apply/design-review-1.md)〜[design-review-3.md](../agent-runs/2026-11-14-wiki-apply/design-review-3.md)） |
 
 ## 作者の判断（2026年11月14日）
 
@@ -65,6 +65,18 @@ wiki のページ、索引、ログへの書き込みを、モデルの Edit と
 | Y | 書き込みの指示は、手で洗い出せば漏れない | 重大 6（Web の警告の理由のログ、メモリの定型文、`retrieval-setup.md`、lint の直し、`wiki_evolve_loop.py`） | **移す範囲を、文書とスクリプトの両方で、機械の検査で閉じる。** 10 節の表に漏れを足し、スクリプトの書き込みの呼び出しを試験で列挙して、分類のない呼び出しを落とす（11 節） |
 | Z | 前に進める手順の各段は、どの順で行ってもよい。日誌を消すまでは、やり直しを止められる | 軽微 1（一時ファイルが残ったまま作り直す）、軽微 2（日誌を消したあとに `--keep` の計画をやり直す） | **前に進める手順の順番を決め、やり直しの止めを計画の側にも持つ。** 一時ファイルの名前を消してから置く。当て終えた計画は `D/applied.json` を持ち、`apply` はそれを見て止める（6 節） |
 
+## 3 回目のレビューで崩れた前提
+
+[design-review-3.md](../agent-runs/2026-11-14-wiki-apply/design-review-3.md)（Sol、却下、確信度は高）は、1 回目と 2 回目の元の反例は成り立たず、ふつうの索引とログの追記を構造の確かめが通すことを、同梱のパーサーで確かめた。そのうえで、重大 4 件と軽微 2 件を挙げた。どれも当たっていた。
+
+| 記号 | 3 版目の前提 | 崩れた指摘 | 4 版目の構造 |
+| --- | --- | --- | --- |
+| AA | 特殊なファイル（`log.md`、`SCHEMA.md`）は、計画の wiki のルートからの字面で決まる | 重大 1（入れ子の wiki で、親から子の `log.md` を `sub/log.md` として `edit` する） | **計画の行き先は、1 つの wiki にだけ属する。** 行き先のパスの途中のディレクトリが、初期化された wiki のルート（`SCHEMA.md` を持つ）なら拒む（3 節）。親の wiki から子の wiki のファイルは書けず、子の wiki を計画の wiki にするしかないので、特殊なファイルの字面は、つねにその wiki のルートからのものになる |
+| AB | 日誌の `done` と `D/applied.json` は、どちらを先に書いてもよい。日誌は日数で消してよい | 重大 2（`done` と `applied.json` の間で止まり、日誌が消えたあとにやり直す） | **当て終えた印を、日誌を閉じる前に書き、日誌はその印があるか `D` がないときだけ消す。** 前に進める手順も、`D` があれば印を書いてから日誌を閉じる（6 節） |
+| AC | 日誌を前に進める書き手は、自分の計画の `Writer` を使える | 重大 3（別の wiki の日誌を進めるのに、raw のルートも `Writer` の作り方もない） | **日誌は、前に進めるのに要るものをすべて持つ。** 日誌に wiki と raw のルートを書き、前に進めるときは、日誌ごとに、日誌の wiki と raw から `Writer` を作り直す（6 節） |
+| AD | 書く語の一覧と書く先の語が同じ段落にあるものを挙げれば、書き込みの指示を漏らさない | 重大 4（`commands/init.md` の手順 4 が「設定する」で `SCHEMA.md` を直す） | **文面の検査は、書く先の語に触れる段落をすべて挙げ、どれにも分類を求める。** 書く語の一覧に頼らない（10 節）。`commands/init.md` の手順 4 は表に足した |
+| AE | 構造の並びに `hidden` を入れなくても、表示は変わらない。スクリプトの書き手の分類は、知っているものですべてである | 軽微 1（索引の箇条書きが、ふつうの追記で緩いリストになる）、軽微 2（グラフの書き出しの分類がない） | 節の最後の行を、ブロックの中の空でない最後の行にし、並びに `hidden` を入れる（4 節）。分類にグラフの書き出しを足す（10 節） |
+
 ## 前提にすること
 
 - **Claude Code のツールを通らない書き手は考えない**（作者の判断の 4）。
@@ -108,7 +120,7 @@ M/journal/<plan_id>/            日誌（6 節）。どの wiki の日誌も、�
 M/journal/discarded/<plan_id>/  捨てた日誌
 ```
 
-1 つの PC の書き手は、どの wiki に書くときも同じロックを取り、同じ日誌を前に進める。そのため、入れ子の wiki（`W1/sub` も初期化された wiki）や、2 つの wiki の間の別名で、同じファイルを 2 つの wiki のパスから書いても、書く段に加わる書き手の間では排他になる（2 回目の重大 2）。ロックを持つ区間は短い（6 節）ので、wiki をまたいで 1 つずつにしても、待ちは短い。
+1 つの PC の書き手は、どの wiki に書くときも同じロックを取り、同じ日誌を前に進める。そのため、2 つの wiki の間の別名（bind mount など）で、同じファイルを 2 つの wiki のパスから書いても、書く段に加わる書き手の間では排他になる（2 回目の重大 2）。入れ子の wiki（`W1/sub` も初期化された wiki）では、親の wiki の計画から子の wiki のファイルを書けない（3 節。3 回目の重大 1）。ロックを持つ区間は短い（6 節）ので、wiki をまたいで 1 つずつにしても、待ちは短い。
 
 `M` を wiki と raw の外に置くので、`.wiki-cache` の作成と、Git で無視されることの確かめは要らない（2 回目の重大 5）。作業用のフォルダーの文（確認を終えた raw から書いた記事の案）は、利用者のデータのディレクトリに残る（「保証しないこと」の 8）。
 
@@ -177,6 +189,7 @@ D/applied.json       当て終えた印（6 節の 9。スクリプトだけが�
 - 最後の要素が `.md` で終わる。**最後でない要素は、`.md` で終わらない**（大文字と小文字によらない）。どの行き先も `.md` で終わり、どの途中の要素も `.md` で終わらないので、ある項目の行き先が、別の項目の途中のディレクトリになることはない（1 回目の重大 6）。
 - 最初の要素が、`raw`、`graph`、`assets` でない（`wiki_pages.SKIP_TOP_LEVEL_DIRS` のうち、ページを置かないディレクトリ。`indexes` は索引のために許す）。
 - `SCHEMA.md` は `edit` だけで、`log.md` は `ops` だけで受け付ける。
+- **行き先は計画の wiki にだけ属する。** 行き先のパスの途中の、すでにあるディレクトリ（`W` そのものは除く）が `SCHEMA.md` を持てば（`os.lstat()` で、ふつうのファイルかリンクかによらず、名前があれば）、拒む（`nested_wiki`）。入れ子の wiki のファイルは、子の wiki を計画の wiki にして書く。登録、`diff`、`apply` の 4 で確かめる（3 回目の重大 1）。
 
 **パスは正規のものだけを受ける。** 登録、`diff`、`apply` の 4 は、行き先のパスについて `Writer` の 1〜2 を確かめる。wiki の中のどの途中の要素もリンクでも再解析点でもなく、どの要素の実体も祖先と同じでないので、パスの字面と、`W` から実体をたどった場所が一致する。`W/indexes -> W` の配置で `indexes/log.md` を登録しても、`indexes` がリンクなので拒み、bind mount なら `indexes` の実体が `W` と同じなので拒む（1 回目の重大 2）。そのため、`SCHEMA.md` と `log.md` の規則を、字面で当てて実体にも当てられる。
 
@@ -191,11 +204,11 @@ D/applied.json       当て終えた印（6 節の 9。スクリプトだけが�
 
 どの操作も、ファイルを UTF-8 として読み（BOM があれば外して覚える）、改行で行に分け（CRLF の行が 1 つでもあれば CRLF のファイルとして覚える）、行の並びに操作を当て、覚えた改行と BOM で書き戻す。最後の行は改行で終える。足す行は、1 行で、改行と制御文字を含まないものに限る（登録のときに拒む）。
 
-**見出しと節は、同梱のパーサーで決める。** 本文は、frontmatter を `wiki_text.parse_frontmatter_text()` で分けてから、`wiki_pages.new_parser()`（閲覧、lint、検索と同じ markdown-it-py の設定。HTML は読まない）で読む。見出しの行は、最上位の `heading_open` のトークンの行（`map` の始まり）である。フェンスの中の `## ` の行は、パーサーが見出しにしないので、見出しにならない（閉じの規則もパーサーに従う）。見出しの行を比べるときは、ソースの行の末尾の空白と、BOM を除いた字面で比べる。節は、見出しの行の次の行から、同じか上の段（`h1`〜`hN`）の次の見出しの行の前までである。節の「最後の行」は、節の中の最上位のブロックのうち、最後のものの最後の行である（`map` の終わりの 1 つ前）。節にブロックがなければ、見出しの行が最後の行である。
+**見出しと節は、同梱のパーサーで決める。** 本文は、frontmatter を `wiki_text.parse_frontmatter_text()` で分けてから、`wiki_pages.new_parser()`（閲覧、lint、検索と同じ markdown-it-py の設定。HTML は読まない）で読む。見出しの行は、最上位の `heading_open` のトークンの行（`map` の始まり）である。フェンスの中の `## ` の行は、パーサーが見出しにしないので、見出しにならない（閉じの規則もパーサーに従う）。見出しの行を比べるときは、ソースの行の末尾の空白と、BOM を除いた字面で比べる。節は、見出しの行の次の行から、同じか上の段（`h1`〜`hN`）の次の見出しの行の前までである。節の「最後の行」は、節の中の最上位のブロックのうち、最後のものの範囲（`map`）の中の、空でない最後の行である（箇条書きの `map` は、後ろの空の行を含むことがあるため。3 回目の軽微 1）。節にブロックがなければ、見出しの行が最後の行である。
 
 **当てたあとの構造の確かめ。** 行の番号は比べない。ブロックのトークンの並びで比べる（2 回目の重大 1）。
 
-- **並び（`sig`）。** パーサーの出力のブロックのトークン（`inline` の子は除く）を、`(type, tag, nesting, level)` の組の列にしたもの。`heading_open` の次の `inline` は、その中身（見出しの文）も組に入れる。
+- **並び（`sig`）。** パーサーの出力のブロックのトークン（`inline` の子は除く）を、`(type, tag, nesting, level, hidden)` の組の列にしたもの。`hidden` を入れるので、詰まったリストが緩いリストに変わる追記も、並びが一致しない。`heading_open` の次の `inline` は、その中身（見出しの文）も組に入れる。
 - **あるべき並び。** 操作ごとに、当てる前の並びから、当てたあとにあるべき並びを、下の規則で作る。
 - 当てた結果をもう一度読み、その並びが、あるべき並びと一致しなければ、競合（`structure_changed`）にする。足した行の文が、足した先の `inline` の中身の最後の行と一致することも確かめる。
 
@@ -280,7 +293,7 @@ D/applied.json       当て終えた印（6 節の 9。スクリプトだけが�
 1. **ロックを取る。** `M/apply.lock` を `Writer` で開き（POSIX では `O_NOFOLLOW` を付ける）、`wiki_graph_common._try_lock()`（Windows は `msvcrt.locking`、POSIX は `fcntl.flock`）で取る。取れなければ 0.2 秒ごとに試し、`--wait` 秒（既定 60）で終了コード 4 にする。取れたら、開いたファイルの実体（`os.fstat()`）と、パスの今の実体（`os.lstat()`）が同じことを確かめる。違えば（取る間に置き換えられた）、閉じて取り直す。ロックのファイルは消さない（`wiki_graph_common.extract_lock` と同じ理由）。ロックのファイルは `M` の中にあり、ページの書き込みの対象にならない（4 回目の重大 7）。
 2. **残った日誌を見る。** `M/journal/` の下の日誌を見る。`manifest.json` のない日誌のディレクトリは、書いている途中で止まったものなので、消す（行き先のディレクトリに一時ファイルはまだ作っていない。7 の前に `manifest.json` を置くため）。状態が `stuck` の日誌が 1 つでもあれば、何も書かずに終了コード 5 にする（`stuck` は `recover` で片付けるまで、どの計画も書かない）。状態が `pending` の日誌を、作った順にすべて、下の「前に進める」に従って進める。1 つでも `stuck` になれば、終了コード 5 にする。
 3. **この計画の日誌があるか。** `M/journal/<plan_id>/` があり、状態が `done` で、日誌の `plan_sha256` が今の値と同じなら、9 の `D/applied.json` を書いてから、日誌に残した結果を出して終了コード 0 にする（`already_applied`）。`plan_sha256` が違えば（同じ `plan_id` で計画を変えた）、終了コード 1 にする。
-4. **行き先を確かめる。** 項目ごとに、3 節の正規のパスの検査、同じファイルの実体の判定、7 節の raw の検査を行う。どれかが通らなければ、何も書かずにロックを外し、終了コード 1 にする。行き先のパスの途中の要素が、ファイルとしてあれば、競合（`parent_not_dir`）にする。
+4. **行き先を確かめる。** 項目ごとに、3 節の正規のパスの検査（入れ子の wiki の検査を含む）、同じファイルの実体の判定、7 節の raw の検査を行う。どれかが通らなければ、何も書かずにロックを外し、終了コード 1 にする。行き先のパスの途中の要素が、ファイルとしてあれば、競合（`parent_not_dir`）にする。
 5. **新しい中身を、すべてメモリの中で作る。** `new` と `edit` の「後」は、0 で読んだメモリの写しである。
 
 | 種類 | 今の行き先 | 結果 |
@@ -294,12 +307,12 @@ D/applied.json       当て終えた印（6 節の 9。スクリプトだけが�
 
    1 つでも競合があれば、何も書かずにロックを外し、終了コード 3 で、競合した項目のパスと理由を出す。「済み」の判定はない。
 
-6. **日誌を書く。** `Writer` で `M/journal/<plan_id>/` を作り、項目ごとに、置く中身を `after/<番号>` に書いて fsync する。最後に、`manifest.json` を一時ファイルに書いて fsync し、`os.replace` で置き、ディレクトリを fsync する（POSIX）。`manifest.json` の中身は、状態 `pending`、`plan_id`、`plan_sha256`、wiki のルート、作った時刻、`D` のパス、項目ごとの `path`、`kind`、`before_sha256`（`new` は `null`）、`after_sha256`、`after/<番号>`、**一時ファイルの名前**（`<行き先の名前>.wiki-apply-<plan_id>-<番号>.tmp`。行き先と同じディレクトリ）、作る親のディレクトリの並び、`log_entries` である。一時ファイルの名前を、作る前に日誌に書く（1 回目の重大 5）。
+6. **日誌を書く。** `Writer` で `M/journal/<plan_id>/` を作り、項目ごとに、置く中身を `after/<番号>` に書いて fsync する。最後に、`manifest.json` を一時ファイルに書いて fsync し、`os.replace` で置き、ディレクトリを fsync する（POSIX）。`manifest.json` の中身は、状態 `pending`、`plan_id`、`plan_sha256`、wiki のルートと raw のルート（前に進める書き手が `Writer` を作り直すため。3 回目の重大 3）、作った時刻、`D` のパス、項目ごとの `path`、`kind`、`before_sha256`（`new` は `null`）、`after_sha256`、`after/<番号>`、**一時ファイルの名前**（`<行き先の名前>.wiki-apply-<plan_id>-<番号>.tmp`。行き先と同じディレクトリ）、作る親のディレクトリの並び、`log_entries` である。一時ファイルの名前を、作る前に日誌に書く（1 回目の重大 5）。
 7. **書く。** 項目ごとに、親のディレクトリがなければ `Writer` で作り、日誌に書いた名前の一時ファイルを `Writer` で `O_EXCL` で作って書き、fsync し、置く。`new` は重ねて書かない形で置く（POSIX は `os.link` のあとに一時ファイルを消す。Windows は `os.rename` で、行き先があれば `FileExistsError`）。`edit` と `ops` は `wiki_fetch.replace_with_retry()` で置き換える。どの置き換えも、`Writer` の検査を直前に通す。
 8. **読み直す。** 書いたファイルを読み、SHA-256 が `after_sha256` と同じことを確かめる。違えば（置き換えの直後にほかが書いた）、日誌を `stuck` にして終了コード 5 にする。
-9. **日誌を閉じる。** 日誌に書いた一時ファイルの名前のうち残っているものを消し、`manifest.json` の状態を `done` にして置き換える。`D/applied.json`（`plan_id`、`plan_sha256`、項目ごとの結果、`log_entries`）を書き、ロックを外す。`--keep` がなければ `D` を消す。終了コード 0 で、項目ごとの結果（`written`）、`log_entries`、ロックを待った秒数、ロックを持った秒数を出す。
+9. **日誌を閉じる。** 日誌に書いた一時ファイルの名前のうち残っているものを消す。`D/applied.json`（`plan_id`、`plan_sha256`、項目ごとの結果、`log_entries`）を書いて fsync し、**そのあとで** `manifest.json` の状態を `done` にして置き換え、ロックを外す（3 回目の重大 2）。`--keep` がなければ `D` を消す。終了コード 0 で、項目ごとの結果（`written`）、`log_entries`、ロックを待った秒数、ロックを持った秒数を出す。
 
-**前に進める（2 と、`recover`）。** `pending` の日誌の項目ごとに、次の順で行う（2 回目の軽微 1）。
+**前に進める（2 と、`recover`）。** 日誌ごとに、日誌の wiki と raw のルートから、6 節の 0 と同じに、ディレクトリの実体の集まりと `Writer` を作り直す（自分の計画の `Writer` は使わない。3 回目の重大 3）。日誌の wiki が初期化されていない、raw のルートが `raw_root_problem()` を通らないときは、その日誌を `stuck` にする。そのうえで、項目ごとに、次の順で行う（2 回目の軽微 1）。
 
 1. 日誌に書いた一時ファイルの名前が残っていれば、先に消す（`os.link` のあと一時ファイルを消す前に止まったときの、行き先のもう 1 つの名前も、一時ファイルを作ってから置く前に止まったときの一時ファイルも、ここで消える）。
 2. 行き先の今の SHA-256 を見て、次の表に従う。
@@ -310,7 +323,7 @@ D/applied.json       当て終えた印（6 節の 9。スクリプトだけが�
 | `before_sha256` と同じ（`new` は、ないこと） | `after/<番号>` を 7 と同じに置く |
 | どちらでもない | 項目を `stuck` にする |
 
-項目を置くときに例外が出たとき（親のディレクトリを作れない、置けない、`Writer` が拒む）も、項目を `stuck` にする。日誌の wiki のルートが見つからない（外付けのドライブを外したなど）ときは、その日誌を `pending` のまま飛ばし、結果に `unreachable_journals` として出す（その wiki のファイルは、今はどの書き手からも書けないので、飛ばしても重ならない。別のパスで同じファイルに届く配置は「保証しないこと」の 2）。すべての項目が済めば、状態を `done` にする。`stuck` が 1 つでもあれば、状態を `stuck` にし、書いた項目と書けなかった項目を出す。
+項目を置くときに例外が出たとき（親のディレクトリを作れない、置けない、`Writer` が拒む）も、項目を `stuck` にする。日誌の wiki のルートが見つからない（外付けのドライブを外したなど）ときは、その日誌を `pending` のまま飛ばし、結果に `unreachable_journals` として出す（その wiki のファイルは、今はどの書き手からも書けないので、飛ばしても重ならない。別のパスで同じファイルに届く配置は「保証しないこと」の 2）。すべての項目が済めば、日誌の `D` があるときは `D/applied.json` を書いてから、状態を `done` にする。`stuck` が 1 つでもあれば、状態を `stuck` にし、書いた項目と書けなかった項目を出す。
 
 **なぜ「どちらでもない」が起きないか。** 日誌は、最初の置き換えより前に fsync してある。書く段に加わる書き手は、どの wiki に書くときも同じロックを取り、自分の計画を書く前に、残った日誌を必ず前に進める（2）。したがって、日誌の持ち主が 7 の途中で落ちたあと、次にロックを取った書き手は、誰であれ、まずその日誌を最後まで進めてから自分の計画を書く。ロックの持ち主が落ちてから、日誌が進められるまでの間に、書く段に加わる書き手が同じファイルを書くことはない。「どちらでもない」は、書く段に加わらない書き手（移っていない手順の Edit と Write、エディター、ほかの PC の書き手）が、その間に同じファイルを書いたときにだけ起きる。そのときは、書き手の変更を消さないために、置かずに `stuck` にする（終了コード 5。「保証しないこと」の 2）。
 
@@ -321,15 +334,15 @@ D/applied.json       当て終えた印（6 節の 9。スクリプトだけが�
 - 6 より前に止まれば、何も書いていない。同じ `apply` をやり直せばよい。
 - 6 の途中で止まれば、`manifest.json` がないので、日誌はないものとして消される。何も書いていない。
 - 7 の途中で止まれば、次に誰かがロックを取ったときに、日誌が前に進められる。同じ `apply` をやり直すと、3 で `already_applied` になる。
-- 9 の途中で止まれば、日誌は `pending` か `done` のままで、行き先はすべて `after_sha256` と同じなので、前に進めると、一時ファイルの名前を消して `done` になる。同じ `apply` をやり直すと、3 で `D/applied.json` を書いて `already_applied` になる。
+- 9 の途中で止まれば、日誌は `pending` のままで、行き先はすべて `after_sha256` と同じなので、前に進めると、一時ファイルの名前を消し、`D/applied.json` を書いて `done` になる。`D/applied.json` を書いたあとに止まったときも同じで、同じ `apply` をやり直すと、0 で `already_applied` になる。
 
-`done` の日誌は、30 日を過ぎたら、ロックの中で 2 のときに消す（`--keep-journal-days`）。当て終えた計画のやり直しを止めるのは、日誌が残る間は日誌、そのあとは `D/applied.json` である。`D` を消したあとに同じ `apply` を実行すると、0 で `D` がないので終了コード 1 になり、何も書かない。
+`done` の日誌は、30 日を過ぎ、**かつ**日誌の `D` がないか、`D/applied.json` があるときだけ、ロックの中で 2 のときに消す（`--keep-journal-days`）。そのため、日誌を消したあとに残る `D` は、どれも `D/applied.json` を持つ。当て終えた計画のやり直しを止めるのは、日誌が残る間は日誌、そのあとは `D/applied.json` である（3 回目の重大 2）。`D` を消したあとに同じ `apply` を実行すると、0 で `D` がないので終了コード 1 になり、何も書かない。
 
 **`wiki_apply.py recover [--show | --discard <plan_id>]`** は、ロックを取って、`stuck` の日誌を見せる。`--discard` は、その日誌を `M/journal/discarded/` に移し、日誌に書いた一時ファイルの名前のうち残っているものを消す。`stuck` の項目の行き先は、モデルがユーザーと、`after/<番号>` と今の中身を見比べて直す（その直しは、新しい計画で行う）。
 
 **ロックを持つ時間。** 1〜9 は、モデルを呼ばず、記録も読まず、ネットにもつながらない区間で、書くファイルの数と大きさの分だけで終わる。ふつうの取り込み（新しいページ 2〜5、直すページ 1〜5、索引とログ）で 1 秒より短い見込みである（実装で測り、結果に出す）。wiki と raw のディレクトリの走査（7 節）は、ロックの前の 0 で行う。
 
-**ライブラリとして呼ぶとき。** Python の書き手（`wiki_evolve_loop.py`）は、サブコマンドを通さず、`wiki_apply.Plan` を組み立てて `wiki_apply.apply_plan(plan)` を呼ぶ。中身はメモリで渡し、`D` を作らない。`plan_id` は `Plan` を作るときに決め、0 の `D/applied.json` の代わりに、呼び出し側が結果を持つ。1〜9 は同じである。人の承認は、呼び出し側の手順（評価ループの承認）に頼る。
+**ライブラリとして呼ぶとき。** Python の書き手（`wiki_evolve_loop.py`）は、サブコマンドを通さず、`wiki_apply.Plan` を組み立てて `wiki_apply.apply_plan(plan)` を呼ぶ。中身はメモリで渡し、`D` を作らない（日誌の `D` は `null` で、前に進めるときに印は書かない）。`plan_id` は `Plan` を作るときに決め、呼ぶたびに新しくする。やり直しは新しい `plan_id` で行い、止まった前の計画は、次にロックを取った書き手が日誌から前に進める。呼び出し側は、前の計画の日誌が `done` になったか（`list`）を見てから、残りを足すかを決める。1〜9 は同じである。人の承認は、呼び出し側の手順（評価ループの承認）に頼る。
 
 ### 7. raw を書き換えないことと、ディレクトリの実体の集まり
 
@@ -397,7 +410,7 @@ python wiki_apply.py abort     --apply-dir <D>
 
 - `diff --json` の出力のキー: `plan_id`、`plan_sha256`、`items`（`path`、`kind`、`added_lines`、`removed_lines`、`ops`）、`probe_conflicts`（`path`、`reason`）、`diff`（統一差分の文字列）。
 - `apply --json` の出力のキー: `state`（`applied`、`already_applied`、`conflict`、`busy`、`stuck`）、`plan_id`、`results`（`path`、`kind`、`state`）、`conflicts`（`path`、`reason`）、`log_entries`（`heading`、`nth`）、`lock_wait_seconds`、`lock_held_seconds`。
-- 競合の理由（`reason`）: `exists`、`changed_since_prepared`、`section_missing`、`section_ambiguous`、`entry_missing`、`index_duplicate`、`structure_changed`、`not_utf8`、`missing`、`parent_not_dir`。raw との重なり、リンク、正規でないパスは、競合ではなく終了コード 1 の誤り（`raw_overlap`、`link_in_path`、`alias_in_path`）にする。
+- 競合の理由（`reason`）: `exists`、`changed_since_prepared`、`section_missing`、`section_ambiguous`、`entry_missing`、`index_duplicate`、`structure_changed`、`not_utf8`、`missing`、`parent_not_dir`。raw との重なり、リンク、正規でないパスは、競合ではなく終了コード 1 の誤り（`raw_overlap`、`link_in_path`、`alias_in_path`、`nested_wiki`）にする。
 
 ### 10. 手順の書き換えと、移す範囲
 
@@ -422,12 +435,13 @@ python wiki_apply.py abort     --apply-dir <D>
 | `commands/upgrade.md`（`SCHEMA.md` への追記） | `SCHEMA.md` | `edit` | 5 |
 | `references/retrieval-setup.md` の 42 行と 75 行（`SCHEMA.md` の `## Retrieval` 節） | `SCHEMA.md` | `edit` | 5 |
 | `references/scaling-playbook.md`（索引の分割、`shard`） | 索引、ログ | `new`（分割したファイル）、`edit`（トップの索引）、`log-entry` | 5 |
-| `scripts/init_wiki.py`（初期化で `SCHEMA.md`、`index.md`、`log.md` などを作る） | wiki の最初のファイル | **残す**。まだ wiki がない時の書き手で、ないファイルだけを作る | — |
+| `commands/init.md` の手順 4（生成した `SCHEMA.md` の場所のブロックを設定し、ページの種類、タグ、ワークフローを決める） | `SCHEMA.md` | `edit` | 5 |
+| `scripts/init_wiki.py`（初期化と `--upgrade` で、`SCHEMA.md`、`index.md`、`log.md`、テンプレートを作る） | wiki の最初のファイルと、欠けたファイル | **残す**。ないファイルだけを作る。実装で、作り方を重ねて書かない形（`O_EXCL`）に改め、既存のファイルを書き換えないようにする（書く段の `new` も重ねて書かないので、同じ名前を作り合っても、どちらかが失敗するだけで消えない） | 1 |
 
 **機械の検査で閉じる（11 節）。**
 
-- **文面。** 12 節の 5 が終わったら、`commands/`、`references/`、`SKILL.md`、`assets/` の各段落で、書く語（`str_replace`、「追記する」、「作成する」、「書く」、`Write`、`Edit`）と、wiki の書く先の語（`wiki/`、`index.md`、`indexes/`、`log.md`、`SCHEMA.md`、`sources/`、`concepts/`、`entities/`、`synthesis/`）が同じ段落にあるものを挙げ、上の表で許した箇所の一覧（ファイルと、段落の先頭の文字列）と照らす。一覧にない段落があれば落ちる。
-- **スクリプト。** `skills/info-hive/scripts/` の各ファイルを `ast` で読み、書き込みの呼び出し（`open` の書く形、`Path.write_text`、`Path.write_bytes`、`os.replace`、`os.rename`、`os.link`、`shutil` の写しと移動、`os.mkdir`、それらを包む自前の関数（`atomic`、`replace_atomically`、`replace_with_retry`、`write_outputs` など））の場所を列挙する。どの場所も、分類の一覧（raw の書き手、`.wiki-cache` の書き手、`data_dir()` の書き手、閲覧の書き出し先、評価のステージング、`wiki_apply` と `wiki_fsguard`、`init_wiki`）にあることを確かめる。分類のない呼び出しがあれば落ちる。新しい書き手を足すときは、分類を決めて一覧に足す。
+- **文面。** 12 節の 5 が終わったら、`commands/`、`references/`、`SKILL.md`、`assets/` の各段落（表の行と箇条書きの項目を含む）のうち、wiki の書く先の語（`wiki/`、`<WIKI_ROOT>`、`index.md`、`indexes/`、`log.md`、`SCHEMA.md`、`sources/`、`concepts/`、`entities/`、`synthesis/`、「ページ」、「インデックス」、「ログ」）に触れるものを**すべて**挙げる。書く語の一覧には頼らない（3 回目の重大 4）。挙げた段落のどれにも、分類の一覧（ファイルと、段落の先頭の文字列と、分類）で、「読むだけ」「書く段を通す（移した）」「残す（表の理由）」のどれかを付ける。分類のない段落があれば落ちる。分類の一覧は最初に大きくなるが、文書を直すたびに、新しい段落の分類を人が決めることになる。
+- **スクリプト。** `skills/info-hive/scripts/` の各ファイルを `ast` で読み、書き込みの呼び出し（`open` の書く形、`Path.write_text`、`Path.write_bytes`、`os.replace`、`os.rename`、`os.link`、`shutil` の写しと移動、`os.mkdir`、それらを包む自前の関数（`atomic`、`replace_atomically`、`replace_with_retry`、`write_outputs` など））の場所を列挙する。どの場所も、分類の一覧（raw の書き手、`.wiki-cache` の書き手、`data_dir()` の書き手、グラフの書き出し（`wiki_graph_extract.py`、`wiki_graph_common.py`）、閲覧の書き出し先、評価のステージング、`wiki_apply` と `wiki_fsguard`、`init_wiki`）にあることを確かめる。分類のない呼び出しがあれば落ちる。新しい書き手を足すときは、分類を決めて一覧に足す。
 
 **`commands/ingest.md` の手順 6〜7（Web ページ、PDF、ふつうのファイル）。**
 
@@ -451,25 +465,28 @@ python wiki_apply.py abort     --apply-dir <D>
 - **同じファイルへの複数の操作（4 回目の重大 3）。** `index.md` の 2 つの節に 1 行ずつ足す計画で、両方の行が残る。大文字と小文字だけが違う 2 つのパス、NFD のパス、ハードリンクの 2 つの名前を登録すると、拒む。
 - **親子になる行き先（1 回目の重大 6）。** `new a.md` と `new indexes/a.md/child.md` を登録できない（途中の要素が `.md` で終わる）。途中の要素がファイルとしてある行き先は `parent_not_dir` の競合になり、日誌を書かない。
 - **計画のハッシュと入力（4 回目の重大 4、1 回目の重大 3、4、2 回目の重大 3）。** 承認のあとに `plan.json` の見出しの行、`nth`、日付、足す行、`raw_root`、`D/edit` の 1 バイトを変えると、`apply` が終了コード 1 で拒む。`apply` に `--raw-root` を渡す手段がない。同じ中身の 2 つの計画を別々の `begin` で作ると、両方が当たり、ログに 2 つの項目が残る。`apply` がロックを待つ間に `D/edit` を書き換えても、置かれるのは 0 で読んだ中身であることを確かめる（ロックを別のプロセスで持ち、待つ間に書き換える）。
-- **入れ子の wiki（2 回目の重大 2）。** `W1` と、`W1/sub` を初期化した `W2` で、`W1` の計画 `edit sub/concepts/x.md` と `W2` の計画 `edit concepts/x.md` を並べて `apply` すると、後の側が `changed_since_prepared` の競合になり、先の変更が残ることを確かめる。先の側を 7 の途中で止めると、後の側が日誌を前に進めてから競合になることを確かめる。
+- **入れ子の wiki の特殊なファイル（3 回目の重大 1）。** `W1` の計画で `edit --path sub/log.md`、`new --path sub/concepts/x.md`（`W1/sub` が初期化された wiki）を登録すると、`nested_wiki` で拒むことを確かめる。
+- **当て終えた印と日誌の回収（3 回目の重大 2）。** 9 の `D/applied.json` を書いた直後と、書く直前で止め、日誌の日数を過ぎた状態にして、同じ `apply` をやり直すと、どちらも `already_applied` になり、ログに 2 つ目の項目が足されないことを確かめる。別の計画が前に進めた日誌の `D` にも `applied.json` があることを確かめる。
+- **別の wiki の日誌（3 回目の重大 3）。** `apply_plan()` で `W_A` の計画を 7 の途中で止め、`W_B` の計画の `apply` が、`W_A` の日誌を、`W_A` と `R_A` から作った `Writer` で前に進めてから、自分の計画を書くことを確かめる。
+- **wiki の間の別名（2 回目の重大 2）。** `W1/link` が `W2/concepts` の bind mount の配置（Linux の CI で、権限がなければ飛ばす）で、`W1` の計画 `edit link/x.md` と `W2` の計画 `edit concepts/x.md` を並べて `apply` すると、後の側が `changed_since_prepared` の競合になり、先の変更が残ることを確かめる。先の側を 7 の途中で止めると、後の側が日誌を前に進めてから競合になることを確かめる。
 - **管理領域（4 回目の重大 6、1 回目の重大 1、2 回目の重大 4、5）。** `M`、`M/work`、`M/journal`、`M/journal/<plan_id>` のどれかがリンクかジャンクションで、先が raw のルートか wiki の中なら、`begin`、`diff`、`apply` が書かずに拒み、raw のルートと wiki に何もできないことを確かめる。Linux の CI では、`M/work` を `W/sources` の bind mount にした配置で、`begin` が拒むことを確かめる（権限がなければ飛ばす）。`M` がない状態から `begin` が `M` を作れることを確かめる。`D` を作ったあとにリンクに差し替えると、`diff` と `apply` が拒む。
 - **ロックのファイル（4 回目の重大 7）。** `.` で始まる要素を含むパスを登録できない。ロックを取ってから、ロックのファイルを別の実体に置き換えると、取り直す（POSIX）。
-- **構造の確かめ（1 回目の重大 7、軽微 2、2 回目の重大 1、軽微 3）。** 既存の箇条書きの節に項目を足す、置き換えの行だけの節に足す、空の節に足す、既存のサブ行のある項目に `log-sub` で足す、サブ行のない項目に足す、の 5 つが、`structure_changed` にならずに当たることを確かめる。親のリポジトリの `wiki/index.md` と `wiki/log.md` の写しでも確かめる。`log-sub --line "~~~"` と、`~~~` を開く行を項目にする `index-add` が `structure_changed` になり、何も書かないことを確かめる。`--line "<div>"` と `--line "| a |"` は段落の文として当たり、ほかのブロックが変わらないことを確かめる。`~~~text` で開いたフェンスの中にある `~~~still-data` と `## ` の行を、見出しにしないことを確かめる。
+- **構造の確かめ（1 回目の重大 7、軽微 2、2 回目の重大 1、軽微 3、3 回目の軽微 1）。** 親のリポジトリの `wiki/index.md` のソースの節（箇条書きの後ろに空の行がある）に足しても、詰まったリストのままになることを確かめる。既存の箇条書きの節に項目を足す、置き換えの行だけの節に足す、空の節に足す、既存のサブ行のある項目に `log-sub` で足す、サブ行のない項目に足す、の 5 つが、`structure_changed` にならずに当たることを確かめる。親のリポジトリの `wiki/index.md` と `wiki/log.md` の写しでも確かめる。`log-sub --line "~~~"` と、`~~~` を開く行を項目にする `index-add` が `structure_changed` になり、何も書かないことを確かめる。`--line "<div>"` と `--line "| a |"` は段落の文として当たり、ほかのブロックが変わらないことを確かめる。`~~~text` で開いたフェンスの中にある `~~~still-data` と `## ` の行を、見出しにしないことを確かめる。
 - **並行の書き込み。** 2〜8 個のプロセスが、それぞれ `index.md` の同じ節と `log.md` に足す計画を同時に `apply` することを 200 回繰り返し、すべての行が残り、各計画が 1 回ずつ当たることを確かめる。対照として、ロックを外した実装に差し替えると、行が消えることを確かめる。
 - **日誌（1 回目の重大 5、軽微 1、2 回目の軽微 1、2）。** 7 の各項目の、一時ファイルを作った直後、置き換えの直前と直後、POSIX の `os.link` と一時ファイルの削除の間で例外を起こしてプロセスを止め、(1) 次の `apply`（別の計画）が、日誌を前に進めてから自分の計画を書くこと、(2) 止まった計画の `apply` をやり直すと `already_applied` になること、(3) 止まったあとに `log.md` に別の計画が追記しても、止まった計画の行も別の計画の行も残ること、(4) 一時ファイルの名前が残らず、そのページを次の `edit` で直せること、(5) どの止まり方でも `stuck` にならないことを確かめる。止まったあとに、書く段を通さずに行き先を書き換えると、`stuck`（終了コード 5）になり、書き換えた中身が残り、`recover --discard` までほかの計画も終了コード 5 になることを確かめる。`--keep` で当てた計画の日誌を消したあとに `apply` をやり直すと、`D/applied.json` で `already_applied` になり、ログに 2 つ目の項目が足されないことを確かめる。日誌の wiki のルートを消すと、その日誌を飛ばして、ほかの計画が当たることを確かめる。
 - **raw の検査。** 6 回目の重大 1 の配置（`W/indexes` が raw のルートの親を指すリンクかジャンクション）で、登録が `link_in_path` で拒み、raw が変わらないことを確かめる。Linux の CI では bind mount の配置（`W/sub` が raw のルートの bind mount）で、`raw_overlap` で拒むことも確かめる（権限がなければ飛ばす）。raw のルートを `W`、`W/.wiki-cache`、`data_dir()` の下にした配置を、`begin` が拒む。
 - **ライブラリとして呼ぶとき。** `wiki_evolve_loop.py` の書き込みを `apply_plan()` に移したあと、評価ループの既存の試験が通り、ログの項目が `log-entry` の書式になることを確かめる。
 - **決まった操作の字面。** CRLF のファイル、BOM のあるファイル、最後に改行のないファイル、テンプレートの置き換えの行だけの節、フェンスの中に `## ` の行がある節、空の節、frontmatter のあるファイルに足して、期待するバイト列と一致することを確かめる。
-- **移す範囲の機械の検査（1 回目の重大 8、2 回目の重大 6）。** 10 節の文面の検査とスクリプトの書き込みの呼び出しの検査を `tests/wiki/check_commands_mcp.py` と `tests/wiki/test_wiki_writers.py` に置く。対照として、`wiki_evolve_loop.py` の移す前の版で、スクリプトの検査が落ちることを確かめる。
+- **移す範囲の機械の検査（1 回目の重大 8、2 回目の重大 6、3 回目の重大 4、軽微 2）。** `commands/init.md` の手順 4 の段落が、分類なしでは落ちることを確かめる。 10 節の文面の検査とスクリプトの書き込みの呼び出しの検査を `tests/wiki/check_commands_mcp.py` と `tests/wiki/test_wiki_writers.py` に置く。対照として、`wiki_evolve_loop.py` の移す前の版で、スクリプトの検査が落ちることを確かめる。
 - **ロックを持つ時間。** 新しいページ 5、直すページ 5、索引とログの計画で、`lock_held_seconds` を記録する（手元の測定。コミットしない）。
 
 ### 12. 移る順番
 
-1. `wiki_fsguard.py` を足し、`wiki_browse_fs.py` を移す。`raw_root_problem()` を、raw の書き手（`wiki_fetch.py`、`wiki_session.py write`、`wiki_evolve.py capture`、`wiki_encoding.py --output`）にも入れる。
+1. `wiki_fsguard.py` を足し、`wiki_browse_fs.py` を移す。`init_wiki.py` の作り方を `O_EXCL` に改める。`raw_root_problem()` を、raw の書き手（`wiki_fetch.py`、`wiki_session.py write`、`wiki_evolve.py capture`、`wiki_encoding.py --output`）にも入れる。
 2. `wiki_apply.py` を足し、セッションの取り込み（S7〜S10）を移す。セッションの取り込みの実装と同じリリースにするかは、実装の順で決める。
 3. Web ページ、PDF、ふつうのファイルの取り込み（`commands/ingest.md` の W8 と手順 6〜7、`ingest-workflow.md`、`graph-workflow.md`、`SKILL.md`、`agent-memory-integration.md` の定型文）を移す。
 4. `/wiki:query`、`/wiki:learn`、`/wiki:evolve` の保存（`query.md`、`query-workflow.md`、`learn.md`、`evolution-workflow.md`、`evolve.md`、`wiki_evolve_loop.py`）を移す。
-5. lint の直し（`lint.md`、`lint-workflow.md`）、`upgrade.md`、`retrieval-setup.md`、`scaling-playbook.md` を移し、文面の検査を足す。スクリプトの書き込みの呼び出しの検査は、4 のあとに足す。
+5. lint の直し（`lint.md`、`lint-workflow.md`）、`init.md` の手順 4、`upgrade.md`、`retrieval-setup.md`、`scaling-playbook.md` を移し、文面の検査を足す。スクリプトの書き込みの呼び出しの検査は、4 のあとに足す。
 
 すべて移るまで、移っていない書き手との競合は残る（「保証しないこと」の 2）。
 
@@ -511,7 +528,8 @@ python wiki_apply.py abort     --apply-dir <D>
 | `info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py` | `wiki_fsguard` を読み込む |
 | `info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py`、`wiki_session.py`、`wiki_evolve.py`、`wiki_encoding.py` | raw を書く前に `raw_root_problem()` を呼ぶ |
 | `info-hive-wiki/skills/info-hive/scripts/wiki_evolve_loop.py` | ページ、索引、ログの書き込みを `wiki_apply.apply_plan()` に移す |
-| 10 節の表の文書（`commands/ingest.md`、`query.md`、`learn.md`、`evolve.md`、`lint.md`、`upgrade.md`、`skills/info-hive/SKILL.md`、`references/ingest-workflow.md`、`graph-workflow.md`、`query-workflow.md`、`evolution-workflow.md`、`lint-workflow.md`、`retrieval-setup.md`、`agent-memory-integration.md`、`scaling-playbook.md`、`page-conventions.md`） | 10 節の手順 |
+| `info-hive-wiki/skills/info-hive/scripts/init_wiki.py` | ないファイルを重ねて書かない形（`O_EXCL`）で作る |
+| 10 節の表の文書（`commands/init.md`、`commands/ingest.md`、`query.md`、`learn.md`、`evolve.md`、`lint.md`、`upgrade.md`、`skills/info-hive/SKILL.md`、`references/ingest-workflow.md`、`graph-workflow.md`、`query-workflow.md`、`evolution-workflow.md`、`lint-workflow.md`、`retrieval-setup.md`、`agent-memory-integration.md`、`scaling-playbook.md`、`page-conventions.md`） | 10 節の手順 |
 | `info-hive-wiki/README.md`、`docs/commands.md` | 文面 |
 | `info-hive-wiki/.claude-plugin/plugin.json`、`CHANGELOG.md` | 版はリリースの前に `git fetch` で決める |
 | `tests/wiki/test_wiki_apply.py`、`tests/wiki/test_wiki_writers.py`（新しく作る）、`tests/wiki/check_commands_mcp.py` | 11 節の試験、`CLI_NAMES` への `wiki_apply.py` の追加、文面の検査、スクリプトの書き込みの呼び出しの検査 |
@@ -532,7 +550,7 @@ python wiki_apply.py abort     --apply-dir <D>
 
 ## 指摘との対照
 
-4 回目のレビューの重大 1〜4、6、7、セッションの取り込みの設計の 5〜7 回目のレビューからこの設計に回した指摘、この設計の 1 回目と 2 回目のレビューの指摘が、この版でどうなるかを書く。
+4 回目のレビューの重大 1〜4、6、7、セッションの取り込みの設計の 5〜7 回目のレビューからこの設計に回した指摘、この設計の 1〜3 回目のレビューの指摘が、この版でどうなるかを書く。
 
 | 指摘 | この版 | 理由 |
 | --- | --- | --- |
@@ -560,7 +578,7 @@ python wiki_apply.py abort     --apply-dir <D>
 | 1 回目の軽微 1: `stuck` の扱いが不明確 | 生じない | `stuck` が 1 つでもあれば、どの計画も終了コード 5 で書かない。`recover` で片付ける |
 | 1 回目の軽微 2: フェンスの閉じの規則が足りない | 生じない | 見出しと節を、自前の規則でなく同梱のパーサーのトークンで決める（U） |
 | 2 回目の重大 1: 構造の確かめが、ふつうの追記を拒む | 生じない | 行の番号を比べず、ブロックのトークンの並びを、操作ごとのあるべき並びと比べる（X） |
-| 2 回目の重大 2: 入れ子の wiki が別々のロックで同じファイルを書く | 生じない（同じ PC の同じ利用者の書き手の間） | ロックと日誌を PC に 1 つにした。ほかの PC とほかの利用者は保証しないことの 2 と 6（V） |
+| 2 回目の重大 2: 入れ子の wiki が別々のロックで同じファイルを書く | 生じない（同じ PC の同じ利用者の書き手の間） | ロックと日誌を PC に 1 つにした。4 版目では、親の wiki の計画から子の wiki のファイルを書けない（AA）。ほかの PC とほかの利用者は保証しないことの 2 と 6（V） |
 | 2 回目の重大 3: ハッシュを確かめたあとに `D/edit` が変わる | 生じない | `plan.json` と `D` の中身を 1 回だけ読み、そのバイト列からハッシュを作って、そのまま置く（W） |
 | 2 回目の重大 4: `work` が `W/sources` の bind mount | 生じない（`st_ino` が 0 でないファイルシステム） | 管理の書き込みの d で、`M` からの段の実体が wiki のディレクトリの実体の集まりにないことを確かめる（V） |
 | 2 回目の重大 5: 管理領域を初めて作れない。`.wiki-cache/.gitignore` が管理領域の外 | 生じない | `Writer.bootstrap()` が `M` を 1 段ずつ作る。wiki の中には何も作らない（V） |
@@ -568,3 +586,9 @@ python wiki_apply.py abort     --apply-dir <D>
 | 2 回目の軽微 1: 一時ファイルが残ったまま作り直す | 生じない | 前に進める手順で、一時ファイルの名前を先に消してから置く（Z） |
 | 2 回目の軽微 2: 日誌を消したあとに `--keep` の計画をやり直す | 生じない | `D/applied.json` を書き、`apply` の 0 で止める（Z） |
 | 2 回目の軽微 3: `<div>` と `| a |` を拒む理由が立たない | 生じない | 段落の文として通し、試験の期待もそうした（X） |
+| 3 回目の重大 1: 入れ子の wiki で、親から子の `log.md` を `edit` し、`nth` がずれる | 生じない | 行き先のパスの途中に、初期化された wiki のルートがあれば拒む（AA） |
+| 3 回目の重大 2: `done` と `applied.json` の間で止まり、日誌を消したあとにやり直す | 生じない | `applied.json` を先に書き、日誌は印があるか `D` がないときだけ消す（AB） |
+| 3 回目の重大 3: 別の wiki の日誌を前に進める情報がない | 生じない | 日誌に wiki と raw のルートを書き、日誌ごとに `Writer` を作り直す（AC） |
+| 3 回目の重大 4: `init.md` の手順 4 が一覧になく、文面の検査も挙げない | 生じない（12 節の 5 のあと） | 表に足した。文面の検査は、書く先の語に触れる段落をすべて挙げて分類を求める（AD） |
+| 3 回目の軽微 1: ふつうの追記で、索引が緩いリストになる | 生じない | 最後の行を空でない行にし、並びに `hidden` を入れる（AE） |
+| 3 回目の軽微 2: スクリプトの分類にグラフの書き出しがない | 生じない | 分類に足した（AE） |
