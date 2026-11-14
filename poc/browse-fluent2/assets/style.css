@@ -111,8 +111,9 @@ body.fui-FluentProvider {
   border-inline-start: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
 }
 .fui-NavSubItemGroup { overflow: visible; }
-.tree-filter { visibility: hidden; font-size: var(--fontSizeBase200); }
-.fui-NavCategoryItem:hover .tree-filter, .fui-NavCategoryItem:focus-within .tree-filter, .tree-filter:focus-visible {
+/* 「一覧」は地が状態で変わる summary の中にあるので、押下の色を含めて中立の文字にする（4.2） */
+.tree-filter, .tree-filter:hover, .tree-filter:active { visibility: hidden; font-size: var(--fontSizeBase200); color: var(--colorNeutralForeground2); }
+.fui-NavCategoryItem:hover .tree-filter, .fui-NavCategoryItem:focus-within .tree-filter, .tree-filter:focus-visible, .fui-NavCategoryItem .tree-filter:active {
   visibility: visible;
 }
 .tree-groups { list-style: none; margin: 0; padding: 0; }

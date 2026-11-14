@@ -137,13 +137,19 @@ for (const s of SHOTS) {
     for (let i = 0; i < n; i++) {
       const loc = page.locator(sel).nth(i);
       if (!(await loc.isVisible())) { continue; }
-      await loc.hover();
-      const r = await loc.evaluate((e) => {
+      const measure = () => loc.evaluate((e) => {
         const p = window.__probeRatio; return p ? Math.min(...[e, ...e.querySelectorAll("*")].filter((x) => x.childNodes.length && [...x.childNodes].some((c) => c.nodeType === 3 && c.textContent.trim())).map(p)) : null;
       });
-      if (r !== null && isFinite(r)) {
-        const key = await loc.evaluate((e) => e.tagName.toLowerCase() + (e.className && typeof e.className === "string" ? "." + e.className.split(" ")[0] : "") + (e.closest("[id]") ? " in #" + e.closest("[id]").id : ""));
-        hoverMin[key] = Math.min(hoverMin[key] ?? 99, r);
+      const key = await loc.evaluate((e) => e.tagName.toLowerCase() + (e.className && typeof e.className === "string" ? "." + e.className.split(" ")[0] : "") + (e.closest("[id]") ? " in #" + e.closest("[id]").id : ""));
+      await loc.hover();
+      const r = await measure();
+      // 押している間（:active）も測る。離す前にポインターを外し、クリックにしない
+      await page.mouse.down();
+      const rp = await measure();
+      await page.mouse.move(0, 0);
+      await page.mouse.up();
+      for (const [k, v] of [[key, r], [key + " :active", rp]]) {
+        if (v !== null && isFinite(v)) { hoverMin[k] = Math.min(hoverMin[k] ?? 99, v); }
       }
     }
   }
