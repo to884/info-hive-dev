@@ -912,49 +912,61 @@ def control_cases(mutant, modes=MODES):
 
 
 def main(argv=None):
-    """速く済むものから流し、節ごとにすぐ出す（途中で止まっても、そこまでの結果が残る）。"""
+    """速く済むものから流し、節ごとにすぐ出す（途中で止まっても、そこまでの結果が残る）。
+
+    --part server|controls|build:i/m で、全量を分けて並べて流せる（省くと全部）。
+    """
     argv = sys.argv[1:] if argv is None else argv
     quick = "--quick" in argv
+    part = argv[argv.index("--part") + 1] if "--part" in argv else "all"
     started = time.time()
     all_problems = []
+    missed = []
 
     def out(text=""):
         print(text, flush=True)
 
-    out(f"Python {sys.version.split()[0]}、{sys.platform}")
-    for title, (runs, problems) in (
-            ("サーバーの記録", sweep_server(MODES)),
-            ("サーバーの記録（<data_dir> そのものがジャンクション）", sweep_server(MODES, data_link=True)),
-            ("領分の名前がリンク、目印のない空の状態のディレクトリ（起動、stop と動いているかの確かめ）",
-             sweep_server_root(MODES)),
-            ("同じ場所を使う別の Wiki", sweep_shared(MODES)),
-            ("強制停止のあとで、利用者が書き出し先を消す", sweep_user_deletes(USER_DELETES))):
-        all_problems += problems
-        out(f"\n## {title}\n\n実行 {runs} 回、破れた決まり {len(problems)} 件")
-    rewind_problems = scenario_rewind()
-    all_problems += rewind_problems
-    out(f"\n## 番号の巻き戻りと復旧（3 回の実行に 1 つずつの失敗）\n\n破れた決まり {len(rewind_problems)} 件")
+    out(f"Python {sys.version.split()[0]}、{sys.platform}、部分 {part}")
+    if part in ("all", "server"):
+        for title, run in (
+                ("サーバーの記録", lambda: sweep_server(MODES)),
+                ("サーバーの記録（<data_dir> そのものがジャンクション）", lambda: sweep_server(MODES, data_link=True)),
+                ("領分の名前がリンク、目印のない空の状態のディレクトリ（起動、stop と動いているかの確かめ）",
+                 lambda: sweep_server_root(MODES)),
+                ("同じ場所を使う別の Wiki", lambda: sweep_shared(MODES)),
+                ("強制停止のあとで、利用者が書き出し先を消す", lambda: sweep_user_deletes(USER_DELETES))):
+            runs, problems = run()
+            all_problems += problems
+            out(f"\n## {title}\n\n実行 {runs} 回、破れた決まり {len(problems)} 件")
+        rewind_problems = scenario_rewind()
+        all_problems += rewind_problems
+        out(f"\n## 番号の巻き戻りと復旧（3 回の実行に 1 つずつの失敗）\n\n破れた決まり {len(rewind_problems)} 件")
 
-    out("\n## 対照\n\n| 対照 | 見つけた件数 | 最初の 1 件 |\n| --- | --- | --- |")
-    missed = []
-    for mutant in CONTROLS:
-        found = run_control(mutant, lambda m=mutant: control_cases(m))
-        if not found:
-            missed.append(mutant)
-        out(f"| {mutant} | {len(found)} | {found[0] if found else '見つからなかった'} |")
-    for label, run in SERVER_CONTROLS:
-        found = run_control(label, run)
-        if not found:
-            missed.append(label + "（サーバー）")
-        out(f"| {label}（サーバーなど） | {len(found)} | {found[0] if found else '見つからなかった'} |")
+    if part in ("all", "controls"):
+        out("\n## 対照\n\n| 対照 | 見つけた件数 | 最初の 1 件 |\n| --- | --- | --- |")
+        for mutant in CONTROLS:
+            found = run_control(mutant, lambda m=mutant: control_cases(m))
+            if not found:
+                missed.append(mutant)
+            out(f"| {mutant} | {len(found)} | {found[0] if found else '見つからなかった'} |")
+        for label, run in SERVER_CONTROLS:
+            found = run_control(label, run)
+            if not found:
+                missed.append(label + "（サーバー）")
+            out(f"| {label}（サーバーなど） | {len(found)} | {found[0] if found else '見つからなかった'} |")
 
-    out("\n## 書き出し\n\n| 書き出し先の種類 | 書き出し先の状態 | 作業用の状態 | 口の呼び出し | 実行 | 破れた決まり |\n"
-        "| --- | --- | --- | --- | --- | --- |")
-    for out_state, work_state, default in bs.build_cases(quick):
-        depth2 = (not quick) and not default and out_state in ("gen", "absent+old") and work_state in ("asis", "leftovers")
-        total, runs, problems = sweep_build(out_state, work_state, default, MODES, depth2)
-        all_problems += problems
-        out(f"| {'既定' if default else '--out'} | {out_state} | {work_state} | {total} | {runs} | {len(problems)} |")
+    if part == "all" or part.startswith("build"):
+        index, count = (int(v) for v in part.split(":", 1)[1].split("/")) if ":" in part else (0, 1)
+        out("\n## 書き出し\n\n| 書き出し先の種類 | 書き出し先の状態 | 作業用の状態 | 口の呼び出し | 実行 | 破れた決まり |\n"
+            "| --- | --- | --- | --- | --- | --- |")
+        for i, (out_state, work_state, default) in enumerate(bs.build_cases(quick)):
+            if i % count != index:
+                continue
+            depth2 = (not quick) and not default and out_state in ("gen", "absent+old") \
+                and work_state in ("asis", "leftovers")
+            total, runs, problems = sweep_build(out_state, work_state, default, MODES, depth2)
+            all_problems += problems
+            out(f"| {'既定' if default else '--out'} | {out_state} | {work_state} | {total} | {runs} | {len(problems)} |")
 
     if SKIPPED:
         out("\n## 飛ばした状態（合格にしていない）\n")
