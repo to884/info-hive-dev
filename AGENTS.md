@@ -31,6 +31,9 @@
 - Claude Code で実行している場合は、`ask-codex` スキルを用いて Sol による敵対的レビューを行う
 - Codex で実行している場合は、`ask-claude` スキルを用いて Opus による敵対的レビューを行う
 
+レビューの指摘に基づいて修正を行う際には、場当たり的な修正をしてはならない。
+場合によっては構造的な変更を許可し、根本的に欠陥が修正する方法を考える。
+
 ## wiki プラグイン（info-hive-wiki）の開発
 
 `info-hive-wiki` は、Claude Code プラグイン llm-wiki（praneybehl/llm-wiki-plugin v4.0.1）を日本語に特化して移植したものである。`info-hive-wiki` で作業する前に [docs/porting-plan.html](docs/porting-plan.html) の方針と段階を読み、それに従う。移植元との関係は [info-hive-wiki/UPSTREAM.md](info-hive-wiki/UPSTREAM.md) に記録する。
@@ -56,6 +59,9 @@
 - マーケットプレイスは `info-hive-wiki` の main を配る。`plugin.json` の `version` を上げたコミットが main に入ると、利用者に更新が届く。
 - リリースのコミットが `info-hive-wiki` の `main` に入り、`vX.Y.Z` のタグが push され、GitHub リリースが作成され、マーケットプレイスからの導入を確かめるまでは、リリースの完了を報告しない。
 
+### Browse UI constraints
+The /wiki:browse page runs under a strict CSP (ADR-0010). Do not use inline style attributes or inline scripts. Use classes and token-based CSS.
+
 ## rag プラグイン（info-hive-rag）の開発
 
 `info-hive-rag` は、プラグイン `wiki@info-hive` に依存し、RAG（検索拡張生成）を扱う Claude Code プラグインである。PDF の登録、抽出、OCR、埋め込み、索引化を永続ジョブとして処理し、MCP の次回接続時に未完了ジョブを再開する。
@@ -78,8 +84,22 @@
 - スキルの取得元、パス、または内容を変更した場合は、`skills-lock.json` のメタデータも実態に合わせて更新する。
 - 変更範囲は依頼されたスキルに限定し、既存の構成とフロントマターを維持する。
 
-## 調査レポートの配置
-- `deep-research` などの調査系スキルを使ってレポートを作成したときは、`docs/research/` ディレクトリの配下に保存する。
+## Git の PR をマージしたら
+
+- GitHub で PR をマージしたら、リモートブランチを削除する。
+
+## Release & merge workflow (wiki / rag plugins)
+1. Before bumping a version, run `git fetch` and check the latest tag and version on origin/main. Other sessions often release in parallel. If the version is taken, renumber it.
+2. Check whether the target PR is already merged (`gh pr view`) before pushing more commits to its branch. If it is merged, open a new PR.
+3. Merge order: the plugin repo PR first, then the parent repo PR that updates the submodule ref.
+4. After tagging and creating the GitHub release, verify that the marketplace installs the new version.
+5. Update the CHANGELOG date and record the release in the project wiki.
+6. Clean up: remove the worktree (cd out of it first) and delete local and remote branches.
+
+## セッションの後始末
+
+- セッションに行うべきタスクが無くなった場合は、worktree を削除し、git のブランチも削除する。
+
 
 ## 使用した MCP サーバーと Agent Skills の報告
 
