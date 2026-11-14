@@ -379,8 +379,17 @@ def world_same(sb, before, after, injected=False, extra_territory=()):
     失敗を入れた実行（とそのあとの実行）は、Wiki のルートの下が、ルートそのものの属性を含めて変わらず、
     ほかは上の規則に従う（Wiki のルートの外にある領分は、作ってよい）。
     """
-    if sb.out_state in ROOT_LINK or sb.work_state == WORK_LINK:
+    if sb.out_state in ROOT_LINK:
         return before == after          # 領分に入る確かめで、何も作らずに止まる（手を入れた実行も）
+    if sb.work_state == WORK_LINK:
+        # 作業用の名前がリンク。作業用に入る前に、領分の根に入って共通のロックを取る（設計の 6.4 の 1）ので、
+        # 根の中だけは変わってよい。ほかは、書き出し先も作業用（とその先）も含めて変わらない
+        root = rel(sb, sb.real(os.path.join(sb.data, "browse")))
+
+        def outside(t):
+            return {k: v for k, v in t.items() if not (k == root or k.startswith(root + "/"))
+                    and not (os.path.join(sb.data, "browse").startswith(os.path.join(sb.root, k) + os.sep))}
+        return outside(before) == outside(after)
     if sb.out_state in OUT_LINK and not injected:
         return before == after          # 書き出し先の名前の確かめで、作業用も作らずに止まる（設計の 6.4 の 1）
     if sb.out_state in WHOLE:
