@@ -45,7 +45,9 @@ OUT_LINK = ("outlink-junction", "outlink-symlink")
 ENTRY_LINK = ("old-junction", "old-symlink", "left-links")
 # 拒む書き出し先で、<data_dir> がまだない（実装の 1 回目のレビューの重大 1）。--out が <data_dir> を含むものと、
 # --out が Wiki の中にあるもの。手を入れない実行は、砂場の全体が変わらない（拒む判定を、何も作る前に済ませる）
-REFUSED_NODATA = ("datainout", "insidewiki-nodata")
+# 実装の 2 回目のレビューの重大 1: --out が、まだない <data_dir> そのもの（outisdata）と、ある <data_dir> の下の、
+# まだない browse（outisbrowse）
+REFUSED_NODATA = ("datainout", "insidewiki-nodata", "outisdata", "outisbrowse")
 
 
 def write(path, data):
@@ -177,6 +179,10 @@ class Sandbox:
                 self.skipped = f"リンクを作れない: {type(e).__name__}"
         elif out_state == "datainout":
             self.data = self.data_real = os.path.join(r, "user", "data")
+        elif out_state == "outisdata":
+            self.data = self.data_real = os.path.join(r, "newdata")
+        elif out_state == "outisbrowse":
+            os.makedirs(self.data)
         elif out_state not in ("nodata", "insidewiki-nodata"):
             os.makedirs(os.path.join(r, "data", "browse"))
         self.wiki = os.path.join(r, "wiki")
@@ -193,6 +199,10 @@ class Sandbox:
             self.out = os.path.join(r, "wiki", "site")
         elif out_state == "datainout":
             self.out = os.path.join(r, "user")
+        elif out_state == "outisdata":
+            self.out = os.path.join(r, "newdata")
+        elif out_state == "outisbrowse":
+            self.out = os.path.join(r, "data", "browse")
         else:
             self.out = os.path.join(r, "exports", "site")
         if default and out_state == "datainwiki":

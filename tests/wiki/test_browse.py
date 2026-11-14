@@ -831,6 +831,30 @@ class PartialFailureTest(TempWiki):
         for anchor in __import__("re").findall(r'href="#([^"]+)"', html):
             self.assertIn(f'id="{anchor}"', html)
 
+    @unittest.skipUnless(HAS_YAML, "PyYAML がない")
+    def test_relations_parse_failure_keeps_pages(self):
+        # 関係表は、読み込みのときに作った共有のパーサー（wiki_pages._MD）も使う。その解析の例外でも、関係表だけを
+        # 使えないにして、ページは描く（実装の 2 回目のレビューの重大 4）
+        write(self.wiki, "graph/ontology.yaml", "node_types: {concept: {}}\npredicates: {}\n")
+        original = wiki_pages._MD.parse
+
+        def parse(text, env=None):
+            if "BOOM [" in text:
+                raise ValueError("injected")
+            return original(text, env)
+        with mock.patch.object(wiki_pages._MD, "parse", parse):
+            c = build_core(self.wiki)
+            self.assertIn("被リンク", c.render("concepts/a.html"))
+        self.assertIn("concepts/b", c.drawn)
+
+    def test_relations_failure_is_contained(self):
+        # 関係表の組み立てのどこで思わない例外が出ても、関係表だけを使えないにする
+        write(self.wiki, "graph/ontology.yaml", "node_types: {concept: {}}\npredicates: {}\n")
+        with mock.patch.object(core.Core, "_relations", side_effect=ValueError("x")):
+            c = build_core(self.wiki)
+        self.assertEqual(c.relations_state, "error")
+        self.assertIn("オントロジーを読めない", c.render("concepts/a.html"))
+
     def test_undecodable_page_is_marked_incomplete(self):
         (self.wiki / "concepts" / "b.md").write_bytes(b"\xff\xfe broken")
         c = build_core(self.wiki)

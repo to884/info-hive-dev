@@ -190,6 +190,20 @@ def instrumented(inj):
     def render_page(self_, pid, raw_mode="text", stale=None):
         return inj.outer("i_render_page", pid, real_render, self_, pid, raw_mode, stale)
 
+    # 読み込みのときに作られた共有のパーサーと、関係表の読み取りも、解釈の入口に数える（実装の 2 回目のレビューの重大 4）
+    real_shared = wiki_pages._MD.parse
+
+    def shared_parse(text, env=None):
+        return inj.outer("i_parse", None, real_shared, text, env)
+    extra = [mock.patch.object(wiki_pages._MD, "parse", shared_parse)]
+    graph = core.wiki_graph_extract
+    if graph is not None:
+        real_graph_fm, real_onto = graph.read_frontmatter, graph.parse_ontology
+        extra.append(mock.patch.object(graph, "read_frontmatter",
+                                       lambda text: inj.outer("i_frontmatter", None, real_graph_fm, text)))
+        extra.append(mock.patch.object(graph, "parse_ontology",
+                                       lambda text: inj.outer("i_frontmatter", None, real_onto, text)))
+
     class Layer(type(inj)):
         pass
 
@@ -211,7 +225,9 @@ def instrumented(inj):
             mock.patch.object(wiki_pages, "win_file_id", file_id), \
             mock.patch.object(wiki_pages, "new_parser", new_parser), \
             mock.patch.object(wiki_lint, "parse_frontmatter_raw", frontmatter), \
-            mock.patch.object(core.Core, "render_page", render_page):
+            mock.patch.object(core.Core, "render_page", render_page), contextlib.ExitStack() as stack:
+        for patch in extra:
+            stack.enter_context(patch)
         yield
 
 
@@ -261,6 +277,15 @@ def _unreadable(sb, rel):
     return mock.patch.object(fs, "read_input", read)
 
 
+def _semantic(c) -> dict:
+    """読み取りの印に依らない値（リンクの解決、被リンク、未解決リンク、ナビゲーション、関係表）。"""
+    import json
+    return {"links": {pid: [(r["state"], r.get("id")) for r in c.links[pid]] for pid in sorted(c.drawn)},
+            "backlinks": c.backlinks, "unresolved": c.unresolved(),
+            "nav": json.dumps(c._nav_json()["groups"], ensure_ascii=False),
+            "relations": json.dumps(c.relations, ensure_ascii=False, sort_keys=True, default=str)}
+
+
 def gen(sb):
     return bs.content(bs.tree(sb.out), manifest=False)
 
@@ -304,6 +329,20 @@ def sweep_read(out_state, modes, only_roles=None):
                 unreadable_gen[r[5:]] = gen(s2) if rc == 0 else ("rc", rc)
             finally:
                 s2.close()
+    # 比べる相手そのものを、設計の 9.2 の基準で確かめる。X を読めない Wiki の中核は、X を木から取り除いた Wiki の
+    # 中核と、読み取りの印を除いて同じである（実装の 2 回目のレビューの軽微。同じ劣化の処理どうしを比べない）
+    for rel in unreadable_gen:
+        u_sb, r_sb = make(out_state), make(out_state)
+        try:
+            with _unreadable(u_sb, rel):
+                u = core.Core(core.take_snapshot(u_sb.wiki))
+            os.unlink(os.path.join(r_sb.wiki, *rel.split("/")))
+            r = core.Core(core.take_snapshot(r_sb.wiki))
+            if _semantic(u) != _semantic(r):
+                problems.append(f"{rel} を読めない Wiki が、{rel} を取り除いた Wiki と違う（{out_state}）")
+        finally:
+            u_sb.close()
+            r_sb.close()
     for mode in modes:
         for at, (name, target) in enumerate(calls, 1):
             r = role(name, target, sb, assets)

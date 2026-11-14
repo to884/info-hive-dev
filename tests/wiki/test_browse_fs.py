@@ -127,6 +127,20 @@ def io_violations(source: str, module: str) -> list:
                         found.append(f"{where} {base}.{f.attr}")
             self.generic_visit(node)
 
+        def visit_Name(self, node):
+            # 層の外の 2 つのモジュールは、Path を持たない（PurePath と PurePosixPath だけを使う）。メソッドの名前で
+            # 入出力を数え上げると、Path の入出力のすべてを見つけられない（実装の 2 回目のレビューの軽微）。持たな
+            # ければ、Path のどの入出力も呼べない
+            if module != "wiki_browse_fs.py" and node.id in ("Path", "WindowsPath", "PosixPath"):
+                found.append(f"{module}:{node.lineno} Path を持つ")
+            self.generic_visit(node)
+
+        def visit_Attribute(self, node):
+            if module != "wiki_browse_fs.py" and node.attr in ("Path", "WindowsPath", "PosixPath") \
+                    and ast.unparse(node.value) == "pathlib":
+                found.append(f"{module}:{node.lineno} pathlib.Path を持つ")
+            self.generic_visit(node)
+
         def visit_ClassDef(self, node):
             stack.append(node.name)
             self.generic_visit(node)
@@ -169,6 +183,9 @@ class LayerContractTest(unittest.TestCase):
             (core + "\n\ndef leak():\n    p = Path('x')\n    return p.read_text(encoding='utf-8')\n",
              "wiki_browse_core.py"),
             (browse + "\n\ndef leak(root):\n    return root.resolve()\n", "wiki_browse.py"),
+            (browse + "\n\nfrom pathlib import Path\n\ndef leak(p):\n    return Path(p).open()\n", "wiki_browse.py"),
+            (core + "\n\nimport pathlib\n\ndef leak(p):\n    q = pathlib.Path(p)\n    return q.stat(follow_symlinks=False)\n",
+             "wiki_browse_core.py"),
             (browse + "\n\ndef leak(p):\n    return os.path.isfile(p)\n", "wiki_browse.py"),
             (browse + "\n\ndef leak():\n    try:\n        pass\n    except OSError:\n        pass\n", "wiki_browse.py"),
             (layer + "\n\ndef leak(p):\n    return os.lstat(p)\n", "wiki_browse_fs.py"),
@@ -334,6 +351,104 @@ class WriteGuardTest(unittest.TestCase):
         with self.assertRaises(fs.Stop):
             fs.enter_root(str(data / "browse"), create=False)
         self.assertEqual(list(elsewhere.iterdir()), [])
+
+
+class SecondReviewTest(unittest.TestCase):
+    """実装の 2 回目のレビューの指摘（docs/agent-runs/2026-11-14-wiki-browse-structure-impl/impl-review-2.md）。"""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.base = Path(os.path.realpath(self._tmp.name))
+        self.wiki = self.base / "wiki"
+        self.wiki.mkdir()
+        (self.wiki / "SCHEMA.md").write_text("# s\n", encoding="utf-8")
+        self.owner = fs.owner_of(self.wiki)
+        fs.WARNINGS.clear()
+
+    def tearDown(self):
+        fs.WARNINGS.clear()
+        self._tmp.cleanup()
+
+    def build(self, out, browse_root, files=None):
+        return fs.build(str(self.wiki), str(out), files or {"index.html": b"x"}, False, self.owner,
+                        str(browse_root))
+
+    def test_out_that_is_the_planned_data_dir_is_refused_before_creating(self):
+        before = bs.tree(str(self.base))
+        for out, root in ((self.base / "newdata", self.base / "newdata" / "browse"),
+                          (self.base / "newdata2" / "browse", self.base / "newdata2" / "browse")):
+            with self.subTest(out=out.name):
+                with self.assertRaises((fs.Stop, fs.Absent)):   # 親がなければ「ない」で止まる（0.10.0 と同じ）
+                    self.build(out, root)
+                self.assertEqual(bs.tree(str(self.base)), before)
+        # 親はあり、--out が、まだない <data_dir> の下の browse そのもの
+        (self.base / "newdata3").mkdir()
+        before = bs.tree(str(self.base))
+        with self.assertRaises(fs.Stop):
+            self.build(self.base / "newdata3" / "browse", self.base / "newdata3" / "browse")
+        self.assertEqual(bs.tree(str(self.base)), before)
+
+    def test_failure_after_commit_is_a_warning(self):
+        # 片付けが、Wiki のルートの祖先を動かそうとして止まる（書き込みの守りの Stop）。新しい世代は書き出してあるので、
+        # 0 で終わり、警告を出す
+        out = self.base / "site"
+        work = self.base / "site.browse-work"
+        (work / "old-5" / "wiki").mkdir(parents=True)
+        (work / fs.WORK_MARKER).write_text("", encoding="utf-8")
+        inner_wiki = work / "old-5" / "wiki"
+        (inner_wiki / "SCHEMA.md").write_text("# s\n", encoding="utf-8")
+        rc = fs.build(str(inner_wiki), str(out), {"index.html": b"x"}, False, fs.owner_of(inner_wiki),
+                      str(self.base / "data" / "browse"))
+        self.assertEqual(rc, 0)
+        self.assertTrue((out / "index.html").is_file())
+        self.assertTrue(inner_wiki.is_dir())
+        self.assertTrue(fs.WARNINGS, fs.WARNINGS)
+
+    def test_closed_stdout_after_commit_is_a_warning(self):
+        class Closed(fs.Os):
+            def stdout_write(self, text):
+                raise ValueError("I/O operation on closed file.")
+        saved, fs.X = fs.X, Closed()
+        try:
+            rc = fs.build(str(self.wiki), str(self.base / "site"), {"index.html": b"x"}, False, self.owner,
+                          str(self.base / "data" / "browse"), report_text="{}\n")
+        finally:
+            fs.X = saved
+        self.assertEqual(rc, 0)
+        self.assertTrue(any("知らせを出せなかった" in w for w in fs.WARNINGS), fs.WARNINGS)
+
+    def test_finish_rechecks_the_state_dir(self):
+        # サーバーが動いているあいだに、状態のディレクトリの名前が利用者のディレクトリへのリンクに置き換わっても、
+        # 終了は、その先の利用者のファイルを消さない（設計の 7.1）
+        root = self.base / "data" / "browse"
+        state = root / "KEY.server"
+        outcome, server = fs.serve_start(str(self.wiki), str(root), str(state), self.owner,
+                                         lambda: {"instance": "x"})
+        self.assertEqual(outcome, "started")
+        user = self.base / "user"
+        user.mkdir()
+        (user / "server.json").write_text("mine", encoding="utf-8")
+        server.lock.release()
+        os.rename(state, self.base / "moved")
+        try:
+            bs.link_dir("junction" if os.name == "nt" else "symlink", str(state), str(user))
+        except OSError:
+            self.skipTest("リンクを作れない")
+        server.lock.fd = None
+        fs.serve_finish(server)
+        self.assertEqual((user / "server.json").read_text(encoding="utf-8"), "mine")
+        self.assertTrue(any("記録を消せなかった" in w for w in fs.WARNINGS), fs.WARNINGS)
+
+    def test_unnumbered_names_in_work_are_kept(self):
+        out = self.base / "site"
+        work = self.base / "site.browse-work"
+        work.mkdir()
+        (work / fs.WORK_MARKER).write_text("", encoding="utf-8")
+        for name in ("tmp-not-a-number", "old-x", "del-"):
+            (work / name).mkdir()
+        self.assertEqual(self.build(out, self.base / "data" / "browse"), 0)
+        self.assertEqual(sorted(p.name for p in work.iterdir()),
+                         sorted([fs.WORK_MARKER, "build.lock", "tmp-not-a-number", "old-x", "del-"]))
 
 
 # ---------------------------------------------------------------------------

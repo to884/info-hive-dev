@@ -250,6 +250,9 @@ def _outside_territory(sb, t):
     --out が <data_dir> を含む状態で、領分とその祖先を作ることは、設計の 2.1 が許す。拒む書き出し先は、それを除いて
     変わってはならない。
     """
+    out_in_data = os.path.relpath(sb.out, sb.data).replace(os.sep, "/")
+    if out_in_data == "." or not out_in_data.startswith(".."):
+        return "領分"          # 書き出し先そのものが、<data_dir> かその下（作ってよい場所）
     if t is None:
         return None
     inner = os.path.relpath(sb.data, sb.out).replace(os.sep, "/")
@@ -879,7 +882,8 @@ CONTROLS = {
     "recover_unchecked": [("absent", "old-junction", False)],
     "accept_out_link": [("outlink-junction", "asis", True)],
     # 実装の 1 回目のレビューの重大 1（拒む判定の前に、領分の根を作った）
-    "enter_root_first": [("datainout", "asis", False), ("insidewiki-nodata", "asis", False)],
+    "enter_root_first": [("datainout", "asis", False), ("insidewiki-nodata", "asis", False),
+                         ("outisdata", "asis", False)],
 }
 SERVER_CONTROLS = (
     ("warn_on_record_failure", lambda: sweep_server(MODES)[1]),
