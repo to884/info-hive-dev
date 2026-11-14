@@ -182,7 +182,18 @@ def touches(command: str, patterns: list[re.Pattern]) -> bool:
 CD_RE = re.compile(r"(?:^|[;&|\n]\s*)(?:cd|pushd|Set-Location)\s")
 
 
+def script_run(script: str, sub: str) -> re.Pattern:
+    """スクリプトのサブコマンドの実行（パスを二重引用符か単一引用符で囲んでも、囲まなくても読む）。"""
+    return re.compile(re.escape(script) + r"[\"']?\s+" + re.escape(sub) + r"\b")
+
+
+FREEZE_RE = script_run("wiki_rawcheck.py", "freeze")
+CHECK_RE = script_run("wiki_rawcheck.py", "check")
+
+
 def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_model: str) -> dict:
+    # 記録の書き込み先は絶対パスなので、相対パスで渡されたプロジェクトも絶対パスにしてから比べる
+    project = Path(project).resolve()
     main_events = events(read_jsonl(main_path))
     main_tools = tools_of(main_events)
     subs = []
@@ -228,14 +239,14 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     bash = {name: bash_commands(tools) for name, tools in actors.items()}
     writes = {name: tool_paths(tools) for name, tools in actors.items()}
 
-    runs = {name: [c for c in cmds if "wiki_fetch.py" in c or re.search(r"wiki_rawcheck\.py\"?\s+freeze", c)]
+    runs = {name: [c for c in cmds if "wiki_fetch.py" in c or FREEZE_RE.search(c)]
             for name, cmds in bash.items()}
     check("wiki_fetch.py と freeze を実行したのは wiki:web-raw だけ",
           any("wiki_fetch.py" in c for c in runs[AGENT_TYPE])
           and any("freeze" in c for c in runs[AGENT_TYPE])
           and not any(cmds for name, cmds in runs.items() if name != AGENT_TYPE),
           {name: [c[:160] for c in cmds] for name, cmds in runs.items() if name != AGENT_TYPE and cmds})
-    finished = [c for cmds in bash.values() for c in cmds if re.search(r"wiki_rawcheck\.py\"?\s+check", c) and "--finish" in c]
+    finished = [c for cmds in bash.values() for c in cmds if CHECK_RE.search(c) and "--finish" in c]
     results = [e["text"] for evs in [main_events] + [s["events"] for s in subs] for e in evs if e["kind"] == "in"]
     removed = any('"work_dir_removed": true' in t or "作業用の写しを消した" in t for t in results)
     check("W8 の check --finish が通り、作業用の写しを消した（道具の結果）", finished and removed,
@@ -248,8 +259,10 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     agent_wiki = [p for p in writes[AGENT_TYPE] if under(p, wiki) and "/.wiki-cache/" not in p]
     check("wiki:web-raw は wiki のページ、index.md、log.md に書いていない（Edit、Write）", not agent_wiki, agent_wiki)
     main_targets = writes["main"] + bash_write_targets(bash["main"])
-    check("メインが要約ページ、index.md、log.md を書いた",
-          any(under(p, wiki / "sources") for p in writes["main"])
+    # Write の入力だけでは、書けたかは分からない（権限の誤りなど）。書いた要約ページが実際にあることを合否に入れる。
+    main_sources = [p for p in writes["main"] if under(p, wiki / "sources")]
+    check("メインが要約ページ、index.md、log.md を書いた（要約ページはファイルがある）",
+          any(Path(p).is_file() for p in main_sources)
           and any(p.lower().endswith("index.md") for p in main_targets)
           and any(p.lower().endswith("log.md") for p in main_targets),
           sorted(set(main_targets)))
@@ -267,6 +280,8 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
           not shares_text(raw_text, before) and not shares_text(raw_text, prompts),
           {"before": shares_text(raw_text, before), "prompts": shares_text(raw_text, prompts)})
     sources = sorted((wiki / "sources").glob("*.md"))
+    # 要約ページがないと、下の受け渡しの確かめは空の文と比べて通ってしまうので、あることを先に確かめる
+    check("要約ページがある", sources, [str(s) for s in sources])
     summary = "\n".join(body_of(p.read_bytes().decode("utf-8")) for p in sources)
     agent_texts = [_out_text(e) for s in raw_agents for e in s["events"] if e["kind"] in ("out_text", "tool_use")]
     # 要約ページは raw から引用するので、raw にもある並びは受け渡しに数えない。

@@ -11,6 +11,7 @@ claude -p を動かして確かめる（費用がかかるので、この試験�
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import unittest
@@ -219,7 +220,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
     def got(text):
         return {"message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "x", "content": text}]}}
 
-    def write(self, main_records, agents):
+    def write(self, main_records, agents, project=None):
         self.main_path.write_bytes("\n".join(json.dumps(r, ensure_ascii=False) for r in main_records).encode("utf-8"))
         paths = []
         for i, (meta, records) in enumerate(agents):
@@ -229,7 +230,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
             path.with_suffix(".prefix.json").write_bytes(
                 json.dumps({"state": {"model": meta.get("_model", "claude-sonnet-5-5")}}).encode("utf-8"))
             paths.append(path)
-        return check_web_raw_agent.analyze_paths(self.main_path, paths, self.project, "opus")
+        return check_web_raw_agent.analyze_paths(self.main_path, paths, project or self.project, "opus")
 
     def good(self, main_extra=(), agent_extra=(), call_input=None):
         call = {"subagent_type": "wiki:web-raw", "prompt": "この依頼の raw を作る。\n```json\n{\"web_raw_request\": 1}\n```"}
@@ -256,6 +257,45 @@ class SyntheticTranscriptTest(unittest.TestCase):
     def test_division_of_labor_passes(self):
         report = self.write(*self.good())
         self.assertTrue(report["ok"], self.failed(report))
+
+    def test_relative_project_path_passes(self):
+        """プロジェクトを相対パスで渡しても、記録の絶対パスと同じファイルとして比べる（PR #103 の指摘）。"""
+        cwd = os.getcwd()
+        os.chdir(self.project.parent)
+        self.addCleanup(os.chdir, cwd)
+        main, agents = self.good()
+        report = self.write(main, agents, project=Path("proj"))
+        self.assertTrue(report["ok"], self.failed(report))
+        # 相対パスでも、ほかのサブエージェントの raw への書き込みは見つける
+        agents.append(({"agentType": "general-purpose", "launchedWithDefaults": True, "_model": "claude-opus-5-5"},
+                       [self.use("Write", {"file_path": str(self.project / "raw/cqrs.md"), "content": "x"})]))
+        report = self.write(main, agents, project=Path("proj"))
+        self.assertIn("raw に書いた（Edit、Write）のは wiki:web-raw だけ", self.failed(report))
+
+    def test_single_quoted_script_paths_are_read(self):
+        """スクリプトのパスを単一引用符で囲んでも、freeze と check --finish の実行を読む（PR #103 の指摘）。"""
+        main, agents = self.good()
+        quoted = []
+        for rec in agents[0][1]:
+            text = json.dumps(rec, ensure_ascii=False)
+            for script in ("wiki_fetch.py", "wiki_rawcheck.py"):
+                text = text.replace(f"python {script}", f"python '/plugin/scripts/{script}'")
+            quoted.append(json.loads(text))
+        agents = [(agents[0][0], quoted)]
+        report = self.write(main, agents)
+        self.assertTrue(report["ok"], self.failed(report))
+        # メインが単一引用符の形で freeze を動かしたら、見逃さない
+        main = main + [self.use("Bash", {"command": "python '/plugin/scripts/wiki_rawcheck.py' freeze --slug cqrs"})]
+        report = self.write(main, agents)
+        self.assertIn("wiki_fetch.py と freeze を実行したのは wiki:web-raw だけ", self.failed(report))
+
+    def test_missing_summary_file_fails(self):
+        """要約ページの Write が失敗してファイルがなければ、不合格にする（PR #103 の指摘）。"""
+        (self.project / "wiki/sources/cqrs.md").unlink()
+        report = self.write(*self.good())
+        failed = self.failed(report)
+        self.assertIn("要約ページがある", failed)
+        self.assertIn("メインが要約ページ、index.md、log.md を書いた（要約ページはファイルがある）", failed)
 
     def test_unrelated_subagent_is_listed_not_judged(self):
         main, agents = self.good()
