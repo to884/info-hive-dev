@@ -20,6 +20,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -121,7 +122,8 @@ def io_violations(source: str, module: str) -> list:
                 base = ast.unparse(f.value)
                 full = ast.unparse(f)
                 if module != "wiki_browse_fs.py" and "(" not in full \
-                        and (full.startswith("os.") or full.startswith("shutil.")) \
+                        and (full.startswith("os.") or full.startswith("shutil.")
+                             or full in ("io.open", "io.FileIO", "io.open_code")) \
                         and full not in PURE_OS_CALLS:
                     found.append(f"{where} {full}")
                 if module != "wiki_browse_fs.py" and base not in ("fs", "wiki_browse_fs"):
@@ -152,11 +154,19 @@ def io_violations(source: str, module: str) -> list:
             # pathlib を丸ごと取り込むと、別名でも Path に届く。層の外では取り込まない
             if module != "wiki_browse_fs.py" and any(a.name == "pathlib" for a in node.names):
                 found.append(f"{module}:{node.lineno} pathlib を取り込む")
+            # os と shutil は、別名で取り込まない（許す os の関数の一覧は、os という名前で照らす。実装の 5 回目の
+            # レビューの軽微）。shutil は取り込まない
+            if module != "wiki_browse_fs.py":
+                for a in node.names:
+                    if a.name in ("os", "os.path") and a.asname is not None or a.name == "shutil":
+                        found.append(f"{module}:{node.lineno} {a.name} を別名で、または取り込む")
             self.generic_visit(node)
 
         def visit_ImportFrom(self, node):
             # pathlib から取り込んでよいのは、入出力を持たない純粋なパスだけである。別名でも見つける
             # （実装の 3 回目のレビューの軽微）
+            if module != "wiki_browse_fs.py" and node.module in ("os", "os.path", "shutil", "io"):
+                found.append(f"{module}:{node.lineno} {node.module} から名前を取り込む")
             if module != "wiki_browse_fs.py" and node.module == "pathlib":
                 for a in node.names:
                     if a.name not in ("PurePath", "PurePosixPath", "PureWindowsPath"):
@@ -214,6 +224,8 @@ class LayerContractTest(unittest.TestCase):
             (browse + "\n\nfrom pathlib import Path\n\ndef leak(p):\n    return Path(p).open()\n", "wiki_browse.py"),
             (browse + "\n\nfrom pathlib import Path as P\n\ndef leak(p):\n    return P(p).open()\n", "wiki_browse.py"),
             (core + "\n\ndef leak(fd):\n    return os.read(fd, 1024)\n", "wiki_browse_core.py"),
+            (core + "\n\nimport os as o\n\ndef leak(fd):\n    return o.read(fd, 1)\n", "wiki_browse_core.py"),
+            (browse + "\n\nfrom os import read\n\ndef leak(fd):\n    return read(fd, 1)\n", "wiki_browse.py"),
             (browse + "\n\ndef leak(fd, data):\n    return os.write(fd, data)\n", "wiki_browse.py"),
             (core + "\n\nimport pathlib as pl\n\ndef leak(p):\n    return pl.Path(p).open()\n", "wiki_browse_core.py"),
             (core + "\n\nimport pathlib\n\ndef leak(p):\n    q = pathlib.Path(p)\n    return q.stat(follow_symlinks=False)\n",
@@ -600,6 +612,118 @@ class FourthReviewTest(unittest.TestCase):
         finally:
             fs._enter_state = saved
         self.assertTrue(any("記録を消せなかった" in w for w in fs.WARNINGS), fs.WARNINGS)
+
+
+def _shape(path) -> dict:
+    """木の名前、種類、中身のハッシュ、書き込めるか（更新時刻を除く）。"""
+    return {k: v[:3] for k, v in (bs.tree(str(path)) or {}).items()}
+
+
+class FifthReviewTest(unittest.TestCase):
+    """実装の 5 回目のレビューの指摘（docs/agent-runs/2026-11-14-wiki-browse-structure-impl/impl-review-5.md）。
+
+    作る前の判定は、まだない名前の別名（Windows の 8.3 の短い名前など）を見分けられない。拒むときは、その実行で
+    作った空のディレクトリを取り除いて戻す。8.3 の名前は環境によって作られないので、作る前の判定は通り、作ったあとの
+    判定で拒む形を差し込んで確かめる。
+    """
+
+    # 作って取り除いたディレクトリの親の更新時刻は、避けられずに変わる（設計の 2.1 が守る対象から外している）。
+    # 名前、種類、中身、書き込めるかを比べる
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.base = Path(os.path.realpath(self._tmp.name))
+        self.wiki = self.base / "wiki"
+        self.wiki.mkdir()
+        (self.wiki / "SCHEMA.md").write_text("# s\n", encoding="utf-8")
+        self.owner = fs.owner_of(self.wiki)
+        fs.WARNINGS.clear()
+
+    def tearDown(self):
+        fs.WARNINGS.clear()
+        fs.MUTANTS.discard("no_rollback")
+        self._tmp.cleanup()
+
+    def refused_after_creating(self, call):
+        """作る前の入れ子の判定だけを通す（別名を見分けられなかった形）。作ったあとの判定は本物にする。"""
+        real = fs._check_nesting
+        seen = {"n": 0}
+
+        def nesting(*a, **k):
+            seen["n"] += 1
+            if seen["n"] == 1:
+                return None
+            raise fs.Stop("作ったあとに重なりが分かった")
+        with mock.patch.object(fs, "_check_nesting", nesting):
+            with self.assertRaises(fs.Stop):
+                call()
+        del real
+
+    def test_refusal_after_creating_removes_what_it_created(self):
+        before = _shape(self.base)
+        data = self.base / "NewDataDirectory" / "deep" / "browse"
+        self.refused_after_creating(lambda: fs.build(str(self.wiki), str(self.base / "site"), {"index.html": b"x"},
+                                                     False, self.owner, str(data)))
+        self.assertEqual(_shape(self.base), before)
+
+    def test_control_without_rollback_leaves_directories(self):
+        fs.MUTANTS.add("no_rollback")
+        data = self.base / "NewDataDirectory" / "browse"
+        self.refused_after_creating(lambda: fs.build(str(self.wiki), str(self.base / "site"), {"index.html": b"x"},
+                                                     False, self.owner, str(data)))
+        self.assertTrue(data.is_dir())
+
+    def test_start_refusal_after_creating_removes_what_it_created(self):
+        before = _shape(self.base)
+        data = self.base / "NewDataDirectory" / "browse"
+        real = fs._check_not_nested
+
+        def not_nested(place, own=None):
+            if own == fs.SERVER_MARKER:
+                raise fs.Stop("作ったあとに重なりが分かった")
+            return real(place, own)
+        with mock.patch.object(fs, "_check_not_nested", not_nested):
+            with self.assertRaises(fs.Stop):
+                fs.serve_start(str(self.wiki), str(data), str(data / "KEY.server"), self.owner,
+                               lambda: {"instance": "x"})
+        self.assertEqual(_shape(self.base), before)
+
+    def test_rollback_keeps_directories_others_filled(self):
+        # ほかのプロセスが、作ったディレクトリの中に何かを置いていれば、取り除かずに残し、警告を出す
+        data = self.base / "NewDataDirectory" / "browse"
+        real = fs._check_nesting
+        seen = {"n": 0}
+
+        def nesting(*a, **k):
+            seen["n"] += 1
+            if seen["n"] == 1:
+                return None
+            (data / "someone.txt").write_text("x", encoding="utf-8")
+            raise fs.Stop("作ったあとに重なりが分かった")
+        with mock.patch.object(fs, "_check_nesting", nesting):
+            with self.assertRaises(fs.Stop):
+                fs.build(str(self.wiki), str(self.base / "site"), {"index.html": b"x"}, False, self.owner, str(data))
+        del real
+        self.assertTrue((data / "someone.txt").is_file())
+        self.assertTrue(any("取り除けなかった" in w for w in fs.WARNINGS), fs.WARNINGS)
+
+    @unittest.skipUnless(os.name == "nt", "8.3 の短い名前は Windows だけ")
+    def test_real_short_name_alias_leaves_nothing(self):
+        # 8.3 の短い名前が作られる環境なら、実際の別名で確かめる。作られなければ飛ばす
+        probe = self.base / "LongDirectoryNameProbe"
+        probe.mkdir()
+        import ctypes
+        buf = ctypes.create_unicode_buffer(1024)
+        ctypes.windll.kernel32.GetShortPathNameW(str(probe), buf, 1024)
+        short = os.path.basename(buf.value)
+        probe.rmdir()
+        if not short or short.casefold() == probe.name.casefold():
+            self.skipTest("8.3 の短い名前が作られない")
+        before = _shape(self.base)
+        with self.assertRaises((fs.Stop, fs.Absent)):
+            fs.build(str(self.wiki), str(self.base / short), {"index.html": b"x"}, False, self.owner,
+                     str(probe / "browse"))
+        self.assertEqual(_shape(self.base), before)
 
 
 # ---------------------------------------------------------------------------
