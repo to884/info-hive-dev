@@ -1,0 +1,171 @@
+## 判定
+
+**却下。確信度：中。** `adopt` の書き込みを raw 検査に通すための情報が不足している。また、ディレクトリ走査が不完全だった場合の停止条件がなく、raw への別名を見逃す実装を排除できない。
+
+未実装の設計への判定である。以下は仕様の欠落と、その記述から構成できる反例であり、新しい実装を実行して発見した不具合ではない。
+
+## 致命的・重大な欠陥
+
+### 1.【重大・仕様の欠落】`adopt` は、raw 検査に必要なルートを取得できない
+
+`Writer` は raw のディレクトリの実体集合を必要とし、ロックファイルを開く操作も検査対象になる。しかし、`adopt` が受け取るのは `--wiki` だけである。所有印にも raw のルートは保存されない。
+
+次の状態を考える。リンクも並行実行も必要ない。
+
+```text
+W       = /kb/wiki
+R       = /archive/raw
+M_old   = /home/u/.local/share/info-hive/apply
+
+W の印は M_old を指す。
+未完の日誌も、残した作業フォルダーもない。
+/archive/raw/apply は既存の通常ディレクトリ。
+```
+
+ここで次を実行する。
+
+```text
+INFO_HIVE_DATA_DIR=/archive/raw
+wiki_apply.py adopt --wiki /kb/wiki
+```
+
+新しい管理領域は `/archive/raw/apply` になる。記載された手順5では、raw の中の次のファイルを開くことになる。
+
+```text
+/archive/raw/apply/apply.lock
+```
+
+ところが、`adopt` には R を知る入力も、R を復元する記録もない。`SCHEMA.md` から取得するという規定もない。そもそも `begin --raw-root` の値は計画ごとに指定でき、所有印には引き継がれない。日誌から探す方法も、上記のように日誌がない状態では成立しない。
+
+したがって、**raw 検査を省略すれば raw 内に管理用ファイルを作り、検査を厳守すれば必要な `Writer` を構成できない。** 通常の `adopt` の実行手順が閉じていない。`--force` に関する排他の保証外とも別の問題である。
+
+根拠：
+
+- [設計:205](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:205)：所有印の保存項目。
+- [設計:211](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:211)：`adopt` の入力と手順。
+- [設計:235](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:235)：ロックを含む全書き込みと `Writer` の必要情報。
+- [設計:494](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:494)：全書き込み直前の raw 検査。
+
+### 2.【重大・仕様の欠落】走査の失敗で実体集合が欠けると、既存の bind mount 経由で raw に書ける
+
+7節は `os.walk(..., followlinks=False)` で実体集合を作るが、一覧取得や種類判定に失敗した場合の扱いを定めていない。
+
+Linux で、開始前から次の配置があるとする。
+
+```text
+R/private/child/             通常の raw ディレクトリ
+W/sources/                   R/private/child の bind mount
+
+R/private は、通過できるが一覧を取得できない。
+W/sources 経由では child の中に書き込める。
+st_ino は正常に取得できる。
+```
+
+記載された走査を既定の `os.walk` で行うと、次の経路になる。
+
+1. R と `R/private` の実体は取得できる。
+2. `R/private` の `scandir` が失敗する。
+3. `os.walk` は既定では失敗を無視し、その枝を飛ばす。
+4. `R/private/child` の実体が raw 集合に入らない。
+5. `new --path sources/x.md` の親の祖先列には、`child`、W、その上の祖先が現れる。bind mount の元の親である `R/private` と R は現れない。
+6. `Writer` の c は一致を見つけず、`R/private/child/x.md` に書き込める。
+
+a はシンボリックリンクではないので通る。b に輪はなく、d には W がある。途中の差し替え、外部の書き手、UNC、`st_ino == 0` は使っていない。
+
+標準ライブラリをメモリ上で検証した結果は次のとおりだった。
+
+```text
+raw 集合:            {R, private}
+行き先の親の祖先列:  {child, W, filesystem-root}
+共通する実体:        なし
+```
+
+さらに、`DirEntry.is_dir()` の失敗を模擬すると、**`onerror` を指定しても呼ばれず、そのディレクトリがファイル側の一覧に入った。** 単に例外が送出されることを期待するだけでも、完全な走査にならない。
+
+「すべて集める」という要求だけでは、この失敗時の処理は決まらない。対照表740行の「今回の raw に限らず保護する」と、755行の管理領域の別名検出は、集合の完全性を暗黙に前提としている。
+
+根拠：
+
+- [設計:497](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:497)：走査方法と集合の用途。
+- [設計:239](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:239)：`Writer` の a〜d。
+- [wiki_browse_fs.py:57](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:57)：祖先列は指定パスを解いて列挙し、bind mount の元の親を復元しない。
+- [設計:740](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:740)：全 raw を保護するという対照表の主張。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| 所有印と wiki のパスがあれば、所有権移管に必要な検査を実行できる | raw のルートが所有印に残っておらず、計画と日誌も残っていない |
+| `os.walk` が終了すれば、保護対象のディレクトリを列挙できた | 一覧取得に失敗した枝が黙って省かれる |
+| 走査の種類判定の失敗は、呼び出し側で検出できる | `DirEntry.is_dir()` の失敗が `os.walk` 内部でファイル扱いになる |
+| 見出しの開始行は、見出し全体の最後の行でもある | 空の節の見出しが2行の Setext 形式である |
+
+## 見落としと軽微な問題
+
+### 1.【軽微】空の Setext 見出しの節には `index-add` できない
+
+次の索引は、同梱パーサーでは二つの見出しになる。
+
+```markdown
+Source
+------
+
+## Next
+```
+
+`index-add --section "Source" --line "- [[b]]: B"` を考える。
+
+319行では見出しの行を `map` の開始行とし、節にブロックがなければその行を「最後の行」にする。そのため、`Source` と下線の間へ追記される。
+
+```markdown
+Source
+
+- [[b]]: B
+------
+
+## Next
+```
+
+同梱パーサーで確認すると、元の `Source` 見出しが段落へ変わり、下線は水平線になる。構造検査で拒まれるため破損は防げるが、指定された追記は完了しない。4節は Setext 見出しを対象外としていない。
+
+根拠：[設計:319](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:319)、[設計:340](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:340)。
+
+### 2.【軽微】書き込み指示の一覧には、`init_wiki.py` の出力が漏れている
+
+既存の出力には次がある。
+
+- `init_wiki.py:136`：欠けた項目を手作業でマージする指示。
+- `init_wiki.py:147`：テンプレートから欠けたセクションを写す指示。
+- `init_wiki.py:286`：生成した `SCHEMA.md` を分野に合わせて書き換える指示。
+
+10節は同スクリプトを「ないファイルだけを作る書き手」として挙げるが、**既存の `SCHEMA.md` を編集させる出力文の移行は挙げていない。**
+
+ただし、これらの日本語の文字列定数は BC の列挙対象になることを AST で確認した。したがって、これは手作業の一覧の漏れであり、今回の機械検査まで通過する反例ではない。
+
+根拠：[init_wiki.py:136](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/init_wiki.py:136)、[init_wiki.py:286](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/init_wiki.py:286)、[設計:588](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:588)。
+
+## 検証した事実
+
+| 確かめた事項 | 結果 |
+| --- | --- |
+| サブモジュールの参照版 | **一致。** `83dbb30abcce7d4ed56babee134cd6247ad7803d` |
+| 所有印に raw のルートが保存されるか | **保存されない。** 設計上の項目は管理領域の実体、パス、作成時刻 |
+| `os.walk` の走査失敗 | **メモリ上で確認。** `scandir` の失敗は既定で省略される。種類判定の失敗は `onerror` にも渡らなかった |
+| 親の実際の索引とテンプレートへの通常の追記 | **解析結果は想定と一致。** 項目が一つ増え、追加文は独立した `inline` になった |
+| AX の参照定義を使う `log-sub` | **一致。** 既存の参照環境で追加文を読むと、規定された子トークン列と一致した |
+| `wiki_rawcheck.py` の1072行・1106行 | **一覧と一致。** 既存出力に、理由を先にログへ書く指示がある |
+| BC による docstring の列挙 | **対象に含まれる。** `init_wiki.py` の docstring と出力文を AST で取得できた |
+| 新しい適用・移管・復旧処理の実行結果 | **確かめられず。** 実装がまだない |
+
+実際の mount、ファイル配置、プロセス停止の試験は行っていない。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- **BA の通常の移管時の排他。** 現所有者のロック取得後に印を読み直す規則では、9回目の古い印を使う反例は成立しなかった。新しい側のロックを待たない手順から、相互待ちも導けなかった。
+- **BB の正式名への公開。** 完成した一時ファイルを非置換で公開する規則では、9回目の空の所有印は正式名に残らない。
+- **通常の再適用と巻き戻し。** 所有権と実体集合が正しく、前後のハッシュが異なる条件では、日誌と `applied.json` の順序から新しい二重適用・変更消失の反例は得られなかった。
+- **1〜2回目の主要な旧反例。** 親リンク経由の `log.md` 編集、行き先の親子関係、計画外の `raw_root`、適用直前の作業ファイル再読込は、現在の明示された規則に阻まれる。
+- **AS・AX の参照定義の比較。** 位置を除いて意味を比較し、追加文に既存の参照環境を渡す条件では、以前の通常追記の拒否を再現できなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
