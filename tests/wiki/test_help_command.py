@@ -60,7 +60,10 @@ def run_main(*argv: str) -> tuple[int, str, str]:
 
 
 def parsed_destinations(markdown: str) -> list[tuple[str, str]]:
-    """同梱のパーサーが読んだリンクと画像の宛先を、(種類, 宛先) で書いた順に返す。"""
+    """同梱のパーサーが読んだリンクと画像の宛先を、(種類, 宛先) で書いた順に返す。
+
+    画像の代替テキストの中のリンクの記法は、文字として描かれ、開けるリンクにならないので数えない。
+    """
     found = []
 
     def walk(tokens):
@@ -69,7 +72,7 @@ def parsed_destinations(markdown: str) -> list[tuple[str, str]]:
                 found.append(("link", t.attrs["href"]))
             elif t.type == "image":
                 found.append(("image", t.attrs["src"]))
-            if t.children:
+            if t.children and t.type != "image":
                 walk(t.children)
 
     walk(wiki_pages.new_parser().parse(markdown, {}))
@@ -244,6 +247,8 @@ class LinkTests(unittest.TestCase):
         # 実装の 2 回目のレビューの反例。代替テキストの中のリンクの記法は、宛先として数えない。
         body = "![a [x](./search.md)](https://example.com/x.png)"
         self.assertEqual(self.details(body), (body, []))
+        # 試験のヘルパーも、代替テキストの中のリンクを宛先として数えない（実装の 3 回目のレビュー）。
+        self.assertEqual(parsed_destinations(body), [("image", "https://example.com/x.png")])
 
     def test_untouched(self):
         body = "\n".join([
@@ -282,6 +287,8 @@ class LinkTests(unittest.TestCase):
             "山かっこの宛先": ("[検索](<./search.md>)", ""),
             "題名つきの宛先": ('[検索](./search.md "検索")', ""),
             "丸かっこを含む宛先": ("[検索](./a\\(b\\).md)", ""),
+            # 実装の 3 回目のレビューの反例。代替テキストの描く文字が、元の文書では「a x」、節だけでは「a [x][s]」になる。
+            "代替テキストの中の、節の外の参照リンク": ("![a [x][s]](https://example.com/x.png)", "[s]: ./search.md\n\n"),
         }
         for label, (body, before) in cases.items():
             with self.subTest(label=label):
