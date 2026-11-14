@@ -67,6 +67,10 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
    ページ: sources/typeとupdatedの配列の扱いの修正-wiki-0.14.1（concepts/frontmatterのリストの値、concepts/リリースの確かめ方 を更新）
    グラフ: ノード +1、型付きエッジ +0
 
+## [2026-11-14] ingest | Claude Code のセッションを wiki に取り込む設計の記録（ADR-0020）
+   ページ: sources/セッションの取り込みの設計-2026-11-14、concepts/セッションの記録の構造、concepts/editとwriteの書き込みの競合（新規）
+   グラフ: ノード +3、型付きエッジ +0
+
 ## [2026-11-14] update | /wiki:ingest に使うモデル（raw の段だけを Sonnet にする）
    ページ: concepts/ingestに使うモデル（グローバルの指示を消し、0.15.0 からエージェント wiki:web-raw が raw の段を行うことを書いた）
 

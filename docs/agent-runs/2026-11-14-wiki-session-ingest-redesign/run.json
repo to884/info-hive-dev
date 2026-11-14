@@ -1,0 +1,385 @@
+{
+  "run_id": "2026-11-14-wiki-session-ingest-redesign",
+  "slug": "wiki-session-ingest-redesign",
+  "created": "2026-11-14T13:43:30",
+  "mode": "analysis",
+  "base_commit": "a879ae4062709668337f692a9ef0b4cf95a2f2ed",
+  "timeout_s": 3600,
+  "effort": {
+    "run": "high",
+    "review": "high",
+    "synthesis": "medium"
+  },
+  "agents": {
+    "A": {
+      "vendor": "claude",
+      "model": "claude-opus-5-5",
+      "label": "Claude Opus 5.5",
+      "status": {
+        "run": "ok",
+        "review": "ok"
+      },
+      "session_id": "9a828e02-a214-4eb1-9eb5-36c41fd32721",
+      "errors": {
+        "run": "",
+        "review": ""
+      },
+      "resumed": {
+        "run": false,
+        "review": true
+      }
+    },
+    "B": {
+      "vendor": "claude",
+      "model": "claude-fable-5-1",
+      "label": "Claude Fable 5.1",
+      "status": {
+        "run": "ok",
+        "review": "ok"
+      },
+      "session_id": "bde31322-b435-4dc8-b006-a2cd2556799a",
+      "errors": {
+        "run": "",
+        "review": ""
+      },
+      "resumed": {
+        "run": false,
+        "review": true
+      }
+    },
+    "C": {
+      "vendor": "codex",
+      "model": "gpt-6.1-sol",
+      "label": "GPT-6.1 Sol",
+      "status": {
+        "run": "ok",
+        "review": "ok"
+      },
+      "session_id": "01a1d85e-48a6-7b60-9793-c52e1d83007c",
+      "errors": {
+        "run": "",
+        "review": ""
+      },
+      "resumed": {
+        "run": false,
+        "review": true
+      }
+    },
+    "D": {
+      "vendor": "codex",
+      "model": "gpt-6-astra",
+      "label": "GPT-6 Astra",
+      "status": {
+        "run": "ok",
+        "review": "ok"
+      },
+      "session_id": "01a1d85e-48a3-7032-919e-ef40e971d397",
+      "errors": {
+        "run": "",
+        "review": ""
+      },
+      "resumed": {
+        "run": false,
+        "review": true
+      }
+    }
+  },
+  "synthesis": {
+    "vendor": "claude",
+    "model": "claude-fable-5-1",
+    "label": "Claude Fable 5.1",
+    "status": "ok",
+    "error": ""
+  },
+  "claude": {
+    "permission_mode": {
+      "analysis": "auto",
+      "implement": "auto"
+    },
+    "allowed_tools": {
+      "analysis": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebFetch",
+        "WebSearch",
+        "Bash(git log:*)",
+        "Bash(git show:*)",
+        "Bash(git diff:*)",
+        "Bash(git blame:*)",
+        "Bash(git status:*)",
+        "Bash(git ls-files:*)"
+      ],
+      "implement": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebFetch",
+        "WebSearch",
+        "Bash(git log:*)",
+        "Bash(git show:*)",
+        "Bash(git diff:*)",
+        "Bash(git blame:*)",
+        "Bash(git status:*)",
+        "Bash(git ls-files:*)",
+        "Edit",
+        "Write",
+        "MultiEdit",
+        "NotebookEdit",
+        "Bash(git:*)"
+      ]
+    }
+  },
+  "codex": {
+    "sandbox": {
+      "analysis": "read-only",
+      "implement": "workspace-write"
+    }
+  },
+  "usage": {
+    "A": {
+      "run": {
+        "total_cost_usd": 4.871606400000001,
+        "usage": {
+          "input_tokens": 42,
+          "cache_creation_input_tokens": 170303,
+          "cache_read_input_tokens": 2450542,
+          "output_tokens": 61144,
+          "output_tokens_details": {
+            "thinking_tokens": 38954
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 166415,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 14313,
+              "cache_read_input_tokens": 182190,
+              "cache_creation_input_tokens": 885,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 885
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      },
+      "review": {
+        "total_cost_usd": 6.112621200000001,
+        "usage": {
+          "input_tokens": 6,
+          "cache_creation_input_tokens": 85111,
+          "cache_read_input_tokens": 699614,
+          "output_tokens": 21009,
+          "output_tokens_details": {
+            "thinking_tokens": 12159
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 85111,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 7276,
+              "cache_read_input_tokens": 262475,
+              "cache_creation_input_tokens": 5711,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 5711
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    },
+    "D": {
+      "run": {
+        "input_tokens": 1628657,
+        "cached_input_tokens": 1509248,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 25466,
+        "reasoning_output_tokens": 9177
+      },
+      "review": {
+        "input_tokens": 3352817,
+        "cached_input_tokens": 3158144,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 45348,
+        "reasoning_output_tokens": 18929
+      }
+    },
+    "C": {
+      "run": {
+        "input_tokens": 2443055,
+        "cached_input_tokens": 2265088,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 32005,
+        "reasoning_output_tokens": 16120
+      },
+      "review": {
+        "input_tokens": 4462652,
+        "cached_input_tokens": 4214912,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 59380,
+        "reasoning_output_tokens": 34106
+      }
+    },
+    "B": {
+      "run": {
+        "total_cost_usd": 16.554085499999996,
+        "usage": {
+          "input_tokens": 582,
+          "cache_creation_input_tokens": 286886,
+          "cache_read_input_tokens": 3733182,
+          "output_tokens": 89334,
+          "output_tokens_details": {
+            "thinking_tokens": 24252
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 282702,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 32,
+              "output_tokens": 22503,
+              "cache_read_input_tokens": 282016,
+              "cache_creation_input_tokens": 686,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 686
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      },
+      "review": {
+        "total_cost_usd": 20.433803249999997,
+        "usage": {
+          "input_tokens": 66,
+          "cache_creation_input_tokens": 95988,
+          "cache_read_input_tokens": 1006191,
+          "output_tokens": 34155,
+          "output_tokens_details": {
+            "thinking_tokens": 18230
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 95988,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 32,
+              "output_tokens": 14429,
+              "cache_read_input_tokens": 369824,
+              "cache_creation_input_tokens": 8866,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 8866
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    },
+    "synthesis": {
+      "total_cost_usd": 4.96506725,
+      "usage": {
+        "input_tokens": 4,
+        "cache_creation_input_tokens": 137269,
+        "cache_read_input_tokens": 173529,
+        "output_tokens": 7301,
+        "output_tokens_details": {
+          "thinking_tokens": 2177
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 132911,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 2,
+            "output_tokens": 2204,
+            "cache_read_input_tokens": 20309,
+            "cache_creation_input_tokens": 132911,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 132911
+            },
+            "type": "message"
+          },
+          {
+            "input_tokens": 156990,
+            "output_tokens": 5480,
+            "cache_read_input_tokens": 0,
+            "cache_creation_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "type": "advisor_message",
+            "model": "claude-fable-5-1"
+          },
+          {
+            "input_tokens": 2,
+            "output_tokens": 5097,
+            "cache_read_input_tokens": 153220,
+            "cache_creation_input_tokens": 4358,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 4358,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard",
+        "fallback_credit": null
+      }
+    }
+  }
+}
