@@ -1,0 +1,67 @@
+[ask-codex 21:37:18] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-session-ingest-a98aa3）
+## 判定
+
+**却下。確信度：高。** 自動で伏せた鍵の本体行を、題名・スラッグ・wiki本文へ戻しても検査を通過する反例を再現した。検査関数は共通になったが、その検索対象が欠けている。
+
+## 致命的・重大な欠陥
+
+### 1. 重大：英字だけの短いBase64行が検索対象から落ちる
+
+人の発言を次にする。
+
+```text
+-----BEGIN PRIVATE KEY-----
+QUFBQUFBQUFBQUFB
+QUJDREVG
+-----END PRIVATE KEY-----
+```
+
+本文は全体が`［伏せ字］`になる。しかし、8文字の本体行`QUJDREVG`は検索対象に登録されない。16文字未満の行には数字か`+ / =`を要求しているためである。Base64には、これらを含まない有効な文字列もある。`QUJDREVG`は`ABCDEF`を表す。
+
+再現結果は次のとおりだった。
+
+- `scan_text("QUJDREVG", ...)`は`([], 0)`を返す。短い文字列として数えられることもない。
+- `--title QUJDREVG --slug qujdrevg`の`show --meta`は終了コード0。
+- その承認ハッシュでの`cmd_write()`は、ファイル操作をモックした検証で終了コード0。書き込み関数へ`title: "QUJDREVG"`を含むrawと、スラッグ`qujdrevg`が渡った。
+- `QUJDREVG`を書いたページに対する`cmd_scan --path`も、ファイル読み込みをモックした検証で終了コード0、`{"findings": [], "skipped_short": 0}`だった。
+- 終了行を省いた入力でも同じ結果になる。
+
+終端が明示された鍵でも、内部の行を英単語と同じ選別で捨てている。これは、設計が認める「正規化して4文字未満の自動検索文字列を省く」制限では説明できない。
+
+根拠：
+
+- [wiki_session.py:355](/C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:355)：本体行の選別条件。
+- [wiki_session.py:1705](/C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1705)：登録済みの文字列しか照合しない。
+- [設計書:198](/C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/docs/plans/wiki-session-ingest-2026-11-14.md:198)：伏せた元の文字列を検索し、4文字未満だけ省く規定と**食い違う**。
+
+## 崩れる前提
+
+- **16文字未満の鍵の本体行には数字か記号が入る。** 英字だけの4・8・12文字のBase64行で崩れる。
+- **検索対象の集合を共有すれば、伏せた秘密の再流入を防げる。** 集合を作る段階で落とした値は、題名・スラッグ・`scan`のすべてで見逃す。
+- **終端のない鍵を最後まで伏せれば、検索対象の不足も解消する。** 伏せる範囲と検索文字列の選別は別処理なので、本文を隠しても後段の検査から漏れる。
+
+## 見落としと軽微な問題
+
+- **試験の見落とし：** `test_unterminated_key_is_hidden_to_the_end`の短い最終行は`QUJDRA==`で、記号を含む条件しか通していない。英字だけの短い行と、終端が明示された場合を検査していない。根拠：[test_wiki_session.py:1155](/C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/tests/wiki/test_wiki_session.py:1155)。
+
+- **軽微：返答先の探索が、長いアシスタント連鎖で二乗になる。** 人の発言1件のあとに、直前の記録を親とするアシスタント本文を連続させると、各記録が先頭まで親をたどり直す。メモリ内の検証で、1,000件が0.113秒、2,000件が0.430秒、4,000件が1.923秒、8,000件が10.105秒だった。8,000件でもJSONLは約3.27MBであり、既定の256MiB上限より十分小さい。根拠：[wiki_session.py:740](/C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:740)。
+
+## 検証した事実
+
+- **一致：** 題名・スラッグの秘密検査は`scan_text()`を使っている。前回の`password=SECONDSECRET`からの再流入は拒否された。
+- **一致：** 前回の短い最終行`QUJDRA==`は本文に残らず、単独で検索しても検出された。
+- **一致：** 外部rawルートの祖先リンクは、リンク判定をモックした検証で拒否された。S3にも既存決定ファイルを使う分岐がある。
+- **一致：** 未終端PEMヘッダーの反復は、2,000・4,000・8,000件で約0.011・0.021・0.044秒だった。
+- **一致：** 読み取りだけで動く既存3試験と、生成器30例の除外対象・返答先・見出しとフェンスの対応検査は通った。
+- **確かめられず：** 実物982ファイルの結果、旧実装で追加試験が落ちること、実ファイルでの排他・読み取り専用の動作は追試していない。検証によるファイルの変更は行っていない。
+
+## 崩せなかった点
+
+- 重なる自動規則の範囲を和集合にし、各規則の検索文字列を残す処理。
+- 隣接する手動指定それぞれの検索、半角カナと濁点のNFKC照合。
+- 複数の許可範囲の和集合による除外を拒む処理。
+- 決定ファイルからの設定の復元と、同じ土台での再利用。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 21:49:10] 完了。session 01a1da0f-f5cc-7c10-8734-4dd3ba2e5018  usage {"input_tokens": 2793240, "cached_input_tokens": 2618752, "cache_write_input_tokens": 0, "output_tokens": 16763, "reasoning_output_tokens": 8727}

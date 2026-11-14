@@ -1,0 +1,107 @@
+## 判定
+
+**却下。確信度：高。** 秘密鍵の本体が自動の伏せ字と `scan` の両方を通過する反例と、S8〜S9を守っても伏せた名前が編集後のページに復活する反例を再現した。
+
+## 致命的・重大な欠陥
+
+1. **重大：PEMのヘッダーと本体が別の `text` ブロックにあると、鍵の本体が丸ごと残る。**
+
+   人の発言に続くアシスタントの `message.content` を、次の2ブロックにする。
+
+   ```json
+   [
+     {"type":"text","text":"-----BEGIN PRIVATE KEY-----"},
+     {"type":"text","text":"QUFBQUFBQUFBQUFB\nQkJCQkJCQkJCQkJC\n-----END PRIVATE KEY-----"}
+   ]
+   ```
+
+   抽出結果は次のとおりだった。
+
+   ```text
+   ［伏せ字］
+
+   QUFBQUFBQUFBQUFB
+   QkJCQkJCQkJCQkJC
+   -----END PRIVATE KEY-----
+   ```
+
+   `redact()` を各ブロックに適用してから連結するため、最初のブロックでは `\Z` まで、つまりヘッダーだけが伏せられる。次のブロックには開始ヘッダーがなく、鍵の本体が残る。同じ入力を連結してから `redact()` に渡すと、全体が伏せられた。
+
+   さらに、自動で伏せた元の文字列として保持されるのもヘッダーだけである。上記のBase64部分を `scan_text()` に渡した結果は **`findings: []` 相当**だった。実際の鍵でも、ヘッダーの次のブロックに本体が全部あれば、その本体がこの経路を通る。
+
+   根拠：[wiki_session.py:129](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:129) のPEM規則、[同:649](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:649) のブロックごとの伏せ字、[同:743](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:743) の後段の連結。
+
+2. **重大：S8は編集の新しい断片だけを検査するため、既存部分との連結で伏せた文字列が復活する。**
+
+   次の状態で再現できる。
+
+   - セッションで `顧客A` を `mark` 済み。
+   - 関連ページには `顧客Bについて。` と書かれている。
+   - 編集内容は `old_string="B"`、`new_string="A"`。
+
+   S8の指定どおり、新しい文である `A` を検査すると検出はない。承認された編集をS9で適用すると、保存後のページは `顧客Aについて。` になる。この完成した文を検査すると、`manual` が検出された。
+
+   S9の読み直しでも、結果は承認された編集と一致する。S10の `verify` はrawだけを検査するため、この漏れを見つけない。`scan` を実行し、承認された編集だけを行う手順でも成立する。
+
+   根拠：[commands/ingest.md:42](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/commands/ingest.md:42) の「直す箇所の新しい文」、[同:43](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/commands/ingest.md:43) の書き込み後の確認、設計書196〜205行の同じ検査範囲。
+
+## 崩れる前提
+
+- **ブロックごとの伏せ字は、連結した本文への伏せ字と同じになる。** 複数行を扱うPEM規則では、ブロック境界で成立しなくなる。
+- **新しい断片に秘密がなければ、編集後の全文にも秘密がない。** 秘密の一部が既存ページにあると成立しない。
+- **正規化した接頭辞の長さから、元の文字の位置を求められる。** 結合文字が並べ替えられる場合、対応する列を取り違える。
+- **検索開始位置を一致文字列の長さだけ進めても、すべての一致を数えられる。** 重なる一致を落とす。
+- **対象パスへのツール呼び出しが失敗すれば、読み取り専用による防御を確認できた。** 引数の誤りなど、別の理由で失敗しても試験は合格する。
+
+## 見落としと軽微な問題
+
+- **軽微：正規化による結合文字の並べ替えで、列番号が誤る。**
+
+  U+0300を手動で伏せ、入力を `b\u0315\u0300` にすると、U+0300は元の入力の3文字目にある。しかし結果は `{"line":1,"column":2,"rule":"manual"}` だった。正規化後は `b\u0300\u0315` になり、接頭辞の長さだけでは元の順序を復元できない。
+
+  根拠：[wiki_session.py:1587](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1587)。
+
+- **軽微：`mark` が重なる一致を数えず、曖昧な指定を受理する。**
+
+  本文 `abababa` に対して `--text ababa` を指定すると、開始位置0と2の2件がある。実装は1件として受理し、`--nth 2` は「一致の数（1）に合わない」と拒むことを再現した。
+
+  根拠：[wiki_session.py:1483](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1483)。次の検索を `start + len(args.text)` から始めている。
+
+- **軽微：`scan` の位置計算が、繰り返しの多い短い入力でも著しく遅くなる。**
+
+  `太郎` を手動で伏せ、1行の入力を `"太郎。" * N` として測定した。
+
+  | 入力文字数 | 検出数 | 実測時間 |
+  | ---: | ---: | ---: |
+  | 600 | 200 | 0.151秒 |
+  | 1,200 | 400 | 1.129秒 |
+  | 2,400 | 800 | 9.726秒 |
+  | 3,600 | 1,200 | 35.356秒 |
+
+  各検出について、行頭から接頭辞を1文字ずつ延ばして正規化し直す。繰り返しのある1行では、最悪で実質三乗の処理量になる。測定環境はPython 3.14.6。
+
+  根拠：[wiki_session.py:1594](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1594)、同1613〜1616行。
+
+- **軽微：読み取り専用の試験は、失敗理由を合否に使っていない。**
+
+  正しい4組のパスとツールについて、結果がすべて `is_error=true` なら、内容が引数エラーでも合格条件を満たす。Readが成功したことも条件にない。
+
+  根拠：[check_session_readonly.py:90](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/tests/wiki/check_session_readonly.py:90)、同111〜112行。保存済みの実行記録では4件とも `EPERM` だったため、その実行が偽陽性だったとは判断していない。
+
+## 検証した事実
+
+- **一致：** 前回の重大指摘に対応する、隣接した手動指定、半角カナと濁点、複数行の文字列、複数許可の和集合、異なるドライブの反例は、今回の実装では塞がっていた。改行はLF・CRLF・CRを確認した。
+- **一致：** 同梱の読み取りだけで動く3試験は合格した。生成器の30 seedについて、メモリ内で思考などの目印の不出力、参照実装との返答先の一致、見出しとフェンスの構造を確認した。
+- **一致：** `show` の実処理を15分割で呼び、標準出力の連結が `render()` と同じバイト列になることを確認した。
+- **一致：** 追加された排他試験は、2プロセスが回ごとに同期して `write_raw()` を200回呼ぶ。リンク拒否試験も実際のシンボリックリンクを作る構造だった。
+- **正規化の境界：** `顧客A` を伏せても、入力 `顧客A\u0301` は検出されず、同じ文字列を含む題名も通った。正規化後は `顧客á` となる。設計が保証する「正規化後の一致」から外れるため、独立した重大欠陥には数えていない。
+- **確かめられず：** ファイルを作る試験一式、排他の実行試験、Claude Codeによる実行試験は、読み取り専用の制約により実行していない。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 前回修正した、指定ごとの手動文字列の保持と、許可1件による範囲全体の包含判定。
+- 生成した30 seedにおける、許可リストによる本文の選別と返答先の決定。
+- メモリ内で確認した `show --from` の分割と、rawのバイト列の再構成。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
