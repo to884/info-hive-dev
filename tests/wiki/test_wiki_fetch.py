@@ -478,28 +478,65 @@ class ReplaceRetryTest(unittest.TestCase):
         self.assertEqual(self.sleeps, [])
 
 
-class MainReportsKeptBackupTest(unittest.TestCase):
+class MainTestCase(unittest.TestCase):
+    """main を、初期化した wiki と raw のルートで動かす。取得（fetch）は差し替える。"""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.wiki = Path(tmp.name) / "wiki"
+        self.raw = Path(tmp.name) / "raw"
+        self.wiki.mkdir()
+        self.raw.mkdir()
+        (self.wiki / "SCHEMA.md").write_bytes("# スキーマ\n".encode("utf-8"))
+        self.target = self.raw / "article-1.md"
+
+    def run_main(self, body: str) -> tuple[int, str]:
+        argv = [PAGE_URL, "--wiki", str(self.wiki), "--raw-root", str(self.raw), "--slug", "article-1", "--force"]
+        err = io.StringIO()
+        with mock.patch.object(wiki_fetch, "fetch", FetchStub(page(body))), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+            code = wiki_fetch.main(argv)
+        return code, err.getvalue()
+
+
+class FetchJsonRetryTest(MainTestCase):
+    """作業用の写しがそろった印（fetch.json）を置く名前の変更も、Windows の一時的な PermissionError を試し直すこと。"""
+
+    def run_with_flaky_fetch_json(self, times: int | None) -> tuple[int, str, list[float]]:
+        flaky = FlakyReplace(lambda src, dst: dst.name == "fetch.json", times)
+        sleeps: list[float] = []
+        with mock.patch.object(wiki_fetch, "_RETRY_REPLACE_ON_WINDOWS", True), \
+                mock.patch.object(wiki_fetch.os, "replace", flaky), \
+                mock.patch.object(wiki_fetch.time, "sleep", sleeps.append):
+            code, err = self.run_main(medium_figure("1*abc"))
+        return code, err, sleeps
+
+    def test_fetch_json_is_placed_after_transient_error(self):
+        code, err, sleeps = self.run_with_flaky_fetch_json(1)
+        self.assertEqual((code, err), (0, ""))
+        self.assertTrue(self.target.is_file())
+        self.assertEqual(sleeps, list(wiki_fetch._REPLACE_RETRY_DELAYS[:1]))
+        work = wiki_fetch.wiki_rawcheck.work_dir(self.wiki, "article-1")
+        self.assertEqual(sorted(p.name for p in work.iterdir()), ["fetch.json", "fetched.md"])
+        self.assertTrue(wiki_fetch.wiki_rawcheck.work_dir_complete(self.wiki, "article-1"))
+
+    def test_persistent_error_leaves_work_dir_incomplete(self):
+        # raw は書いたが、写しがそろった印を置けない。取り直しは写しを使わない（work_dir_complete が偽）。
+        code, err, sleeps = self.run_with_flaky_fetch_json(None)
+        self.assertEqual(code, 1)
+        self.assertIn("ファイルを書けない", err)
+        self.assertTrue(self.target.is_file())
+        self.assertAlmostEqual(sum(sleeps), 1.0)
+        self.assertFalse(wiki_fetch.wiki_rawcheck.work_dir_complete(self.wiki, "article-1"))
+
+
+class MainReportsKeptBackupTest(MainTestCase):
     """古い画像を戻しきれなかったとき、main が退避の場所を標準エラーに書くこと。"""
 
     def test_stderr_names_backup_of_old_images(self):
-        tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(tmp.cleanup)
-        wiki = Path(tmp.name) / "wiki"
-        raw = Path(tmp.name) / "raw"
-        wiki.mkdir()
-        raw.mkdir()
-        (wiki / "SCHEMA.md").write_bytes("# スキーマ\n".encode("utf-8"))
-        argv = [PAGE_URL, "--wiki", str(wiki), "--raw-root", str(raw), "--slug", "article-1", "--force"]
-        target = raw / "article-1.md"
-
-        def run(body: str) -> tuple[int, str]:
-            err = io.StringIO()
-            with mock.patch.object(wiki_fetch, "fetch", FetchStub(page(body))), \
-                    mock.patch.object(wiki_fetch, "is_private_host", lambda host: False), \
-                    contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
-                code = wiki_fetch.main(argv)
-            return code, err.getvalue()
-
+        raw, target, run = self.raw, self.target, self.run_main
         self.assertEqual(run(medium_figure("1*old")), (0, ""))
         old_text = target.read_bytes()
 
