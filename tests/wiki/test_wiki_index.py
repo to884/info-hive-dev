@@ -131,6 +131,37 @@ class WikiIndexTests(Base):
         listing = {f["name"]: f["title"] for f in wiki_index.list_index(self.root)["indexes"]}
         self.assertEqual(listing["title-values.md"], "索引, 一覧")
 
+    def test_list_type_and_updated_are_strings(self):
+        # MCP の query の結果の type と updated は、frontmatter に配列や値なしで書いたページでも、文字か null になる。
+        # type と since の絞り込みも、その値で比べる。今までは配列のまま出て、絞り込みがそのページを外していた。
+        pages = {
+            "one": ("type: [concept]\nupdated: [2026-03-01]", "concept", "2026-03-01"),
+            "alias": ("type: [概念]\nupdated: 2026-03-01", "concept", "2026-03-01"),
+            "two": ("type: [concept, entity]\nupdated: [2026-03-01, 2026-04-01]", "concept, entity",
+                    "2026-03-01, 2026-04-01"),
+            "empty": ("type:\nupdated:", None, None),
+        }
+        for name, (fields, _type, _updated) in pages.items():
+            text = f"---\ntitle: 単一の欄の{name}\n{fields}\n---\nぴよほげの本文。\n"
+            (self.wiki / "concepts" / f"scalar-values-{name}.md").write_bytes(text.encode("utf-8"))
+        index = self.open_index()
+        index.refresh()
+        wiki_index.embed_pending(index.collection, self.embedder)
+        for embedder in (None, self.embedder):
+            with self.subTest(mode="lexical" if embedder is None else "hybrid"):
+                rows = {row["slug"]: row for row in index.search("ぴよほげ", top=50, embedder=embedder)["results"]}
+                for name, (_fields, page_type, updated) in pages.items():
+                    row = rows[f"scalar-values-{name}"]
+                    self.assertEqual((row["type"], row["updated"]), (page_type, updated), name)
+                concept = {row["slug"] for row in
+                           index.search("ぴよほげ", top=50, type="concept", embedder=embedder)["results"]}
+                self.assertTrue({"scalar-values-one", "scalar-values-alias"} <= concept)
+                self.assertFalse({"scalar-values-two", "scalar-values-empty"} & concept)
+                recent = {row["slug"] for row in
+                          index.search("ぴよほげ", top=50, since="2026-02-01", embedder=embedder)["results"]}
+                self.assertTrue({"scalar-values-one", "scalar-values-alias", "scalar-values-two"} <= recent)
+                self.assertNotIn("scalar-values-empty", recent)
+
     def test_reconcile_after_interrupted_write(self):
         index = self.open_index()
         index.refresh()
