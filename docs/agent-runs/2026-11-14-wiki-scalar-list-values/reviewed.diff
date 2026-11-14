@@ -1,0 +1,653 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 8842155..18d1533 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -14,6 +14,17 @@
+ - 保存が失敗し、退避した古い画像を元の場所に戻しきれなかったとき（戻す名前の変更も失敗したとき、戻している途中で Ctrl+C などで止めたとき）に、古い画像を消していたのを直した。後始末が退避の場所（`raw/assets/.<スラッグ>.<プロセス ID>.old/`）の中身をいつも消していたためで、古い画像のただ 1 つの写しが失われていた。
+   - 退避の場所の中身を消すのは、本文を置き換えたあとだけにした。戻しきれなかった古い画像はそこに残し、`ファイルを書けない: …` に続けて、その場所と、`raw/assets/<スラッグ>/` に移すと元に戻ることを標準エラーに書く。
+   - 退避の場所は、保存のたびに新しい名前（`raw/assets/.<スラッグ>.<プロセス ID>.<乱数>.old/`）で作る。前の保存が残した退避の場所を、同じプロセス ID の次の保存が使い回して、残した古い画像を上書きしたり消したりしない。
++- frontmatter の `type` と `updated` を配列（`type: [concept]`、`updated: [2026-03-01]`）や値なし（`type:`、`updated:`。パーサーは空の配列を返す）で書いたページを、文字で書いたページと同じように扱うようにした。今までは次のようになっていた。
++  - 検索の `--json` と MCP の `query` の結果で、`type` と `updated` が配列のまま出た。人が読む出力の type の欄にも `['concept']` や `[]` と出た。
++  - `--type concept` が `type: [concept]` のページを外し、`--since` が `updated: [2026-03-01]` のページを、日付が読めないとして外した。
++  - 統計（`/wiki:stats`）が、`type: [concept]` のページを種類なしと数えた。
++  - lint とグラフが、`type: [source]` のページを source として読まなかった。
++  - グラフの抽出が、配列の `type` と `kind` を sqlite に渡して止まった。
++- 新しい `wiki_pages.scalar_value()`、`type_value()`、`kind_value()` でそろえる。文字の値はそのまま使い（`""` も変えない）、結果は変わらない。配列は、0.12.2 の `title` と同じく、空でない要素を「, 」でつなぐ。`type` と `kind` の要素は、日本語の別名（`概念`、`人物` など）も英語に直す。値がないか空の配列なら `null`（人が読む出力の type の欄では「?」）にする。
++  - `type: [concept, entity]` のように要素が 2 つ以上あると、つないだ「concept, entity」になり、どの `--type` にも当たらない。`updated` は、つないだ値の先頭の 10 文字を日付として読む。
++  - グラフのノードの `page_type`、`kind`、`created`、`updated` も同じ規則でそろえる。配列の `type` や `kind` のページがあると、今まで抽出は止まり、グラフの lint はそのページのノードの種類を決められず `concept` とみなしていた。この修正から、文字で書いたときと同じ種類のノードになる（`type: [source]` は `source:`、`type: "entity"` と `kind: [person]` は `person:`）。グラフの lint も、主語の型の検査と `source:` の参照の検査を、この種類で行う。
++  - lint の指摘（`non_iso_dates` の `value` など）は、今までどおり書かれた形のまま出す。
++  - 閲覧（`/wiki:browse`）は、まだ直していない。索引にないページを種類で分ける欄に、配列の `type` が `['concept']` のように出る。
+ 
+ ## [0.14.0] - 2026-11-14
+ 
+diff --git a/docs/search.md b/docs/search.md
+index 2ab1df8..0bac3d4 100644
+--- a/docs/search.md
++++ b/docs/search.md
+@@ -71,7 +71,7 @@ flowchart LR
+ | `score` | BM25 のスコア（ハイブリッドモードでは RRF のスコア）。小数点以下 4 桁に丸める。 |
+ | `retrievers` | この行を見つけた検索器: `["bm25"]`、`["embedding"]`、またはその両方。 |
+ | `snippet` | セクションの本文。空白をまとめたうえで、先頭 400 文字。 |
+-| `updated` | frontmatter の値をそのまま使う（ない場合は `null`）。 |
++| `type`、`updated` | 文字か `null`。文字はそのまま使う。frontmatter に配列で書いたもの（`type: [concept]`、`updated: [2026-03-01]`）は、空でない要素を「, 」でつなぐ。`type` の要素は、日本語の別名（`概念` など）を英語に直す。ない場合や空の配列は `null`。`--type` と `--since` の絞り込みも、この値で比べる。 |
+ | `tags`、`sources` | いつも文字の配列。frontmatter に値を 1 つだけ書いたもの（`tags: 検索`）は 1 要素の配列にし、要素の前後の空白と空の要素は除く。ない場合や値が空の場合は `[]`。 |
+ | `neighbors` | 同じページで隣り合うセクションの見出し（ページの先頭や末尾では `null`）。 |
+ 
+diff --git a/eval/scripts/test_scalar_values.py b/eval/scripts/test_scalar_values.py
+new file mode 100644
+index 0000000..16410f2
+--- /dev/null
++++ b/eval/scripts/test_scalar_values.py
+@@ -0,0 +1,231 @@
++#!/usr/bin/env python3
++"""frontmatter の type、kind、updated、created を配列で書いたときの、検索、統計、lint、グラフの扱いの試験。
++
++1 つの値を入れる欄でも、パーサーは書かれた形のまま返すので、`type: [concept]` は配列、`updated:` は空の配列になる。
++今までは、検索の --json の type と updated に配列のまま出た。--type と --since の絞り込みや統計は、そうした
++ページを外していた。グラフの抽出は、配列の type や kind を sqlite に渡して止まった。
++この修正から、wiki_pages.scalar_value()、type_value()、kind_value() でそろえる。文字と None はそのまま返す。
++配列は空でない要素を「, 」でつなぎ（type と kind は要素ごとに日本語の別名を英語に直す）、空なら None にする。
++"""
++
++import importlib.util
++import json
++import os
++import shutil
++import subprocess
++import sys
++import tempfile
++import unittest
++from pathlib import Path
++
++REPO = Path(__file__).resolve().parents[2]
++SCRIPTS = REPO / "skills" / "info-hive" / "scripts"
++sys.path.insert(0, str(SCRIPTS))
++
++
++def load(name):
++    spec = importlib.util.spec_from_file_location(name, SCRIPTS / f"{name}.py")
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
++WIKI_PAGES = load("wiki_pages")
++WIKI_SEARCH = load("wiki_search")
++WIKI_LINT = load("wiki_lint")
++
++try:
++    import yaml  # noqa: F401
++    HAS_YAML = True
++except ImportError:
++    HAS_YAML = False
++
++QUERY = "共通語"
++# スラッグ: (ディレクトリ, frontmatter の行, --json の type, --json の updated)。
++PAGES = {
++    "plain": ("concepts", 'type: "concept"\nupdated: 2026-01-01', "concept", "2026-01-01"),
++    "type_one": ("concepts", "type: [concept]\nupdated: 2026-01-01", "concept", "2026-01-01"),
++    "type_alias": ("concepts", "type: [概念]\nupdated: 2026-01-01", "concept", "2026-01-01"),
++    "type_two": ("concepts", "type: [concept, entity]\nupdated: 2026-01-01", "concept, entity", "2026-01-01"),
++    "type_empty": ("concepts", "type:\nupdated: 2026-01-01", None, "2026-01-01"),
++    "type_blank": ("concepts", 'type: ""\nupdated: 2026-01-01', "", "2026-01-01"),
++    "upd_one": ("concepts", 'type: "concept"\nupdated: [2026-03-01]', "concept", "2026-03-01"),
++    "upd_two": ("concepts", 'type: "concept"\nupdated: [2026-03-01, 2026-04-01]', "concept",
++                "2026-03-01, 2026-04-01"),
++    "upd_empty": ("concepts", 'type: "concept"\nupdated:', "concept", None),
++    "upd_blank": ("concepts", 'type: "concept"\nupdated: ""', "concept", ""),
++    "missing": ("concepts", "", None, None),
++    "src_one": ("sources", "type: [source]\nupdated: 2026-01-01", "source", "2026-01-01"),
++    "uses_src": ("concepts", 'type: "concept"\nupdated: 2026-01-01\nsources: ["src_one"]', "concept", "2026-01-01"),
++    # グラフの lint が、配列の kind から主語の型（person）を、配列の type から出典のページ（source）を読むことを確かめる関係。
++    "kind_one": ("entities", 'type: "entity"\nkind: [person]\ncreated: [2026-01-01]\nupdated: 2026-01-01\n'
++                 "graph:\n  relationships:\n    - predicate: works_on\n      object: concept:plain\n"
++                 '      source: src_one\n      evidence: "共通語の本文"\n      confidence: high\n      status: current',
++                 "entity", "2026-01-01"),
++    "kind_alias": ("entities", 'type: [エンティティ]\nkind: [人物]\nupdated: 2026-01-01', "entity", "2026-01-01"),
++}
++
++
++class ScalarWiki:
++    """PAGES のページを置いた使い捨ての wiki。どのページも plain にリンクする。"""
++
++    def __init__(self):
++        self.tmp = tempfile.TemporaryDirectory()
++        self.root = Path(self.tmp.name) / "wiki"
++        # CLI は SCHEMA.md のないディレクトリを断る（info-hive-dev の ADR-0019）。SCHEMA.md はページに数えない。
++        self.root.mkdir(parents=True)
++        (self.root / "SCHEMA.md").write_bytes("# スキーマ\n".encode("utf-8"))
++        for slug, (folder, fields, _type, _updated) in PAGES.items():
++            (self.root / folder).mkdir(exist_ok=True)
++            link = "" if slug == "plain" else "[[plain]]"
++            text = f'---\ntitle: "{slug}"\n{fields}\n---\n{QUERY}の本文。{link}\n'
++            (self.root / folder / f"{slug}.md").write_bytes(text.encode("utf-8"))
++
++    def close(self):
++        self.tmp.cleanup()
++
++
++def run_script(name: str, *args) -> subprocess.CompletedProcess:
++    env = {k: v for k, v in os.environ.items() if not k.startswith("INFO_HIVE_DECISIONS")}
++    env["INFO_HIVE_DECISIONS"] = "off"
++    return subprocess.run([sys.executable, "-X", "utf8", str(SCRIPTS / name), *map(str, args)],
++                          capture_output=True, cwd=str(REPO), env=env)
++
++
++class ValueFunctionTest(unittest.TestCase):
++    def test_scalar_value(self):
++        cases = [
++            ("2026-01-01", "2026-01-01"), ("", ""), ("  x  ", "  x  "), (None, None), ([], None), (["", " "], None),
++            (["2026-03-01"], "2026-03-01"), (["a", "b"], "a, b"), (5, "5"),
++        ]
++        for value, expected in cases:
++            with self.subTest(value=value):
++                self.assertEqual(WIKI_PAGES.scalar_value(value), expected)
++
++    def test_type_and_kind_value(self):
++        cases = [
++            (WIKI_PAGES.type_value, "concept", "concept"), (WIKI_PAGES.type_value, "概念", "概念"),
++            (WIKI_PAGES.type_value, "", ""), (WIKI_PAGES.type_value, None, None), (WIKI_PAGES.type_value, [], None),
++            (WIKI_PAGES.type_value, ["概念"], "concept"), (WIKI_PAGES.type_value, ["概念", "ソース"], "concept, source"),
++            (WIKI_PAGES.kind_value, ["人物"], "person"), (WIKI_PAGES.kind_value, "person", "person"),
++            (WIKI_PAGES.kind_value, [], None),
++        ]
++        for func, value, expected in cases:
++            with self.subTest(func=func.__name__, value=value):
++                self.assertEqual(func(value), expected)
++
++
++class SearchScalarTest(unittest.TestCase):
++    def setUp(self):
++        self.wiki = ScalarWiki()
++        self.addCleanup(self.wiki.close)
++
++    def search(self, *extra) -> list[dict]:
++        proc = run_script("wiki_search.py", QUERY, "--wiki", self.wiki.root, "--no-embed", "--json", "--top", "100",
++                          *extra)
++        self.assertEqual(proc.returncode, 0, proc.stderr.decode("utf-8", "replace"))
++        return json.loads(proc.stdout.decode("utf-8"))["results"]
++
++    def test_json_type_and_updated(self):
++        for granularity in ("section", "page"):
++            rows = {row["slug"]: row for row in self.search("--granularity", granularity)}
++            self.assertEqual(set(rows), set(PAGES))
++            for slug, (_folder, _fields, page_type, updated) in PAGES.items():
++                with self.subTest(granularity=granularity, slug=slug):
++                    self.assertEqual((rows[slug]["type"], rows[slug]["updated"]), (page_type, updated))
++
++    def test_parse_cache(self):
++        cache = Path(self.wiki.tmp.name) / "cache.json"
++        for _ in range(2):
++            rows = {row["slug"]: row for row in self.search("--cache", cache)}
++            self.assertEqual(rows["type_alias"]["type"], "concept")
++            self.assertEqual(rows["upd_one"]["updated"], "2026-03-01")
++
++    def test_type_filter(self):
++        concept = {slug for slug, (_f, _x, page_type, _u) in PAGES.items() if page_type == "concept"}
++        for wanted in ("concept", "概念"):
++            with self.subTest(type=wanted):
++                self.assertEqual({row["slug"] for row in self.search("--type", wanted)}, concept)
++        self.assertEqual({row["slug"] for row in self.search("--type", "source")}, {"src_one"})
++        self.assertEqual({row["slug"] for row in self.search("--type", "エンティティ")}, {"kind_one", "kind_alias"})
++
++    def test_since_filter(self):
++        # 配列で書いた updated も日付として読む。つないだ値は、今までどおり先頭の 10 文字を日付として読む。
++        self.assertEqual({row["slug"] for row in self.search("--since", "2026-02-01")}, {"upd_one", "upd_two"})
++
++    def test_text_output(self):
++        proc = run_script("wiki_search.py", QUERY, "--wiki", self.wiki.root, "--no-embed", "--top", "100")
++        self.assertEqual(proc.returncode, 0, proc.stderr.decode("utf-8", "replace"))
++        out = proc.stdout.decode("utf-8")
++        self.assertNotIn("['", out)
++        self.assertNotIn("[[]", out)
++        lines = {line.split("] ", 2)[-1].strip(): line for line in out.splitlines() if line.startswith("  [")}
++        self.assertIn("[concept  ]", lines["type_alias"])
++        self.assertIn("[?        ]", lines["missing"])
++        self.assertIn("[?        ]", lines["type_empty"])
++        self.assertIn("[         ]", lines["type_blank"])
++
++
++class StatsScalarTest(unittest.TestCase):
++    def test_pages_by_type(self):
++        wiki = ScalarWiki()
++        self.addCleanup(wiki.close)
++        proc = run_script("wiki_stats.py", wiki.root, "--json")
++        self.assertEqual(proc.returncode, 0, proc.stderr.decode("utf-8", "replace"))
++        by_type = json.loads(proc.stdout.decode("utf-8"))["pages_by_type"]
++        expected = {}
++        for _folder, _fields, page_type, _updated in PAGES.values():
++            if page_type:
++                expected[page_type] = expected.get(page_type, 0) + 1
++        for page_type, count in expected.items():
++            with self.subTest(type=page_type):
++                self.assertEqual(by_type.get(page_type), count)
++
++
++class LintScalarTest(unittest.TestCase):
++    def test_source_as_array_is_a_source(self):
++        # type: [source] のページを、lint は source として読む（グラフの抽出と同じ）。
++        wiki = ScalarWiki()
++        self.addCleanup(wiki.close)
++        findings = WIKI_LINT.lint(WIKI_LINT.collect_pages(wiki.root), soft_cap=100, hard_cap=200,
++                                  required_fm=["type", "title"], suggest_pages=False, suggest_min=5)
++        self.assertEqual([f for f in findings["unresolved_sources"] if f["path"] == "concepts/uses_src.md"], [])
++        # 書き方の指摘は、書かれた形のまま残す。
++        non_iso = {f["path"]: f["value"] for f in findings["non_iso_dates"]}
++        self.assertEqual(non_iso.get("concepts/upd_one.md"), ["2026-03-01"])
++
++
++@unittest.skipUnless(HAS_YAML, "グラフの抽出には PyYAML が要る")
++class GraphScalarTest(unittest.TestCase):
++    def test_extract_and_lint(self):
++        wiki = ScalarWiki()
++        self.addCleanup(wiki.close)
++        (wiki.root / "graph").mkdir()
++        shutil.copyfile(SCRIPTS.parent / "assets" / "ontology.yaml.template", wiki.root / "graph" / "ontology.yaml")
++        proc = run_script("wiki_graph_extract.py", wiki.root)
++        self.assertEqual(proc.returncode, 0, proc.stderr.decode("utf-8", "replace"))
++        nodes = {n["slug"]: n for n in (json.loads(line) for line in
++                 (wiki.root / "graph" / "nodes.jsonl").read_bytes().decode("utf-8").splitlines() if line)
++                 if n.get("slug")}
++        self.assertEqual((nodes["type_alias"]["page_type"], nodes["type_alias"]["node_type"]), ("concept", "concept"))
++        self.assertEqual(nodes["src_one"]["id"], "source:src_one")
++        self.assertEqual((nodes["kind_one"]["kind"], nodes["kind_one"]["node_type"]), ("person", "person"))
++        self.assertEqual(nodes["kind_one"]["created"], "2026-01-01")
++        self.assertEqual((nodes["kind_alias"]["kind"], nodes["kind_alias"]["node_type"]), ("person", "person"))
++        edges = [json.loads(line) for line in
++                 (wiki.root / "graph" / "edges.jsonl").read_bytes().decode("utf-8").splitlines() if line]
++        triples = {(e["subject"], e["predicate"], e["object"]) for e in edges}
++        self.assertIn(("concept:uses_src", "sourced_from", "source:src_one"), triples)
++        self.assertIn(("person:kind_one", "works_on", "concept:plain"), triples)
++        for extra in ([], ["--decide"]):
++            with self.subTest(extra=extra):
++                proc = run_script("wiki_graph_lint.py", wiki.root, "--json", *extra)
++                self.assertEqual(proc.returncode, 0, proc.stderr.decode("utf-8", "replace"))
++                findings = json.loads(proc.stdout.decode("utf-8"))
++                # 主語の kind: [person] を person と読み、source: src_one を type: [source] のページと読む。
++                for key in ("subject_type_mismatch", "object_type_mismatch", "broken_source_refs", "broken_object_refs"):
++                    self.assertEqual([f for f in findings[key] if f.get("page") == "entities/kind_one.md"], [], key)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/skills/info-hive/references/graph-workflow.md b/skills/info-hive/references/graph-workflow.md
+index fb25b66..a96bed7 100644
+--- a/skills/info-hive/references/graph-workflow.md
++++ b/skills/info-hive/references/graph-workflow.md
+@@ -60,7 +60,7 @@ graph:
+ 
+ ### 値の読み方
+ 
+-グラフのスクリプト（extract と lint）は、frontmatter の最上位の欄（`type`、`kind`、`title`、`tags`、`sources`、`raw` など）を、wiki の lint、検索、統計と同じパーサーで読む。値は、書かれた文字のままの文字列か、その配列になる。ただし、ノードの `title` は、検索と同じく、配列なら空でない要素を「, 」でつないだ文字にし、値がなければスラッグにする。`sources: [true]` は `true` というページ、`sources: [007]` は `007` というページを指し、`kind: 2024` は文字の `2024` である。wiki の lint が解決する `sources:` は、グラフでも同じページに解決する。`raw:` を配列で書くと、値 1 つにつき `summarizes_raw` が 1 本できる。
++グラフのスクリプト（extract と lint）は、frontmatter の最上位の欄（`type`、`kind`、`title`、`tags`、`sources`、`raw` など）を、wiki の lint、検索、統計と同じパーサーで読む。値は、書かれた文字のままの文字列か、その配列になる。ただし、ノードの `title` は、検索と同じく、配列なら空でない要素を「, 」でつないだ文字にし、値がなければスラッグにする。ノードの `page_type`、`kind`、`created`、`updated` も、配列なら同じく要素をつなぐ（`type` と `kind` の要素は日本語の別名を英語に直す）。ノードの種類（`node_type`）は、そうしてそろえた `type` と `kind` から決める。`sources: [true]` は `true` というページ、`sources: [007]` は `007` というページを指し、`kind: 2024` は文字の `2024` である。wiki の lint が解決する `sources:` は、グラフでも同じページに解決する。`raw:` を配列で書くと、値 1 つにつき `summarizes_raw` が 1 本できる。
+ 
+ `graph:` の欄だけは PyYAML で読む。そのうち、ページやノードを指す欄（`node_id`、`aliases`、関係の `object`、`source`、`contradicts`、`supersedes`）は、引用符のない `true`、`no`、数、日付も、書かれた文字で読む（`source: 007` は `007`、`object: no` は `no`）。`null`、`~`、値なしは、値がないものとして扱う。文字の `null` を指すには、`"null"` と引用符で囲む。ほかの欄（`canonical`、`valid_from`、`notes` など）は、YAML の値で読む。
+ 
+diff --git a/skills/info-hive/scripts/wiki_decide.py b/skills/info-hive/scripts/wiki_decide.py
+index 006a6f4..1383fc8 100644
+--- a/skills/info-hive/scripts/wiki_decide.py
++++ b/skills/info-hive/scripts/wiki_decide.py
+@@ -545,7 +545,7 @@ def contradiction_pairs(wiki: Path, max_pairs: int) -> list[tuple[str, dict, dic
+     pages = ws.collect_pages(wiki)
+     by_path, by_slug = ws.build_link_index(pages)
+     entity_titles = {p["slug"]: ws.text_value(p["meta"].get("title")) or p["slug"]
+-                     for p in pages if p["meta"].get("type") == "entity"}
++                     for p in pages if ws.type_value(p["meta"].get("type")) == "entity"}
+     mentions: dict[str, list[dict]] = {}
+     for page in pages:
+         title = ws.text_value(page["meta"].get("title")) or page["slug"]
+diff --git a/skills/info-hive/scripts/wiki_graph_extract.py b/skills/info-hive/scripts/wiki_graph_extract.py
+index 9788267..21bdca9 100644
+--- a/skills/info-hive/scripts/wiki_graph_extract.py
++++ b/skills/info-hive/scripts/wiki_graph_extract.py
+@@ -77,8 +77,11 @@ from wiki_pages import (  # noqa: E402
+     iter_page_files,
+     link_candidates,
+     link_lookup,
++    kind_value,
+     ref_values,
++    scalar_value,
+     text_value,
++    type_value,
+ )
+ from wiki_pages import resolve_link as resolve_link_slug  # noqa: E402
+ 
+@@ -485,8 +488,8 @@ def load_ontology(path: Path) -> dict:
+ 
+ def derive_node_type(meta: dict, ontology: dict) -> str | None:
+     """ontology[node_types][*].maps_from を使い、ページの frontmatter を node_type に対応付ける。"""
+-    page_type = meta.get("type")
+-    page_kind = meta.get("kind")
++    page_type = type_value(meta.get("type"))
++    page_kind = kind_value(meta.get("kind"))
+     explicit = (meta.get("graph") or {}).get("node_type") if isinstance(meta.get("graph"), dict) else None
+     if explicit:
+         return explicit
+@@ -577,14 +580,14 @@ def build_nodes(pages: list[dict], ontology: dict,
+             "id": node_id,
+             "slug": p["slug"],
+             "title": text_value(meta.get("title")) or p["slug"],
+-            "page_type": meta.get("type") or "",
++            "page_type": type_value(meta.get("type")) or "",
+             "node_type": node_type,
+-            "kind": meta.get("kind") or "",
++            "kind": kind_value(meta.get("kind")) or "",
+             "tags": _tag_list(meta.get("tags")),
+             "aliases": list(graph_meta.get("aliases") or []),
+             "path": p["rel_path"],
+-            "created": meta.get("created") or "",
+-            "updated": meta.get("updated") or "",
++            "created": scalar_value(meta.get("created")) or "",
++            "updated": scalar_value(meta.get("updated")) or "",
+             "canonical": bool(graph_meta.get("canonical", False)),
+         }
+         nodes.append(node)
+@@ -683,7 +686,7 @@ def build_edges(pages: list[dict], page_node_ids: dict[str, str],
+     # 行き先のページを引くインデックス。パスは .md を除いた wiki からの相対パス（NFC、大文字と小文字を区別）、
+     # スラッグはファイル名の stem である。どちらも、当たるページのキーをすべて並べる。
+     pages_by_path, pages_by_slug = build_page_index(pages, page_key)
+-    type_by_key = {page_key(p): p["meta"].get("type") for p in pages}
++    type_by_key = {page_key(p): type_value(p["meta"].get("type")) for p in pages}
+ 
+     # ノード ID ごとの、それを持つページの数。2 つ以上なら、目的語としては曖昧である。
+     pages_per_node: dict[str, int] = defaultdict(int)
+@@ -795,7 +798,7 @@ def build_edges(pages: list[dict], page_node_ids: dict[str, str],
+                 note("ambiguous_source" if found else "unresolved_source", p, source=ref, pages=sorted(found))
+                 continue
+             src_id = page_node_ids.get(found[0])
+-            if meta.get("type") != "source" and src_id:
++            if type_value(meta.get("type")) != "source" and src_id:
+                 push(make_edge(
+                     subject=subject_id,
+                     predicate="sourced_from",
+@@ -811,7 +814,7 @@ def build_edges(pages: list[dict], page_node_ids: dict[str, str],
+ 
+         # 4. ソースページの raw: フィールドから作る summarizes_raw エッジ。lint の missing_raw と同じく、
+         # 配列で書いた raw: は値ごとに読む。
+-        if meta.get("type") == "source":
++        if type_value(meta.get("type")) == "source":
+             for raw_path in ref_values(meta.get("raw")):
+                 push(make_edge(
+                     subject=subject_id,
+diff --git a/skills/info-hive/scripts/wiki_graph_lint.py b/skills/info-hive/scripts/wiki_graph_lint.py
+index d10241a..943194c 100644
+--- a/skills/info-hive/scripts/wiki_graph_lint.py
++++ b/skills/info-hive/scripts/wiki_graph_lint.py
+@@ -64,7 +64,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
+ sys.path.insert(0, str(SCRIPT_DIR))
+ import wiki_graph_extract as _extract  # noqa: E402
+ import wiki_graph_common as common  # noqa: E402
+-from wiki_pages import text_value  # noqa: E402
++from wiki_pages import kind_value, text_value, type_value  # noqa: E402
+ from wiki_text import localize_argparse, nfc  # noqa: E402
+ import wiki_initialized  # noqa: E402
+ import wiki_workspace  # noqa: E402
+@@ -95,8 +95,8 @@ def collect_pages(wiki_root: Path) -> list[dict]:
+ 
+ 
+ def derive_node_type(meta: dict, ontology: dict) -> str | None:
+-    page_type = meta.get("type")
+-    page_kind = meta.get("kind")
++    page_type = type_value(meta.get("type"))
++    page_kind = kind_value(meta.get("kind"))
+     explicit = (meta.get("graph") or {}).get("node_type") if isinstance(meta.get("graph"), dict) else None
+     if explicit:
+         return explicit
+@@ -176,7 +176,7 @@ def lint(pages: list[dict], ontology: dict) -> dict:
+             "rel_path": p["rel_path"],
+             "disk_rel_path": p.get("disk_rel_path", p["rel_path"]),
+             "slug": p["slug"],
+-            "page_type": p["meta"].get("type"),
++            "page_type": type_value(p["meta"].get("type")),
+             "canonical": bool(graph_meta.get("canonical", False)),
+             "aliases": list(graph_meta.get("aliases") or []),
+             "graph": graph_meta,
+@@ -191,7 +191,7 @@ def lint(pages: list[dict], ontology: dict) -> dict:
+         findings["duplicate_node_ids"].append(finding)
+ 
+     # スラッグをキーにしたソースページ。エッジの `source:` の参照を検証するのに使う。
+-    source_slugs = {p["slug"] for p in pages if p["meta"].get("type") == "source"}
++    source_slugs = {p["slug"] for p in pages if type_value(p["meta"].get("type")) == "source"}
+ 
+     # 別名
+     alias_to_canonicals: dict[str, set[str]] = defaultdict(set)
+@@ -353,7 +353,7 @@ def decide_evidence(pages: list[dict], ontology: dict, threshold: float | None)
+         wd.note(str(exc))
+         client = None
+     predicates = ontology.get("predicates", {})
+-    sources = {p["slug"]: p for p in pages if p["meta"].get("type") == "source"}
++    sources = {p["slug"]: p for p in pages if type_value(p["meta"].get("type")) == "source"}
+     titles = {derive_node_id(p["meta"], p["slug"], ontology): text_value(p["meta"].get("title")) or p["slug"]
+               for p in pages}
+     items = []
+diff --git a/skills/info-hive/scripts/wiki_lint.py b/skills/info-hive/scripts/wiki_lint.py
+index 3c80b21..2051325 100644
+--- a/skills/info-hive/scripts/wiki_lint.py
++++ b/skills/info-hive/scripts/wiki_lint.py
+@@ -95,7 +95,9 @@ from wiki_pages import (  # noqa: E402
+     iter_page_files,
+     ref_values,
+     resolve_link,
++    scalar_value,
+     text_value,
++    type_value,
+     walk_index_files,
+ )
+ 
+@@ -217,7 +219,7 @@ def missing_raw(meta: dict, md_path: Path, wiki_root: Path) -> list[dict]:
+     そこで、wiki のルート、wiki の親、ページのディレクトリのどれかを基準にして見つかれば、原本があるとする。
+     複数の部分からなるソースはディレクトリにするので、ファイルでもディレクトリでもよい。
+     """
+-    if meta.get("type") != "source":
++    if type_value(meta.get("type")) != "source":
+         return []
+     found = []
+     for raw in _ref_values(meta.get("raw")):
+@@ -481,11 +483,12 @@ def lint(pages: list[dict], soft_cap: int, hard_cap: int, required_fm: list[str]
+     src_by_path, src_by_slug = build_page_index(pages)
+ 
+     def page_type(q: dict):
+-        return q["meta"].get("type")
++        return type_value(q["meta"].get("type"))
+ 
+     def types_of(slug: str) -> list:
+         """スラッグのページの type（空のものは除く）。スラッグが重複していれば、それぞれの type を返す。"""
+-        return [g["meta"].get("type") for g in slug_to_pages[slug] if g["meta"].get("type") not in (None, "", [])]
++        types = [type_value(g["meta"].get("type")) for g in slug_to_pages[slug]]
++        return [t for t in types if t not in (None, "")]
+ 
+     # 索引の見出しとページの type の食い違い。リンク切れの項目と type のないページは見ない
+     # （分割した索引の index.md は indexes/ のファイルを指し、type の欠落は missing_frontmatter で挙がる）。
+@@ -594,7 +597,7 @@ def lint(pages: list[dict], soft_cap: int, hard_cap: int, required_fm: list[str]
+ 
+         # 更新の停滞: ヒューリスティック。90 日間更新されておらず、かつ最近の取り込みで触れられたページ。
+         # 近似: 最終更新が 90 日より前で、よくリンクされている（ハブである）ページを指摘する。
+-        updated = parse_date(p["meta"].get("updated"))
++        updated = parse_date(scalar_value(p["meta"].get("updated")))
+         if updated:
+             age_days = (date.today() - updated).days
+             if age_days > 90 and len(inbound.get(p["slug"], [])) >= 3:
+diff --git a/skills/info-hive/scripts/wiki_pages.py b/skills/info-hive/scripts/wiki_pages.py
+index 6798dd0..06f8c74 100644
+--- a/skills/info-hive/scripts/wiki_pages.py
++++ b/skills/info-hive/scripts/wiki_pages.py
+@@ -31,7 +31,7 @@ from collections import defaultdict
+ from pathlib import Path, PurePosixPath
+ from typing import NamedTuple
+ 
+-from wiki_text import nfc, posix_rel
++from wiki_text import canonical_kind, canonical_type, nfc, posix_rel
+ 
+ SKIP_TOP_LEVEL_FILES = frozenset({"SCHEMA.md", "index.md", "log.md", "README.md"})
+ SKIP_TOP_LEVEL_DIRS = frozenset({"indexes", "graph", "raw", "assets", ".evolution", ".wiki-cache"})
+@@ -557,6 +557,33 @@ def text_value(value) -> str:
+     return ", ".join(ref_values(value))
+ 
+ 
++def scalar_value(value):
++    """frontmatter の 1 つの値を入れる欄（updated、created など）の値を、文字か None にする。
++
++    文字と None は、そのまま返す（"" も変えない）。それ以外は text_value() と同じく、空でない要素を「, 」でつなぎ、
++    空なら None を返す。`updated: [2026-03-01]` は "2026-03-01"、`updated:`（空の配列）は None になる。
++    """
++    if value is None or isinstance(value, str):
++        return value
++    return text_value(value) or None
++
++
++def type_value(value):
++    """frontmatter の type の値を、文字か None にする。scalar_value() と同じ規則で、配列の要素の日本語の別名
++    （概念など）も英語に直す。文字の type は、読み込みのとき（canonical_meta）に直してあるので、そのまま返す。
++    """
++    if value is None or isinstance(value, str):
++        return value
++    return ", ".join(canonical_type(v) for v in ref_values(value)) or None
++
++
++def kind_value(value):
++    """frontmatter の kind の値を、type_value() と同じ規則で、文字か None にする。"""
++    if value is None or isinstance(value, str):
++        return value
++    return ", ".join(canonical_kind(v) for v in ref_values(value)) or None
++
++
+ def ref_link(ref: str) -> str:
+     """frontmatter のページへの参照（`sources:` の値など）を、wikilink の中身にする。
+ 
+diff --git a/skills/info-hive/scripts/wiki_search.py b/skills/info-hive/scripts/wiki_search.py
+index c919e2e..97e898d 100644
+--- a/skills/info-hive/scripts/wiki_search.py
++++ b/skills/info-hive/scripts/wiki_search.py
+@@ -75,7 +75,9 @@ from wiki_pages import (  # noqa: E402
+     iter_page_files,
+     ref_values,
+     resolve_link,
++    scalar_value,
+     text_value,
++    type_value,
+ )
+ 
+ 
+@@ -494,7 +496,7 @@ def passes_filters(page: dict, args) -> bool:
+     if args.type:
+         # --type 概念 のように日本語の別名で指定されても、英語の type と比べられるようにする。
+         wanted_type = canonical_meta({"type": args.type})[0]["type"]
+-        if meta.get("type") != wanted_type:
++        if type_value(meta.get("type")) != wanted_type:
+             return False
+     if args.tag:
+         # 全角の「ＡＩ」と半角の「AI」を同じタグとして比べる。
+@@ -503,7 +505,7 @@ def passes_filters(page: dict, args) -> bool:
+             return False
+     if args.since:
+         since = parse_date(args.since)
+-        updated = parse_date(meta.get("updated"))
++        updated = parse_date(scalar_value(meta.get("updated")))
+         if since and updated and updated < since:
+             return False
+         if since and not updated:
+@@ -826,14 +828,14 @@ def json_result(
+     return {
+         "slug": page["slug"],
+         "rel_path": page["rel_path"],
+-        "type": meta.get("type"),
++        "type": type_value(meta.get("type")),
+         "title": text_value(meta.get("title")) or page["slug"],
+         "heading_path": heading_path,
+         "section_index": section_index,
+         "score": round(score, 4),
+         "retrievers": retrievers or ["bm25"],
+         "snippet": snippet,
+-        "updated": meta.get("updated"),
++        "updated": scalar_value(meta.get("updated")),
+         # tags と sources は、値を 1 つだけ書いたページ（tags: 検索）でも文字の配列にする。lint が sources を
+         # 読むのと同じ wiki_pages.ref_values() を使う。MCP の query も、この関数で結果を作る。
+         "tags": ref_values(meta.get("tags")),
+@@ -911,6 +913,12 @@ def results_heading(query: str, count: int) -> str:
+     return f"「{query}」の上位 {count} 件:"
+ 
+ 
++def type_cell_value(meta: dict) -> str:
++    """人が読む出力の type の欄に書く値。type がないか、配列が空なら「?」にする。文字の type は、"" も含めてそのまま使う。"""
++    value = type_value(meta.get("type", "?"))
++    return "?" if value is None else value
++
++
+ def type_cell(page_type) -> str:
+     """結果の行の type の欄。全角の文字を 2 桁と数えて、幅を 9 桁にそろえる。"""
+     return ljust_display(str(page_type), 9)
+@@ -964,7 +972,7 @@ def cmd_search(args, pages: list[dict]) -> None:
+         print()
+         for score, page in top:
+             title = text_value(page["meta"].get("title")) or page["slug"]
+-            page_type = page["meta"].get("type", "?")
++            page_type = type_cell_value(page["meta"])
+             print(f"  [{score:6.2f}] [{type_cell(page_type)}] {title}")
+             print(f"             {page['rel_path']}")
+         return
+@@ -1066,7 +1074,7 @@ def cmd_search(args, pages: list[dict]) -> None:
+     for score, section, _retrievers in top_sections:
+         page = section["page"]
+         title = text_value(page["meta"].get("title")) or page["slug"]
+-        page_type = page["meta"].get("type", "?")
++        page_type = type_cell_value(page["meta"])
+         print(f"  [{score:6.2f}] [{type_cell(page_type)}] {title}")
+         print(f"             {page['rel_path']}")
+         if section["heading_path"]:
+diff --git a/skills/info-hive/scripts/wiki_stats.py b/skills/info-hive/scripts/wiki_stats.py
+index 21acfed..56c4ebe 100644
+--- a/skills/info-hive/scripts/wiki_stats.py
++++ b/skills/info-hive/scripts/wiki_stats.py
+@@ -34,7 +34,8 @@ import wiki_initialized  # noqa: E402
+ import wiki_workspace  # noqa: E402
+ # ページの集合とリンクの抜き出しは、lint と同じ規則（wiki_pages）を使う。
+ from wiki_pages import (  # noqa: E402,F401
+-    SKIP_TOP_LEVEL_DIRS, SKIP_TOP_LEVEL_FILES, WIKILINK_RE, extract_wikilinks, is_page_path, read_os, walk_markdown,
++    SKIP_TOP_LEVEL_DIRS, SKIP_TOP_LEVEL_FILES, WIKILINK_RE, extract_wikilinks, is_page_path, read_os, type_value,
++    walk_markdown,
+ )
+ 
+ 
+@@ -69,8 +70,7 @@ def parse_type(text: str) -> str | None:
+     if not m:
+         return None
+     meta, _conflicts = canonical_meta(parse_frontmatter_text(m.group(1)))
+-    value = meta.get("type")
+-    return value if isinstance(value, str) else None
++    return type_value(meta.get("type"))
+ 
+ 
+ # ページの大きさの目安（wiki_lint の既定値と同じ）。行数と、空白を除いた文字数の両方で見る。
+diff --git a/skills/info-hive/scripts/wiki_text.py b/skills/info-hive/scripts/wiki_text.py
+index fdb699f..ab96eb2 100644
+--- a/skills/info-hive/scripts/wiki_text.py
++++ b/skills/info-hive/scripts/wiki_text.py
+@@ -113,6 +113,16 @@ def _canonical_value(value, table: dict[str, str]):
+     return value
+ 
+ 
++def canonical_type(value):
++    """type の値が日本語の別名（概念など）なら英語に直す。文字でなければ、そのまま返す。"""
++    return _canonical_value(value, TYPE_ALIASES)
++
++
++def canonical_kind(value):
++    """kind の値が日本語の別名（人物など）なら英語に直す。文字でなければ、そのまま返す。"""
++    return _canonical_value(value, KIND_ALIASES)
++
++
+ def canonical_meta(meta: dict) -> tuple[dict, list[dict]]:
+     """frontmatter の日本語の別名を英語に直す。(英語に直した meta, 衝突の一覧) を返す。
+ 
+@@ -138,9 +148,9 @@ def canonical_meta(meta: dict) -> tuple[dict, list[dict]]:
+         out[canonical] = value
+         origin[canonical] = key
+     if "type" in out:
+-        out["type"] = _canonical_value(out["type"], TYPE_ALIASES)
++        out["type"] = canonical_type(out["type"])
+     if "kind" in out:
+-        out["kind"] = _canonical_value(out["kind"], KIND_ALIASES)
++        out["kind"] = canonical_kind(out["kind"])
+     return out, conflicts
+ 
+ 
