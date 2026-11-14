@@ -167,6 +167,8 @@ def instrumented(inj):
         return inj.outer("w_stat", os.fspath(path), real_stat, path, *a, **k)
 
     def file_id(path):
+        if in_layer["on"]:
+            return real_id(path)       # 層の file_id の口の中（層の口として数えてある）
         if inj.count + 1 == inj.at and inj.mode == "zero" and not inj.crashed:
             value = real_id(path)
             inj._before_outer("w_file_id", os.fspath(path))
