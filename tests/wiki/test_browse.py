@@ -623,6 +623,172 @@ class RelationsTest(TempWiki):
 # 静的の書き出し（守ること 1、4、8）
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# 構造の直しの設計の 4.1、9.2: 読めない入力は、その入力がない Wiki と同じに描き、読み取りの印を足す
+# ---------------------------------------------------------------------------
+
+def _view(c: core.Core) -> dict:
+    """比べる値（リンクの解決、被リンク、未解決リンク、ナビゲーション、関係表、各ページの HTML）。
+
+    読み取りの印（「不完全」と、診断の read_error）は、決まった場所に置くので、比べる前に取り除く。世代の識別子は
+    読み取りの情報から作るので、そろえる（設計の 9.2）。
+    """
+    import re
+    strip = re.compile(r'<p class="notice incomplete">[^<]*</p>\n?|<section id="_incomplete">\s*</section>\n?')
+
+    def clean(text):
+        return strip.sub("", text.replace(c.generation, "GEN"))
+    return {
+        "links": {pid: [(r["state"], r.get("id")) for r in c.links[pid]] for pid in sorted(c.drawn)},
+        "backlinks": c.backlinks,
+        "unresolved": c.unresolved(),
+        "nav": json.dumps(c._nav_json()["groups"], ensure_ascii=False),
+        "relations": json.dumps(c.relations, ensure_ascii=False, sort_keys=True),
+        "pages": {name: clean(c.render(name)) for name in c.page_names()},
+    }
+
+
+class UnreadableInputTest(TempWiki):
+    def make(self, root: Path):
+        write(root, "SCHEMA.md", "# スキーマ\n")
+        write(root, "concepts/a.md", page("# A\n\n[[b]] [[missing]] [[c#見出し]] [[x]]", type="concept"))
+        write(root, "concepts/b.md", page("# B\n\n[[a]]", type="concept"))
+        write(root, "concepts/c.md", page("# C\n\n## 見出し", type="concept"))
+        write(root, "one/x.md", page("# x1"))
+        write(root, "two/x.md", page("# x2"))
+        write(root, "index.md", "- [[a]]\n- [[indexes/more]]\n")
+        write(root, "indexes/more.md", "- [[b]]\n")
+
+    def unreadable(self, target: Path):
+        real = Path.read_bytes
+
+        def fn(path):
+            if path == target:
+                raise PermissionError("busy")
+            return real(path)
+        return reads_via(fn)
+
+    def lint_with_failure(self, root: Path, target: Path) -> list:
+        real = Path.read_text
+
+        def read_text(path, *a, **k):
+            if Path(path) == target:
+                raise PermissionError("busy")
+            return real(path, *a, **k)
+        with mock.patch.object(Path, "read_text", read_text):
+            return lint_broken(root)
+
+    def test_unreadable_page_is_drawn_as_removed(self):
+        for rel in ("concepts/a.md", "two/x.md", "concepts/c.md"):
+            with self.subTest(rel=rel):
+                u_root = self.base / f"U-{rel.replace('/', '_')}"
+                r_root = self.base / f"R-{rel.replace('/', '_')}"
+                self.make(u_root)
+                self.make(r_root)
+                (r_root / rel).unlink()
+                with self.unreadable(u_root / rel):
+                    u = build_core(u_root)
+                r = build_core(r_root)
+                self.assertEqual(_view(u), _view(r))
+                # 印は、なければならない
+                self.assertEqual(u.unreadable_pages, [rel])
+                self.assertIn({"kind": "read_error", "page": rel[:-3], "reason": "os"}, u.diagnostics)
+                any_page = sorted(u.page_names())[0]
+                self.assertIn("不完全", u.render(any_page))
+                self.assertIn("不完全", u.render_index())
+                self.assertEqual(json.loads(u.render_data("data/manifest.js")[len("window.WIKI_MANIFEST="):-2])
+                                 ["incomplete"]["unreadable_pages"], 1)
+                # 未解決リンクは、同じ失敗を入れた lint と同じ（設計の 4.3 の範囲で）
+                self.assertEqual(u.unresolved(), self.lint_with_failure(u_root, u_root / rel))
+
+    def test_unreadable_index_is_drawn_as_removed(self):
+        u_root, r_root = self.base / "U", self.base / "R"
+        self.make(u_root)
+        self.make(r_root)
+        (r_root / "indexes/more.md").unlink()
+        with self.unreadable(u_root / "indexes/more.md"):
+            u = build_core(u_root)
+        r = build_core(r_root)
+        self.assertEqual(_view(u)["nav"], _view(r)["nav"])
+        self.assertIn("ナビゲーションは不完全", u.render_index())
+        self.assertTrue(u._nav_json()["incomplete"])
+
+    @unittest.skipUnless(HAS_YAML, "PyYAML がない")
+    def test_unreadable_ontology_is_drawn_as_absent_with_mark(self):
+        u_root, r_root = self.base / "U", self.base / "R"
+        self.make(u_root)
+        self.make(r_root)
+        write(u_root, "graph/ontology.yaml", "node_types: {concept: {}}\npredicates: {}\n")
+        with self.unreadable(u_root / "graph/ontology.yaml"):
+            u = build_core(u_root)
+        r = build_core(r_root)
+        self.assertEqual(_view(u)["links"], _view(r)["links"])
+        self.assertIn("オントロジーを読めない", u.render("concepts/a.html"))
+        self.assertTrue(json.loads(u.render_data("data/manifest.js")[len("window.WIKI_MANIFEST="):-2])
+                        ["incomplete"]["unreadable_ontology"])
+
+    def test_unlistable_name_set_is_not_taken(self):
+        # 名前の集合が分からないときは、全体を採らない（設計の 4.1）
+        self.make(self.wiki)
+        real = os.scandir
+
+        def denied(path="."):
+            if Path(path) == self.wiki / "one":
+                raise PermissionError("denied")
+            return real(path)
+        with mock.patch.object(os, "scandir", denied):
+            with self.assertRaises(core.InputsUnknown):
+                core.take_snapshot(self.wiki)
+
+    def test_ontology_only_change_changes_the_signature(self):
+        # 入力の一覧は 1 つで、印もそこから作る（設計の 4。4 回目のレビューの重大 7）
+        self.make(self.wiki)
+        before = core.signature(self.wiki)
+        write(self.wiki, "graph/ontology.yaml", "node_types: {}\n")
+        mid = core.signature(self.wiki)
+        self.assertNotEqual(mid, before)
+        write(self.wiki, "graph/ontology.yaml", "node_types: {concept: {}}\n")
+        self.assertNotEqual(core.signature(self.wiki), mid)
+
+
+class CoreHoldsNoMachineInfoTest(TempWiki):
+    """作りの確かめ（構造の直しの設計の 8）。機械の情報を書いていない Wiki を、目印の文字を含むディレクトリに
+    置き、内容と、組み立てたあとの Core の値をすべてたどって、目印の文字と Path がないことを確かめる。"""
+
+    def test_no_path_or_marker_in_core(self):
+        wiki = self.base / "MACHINEMARK" / "wiki"
+        write(wiki, "SCHEMA.md", "# スキーマ\n")
+        write(wiki, "concepts/a.md", page("# A\n\n[[b]] [[missing]]", type="concept", raw="~/x.pdf"))
+        write(wiki, "concepts/b.md", page("# B"))
+        write(wiki, "index.md", "- [[a]]\n")
+        c = build_core(wiki)
+        c.render_all("link")
+        seen = set()
+        bad = []
+
+        def walk(value, where):
+            if id(value) in seen:
+                return
+            seen.add(id(value))
+            if isinstance(value, os.PathLike):
+                bad.append(f"{where}: Path")
+            elif isinstance(value, str):
+                if "MACHINEMARK" in value:
+                    bad.append(f"{where}: 目印")
+            elif isinstance(value, dict):
+                for k, v in value.items():
+                    walk(k, where + ".key")
+                    walk(v, f"{where}[{k!r}]")
+            elif isinstance(value, (list, tuple, set, frozenset)):
+                for i, v in enumerate(value):
+                    walk(v, f"{where}[{i}]")
+            elif hasattr(value, "__dict__") and type(value).__module__ in ("wiki_browse_core",):
+                for k, v in vars(value).items():
+                    walk(v, f"{where}.{k}")
+        walk(c, "core")
+        self.assertEqual(bad[:5], [])
+
+
 class BuildTest(TempWiki):
     def setUp(self):
         super().setUp()
