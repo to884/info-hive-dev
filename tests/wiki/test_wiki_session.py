@@ -374,6 +374,59 @@ class BasicFixtureTests(unittest.TestCase):
         with self.assertRaises(ws.Fail):
             extract_file(BASIC, before="99999999-0000-4000-8000-000000000000")
 
+    # ---- 7 回目のレビュー（impl-review-7.md、採用可）の軽微
+
+    def build(self, fill) -> Path:
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(force_rmtree, tmp)
+        b = Builder(session_id="0a1c2d3e-aaaa-4bbb-8ccc-0123456789ab")
+        fill(b)
+        p = tmp / f"{b.session_id}.jsonl"
+        p.write_bytes(b.to_bytes())
+        return p
+
+    def test_values_of_unknown_types_are_boundaries(self):
+        """種類の値が文字列でなくても、例外で止まらず、境界か読み飛ばしになる。"""
+        def fill(b):
+            b.human("始める")
+            b.add(b._base("attachment", ..., attachment={"type": [], "content": NOSHOW}))
+            b.text("通知への返答")
+            b.add(b._base("system", ..., subtype=[], content=NOSHOW))
+            b.add({"type": [], "content": NOSHOW})
+        ex = extract_file(self.build(fill))
+        text = ws.render(ex, TITLE, [], []).decode()
+        self.assertNotIn("NOSHOW", text)
+        self.assertEqual([t.kind for t in ex.turns], ["user", "marker", "claude"])
+        self.assertIn("unknown_uuidless_type", {w["code"] for w in ws.summarize_warnings(ex.warnings)})
+
+    def test_cycle_of_two_replies_makes_one_marker(self):
+        """本文のある 2 つの返答が互いを親にすると、不明の印 1 つと、それへの返答 1 つにまとめ、警告を出す。"""
+        def fill(b):
+            b.human("始める")
+            u1, u2 = b.new_uuid(), b.new_uuid()
+            b.add({**b._base("assistant", u2, message={"role": "assistant", "model": "m", "content": [
+                {"type": "text", "text": "返答 A1 です"}]}), "uuid": u1})
+            b.add({**b._base("assistant", u1, message={"role": "assistant", "model": "m", "content": [
+                {"type": "text", "text": "返答 A2 です"}]}), "uuid": u2})
+        ex = extract_file(self.build(fill))
+        self.assertEqual([(t.kind, t.body if t.kind == "marker" else t.reply_to) for t in ex.turns],
+                         [("user", None), ("marker", ws.MARK_UNKNOWN), ("claude", 2)])
+        self.assertIn("A1", ex.turns[2].body)
+        self.assertIn("A2", ex.turns[2].body)
+        self.assertIn("reply_unresolved", {w["code"] for w in ws.summarize_warnings(ex.warnings)})
+
+    def test_reply_before_its_target_is_unknown(self):
+        """返答の宛先がファイルの後ろにあれば、宛先を不明にして警告する（閉じる側。実装の計画に書いた扱い）。"""
+        def fill(b):
+            h = b.new_uuid()
+            b.text("先に来た返答", parent=h)
+            b.add({**b._base("user", None, message={"role": "user", "content": "あとの質問"},
+                             origin={"kind": "human"}), "uuid": h})
+        ex = extract_file(self.build(fill))
+        self.assertEqual([t.kind for t in ex.turns], ["marker", "claude", "user"])
+        self.assertEqual(ex.turns[0].body, ws.MARK_UNKNOWN)
+        self.assertIn("reply_unresolved", {w["code"] for w in ws.summarize_warnings(ex.warnings)})
+
     def test_unterminated_last_line_is_not_read(self):
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(force_rmtree, tmp)
