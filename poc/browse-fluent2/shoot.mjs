@@ -48,9 +48,15 @@ const PROBE = () => {
     "メタ欄の見出し": "#_meta th", "注意の帯": ".fui-MessageBarBody", "種類 ソース": ".t-source", "種類 エンティティ": ".t-entity",
     "種類 コンセプト": ".t-concept", "種類 シンセシス": ".t-synthesis", "タグ": ".fui-Tag__primaryText", "要約": ".ix-summary",
     "索引の題名": ".ix-title", "グループの階層": ".fx-path", "被リンク": "#_backlinks a", "診断": ".diag-list li",
+    "検索の題名": ".sr-title", "検索の階層": ".sr-meta", "種類のボタン": ".chips .fui-ToggleButton", "配色": "#_theme",
+    "一覧の地の変わる項目": ".fui-NavItem, .fui-NavSubItem, .fui-NavCategoryItem .tree-name",
   };
+  // 一致するすべての要素を測り、いちばん低い値を残す
   const contrast = {};
-  for (const [k, sel] of Object.entries(pick)) { const e = document.querySelector(sel); if (e) { contrast[k] = ratio(e); } }
+  for (const [k, sel] of Object.entries(pick)) {
+    const all = Array.from(document.querySelectorAll(sel)).filter((e) => e.offsetParent !== null && e.textContent.trim());
+    if (all.length) { contrast[k] = Math.min(...all.map(ratio)); }
+  }
   const main = document.getElementById("_main");
   return {
     theme: document.documentElement.getAttribute("data-theme"),
@@ -76,6 +82,15 @@ async function open(url, opts = {}) {
   page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
   page.on("request", (r) => { const u = r.url(); if (!u.startsWith("file:") && !u.startsWith("http://127.0.0.1")) external.push(u); });
   await page.addInitScript(() => {
+    window.__probeRatio = (el) => {
+      const rgb = (s) => { const m = s.match(/[\d.]+/g); return m ? m.slice(0, 4).map(Number) : [0, 0, 0, 1]; };
+      const f = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+      const lum = ([r, g, b]) => 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+      let bg = [255, 255, 255];
+      for (let e = el; e; e = e.parentElement) { const c = rgb(getComputedStyle(e).backgroundColor); if (c.length < 4 || c[3] > 0) { bg = c; break; } }
+      const a = lum(rgb(getComputedStyle(el).color)), b = lum(bg);
+      return Math.round(((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)) * 100) / 100;
+    };
     window.__csp = [];
     document.addEventListener("securitypolicyviolation", (e) => window.__csp.push(e.violatedDirective + " " + e.blockedURI));
   });
@@ -102,6 +117,11 @@ SHOTS.push({ name: "scope-user-1280-light", variant: "user", path: "pages/bm25.h
 SHOTS.push({ name: "scope-user-1280-dark", variant: "user", path: "pages/bm25.html", width: 1280, dark: true });
 SHOTS.push({ name: "index-1280-light-filtered", variant: "project-green", path: "index.html#group=_g2", width: 1280 });
 SHOTS.push({ name: "article-1280-light-search", variant: "project-green", path: "pages/bm25.html", width: 1280, type: "検索" });
+for (const dark of [false, true]) {
+  SHOTS.push({ name: `long-320-${dark ? "dark" : "light"}`, variant: "project-neutral", path: "pages/long-values.html", width: 320, dark });
+  SHOTS.push({ name: `index-320-${dark ? "dark" : "light"}-long`, variant: "project-neutral", path: "index.html", width: 320, dark });
+  SHOTS.push({ name: `article-1280-${dark ? "dark" : "light"}-search-hover`, variant: "project-neutral", path: "pages/bm25.html", width: 1280, dark, type: "検索" });
+}
 SHOTS.push({ name: "article-360-light-menu-open", variant: "project-green", path: "pages/bm25.html", width: 360, openMenu: true });
 
 for (const s of SHOTS) {
@@ -109,6 +129,21 @@ for (const s of SHOTS) {
   if (s.type) { await page.locator("#_q").fill(s.type); await page.waitForTimeout(300); }
   if (s.openMenu) { await page.locator(".drawer > summary").click(); await page.waitForTimeout(100); }
   const probe = await page.evaluate(PROBE);
+  // 状態で地が変わる要素は、ポインターを置いた状態でも測る
+  const hoverMin = {};
+  for (const sel of [".sr-link", ".fui-NavSubItem", ".fui-NavItem", ".fui-NavCategoryItem", ".chips .fui-ToggleButton"]) {
+    const n = Math.min(await page.locator(sel).count(), 6);
+    for (let i = 0; i < n; i++) {
+      const loc = page.locator(sel).nth(i);
+      if (!(await loc.isVisible())) { continue; }
+      await loc.hover();
+      const r = await loc.evaluate((e) => {
+        const p = window.__probeRatio; return p ? Math.min(...[e, ...e.querySelectorAll("*")].filter((x) => x.childNodes.length && [...x.childNodes].some((c) => c.nodeType === 3 && c.textContent.trim())).map(p)) : null;
+      });
+      if (r !== null && isFinite(r)) { hoverMin[sel] = Math.min(hoverMin[sel] ?? 99, r); }
+    }
+  }
+  probe.hover = hoverMin;
   await page.screenshot({ path: join(shotDir, `${s.name}.png`), fullPage: true });
   report.shots.push({ name: s.name, consoleErrors, external, ...probe });
   await ctx.close();
@@ -168,5 +203,12 @@ for (const s of SHOTS) {
 }
 await browser.close();
 writeFileSync(join(shotDir, "report.json"), JSON.stringify(report, null, 2));
-const bad = report.shots.filter((s) => s.styleAttrs || s.csp.length || s.external.length || s.overflowPage || s.overflowMain || s.consoleErrors.length || !s.navLoaded);
-console.log(JSON.stringify({ shots: report.shots.length, problems: bad.map((s) => s.name), theme: report.theme }, null, 2));
+// 出力に、同梱したファイルの著作権表示があること（fluent2.css の先頭のコメントと、style.css に写した表示）
+for (const v of ["project-green", "project-neutral", "user"]) {
+  const css = readFileSync(join(outRoot, v, "assets", "style.css"), "utf8") + readFileSync(join(outRoot, v, "assets", "fluent2.css"), "utf8");
+  report.notices = report.notices || {};
+  report.notices[v] = { to884: css.includes("Copyright (c) 2026 to884"), microsoft: css.includes("Copyright (c) Microsoft Corporation") };
+}
+const lowContrast = (s) => Object.values(s.contrast).concat(Object.values(s.hover || {})).some((r) => r < 4.5);
+const bad = report.shots.filter((s) => s.styleAttrs || s.csp.length || s.external.length || s.overflowPage || s.overflowMain || s.consoleErrors.length || !s.navLoaded || lowContrast(s));
+console.log(JSON.stringify({ shots: report.shots.length, problems: bad.map((s) => s.name), theme: report.theme, notices: report.notices }, null, 2));

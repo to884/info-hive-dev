@@ -20,7 +20,7 @@ Fluent 2 の公式の実装は、React の `@fluentui/react-components`（v9）�
 | 項目 | 決定 |
 | --- | --- |
 | デザインの元 | スキル `fluent2-html-replica` の `fluent2.css`（`@fluentui/react-components` 9.75.2 の再現）を使う |
-| 同梱 | `fluent2.css` を書き換えずに、全体をプラグインの `browse_assets/` に写す。出どころ、基準の版、SHA-256、写し直す手順を `browse_assets/README.md` に記録し、ライセンスの文書を `browse_assets/licenses/` に置く。プラグインの実行と試験は、スキルの場所を読まない |
+| 同梱 | `fluent2.css` を書き換えずに、全体をプラグインの `browse_assets/` に写す。出どころ、基準の版、SHA-256、写し直す手順を `browse_assets/README.md` に記録し、ライセンスの文書を `browse_assets/licenses/` に置く。`fluent2.css` のコメントにない `fluent2-html-replica` 自身の MIT の表示は、出力に必ず入る `style.css` の先頭のコメントに写す。プラグインの実行と試験は、スキルの場所を読まない |
 | スクリプト | スキルの `fluent2.js` は使わない。要るふるまい（ToggleButton の `aria-pressed`、SearchBox の消去）は `app.js` が受け持つ |
 | 独自の CSS | `style.css` に、トークンの CSS 変数だけで書く。Fluent の部品にない拡張（深い木、今のページの印、種類の印の色など）は、独自の拡張として設計書に書く |
 | 配色 | `<html data-theme="auto">` を既定にし、ライトとダークを選べるようにする。選んだ値は、http ではポートを区別しない cookie に、`file://` では localStorage に置く。`theme.js` が `<head>` で描く前に当てる |

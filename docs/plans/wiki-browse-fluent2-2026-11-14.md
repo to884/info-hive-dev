@@ -4,7 +4,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 1 版目。試作の見た目は作者が承認した（2026年11月14日）。設計のレビューはこれから |
+| 状態 | 2 版目。試作の見た目は作者が承認した（2026年11月14日）。1 版目は Sol の設計のレビュー（[design-review-1.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-1.md)）で却下された（分類 A が 3 件） |
 | 対象 | `info-hive-wiki` の `browse_assets/`（`fluent2.css`、`style.css`、`app.js`、新しい `theme.js`）、`wiki_browse_core.py` の HTML の骨組み、開発リポジトリの `tests/wiki/` |
 | 前提 | [browse の構造の直し](wiki-browse-structure-2026-11-11.md)が `info-hive-wiki` の main に入ってから実装する。F1 は[探しやすさの設計](wiki-browse-findability-2026-11-13.md)の実装と一緒に行う |
 | 決定 | [ADR-0021](../adr/0021-wiki-browse-uses-fluent2-replica.md) |
@@ -19,6 +19,16 @@
 | 同 | ライト、ダーク、OS に合わせる、を選べる配色の切り替えを足す |
 | 同 | 必要ならプラグインのコードを変えてよい。実装はスキル `fluent2-html-replica` の場所に依存しない。要るファイルは写し、プラグインが自分で持つ |
 | 同（試作を見たあと） | 試作の見た目で進める。プロジェクトの wiki の札は、中立の色（Badge の informative）にする。ユーザースコープの wiki の札は brand の色にする。木の字下げは 4 段目で止める |
+
+## 1 回目のレビューで崩れた前提
+
+| 分類 | 崩れた前提 | レビューの反例 | 2 版目 |
+| --- | --- | --- | --- |
+| A | 止まっている状態の配色が 4.5:1 を満たせば、操作中も満たす | 暗い配色で検索の結果の行にポインターを置くと、地が `colorSubtleBackgroundHover` に変わり、brand のリンクの色の題名が 4.18:1 になる | 地が状態で変わる要素では、brand のリンクの色を使わず、中立の文字の色にする規則を足した（4.2）。試験は、止まっている状態だけでなく、ポインターを置いた状態と、選んだ状態も測る（6） |
+| A | 親に折り返しを指定すれば、部品の中も折り返す | 200 文字のタグを持つページを幅 320 で開くと、`fui-Tag__primaryText` の `white-space: nowrap` で一覧が横にはみ出す | 利用者の文字を持つ Fluent の部品は、`nowrap` を外して折り返す規則を足した（4.3）。試験の材料に、長いタグ、種類の値、グループの名前を足した（6） |
+| A | `fluent2.css` の先頭のコメントに、要る表示がすべて入っている | `fluent2.css` のコメントは Fluent UI と Fluent UI System Icons の表示だけで、`fluent2-html-replica` 自身の MIT の表示（Copyright (c) 2026 to884）がない。静的の書き出しだけを渡すと、その表示が欠ける | 出力に必ず入る `style.css` の先頭の `/*!` のコメントに、`fluent2-html-replica` の LICENSE の全文を写す（2.1）。試験で、出力の CSS に両方の表示があることを確かめる（6） |
+| B | 試作の字下げは 4 段目で止まる | 試作は深さを 0 から数え、5 段目まで字下げしていた。索引の木には止める規則がなかった | 試作を直した。設計の文（4 節）は「1〜4 段目まで字下げし、5 段目より深い段は 4 段目と同じ位置」と書き直した |
+| B | `ta-*` の配置が見出しのセルにも効く | 試作の `#_body th { text-align: start; }` が、詳細度で `th.ta-center` に勝つ | 試作の規則を `#_body .ta-*` にした。設計の 5 節に、配置の class が `#_body` の規則に負けないことを書いた |
 
 ## 1. 守ること
 
@@ -48,6 +58,8 @@
 - 検索欄と並べ方の選択に、文字入力の群も要る。使わない群は、カルーセルやダイアログなど一部だけである。
 
 ライセンスの文書（スキルの `LICENSE` と `THIRD-PARTY-NOTICES.txt`）は `browse_assets/licenses/` に置く。`fluent2.css` の先頭の `/*!` のコメントに Fluent UI と Fluent UI System Icons の著作権表示と許諾の文が入っているので、静的の書き出し（再配布物）に写した `fluent2.css` にも表示が付いて回る。`licenses/` は閲覧の出力に入れない。`asset_bytes` は名前の最後の要素だけで `browse_assets/` を引くので、下のディレクトリは資産にしない。
+
+`fluent2.css` のコメントにない表示が 1 つある。`fluent2-html-replica` 自身の LICENSE（MIT、Copyright (c) 2026 to884）である。これは、出力に必ず入る `style.css` の先頭の `/*!` のコメントに全文を写す。`style.css` はプラグインのファイルなので、`fluent2.css` を書き換えずに済む。`licenses/` の `THIRD-PARTY-NOTICES.txt` のうち、three.js、css.land、CSS Color 4 の表示は、スキルの `brand_ramp.py` のもので、`fluent2.css` には入っていないので写さない。
 
 Microsoft の製品ではないこと、商標の帰属、Segoe UI を同梱しないことは、`browse_assets/README.md` とプラグインの `README.md` に書く。
 
@@ -127,9 +139,9 @@ Microsoft の製品ではないこと、商標の帰属、Segoe UI を同梱し�
 | `#_nav` | `nav.fui-NavDrawer` の中に `div.fui-NavDrawerHeader`（札、索引、配色）と `div.fui-NavDrawerBody`（検索欄、木） | 地は `colorNeutralBackground4`。広い幅では `position: sticky` で画面の高さに収め、中だけを送る |
 | スコープ `#_scope` | `p#_scope.scope.scope-<kind>` の中の `span.fui-Badge`（tint、large、rounded） | ユーザースコープは brand、プロジェクトは informative（作者の決定）。文字は今と同じ「ユーザースコープの wiki」「プロジェクトの wiki」で、色だけで見分けさせない |
 | 索引へのリンク `.nav-home` | `a.fui-NavItem.nav-home` | |
-| 記事のページの検索欄 `#_q` | `span.fui-SearchBox.fui-Input`（small）、虫めがねと消去のインライン SVG | 下に `fui-Caption1` の「/ で検索欄に移る」。結果は `ul.fui-List`、行は `a.sr-link`（ホバーは `colorSubtleBackgroundHover`）、題名は brand のリンクの色、階層は `fui-Caption1` |
+| 記事のページの検索欄 `#_q` | `span.fui-SearchBox.fui-Input`（small）、虫めがねと消去のインライン SVG | 下に `fui-Caption1` の「/ で検索欄に移る」。結果は `ul.fui-List`、行は `a.sr-link`（ホバーは `colorSubtleBackgroundHover`）。行の地が変わるので、題名は `colorNeutralForeground1` の semibold、階層は `colorNeutralForeground2` の `fui-Caption1`（4.2） |
 | 記事のページの木（`<details>` の入れ子） | 各グループを `details.fui-NavCategory` と `summary.fui-NavCategoryItem`、中身を `div.fui-NavSubItemGroup`、ページを `a.fui-NavSubItem` | Nav の章は入れ子を 1 段までとし、深い階層には Tree を勧める。Tree は `role=tree` の `div` で、開閉に JS が要り、項目のリンクと競合するので使わない。NavCategory を各段に繰り返す独自の拡張にする |
-| 木の深い段 | 独自 | 2 段目から 4 段目までは 1 段ごとに `spacingHorizontalL` だけ字下げし、5 段目より深い段は字下げしない（作者の決定）。5 段目より深い段の中身には、左に `colorNeutralStroke2` の縦の線を引く。長い名前は折り返す。試作の 6 段の木で、260px の幅に収まることを確かめた |
+| 木の深い段 | 独自 | 1 段目から 4 段目までは 1 段ごとに `spacingHorizontalL` だけ字下げし、5 段目より深い段は 4 段目と同じ位置に置く（作者の決定）。5 段目より深い段のグループには、左に `colorNeutralStroke2` の縦の線を引いて段を示す。索引のページの左の木も同じ規則にする。長い名前は折り返す。試作の 6 段の木で、260px の幅に収まることを確かめた |
 | 今のページ | `aria-current="page"` と `is-current` | Nav の選択の印（`::after`）は、入れ子の NavSubItemGroup の中で切れて見えなかった（スキルの章も未確認の点に挙げる）。印は、`colorNeutralBackground4Selected` の地と、左の `colorCompoundBrandForeground1` の内側の影で描き、`::after` は消す（独自） |
 | グループの件数 | `span.fui-Caption1.tree-count` | `colorNeutralForeground3` |
 | グループの「一覧」のリンク | `a.fui-Link`（`tree-filter`） | `visibility` で出し入れする規則（探しやすさ 3.1）を保つ |
@@ -159,6 +171,16 @@ F1 では、`data-theme` と切り替えが全ページに入るが、記事の�
 - 記事の本文の大きさと行間を、今の 16px（`fontSizeBase400`）/ 1.8 に保つ。土台の 14px / 20px にしない。
 - 配置（`table` の `display: block` と横の送り、`pre` の横の送り、本文の幅）は変えない。
 
+### 4.2 状態で地が変わる要素の文字の色
+
+ホバー、押下、選択、今のページの印で地が変わる要素（検索の結果の行、ナビの項目、グループ、種類のボタン、選択）では、文字に brand のリンクの色を使わない。文字は `colorNeutralForeground1`、補いの文字は `colorNeutralForeground2` にする。Fluent の部品の状態の色は、部品の CSS に任せる。
+
+brand のリンクの色（`colorBrandForegroundLink`）は、地が変わらない場所（本文、索引の一覧の題名、メタ欄、被リンク、関係表）だけに使う。暗い配色で、`colorBrandForegroundLink` と `colorSubtleBackgroundHover` の組は 4.18:1、`colorNeutralBackground1Hover` との組は 3.87:1 で、4.5:1 を割る。`colorNeutralForeground1` はどの地とも 10:1 以上、`colorNeutralForeground2` は 7.47:1 以上である（同梱した `fluent2.css` の値で計算した）。
+
+### 4.3 利用者の文字を持つ部品の折り返し
+
+Fluent の部品のいくつかは、文字を折り返さない（`white-space: nowrap`）。Tag の `fui-Tag__primaryText`、Badge、Button、ToggleButton、Nav の項目である。利用者の文字（ページの題名、グループの名前、タグ、種類の値、未解決のリンクの行き先、検索の結果）を入れる部品では、`style.css` で `white-space: normal`、`overflow-wrap: anywhere`、`max-width: 100%`、`height: auto` にして折り返す。決まった文字だけを入れる部品（スコープの札、配色の選択、種類のボタンのうち 4 つの決まった種類）は、この規則がなくてもはみ出さないが、種類のボタンには利用者の種類の値も入る（探しやすさ 4.1）ので、ボタンにも当てる。
+
 ## 5. 記事のページ（F2）
 
 F1 の上に、記事のページの部品を当てる。試作の記事のページは、この形で描いた。
@@ -168,7 +190,7 @@ F1 の上に、記事のページの部品を当てる。試作の記事のペ�
   - 見出し: h1 は `fontSizeHero700`、h2 は `fontSizeBase600` で下に線、h3 は `fontSizeBase500`、h4 は `fontSizeBase400`。どれも semibold で、`lineHeight` は同じ段のトークン。
   - リンクは `colorBrandForegroundLink` で下線を付ける（文中のリンクの指針）。外部のリンクの「↗」、`wl-unresolved`（`colorPaletteRedForeground1` の点線）、`wl-ambiguous`（`colorPaletteMarigoldForeground2` の波線）、`wl-missing-heading` は残し、色だけで区別しない。
   - コード、`pre`、引用、`hr` は、`colorNeutralBackground3`、`borderRadiusMedium`、`colorNeutralStroke1` ほかのトークンで書く。
-  - 表は今と同じく `display: block` で横に送り、線と余白をトークンで書く。`ta-*` は残す。
+  - 表は今と同じく `display: block` で横に送り、線と余白をトークンで書く。`ta-*` は残し、`#_body .ta-left` のように書いて、`#_body th` の揃えの規則に詳細度で負けないようにする。
 - 中核が描く部分には class を足す。
   - `#_meta`: `table.meta.fui-Table`（small）。行は `fui-TableRow`、見出しのセルは `fui-TableHeaderCell`（`scope="row"`）、値は `fui-TableCell`。幅は内容に合わせる（独自）。
   - `#_relations`: `table.relations.fui-Table`（small）を、`overflow-x: auto` の `div.table-scroll`（独自）で包む。9 列なので最小幅を 48em にし、セルの中で語を折らない。幅 360px でも `#_main` からはみ出さず、表だけを横に送る。
@@ -191,7 +213,9 @@ F1 の上に、記事のページの部品を当てる。試作の記事のペ�
 | 同 | スクリプトを切ると `data-theme` が `auto` で、索引の一覧が読めること |
 | 同 | ダークを選ぶと、ページを移っても `dark` が残ること。`file://` と、サーバーを止めて起動し直したあと（ポートが変わる）の両方で確かめる |
 | 同 | 保存先が例外を出すとき（localStorage を壊す、cookie を読めない）、配色は `auto` になり、ページのエラーが出ないこと |
-| 同 | 主な要素（本文、見出し、本文のリンク、未解決と曖昧のリンク、スコープ、ナビの項目、今のページ、グループの名前と件数、メタ欄の見出し、注意の帯、4 つの種類の印、タグ、要約、索引の題名、グループの階層、被リンク、診断）の文字と地のコントラスト比が、light と dark の両方で 4.5:1 以上であること。`getComputedStyle` で測る |
+| 同 | 主な要素（本文、見出し、本文のリンク、未解決と曖昧のリンク、スコープ、ナビの項目、今のページ、グループの名前と件数、メタ欄の見出し、注意の帯、4 つの種類の印、タグ、要約、索引の題名、グループの階層、被リンク、診断、検索の結果の題名と階層、種類のボタン、配色の選択）の文字と地のコントラスト比が、light と dark の両方で 4.5:1 以上であること。`getComputedStyle` で、一致するすべての見えている要素を測る。地が状態で変わる要素（検索の結果の行、ナビの項目、グループ、種類のボタン）は、ポインターを置いた状態と、選んだ状態でも測る |
+| 同 | 長い値（200 文字のタグ、120 文字の種類の値、長いグループの名前と題名）を持つ Wiki を、幅 320 で索引と記事のページを開き、はみ出さないこと |
+| `test_browse.py` | 静的の書き出しの CSS（`fluent2.css` と `style.css`）に、`Copyright (c) Microsoft Corporation` と、`fluent2-html-replica` の LICENSE の全文があること |
 | 同 | `forcedColors: "active"` で開き、今のページの項目と絞っているグループに輪郭があること |
 | 同 | 幅 320、360、600、1000 で、`#_main` とページが横にはみ出さず、禁則の違反が 0 件であること |
 | `startup.test.mjs` | 5 秒の目安を保つ。`fluent2.css` を読む時間を記録する |
@@ -242,4 +266,13 @@ F1 の上に、記事のページの部品を当てる。試作の記事のペ�
 
 ## レビューの指摘と対応
 
-（設計のレビューのあとに書く）
+### 1 回目（[design-review-1.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-1.md)、却下。分類 A が 3 件）
+
+| 分類 | 指摘 | 対応 |
+| --- | --- | --- |
+| A | 暗い配色の検索の結果のホバーで、題名が 4.18:1 | 4.2 の規則と、状態ごとに測る試験（6）。試作を直し、ポインターを置いた状態の最小は 8.07:1 になった |
+| A | 長いタグで索引が横にはみ出す | 4.3 の規則と、長い値の試験（6）。試作の材料に長い値を足し、幅 320 ではみ出さないことを確かめた |
+| A | 出力に `fluent2-html-replica` 自身の著作権表示がない | 2.1 で `style.css` に写すと決め、試験（6）を足した。試作の出力の 3 つの案で、両方の表示があることを確かめた |
+| B | 字下げを止める段がずれ、索引の木に止める規則がない | 試作を直し、4 節の文を書き直した |
+| B | 表の見出しのセルの `ta-*` が負ける | 試作を直し、5 節に書いた |
+| C | 確かめの記録が、最初の要素だけを測り、ホバーを測らず、コントラストを問題の判定に入れていない | 試作の `shoot.mjs` を、すべての要素、ポインターを置いた状態、コントラスト比を判定に入れる形に直した。禁則、強制カラーの輪郭、F1 だけの記事のページは、実装の試験（6）で確かめる |

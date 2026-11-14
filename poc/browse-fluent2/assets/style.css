@@ -1,3 +1,29 @@
+/*!
+ * 閲覧の画面は、同梱の fluent2.css（スキル fluent2-html-replica の写し）で描く。fluent2.css の先頭のコメントにある
+ * Fluent UI と Fluent UI System Icons の表示に加え、fluent2-html-replica 自身の表示を次に写す。
+ *
+ * MIT License
+ *
+ * Copyright (c) 2026 to884
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 /* 閲覧の画面の独自の CSS（試作）。fluent2.css のあとに読む。
    色、間隔、角丸、線、書体はトークンの CSS 変数で書き、hex と px を直に書かない。
    土台は [data-theme] に 14px を当てるので、長さに rem を使わない（media query の rem は初期値の 16px で決まる）。
@@ -68,8 +94,9 @@ body.fui-FluentProvider {
 }
 .sr-link:hover { background-color: var(--colorSubtleBackgroundHover); }
 .sr-link:focus-visible { outline: var(--strokeWidthThick) solid var(--colorStrokeFocus2); outline-offset: calc(var(--strokeWidthThick) * -1); }
-.sr-title { display: block; font-weight: var(--fontWeightSemibold); color: var(--colorBrandForegroundLink); }
-.sr-meta { display: block; color: var(--colorNeutralForeground3); }
+/* 地が状態で変わる行では、brand のリンクの色を使わず、中立の文字の色にする（暗い配色のホバーの地で 4.5:1 を割るため） */
+.sr-title { display: block; font-weight: var(--fontWeightSemibold); color: var(--colorNeutralForeground1); }
+.sr-meta { display: block; color: var(--colorNeutralForeground2); }
 
 /* --- 木（Nav の NavCategory を各段に繰り返す独自の拡張） --- */
 .tree { padding-bottom: var(--spacingVerticalL); }
@@ -79,8 +106,8 @@ body.fui-FluentProvider {
 .fui-NavSubItem { white-space: normal; height: auto; padding-block: var(--spacingVerticalSNudge); }
 /* 2 段目より深い段の字下げ。4 段目で止め、それより深い段は同じ位置に置き、左の線で段を示す */
 .fui-NavSubItemGroup .tree-group { margin-inline-start: var(--spacingHorizontalL); }
-.nav-depth-4 .tree-group, .nav-depth-5 .tree-group, .nav-depth-6 .tree-group { margin-inline-start: 0; }
-.nav-depth-4 > .fui-NavSubItemGroup, .nav-depth-5 > .fui-NavSubItemGroup, .nav-depth-6 > .fui-NavSubItemGroup {
+.tree-group.nav-depth-4, .tree-group.nav-depth-5, .tree-group.nav-depth-6 { margin-inline-start: 0; }
+.tree-group.nav-depth-4, .tree-group.nav-depth-5, .tree-group.nav-depth-6 {
   border-inline-start: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
 }
 .fui-NavSubItemGroup { overflow: visible; }
@@ -90,6 +117,9 @@ body.fui-FluentProvider {
 }
 .tree-groups { list-style: none; margin: 0; padding: 0; }
 .tree-groups .tree-groups { padding-inline-start: var(--spacingHorizontalL); }
+.tree-groups.nav-depth-4, .tree-groups.nav-depth-5, .tree-groups.nav-depth-6 {
+  padding-inline-start: 0; border-inline-start: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+}
 .tree-groups .fui-NavItem, .tree-all { display: flex; gap: var(--spacingHorizontalS); height: auto; min-height: var(--f2-size360); }
 .fui-NavItem.is-current, .fui-NavSubItem.is-current {
   background-color: var(--colorNeutralBackground4Selected);
@@ -132,6 +162,11 @@ body.fui-FluentProvider {
 #_index_unresolved { margin-top: var(--spacingVerticalXXL); }
 .state { color: var(--colorNeutralForeground3); }
 
+/* 利用者の文字（タグ、種類の値、グループの名前、題名）を持つ部品は、Fluent の nowrap を外して折り返す */
+.fui-Tag, .fui-Badge.badge, .chips .fui-ToggleButton { max-width: 100%; height: auto; min-width: 0; }
+.fui-Tag__primaryText, .fui-Badge.badge, .chips .fui-ToggleButton { white-space: normal; overflow-wrap: anywhere; text-align: start; }
+.fui-Tag { padding-block: var(--spacingVerticalXXS); }
+
 /* 種類の印: パレットの色（独自）。Avatar の色の組と同じ Background2 と Foreground2 */
 .fui-Badge.t-source { background-color: var(--colorPalettePumpkinBackground2); color: var(--colorPalettePumpkinForeground2); border-color: transparent; }
 .fui-Badge.t-entity { background-color: var(--colorPaletteLavenderBackground2); color: var(--colorPaletteLavenderForeground2); border-color: transparent; }
@@ -165,9 +200,9 @@ pre code { background: none; padding: 0; font-size: var(--fontSizeBase300); }
 #_body table { border-collapse: collapse; display: block; overflow-x: auto; max-width: 100%; font-size: var(--fontSizeBase300); line-height: var(--lineHeightBase300); }
 #_body th, #_body td { border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke2); padding: var(--spacingVerticalS) var(--spacingHorizontalM); vertical-align: top; }
 #_body th { font-weight: var(--fontWeightSemibold); text-align: start; }
-.ta-left { text-align: left; }
-.ta-center { text-align: center; }
-.ta-right { text-align: right; }
+#_body .ta-left { text-align: left; }
+#_body .ta-center { text-align: center; }
+#_body .ta-right { text-align: right; }
 #_body blockquote { margin: var(--spacingVerticalM) 0; padding: 0 var(--spacingHorizontalL); border-inline-start: var(--strokeWidthThicker) solid var(--colorNeutralStroke1); color: var(--colorNeutralForeground2); }
 #_body hr { border: none; border-top: var(--strokeWidthThin) solid var(--colorNeutralStroke2); margin: var(--spacingVerticalXL) 0; }
 img { max-width: 100%; }

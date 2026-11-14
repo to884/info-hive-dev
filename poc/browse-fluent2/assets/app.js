@@ -166,7 +166,7 @@
   }
 
   function indexTree(groups, depth, current) {
-    var ul = el("ul", "tree-groups" + (depth ? "" : " tree-groups-root"));
+    var ul = el("ul", "tree-groups nav-depth-" + Math.min(depth, 6) + (depth ? "" : " tree-groups-root"));
     for (var i = 0; i < groups.length; i++) {
       var g = groups[i];
       var li = el("li");

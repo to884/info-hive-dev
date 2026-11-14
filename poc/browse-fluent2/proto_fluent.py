@@ -51,6 +51,8 @@ PAGES = [
     ("deep-leaf", "いちばん深い段のページで、名前がとても長くサイドバーの幅に収まらないときの折り返しを確かめる", "concept",
      ["試験"], "2026-11-14", "木の深い段と、長い名前の折り返しを確かめるためのページ"),
     ("kinsoku", "行頭の禁則", "concept", ["組版"], "2026-03-31", "句読点や閉じ括弧を行の頭に置かない規則"),
+    ("long-values", "長い値のページ", "W" * 120, ["W" * 200, "とても長いタグの名前がサイドバーや一覧の幅を超えるときの確かめ"], "2026-11-14",
+     "タグ、種類、グループの名前が長いときに、幅 320 でもはみ出さないことを確かめるページ"),
 ]
 GROUPS = [
     {"id": "_g1", "title": "コンセプト", "items": [], "children": [
@@ -59,7 +61,8 @@ GROUPS = [
                 {"id": "_g4", "title": "評価の指標", "items": [], "children": [
                     {"id": "_g5", "title": "深い段", "items": [], "children": [
                         {"id": "_g6", "title": "さらに深い段", "items": ["deep-leaf"], "children": []}]}]}]}]},
-        {"id": "_g7", "title": "組版", "items": ["kinsoku"], "children": []}]},
+        {"id": "_g7", "title": "組版", "items": ["kinsoku"], "children": []},
+        {"id": "_g11", "title": "名前がとても長いグループで、サイドバーの幅にも索引の階層の表示にも収まらないもの" + "X" * 80, "items": ["long-values"], "children": []}]},
     {"id": "_g8", "title": "エンティティ", "items": ["e5", "sudachi"], "children": []},
     {"id": "_g9", "title": "ソース", "items": ["karpathy-gist", "jlreq", "fluent2", "missing-page"], "children": []},
     {"id": "_g10", "title": "シンセシス", "items": ["search-compare"], "children": []},
@@ -221,7 +224,7 @@ def stale_bar() -> str:
 def render_page(pid: str, scope: str, color: str) -> str:
     root = "../"
     p = BY_ID[pid]
-    meta = [("種類", TYPE_LABELS[p[2]]), ("タグ", "、".join(p[3])), ("更新", p[4]),
+    meta = [("種類", TYPE_LABELS.get(p[2], p[2])), ("タグ", "、".join(p[3])), ("更新", p[4]),
             ("出典", '<a href="karpathy-gist.html">Karpathy の LLM Wiki</a>、'
                      '<span class="wl wl-unresolved" title="ページがない">sources/missing</span>'),
             ("原本", "<code>raw/karpathy-gist.md</code>")]
