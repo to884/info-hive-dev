@@ -66,3 +66,7 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 ## [2026-11-14] ingest | type と updated を配列や値なしで書いたページの扱いの修正、wiki 0.14.1 のリリースの記録
    ページ: sources/typeとupdatedの配列の扱いの修正-wiki-0.14.1（concepts/frontmatterのリストの値、concepts/リリースの確かめ方 を更新）
    グラフ: ノード +1、型付きエッジ +0
+
+## [2026-11-14] ingest | Claude Code のセッションを wiki に取り込む設計の記録（ADR-0020）
+   ページ: sources/セッションの取り込みの設計-2026-11-14、concepts/セッションの記録の構造、concepts/editとwriteの書き込みの競合（新規）
+   グラフ: ノード +3、型付きエッジ +0
