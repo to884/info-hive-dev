@@ -51,6 +51,10 @@ def json_fences(text: str) -> list[dict]:
     return out
 
 
+# 報告の question.kind が取りうる値（references/web-raw.md の needs_user の表）
+QUESTION_KINDS = {"existing_differs", "already_ingested", "old_work_dir", "needs_browser"}
+
+
 class AgentDefinitionTest(unittest.TestCase):
     def test_frontmatter(self):
         fm = frontmatter(read(AGENT))
@@ -116,7 +120,7 @@ class ReferenceTest(unittest.TestCase):
             self.assertEqual(set(item), {"kind", "line", "message", "proposed_reason"})
         self.assertEqual((warned["question"], warned["error"]), (None, None))
         asked = reports["needs_user"]
-        self.assertIn(asked["question"]["kind"], {"existing_differs", "already_ingested", "needs_browser"})
+        self.assertIn(asked["question"]["kind"], QUESTION_KINDS)
         self.assertTrue(asked["question"]["message"])
         self.assertIsNone(asked["error"])
         broke = reports["failed"]
@@ -127,7 +131,7 @@ class ReferenceTest(unittest.TestCase):
         text = read(REFERENCE)
         for status in ("done", "warnings", "needs_user", "failed"):
             self.assertIn(f"| `{status}` |", text)
-        for kind in ("existing_differs", "already_ingested", "needs_browser"):
+        for kind in sorted(QUESTION_KINDS):
             self.assertIn(f"| `{kind}` |", text)
         for kind in ("fetch_failed", "not_initialized", "no_raw_root", "model_unknown"):
             self.assertIn(f"`{kind}`", text)
