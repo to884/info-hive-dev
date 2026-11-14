@@ -131,8 +131,9 @@ for (const s of SHOTS) {
   const probe = await page.evaluate(PROBE);
   // 状態で地が変わる要素は、ポインターを置いた状態でも測る
   const hoverMin = {};
-  for (const sel of [".sr-link", ".fui-NavSubItem", ".fui-NavItem", ".fui-NavCategoryItem", ".chips .fui-ToggleButton"]) {
-    const n = Math.min(await page.locator(sel).count(), 6);
+  // 地が状態で変わりうる入れ物のすべてにポインターを置き、中の文字を測る（場所を数え上げない）
+  for (const sel of ["#_main tr, #_main li, #_nav li, a, summary, button, .fui-NavItem, .fui-NavSubItem, .fui-Select"]) {
+    const n = await page.locator(sel).count();
     for (let i = 0; i < n; i++) {
       const loc = page.locator(sel).nth(i);
       if (!(await loc.isVisible())) { continue; }
@@ -140,7 +141,10 @@ for (const s of SHOTS) {
       const r = await loc.evaluate((e) => {
         const p = window.__probeRatio; return p ? Math.min(...[e, ...e.querySelectorAll("*")].filter((x) => x.childNodes.length && [...x.childNodes].some((c) => c.nodeType === 3 && c.textContent.trim())).map(p)) : null;
       });
-      if (r !== null && isFinite(r)) { hoverMin[sel] = Math.min(hoverMin[sel] ?? 99, r); }
+      if (r !== null && isFinite(r)) {
+        const key = await loc.evaluate((e) => e.tagName.toLowerCase() + (e.className && typeof e.className === "string" ? "." + e.className.split(" ")[0] : "") + (e.closest("[id]") ? " in #" + e.closest("[id]").id : ""));
+        hoverMin[key] = Math.min(hoverMin[key] ?? 99, r);
+      }
     }
   }
   probe.hover = hoverMin;
@@ -202,13 +206,17 @@ for (const s of SHOTS) {
   await ctx.close();
 }
 await browser.close();
-writeFileSync(join(shotDir, "report.json"), JSON.stringify(report, null, 2));
 // 出力に、同梱したファイルの著作権表示があること（fluent2.css の先頭のコメントと、style.css に写した表示）
 for (const v of ["project-green", "project-neutral", "user"]) {
   const css = readFileSync(join(outRoot, v, "assets", "style.css"), "utf8") + readFileSync(join(outRoot, v, "assets", "fluent2.css"), "utf8");
   report.notices = report.notices || {};
-  report.notices[v] = { to884: css.includes("Copyright (c) 2026 to884"), microsoft: css.includes("Copyright (c) Microsoft Corporation") };
+  const lic = readFileSync(join(outRoot, "..", "..", "..", "info-hive-wiki", "skills", "info-hive", "scripts", "browse_assets", "licenses", "fluent2-html-replica.LICENSE"), "utf8")
+    .split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const styleLines = readFileSync(join(outRoot, v, "assets", "style.css"), "utf8").split(/\r?\n/).map((l) => l.replace(/^\s*\*\s?/, "").trim());
+  report.notices[v] = { licenseFullText: lic.every((l) => styleLines.includes(l)), microsoft: css.includes("Copyright (c) Microsoft Corporation") };
 }
+writeFileSync(join(shotDir, "report.json"), JSON.stringify(report, null, 2));
 const lowContrast = (s) => Object.values(s.contrast).concat(Object.values(s.hover || {})).some((r) => r < 4.5);
+const noticeBad = Object.values(report.notices).some((n) => !n.licenseFullText || !n.microsoft);
 const bad = report.shots.filter((s) => s.styleAttrs || s.csp.length || s.external.length || s.overflowPage || s.overflowMain || s.consoleErrors.length || !s.navLoaded || lowContrast(s));
-console.log(JSON.stringify({ shots: report.shots.length, problems: bad.map((s) => s.name), theme: report.theme, notices: report.notices }, null, 2));
+console.log(JSON.stringify({ shots: report.shots.length, problems: bad.map((s) => s.name), noticeBad, theme: report.theme, notices: report.notices }, null, 2));

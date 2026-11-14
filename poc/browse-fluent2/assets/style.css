@@ -162,6 +162,10 @@ body.fui-FluentProvider {
 #_index_unresolved { margin-top: var(--spacingVerticalXXL); }
 .state { color: var(--colorNeutralForeground3); }
 
+/* 地を状態で変えてよいのは、操作できる要素（リンク、ボタン、summary、ナビの項目）だけにする。
+   読むだけの表と一覧の行は、Fluent の部品がホバーで地を変えても打ち消す（brand のリンクの色が 4.5:1 を割るため） */
+#_main .fui-TableRow:hover, #_main .fui-TableRow:active, #_main .fui-ListItem:hover { background-color: transparent; }
+
 /* 利用者の文字（タグ、種類の値、グループの名前、題名）を持つ部品は、Fluent の nowrap を外して折り返す */
 .fui-Tag, .fui-Badge.badge, .chips .fui-ToggleButton { max-width: 100%; height: auto; min-width: 0; }
 .fui-Tag__primaryText, .fui-Badge.badge, .chips .fui-ToggleButton { white-space: normal; overflow-wrap: anywhere; text-align: start; }

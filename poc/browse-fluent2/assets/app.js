@@ -263,8 +263,10 @@
     var chips = el("div", "chips");
     chips.setAttribute("role", "group");
     chips.setAttribute("aria-label", "種類");
-    ["", "source", "entity", "concept", "synthesis"].forEach(function (t) {
-      var b = el("button", "fui-ToggleButton fui-Button", t ? TYPE_LABELS[t] : "すべて");
+    var types = [""];
+    rows.forEach(function (r) { var t = r.getAttribute("data-type"); if (types.indexOf(t) < 0) { types.push(t); } });
+    types.forEach(function (t) {
+      var b = el("button", "fui-ToggleButton fui-Button", t ? (Object.prototype.hasOwnProperty.call(TYPE_LABELS, t) ? TYPE_LABELS[t] : t) : "すべて");
       b.type = "button";
       b.setAttribute("data-size", "small");
       b.setAttribute("data-shape", "circular");
