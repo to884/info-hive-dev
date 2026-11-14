@@ -1,0 +1,162 @@
+[ask-codex 15:11:00] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\web-ingest-check）
+## 判定
+
+**却下。確信度：高。** 呼び出し側のリセットでは、エージェント内部の再取得まで承認を管理できず、承認した本文とは別の空本文を通せる。また、検証スクリプトには、不完全な取り込みや分担違反を合格させる穴が残る。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】内部の `--force` は続行承認を消さず、別の本文に承認を流用できる
+
+**反例：**
+
+1. 保存した HTML に、次の本文がある。
+
+   ```html
+   <article>
+     <h1>Chapters</h1>
+     <p><a href="/tag/chapter1">Chapter 1</a></p>
+     <p>章へのリンク一覧です。</p>
+   </article>
+   ```
+
+2. 取得器は章へのリンクを `tag_links` として消す。残った本文は11文字なので、エージェントが `needs_browser` を返す。
+3. ユーザーが「取り直さず、今の本文で続ける」と答える。呼び出し側は取得指定を戻し、`conditions` に「本文が短いまま続ける」を足す。
+4. 次の W2 は正しく DOM の写しを再開する。
+5. W3 で、消した章へのリンクが本文だったと判断すると、手順は `--keep-noise --force` による取り直しを要求する。
+6. この内部の取り直しには、続行承認を消す指示がない。依頼の `html_file` はリセット済みなので、URL を取得する。その応答が本文なしなら、承認対象とは別の空本文になる。
+7. 残った続行承認によって W3 の再確認を省略できる。
+
+**実行確認：** ファイル操作と通信をメモリ上のモックに置き換え、実際の `build()`、`freeze()`、`check()` を呼んだ。リセット後の再開では通信なし・同一ハッシュだったが、内部の取り直しで `dom → html`、本文11文字から0文字、ハッシュ変更となった。訳者名と見出しの訳を設定すると、`freeze` と `check` は双方とも終了コード0、警告・誤りなしだった。**実モデルがこの経路を選ぶことは未確認**である。
+
+**根拠：**
+
+- [web-raw.md:33](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references/web-raw.md:33)：承認を消す規則は、呼び出し側が依頼の `fetch.force` を設定するときのもの。
+- 同113〜116行：承認による確認省略と、W3・W5内部の `--force` による取り直し。
+- [agents/web-raw.md:21](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/agents/web-raw.md:21)：エージェントに実行させるのは「W1〜W8」。
+- [wiki_fetch.py:1297](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:1297)、1322・1503行：`--force` は再開を外し、URL取得後に写しとrawを作り直す。
+- [wiki_rawcheck.py:980](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:980)：検査対象は新しい `cleaned.md` とrawであり、承認時の本文とは比較しない。
+
+したがって、`root-causes-5.md` の「承認したときのrawに限られる」という結論は成立しない。依頼JSONの `fetch.force` と、内部で実行するCLIの `--force` を同じ経路として扱っている。
+
+### 2. 【重大】旧い要約ページが残ると、今回の `Write` 失敗を合格にする
+
+**反例：**
+
+1. `wiki/sources/cqrs.md` に、前回の取り込みの要約が残っている。
+2. 今回、メインが別の内容を書こうとする。
+3. `Write` は `is_error: true`、`Permission denied` で失敗する。
+4. 旧い要約ページが存在するため、追加された両方の存在確認を通る。
+
+**実行確認：** 既存の合成記録を使い、今回の書き込み内容とは異なる旧要約と、明示的な失敗結果を与えた。実際の `analyze_paths()` は **`ok: true`、不合格項目なし**を返した。ファイルと記録の読み込みはメモリ上に置き換えた。
+
+**根拠：**
+
+- [check_web_raw_agent.py:105](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:105)：結果の本文だけを取り出し、`is_error` と呼び出しとの対応を保持しない。
+- 同263〜267行：書き込み対象にファイルが存在すれば通る。
+- 同282〜285行：`sources/*.md` が存在すれば通り、今回作成できたかは判定しない。
+- [test_web_raw_agent.py:292](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/test_web_raw_agent.py:292)：追加試験は要約ファイルを削除する場合だけを扱う。
+
+これは既存プロジェクトを `analyze` する場合の反例である。空の作業ディレクトリから始める通常の `run` で、初めから旧要約が存在するとは主張しない。
+
+### 3. 【重大】正当な引用符・変数経由の `freeze` が、違反検出にも手動確認一覧にも出ない
+
+次は、必要な引数を含むPowerShellの呼び出しである。
+
+```powershell
+$w = Join-Path $PWD 'wiki'
+$r = Join-Path $PWD 'raw'
+& python 'C:/plugin/scripts/wiki_rawcheck.py' 'freeze' --wiki $w --raw-root $r --slug cqrs
+```
+
+パスを変数に入れても同じ穴がある。
+
+```powershell
+$s = 'C:/plugin/scripts/wiki_rawcheck.py'
+& python $s freeze --wiki $w --raw-root $r --slug cqrs
+```
+
+`script_run()` は「スクリプト名、任意の閉じ引用符、空白、引用符なしのサブコマンド」という並びしか認識しない。上の実行文をメイン側へ追加しても、メインの `freeze` として検出できない。パスを組み立てた形では、手動確認対象にも入らない。
+
+**確認結果：** 上の完全な呼び出し文字列について、実際の判定で `freeze_detected: false`、`listed_for_main_review: false` になった。合成記録への同種の追加でも `ok: true` を確認した。実シェルから対象スクリプトは実行していない。
+
+**根拠：**
+
+- [check_web_raw_agent.py:185](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:185)：引用符付きサブコマンドと変数を認識しない正規表現。
+- 同242〜247行：この検出結果で、実行担当の違反を判定する。
+- 同302〜311行：手動確認一覧にも、これらの実行を拾う条件がない。
+- [test_web_raw_agent.py:275](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/test_web_raw_agent.py:275)：追加試験はスクリプトのパスの引用だけを変え、サブコマンドと変数経由を扱わない。
+
+### 4. 【重大】プロジェクトだけを `resolve()` し、書き込み先を正規化しないため分担違反を見逃す
+
+**反例：** メインが次の絶対パスに `Write` する。
+
+```text
+C:/p/wiki/../raw/cqrs.md
+```
+
+実際の保存先は `C:/p/raw/cqrs.md` だが、`under()` は文字列の接頭辞しか比較しないため、rawへの書き込みと認識しない。
+
+**実行確認：** Windowsの `Path.resolve()` で両者が同じ保存先になることを確認した。一方、`under()` は `False` を返した。既存の合成記録へこのメインの書き込みを追加しても、`analyze_paths()` は **`ok: true`**を返した。
+
+**根拠：**
+
+- [check_web_raw_agent.py:145](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:145)：書き込み先は区切りと大小文字だけを変換して比較する。
+- 同196行：`resolve()` するのはプロジェクト側だけ。
+- 同255〜260行：この比較結果で、rawやwikiへの分担違反を判定する。
+
+シンボリックリンクやジャンクションでも、プロジェクトが解決後のパス、記録が別名のパスなら同じ不一致が起きる。実リンクを作る試験は行っていない。
+
+## 崩れる前提
+
+- **再取得は必ず呼び出し側の `fetch.force` 設定を経由する。**  
+  W3・W5内部の取り直しで崩れる。取得前の再開が正しくても、その後の本文は保護されない。
+
+- **書き込み対象が存在すれば、今回の書き込みは成功している。**  
+  旧ファイルを残したまま書き込みに失敗すると崩れる。
+
+- **実行文には、スクリプト名と引用符なしのサブコマンドが隣接する。**  
+  サブコマンドの引用や変数経由の実行で崩れる。
+
+- **記録の絶対パスは、比較するルートと同じ表記になっている。**  
+  `..`、リンク経由の別名で崩れる。絶対パスであることだけでは足りない。
+
+## 見落としと軽微な問題
+
+- **【軽微】実行していない文字列も実行として数える。**  
+  メインの `echo 'wiki_rawcheck.py freeze'` だけで、担当違反として不合格になった。根拠は `script_run()` と242〜247行。正規表現は実行と表示を区別しない。
+
+- **【軽微】追加された静的試験は、内部の取り直しまで検証しない。**  
+  `test_one_shot_fetch_options_are_reset_on_every_call` は手順4の文言を確認するだけである。既存の `test_dom_take_resumes_without_fetch` も、再開直後までの検証であり、その後にW3が再取得する往復は対象外である。
+
+## 検証した事実
+
+取得成功・別版スラッグが未使用という仮定で、指示とコードを照合した。
+
+| 場面・回答 | リセット後の挙動 | 結果 |
+|---|---|---|
+| `existing_differs`：上書き | `force: true` で再取得・再作成。続行承認は削除 | 指示と一致 |
+| `existing_differs`：別版 | スラッグを変え、通常は新規取得 | 指示と一致 |
+| `already_ingested`：取り込み直す | `force: true` で写しとrawを再作成 | 指示と一致 |
+| `old_work_dir`：取り直す | `force: true` で旧い写しを置き換える | 指示と一致 |
+| `needs_browser`：HTMLを渡す | HTMLファイルから強制再取得 | 指示と一致 |
+| `needs_browser`：今の本文で続ける | 整合する写しがあれば、取得せず再開 | 実行確認、一致。ただし重大1の内部再取得が残る |
+| `warnings`：直す | リセット後、固定済みの写しを再開 | コード上、一致 |
+| `warnings`：受け入れる | 呼び出し側が理由を記録し、再検査して終了 | 指示と一致 |
+| 手順6：表示名を理由に作り直す | `force: true` で再取得。リセットしたHTML指定は引き継がない | コード上、一致 |
+| 「やめる」 | 呼び直さず停止 | 指示と一致 |
+
+`old_work_dir` と失敗が同時にある場合、終了コード1・2を先に `failed` とする現行記述は、`report_failure()` が返す終了コードと出力に一致する。この変更による新しい行き止まりは崩せなかった。
+
+書き込みを伴わない既存14テストはすべて成功した。追加の反例は通信・ファイル操作をモックにして検証した。全試験と実モデルによる取り込みは実行していない。ファイルは変更していない。
+
+## 崩せなかった点
+
+- 5回目の直接の反例である、残った `force`・`html_file` による「続行だけの再呼び出しで再取得」は、今回のリセットで塞がる。
+- 整合するDOMの写しは、HTML指定を外したURLだけの呼び出しから再開できる。
+- 通常の単一引用符付きスクリプトパスと、`& python '…wiki_rawcheck.py' freeze` は認識できる。`&` 自体は欠陥ではない。
+- Windowsでの単純な大文字小文字の違いは、`under()` の比較を壊さなかった。
+- `old_work_dir` が取得・入力エラーを隠すという前回の直接の反例は、現行記述では塞がる。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 15:21:45] 完了。session 01a1d8ae-4059-7fd2-9503-52d3bb706806  usage {"input_tokens": 2202475, "cached_input_tokens": 2078208, "cache_write_input_tokens": 0, "output_tokens": 17881, "reasoning_output_tokens": 7368}
