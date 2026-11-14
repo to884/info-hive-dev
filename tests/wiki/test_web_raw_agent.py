@@ -140,13 +140,27 @@ class ReferenceTest(unittest.TestCase):
     def test_needs_browser_can_continue_with_the_short_body(self):
         # 取り直さずに今の本文で続ける答えにも、依頼の変え方（conditions の決まった文）があり、W3 がそれに従う
         text = read(REFERENCE)
-        phrase = "「本文が短いまま続ける」"
+        phrase = "「本文が短いまま続ける"
         row = next(line for line in text.splitlines() if line.lstrip().startswith("| `needs_browser` |"))
         self.assertIn(phrase, row)
         # 続ける答えで fetch を残すと、前の呼び出しの --force や --html-file でまた取り直す（レビュー 5 の反例）
         self.assertNotIn("`fetch` は変えずに", row)
         w3 = text[text.index("- **W3.**"):text.index("- **W4.**")]
-        self.assertIn(phrase, w3)
+        self.assertIn("「本文が短いまま続ける", w3)
+
+    def test_short_body_approval_is_bound_to_the_body(self):
+        # 承認は本文のハッシュに結ぶ。エージェントが自分で --force で取り直すと、本文が変わっても承認が残るため
+        # （レビュー 6 の反例）、最後の wiki_fetch.py の出力の fetched_sha256 と同じときだけ効かせる。
+        text = read(REFERENCE)
+        row = next(line for line in text.splitlines() if line.lstrip().startswith("| `needs_browser` |"))
+        self.assertIn("「本文が短いまま続ける（fetched_sha256: <`question.fetched_sha256` の値>）」", row)
+        w3 = text[text.index("- **W3.**"):text.index("- **W4.**")]
+        self.assertIn("最後に実行した `wiki_fetch.py` の出力の `fetched_sha256` と同じなら", w3)
+        asked = [b for b in json_fences(text) if b.get("web_raw") == 1 and b.get("status") == "needs_user"
+                 and b["question"]["kind"] == "needs_browser"]
+        self.assertTrue(asked and all(b["question"].get("fetched_sha256") for b in asked))
+        status_row = next(line for line in text.splitlines() if line.startswith("| `needs_user` |"))
+        self.assertIn("`fetched_sha256`", status_row)
 
     def test_one_shot_fetch_options_are_reset_on_every_call(self):
         # force、html_file、page_url は 1 回の取得への指示。呼び直すたびに戻さないと、続けるだけの呼び直しでも
@@ -185,6 +199,13 @@ RAW_BODY = ("CQRS は、情報を更新するモデルと、情報を読むモ�
             "ただし、分けることで複雑さが増すので、使う場面はよく選ぶべきだと著者は述べている。")
 SUMMARY_BODY = ("この記事は、更新と参照のモデルを分ける設計の利点と危険をまとめたものである。"
                 "要約の筆者は、適用する範囲を境界づけられた文脈の中に限るべきだという点を重く見た。")
+# wiki_fetch.py --json の出力（の一部）。実行者は、この形の結果を受け取ったかで決める。
+FETCH_OUTPUT = json.dumps({"path": "raw/cqrs.md", "url": "https://martinfowler.com/bliki/CQRS.html",
+                           "final_url": "https://martinfowler.com/bliki/CQRS.html", "source_sha256": "a" * 64, "source_sha256_of": "html", "unchanged": False,
+                           "fetched_sha256": "b" * 64}, indent=2)
+# wiki_rawcheck.py check --finish --json が通ったときの出力（の一部）
+CHECK_OUTPUT = json.dumps({"stage": "check", "ok": True, "errors": [], "warnings": [], "work_dir_removed": True},
+                          indent=2)
 
 
 class SyntheticTranscriptTest(unittest.TestCase):
@@ -217,13 +238,42 @@ class SyntheticTranscriptTest(unittest.TestCase):
         return {"message": {"role": "assistant", "model": model, "content": [{"type": "text", "text": text}]}}
 
     @staticmethod
-    def got(text):
-        return {"message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "x", "content": text}]}}
+    def got(text, is_error=False):
+        """直前の呼び出しの結果（write で、直前の tool_use の id に結ぶ）。"""
+        part = {"type": "tool_result", "tool_use_id": "x", "content": text}
+        if is_error:
+            part["is_error"] = True
+        return {"message": {"role": "user", "content": [part]}}
+
+    @staticmethod
+    def paired(records):
+        """got の結果を直前の呼び出しの id に結び、結果のない呼び出しには成功の結果を足す（実際の記録の形）。"""
+        out, last, answered = [], None, set()
+        for rec in records:
+            parts = rec["message"]["content"] if isinstance(rec["message"].get("content"), list) else []
+            for part in parts:
+                if part.get("type") == "tool_use":
+                    if last is not None and last not in answered:
+                        out.append({"message": {"role": "user", "content": [
+                            {"type": "tool_result", "tool_use_id": last, "content": "ok"}]}})
+                        answered.add(last)
+                    last = part["id"]
+                elif part.get("type") == "tool_result" and part.get("tool_use_id") == "x" and last is not None:
+                    rec = json.loads(json.dumps(rec))
+                    rec["message"]["content"][0]["tool_use_id"] = last
+                    answered.add(last)
+            out.append(rec)
+        if last is not None and last not in answered:
+            out.append({"message": {"role": "user", "content": [
+                {"type": "tool_result", "tool_use_id": last, "content": "ok"}]}})
+        return out
 
     def write(self, main_records, agents, project=None):
+        main_records = self.paired(main_records)
         self.main_path.write_bytes("\n".join(json.dumps(r, ensure_ascii=False) for r in main_records).encode("utf-8"))
         paths = []
         for i, (meta, records) in enumerate(agents):
+            records = self.paired(records)
             path = self.session / "subagents" / f"agent-{i}.jsonl"
             path.write_bytes("\n".join(json.dumps(r, ensure_ascii=False) for r in records).encode("utf-8"))
             path.with_suffix(".meta.json").write_bytes(json.dumps(meta).encode("utf-8"))
@@ -242,12 +292,14 @@ class SyntheticTranscriptTest(unittest.TestCase):
                 self.use("Edit", {"file_path": str(self.project / "wiki/index.md")}),
                 self.use("Bash", {"command": "cd wiki && cat >> log.md <<'EOF'\nraw\nEOF"}), *main_extra]
         sonnet = "claude-sonnet-5-5"
-        agent = [self.use("Bash", {"command": "python wiki_fetch.py URL --slug cqrs"}, sonnet),
+        agent = [self.use("Bash", {"command": "python wiki_fetch.py URL --slug cqrs --json"}, sonnet),
+                 self.got(FETCH_OUTPUT),
                  self.use("Bash", {"command": "python wiki_rawcheck.py freeze --slug cqrs"}, sonnet),
+                 self.got("freeze: 通った"),
                  self.use("Bash", {"command": "python - <<'EOF'\nfrom pathlib import Path\n"
                                               "Path('raw/cqrs.md').write_text('訳', encoding='utf-8')\nEOF"}, sonnet),
                  self.use("Bash", {"command": "python wiki_rawcheck.py check --slug cqrs --finish"}, sonnet),
-                 self.got('{"ok": true, "work_dir_removed": true}'),
+                 self.got(CHECK_OUTPUT),
                  *agent_extra]
         return main, [({"agentType": "wiki:web-raw", "launchedWithDefaults": True}, agent)]
 
@@ -272,8 +324,13 @@ class SyntheticTranscriptTest(unittest.TestCase):
         report = self.write(main, agents, project=Path("proj"))
         self.assertIn("raw に書いた（Edit、Write）のは wiki:web-raw だけ", self.failed(report))
 
-    def test_single_quoted_script_paths_are_read(self):
-        """スクリプトのパスを単一引用符で囲んでも、freeze と check --finish の実行を読む（PR #103 の指摘）。"""
+    def test_script_runs_are_judged_by_their_results(self):
+        """実行者は、コマンドの文字列ではなく受け取った結果の形で決める（PR #103 とレビュー 6 の指摘）。
+
+        パスの引用符、サブコマンドの引用符、変数に入れたパスのどれでも、メインが freeze の出力を受け取れば不合格に
+        する。表示だけの echo は実行に数えず、スクリプトの名前を含むコマンドは見直す一覧に出す。
+        """
+        name = "wiki_fetch.py と freeze を実行したのは wiki:web-raw だけ（道具の結果の形）"
         main, agents = self.good()
         quoted = []
         for rec in agents[0][1]:
@@ -284,10 +341,32 @@ class SyntheticTranscriptTest(unittest.TestCase):
         agents = [(agents[0][0], quoted)]
         report = self.write(main, agents)
         self.assertTrue(report["ok"], self.failed(report))
-        # メインが単一引用符の形で freeze を動かしたら、見逃さない
-        main = main + [self.use("Bash", {"command": "python '/plugin/scripts/wiki_rawcheck.py' freeze --slug cqrs"})]
+        for command in ("python '/plugin/scripts/wiki_rawcheck.py' freeze --slug cqrs",
+                        "& python 'C:/plugin/scripts/wiki_rawcheck.py' 'freeze' --wiki $w --raw-root $r --slug cqrs",
+                        "& python $s freeze --wiki $w --raw-root $r --slug cqrs"):
+            with self.subTest(command=command):
+                report = self.write(main + [self.use("Bash", {"command": command}), self.got("freeze: 通った")], agents)
+                self.assertIn(name, self.failed(report))
+        echo = "echo 'wiki_rawcheck.py freeze を実行するのはエージェント'"
+        report = self.write(main + [self.use("Bash", {"command": echo}), self.got(echo[6:-1])], agents)
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertIn(echo, report["bash_to_review"]["main"])
+
+    def test_failed_write_over_an_old_summary_fails(self):
+        """前の取り込みの要約ページが残っていても、今回の Write が失敗していれば、書いたと数えない（レビュー 6）。"""
+        main, agents = self.good()
+        at = next(i for i, r in enumerate(main)
+                  if isinstance(r["message"]["content"], list) and r["message"]["content"][0].get("name") == "Write")
+        main = main[:at + 1] + [self.got("Permission denied", is_error=True)] + main[at + 1:]
         report = self.write(main, agents)
-        self.assertIn("wiki_fetch.py と freeze を実行したのは wiki:web-raw だけ", self.failed(report))
+        self.assertIn("メインが要約ページ、index.md、log.md を書いた（要約ページはファイルがある）", self.failed(report))
+
+    def test_dotdot_write_into_raw_is_found(self):
+        """`wiki/../raw/` のような書き込み先も、raw への書き込みとして見つける（レビュー 6）。"""
+        main, agents = self.good(main_extra=[self.use("Write", {
+            "file_path": str(self.project / "wiki" / ".." / "raw" / "cqrs.md"), "content": "x"})])
+        report = self.write(main, agents)
+        self.assertIn("raw に書いた（Edit、Write）のは wiki:web-raw だけ", self.failed(report))
 
     def test_missing_summary_file_fails(self):
         """要約ページの Write が失敗してファイルがなければ、不合格にする（PR #103 の指摘）。"""
