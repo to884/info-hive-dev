@@ -1,22 +1,29 @@
 {
-  "session": "d27508a7-3a68-4586-b13c-a75c9375e1f6",
   "project": "C:\\UserData\\toshiki\\Temp\\claude\\870eed15d1242065\\50a39d3c-95c9-49f9-ad35-626aae661353\\scratchpad\\agent-trial\\cqrs",
   "checks": [
     {
       "check": "メインが wiki:web-raw を呼んだ",
       "ok": true,
-      "detail": [
-        "wiki:web-raw",
-        "wiki:web-raw"
-      ]
+      "detail": {
+        "calls": [
+          "wiki:web-raw"
+        ],
+        "agents": [
+          "wiki:web-raw"
+        ]
+      }
     },
     {
-      "check": "メインが Agent に model を渡していない",
+      "check": "メインが Agent に model を渡していない（記録の入力と、Claude Code のメタデータ）",
       "ok": true,
-      "detail": [
-        null,
-        null
-      ]
+      "detail": {
+        "model": [
+          null
+        ],
+        "launchedWithDefaults": [
+          true
+        ]
+      }
     },
     {
       "check": "メインの応答のモデルが opus",
@@ -26,34 +33,31 @@
       ]
     },
     {
-      "check": "エージェントの応答のモデルが Sonnet",
+      "check": "wiki:web-raw の応答のモデルが Sonnet（記録と prefix.json）",
       "ok": true,
       "detail": [
         "claude-sonnet-5-5"
       ]
     },
     {
-      "check": "wiki_fetch.py はエージェントだけが実行した",
+      "check": "wiki_fetch.py は wiki:web-raw だけが実行した",
       "ok": true,
       "detail": {
         "main": []
       }
     },
     {
-      "check": "freeze はエージェントだけが実行した",
+      "check": "freeze は wiki:web-raw だけが実行した",
       "ok": true,
       "detail": null
     },
     {
-      "check": "メインは raw と画像に書いていない",
+      "check": "メインは raw と画像に書いていない（道具の入力に現れる書き込み）",
       "ok": true,
-      "detail": {
-        "paths": [],
-        "bash": []
-      }
+      "detail": []
     },
     {
-      "check": "エージェントは wiki のページ、index.md、log.md に書いていない",
+      "check": "wiki:web-raw は wiki のページ、index.md、log.md に書いていない（道具の入力に現れる書き込み）",
       "ok": true,
       "detail": []
     },
@@ -70,12 +74,15 @@
       ]
     },
     {
-      "check": "エージェントの出力に、要約ページの文がない",
+      "check": "raw の文が届くまでのメインの出力と、wiki:web-raw へのすべての依頼に、raw の文がない",
       "ok": true,
-      "detail": []
+      "detail": {
+        "before": [],
+        "prompts": []
+      }
     },
     {
-      "check": "エージェントを呼ぶまでのメインの出力に、raw の文がない",
+      "check": "wiki:web-raw の出力に、要約ページの文がない",
       "ok": true,
       "detail": []
     },
@@ -108,9 +115,11 @@
   "agent_models": [
     "claude-sonnet-5-5"
   ],
+  "other_subagents": [],
   "agent_transcripts": [
     "C:\\Users\\toshiki\\.claude\\projects\\C--UserData-toshiki-Temp-claude-870eed15d1242065-50a39d3c-95c9-49f9-ad35-626aae661353-scratchpad-agent-trial-cqrs\\d27508a7-3a68-4586-b13c-a75c9375e1f6\\subagents\\agent-a6232ab8b8c5861a4.jsonl"
   ],
+  "session": "d27508a7-3a68-4586-b13c-a75c9375e1f6",
   "usage": {
     "seconds": null,
     "duration_ms": 248112,

@@ -9,15 +9,19 @@ Claude Code のセッションの記録から確かめる。
     # 動かし終えたセッションを確かめ直す
     python -X utf8 tests/wiki/check_web_raw_agent.py analyze --session <セッションの ID> --project <取り込みを動かしたフォルダー>
 
-確かめること（どれも記録の上の事実で、モデルの自己申告は使わない）:
-- 誰が動いたか: エージェントの記録の応答のモデルが Sonnet で、メインの記録の応答のモデルが指定のモデルであること。
+調べるのは、記録に残った事実である（モデルの自己申告は使わない）。
+
+- 誰が動いたか: エージェントの記録の横にある、Claude Code が書いたメタデータ（`agent-*.meta.json` の `agentType`、
+  `launchedWithDefaults`、`agent-*.prefix.json` のモデル）と、記録の応答のモデル。`wiki:web-raw` 以外のサブエージェント
+  （メインが後段の調べものに使ったものなど）は、判定から外して一覧に出すだけにする。
 - メインが Agent ツールで wiki:web-raw を呼び、model の引数を渡していないこと。
-- 誰が何をしたか: wiki_fetch.py の実行と、raw と画像への書き込みと、freeze が、エージェントの記録にだけあること。
-  エージェントの記録に、wiki のページ、index.md、log.md への書き込みがないこと。メインの記録に、要約ページ、index.md、
-  log.md への書き込みがあり、raw への書き込みがないこと。
-- 文章の受け渡し: エージェントの応答（文と道具の入力）に、要約ページの本文の 40 文字以上の並びがないこと。エージェントを
-  呼び終えるまでのメインの出力に、raw の本文の 40 文字以上の並びがないこと（プロンプトや報告で、文章を受け渡していない）。
-  これは受け渡しの一部を見つけるだけで、どのモデルが文を考えたかを証明するものではない。
+- 誰が何を書いたか: 道具の入力に現れる書き込みだけを調べる。Edit と Write の対象のファイル、Bash のリダイレクトの行き先、
+  ファイルを書き換えるコマンド（sed -i、cp と mv の行き先、rm など）の引数、Bash の中の Python の書き込み
+  （write_text、open(..., "w") など）と同じコマンドに現れる raw や wiki のページのパス。コードの中で組み立てたパスや、
+  ファイルに書いたスクリプトの中の書き込みは見つけられない。
+- 文章の受け渡し: raw の文がメインに初めて届く（道具の結果か通知に現れる）までのメインの出力（文と道具の入力）と、
+  すべての wiki:web-raw の依頼に、raw の本文の 40 文字以上の並びがないこと。エージェントの出力に、要約ページの文の並び
+  （raw にもある並びは除く）がないこと。これは受け渡しの一部を見つけるだけで、どのモデルが文を考えたかの証明ではない。
 - 結果: raw の translated_by と補足の表示名、log の「raw:」のサブ行、作業用の写しが消えていること、要約ページがあること。
 """
 from __future__ import annotations
@@ -27,6 +31,7 @@ import glob
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -37,6 +42,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 PLUGIN = ROOT / "info-hive-wiki"
 WINDOW = 40
+AGENT_TYPE = "wiki:web-raw"
 
 
 def read_jsonl(path: Path) -> list[dict]:
@@ -51,40 +57,65 @@ def read_jsonl(path: Path) -> list[dict]:
     return out
 
 
+def read_json(path: Path) -> dict:
+    try:
+        return json.loads(path.read_bytes().decode("utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
 def find_transcripts(session: str) -> tuple[Path, list[Path]]:
-    """セッションの記録（メイン）と、エージェントの記録の一覧。"""
+    """セッションの記録（メイン）と、サブエージェントの記録の一覧。"""
     base = Path(os.path.expanduser("~/.claude/projects"))
     mains = [Path(p) for p in glob.glob(str(base / "*" / f"{session}.jsonl"))]
     if not mains:
         raise FileNotFoundError(f"セッションの記録が見つからない: {session}")
     main = mains[0]
-    subs = sorted(Path(p) for p in glob.glob(str(main.with_suffix("") / "subagents" / "*.jsonl")))
+    subs = sorted(Path(p) for p in glob.glob(str(main.with_suffix("") / "subagents" / "agent-*.jsonl")))
     return main, subs
 
 
-def assistant_parts(records: list[dict]):
-    """応答の部品（モデル、種類、中身）を順に返す。"""
+def events(records: list[dict]) -> list[dict]:
+    """記録を、順に並んだ出来事にする。応答の部品（text、tool_use）と、届いた内容（tool_result、利用者の文）。
+
+    同じ部品が 2 度記録されることがあるので、部品の id（なければ中身）で重ねない。
+    """
+    out, seen = [], set()
     for rec in records:
         msg = rec.get("message") or {}
-        if msg.get("role") != "assistant":
-            continue
-        for part in msg.get("content") or []:
-            if isinstance(part, dict):
-                yield msg.get("model", ""), part
+        role = msg.get("role")
+        content = msg.get("content")
+        parts = content if isinstance(content, list) else ([{"type": "text", "text": content}] if content else [])
+        for part in parts:
+            if not isinstance(part, dict):
+                continue
+            key = part.get("id") or part.get("tool_use_id") or json.dumps(part, ensure_ascii=False, sort_keys=True)
+            key = (role, part.get("type"), key)
+            if key in seen:
+                continue
+            seen.add(key)
+            if role == "assistant" and part.get("type") == "text":
+                out.append({"kind": "out_text", "model": msg.get("model", ""), "text": part.get("text", "")})
+            elif role == "assistant" and part.get("type") == "tool_use":
+                out.append({"kind": "tool_use", "model": msg.get("model", ""), "name": part.get("name"),
+                            "id": part.get("id"), "input": part.get("input") or {}})
+            elif role == "user":
+                if part.get("type") == "tool_result":
+                    c = part.get("content")
+                    text = c if isinstance(c, str) else " ".join(
+                        x.get("text", "") for x in (c or []) if isinstance(x, dict))
+                else:
+                    text = part.get("text", "") if isinstance(part.get("text"), str) else ""
+                out.append({"kind": "in", "text": text})
+    return out
 
 
-def summarize(records: list[dict]) -> dict:
-    models, tools, texts = set(), [], []
-    for model, part in assistant_parts(records):
-        if model and not model.startswith("<"):
-            models.add(model)
-        if part.get("type") == "text":
-            texts.append(part.get("text", ""))
-        elif part.get("type") == "tool_use":
-            inp = part.get("input") or {}
-            tools.append({"name": part.get("name"), "input": inp, "id": part.get("id")})
-            texts.append(json.dumps(inp, ensure_ascii=False))
-    return {"models": sorted(models), "tools": tools, "texts": texts}
+def tools_of(evs: list[dict]) -> list[dict]:
+    return [e for e in evs if e["kind"] == "tool_use"]
+
+
+def models_of(evs: list[dict]) -> list[str]:
+    return sorted({e["model"] for e in evs if e.get("model") and not e["model"].startswith("<")})
 
 
 def tool_paths(tools: list[dict]) -> list[str]:
@@ -99,6 +130,10 @@ def bash_commands(tools: list[dict]) -> list[str]:
 
 REDIRECT_RE = re.compile(r"(?<![0-9&])>>?\s*[\"']?([^\s;|&\"'<>]+)")
 WIKI_PAGE_RE = re.compile(r"(?:^|/)(?:index\.md|log\.md|SCHEMA\.md)$|(?:^|/)(?:sources|entities|concepts|synthesis)/[^/]+\.md$")
+RAW_PATH_RE = re.compile(r"(?:^|[\s\"'=(/\\])raw[/\\][^\s\"';|&)]*")
+PY_WRITE_RE = re.compile(r"\.write_(?:text|bytes)\(|\bopen\([^)]*[\"'][wax]\+?b?[\"']|shutil\.(?:copy\w*|move)\(|os\.replace\(")
+WIKI_PAGE_IN_TEXT_RE = re.compile(r"(?:index|log|SCHEMA)\.md|(?:sources|entities|concepts|synthesis)[/\\][^\s\"']+\.md")
+SEGMENT_RE = re.compile(r"&&|\|\||;|\|")
 
 
 def bash_write_targets(commands: list[str]) -> list[str]:
@@ -107,10 +142,48 @@ def bash_write_targets(commands: list[str]) -> list[str]:
             if m.group(1) not in ("/dev/null", "nul", "NUL")]
 
 
+def _words(segment: str) -> list[str]:
+    try:
+        return shlex.split(segment, posix=True)
+    except ValueError:
+        return segment.split()
+
+
+def command_write_targets(commands: list[str]) -> list[str]:
+    """ファイルを書き換えるコマンドの、書き換える先の引数（cp と mv は行き先、sed -i と rm は対象）。"""
+    out = []
+    for command in commands:
+        for line in command.split("\n"):
+            for segment in SEGMENT_RE.split(line):
+                # Windows のパスの \ を、shlex がエスケープとして読まないように / にそろえる。
+                words = _words(segment.strip().replace("\\", "/"))
+                if not words:
+                    continue
+                name = words[0].lower()
+                args = [w for w in words[1:] if not w.startswith("-")]
+                if name in ("cp", "mv", "copy-item", "move-item") and args:
+                    out.append(args[-1])
+                elif name == "sed" and any(w.startswith("-i") for w in words[1:]):
+                    out.extend(args[1:])
+                elif name in ("rm", "remove-item", "set-content", "out-file", "add-content", "tee"):
+                    out.extend(args)
+    return [t.replace("\\", "/") for t in out]
+
+
+def python_writes(commands: list[str], target: re.Pattern) -> list[str]:
+    """Bash の中の Python で、書き込みの呼び出しと同じコマンドに target のパスが現れるもの（コマンドの頭）。"""
+    return [c[:200] for c in commands if PY_WRITE_RE.search(c) and target.search(c)]
+
+
 def under(path: str, root: Path) -> bool:
     p = path.replace("\\", "/").lower()
     r = str(root).replace("\\", "/").lower().rstrip("/") + "/"
     return p.startswith(r)
+
+
+def is_raw_target(path: str, raw: Path) -> bool:
+    p = path.replace("\\", "/")
+    return under(p, raw) or bool(re.match(r"^(?:\./)?raw/", p))
 
 
 def body_of(text: str) -> str:
@@ -136,48 +209,62 @@ def shares_text(source: str, generated: list[str], common: str = "") -> list[str
     return sorted(w for w in windows(source) if w in hay and w not in shared)[:5]
 
 
-# raw の下に書き込む Bash のコマンド（リダイレクトの行き先か、書き換えるコマンドの引数が raw の下にある）。
-RAW_WRITE_RE = re.compile(
-    r"(?:>>?|\btee\b)\s*[\"']?[^\s;|&\"']*\braw[/\\]"
-    r"|\b(?:sed\s+-i|Set-Content|Out-File|Add-Content|cp|mv|rm|Remove-Item|Copy-Item|Move-Item)\b[^\n;|&]*\braw[/\\]")
+def _out_text(e: dict) -> str:
+    return e["text"] if e["kind"] == "out_text" else json.dumps(e["input"], ensure_ascii=False)
 
 
-def analyze(session: str, project: Path, main_model: str) -> dict:
-    main_path, sub_paths = find_transcripts(session)
-    main = summarize(read_jsonl(main_path))
-    subs = [summarize(read_jsonl(p)) for p in sub_paths]
+def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_model: str) -> dict:
+    main_events = events(read_jsonl(main_path))
+    main_tools = tools_of(main_events)
+    subs = []
+    for path in sub_paths:
+        meta = read_json(path.with_suffix(".meta.json"))
+        prefix = read_json(path.with_suffix(".prefix.json"))
+        evs = events(read_jsonl(path))
+        subs.append({"path": str(path), "type": meta.get("agentType"), "defaults": meta.get("launchedWithDefaults"),
+                     "prefix_model": (prefix.get("state") or {}).get("model"), "events": evs})
+    raw_agents = [s for s in subs if s["type"] == AGENT_TYPE]
+    others = [{"path": s["path"], "type": s["type"], "models": models_of(s["events"])}
+              for s in subs if s["type"] != AGENT_TYPE]
     wiki, raw = project / "wiki", project / "raw"
     checks: list[dict] = []
 
-    def check(name: str, ok: bool, detail=None):
+    def check(name: str, ok, detail=None):
         checks.append({"check": name, "ok": bool(ok), "detail": detail})
 
-    agent_calls = [t for t in main["tools"] if t["name"] in ("Agent", "Task")]
-    web_raw_calls = [t for t in agent_calls if t["input"].get("subagent_type") == "wiki:web-raw"]
-    check("メインが wiki:web-raw を呼んだ", web_raw_calls, [t["input"].get("subagent_type") for t in agent_calls])
-    check("メインが Agent に model を渡していない", all("model" not in t["input"] for t in web_raw_calls),
-          [t["input"].get("model") for t in web_raw_calls])
-    check(f"メインの応答のモデルが {main_model}", main["models"] and all(main_model in m for m in main["models"]),
-          main["models"])
-    agent_models = sorted({m for s in subs for m in s["models"]})
-    check("エージェントの応答のモデルが Sonnet", agent_models and all("sonnet" in m for m in agent_models), agent_models)
+    agent_calls = [t for t in main_tools if t["name"] in ("Agent", "Task")]
+    web_raw_calls = [t for t in agent_calls if t["input"].get("subagent_type") == AGENT_TYPE]
+    check("メインが wiki:web-raw を呼んだ", web_raw_calls and raw_agents,
+          {"calls": [t["input"].get("subagent_type") for t in agent_calls], "agents": [s["type"] for s in subs]})
+    check("メインが Agent に model を渡していない（記録の入力と、Claude Code のメタデータ）",
+          all("model" not in t["input"] for t in web_raw_calls) and all(s["defaults"] is not False for s in raw_agents),
+          {"model": [t["input"].get("model") for t in web_raw_calls], "launchedWithDefaults": [s["defaults"] for s in raw_agents]})
+    main_models = models_of(main_events)
+    check(f"メインの応答のモデルが {main_model}", main_models and all(main_model in m for m in main_models), main_models)
+    agent_models = sorted({m for s in raw_agents for m in models_of(s["events"])}
+                          | {s["prefix_model"] for s in raw_agents if s["prefix_model"]})
+    check("wiki:web-raw の応答のモデルが Sonnet（記録と prefix.json）",
+          agent_models and all("sonnet" in m for m in agent_models), agent_models)
 
-    agent_tools = [t for s in subs for t in s["tools"]]
-    agent_bash, main_bash = bash_commands(agent_tools), bash_commands(main["tools"])
-    agent_writes, main_writes = tool_paths(agent_tools), tool_paths(main["tools"])
-    check("wiki_fetch.py はエージェントだけが実行した",
+    agent_tools = [t for s in raw_agents for t in tools_of(s["events"])]
+    agent_bash, main_bash = bash_commands(agent_tools), bash_commands(main_tools)
+    agent_writes, main_writes = tool_paths(agent_tools), tool_paths(main_tools)
+    check("wiki_fetch.py は wiki:web-raw だけが実行した",
           any("wiki_fetch.py" in c for c in agent_bash) and not any("wiki_fetch.py" in c for c in main_bash),
-          {"main": [c for c in main_bash if "wiki_fetch.py" in c]})
-    check("freeze はエージェントだけが実行した",
+          {"main": [c[:200] for c in main_bash if "wiki_fetch.py" in c]})
+    check("freeze は wiki:web-raw だけが実行した",
           any("wiki_rawcheck.py" in c and " freeze" in c for c in agent_bash)
           and not any("wiki_rawcheck.py" in c and " freeze" in c for c in main_bash))
-    main_raw_bash = [c[:200] for c in main_bash if RAW_WRITE_RE.search(c)]
-    check("メインは raw と画像に書いていない", not any(under(p, raw) for p in main_writes) and not main_raw_bash,
-          {"paths": [p for p in main_writes if under(p, raw)], "bash": main_raw_bash})
-    agent_wiki_writes = [p for p in agent_writes if under(p, wiki) and "/.wiki-cache/" not in p]
-    agent_wiki_writes += [p for p in bash_write_targets(agent_bash) if WIKI_PAGE_RE.search(p)]
-    check("エージェントは wiki のページ、index.md、log.md に書いていない", not agent_wiki_writes, agent_wiki_writes)
-    main_targets = main_writes + bash_write_targets(main_bash)
+    main_raw = [p for p in main_writes + bash_write_targets(main_bash) + command_write_targets(main_bash)
+                if is_raw_target(p, raw)] + python_writes(main_bash, RAW_PATH_RE)
+    check("メインは raw と画像に書いていない（道具の入力に現れる書き込み）", not main_raw, main_raw)
+    agent_wiki = [p for p in agent_writes if under(p, wiki) and "/.wiki-cache/" not in p]
+    agent_wiki += [p for p in bash_write_targets(agent_bash) + command_write_targets(agent_bash)
+                   if WIKI_PAGE_RE.search(p) and "/.wiki-cache/" not in p]
+    agent_wiki += python_writes(agent_bash, WIKI_PAGE_IN_TEXT_RE)
+    check("wiki:web-raw は wiki のページ、index.md、log.md に書いていない（道具の入力に現れる書き込み）",
+          not agent_wiki, agent_wiki)
+    main_targets = main_writes + bash_write_targets(main_bash) + command_write_targets(main_bash)
     check("メインが要約ページ、index.md、log.md を書いた",
           any(under(p, wiki / "sources") for p in main_writes)
           and any(p.lower().endswith("index.md") for p in main_targets)
@@ -185,21 +272,23 @@ def analyze(session: str, project: Path, main_model: str) -> dict:
           sorted(set(main_targets)))
 
     # 文章の受け渡し
-    sources = sorted((wiki / "sources").glob("*.md"))
-    summary = "\n".join(body_of(p.read_bytes().decode("utf-8")) for p in sources)
-    agent_texts = [t for s in subs for t in s["texts"]]
     raws = sorted(raw.glob("*.md"))
     raw_text = "\n".join(body_of(p.read_bytes().decode("utf-8")) for p in raws)
+    raw_windows = windows(raw_text)
+    cut = next((i for i, e in enumerate(main_events)
+                if e["kind"] == "in" and any(w in re.sub(r"\s+", " ", e["text"]) for w in raw_windows)),
+               len(main_events))
+    before = [_out_text(e) for e in main_events[:cut] if e["kind"] in ("out_text", "tool_use")]
+    prompts = [str(t["input"].get("prompt", "")) for t in web_raw_calls]
+    check("raw の文が届くまでのメインの出力と、wiki:web-raw へのすべての依頼に、raw の文がない",
+          not shares_text(raw_text, before) and not shares_text(raw_text, prompts),
+          {"before": shares_text(raw_text, before), "prompts": shares_text(raw_text, prompts)})
+    sources = sorted((wiki / "sources").glob("*.md"))
+    summary = "\n".join(body_of(p.read_bytes().decode("utf-8")) for p in sources)
+    agent_texts = [_out_text(e) for s in raw_agents for e in s["events"] if e["kind"] in ("out_text", "tool_use")]
     # 要約ページは raw から引用するので、raw にもある並びは受け渡しに数えない。
-    check("エージェントの出力に、要約ページの文がない", not shares_text(summary, agent_texts, raw_text),
+    check("wiki:web-raw の出力に、要約ページの文がない", not shares_text(summary, agent_texts, raw_text),
           shares_text(summary, agent_texts, raw_text))
-    before: list[str] = []
-    for t in main["tools"]:
-        before.append(json.dumps(t["input"], ensure_ascii=False))
-        if t in web_raw_calls:
-            break
-    check("エージェントを呼ぶまでのメインの出力に、raw の文がない", not shares_text(raw_text, before),
-          shares_text(raw_text, before))
 
     # 結果
     fm = raws[0].read_bytes().decode("utf-8") if raws else ""
@@ -208,13 +297,19 @@ def analyze(session: str, project: Path, main_model: str) -> dict:
     check("raw がある", raws, [str(p) for p in raws])
     log = (wiki / "log.md").read_bytes().decode("utf-8") if (wiki / "log.md").exists() else ""
     check("log に raw の段の分担のサブ行がある", re.search(r"raw:.*web-raw", log) is not None)
-    check("作業用の写しが消えた", not any((wiki / ".wiki-cache" / "ingest").glob("*")) if (wiki / ".wiki-cache" / "ingest").exists() else True)
-    return {"session": session, "project": str(project), "checks": checks,
-            "ok": all(c["ok"] for c in checks),
-            "translated_by": translated_by.group(1) if translated_by else None,
-            "caption_names": captions,
-            "main_models": main["models"], "agent_models": agent_models,
-            "agent_transcripts": [str(p) for p in sub_paths]}
+    ingest = wiki / ".wiki-cache" / "ingest"
+    check("作業用の写しが消えた", not (ingest.exists() and any(ingest.iterdir())))
+    return {"project": str(project), "checks": checks, "ok": all(c["ok"] for c in checks),
+            "translated_by": translated_by.group(1) if translated_by else None, "caption_names": captions,
+            "main_models": main_models, "agent_models": agent_models, "other_subagents": others,
+            "agent_transcripts": [s["path"] for s in raw_agents]}
+
+
+def analyze(session: str, project: Path, main_model: str) -> dict:
+    main_path, sub_paths = find_transcripts(session)
+    report = analyze_paths(main_path, sub_paths, project, main_model)
+    report["session"] = session
+    return report
 
 
 def run(url: str, work: Path, model: str, timeout: int) -> tuple[str, dict]:

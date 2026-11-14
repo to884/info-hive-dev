@@ -98,21 +98,30 @@ class ReferenceTest(unittest.TestCase):
     def test_json_examples_follow_the_rules(self):
         blocks = json_fences(read(REFERENCE))
         requests = [b for b in blocks if b.get("web_raw_request") == 1]
-        reports = [b for b in blocks if b.get("web_raw") == 1]
+        reports = {b["status"]: b for b in blocks if b.get("web_raw") == 1}
         self.assertEqual(len(requests), 1)
-        self.assertEqual(len(reports), 1)
+        self.assertEqual(set(reports), {"done", "warnings", "needs_user", "failed"})
         request = requests[0]
         self.assertEqual(set(request), {"web_raw_request", "url", "wiki_root", "raw_root", "slug", "fetch",
                                         "language", "language_reason", "conditions"})
         self.assertEqual(set(request["fetch"]), {"force", "keep_noise", "html_file", "page_url"})
-        report = reports[0]
-        self.assertEqual(report["status"], "done")
-        self.assertEqual(report["warnings"], [])
-        self.assertIsNone(report["question"])
-        self.assertIsNone(report["error"])
+        done = reports["done"]
         for key in ("slug", "raw", "url", "wiki_root", "raw_root", "model", "translated_by", "caption_names",
-                    "language_override", "notes"):
-            self.assertIn(key, report)
+                    "language_override", "warnings", "question", "error", "notes"):
+            self.assertIn(key, done)
+        self.assertEqual((done["warnings"], done["question"], done["error"]), ([], None, None))
+        warned = reports["warnings"]
+        self.assertTrue(warned["warnings"])
+        for item in warned["warnings"]:
+            self.assertEqual(set(item), {"kind", "line", "message", "proposed_reason"})
+        self.assertEqual((warned["question"], warned["error"]), (None, None))
+        asked = reports["needs_user"]
+        self.assertIn(asked["question"]["kind"], {"existing_differs", "already_ingested", "needs_browser"})
+        self.assertTrue(asked["question"]["message"])
+        self.assertIsNone(asked["error"])
+        broke = reports["failed"]
+        self.assertIn(broke["error"]["kind"], {"fetch_failed", "not_initialized", "no_raw_root", "model_unknown", "other"})
+        self.assertIsNone(broke["question"])
 
     def test_status_and_question_kinds_are_documented(self):
         text = read(REFERENCE)
@@ -138,20 +147,135 @@ class EntryPointsTest(unittest.TestCase):
         self.assertIn(f"## [{version}]", read(PLUGIN / "CHANGELOG.md"))
 
 
+RAW_BODY = ("CQRS は、情報を更新するモデルと、情報を読むモデルを分けるという考え方である。"
+            "多くのシステムでは一つのモデルで足りるが、複雑な領域では二つに分けると見通しがよくなることがある。"
+            "ただし、分けることで複雑さが増すので、使う場面はよく選ぶべきだと著者は述べている。")
+SUMMARY_BODY = ("この記事は、更新と参照のモデルを分ける設計の利点と危険をまとめたものである。"
+                "要約の筆者は、適用する範囲を境界づけられた文脈の中に限るべきだという点を重く見た。")
+
+
+class SyntheticTranscriptTest(unittest.TestCase):
+    """作り物の記録で、実地の確かめの判定が、分担どおりの記録を通し、レビューの反例を止めることを確かめる。"""
+
+    def setUp(self):
+        import tempfile
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        base = Path(tmp.name)
+        self.project = base / "proj"
+        for rel, text in (("wiki/sources/cqrs.md", "---\ntitle: \"CQRS\"\n---\n" + SUMMARY_BODY + "\n"),
+                          ("wiki/index.md", "# 索引\n"), ("wiki/log.md", "## [2026-11-14] ingest | CQRS\n   raw: `wiki:web-raw` に任せた\n"),
+                          ("raw/cqrs.md", "---\ntranslated_by: \"Claude Sonnet 5.5\"\n---\n" + RAW_BODY + "\n")):
+            path = self.project / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(text.encode("utf-8"))
+        self.session = base / "sessions" / "s1"
+        (self.session / "subagents").mkdir(parents=True)
+        self.main_path = base / "sessions" / "s1.jsonl"
+
+    @staticmethod
+    def use(name, inp, model="claude-opus-5-5", uid=None):
+        return {"message": {"role": "assistant", "model": model,
+                            "content": [{"type": "tool_use", "id": uid or f"u-{name}-{abs(hash(json.dumps(inp)))}",
+                                         "name": name, "input": inp}]}}
+
+    @staticmethod
+    def said(text, model="claude-opus-5-5"):
+        return {"message": {"role": "assistant", "model": model, "content": [{"type": "text", "text": text}]}}
+
+    @staticmethod
+    def got(text):
+        return {"message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "x", "content": text}]}}
+
+    def write(self, main_records, agents):
+        self.main_path.write_bytes("\n".join(json.dumps(r, ensure_ascii=False) for r in main_records).encode("utf-8"))
+        paths = []
+        for i, (meta, records) in enumerate(agents):
+            path = self.session / "subagents" / f"agent-{i}.jsonl"
+            path.write_bytes("\n".join(json.dumps(r, ensure_ascii=False) for r in records).encode("utf-8"))
+            path.with_suffix(".meta.json").write_bytes(json.dumps(meta).encode("utf-8"))
+            path.with_suffix(".prefix.json").write_bytes(
+                json.dumps({"state": {"model": meta.get("_model", "claude-sonnet-5-5")}}).encode("utf-8"))
+            paths.append(path)
+        return check_web_raw_agent.analyze_paths(self.main_path, paths, self.project, "opus")
+
+    def good(self, main_extra=(), agent_extra=(), call_input=None):
+        call = {"subagent_type": "wiki:web-raw", "prompt": "この依頼の raw を作る。\n```json\n{\"web_raw_request\": 1}\n```"}
+        call.update(call_input or {})
+        main = [self.use("Agent", call), self.got("Async agent launched"),
+                {"message": {"role": "user", "content": "<task-notification>done</task-notification>"}},
+                self.use("Read", {"file_path": str(self.project / "raw/cqrs.md")}), self.got(RAW_BODY),
+                self.use("Write", {"file_path": str(self.project / "wiki/sources/cqrs.md"), "content": SUMMARY_BODY}),
+                self.use("Edit", {"file_path": str(self.project / "wiki/index.md")}),
+                self.use("Bash", {"command": "cd wiki && cat >> log.md <<'EOF'\nraw\nEOF"}), *main_extra]
+        sonnet = "claude-sonnet-5-5"
+        agent = [self.use("Bash", {"command": "python wiki_fetch.py URL --slug cqrs"}, sonnet),
+                 self.use("Bash", {"command": "python wiki_rawcheck.py freeze --slug cqrs"}, sonnet),
+                 self.use("Bash", {"command": "python - <<'EOF'\nfrom pathlib import Path\n"
+                                              "Path('raw/cqrs.md').write_text('訳', encoding='utf-8')\nEOF"}, sonnet),
+                 self.use("Bash", {"command": "python wiki_rawcheck.py check --slug cqrs --finish"}, sonnet),
+                 *agent_extra]
+        return main, [({"agentType": "wiki:web-raw", "launchedWithDefaults": True}, agent)]
+
+    def failed(self, report):
+        return sorted(c["check"] for c in report["checks"] if not c["ok"])
+
+    def test_division_of_labor_passes(self):
+        report = self.write(*self.good())
+        self.assertTrue(report["ok"], self.failed(report))
+
+    def test_reading_or_copying_raw_out_is_not_a_write(self):
+        report = self.write(*self.good(main_extra=[self.use("Bash", {"command": "cp raw/cqrs.md /tmp/copy.md; ls raw 2>&1"})]))
+        self.assertTrue(report["ok"], self.failed(report))
+
+    def test_unrelated_subagent_is_listed_not_judged(self):
+        main, agents = self.good()
+        agents.append(({"agentType": "general-purpose", "launchedWithDefaults": True, "_model": "claude-opus-5-5"},
+                       [self.said("調べた", "claude-opus-5-5")]))
+        report = self.write(main, agents)
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertEqual([o["type"] for o in report["other_subagents"]], ["general-purpose"])
+
+    def test_counterexamples_are_caught(self):
+        cases = {
+            "main_python_writes_raw": self.good(main_extra=[self.use("Bash", {"command": (
+                "python -c \"from pathlib import Path; Path('raw/x.md').write_text('changed', encoding='utf-8')\"")})]),
+            "agent_python_writes_index": self.good(agent_extra=[self.use("Bash", {"command": (
+                "python -c \"from pathlib import Path; Path('wiki/index.md').write_text('changed', encoding='utf-8')\"")},
+                "claude-sonnet-5-5")]),
+            "main_text_before_agent": self.good(),
+            "second_prompt_has_raw": self.good(main_extra=[self.use("Agent", {
+                "subagent_type": "wiki:web-raw", "prompt": "この訳を書き込む: " + RAW_BODY}, uid="u-second")]),
+            "model_passed": self.good(call_input={"model": "opus"}),
+        }
+        main, agents = cases["main_text_before_agent"]
+        cases["main_text_before_agent"] = ([self.said("訳はこうする: " + RAW_BODY)] + main, agents)
+        for name, (main, agents) in cases.items():
+            with self.subTest(case=name):
+                report = self.write(main, agents)
+                self.assertFalse(report["ok"], name)
+
+
 class TranscriptCheckTest(unittest.TestCase):
     """実地の確かめのスクリプトの判定（記録を読まない部分）。"""
 
     def test_raw_write_detection(self):
-        hits = ["echo x > raw/cqrs.md", "sed -i 's/a/b/' raw/cqrs.md", "cp a.png raw/assets/cqrs/a.png",
-                'python x.py >> "raw/cqrs.md"', "Set-Content raw\\cqrs.md x"]
-        misses = ["ls raw 2>&1; cat raw/cqrs.md", "wc -c raw/cqrs.md", "grep -n x raw/cqrs.md 2>/dev/null",
-                  "python wiki_rawcheck.py check --raw-root raw --slug cqrs"]
-        for c in hits:
+        m = check_web_raw_agent
+
+        def hits(command: str) -> bool:
+            targets = m.bash_write_targets([command]) + m.command_write_targets([command])
+            return any(m.is_raw_target(t, Path("/no/such/raw")) for t in targets) or bool(
+                m.python_writes([command], m.RAW_PATH_RE))
+
+        for c in ("echo x > raw/cqrs.md", "sed -i 's/a/b/' raw/cqrs.md", "cp a.png raw/assets/cqrs/a.png",
+                  'python x.py >> "raw/cqrs.md"', "Set-Content raw\\cqrs.md x", "rm raw/assets/cqrs/a.png",
+                  "python -c \"from pathlib import Path; Path('raw/x.md').write_text('y')\""):
             with self.subTest(hit=c):
-                self.assertTrue(check_web_raw_agent.RAW_WRITE_RE.search(c))
-        for c in misses:
+                self.assertTrue(hits(c))
+        for c in ("ls raw 2>&1; cat raw/cqrs.md", "wc -c raw/cqrs.md", "grep -n x raw/cqrs.md 2>/dev/null",
+                  "python wiki_rawcheck.py check --raw-root raw --slug cqrs", "cp raw/x.md /tmp/copy.md"):
             with self.subTest(miss=c):
-                self.assertFalse(check_web_raw_agent.RAW_WRITE_RE.search(c))
+                self.assertFalse(hits(c))
 
     def test_bash_write_targets(self):
         targets = check_web_raw_agent.bash_write_targets(

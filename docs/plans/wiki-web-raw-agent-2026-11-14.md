@@ -94,7 +94,7 @@
 - **`claude plugin validate`**。
 - **実地の確かめ**（`tests/wiki/check_web_raw_agent.py`。`claude -p` を動かすので費用がかかる）: 一時の wiki で、メインを Opus にして `/wiki:ingest <URL>` を動かし（英語のページと日本語のページ）、セッションの記録から次を確かめる。
   - メインが `wiki:web-raw` を呼び、`model` を渡していない。エージェントの応答のモデルが Sonnet、メインの応答のモデルが Opus。
-  - `wiki_fetch.py` と `freeze` と raw への書き込みは、エージェントの記録にだけある。エージェントは wiki のページ、`index.md`、`log.md` に書いていない。メインは要約ページ、`index.md`、`log.md` を書き、raw に書いていない。
+  - `wiki_fetch.py` と `freeze` と raw への書き込みは、エージェントの記録にだけある（書き込みは、道具の入力に現れるもの: Edit と Write の対象、Bash のリダイレクトの行き先、ファイルを書き換えるコマンドの引数、Bash の中の Python の書き込みと同じコマンドに現れるパス。コードの中で組み立てたパスは見つけられない）。エージェントは Claude Code のメタデータ（`meta.json` の `agentType`）で選ぶ。エージェントは wiki のページ、`index.md`、`log.md` に書いていない。メインは要約ページ、`index.md`、`log.md` を書き、raw に書いていない。
   - エージェントの出力に要約ページの文の並び（40 文字）がなく、エージェントを呼ぶまでのメインの出力に raw の文の並びがない（受け渡しの一部を見つけるだけ）。
   - raw、log の分担のサブ行、作業用の写しが消えたこと、時間とモデルごとの費用。
   結果は `docs/research/` に残す。
@@ -125,3 +125,4 @@
 - 1 版（2026-11-14）: Sol の敵対的レビュー（`docs/agent-runs/2026-11-14-wiki-web-raw-agent-review/design-review-1.md`）で却下（`design-root-causes-1.md`）。
 - 2 版（2026-11-14）: 状態（依頼）をメインが持ち、完了をメインが check で確かめ、`--finish` を log のあとのメインの段に移した。2 回目のレビュー（`design-review-2.md`）で却下（`design-root-causes-2.md`）。
 - 3 版（2026-11-14）: 2 版で足したもの（メインの check のやり直し、`--finish` の移動、汎用の差分の合成、報告のモデルによる作者の記録）を削り、0.14.0 の W8 に戻した。主張を狭め、言えないことを書いた。最小の試作を実際に動かしてから、レビューにかける。
+- 3 版の実装（2026-11-14）: 英語と日本語のページで実際に動かし、セッションの記録の 14 項目が通った（`docs/research/wiki-web-raw-agent-trial-2026-11-14.md`）。3 回目のレビュー（`review-3.md`）で却下（`root-causes-3.md`）。呼び直すときに、エージェントが決めた `language_override` も依頼に写すようにした。実地の確かめのスクリプトの穴（Bash の中の Python の書き込み、メインの文の出力と 2 回目以降の依頼）を塞ぎ、書き込みの判定を「道具の入力に現れる書き込み」に狭めた。
