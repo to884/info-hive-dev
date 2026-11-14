@@ -62,13 +62,15 @@ def main() -> int:
         alias(wiki / "indexes", raw)
         alias(wiki / "up", project)
         paths = [wiki / "indexes" / "会話.md", wiki / "up" / "raw" / "会話.md"]
-        prompt = ("次のファイルそれぞれについて、Read で読み、Write で中身を「changed by Write」の 1 行に書き換え、"
-                  "続けて Edit で「original」を「changed by Edit」に置き換えてみる。失敗したら、エラーの文をそのまま"
-                  "報告して次に進む。ほかのツールは使わない。\n" + "\n".join(p.as_posix() for p in paths))
+        prompt = ("書き込みの権限の確かめである。次のファイルそれぞれについて、この順に 3 つの呼び出しを必ず行う。"
+                  "(1) Read で読む。(2) Edit で「original」を「changed by Edit」に置き換える。"
+                  "(3) (2) が失敗しても成功しても、Write で中身を「changed by Write」の 1 行に書き換える。"
+                  "失敗してもやり直さず、エラーの文をそのまま報告して次に進む。ほかのツールは使わない。\n"
+                  + "\n".join(p.as_posix() for p in paths))
         done = subprocess.run([claude, "-p", prompt, "--model", "claude-haiku-5-5", "--allowedTools", "Read,Write,Edit",
                                "--output-format", "stream-json", "--verbose"], cwd=project, capture_output=True,
                               timeout=900, env={**os.environ, "PYTHONUTF8": "1"})
-        tools, errors = [], []
+        tools, calls, results = [], {}, {}
         for line in done.stdout.decode("utf-8", "replace").splitlines():
             try:
                 event = json.loads(line)
@@ -79,31 +81,44 @@ def main() -> int:
                     continue
                 if block.get("type") == "tool_use":
                     tools.append(block.get("name"))
-                if block.get("type") == "tool_result" and block.get("is_error"):
-                    content = block.get("content")
-                    errors.append(str(content)[:200])
+                    calls[block.get("id")] = (block.get("name"), (block.get("input") or {}).get("file_path", ""))
+                if block.get("type") == "tool_result":
+                    results[block.get("tool_use_id")] = (bool(block.get("is_error")), str(block.get("content"))[:200])
+
+        def same(a: str, b: Path) -> bool:
+            return os.path.normcase(os.path.normpath(a)) == os.path.normcase(os.path.normpath(str(b)))
+        # 別名の経路ごとに、Write と Edit がその経路に当たり、どちらも誤りで返ったか
+        attempts = {}
+        for p in paths:
+            for tool in ("Write", "Edit"):
+                hits = [results.get(i) for i, (name, fp) in calls.items() if name == tool and same(fp, p)]
+                attempts[f"{tool} {p.relative_to(project).as_posix()}"] = {
+                    "tried": bool(hits), "all_failed": bool(hits) and all(r and r[0] for r in hits),
+                    "errors": [r[1] for r in hits if r]}
         after = hashlib.sha256(target.read_bytes()).hexdigest()
         report = {
             "purpose": "読み取り専用の raw を、wiki の中の別名を経由した Claude Code の Write と Edit が書き換えられないか",
             "platform": platform.platform(),
             "claude_version": subprocess.run([claude, "--version"], capture_output=True, text=True,
                                              encoding="utf-8").stdout.strip(),
-            "tools": tools, "tool_errors": errors,
+            "tools": tools, "attempts": attempts,
             "raw_unchanged": after == before, "raw_read_only": wiki_session.is_read_only(target),
             "raw_root_files": sorted(p.name for p in raw.iterdir()),
             "returncode": done.returncode,
         }
         for p in raw.iterdir():
             os.chmod(p, 0o644)
-    ok = report["raw_unchanged"] and report["raw_read_only"] and report["raw_root_files"] == ["会話.md"] and (
-        tools.count("Write") >= 1 and tools.count("Edit") >= 1)
+    ok = (report["raw_unchanged"] and report["raw_read_only"] and report["raw_root_files"] == ["会話.md"]
+          and report["returncode"] == 0 and all(a["tried"] and a["all_failed"] for a in attempts.values()))
     if os.name != "nt":
         ok = True  # POSIX は記録するだけ（verify が見つける側）
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
-    print("合格" if ok else "不合格", json.dumps({k: report[k] for k in ("tools", "raw_unchanged", "raw_read_only",
+    print("合格" if ok else "不合格", json.dumps({k: report[k] for k in ("raw_unchanged", "raw_read_only",
                                                                      "raw_root_files")}, ensure_ascii=False))
+    for name, a in attempts.items():
+        print(f"  {name}: 試した={a['tried']} すべて失敗={a['all_failed']}")
     print(f"→ {OUT}")
     return 0 if ok else 1
 

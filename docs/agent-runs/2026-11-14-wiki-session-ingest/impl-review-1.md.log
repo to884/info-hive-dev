@@ -1,1 +1,95 @@
 [ask-codex 19:42:16] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-session-ingest-a98aa3）
+## 判定
+
+**却下。確信度：高。** `mark` で伏せた文字列を `scan` が見逃す反例を3種類再現した。うち2種類は題名の検査も通り、伏せた情報を raw の題名に戻せる。
+
+## 致命的・重大な欠陥
+
+以下の1〜4は、初期化済み wiki で決定ファイルを作り、次の形の1行の記録を使えば再現できる。`C` は各項目に示す本文で、JSONL の末尾には改行を付ける。
+
+```json
+{"type":"user","uuid":"u1","sessionId":"s1","origin":{"kind":"human"},"message":{"content":"C"}}
+```
+
+1. **重大：伏せる区間を結合すると、個別に伏せた文字列を検査しなくなる。**
+
+   `C` を `顧客A顧客B` とし、`decide mark --target T1 --text 顧客A` と `--text 顧客B` を順に実行する。
+
+   決定には2区間が残るが、`manual_strings()` は結合後の `顧客A顧客B` だけを返す。そのため、標準入力が `顧客A` の `scan` は `findings: []` になる。`show --title 顧客A --meta` に相当する題名検査も通り、実際に `title: "顧客A review"` を含む raw を生成できた。
+
+   設計8節の題名検査と10節の伏せた文字列の検査を満たさない。根拠：[wiki_session.py:890–896](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:890)、同ファイル1049〜1051行、1555〜1558行。
+
+2. **重大：1文字ずつの正規化は NFKC と一致せず、日本語の表記違いを見逃す。**
+
+   `C` を `ガンダム社` とし、同じ文字列を `mark` する。標準入力に `ｶﾞﾝﾀﾞﾑ社` を渡すと、`scan` は検出しない。題名 `ｶﾞﾝﾀﾞﾑ社 review` も検査を通った。
+
+   文字列全体を NFKC にすると両者は一致する。一方、実装は半角カナと濁点を別々に正規化するため、後者が結合文字を含む `ガンダム社` のままになる。これは設計10節が保証する NFKC の照合からの逸脱であり、言い換えを検出しないという限界には当たらない。
+
+   根拠：[wiki_session.py:1023–1034](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1023)。
+
+3. **重大：改行を含む伏字指定は、同じ文字列を書き戻しても検出されない。**
+
+   `C` を `顧客A\n顧客B` とし、`--text` に**実際の改行を含む全文**を渡して `mark` する。その全文をそのまま `scan` の標準入力に渡しても、結果は `findings: []` になる。
+
+   検査対象を行に分割した後、改行を含む検索文字列を各行に対して探している。完全一致する元の文字列さえ検出できず、設計10節の保証を満たさない。
+
+   根拠：[wiki_session.py:1568–1590](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1568)。
+
+4. **重大：複数の `--allow` の被覆を合算し、許可値の全体とは一致しない秘密まで免除する。**
+
+   `C` を `ABCDEF` として全文を `mark` し、標準入力も `ABCDEF` にする。
+
+   - 許可なし：終了コード1、`manual` を検出。
+   - `--allow ABC --allow DEF`：終了コード0、検出なし。
+   - `--allow ABCD --allow CDEF`：終了コード0、検出なし。
+
+   `cmd_scan()` でも終了コードまで再現した。さらに `sk-ABCDEFGHIJKLMNOPQRSTUV` は、`--allow sk- --allow ABCDEFGHIJKLMNOPQRSTUV` により自動規則の検出も免除された。
+
+   設計10節は、許可した文字列の全体と一致する部分だけを除くとしている。実装は位置の和集合で判定し、どの許可値とも全体が一致しない秘密を除外する。
+
+   根拠：[wiki_session.py:1571–1593](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1571)。
+
+5. **重大：Windows で wiki と raw が別ドライブにあると書き込めない。**
+
+   `--wiki C:/project/wiki --raw-root D:/raw` の配置では、`check_destination()` の `os.path.commonpath()` が `ValueError: Paths don't have the same drive` を送出する。実関数の呼び出しでも再現した。`main()` は `Fail` しか捕捉しない。
+
+   別ドライブの2ルートは互いを包含しないが、包含検査の段階で停止する。設計9節は wiki の親の外にある raw を絶対パスで参照する場合を認めており、この配置を禁止していない。
+
+   根拠：[wiki_session.py:1085–1088](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1085)、同ファイル1709〜1713行。
+
+## 崩れる前提
+
+- **伏せる区間を結合しても、保護すべき文字列は失われない。** 隣接・重複する指定では、個別に伏せた語が検索対象から消える。
+- **NFKC は文字単位で適用できる。** 濁点や結合文字が隣接文字と合成される場合に崩れる。
+- **伏せる文字列は1行に収まる。** `mark` は複数行を受け付けるが、`scan` は複数行を照合できない。
+- **許可した部分の集合で秘密全体が覆われれば、その秘密も許可済みである。** 複数の許可値を連結・重複させると成立しない。
+- **絶対パス同士なら `commonpath()` で比較できる。** Windows の別ドライブで崩れる。
+
+## 見落としと軽微な問題
+
+- **軽微：読み取り専用の確認が、別の理由で失敗しても合格する。**  
+  [check_session_readonly.py:80–99](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/tests/wiki/check_session_readonly.py:80) はツール名しか保存せず、対象パス、失敗理由、プロセスの終了コードを合否に使わない。存在しない別パスへの Write と Edit が各1回あり、raw が変わらなければ合格する。両方の別名を試した保証もない。ただし、保存済みの実行結果には両別名への `EPERM` が記録されており、その実行が空回りしたとは判断していない。
+
+- **軽微：設計が要求する「2プロセスで200回」の排他試験になっていない。**  
+  [test_wiki_session.py:525–584](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/tests/wiki/test_wiki_session.py:525) の200回は、公開関数だけを呼ぶ2スレッドの試験である。`write` 全体を通す2プロセスの試験は3回で、開始を同期する仕組みもない。実装計画97行はこの変更を記載しているが、承認済み設計の試験要件を弱めている。
+
+- **軽微：リンク拒否という名前の試験が、リンクを作っていない。**  
+  [test_wiki_session.py:714–716](C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/tests/wiki/test_wiki_session.py:714) の `test_verify_refuses_link` が確かめるのは、存在しない raw の拒否だけである。
+
+## 検証した事実
+
+- **食い違い：** 上記1〜4の検査結果と、設計8・10節の保証。合成入力をメモリ内で作り、実装関数で再現した。
+- **一致：** 生成器30例では、思考等の目印の除外、参照実装との宛先一致、見出し・フェンスの構造検査がすべて通った。
+- **一致：** 旧方式への対照差し替えは、宛先の検査を30例で失敗させた。除外リスト方式への差し替えは29例で目印を漏らした。これらの対照は意図した理由で失敗する。
+- **一致：** `source_sha256` と `base_sha256` の不一致は拒否された。承認ハッシュの不一致も、書き込み関数を呼ぶ前に拒否された。
+- **確かめられず：** ファイルを作成する単体試験全体と、実際の Claude Code による再試験は、読み取り専用の条件に従い実行していない。
+
+## 崩せなかった点
+
+- 生成器が扱う記録では、未知のブロックや通知・伝言・思考の内容を除く許可リスト。
+- 承認ハッシュと、実際に生成する raw の全文を照合する順序。
+- 本文より長いバッククォートのフェンスと、パーサーによる構造の自己検査。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 19:51:34] 完了。session 01a1d9a6-9a1b-76e1-acfe-602e1d6257ac  usage {"input_tokens": 1909472, "cached_input_tokens": 1761920, "cache_write_input_tokens": 0, "output_tokens": 16179, "reasoning_output_tokens": 7769}

@@ -562,6 +562,31 @@ class RawExclusiveTests(CliCase):
         _single, overwritten = self.race(os.replace)
         self.assertGreater(overwritten, 0)
 
+    def process_race(self, mode: str, reps: int = 200) -> tuple[list, list]:
+        """2 つのプロセスが、回ごとに足並みをそろえて、違うバイト列を同じスラッグに write_raw() で書く。"""
+        worker = FIXTURES / "race_worker.py"
+        procs = [subprocess.Popen([sys.executable, "-X", "utf8", "-B", str(worker), str(SCRIPTS), str(self.base),
+                                   str(self.wiki), str(self.raw), str(who), str(reps), mode],
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE) for who in (0, 1)]
+        outs = [p.communicate(timeout=600) for p in procs]
+        for p, (out, err) in zip(procs, outs):
+            self.assertEqual(p.returncode, 0, err.decode("utf-8", "replace"))
+        return [json.loads(out) for out, _err in outs]
+
+    def test_two_processes_200_times(self):
+        """設計の試験: 2 つのプロセスが違うバイト列を同じスラッグに同時に書くことを 200 回繰り返し、毎回 1 つだけが
+        created になり、raw がその側のバイト列と一致する。"""
+        a, b = self.process_race("exclusive")
+        for i, pair in enumerate(zip(a, b)):
+            self.assertEqual(sorted(pair), ["conflict", "created"], f"{i} 回目: {pair}")
+            who = pair.index("created")
+            self.assertEqual((self.raw / f"r{i}.md").read_bytes(), f"版 {who} の {i}\n".encode("utf-8"))
+        self.assertEqual(sorted(p.name for p in self.raw.iterdir() if p.name.endswith(".tmp")), [])
+
+    def test_control_process_race_with_os_replace_overwrites(self):
+        a, b = self.process_race("replace", reps=60)
+        self.assertGreater(sum(1 for pair in zip(a, b) if list(pair) == ["created", "created"]), 0)
+
     def test_two_processes_one_created(self):
         for i in range(3):
             slug = f"同時-{i}"
@@ -658,6 +683,13 @@ class RawExclusiveTests(CliCase):
         self.write(dec2, sha2, code=1, wiki=inner)
         self.assertEqual(sorted(p.name for p in self.raw.iterdir()), ["wiki"])
 
+    def test_roots_on_different_drives_are_not_overlapping(self):
+        """ドライブの違うパスは commonpath が ValueError を上げる（前提: 絶対パスどうしなら比べられる）。"""
+        self.assertFalse(ws.path_within("D:\\raw", "C:\\project\\wiki") if NT else ws.path_within("/a", "/b"))
+        with mock.patch("os.path.commonpath", side_effect=ValueError("Paths don't have the same drive")):
+            self.assertFalse(ws.path_within("D:\\raw", "C:\\project\\wiki"))
+            ws.check_destination(self.wiki, self.raw, self.raw / "x.md")
+
     def test_missing_raw_root_is_not_created(self):
         dec = self.init()
         sha = self.meta(dec)["render_sha256"]
@@ -711,9 +743,23 @@ class ReadOnlyVerifyTests(CliCase):
             self.assertTrue(replaced)
             self.assertEqual(self.verify(sha, code=1)["sha256_matches"], False)
 
-    def test_verify_refuses_link(self):
-        sha, path, _out = self.written()
+    def test_verify_refuses_missing_raw(self):
+        sha, _path, _out = self.written()
         self.ok(["verify", "--raw-root", self.raw, "--slug", "ない", "--expect-sha256", sha], code=1)
+
+    def test_verify_refuses_link(self):
+        """raw の名前がリンクなら、指す先が同じバイト列で読み取り専用でも、照らさずに拒む。"""
+        sha, path, _out = self.written()
+        other = self.base / "other"
+        other.mkdir()
+        shutil.copyfile(path, other / "copy.md")
+        ws.make_read_only(other / "copy.md")
+        link = self.raw / "別名.md"
+        try:
+            os.symlink(other / "copy.md", link)
+        except OSError:
+            self.skipTest("シンボリックリンクを作れない")
+        self.ok(["verify", "--raw-root", self.raw, "--slug", "別名", "--expect-sha256", sha], code=1)
 
 
 class SelfCheckTests(CliCase):
@@ -874,6 +920,53 @@ class ScanTests(CliCase):
         dec = self.init(transcript=p)
         self.ok(["decide", "mark", *self.common(p), "--decisions", dec, "--target", "T1", "--text", "太郎"])
         self.scan(dec, "太郎の話", transcript=p, code=1)
+
+    # ---- 1 回目のレビューで崩れた前提（docs/agent-runs/2026-11-14-wiki-session-ingest/impl-review-1.md）
+
+    def mark(self, p, dec, text, *extra):
+        self.ok(["decide", "mark", *self.common(p), "--decisions", dec, "--target", "T1", "--text", text, *extra])
+
+    def test_each_marked_string_is_kept_after_merging(self):
+        """隣り合う 2 つの指定を区間でまとめても、指定ごとの文字列を探す（前提: まとめても失われない）。"""
+        p = self.secret_transcript("顧客A顧客Bの相談")
+        dec = self.init(transcript=p)
+        self.mark(p, dec, "顧客A")
+        self.mark(p, dec, "顧客B")
+        self.assertEqual(self.meta(dec, transcript=p)["manual_redactions"], 1)
+        for page in ("顧客A の件", "顧客B の件"):
+            with self.subTest(page=page):
+                self.scan(dec, page, transcript=p, code=1)
+        self.ok(["show", *self.common(p), "--title", "顧客A review", "--decisions", dec, "--meta"], code=1)
+
+    def test_nfkc_is_applied_to_whole_strings(self):
+        """半角カナと濁点は、文字列の全体に NFKC をかけたときに合成される（前提: 1 文字ずつかけてよい）。"""
+        p = self.secret_transcript("ガンダム社の相談")
+        dec = self.init(transcript=p)
+        self.mark(p, dec, "ガンダム社")
+        _done, result = self.scan(dec, "まえがき\nこれは ｶﾞﾝﾀﾞﾑ社 の件", transcript=p, code=1)
+        self.assertEqual(result["findings"], [{"line": 2, "column": 5, "rule": "manual"}])
+        self.ok(["show", *self.common(p), "--title", "ｶﾞﾝﾀﾞﾑ社 review", "--decisions", dec, "--meta"], code=1)
+
+    def test_marked_text_with_newline_is_found(self):
+        """改行を含む伏せた文字列を、文の全体の上で探す（前提: 伏せる文字列は 1 行に収まる）。"""
+        p = self.secret_transcript("顧客A\n顧客B\nほかの話")
+        dec = self.init(transcript=p)
+        self.mark(p, dec, "顧客A\n顧客B")
+        _done, result = self.scan(dec, "前置き\n顧客A\n顧客B\n", transcript=p, code=1)
+        self.assertEqual(result["findings"], [{"line": 2, "column": 1, "rule": "manual"}])
+        self.scan(dec, "前置き\n顧客A\r\n顧客B\n", transcript=p, code=1)
+
+    def test_allow_must_contain_the_whole_finding(self):
+        """許可は、1 つの許可の出現が見つけた範囲の全体を含むときだけ（前提: 許可の和集合で覆えば許可済み）。"""
+        p = self.secret_transcript(f"ABCDEF と {SECRET_KEY}")
+        dec = self.init(transcript=p)
+        self.mark(p, dec, "ABCDEF")
+        for allow in (("ABC", "DEF"), ("ABCD", "CDEF")):
+            with self.subTest(allow=allow):
+                self.scan(dec, "ABCDEF", *allow, transcript=p, code=1)
+        _done, result = self.scan(dec, SECRET_KEY, "sk-", SECRET_KEY[3:], transcript=p, code=1)
+        self.assertIn("pattern_secret", {f["rule"] for f in result["findings"]})
+        self.scan(dec, "ABCDEF の件", "ABCDEF の件", transcript=p, code=0)
 
     def test_invalid_utf8_input_is_refused(self):
         dec = self.init()
