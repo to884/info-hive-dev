@@ -28,7 +28,7 @@
 | 見た目 | スキル `fluent2-html-replica` の `fluent2.css` を、書き換えずに `docs/assets/` に写す。版は `/wiki:browse` の同梱（ADR-0021）とそろえ、出どころ、基準の版、SHA-256、写し直す手順を `docs/assets/README.md` に、ライセンスの文書を `docs/assets/licenses/` に置く。独自の装飾は、トークンの CSS 変数だけで書く |
 | スクリプト | `fluent2.js` は使わない |
 | 図 | 要る所だけ、HTML に埋め込んだ SVG で描く。色と書体は Fluent 2 のトークンに合わせる |
-| 文体 | です・ます体。`docs/commands.md` も、です・ます体に書き直す |
+| 文体 | です・ます体。`docs/commands.md` と、`/wiki:help` が説明を読む `commands/*.md` の frontmatter も、です・ます体に書き直す |
 | 道具 | HTML から PDF を作る道具とリンクの検査は、開発用のリポジトリ（info-hive-dev）に置く。道具（PDF の作り方）と公開先は、1 ページの試作のあとで決める |
 | 既存の文書 | `index.md`、`getting-started.md`、`workflows.md`、`upgrade.md` は、新しいページに中身を移して消す。`upstream-changelog.md` は開発の記録として info-hive-dev に移す。上級の機能の文書（`search.md`、`graph.md`、`decisions.md`、`evolution.md`）と `agents.md` は、当面 Markdown のまま残す |
 
@@ -36,7 +36,7 @@
 
 ## 理由
 
-- **各プラグインの `docs/` に置くと、プラグインと一緒に配られ、版がそろう。** 文書はコマンドの使い方を説明するので、コマンドを変えた PR で文書も直せる。開発用のリポジトリに置くと、プラグインの版と文書の版がずれる。
+- **各プラグインの `docs/` に置くと、リポジトリの中では、文書とプラグインの版がそろう。** 文書はコマンドの使い方を説明するので、コマンドを変えた PR で文書も直せる。開発用のリポジトリに置くと、プラグインの版と文書の版がずれる。ただし、利用者が読む公開先で版がそろうかは、公開先しだいである。最新の版だけを配る公開先では、古い版のプラグインの `/wiki:help` から新しい版の説明が開く。公開先を決めるときに、版の対応をどうするかを決め、この ADR に書き足す。
 - **共通のページを wiki に置くのは、rag が wiki に依存し、利用者が必ず wiki を入れるためである。** マーケットプレイスのリポジトリは、定義だけを置く決まり（ADR-0003）なので使わない。2 か所に写すと、直し続ける手間が倍になる。
 - **HTML を直接書くのは、Fluent 2 の部品のマークアップをそのまま使うためである。** Markdown から変換すると、部品の class と構造を、変換の規則で表すことになる。代わりに、GitHub の上ではソースのまま表示されるので、公開先を決める必要がある（試作のあとで決める）。
 - **`commands.md` を Markdown のまま残すのは、`/wiki:help` が読むためである。** 仕組みを変えずに済む。
@@ -58,7 +58,7 @@
 - `info-hive-wiki/docs/` に、HTML のページと `assets/fluent2.css`（約 626KB）が増える。`fluent2.css` は browse の同梱と 2 か所になるので、SHA-256 が一致することを試験で確かめる。
 - README、`SKILL.md`、`references/query-workflow.md`、`UPSTREAM.md` から、消した文書へのリンクを張り替える。
 - `/wiki:help` の詳しいヘルプが、です・ます体になる。利用者に見える変更なので、wiki の版を上げてリリースする。
-- `wiki_help.py` は、`commands.md` の相対リンクを GitHub のタグの URL に書き換える。リンク先が HTML になると、GitHub ではソースが表示される。公開先を決めたら、書き換えの規則を直すかを決める。
+- `wiki_help.py` は、`commands.md` の相対リンクを GitHub のタグの URL に書き換える。リンク先が HTML になると、GitHub ではソースが表示される。公開先を決めたら、書き換えの規則を直すかを決める。直すなら、GitHub のタグの URL を期待する `tests/wiki/test_help_command.py` も一緒に直す。
 - Microsoft の製品ではないこと、商標の帰属、Segoe UI を同梱しないことを、`docs/assets/README.md` に書く（ADR-0021 と同じ）。
 
 ## 参照
