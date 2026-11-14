@@ -1,0 +1,126 @@
+## 判定
+
+**却下。確信度：高。** `verify` の対象が今回の raw 1 件に限られるため、別の raw の破損を検知できない。また、許容される保存先によっては、取り込み完了後の MCP 索引の再作成で raw が消える。「上書きを防げなくても検知する」という説明が成立しない。
+
+未実装の設計への判定である。POSIX の実ファイルや Claude Code を使った破壊試験は行っていない。
+
+## 致命的・重大な欠陥
+
+**1.【重大】別名経由で過去の raw を編集しても、今回の `verify` は成功する。**
+
+次の配置を考える。リンクは開始前から存在し、並行実行は不要である。
+
+```text
+W = /kb/wiki
+R = /archive/raw
+
+W/SCHEMA.md
+W/indexes -> /archive
+R/old.md                 過去に取り込んだ、読み取り専用の raw
+R/new.md                 今回作る raw
+```
+
+`W/index.md` が `indexes/raw/old.md` を分割索引として案内している状態とする。
+
+1. W と R は包含関係になく、R とその祖先にもリンクがないため、`write` の検査を通る。
+2. S6 が `R/new.md` を作る。
+3. S9 が、索引の更新として `W/indexes/raw/old.md` を編集する。
+4. POSIX の Write/Edit が設計の想定どおり名前の変更で置き換える場合、`R/old.md` が変わる。
+5. S10 が検査するのは `--slug new` だけなので、ハッシュと読み取り専用の検査はともに通る。
+
+**今回の raw が無傷であることは、今回の処理が別の raw を壊していないことを示さない。** 「保証しないこと」12は、置換そのものを認めつつ「その場合も S10 の `verify` が raw の変化を見つける」としており、この反例では後半が成立しない。
+
+根拠：
+
+- [設計書:184](/C:/Works/info-hive-dev/docs/plans/wiki-session-ingest-2026-11-14.md:184)：検査するルートの包含関係。
+- [設計書:229](/C:/Works/info-hive-dev/docs/plans/wiki-session-ingest-2026-11-14.md:229)、[S10:263](/C:/Works/info-hive-dev/docs/plans/wiki-session-ingest-2026-11-14.md:263)：検証対象は指定したスラッグ1件。
+- [保証外12:278](/C:/Works/info-hive-dev/docs/plans/wiki-session-ingest-2026-11-14.md:278)：変化を検知するという説明。
+- `wiki_pages.py@83dbb30:307–321`：`indexes` はリンクでも起点として降り、配下の Markdown を索引候補にする。
+
+これは188行の POSIX の置換方式を仮定した設計上の反例であり、Claude Code による実機再現結果ではない。
+
+**2.【重大】raw のルートに MCP の索引ディレクトリを指定でき、取り込み後の索引再作成で原本が消える。**
+
+POSIX で、次の状態を作る。
+
+```text
+W = /kb/wiki
+R = <INFO_HIVE_DATA_DIR>/index/collections/papers
+```
+
+R は既存の通常ディレクトリで、W と包含関係がなく、祖先にもリンクがないものとする。
+
+1. `--raw-root R --slug session-note` で取り込む。指定された行き先検査は通り、`R/session-note.md` が読み取り専用になる。
+2. S10 の `verify` が成功し、取り込みを完了する。
+3. 後で Claude Code から、既存の `papers` に対して次の MCP 呼び出しを行う。
+
+```text
+index_chunks(
+  collection="papers",
+  tokenizer="<既存の値>",
+  generation=2,
+  chunks=[],
+  reset=true
+)
+```
+
+`reset=true` は `wipe(self.dir)` を呼ぶ。`wipe()` は、残す管理ファイル以外を拡張子に関係なく `unlink()` するため、`session-note.md` も削除対象になる。POSIX では親ディレクトリを書ければ、読み取り専用の通常ファイルも削除できる。MCP の処理には raw の検証も警告もない。
+
+これは **S9 の別名経由の Write/Edit ではなく、完了後の正規の MCP 操作による削除**であり、保証外12の説明では覆われていない。Claude Code のツールを通らない書き手も使っていない。
+
+根拠：
+
+- [設計書:179](/C:/Works/info-hive-dev/docs/plans/wiki-session-ingest-2026-11-14.md:179)、[183](/C:/Works/info-hive-dev/docs/plans/wiki-session-ingest-2026-11-14.md:183)、[184](/C:/Works/info-hive-dev/docs/plans/wiki-session-ingest-2026-11-14.md:184)：この保存先を拒む条件がない。
+- `wiki_mcp_common.py@83dbb30:97–100`：collection の保存先。
+- `wiki_mcp_server.py@83dbb30:461–476`：`reset` を受け付ける MCP の入口。
+- `wiki_index.py@83dbb30:1034–1048`：reset 時の `wipe()` 呼び出し。
+- `wiki_index.py@83dbb30:363–371`：管理ファイル以外を削除する実装。
+
+指定コミットの `wipe()` をメモリ上の模擬ディレクトリで実行し、`session-note.md` に対する `unlink()` 呼び出しを確認した。実ファイルの削除は行っていない。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| 今回の raw を検証すれば、取り込みによる raw の破損を検知できる | 関連ページや索引の編集先が、過去の別スラッグの raw を指す |
+| 読み取り専用にすれば、S10 以降も原本が残る | POSIX で、原本の親ディレクトリを別の正規処理が掃除する |
+| raw を破壊しうる書き手は、wiki を編集する Write/Edit である | MCP の索引再作成が、raw と同居するファイルを一括削除する |
+
+## 見落としと軽微な問題
+
+**1.【軽微】`stat.S_IREAD` は、POSIX の `0o444` ではない。**
+
+[188行](/C:/Works/info-hive-dev/docs/plans/wiki-session-ingest-2026-11-14.md:188)は、`os.chmod(path, stat.S_IREAD)` で POSIX のモードが `0o444` になるとしているが、`stat.S_IREAD == stat.S_IRUSR == 0o400` である。記載された呼び出しは、グループとその他の読み取り権限も落とす。
+
+したがって、`0o444` の説明に従って別 UID の閲覧処理などが読めると考えると、実際には読み取れない。定数値は Python で確認した。
+
+**2.【軽微】対照表 O の「上書きの手段がない」が、認めた限界と食い違う。**
+
+[376行](/C:/Works/info-hive-dev/docs/plans/wiki-session-ingest-2026-11-14.md:376)は「上書きした raw と古い記事」を「生じない」とする。一方、278行は POSIX の Write/Edit による raw の置換を認めている。検知できた場合でも、上書きと古い記事の組は発生しうる。
+
+前回の軽微2件は、**数え方と出力先の仕様としては解消している**。新実装による実行確認はできない。
+
+## 検証した事実
+
+| 確かめた主張 | 結果 |
+| --- | --- |
+| 参照版 | 既存コードは `83dbb30`、親の ADR は `a237e8f` を `git show` で参照した |
+| `show` の続きの案内 | **解消。** 167行・319行で標準エラーへ分離し、JSON は `next` に分離している |
+| 自己検査の数え方 | **解消。** 163行・313行・318行で frontmatter と印のターンの扱いがそろった |
+| 初期化検査 | **一致。** `wiki_initialized.py` はルートと `SCHEMA.md` を検査し、保存先の役割までは検査しない |
+| `missing_raw()` の保護範囲 | **存在確認のみ。** 内容のハッシュや読み取り専用属性は検査しない |
+| `stat.S_IREAD` の値 | **食い違い。** 実測は `0o400` |
+| MCP の索引掃除 | **削除経路を確認。** snapshot の `wipe()` は `.md` も `unlink()` 対象にする |
+| graph・lint・閲覧 | 読んだ経路から、通常の保存配置で raw のバイト列を書き換える別の反例は得られなかった |
+
+ファイルの変更、リンク作成、実際の Write/Edit、POSIX の置換・削除試験は行っていない。
+
+## 崩せなかった点
+
+- 今回の raw 自体が S10 より前に変われば、承認時のハッシュとの照合で検知できるという規則。
+- 完成した一時ファイルの非置換公開によって、`write` 同士の上書きを防ぐ規則。
+- 既存 raw 自体がリンクなら、`identical` とせず拒む条件。
+- `session_id` を含む raw 全体の同一性、位置だけの決定、明示した `--before`、長いフェンスについて、今回の直しによる新しい反例は得られなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
