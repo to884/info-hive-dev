@@ -483,7 +483,7 @@ class EntranceInventoryTests(unittest.TestCase):
     }
     NO_WIKI = {
         "wiki_encoding.py": "1 つのファイルの文字コードを調べる",
-        "wiki_help.py": "コマンドの一覧を出す",
+        "wiki_help.py": "コマンドの一覧と個別のヘルプを出す",
         "wiki_mcp_launch.py": "MCP の入口。wiki はツールの引数でサーバーが受け取る",
         "wiki_mcp_relay.py": "MCP の中継。同上",
         "wiki_workspace.py": "作業領域の設定から wiki の場所を出すだけで、wiki を読まない",
