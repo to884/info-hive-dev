@@ -1020,6 +1020,60 @@ class ScanTests(CliCase):
         dec = self.init(transcript=p)
         self.scan(dec, f"鍵は\n{body}\n", transcript=p, code=1)
 
+    # ---- 3 回目のレビューで崩れた前提（impl-review-3.md）: 形を変える前の元の文の全体で見つける
+
+    KEY_BODY = "QUFBQUFBQUFBQUFB\nQkJCQkJCQkJCQkJC"
+
+    def key_session(self, fill, **builder) -> tuple[Path, str]:
+        b = Builder(session_id="2a1c2d3e-aaaa-4bbb-8ccc-0123456789ab", **builder)
+        b.human("鍵の件")
+        fill(b)
+        p = self.outside / f"{b.session_id}.jsonl"
+        p.write_bytes(b.to_bytes())
+        return p, ws.render(extract_file(p), TITLE, [], []).decode()
+
+    def assert_key_hidden(self, p, text, *opts):
+        self.assertNotIn("QUFBQUFB", text)
+        self.assertNotIn("QkJCQkJC", text)
+        dec = self.init(transcript=p)
+        for line in self.KEY_BODY.split("\n"):
+            with self.subTest(line=line):
+                self.scan(dec, f"本文\n{line}\n", transcript=p, code=1)
+
+    def test_header_in_a_tool_value_and_body_in_text(self):
+        p, text = self.key_session(lambda b: (
+            b.tool_use("Grep", {"pattern": "-----BEGIN PRIVATE KEY-----"}),
+            b.text(f"{self.KEY_BODY}\n-----END PRIVATE KEY-----")))
+        self.assert_key_hidden(p, text)
+        self.assertIn("[ツール] Grep ［伏せ字］", text)
+
+    def test_header_in_a_hidden_tool_value_with_tools_none(self):
+        b = Builder(session_id="2b1c2d3e-aaaa-4bbb-8ccc-0123456789ab")
+        b.human("鍵の件")
+        b.tool_use("Grep", {"pattern": "-----BEGIN PRIVATE KEY-----"})
+        b.text(f"{self.KEY_BODY}\n-----END PRIVATE KEY-----")
+        p = self.outside / f"{b.session_id}.jsonl"
+        p.write_bytes(b.to_bytes())
+        text = ws.render(extract_file(p, tools="none"), TITLE, [], []).decode()
+        self.assertNotIn("QUFBQUFB", text)
+        self.assertNotIn("[ツール]", text)
+
+    def test_whole_key_in_a_tool_value_registers_body_lines(self):
+        key = f"-----BEGIN PRIVATE KEY-----\n{self.KEY_BODY}\n-----END PRIVATE KEY-----"
+        p, text = self.key_session(lambda b: (b.tool_use("Grep", {"pattern": key}), b.text("探した")))
+        self.assert_key_hidden(p, text)
+
+    def test_whole_key_in_cwd_registers_body_lines(self):
+        key = f"-----BEGIN PRIVATE KEY-----\n{self.KEY_BODY}\n-----END PRIVATE KEY-----"
+        p, text = self.key_session(lambda b: b.text("了解"), cwd=key)
+        self.assert_key_hidden(p, text)
+
+    def test_key_in_command_args_is_hidden_before_flattening(self):
+        key = f"-----BEGIN PRIVATE KEY-----\n{self.KEY_BODY}\n-----END PRIVATE KEY-----"
+        p, text = self.key_session(lambda b: (
+            b.human(f"<command-name>/x</command-name>\n<command-args>{key}</command-args>"), b.text("了解")))
+        self.assert_key_hidden(p, text)
+
     def test_column_survives_reordering_and_long_lines_are_fast(self):
         """位置の対応は、正規化で切れない塊ごとに取る（前提: 接頭辞の長さから元の位置が分かる）。"""
         p = self.secret_transcript("太郎さんに聞いた")
