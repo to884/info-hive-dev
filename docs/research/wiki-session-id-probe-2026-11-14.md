@@ -47,3 +47,20 @@ python "<probe.py>" '${CLAUDE_SESSION_ID}' "<result.jsonl>"
 - `attachment` の種類は 43 あった。`origin` を持つのは `queued_command` だけだった。
 - `origin.kind` の値は `human`、`task-notification`、`peer` の 3 つだった。`queued_command` の `attachment.origin.kind` も同じ 3 つで、`origin` のない `queued_command` が 474 件あった。
 - `system` の `subtype` に、設計書の表にない `model_refusal_fallback` と `turn_duration` があった。アシスタントのブロックに `fallback` が 1 件あった。どれも、設計の表のとおり閉じる側（境界、または除く）に入る。
+
+## 実物の記録での受け入れの確かめ（実装のあと）
+
+実装した `wiki_session.py` の `extract()` と `render()` を、手元の全プロジェクトの記録 982 ファイルに当てた（`--utc-offset +09:00`、決定なし）。件数だけを数え、会話の文は出していない。
+
+| 項目 | 値 |
+| --- | --- |
+| セッションと認めたもの | 475（ほかの 507 は、人の発言がない `claude -p` のセッションなど） |
+| ターン | ユーザー 3,230、Claude 6,920、印 4,092 |
+| `reply_unresolved` | 0 件 |
+| 宛先が不明の印 | 0 件 |
+| 印の内訳 | 作業の通知 1,266、スキルの本文などの差し込み 1,133、人の発言でない記録 960、キューに入った入力（人と確かめられない） 451、伝言 153、中断 93、圧縮の要約 36 |
+| 自己検査の失敗 | 0 件 |
+| 警告 | `stripped_reminder` 292、`leading_tag` 37、`mixed_session_ids` 2、`possible_rewind` 244 |
+| いちばん時間のかかった記録 | 51.9 MB で 0.95 秒 |
+
+`possible_rewind` の 244 件は、どれも、同じ `uuid` の記録がもう一度書かれたもの（`user` 124、`attachment` 93、`assistant` 27）だった。2 度目の記録は、`parentUuid`、`slug`、`promptId`、`cwd`、`toolUseResult` のどれかが 1 度目と違っていた。巻き戻しかどうかは分からない。`wiki_session.py` は 1 度目の記録を使い、`possible_rewind` で知らせる。

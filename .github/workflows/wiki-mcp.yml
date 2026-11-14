@@ -13,6 +13,8 @@ name: Wiki MCP server
 # - tests/wiki/test_help_command.py: /wiki:help [command] の個別のヘルプ（名前の正規化、docs/commands.md の節、
 #   GitHub の版のタグへのリンクの書き換えとパーサーでの照らし合わせ、commands/help.md がシェルに渡す名前の制限。
 #   標準ライブラリと同梱の markdown-it-py だけ）
+# - tests/wiki/test_wiki_session.py: Claude Code のセッションの取り込み（wiki_session.py）。抜き出しの性質と対照、
+#   ディスクの走査、縛り、raw の排他と読み取り専用と verify、scan（標準ライブラリと同梱の markdown-it-py だけ）
 # - tests/wiki/test_graph_duplicate_slugs.py: 同じスラッグと同じノード ID のページのグラフの抽出（PyYAML が要る）
 # - tests/wiki/test_graph_lint_edge_refs.py: グラフの lint が contradicts と supersedes のエッジの ID を認めること（PyYAML が要る）
 # - tests/wiki/test_graph_frontmatter_values.py: グラフの抽出が読む frontmatter の値が lint と同じこと（PyYAML が要る）
@@ -108,6 +110,9 @@ jobs:
       - name: コマンドの個別のヘルプの試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_help_command.py -v
+      - name: セッションの取り込みの試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 python -X utf8 -B -m unittest tests/wiki/test_wiki_session.py -v
       - name: URL の取り込みの raw の段を任せるエージェントの試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_web_raw_agent.py -v
