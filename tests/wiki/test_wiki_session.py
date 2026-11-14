@@ -439,7 +439,9 @@ class DiskScanTests(CliCase):
         return before, after, dec
 
     def leaks(self, files: dict) -> list:
-        return [p for p, data in files.items() if self.BODY in data or self.MARKED.encode("utf-8") in data]
+        """中身とパスの両方を調べる（ファイルの名前に出ても、ディスクに出たことになる）。"""
+        return [p for p, data in files.items()
+                if self.BODY in data or self.MARKED.encode("utf-8") in data or self.MARKED in p]
 
     def test_nothing_reaches_the_disk(self):
         _before, after, dec = self.flow()
@@ -516,6 +518,13 @@ class BindingTests(CliCase):
                 self.write(dec, sha, title=title, code=1)
         self.ok(["show", *self.common(), "--title", TITLE, "--decisions", dec, "--slug", "顧客A-相談", "--meta"], code=1)
         self.assertFalse(list(self.raw.iterdir()))
+
+    def test_slug_with_a_secret_is_refused_before_writing(self):
+        """スラッグは、ディスクに書く前に検査する（前提: 最後の確認で検査すれば、保存先にも出ない）。"""
+        before = snapshot(self.base)
+        self.ok(["decide", "init", *self.common(), "--wiki", self.wiki, "--slug", "sk-abcdefghijklmnopqrst"], code=1)
+        self.ok(["decide", "init", *self.common(), "--wiki", self.wiki, "--slug", "taro@example.com"], code=1)
+        self.assertEqual(snapshot(self.base), before)
 
     def test_options_come_from_the_decisions(self):
         dec = self.init()
@@ -1073,6 +1082,39 @@ class ScanTests(CliCase):
         p, text = self.key_session(lambda b: (
             b.human(f"<command-name>/x</command-name>\n<command-args>{key}</command-args>"), b.text("了解")))
         self.assert_key_hidden(p, text)
+
+    # ---- 4 回目のレビューで崩れた前提（impl-review-4.md）: 見つける、決める、変えるを分ける
+
+    def test_overlapping_rules_are_unioned(self):
+        """重なる規則の範囲は捨てずに和集合にする（前提: 先に当たった範囲と重なる規則は捨ててよい）。"""
+        p = self.secret_transcript("password=sk-abcdefghijklmnop/SECONDSECRET と token=alice.smith@example.org")
+        text = ws.render(extract_file(p), TITLE, [], []).decode()
+        self.assertNotIn("SECONDSECRET", text)
+        self.assertNotIn("alice", text.split("---", 2)[2])
+        dec = self.init(transcript=p)
+        for page, rule in (("値は sk-abcdefghijklmnop/SECONDSECRET だった", "auto_secret"),
+                           ("名前は alice.smith", "auto_email")):
+            with self.subTest(page=page):
+                _done, result = self.scan(dec, page, transcript=p, code=1)
+                self.assertIn(rule, {f["rule"] for f in result["findings"]})
+
+    def test_structure_is_judged_on_the_original_text(self):
+        """差し込みとコマンドの要素の判定は、伏せ字の前の元の文で行う（前提: 伏せ字を先にかけても構造は判定できる）。"""
+        p = self.secret_transcript("<system-reminder>NOSHOW-差し込み\nThe file contains -----BEGIN PRIVATE KEY-----"
+                                   "</system-reminder>\n質問です")
+        ex = extract_file(p)
+        text = ws.render(ex, TITLE, [], []).decode()
+        self.assertNotIn("NOSHOW", text)
+        self.assertNotIn("system-reminder", text)
+        self.assertIn("質問です", text)
+        self.assertEqual({w["code"] for w in ws.summarize_warnings(ex.warnings)}, {"stripped_reminder"})
+
+    def test_many_hits_are_not_quadratic(self):
+        import time
+        started = time.perf_counter()
+        ranges, hits = ws.find_secrets(" ".join(f"u{i}@example.org" for i in range(6000)))
+        self.assertEqual((len(ranges), len(hits)), (6000, 6000))
+        self.assertLess(time.perf_counter() - started, 2)
 
     def test_column_survives_reordering_and_long_lines_are_fast(self):
         """位置の対応は、正規化で切れない塊ごとに取る（前提: 接頭辞の長さから元の位置が分かる）。"""
