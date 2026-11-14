@@ -32,6 +32,19 @@ import wiki_browse  # noqa: E402
 import wiki_browse_core as core  # noqa: E402
 import wiki_browse_fs as fs  # noqa: E402
 
+wiki_browse._load()
+
+
+def enter_state(wiki: Path) -> Path:
+    """起動と同じに、状態のディレクトリに入る（なければ作り、目印を置く）。状態のディレクトリを返す。"""
+    state_dir = wiki_browse._state_dir(wiki)
+    fs._enter_state(wiki, wiki_browse.browse_dir(), state_dir, fs.owner_of(wiki), create=True)
+    return Path(state_dir)
+
+
+def state_lock(wiki: Path) -> "fs.Lock":
+    return fs.Lock(str(enter_state(wiki) / "server.lock"))
+
 
 def write(root: Path, rel: str, text: str) -> Path:
     path = root / rel
@@ -50,6 +63,21 @@ def request(port: int, method: str, path: str, host: "str | None" = None) -> tup
         return res.status, res.read().decode("utf-8", errors="replace"), dict(res.getheaders())
     finally:
         conn.close()
+
+
+
+def reads_via(fn):
+    """入力の中身を読む口（fs.read_input）を、fn(パス) に差し替える。fn の PermissionError は「分からない」にする。
+
+    入力は層の口で読む（構造の直しの設計の 3）。試験は、読み取りの失敗をこの口に入れる。
+    """
+    def read(root, rel):
+        path = Path(root) / rel
+        try:
+            return fn(path)
+        except PermissionError as e:
+            raise fs.failure(fs.Unknown, f"open_read: {type(e).__name__}", str(path)) from None
+    return mock.patch.object(fs, "read_input", read)
 
 
 class Base(unittest.TestCase):
@@ -76,9 +104,9 @@ class InProcess(Base):
 
     def setUp(self):
         super().setUp()
-        with redirect_stderr(io.StringIO()):
-            guard, state_dir = wiki_browse._prepare_state(self.wiki)
-        self.app = wiki_browse.App(self.wiki, guard, state_dir, idle=600)
+        self.state_dir = enter_state(self.wiki)
+        self.owner = fs.owner_of(self.wiki)
+        self.app = wiki_browse.App(self.wiki, idle=600, assets=core.load_assets())
         self.httpd = wiki_browse._Server(("127.0.0.1", 0), wiki_browse.Handler)
         self.httpd.app = self.app
         self.app.httpd = self.httpd
@@ -141,14 +169,20 @@ class RequestTest(InProcess):
         write(self.wiki, "concepts/a.md", '---\ntype: "source"\nraw: "http://["\n---\n# A\n')
         self.assertEqual(self.get("concepts/a.html")[0], 200)
 
-    def test_overlap_shuts_down_from_any_entry(self):
-        self.get("concepts/a.html")
-        write(self.wiki, "concepts/c.md", "# C\n")
-        with mock.patch.object(self.app.state.guard, "overlapping", return_value=True):
-            code, body, _h = request(self.port, "GET", f"/{self.app.control_token}/control/locate/a")
-        self.assertEqual(code, 503)
-        self.assertTrue(self.app.state.shutdown_requested)
-        self.assertTrue(self.app._stopping.is_set())
+    def test_page_pointing_at_the_record_is_drawn(self):
+        # Wiki のページが browse の作ったファイル（記録）を指していても、Wiki の内容として読んで描く。
+        # サーバーは動き続ける（構造の直しの設計の 5、10）
+        record = self.state_dir / "server.json"
+        record.write_text(json.dumps({"note": "RECORD-CONTENT"}), encoding="utf-8")
+        try:
+            os.symlink(record, self.wiki / "concepts" / "record.md")
+        except (OSError, NotImplementedError):
+            self.skipTest("シンボリックリンクを作れない")
+        code, body, _h = self.get("concepts/record.html")
+        self.assertEqual(code, 200)
+        self.assertIn("RECORD-CONTENT", body)
+        self.assertFalse(self.app._stopping.is_set())
+        self.assertEqual(request(self.port, "GET", f"/{self.app.control_token}/control/locate/a")[0], 200)
 
     def test_headers(self):
         _code, _body, headers = self.get("concepts/a.html")
@@ -181,24 +215,23 @@ class RequestTest(InProcess):
                 self.assertNotIn(needle, body)
 
     def test_broken_record_is_not_reused(self):
-        record = self.app.state_dir / "server.json"
         for rec in ({"port": 1, "view_token": "a", "control_token": "b", "instance": None},
                     {"port": "1", "view_token": "a", "control_token": "b", "instance": "c"},
-                    {"port": 1, "view_token": "", "control_token": "b", "instance": "c"}):
-            record.write_text(json.dumps(rec), encoding="utf-8")
-            self.assertIsNone(wiki_browse._read_record(self.app.state_dir), rec)
+                    {"port": 1, "view_token": "", "control_token": "b", "instance": "c"}, None, []):
+            self.assertIsNone(wiki_browse._valid_record(rec), rec)
+            self.assertIsNone(wiki_browse._answering(rec), rec)
 
     def test_stop_waits_for_record_of_starting_server(self):
         # サーバーがロックを持ち、まだ記録を書いていない状態を作る。
-        record = self.app.state_dir / "server.json"
+        record = self.state_dir / "server.json"
         if record.exists():
             record.unlink()
-        lock = fs.Lock(self.app.guard, self.app.state_dir / "server.lock")
+        lock = state_lock(self.wiki)
         self.assertTrue(lock.try_acquire())
 
         def later():
             time.sleep(0.7)
-            record.write_text(json.dumps(self.app.record()), encoding="utf-8")
+            record.write_text(json.dumps(dict(self.app.record(), owner=self.owner)), encoding="utf-8")
             self.app._stopping.wait(20)
             lock.release()
         helper = threading.Thread(target=later)
@@ -212,46 +245,38 @@ class RequestTest(InProcess):
         self.assertTrue(json.loads(out.getvalue())["stopped"])
         self.assertTrue(self.app._stopping.is_set())
 
-    def test_serve_rechecks_inputs_after_waiting_for_lock(self):
-        record = self.app.state_dir / "server.json"
-        record.write_text(json.dumps({"port": 9, "view_token": "a", "control_token": "b", "instance": "c"}),
-                          encoding="utf-8")
-        before = record.read_bytes()
-        lock = fs.Lock(self.app.guard, self.app.state_dir / "server.lock")
-        self.assertTrue(lock.try_acquire())
-        result = {}
-
-        def run():
-            try:
-                with redirect_stderr(io.StringIO()):
-                    result["code"] = wiki_browse.serve(self.wiki, None, False, 5)
-            except Exception as e:  # noqa: BLE001
-                result["error"] = e
-        th = threading.Thread(target=run)
-        th.start()
-        time.sleep(0.5)
+    def test_finish_removes_record_pointed_by_a_page(self):
+        # 記録は browse のものである。ページが指していても、終了で消す。ページのリンクは先のないリンクになる
+        # （構造の直しの設計の 10。言い換えのあとは欠陥でない）
+        root, state_dir = wiki_browse.browse_dir(), str(self.state_dir)
+        outcome, server = fs.serve_start(self.wiki, root, state_dir, self.owner, lambda: {"instance": "x"})
+        self.assertEqual(outcome, "started")
+        record = self.state_dir / "server.json"
         try:
             os.symlink(record, self.wiki / "concepts" / "record.md")
         except (OSError, NotImplementedError):
-            lock.release()
-            th.join(30)
+            server.lock.release()
             self.skipTest("シンボリックリンクを作れない")
-        lock.release()
-        th.join(30)
-        self.assertIsInstance(result.get("error"), fs.Refused)
-        self.assertEqual(record.read_bytes(), before)
+        fs.serve_finish(server)
+        self.assertFalse(record.exists())
+        self.assertTrue(os.path.islink(self.wiki / "concepts" / "record.md"))
 
-    def test_finish_keeps_record_pointed_by_a_page(self):
-        record = self.app.state_dir / "server.json"
-        record.write_text("{}", encoding="utf-8")
+    def test_record_and_marker_carry_the_wiki_root(self):
+        # 記録と目印に Wiki のルートの識別子を書き、記録を読む側はいつも照らす（構造の直しの設計の 7.1）
+        root, state_dir = wiki_browse.browse_dir(), str(self.state_dir)
+        outcome, server = fs.serve_start(self.wiki, root, state_dir, self.owner, lambda: {"instance": "x"})
         try:
-            os.symlink(record, self.wiki / "concepts" / "record.md")
-        except (OSError, NotImplementedError):
-            self.skipTest("シンボリックリンクを作れない")
-        with redirect_stderr(io.StringIO()):
-            code = wiki_browse._finish(self.wiki, self.app, self.app.guard, self.app.state_dir)
-        self.assertEqual(code, wiki_browse.EXIT_FAILED)
-        self.assertTrue(record.exists())
+            rec = json.loads((self.state_dir / "server.json").read_text(encoding="utf-8"))
+            self.assertEqual(rec["owner"], self.owner)
+            self.assertEqual((self.state_dir / fs.SERVER_MARKER).read_text(encoding="utf-8"), self.owner)
+            with self.assertRaises(fs.Stop):
+                fs.probe_server(self.wiki, root, state_dir, "other-wiki")
+            with self.assertRaises(fs.Stop):
+                fs.serve_start(self.wiki, root, state_dir, "other-wiki", lambda: {"instance": "y"})
+            self.assertEqual(fs.probe_server(self.wiki, root, state_dir, self.owner)[0], "running")
+        finally:
+            fs.serve_finish(server)
+        self.assertEqual(fs.probe_server(self.wiki, root, state_dir, self.owner), ("not-running", None))
 
     def test_locate_accepts_wikilink_spellings(self):
         import urllib.parse
@@ -455,7 +480,7 @@ class RebuildTest(InProcess):
             if busy["on"] and Path(self_) in targets:
                 raise PermissionError("busy")
             return real(self_)
-        with mock.patch.object(Path, "read_bytes", flaky):
+        with reads_via(flaky):
             body = self.get("concepts/a.html")[1]
             self.assertIn("オントロジーを読めない", body)
             busy["on"] = False
@@ -526,15 +551,16 @@ class RebuildTest(InProcess):
             if busy["on"] and Path(self_) == target:
                 raise PermissionError("busy")
             return real(self_)
-        with mock.patch.object(Path, "read_bytes", flaky):
+        with reads_via(flaky):
             self.assertEqual(self.get("concepts/b.html")[0], 404)
             busy["on"] = False
             time.sleep(0.4)
             self.assertEqual(self.get("concepts/b.html")[0], 200)
 
-    def test_server_does_not_record(self):
+    def test_core_holds_no_recorder(self):
+        # 利用者が書いたかの推定（Recorder）をなくした（構造の直しの設計の 8）
         self.get("concepts/a.html")
-        self.assertFalse(self.app.state.current.recorder.enabled)
+        self.assertFalse(hasattr(self.app.state.current, "recorder"))
 
 
 class ServeScopeTest(Base):
@@ -630,8 +656,7 @@ class MarkersTest(unittest.TestCase):
             log = io.StringIO()
             with mock.patch.dict(os.environ, {"INFO_HIVE_DATA_DIR": str(data)}), \
                     mock.patch.object(Path, "home", return_value=home), redirect_stderr(log):
-                guard, state_dir = wiki_browse._prepare_state(wiki)
-                app = wiki_browse.App(wiki, guard, state_dir, idle=600, verbose=True)
+                app = wiki_browse.App(wiki, idle=600, verbose=True, assets=core.load_assets())
                 httpd = wiki_browse._Server(("127.0.0.1", 0), wiki_browse.Handler)
                 httpd.app = app
                 app.httpd = httpd
@@ -773,9 +798,7 @@ class ProcessTest(Base):
         self.assertFalse((self.state_dir() / "server.json").exists())
 
     def test_serve_waits_while_stop_holds_the_lock(self):
-        with redirect_stderr(io.StringIO()):
-            guard, state_dir = wiki_browse._prepare_state(self.wiki)
-        lock = fs.Lock(guard, state_dir / "server.lock")
+        lock = state_lock(self.wiki)
         self.assertTrue(lock.try_acquire())
         p = self.serve()
         time.sleep(1.0)
@@ -811,12 +834,10 @@ class ProcessTest(Base):
     def test_stop_while_starting_waits_for_record(self):
         p = self.serve("--page", "a")
         # サーバーがロックを取った（起動の途中に入った）ことを確かめてから止める。
-        with redirect_stderr(io.StringIO()):
-            guard, state_dir = wiki_browse._prepare_state(self.wiki)
-        probe = fs.Lock(guard, state_dir / "server.lock")
+        lock_path = os.path.join(wiki_browse._state_dir(self.wiki), "server.lock")
         deadline = time.monotonic() + 30
-        while probe.try_acquire():
-            probe.release()
+        # 何も作らずに確かめる（stop と同じ口）
+        while not (os.path.exists(lock_path) and fs.lock_held(lock_path)):
             self.assertLess(time.monotonic(), deadline, "サーバーがロックを取らない")
             time.sleep(0.05)
         res = self.stop()
