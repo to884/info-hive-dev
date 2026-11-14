@@ -743,6 +743,9 @@ def _shadow(sb, files=None):
     try:
         shutil.rmtree(shadow.root)
         shutil.copytree(sb.root, shadow.root, symlinks=True)
+        # 写しの目印は、元の砂場の Wiki の持ち主の値を持つ。同じ値を渡さないと、写しだけが「引き継ぐ」経路に入り、
+        # 呼び出しの番号がずれる
+        shadow.owner = sb.owner
         rec = Injector()
         run_build(shadow, rec, files)
         return rec.calls
