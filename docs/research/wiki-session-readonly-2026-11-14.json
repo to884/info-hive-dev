@@ -1,0 +1,59 @@
+{
+  "purpose": "読み取り専用の raw を、wiki の中の別名を経由した Claude Code の Write と Edit が書き換えられないか",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "claude_version": "2.1.325 (Claude Code)",
+  "tools": [
+    "Read",
+    "Read",
+    "Edit",
+    "Edit",
+    "Write",
+    "Write"
+  ],
+  "attempts": {
+    "Read wiki/indexes/会話.md": {
+      "tried": true,
+      "ok": true,
+      "errors": []
+    },
+    "Write wiki/indexes/会話.md": {
+      "tried": true,
+      "ok": true,
+      "errors": [
+        "EPERM: operation not permitted, rename 'C:\\UserData\\toshiki\\Temp\\tmpuklwv0fq\\project\\wiki\\indexes\\会話.md.tmp.56000.41ec7ceb9419' -> 'C:\\UserData\\toshiki\\Temp\\tmpuklwv0fq\\project\\wiki\\indexes\\会話.md'"
+      ]
+    },
+    "Edit wiki/indexes/会話.md": {
+      "tried": true,
+      "ok": true,
+      "errors": [
+        "EPERM: operation not permitted, rename 'C:\\UserData\\toshiki\\Temp\\tmpuklwv0fq\\project\\wiki\\indexes\\会話.md.tmp.56000.41d81c54fb04' -> 'C:\\UserData\\toshiki\\Temp\\tmpuklwv0fq\\project\\wiki\\indexes\\会話.md'"
+      ]
+    },
+    "Read wiki/up/raw/会話.md": {
+      "tried": true,
+      "ok": true,
+      "errors": []
+    },
+    "Write wiki/up/raw/会話.md": {
+      "tried": true,
+      "ok": true,
+      "errors": [
+        "EPERM: operation not permitted, rename 'C:\\UserData\\toshiki\\Temp\\tmpuklwv0fq\\project\\wiki\\up\\raw\\会話.md.tmp.56000.29ad2fdf09e6' -> 'C:\\UserData\\toshiki\\Temp\\tmpuklwv0fq\\project\\wiki\\up\\raw\\会話.md'"
+      ]
+    },
+    "Edit wiki/up/raw/会話.md": {
+      "tried": true,
+      "ok": true,
+      "errors": [
+        "EPERM: operation not permitted, rename 'C:\\UserData\\toshiki\\Temp\\tmpuklwv0fq\\project\\wiki\\up\\raw\\会話.md.tmp.56000.ed0850985c69' -> 'C:\\UserData\\toshiki\\Temp\\tmpuklwv0fq\\project\\wiki\\up\\raw\\会話.md'"
+      ]
+    }
+  },
+  "raw_unchanged": true,
+  "raw_read_only": true,
+  "raw_root_files": [
+    "会話.md"
+  ],
+  "returncode": 0
+}

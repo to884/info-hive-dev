@@ -4,7 +4,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | **承認（2026年11月14日、作者）。** 5 版目に、5〜7 回目のレビューの直しを入れたもの。実装はまだ始めていない。「作者が決めること」は、どれも推奨の側で承認された |
+| 状態 | **承認（2026年11月14日、作者）。実装済み（to884/info-hive-wiki#59、to884/info-hive-dev#107）。** 5 版目に、5〜7 回目のレビューの直しを入れたもの。実装の敵対的レビューは 7 回受け、7 回目で採用可（[impl-review-7.md](../agent-runs/2026-11-14-wiki-session-ingest/impl-review-7.md)、原因の構造は [impl-root-causes.md](../agent-runs/2026-11-14-wiki-session-ingest/impl-root-causes.md)）。実装の途中で、10 節と S8〜S10（`scan` の範囲）と 8 節（決定のファイルの名前）を変えた。どちらも作者が承認した |
 | きっかけ | 作者の問い「Claude で行ったセッションの会話の内容を、記事の形式にまとめて wiki に取り込む方法は？」と、続く依頼「コマンドで作りたい」 |
 | 関連 | ADR-0004（Web ページの raw）、ADR-0015（記事作成の方法論は段階を分けて入れる）、ADR-0018（Python 3.12）、ADR-0019（wiki の根は `SCHEMA.md` で決まる。状態は提案。判定は `wiki_initialized.py` にある）、`commands/ingest.md` の手順 1〜8 と W1〜W9、`wiki_fetch.py`、`wiki_lint.py` の `missing_raw()`、`commands/learn.md`、[wiki の書く段の設計](wiki-apply-2026-11-14.md)（分けた） |
 | 基準にした版 | `info-hive-wiki` の 83dbb30（origin/main、0.14.1 のあとの未リリースの変更を含む）。親のリポジトリは a237e8f（origin/main） |
@@ -165,7 +165,7 @@ wiki の書き込みについても調べた（[concurrency-check.md](../agent-r
 ### 8. 確認と決定
 
 - **`show`** は、土台に決定を当てた、raw と同じバイト列を、ターンの範囲（`--turns T1-T20`）を指定して標準出力に出す。ファイルは書かない。1 回に出す量は `--max-chars`（既定 20,000 文字）までで、超えるときは、続きを出す `--from <ターン>:<文字の位置>` を標準エラーに出す（`--json` なら `next` のキー）。標準出力には raw のバイト列だけを出し、続きの案内を混ぜない。1 つのターンが長いとき（検証環境では 138,780 文字の本文があった）も、文字の位置で分けて出す。ホストのツールが長い出力をファイルに退避することがあるので、1 回の出力を小さく保つ（「保証しないこと」の 5）。モデルは全体を分けて読み、伏せる候補をユーザーに示す。何を伏せるかはユーザーが決める。
-- **決定のファイル**は `<WIKI_ROOT>/.wiki-cache/session/<スラッグ>-<乱数>.json` で、`decide init` が作る。中身は `format`、`extracted_by`、`session_id`、`source_sha256`、`source_bytes`、`cut_before`、`options`、`base_sha256`、`spans`（ターンの番号か `cwd` か `git_branch` と、その中の開始と終わりの位置）、`drop`（消すターンの番号）である。**伏せる文字列そのものは書かない。** 位置だけなので、このファイルがコミットされても秘密は漏れない。
+- **決定のファイル**は `<WIKI_ROOT>/.wiki-cache/session/<乱数>.json` で、`decide init` が作る。中身は `format`、`extracted_by`、`session_id`、`source_sha256`、`source_bytes`、`cut_before`、`options`、`base_sha256`、`spans`（ターンの番号か `cwd` か `git_branch` と、その中の開始と終わりの位置）、`drop`（消すターンの番号）である。**伏せる文字列そのものは書かない。** 位置だけなので、このファイルがコミットされても秘密は漏れない。**名前にはスラッグを入れない（実装の 4 回目のレビューのあとの変更。承認（2026年11月14日、作者））。** 名前にスラッグを入れると、秘密を含むスラッグや、あとで `mark` する顧客の名前を含むスラッグが、伏せる前にディスクのパスに残る（[impl-review-4.md](../agent-runs/2026-11-14-wiki-session-ingest/impl-review-4.md) の重大 3）。置いてある決定のファイルがどの取り込みのものかは、名前ではなく中身（`session_id`、`source_sha256`、`cut_before`）で見分ける。`decide init` も、書く前にスラッグを題名と同じ規則で確かめる。
 - **`decide mark --target <T5|cwd|git_branch> --text <文字列> (--nth <k> | --all) [--all-turns]`** は、土台の中の完全一致を探して位置に変え、`spans` に足す。一致がなければ拒む。`--nth` も `--all` もなく 2 か所以上に一致すれば、曖昧なので拒む。
 - **`decide drop --turn <T9>`** は、消すターンを足す。
 - **`show --meta`** は、`base_sha256`、`render_sha256`（raw の全体のバイト列の SHA-256）、文字数、ターン数、`manual_redactions`（重なりをまとめた区間の数）、`dropped_turns`、残った警告を出す。モデルはこれを示し、ユーザーの承認を得る（S5）。
@@ -200,6 +200,8 @@ wiki への書き込みは、既存の手順 6〜7 のとおりモデルが行�
 
 見つかったら、何行目の何文字目かと、規則の名前（`manual`、`auto_email`、`auto_secret`、`auto_home`、`pattern_*`）だけを出す。文字列は出さない。終了コード 1 にする。`--allow` で渡した文字列（`write` が出した `raw_ref` など、人が承認した値）は、その文字列の全体と一致する部分だけを除く。
 
+**書いたあとのファイルの全体を照らす（実装の 2 回目のレビューのあとの変更。承認（2026年11月14日、作者））。** 直す箇所の新しい文だけを照らすと、新しい断片と既存の文がつながって、伏せた文字列が戻る（`顧客Bについて。` の `B` を `A` に直すと `顧客A` になる。[impl-review-2.md](../agent-runs/2026-11-14-wiki-session-ingest/impl-review-2.md) の重大 2、[原因の構造](../agent-runs/2026-11-14-wiki-session-ingest/impl-root-causes.md)）。そこで、S8 では直す箇所の新しい文ではなく、直したあとのページの全文を `scan` に渡す。wiki への書き込みをすべて終えたあと（S10。S9 の書き込み、ログのサブ行、手順 7 のエッジのあと）に、`scan --path <書いたファイル>…` で、ディスクにある書いたあとのファイルの全体をもう一度照らす（実装の 3 回目のレビューの軽微の指摘で、S9 の直後から、最後の書き込みのあとに移した）。見つかったら、そのファイルを直してユーザーに伝える。書いたあとの照合は、承認した中身と書いた中身の食い違い（保証しないことの 7）も、書いた結果の上で見つける。
+
 `scan` は助言の検査であり、wiki への書き込みを止める仕組みではない。見つかったら、モデルはその場所を直して `scan` をやり直す。正しい文が当たったとき（誤検出）は、場所と規則の名前をユーザーに示し、ユーザーが書いてよいと言ったときだけ書く。`scan` を流さずに書くことは、手順の遵守に頼る（「保証しないこと」の 1）。
 
 **中身を見せる。** `scan` を通ったら、モデルは、新しいページの全文、直す箇所ごとの前と後、索引とログに足す行を、まとめてユーザーに見せ、承認を得る。承認された中身だけを、Write と Edit で書く。書いたあとで、モデルは書いたページを読み直し、承認した中身と食い違っていれば、ユーザーに伝える。
@@ -227,7 +229,7 @@ python wiki_session.py decide  init|mark|drop|list --decisions <F> ...
 python wiki_session.py write   --transcript <P> [共通の引数] --title <T> --decisions <F>
                                --wiki <W> --raw-root <R> --slug <S> --expect-sha256 <render_sha256> [--json]
 python wiki_session.py verify  --raw-root <R> --slug <S> --expect-sha256 <render_sha256> [--json]
-python wiki_session.py scan    --transcript <P> [共通の引数] --decisions <F> [--allow <文字列> …] [--json]  < 書く予定の文
+python wiki_session.py scan    --transcript <P> [共通の引数] --decisions <F> [--allow <文字列> …] [--path <書いたファイル> …] [--json]  < 書く予定の文
 ```
 
 共通の引数は `[--session-id <ID>] [--before <uuid>] [--tools summary|none] [--keep-reminders] [--utc-offset +09:00]` である。
@@ -243,7 +245,8 @@ python wiki_session.py scan    --transcript <P> [共通の引数] --decisions <F
 - 警告の `code`: `stripped_reminder`、`leading_tag`、`broken_lines`、`unknown_uuidless_type`、`reply_unresolved`、`mixed_session_ids`、`possible_rewind`。
 - `show --meta` の出力のキー: `base_sha256`、`render_sha256`、`chars`、`turns`、`manual_redactions`、`dropped_turns`、`warnings`。
 - `write` の出力のキー: `raw_state`（`created`、`identical`、`conflict`、`slug_taken`）、`raw_path`、`raw_ref`、`render_sha256`。
-- `scan` の出力のキー: `findings`（`line`、`column`、`rule`）、`skipped_short`。
+- `scan` の出力のキー: `findings`（`line`、`column`、`rule`。`--path` のときは `path` も）、`skipped_short`。`column` は、正規化で切れない塊の先頭の位置。
+- `decide list` の出力のキー: `session_id`、`source_sha256`、`cut_before`、`spans`、`drop`。
 - `verify` の出力のキー: `raw_path`、`sha256_matches`、`read_only`。
 - `show` の出力のキー（`--json`）: `text`、`next`（続きの `--from` の値。なければ `null`）。
 
@@ -259,8 +262,9 @@ python wiki_session.py scan    --transcript <P> [共通の引数] --decisions <F
 - **S6.** `write` を実行する。終了コード 3 なら、別版のスラッグにするかをユーザーに聞く。
 - **S7.** 手順 4（要点の話し合い）と手順 5（関係するページを洗い出す）を行う。要約ページの全文、関連ページの直し、`## 主張と行き先` の表（手順 6 と `ingest-workflow.md` の 7b）、索引とログの行、手順 7 の型付きのエッジを、会話の中で用意する。まだファイルに書かない。要約ページの `raw` には `write` が出した `raw_ref` を、`session_id` にはセッションの ID を書く。根拠の位置はターンの番号で書く。ログのサブ行には `manual_redactions` と `dropped_turns` を書く。伏せると決めた文字列を書かない。
 - **S8.** 用意した文の全部を `scan` に渡す（`--allow` には `raw_ref` を渡す）。見つかったら直して、やり直す。通ったら、中身をユーザーに見せて承認を得る。
-- **S9.** 承認された中身だけを、手順 6 のとおり Write と Edit で書く。
-- **S10.** 手順 7（グラフの lint と抽出、ログのグラフのサブ行）を行う。ログのグラフのサブ行は、数だけで、会話の文を含まないので、`scan` は要らない。wiki への書き込みを終えたら、`verify --raw-root <R> --slug <S> --expect-sha256 <render_sha256>` を実行する。raw のバイト列が変わっていたり、読み取り専用でなくなっていたりしたら、終了コード 1 になる。そのときは、wiki の書き込みが別名を経由して raw を書き換えた見込みが高いので、手順 8 で必ずユーザーに伝える。raw は記録と決定から作り直せる（`show` の出力が同じバイト列になる）ので、戻し方をユーザーと決める。手順 8（報告）を行い、決定のファイルを消す。
+- **S8 の変更（承認（2026年11月14日、作者））。** 直す箇所の新しい文ではなく、直したあとのページの全文を渡す（10 節）。
+- **S9.** 承認された中身だけを、手順 6 のとおり Write と Edit で書く。**変更（承認（2026年11月14日、作者））:** wiki への書き込みをすべて終えたあと（S10 の `verify` の前）に `scan --path` で書いたファイルの全体を照らし、見つかったら直してユーザーに伝える（10 節）。
+- **S10.** 手順 7（グラフの lint と抽出、ログのグラフのサブ行）を行う。wiki への書き込み（S9、ログのサブ行、手順 7 のエッジ）をすべて終えたら、書いたファイルのすべてを `scan --path` で照らす（10 節。グラフのエッジは、ソースの引用を含みうる）。wiki への書き込みを終えたら、`verify --raw-root <R> --slug <S> --expect-sha256 <render_sha256>` を実行する。raw のバイト列が変わっていたり、読み取り専用でなくなっていたりしたら、終了コード 1 になる。そのときは、wiki の書き込みが別名を経由して raw を書き換えた見込みが高いので、手順 8 で必ずユーザーに伝える。raw は記録と決定から作り直せる（`show` の出力が同じバイト列になる）ので、戻し方をユーザーと決める。手順 8（報告）を行い、決定のファイルを消す。
 
 ## 保証しないこと
 
@@ -270,7 +274,7 @@ python wiki_session.py scan    --transcript <P> [共通の引数] --decisions <F
 4. **本文の形で決める規則。** 先頭の `<system-reminder>`、コマンドの要素、`<create-pr-command>` を、人が同じ形で書いたときと見分けられない。警告と引数で戻せるのは `<system-reminder>` だけである。
 5. **いま動いているセッションの記録。** `show` の出力、`decide mark --text` の文字列、伏せる候補の相談、`scan` に渡した文は、いま動いているセッションの記録（`~/.claude` の下）に残る。ホストのツールが長い出力をファイルに退避するとき（Claude Code は、設定のディレクトリの下のセッションごとの `tool-results` に置く。このセッションでも起きた）も、同じ場所に残る。`show` は 1 回の出力を `--max-chars` までにして退避を起こしにくくするが、なくしはしない。設定のディレクトリが Git の作業ツリーの中にある配置では、そこから漏れうる。あとでその範囲を取り込むときは、もう一度、伏せ字と確認を通る。
 6. **wiki の書き込みの競合。** 要約ページ、関連ページ、索引、ログは、既存の取り込みと同じく排他なしで書く。2 つの書き込みが数ミリ秒の中で重なると、行が黙って消えうる。lint はそれを見つけない。[書く段の設計](wiki-apply-2026-11-14.md)で扱う。raw は排他作成で守る。
-7. **承認した中身と書いた中身の一致。** モデルが Edit と Write で書くので、承認した中身と書いた中身が同じであることは、機械では縛らない。モデルが書いたあとに読み直して確かめる。
+7. **承認した中身と書いた中身の一致。** モデルが Edit と Write で書くので、承認した中身と書いた中身が同じであることは、機械では縛らない。モデルが書いたあとに読み直して確かめる。S10 の `scan --path` は、書いたあとのファイルの全体を照らすので、伏せた文字列が書いた結果に入ったことは見つける。ただし、これは書いたあとの照合なので、見つかったときには、その文字列はすでに wiki の作業ツリーのファイルに入っている。コミットの前に直す（Git の履歴に入ったあとは、10 のとおり人が直す）。
 8. **取り込みの手順の完了。** 手順 7 と手順 8 が済んだかは、人の判断に頼る。
 9. **意味の重複。** 同じ概念を別のスラッグで作ることと、同じセッションを別のスラッグで 2 回取り込むことは防がない。
 10. **書いたあとに見つかった秘密。** 人が raw と要約ページを消し、Git の履歴も直す。プラグインは自動では直さない。
@@ -338,7 +342,7 @@ python wiki_session.py scan    --transcript <P> [共通の引数] --decisions <F
 
 ## まだ確かめていないこと
 
-- プラグインのコマンドの本文で `${CLAUDE_SESSION_ID}` が置き換わるか。取り込みの依頼の記録が、コマンドの本文が動く前に書かれているか。
+- ~~プラグインのコマンドの本文で `${CLAUDE_SESSION_ID}` が置き換わるか。取り込みの依頼の記録が、コマンドの本文が動く前に書かれているか。~~ 2026年11月14日に、Claude Code 2.1.316 の `claude -p` と対話のセッションで、どちらも成り立つことを確かめた（[確かめの記録](../research/wiki-session-id-probe-2026-11-14.md)）。デスクトップアプリのセッションと、Skill ツールを通した起動は確かめていないので、S1 は、置き換わらないときと UUID の形でないときに、ユーザーに聞く。
 - 記録が追記だけで書かれ、書いた行があとで変わらないか（`--before` の範囲の同一性が頼る）。
 - `cleanupPeriodDays` の既定の日数。
 - 巻き戻しが記録にどう残るか。
