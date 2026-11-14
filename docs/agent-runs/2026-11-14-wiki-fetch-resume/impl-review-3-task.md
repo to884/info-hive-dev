@@ -1,6 +1,6 @@
 対象は、Claude Code プラグイン wiki（info-hive-wiki）の Web ページの取得器 `wiki_fetch.py` で、途中の取り込みを取得の前に再開するようにした実装の 4 版である。設計書は `docs/plans/wiki-fetch-resume-before-fetch-2026-11-14.md`（4 版）。これまでのレビュー（同じフォルダーの `design-review-1.md`、`impl-review-1.md`、`impl-review-2.md`）と、設計書の「改訂の履歴」に、指摘と直し方がある。
 
-差分は `docs/agent-runs/2026-11-14-wiki-fetch-resume/impl-3.diff` にある（worktree の中）。info-hive-wiki はサブモジュールで、変更はコミット済み（`git -C info-hive-wiki diff origin/main..HEAD`）。試験は親の `tests/wiki/test_wiki_web_check.py` の `ResumeBeforeFetchTest`。
+差分は `docs/agent-runs/2026-11-14-wiki-fetch-resume/impl-3.diff` にある（worktree の中）。info-hive-wiki はサブモジュールで、変更はコミット済み（`git -C info-hive-wiki diff origin/main...HEAD`）。並行していた PR（to884/info-hive-wiki#54。`write_outputs` と `build` の最後の名前の変更を試し直す）が main に入ったので、両方のブランチに main をマージした。差分は、そのマージのあとの main との差分である。試験は親の `tests/wiki/test_wiki_web_check.py` の `ResumeBeforeFetchTest`。
 
 保証（設計書の「前提」。4 版で定め直した）:
 - 保証するのは整合である。写しのファイルの組（`fetched.md`、`fetch.json`、あれば `cleaned.md`）と raw が、1 つの取得と、その取得のあとの `freeze` が残しうる組のときだけ続ける。どこで止まっても、写しのファイルの一部を丸ごと別の取得のものに置き換えても（一部だけを戻したバックアップなど）、この組でなければ続けない。
@@ -23,4 +23,4 @@
 - 試験の抜けと、試験が実装の誤りを見逃す書き方。
 - CHANGELOG の記述と実装の食い違い。
 
-設計書の「限界」に書いたものは範囲の外として承知している。並行する PR（to884/info-hive-wiki#54 が `write_outputs` と `build` の最後の `os.replace` を直している）との衝突は、ここでは問わない。
+設計書の「限界」に書いたものは範囲の外として承知している。#54 のマージで入った `replace_with_retry` そのものの是非は問わないが、マージで再開の不変条件（`fetch.json` を raw のあとに置く順など）が崩れていれば指摘してほしい。

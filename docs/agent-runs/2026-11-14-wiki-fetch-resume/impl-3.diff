@@ -1,6 +1,6 @@
-# info-hive-wiki: git diff origin/main..HEAD
+# info-hive-wiki: git diff origin/main...HEAD（origin/main は to884/info-hive-wiki#54 のマージを含む）
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index 626f904..097274a 100644
+index 8842155..144b5a8 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
 @@ -6,6 +6,17 @@
@@ -18,9 +18,9 @@ index 626f904..097274a 100644
 +- `wiki_fetch.py` の出力に、どの取得か（`source_sha256_of`。`dom` はブラウザで保存した HTML）を足した。`/wiki:ingest` の W3 は、`dom` の取得の本文が短くても、ブラウザでの取り直しを繰り返さずに、取り直すかをユーザーに聞く。
 +- `/wiki:ingest` の W3 で、ブラウザで保存した HTML で取り直すときに `--force` を付けるようにした。付けないと、前の取得の raw と原文のハッシュが違うので、終了コード 3 で止まっていた。
 +
- ## [0.14.0] - 2026-11-14
+ ### Fixed
  
- ### Added
+ - Windows で Web ページの取得（`wiki_fetch.py`）が、ときどき `PermissionError: [WinError 5]` で止まっていたのを直した。raw の本文と画像は一時の名前で書いてから `os.replace` で正式な名前にするが、ほかのプロセス（ウイルス対策の検査、検索の索引、エディター）がそのファイルを開いていると、置き換えが拒まれる。raw を何百回も置き換える試験では、10 回に 1 回ほど起きた。
 diff --git a/commands/ingest.md b/commands/ingest.md
 index a7de15d..7a5d9a6 100644
 --- a/commands/ingest.md
@@ -72,10 +72,10 @@ index 2e8f261..69a11e2 100644
  表のセル（列）は消せない。表の雑音は、行ごとか表ごと消す。パーサーは、表のデータの行のセルを見出しの列数にそろえる（多いセルは捨てて表示せず、足りないセルは空のセルで補う）。検査に使う木では、表の行を、本文の行に実際にあるセルだけで作る（パーサーの表の規則と同じ行の取り出しと分け方で分け、補った空のセルを除き、捨てたセルを足す）。`freeze` は表の行のセルを位置で対応させ、`check` は行ごとに照らすので、どちらの段でも、行のセルの数が取得（固定した内容）の行と違えば誤りになる。セルの区切りの `|` を消すとセルが減り（後ろのセルが前の列にずれる）、セルの中の `\|` の `\` を消すか `|` を足すとセルが増える（見出しより多いセルは表示されない）。訳文の中の `|` は `\|` と書く。
  
 diff --git a/skills/info-hive/scripts/wiki_fetch.py b/skills/info-hive/scripts/wiki_fetch.py
-index f74eaf8..ae7c6ab 100644
+index bbae518..9955449 100644
 --- a/skills/info-hive/scripts/wiki_fetch.py
 +++ b/skills/info-hive/scripts/wiki_fetch.py
-@@ -1206,10 +1206,27 @@ def build(args) -> tuple[int, dict]:
+@@ -1250,10 +1250,27 @@ def build(args) -> tuple[int, dict]:
      if not inside(raw_root, target) or not inside(raw_root, asset_dir):
          raise ValueError(f"保存先が RAW_ROOT の外になる: {target}")
  
@@ -104,7 +104,7 @@ index f74eaf8..ae7c6ab 100644
      if html_file:
          # ブラウザで保存した HTML。基準の URL は、本文を取ったときのアドレス欄の URL にする。
          check_url(args.page_url)
-@@ -1227,9 +1244,10 @@ def build(args) -> tuple[int, dict]:
+@@ -1271,9 +1288,10 @@ def build(args) -> tuple[int, dict]:
      if ctype and ctype not in ("text/html", "application/xhtml+xml", "text/plain", "application/xml", "text/xml"):
          raise FetchError(f"HTML のページではない（Content-Type: {ctype}）。PDF などは保存してから通常の手順で取り込む")
      sha = hashlib.sha256(data).hexdigest()
@@ -117,7 +117,7 @@ index f74eaf8..ae7c6ab 100644
  
      if target.exists() and not args.force:
          old = existing_sha(target)
-@@ -1238,22 +1256,10 @@ def build(args) -> tuple[int, dict]:
+@@ -1282,22 +1300,10 @@ def build(args) -> tuple[int, dict]:
              if wiki is not None:
                  # 写しがそろい（そろった印は raw を書いたあとに置くので、raw と同じ取得で書いたもの）、raw の
                  # frontmatter を書き換えていないときだけ、途中から続けられる。
@@ -144,7 +144,7 @@ index f74eaf8..ae7c6ab 100644
              return 0, result
          suggestion = f"{args.slug}-{datetime.now().strftime('%Y%m%d')}"
          result["suggested_slug"] = suggestion
-@@ -1399,6 +1405,9 @@ def build(args) -> tuple[int, dict]:
+@@ -1443,6 +1449,9 @@ def build(args) -> tuple[int, dict]:
          "images": images_out,
          "dropped_images": dropped,
          "removed_by_rule": removed_by_rule,
@@ -154,7 +154,7 @@ index f74eaf8..ae7c6ab 100644
      })
  
      # 検査（wiki_rawcheck.py）の基準になる作業用の写しを、raw より先に書く。写しを書けなければ raw も書かない。
-@@ -1421,13 +1430,41 @@ def build(args) -> tuple[int, dict]:
+@@ -1466,13 +1475,41 @@ def build(args) -> tuple[int, dict]:
      return 0, result
  
  
@@ -436,7 +436,7 @@ index 1a58362..8d8b61d 100644
  
  def _changed_lines(a: str, b: str) -> list[tuple[str, str]]:
 
-# info-hive-dev: git diff af5f947 -- tests
+# info-hive-dev: git diff origin/main...HEAD -- tests
 diff --git a/tests/wiki/test_wiki_web_check.py b/tests/wiki/test_wiki_web_check.py
 index 6d5ecad..47bacc8 100644
 --- a/tests/wiki/test_wiki_web_check.py
