@@ -62,3 +62,7 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 ## [2026-11-14] ingest | LLM Wiki 記事作成の方法論 — 使い分けと Skill 設計
    ページ: sources/llm-wiki記事作成の方法論、concepts/記事作成の5区分（SCHEMA.md のタグの体系に `wiki設計` を足した）
    グラフ: ノード +2、型付きエッジ +0
+
+## [2026-11-14] ingest | type と updated を配列や値なしで書いたページの扱いの修正、wiki 0.14.1 のリリースの記録
+   ページ: sources/typeとupdatedの配列の扱いの修正-wiki-0.14.1（concepts/frontmatterのリストの値、concepts/リリースの確かめ方 を更新）
+   グラフ: ノード +1、型付きエッジ +0
