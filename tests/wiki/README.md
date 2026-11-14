@@ -15,6 +15,7 @@
 | `test_wiki_fetch.py` | Web ページの取得（`wiki_fetch.py`）の、Medium の形の取りこぼし（info-hive-wiki#42）。`<picture>` の `<source srcset>` にだけ URL がある図を保存し、WebP でない `<source>` の幅のいちばん大きい候補を選ぶこと、`<img>` の URL があればそれを使うこと、`<pre>` の中の `<br>` を改行にし、`<pre>` の外の `<br>` は変えないこと。取得を差し替え、ネットにはつながない。標準ライブラリだけで動く |
 | `test_wiki_web_check.py` | URL の取り込みの検査（`wiki_rawcheck.py` の `freeze` と `check`）と、`wiki_fetch.py` の雑音の規則・`--html-file`・作業用の写し・取得の前の再開（写しの組の整合、`freeze` の報告、0.14.0 の写し）・言語の判定・スラッグの拒否。止める編集と、その対照（正しい削除や訳が通ること）を並べる。取得を差し替え、ネットにはつながない。標準ライブラリだけで動く |
 | `test_help_command.py` | `/wiki:help [command]` の個別のヘルプ（wiki 0.14.0。設計は `docs/plans/wiki-help-command-2026-11-14.md`）。コマンド名の正規化と照合、`docs/commands.md` の節の取り出し、節の相対リンクの、GitHub の導入した版のタグの文書への書き換えと、書き換えの前後の同梱のパーサーでの照らし合わせ（読めない書き方では、書き換えずに節をそのまま出す）。実物のすべてのコマンドの詳細が警告なしに出て、リンクの行き先が実在すること。`commands/help.md` が、利用者の引数をそのままシェルに渡さず、英数字と `-` だけの名前を渡す手順を書いていること。標準ライブラリと、プラグインに同梱の markdown-it-py だけで動く |
+| `test_web_raw_agent.py` | URL の取り込みの raw の段を任せるエージェント（`agents/web-raw.md`）の定義と、手順の文書（`references/web-raw.md`、`commands/ingest.md`）の静的な試験。frontmatter（`model: sonnet`、`omitClaudeMd`、道具）、パス、W1〜W8 の置き場所、依頼と報告の JSON の例。標準ライブラリだけで動く |
 | `test_frontmatter_parser.py` | frontmatter のパーサー（`wiki_text.parse_frontmatter_text`）が読む YAML の書き方（wiki 0.9.7）。字下げの違うブロックの配列、複数行にまたがる `[...]`、引用符つきのキーとコロンの前の空白、二重引用符の中の YAML のエスケープ、`\|` と `>` のブロックのスカラーの値が、PyYAML の `BaseLoader`（型に直さない）と等しいこと（値の表と、種を固定した無作為の入力）。YAML と違ってよいと決めた箇所と、読まないまま残す書き方の値。規約どおりのページと、読み方を変えない書き方で、値が 0.9.5 のパーサーそのものの出力（`frontmatter_parser_golden.json`）と等しいこと。`]` を書き忘れた配列が後ろの欄を取り込まないこと、YAML にないエスケープを含む値を今までどおり読むこと。書き手（`format_frontmatter`）との往復、lint・検索・統計が読めるようになった欄を読むこと、検索の古いパースキャッシュを使い続けないこと、制御文字のある値でも GraphML が読める XML になること。PyYAML が要る |
 | `test_frontmatter_raw.py` | rag が返す PDF の絶対パスと SHA-256 を、ソースの要約ページの frontmatter に書いて読み戻す（ADR-0013）。手書きのパーサーと PyYAML が同じ値に読むこと、`\` を重ねていない Windows のパスの読み方。PyYAML が要る |
 | `test_python_version.py` | 同梱のスクリプトの Python の版の扱い（3.12 以上、wiki 0.11.2、ADR-0018）。`python` で直接動かす入口（ファイルから機械的に集める）を、本物の 3.10 と 3.11 で `--help` つきで動かすと、どれも理由を書いて止まること。古い版を真似て `wiki_text.py` を読み込むと止まること、PEP 723 の宣言がどれも `>=3.12` であること。標準ライブラリだけで動く。3.10 と 3.11 は `uv python find` で探し、なければ飛ばす（`WIKI_TEST_REQUIRE_OLD_PYTHON=1` のときは失敗する） |
@@ -25,6 +26,7 @@
 | `bench_mcp_latency.py` | 検索の速さ（今の CLI、中継経由の MCP、直接呼び出し） |
 | `bench_mcp_startup.py` | 起動の速さ（入口から `initialize` と `tools/list` まで）。2 つの版のスクリプトを交互に起動して比べる。結果は `docs/research/wiki-mcp-startup-2026-11-07/` に置く |
 | `measure_dense_threshold.py` | 意味の検索の距離の上限（`max_distance`）。評価セットの距離の分布と、上限を変えたときの成績。結果は `docs/research/wiki-dense-threshold-2026-11-07/` に置く |
+| `check_web_raw_agent.py` | 一時の wiki で `/wiki:ingest <URL>` を `claude -p` で動かし、セッションの記録から、raw の段をエージェント（Sonnet）が行い、後段をメインのモデルが行ったかを確かめる（モデルの呼び出しの費用がかかる） |
 | `check_claude_spawn.py` | Claude Code が中継とサーバーをどう起動し、セッションの後にサーバーが残るか（`claude -p` を 1 回実行する） |
 | `check_server_console.py` | Windows でサーバーを起動したときに、画面（コンソールの窓）が出ないか（info-hive-wiki#36）。入口の `--ensure` で起動し、見える窓を前後で比べる。入口と中継が終わった後もサーバーが残り、terminate で止まるかも見る。結果は標準出力に書く |
 | `check_commands_mcp.py` | コマンド（`/wiki:stats`、`/wiki:query`、`/wiki:lint`）がまず MCP のツールを使い、`.mcp.json` のないプラグインでは CLI に戻るか（`claude -p --plugin-dir` をコマンドの数だけ実行する。引数にコマンド名を渡すと、それだけを実行する） |
@@ -45,6 +47,7 @@ python -X utf8 -m unittest tests/wiki/test_template_script_paths.py -v
 python -X utf8 -m unittest tests/wiki/test_wiki_fetch.py -v
 python -X utf8 -m unittest tests/wiki/test_wiki_web_check.py -v
 python -X utf8 -m unittest tests/wiki/test_help_command.py -v
+python -X utf8 -m unittest tests/wiki/test_web_raw_agent.py -v
 python -X utf8 -B -m unittest tests/wiki/test_walk.py -v
 python -X utf8 -B -m unittest tests/wiki/test_python_version.py -v
 uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_graph_duplicate_slugs.py -v

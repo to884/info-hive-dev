@@ -1,0 +1,171 @@
+diff --git a/tests/wiki/check_web_raw_agent.py b/tests/wiki/check_web_raw_agent.py
+index 5e632c7..a22058b 100644
+--- a/tests/wiki/check_web_raw_agent.py
++++ b/tests/wiki/check_web_raw_agent.py
+@@ -182,7 +182,18 @@ def touches(command: str, patterns: list[re.Pattern]) -> bool:
+ CD_RE = re.compile(r"(?:^|[;&|\n]\s*)(?:cd|pushd|Set-Location)\s")
+ 
+ 
++def script_run(script: str, sub: str) -> re.Pattern:
++    """スクリプトのサブコマンドの実行（パスを二重引用符か単一引用符で囲んでも、囲まなくても読む）。"""
++    return re.compile(re.escape(script) + r"[\"']?\s+" + re.escape(sub) + r"\b")
++
++
++FREEZE_RE = script_run("wiki_rawcheck.py", "freeze")
++CHECK_RE = script_run("wiki_rawcheck.py", "check")
++
++
+ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_model: str) -> dict:
++    # 記録の書き込み先は絶対パスなので、相対パスで渡されたプロジェクトも絶対パスにしてから比べる
++    project = Path(project).resolve()
+     main_events = events(read_jsonl(main_path))
+     main_tools = tools_of(main_events)
+     subs = []
+@@ -228,14 +239,14 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
+     bash = {name: bash_commands(tools) for name, tools in actors.items()}
+     writes = {name: tool_paths(tools) for name, tools in actors.items()}
+ 
+-    runs = {name: [c for c in cmds if "wiki_fetch.py" in c or re.search(r"wiki_rawcheck\.py\"?\s+freeze", c)]
++    runs = {name: [c for c in cmds if "wiki_fetch.py" in c or FREEZE_RE.search(c)]
+             for name, cmds in bash.items()}
+     check("wiki_fetch.py と freeze を実行したのは wiki:web-raw だけ",
+           any("wiki_fetch.py" in c for c in runs[AGENT_TYPE])
+           and any("freeze" in c for c in runs[AGENT_TYPE])
+           and not any(cmds for name, cmds in runs.items() if name != AGENT_TYPE),
+           {name: [c[:160] for c in cmds] for name, cmds in runs.items() if name != AGENT_TYPE and cmds})
+-    finished = [c for cmds in bash.values() for c in cmds if re.search(r"wiki_rawcheck\.py\"?\s+check", c) and "--finish" in c]
++    finished = [c for cmds in bash.values() for c in cmds if CHECK_RE.search(c) and "--finish" in c]
+     results = [e["text"] for evs in [main_events] + [s["events"] for s in subs] for e in evs if e["kind"] == "in"]
+     removed = any('"work_dir_removed": true' in t or "作業用の写しを消した" in t for t in results)
+     check("W8 の check --finish が通り、作業用の写しを消した（道具の結果）", finished and removed,
+@@ -248,8 +259,10 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
+     agent_wiki = [p for p in writes[AGENT_TYPE] if under(p, wiki) and "/.wiki-cache/" not in p]
+     check("wiki:web-raw は wiki のページ、index.md、log.md に書いていない（Edit、Write）", not agent_wiki, agent_wiki)
+     main_targets = writes["main"] + bash_write_targets(bash["main"])
+-    check("メインが要約ページ、index.md、log.md を書いた",
+-          any(under(p, wiki / "sources") for p in writes["main"])
++    # Write の入力だけでは、書けたかは分からない（権限の誤りなど）。書いた要約ページが実際にあることを合否に入れる。
++    main_sources = [p for p in writes["main"] if under(p, wiki / "sources")]
++    check("メインが要約ページ、index.md、log.md を書いた（要約ページはファイルがある）",
++          any(Path(p).is_file() for p in main_sources)
+           and any(p.lower().endswith("index.md") for p in main_targets)
+           and any(p.lower().endswith("log.md") for p in main_targets),
+           sorted(set(main_targets)))
+@@ -267,6 +280,8 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
+           not shares_text(raw_text, before) and not shares_text(raw_text, prompts),
+           {"before": shares_text(raw_text, before), "prompts": shares_text(raw_text, prompts)})
+     sources = sorted((wiki / "sources").glob("*.md"))
++    # 要約ページがないと、下の受け渡しの確かめは空の文と比べて通ってしまうので、あることを先に確かめる
++    check("要約ページがある", sources, [str(s) for s in sources])
+     summary = "\n".join(body_of(p.read_bytes().decode("utf-8")) for p in sources)
+     agent_texts = [_out_text(e) for s in raw_agents for e in s["events"] if e["kind"] in ("out_text", "tool_use")]
+     # 要約ページは raw から引用するので、raw にもある並びは受け渡しに数えない。
+diff --git a/tests/wiki/test_web_raw_agent.py b/tests/wiki/test_web_raw_agent.py
+index e54632b..f8b6165 100644
+--- a/tests/wiki/test_web_raw_agent.py
++++ b/tests/wiki/test_web_raw_agent.py
+@@ -11,6 +11,7 @@ claude -p を動かして確かめる（費用がかかるので、この試験
+ from __future__ import annotations
+ 
+ import json
++import os
+ import re
+ import sys
+ import unittest
+@@ -219,7 +220,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
+     def got(text):
+         return {"message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "x", "content": text}]}}
+ 
+-    def write(self, main_records, agents):
++    def write(self, main_records, agents, project=None):
+         self.main_path.write_bytes("\n".join(json.dumps(r, ensure_ascii=False) for r in main_records).encode("utf-8"))
+         paths = []
+         for i, (meta, records) in enumerate(agents):
+@@ -229,7 +230,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
+             path.with_suffix(".prefix.json").write_bytes(
+                 json.dumps({"state": {"model": meta.get("_model", "claude-sonnet-5-5")}}).encode("utf-8"))
+             paths.append(path)
+-        return check_web_raw_agent.analyze_paths(self.main_path, paths, self.project, "opus")
++        return check_web_raw_agent.analyze_paths(self.main_path, paths, project or self.project, "opus")
+ 
+     def good(self, main_extra=(), agent_extra=(), call_input=None):
+         call = {"subagent_type": "wiki:web-raw", "prompt": "この依頼の raw を作る。\n```json\n{\"web_raw_request\": 1}\n```"}
+@@ -257,6 +258,45 @@ class SyntheticTranscriptTest(unittest.TestCase):
+         report = self.write(*self.good())
+         self.assertTrue(report["ok"], self.failed(report))
+ 
++    def test_relative_project_path_passes(self):
++        """プロジェクトを相対パスで渡しても、記録の絶対パスと同じファイルとして比べる（PR #103 の指摘）。"""
++        cwd = os.getcwd()
++        os.chdir(self.project.parent)
++        self.addCleanup(os.chdir, cwd)
++        main, agents = self.good()
++        report = self.write(main, agents, project=Path("proj"))
++        self.assertTrue(report["ok"], self.failed(report))
++        # 相対パスでも、ほかのサブエージェントの raw への書き込みは見つける
++        agents.append(({"agentType": "general-purpose", "launchedWithDefaults": True, "_model": "claude-opus-5-5"},
++                       [self.use("Write", {"file_path": str(self.project / "raw/cqrs.md"), "content": "x"})]))
++        report = self.write(main, agents, project=Path("proj"))
++        self.assertIn("raw に書いた（Edit、Write）のは wiki:web-raw だけ", self.failed(report))
++
++    def test_single_quoted_script_paths_are_read(self):
++        """スクリプトのパスを単一引用符で囲んでも、freeze と check --finish の実行を読む（PR #103 の指摘）。"""
++        main, agents = self.good()
++        quoted = []
++        for rec in agents[0][1]:
++            text = json.dumps(rec, ensure_ascii=False)
++            for script in ("wiki_fetch.py", "wiki_rawcheck.py"):
++                text = text.replace(f"python {script}", f"python '/plugin/scripts/{script}'")
++            quoted.append(json.loads(text))
++        agents = [(agents[0][0], quoted)]
++        report = self.write(main, agents)
++        self.assertTrue(report["ok"], self.failed(report))
++        # メインが単一引用符の形で freeze を動かしたら、見逃さない
++        main = main + [self.use("Bash", {"command": "python '/plugin/scripts/wiki_rawcheck.py' freeze --slug cqrs"})]
++        report = self.write(main, agents)
++        self.assertIn("wiki_fetch.py と freeze を実行したのは wiki:web-raw だけ", self.failed(report))
++
++    def test_missing_summary_file_fails(self):
++        """要約ページの Write が失敗してファイルがなければ、不合格にする（PR #103 の指摘）。"""
++        (self.project / "wiki/sources/cqrs.md").unlink()
++        report = self.write(*self.good())
++        failed = self.failed(report)
++        self.assertIn("要約ページがある", failed)
++        self.assertIn("メインが要約ページ、index.md、log.md を書いた（要約ページはファイルがある）", failed)
++
+     def test_unrelated_subagent_is_listed_not_judged(self):
+         main, agents = self.good()
+         agents.append(({"agentType": "general-purpose", "launchedWithDefaults": True, "_model": "claude-opus-5-5"},
+diff --git a/tests/wiki/test_web_raw_agent.py b/tests/wiki/test_web_raw_agent.py
+index ca6a5b8..e54632b 100644
+--- a/tests/wiki/test_web_raw_agent.py
++++ b/tests/wiki/test_web_raw_agent.py
+@@ -142,9 +142,28 @@ class ReferenceTest(unittest.TestCase):
+         phrase = "「本文が短いまま続ける」"
+         row = next(line for line in text.splitlines() if line.lstrip().startswith("| `needs_browser` |"))
+         self.assertIn(phrase, row)
++        # 続ける答えで fetch を残すと、前の呼び出しの --force や --html-file でまた取り直す（レビュー 5 の反例）
++        self.assertNotIn("`fetch` は変えずに", row)
+         w3 = text[text.index("- **W3.**"):text.index("- **W4.**")]
+         self.assertIn(phrase, w3)
+ 
++    def test_one_shot_fetch_options_are_reset_on_every_call(self):
++        # force、html_file、page_url は 1 回の取得への指示。呼び直すたびに戻さないと、続けるだけの呼び直しでも
++        # 取り直して途中の作業を消す。戻せば、wiki_fetch.py は途中の写しから続ける
++        # （tests/wiki/test_wiki_web_check.py の test_dom_take_resumes_without_fetch がスクリプトの側を確かめる）。
++        text = read(REFERENCE)
++        step4 = text[text.index("\n4. "):text.index("\n5. ")]
++        self.assertIn("`fetch.force` を `false`、`fetch.html_file` と `fetch.page_url` を `null` に戻して", step4)
++        self.assertIn("「本文が短いまま続ける」を消す", step4)
++
++    def test_old_work_dir_does_not_hide_fetch_errors(self):
++        # 終了コード 1 と 2 では、取得や --html-file の誤りを先に返す（old_work_dir の問いで隠さない）
++        text = read(REFERENCE)
++        w2 = text[text.index("- **W2.**"):text.index("- **W3.**")]
++        bullet = next(line for line in w2.splitlines() if "`\"old_work_dir\": true`" in line)
++        self.assertIn("終了コード 1 と 2 では、まずその誤り", bullet)
++        self.assertIn("`failed`", bullet)
++
+ 
+ class EntryPointsTest(unittest.TestCase):
+     def test_command_and_skill_point_to_the_reference(self):

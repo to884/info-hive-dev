@@ -1,0 +1,191 @@
+{
+  "project": "C:\\UserData\\toshiki\\Temp\\claude\\870eed15d1242065\\50a39d3c-95c9-49f9-ad35-626aae661353\\scratchpad\\agent-trial\\cqrs",
+  "checks": [
+    {
+      "check": "メインが wiki:web-raw を呼んだ",
+      "ok": true,
+      "detail": {
+        "calls": [
+          "wiki:web-raw"
+        ],
+        "agents": [
+          "wiki:web-raw"
+        ]
+      }
+    },
+    {
+      "check": "メインが Agent に model を渡していない（入力と、Claude Code のメタデータの launchedWithDefaults）",
+      "ok": true,
+      "detail": {
+        "model": [
+          null
+        ],
+        "launchedWithDefaults": [
+          true
+        ]
+      }
+    },
+    {
+      "check": "メインのすべての応答のモデルが opus",
+      "ok": true,
+      "detail": [
+        "claude-opus-5-5"
+      ]
+    },
+    {
+      "check": "wiki:web-raw のすべての応答のモデルと、prefix.json のモデルが Sonnet",
+      "ok": true,
+      "detail": {
+        "responses": [
+          "claude-sonnet-5-5"
+        ],
+        "prefix": [
+          "claude-sonnet-5-5"
+        ]
+      }
+    },
+    {
+      "check": "wiki_fetch.py と freeze を実行したのは wiki:web-raw だけ",
+      "ok": true,
+      "detail": {}
+    },
+    {
+      "check": "W8 の check --finish が通り、作業用の写しを消した（道具の結果）",
+      "ok": true,
+      "detail": {
+        "finish_commands": 1,
+        "removed_in_results": true
+      }
+    },
+    {
+      "check": "raw に書いた（Edit、Write）のは wiki:web-raw だけ",
+      "ok": true,
+      "detail": {}
+    },
+    {
+      "check": "wiki:web-raw は wiki のページ、index.md、log.md に書いていない（Edit、Write）",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "check": "メインが要約ページ、index.md、log.md を書いた",
+      "ok": true,
+      "detail": [
+        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki/SCHEMA.md",
+        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki/concepts/command-query-responsibility-segregation.md",
+        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki/entities/martin-fowler.md",
+        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki/index.md",
+        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki/log.md",
+        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki/sources/cqrs.md"
+      ]
+    },
+    {
+      "check": "raw の文が届くまでのメインの出力と、wiki:web-raw へのすべての依頼に、raw の文がない",
+      "ok": true,
+      "detail": {
+        "before": [],
+        "prompts": []
+      }
+    },
+    {
+      "check": "wiki:web-raw の出力に、要約ページの文がない",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "check": "raw がある",
+      "ok": true,
+      "detail": [
+        "C:\\UserData\\toshiki\\Temp\\claude\\870eed15d1242065\\50a39d3c-95c9-49f9-ad35-626aae661353\\scratchpad\\agent-trial\\cqrs\\raw\\cqrs.md"
+      ]
+    },
+    {
+      "check": "log に raw の段の分担のサブ行がある",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "check": "作業用の写しが消えた",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "ok": true,
+  "bash_to_review": {
+    "main": [
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs\" && ls -la && ls wiki raw 2>&1 | head -50; cat wiki/SCHEMA.md 2>&1 | head -200",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs\" && sed -n '200,400p' wiki/SCHEMA.md; echo ----INDEX; cat wiki/index.md; echo ----LOG; cat wiki/log.md; echo ----; find wiki raw -type f | grep -v SCHEMA; ls \"C:/Works/info-hive-dev/",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs\" && ls wiki/.wiki-cache/ingest 2>&1; ls raw raw/assets/cqrs; wc -c raw/cqrs.md; cat raw/cqrs.md"
+    ]
+  },
+  "translated_by": "Claude Sonnet 5.5",
+  "caption_names": [
+    "Claude Sonnet 5.5"
+  ],
+  "main_models": [
+    "claude-opus-5-5"
+  ],
+  "agent_models": [
+    "claude-sonnet-5-5"
+  ],
+  "other_subagents": [],
+  "agent_transcripts": [
+    "C:\\Users\\toshiki\\.claude\\projects\\C--UserData-toshiki-Temp-claude-870eed15d1242065-50a39d3c-95c9-49f9-ad35-626aae661353-scratchpad-agent-trial-cqrs\\d27508a7-3a68-4586-b13c-a75c9375e1f6\\subagents\\agent-a6232ab8b8c5861a4.jsonl"
+  ],
+  "session": "d27508a7-3a68-4586-b13c-a75c9375e1f6",
+  "usage": {
+    "seconds": null,
+    "duration_ms": 248112,
+    "total_cost_usd": 4.7391473,
+    "modelUsage": {
+      "claude-opus-5-5": {
+        "inputTokens": 42,
+        "outputTokens": 13951,
+        "cacheReadInputTokens": 1971309,
+        "cacheCreationInputTokens": 133011,
+        "webSearchRequests": 0,
+        "costUSD": 1.7260868,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "thinkingTokens": 2047,
+        "cacheCreationEphemeral5mInputTokens": 0,
+        "cacheCreationEphemeral1hInputTokens": 129194,
+        "canonicalModel": "claude-opus-5-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-sonnet-5-5": {
+        "inputTokens": 14,
+        "outputTokens": 7652,
+        "cacheReadInputTokens": 162300,
+        "cacheCreationInputTokens": 38785,
+        "webSearchRequests": 0,
+        "costUSD": 0.18974049999999998,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "thinkingTokens": 463,
+        "cacheCreationEphemeral5mInputTokens": 38785,
+        "cacheCreationEphemeral1hInputTokens": 0,
+        "canonicalModel": "claude-sonnet-5-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      },
+      "claude-fable-5-1": {
+        "inputTokens": 242832,
+        "outputTokens": 7900,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 2.82332,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 64000,
+        "thinkingTokens": 0,
+        "cacheCreationEphemeral5mInputTokens": 0,
+        "cacheCreationEphemeral1hInputTokens": 0,
+        "canonicalModel": "claude-fable-5-1",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    }
+  }
+}

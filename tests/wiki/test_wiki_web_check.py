@@ -1466,7 +1466,7 @@ def offline(url, timeout, max_bytes, accept="", block_private=False):
 
 
 # 途中から続けるときに返す、前の取得の出力の値。実装の定数（wiki_rawcheck.RESUME_KEYS）に頼らずに書き並べる。
-RESUMED_KEYS = ("source_sha256_of", "title", "source_lang", "encoding", "content_root", "ja_ratio",
+RESUMED_KEYS = ("source_sha256_of", "fetched_sha256", "title", "source_lang", "encoding", "content_root", "ja_ratio",
                 "needs_translation", "chars", "images", "dropped_images", "removed_by_rule", "warnings")
 
 
