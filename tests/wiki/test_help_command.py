@@ -26,7 +26,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 PLUGIN = ROOT / "info-hive-wiki"
@@ -40,6 +40,8 @@ EXPECTED = ["init", "ingest", "query", "lint", "stats", "graph", "browse", "lear
 # commands/help.md がシェルに渡す名前を確かめる正規表現。help.md の文と同じ文字列であること。
 SHELL_SAFE = r"^[A-Za-z0-9][A-Za-z0-9-]*$"
 BASE = "https://github.com/owner/repo/blob/v1.2.3"
+RAW = "https://raw.githubusercontent.com/owner/repo/v1.2.3"
+REF = wiki_help.RepoRef("owner", "repo", "v1.2.3")
 MANIFEST = '{"name": "wiki", "version": "1.2.3", "repository": "https://github.com/owner/repo"}\n'
 
 
@@ -160,7 +162,7 @@ class FindDocSectionTests(unittest.TestCase):
         self.assertEqual(len(warnings), 1)
 
 
-class DocsBaseUrlTests(unittest.TestCase):
+class RepoRefTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
@@ -168,23 +170,25 @@ class DocsBaseUrlTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def base(self, manifest: dict):
+    def ref(self, manifest: dict):
         write(self.root, ".claude-plugin/plugin.json", json.dumps(manifest))
-        return wiki_help.docs_base_url(self.root)
+        return wiki_help.repo_ref(self.root)
 
     def test_repository_forms(self):
         for repository in ["https://github.com/owner/repo", "https://github.com/owner/repo/",
                            "https://github.com/owner/repo.git"]:
             with self.subTest(repository=repository):
-                self.assertEqual(self.base({"repository": repository, "version": "1.2.3"}), (BASE, []))
+                ref, warnings = self.ref({"repository": repository, "version": "1.2.3"})
+                self.assertEqual((ref, warnings), (REF, []))
+                self.assertEqual((ref.blob(), ref.raw()), (BASE, RAW))
 
     def test_unusable_manifest(self):
         for manifest in [{"version": "1.2.3"}, {"repository": "https://gitlab.com/o/r", "version": "1.2.3"},
                          {"repository": {"url": "https://github.com/o/r"}, "version": "1.2.3"},
                          {"repository": "https://github.com/o/r"}, {"repository": "https://github.com/o/r", "version": "main"}]:
             with self.subTest(manifest=manifest):
-                base, warnings = self.base(manifest)
-                self.assertIsNone(base)
+                ref, warnings = self.ref(manifest)
+                self.assertIsNone(ref)
                 self.assertEqual(len(warnings), 1)
 
 
@@ -217,20 +221,29 @@ class LinkTests(unittest.TestCase):
                 "[MCP](../skills/info-hive/references/mcp-server.md)と[表](#wikiinit)を参照。")
         out, warnings = self.details(body)
         self.assertEqual(warnings, [])
+        # クエリとフラグメントは書かれたまま付ける。
         self.assertEqual(
             out,
-            f"詳しくは[取り込み]({BASE}/docs/workflows.md#%E3%82%BD%E3%83%BC%E3%82%B9%E3%82%92%E5%8F%96%E3%82%8A%E8%BE%BC%E3%82%80)と"
+            f"詳しくは[取り込み]({BASE}/docs/workflows.md#ソースを取り込む)と"
             f"[MCP]({BASE}/skills/info-hive/references/mcp-server.md)と"
             f"[表]({BASE}/docs/commands.md#wikiinit)を参照。",
         )
 
-    def test_space_japanese_and_image(self):
-        out, warnings = self.details("[x](./ワーク%20フロー.md) と ![図](./p.png)")
+    def test_space_japanese_query_and_image(self):
+        out, warnings = self.details("[x](./ワーク%20フロー.md) と [q](./search.md?plain=1#L2) と "
+                                     "![図](./p.png#frag) と [符号](./search.md#a%23b)")
         self.assertEqual(warnings, [])
         self.assertEqual(parsed_destinations(out), [
             ("link", f"{BASE}/docs/%E3%83%AF%E3%83%BC%E3%82%AF%20%E3%83%95%E3%83%AD%E3%83%BC.md"),
-            ("image", f"{BASE}/docs/p.png?raw=true"),
+            ("link", f"{BASE}/docs/search.md?plain=1#L2"),
+            ("image", f"{RAW}/docs/p.png#frag"),
+            ("link", f"{BASE}/docs/search.md#a%23b"),
         ])
+
+    def test_link_in_image_alt_text_is_not_a_destination(self):
+        # 実装の 2 回目のレビューの反例。代替テキストの中のリンクの記法は、宛先として数えない。
+        body = "![a [x](./search.md)](https://example.com/x.png)"
+        self.assertEqual(self.details(body), (body, []))
 
     def test_untouched(self):
         body = "\n".join([
@@ -275,6 +288,29 @@ class LinkTests(unittest.TestCase):
                 out, warnings = self.details(body, before)
                 self.assertEqual(out, body)
                 self.assertTrue(any("節をそのまま出す" in w for w in warnings), warnings)
+
+    def test_verify_catches_broken_rewrites(self):
+        # 実装の 2 回目のレビューの指摘。照らし合わせに、わざと壊した書き換えを渡すと、食い違いとして挙げる。
+        doc = ("## `/wiki:query`\n\n"
+               "[x](https://example.com/a%23b.md) と [y](./search.md#a%3Fb) と [z](./search.md)\n\n"
+               "```bash\n/wiki:query x\n```\n")
+        section, _ = wiki_help.find_doc_section(doc, "wiki", "query")
+        good = (f"[x](https://example.com/a%23b.md) と [y]({BASE}/docs/search.md#a%3Fb) と [z]({BASE}/docs/search.md)\n\n"
+                "```bash\n/wiki:query x\n```")
+        self.assertEqual(wiki_help.verify_rewrite(doc, section, good, self.root, self.docs, REF), [])
+        broken = {
+            "変えない宛先の %23 を # にした": good.replace("a%23b.md", "a#b.md"),
+            "フラグメントの %3F を ? にした": good.replace("#a%3Fb", "#a?b"),
+            "フラグメントを落とした": good.replace("#a%3Fb", ""),
+            "書き換えるはずの宛先を残した": good.replace(f"{BASE}/docs/search.md)", "./search.md)"),
+            "別の版を指した": good.replace("v1.2.3", "v9.9.9"),
+            "リンクを消した": good.replace("[z](", "z(", 1),
+            "コードの例を変えた": good.replace("/wiki:query x", "/wiki:query y"),
+        }
+        for label, rewritten in broken.items():
+            with self.subTest(label=label):
+                self.assertNotEqual(rewritten, good)
+                self.assertTrue(wiki_help.verify_rewrite(doc, section, rewritten, self.root, self.docs, REF))
 
     def test_missing_target_warns(self):
         out, warnings = self.details("[x](./nowhere.md)")
@@ -394,22 +430,51 @@ class RealPluginTests(unittest.TestCase):
             capture_output=True, encoding="utf-8", check=False, env=env,
         )
 
+    @staticmethod
+    def expected_destination(href: str, kind: str, manifest: dict) -> str:
+        """元の節の宛先（パーサーが正規化したもの）から、出力の宛先を、本体の関数を使わずに求める。"""
+        parts = urlsplit(href)
+        if parts.scheme or parts.netloc or href.startswith("/"):
+            return href
+        owner_repo = manifest["repository"].removeprefix("https://github.com/").removesuffix(".git").strip("/")
+        tag = "v" + manifest["version"]
+        file = (PLUGIN / "docs" / (unquote(parts.path) or "commands.md")).resolve()
+        rel = file.relative_to(PLUGIN.resolve()).as_posix()
+        assert (PLUGIN / rel).is_file(), href
+        prefix = (f"https://raw.githubusercontent.com/{owner_repo}/{tag}" if kind == "image"
+                  else f"https://github.com/{owner_repo}/blob/{tag}")
+        url = f"{prefix}/{quote(rel, safe='/')}"
+        if parts.query:
+            url += "?" + parts.query
+        if parts.fragment:
+            url += "#" + parts.fragment
+        return wiki_pages.new_parser().normalizeLink(url)
+
     def test_every_command_has_details_without_warnings(self):
-        base, warnings = wiki_help.docs_base_url(PLUGIN)
-        self.assertEqual(warnings, [])
+        manifest = json.loads((PLUGIN / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))
+        text = (PLUGIN / "docs/commands.md").read_text(encoding="utf-8")
+        env: dict = {}
+        wiki_pages.new_parser().parse(text, env)
+        # 文書に参照リンクの定義がないので、節だけを読んでも、元の文書と同じリンクになる。
+        self.assertFalse(env.get("references"))
         for name in EXPECTED:
             with self.subTest(name=name):
                 result = self.run_script(f"--command={name}")
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(result.stderr, "")
                 self.assertTrue(result.stdout.startswith(f"### `/wiki:{name}`"))
-                self.assertIn("\n**詳細**\n", result.stdout)
-                # パーサーが読んだリンクは、外部の URL か、導入した版のタグの GitHub の URL で、実在するファイルを指す。
-                for _, dest in parsed_destinations(result.stdout):
+                details = result.stdout.split("\n**詳細**\n\n", 1)[1]
+                section, _ = wiki_help.find_doc_section(text.replace("\r\n", "\n"), "wiki", name)
+                # 出力のリンクは、元の節のリンクと同じ数と順で、それぞれを導入した版の GitHub の URL にしたもの。
+                before = parsed_destinations(section.body)
+                after = parsed_destinations(details)
+                self.assertEqual([k for k, _ in after], [k for k, _ in before])
+                for (kind, href), (_, dest) in zip(before, after):
+                    self.assertEqual(dest, self.expected_destination(href, kind, manifest))
                     self.assertRegex(dest, r"^https?://")
-                    if dest.startswith(base + "/"):
-                        rel = unquote(urlsplit(dest).path[len(urlsplit(base).path) + 1:])
-                        self.assertTrue((PLUGIN / rel).is_file(), dest)
+                # リンクの宛先のほかは、元の節と同じ（宛先を除いた文字が同じ）。
+                strip = re.compile(r"\]\([^()\s]*\)")
+                self.assertEqual(strip.sub("]()", details.rstrip("\n")), strip.sub("]()", section.body))
 
     def test_json_details(self):
         result = self.run_script("--json", "--command=query")
