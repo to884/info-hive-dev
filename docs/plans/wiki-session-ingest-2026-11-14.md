@@ -4,7 +4,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | **承認（2026年11月14日、作者）。** 5 版目に、5〜7 回目のレビューの直しを入れたもの。実装はまだ始めていない。「作者が決めること」は、どれも推奨の側で承認された |
+| 状態 | **承認（2026年11月14日、作者）。実装済み（to884/info-hive-wiki#59、to884/info-hive-dev#107）。** 5 版目に、5〜7 回目のレビューの直しを入れたもの。実装の敵対的レビューは 7 回受け、7 回目で採用可（[impl-review-7.md](../agent-runs/2026-11-14-wiki-session-ingest/impl-review-7.md)、原因の構造は [impl-root-causes.md](../agent-runs/2026-11-14-wiki-session-ingest/impl-root-causes.md)）。実装の途中で、10 節と S8〜S10（`scan` の範囲）と 8 節（決定のファイルの名前）を変えた。どちらも作者が承認した |
 | きっかけ | 作者の問い「Claude で行ったセッションの会話の内容を、記事の形式にまとめて wiki に取り込む方法は？」と、続く依頼「コマンドで作りたい」 |
 | 関連 | ADR-0004（Web ページの raw）、ADR-0015（記事作成の方法論は段階を分けて入れる）、ADR-0018（Python 3.12）、ADR-0019（wiki の根は `SCHEMA.md` で決まる。状態は提案。判定は `wiki_initialized.py` にある）、`commands/ingest.md` の手順 1〜8 と W1〜W9、`wiki_fetch.py`、`wiki_lint.py` の `missing_raw()`、`commands/learn.md`、[wiki の書く段の設計](wiki-apply-2026-11-14.md)（分けた） |
 | 基準にした版 | `info-hive-wiki` の 83dbb30（origin/main、0.14.1 のあとの未リリースの変更を含む）。親のリポジトリは a237e8f（origin/main） |
@@ -245,7 +245,8 @@ python wiki_session.py scan    --transcript <P> [共通の引数] --decisions <F
 - 警告の `code`: `stripped_reminder`、`leading_tag`、`broken_lines`、`unknown_uuidless_type`、`reply_unresolved`、`mixed_session_ids`、`possible_rewind`。
 - `show --meta` の出力のキー: `base_sha256`、`render_sha256`、`chars`、`turns`、`manual_redactions`、`dropped_turns`、`warnings`。
 - `write` の出力のキー: `raw_state`（`created`、`identical`、`conflict`、`slug_taken`）、`raw_path`、`raw_ref`、`render_sha256`。
-- `scan` の出力のキー: `findings`（`line`、`column`、`rule`）、`skipped_short`。
+- `scan` の出力のキー: `findings`（`line`、`column`、`rule`。`--path` のときは `path` も）、`skipped_short`。`column` は、正規化で切れない塊の先頭の位置。
+- `decide list` の出力のキー: `session_id`、`source_sha256`、`cut_before`、`spans`、`drop`。
 - `verify` の出力のキー: `raw_path`、`sha256_matches`、`read_only`。
 - `show` の出力のキー（`--json`）: `text`、`next`（続きの `--from` の値。なければ `null`）。
 
@@ -263,7 +264,7 @@ python wiki_session.py scan    --transcript <P> [共通の引数] --decisions <F
 - **S8.** 用意した文の全部を `scan` に渡す（`--allow` には `raw_ref` を渡す）。見つかったら直して、やり直す。通ったら、中身をユーザーに見せて承認を得る。
 - **S8 の変更（承認（2026年11月14日、作者））。** 直す箇所の新しい文ではなく、直したあとのページの全文を渡す（10 節）。
 - **S9.** 承認された中身だけを、手順 6 のとおり Write と Edit で書く。**変更（承認（2026年11月14日、作者））:** wiki への書き込みをすべて終えたあと（S10 の `verify` の前）に `scan --path` で書いたファイルの全体を照らし、見つかったら直してユーザーに伝える（10 節）。
-- **S10.** 手順 7（グラフの lint と抽出、ログのグラフのサブ行）を行う。ログのグラフのサブ行は、数だけで、会話の文を含まないので、`scan` は要らない。wiki への書き込みを終えたら、`verify --raw-root <R> --slug <S> --expect-sha256 <render_sha256>` を実行する。raw のバイト列が変わっていたり、読み取り専用でなくなっていたりしたら、終了コード 1 になる。そのときは、wiki の書き込みが別名を経由して raw を書き換えた見込みが高いので、手順 8 で必ずユーザーに伝える。raw は記録と決定から作り直せる（`show` の出力が同じバイト列になる）ので、戻し方をユーザーと決める。手順 8（報告）を行い、決定のファイルを消す。
+- **S10.** 手順 7（グラフの lint と抽出、ログのグラフのサブ行）を行う。wiki への書き込み（S9、ログのサブ行、手順 7 のエッジ）をすべて終えたら、書いたファイルのすべてを `scan --path` で照らす（10 節。グラフのエッジは、ソースの引用を含みうる）。wiki への書き込みを終えたら、`verify --raw-root <R> --slug <S> --expect-sha256 <render_sha256>` を実行する。raw のバイト列が変わっていたり、読み取り専用でなくなっていたりしたら、終了コード 1 になる。そのときは、wiki の書き込みが別名を経由して raw を書き換えた見込みが高いので、手順 8 で必ずユーザーに伝える。raw は記録と決定から作り直せる（`show` の出力が同じバイト列になる）ので、戻し方をユーザーと決める。手順 8（報告）を行い、決定のファイルを消す。
 
 ## 保証しないこと
 
