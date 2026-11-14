@@ -1466,8 +1466,20 @@ def offline(url, timeout, max_bytes, accept="", block_private=False):
 
 
 # 途中から続けるときに返す、前の取得の出力の値。実装の定数（wiki_rawcheck.RESUME_KEYS）に頼らずに書き並べる。
-RESUMED_KEYS = ("title", "source_lang", "encoding", "content_root", "ja_ratio", "needs_translation", "chars",
-                "images", "dropped_images", "removed_by_rule", "warnings")
+RESUMED_KEYS = ("source_sha256_of", "title", "source_lang", "encoding", "content_root", "ja_ratio",
+                "needs_translation", "chars", "images", "dropped_images", "removed_by_rule", "warnings")
+
+
+def fixed_now(hour: int):
+    """wiki_fetch.datetime の代わり。取得の時刻（fetched_at）を決める。"""
+    import datetime as dt
+
+    class FixedNow(dt.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return dt.datetime(2026, 11, 14, hour, 0, 0)
+
+    return mock.patch.object(wiki_fetch, "datetime", FixedNow)
 
 
 class ResumeBeforeFetchTest(FetchCase):
@@ -1515,6 +1527,7 @@ class ResumeBeforeFetchTest(FetchCase):
         self.assertTrue(result["fetch_skipped"])
         self.assertTrue(result["work_dir"])
         self.assertEqual(result["work_stage"], "fetched")
+        self.assertEqual(result["source_sha256_of"], "dom")
         self.assertEqual(result["source_sha256"], first["source_sha256"])
         self.assertEqual(result["final_url"], first["final_url"])
         for key in RESUMED_KEYS:
@@ -1674,12 +1687,103 @@ class ResumeBeforeFetchTest(FetchCase):
         self.assertNotIn("fetch_skipped", result)
         self.assertTrue(result["work_dir"])
         self.assertEqual(result["work_stage"], "fetched")
+        # 削除を固定したあとの 0.14.0 の写しも、取得して原文が同じなら、freeze の報告とともに続ける。
+        self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "page")[0], 0)
+        code, result, stub = self.refetch()
+        self.assertEqual(stub.requested, [PAGE_URL])
+        self.assertEqual(result["work_stage"], "frozen")
+        self.assertEqual(result["freeze"]["removed_lines"], [])
         # DOM で取った 0.14.0 の写しは、今までどおり終了コード 3 になる（設計書の限界）。
         self.take_dom(force=True)
         drop_hash()
         code, result, stub = self.refetch()
         self.assertEqual(code, 3, result)
         self.assertEqual(stub.requested, [PAGE_URL])
+
+    def swap_cleaned(self, take_a: dict, take_b: dict) -> tuple[Path, bytes]:
+        """取得 A のあとに freeze し、取得 B で取り直してから、A の cleaned.md だけを写しに戻す。"""
+        with fixed_now(take_a.pop("hour")):
+            self.build(**take_a)
+        self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "page")[0], 0)
+        wd = wiki_rawcheck.work_dir(self.wiki, "page")
+        cleaned_a = (wd / "cleaned.md").read_bytes()
+        with fixed_now(take_b.pop("hour")):
+            self.build(**take_b, force=True)
+        self.assertFalse((wd / "cleaned.md").exists())
+        (wd / "cleaned.md").write_bytes(cleaned_a)
+        return wd, cleaned_a
+
+    def test_cleaned_of_another_take_is_not_resumed(self):
+        """実装のレビュー 2 の重大 1: 別の取得の cleaned.md だけを戻した写しは、1 つの取得と、その取得のあとの freeze
+        が残しうる組ではないので、どちらの枝でも続けない。"""
+        page = html_page('<p><a href="https://site.example/tag/ai">AI</a></p>' + f"<p>{LONG}</p>")
+        path = self.base / "b.html"
+        path.write_bytes(page)
+        cases = {
+            # 時刻と原文が違う（frontmatter が違う）。
+            "other_hour": (dict(hour=8, html=html_page(f"<p>{LONG} Earlier.</p>")),
+                           dict(hour=9, html=b"", html_file=path, page_url=PAGE_URL)),
+            # 同じ秒の同じ原文（frontmatter が同じ）。A は規則を止めてタグのリンクを残し、B は消した。A の cleaned.md は、
+            # B の fetched.md から消すことだけでは作れない（本文で見分ける）。
+            "same_frontmatter": (dict(hour=8, html=b"", html_file=path, page_url=PAGE_URL, keep_noise=True),
+                                 dict(hour=8, html=b"", html_file=path, page_url=PAGE_URL)),
+        }
+        for name, (take_a, take_b) in cases.items():
+            with self.subTest(name):
+                wd, _ = self.swap_cleaned(take_a, take_b)
+                # 取得の前の再開（URL だけ）は続けず、取得して比べる。原文は同じなので、取得して比べる枝で続けないと示す。
+                code, result, stub = self.refetch(stub=FetchStub(page))
+                self.assertEqual(stub.requested, [PAGE_URL])
+                self.assertNotIn("fetch_skipped", result)
+                self.assertFalse(result["work_dir"])
+                # 取得して比べる枝（同じ HTML のファイル）も続けない。
+                code, result, _ = self.refetch(html_file=path, page_url=PAGE_URL)
+                self.assertEqual(code, 0, result)
+                self.assertFalse(result["work_dir"])
+                # 対照: 取得 B のあとの freeze が書いた cleaned.md なら、続ける。
+                (wd / "cleaned.md").unlink()
+                self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "page")[0], 0)
+                code, result, stub = self.refetch(stub=offline)
+                self.assertEqual(code, 0, result)
+                self.assertEqual(result["work_stage"], "frozen")
+
+    def test_cleaned_that_the_take_could_have_frozen_is_resumed(self):
+        """整合の定義の対照: 別の取得の cleaned.md でも、今の取得のあとの freeze が残しうるもの（frontmatter が同じで、
+        今の fetched.md から消すことだけで作れる）なら、ファイルからは見分けられず、続けてよい組である。"""
+        path = self.base / "b.html"
+        path.write_bytes(html_page('<p><a href="https://site.example/tag/ai">AI</a></p>' + f"<p>{LONG}</p>"))
+        # A は規則でタグのリンクを消し、B は規則を止めて残した。A の cleaned.md は、B のあとに W4 でタグのリンクを
+        # 消して freeze したものと同じである。
+        self.swap_cleaned(dict(hour=8, html=b"", html_file=path, page_url=PAGE_URL),
+                          dict(hour=8, html=b"", html_file=path, page_url=PAGE_URL, keep_noise=True))
+        code, result, stub = self.refetch(stub=offline)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["work_stage"], "frozen")
+        self.assertEqual(result["freeze"]["removed_lines"], ["[AI](https://site.example/tag/ai)"])
+
+    def test_interrupted_second_freeze_resumes_with_the_first(self):
+        """2 回目の freeze が、removed.json を置いたあと、cleaned.md を置く前に止まっても、1 回目の cleaned.md は
+        freeze が通す内容なので、それで続ける（報告も 1 回目のもの）。"""
+        tail = "This closing paragraph is long enough that removing it trips the twenty percent warning. " * 3
+        self.build(html_page(f"<p>{LONG * 3}</p><p>{tail}</p>"))
+        self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "page")[0], 0)
+        raw = self.raw / "page.md"
+        raw.write_text(raw.read_text(encoding="utf-8").replace("\n\n" + tail.strip(), ""), encoding="utf-8", newline="\n")
+        real = wiki_rawcheck.write_atomic
+
+        def stop_before_cleaned(path, text):
+            if path.name == "cleaned.md":
+                raise OSError("止まった")
+            real(path, text)
+
+        with mock.patch.object(wiki_rawcheck, "write_atomic", stop_before_cleaned):
+            with self.assertRaises(OSError):
+                wiki_rawcheck.freeze(self.wiki, self.raw, "page")
+        code, result, _ = self.refetch(stub=offline)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["work_stage"], "frozen")
+        self.assertEqual(result["freeze"]["removed_lines"], [])
+        self.assertEqual(result["freeze"]["warnings"], [])
 
     def test_frozen_resume_returns_freeze_report(self):
         """実装のレビュー 1 の重大 2: freeze の出力を読む前に止まっても、続けるときに freeze の報告（消した行と警告）を
