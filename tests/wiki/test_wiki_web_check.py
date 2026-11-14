@@ -1779,6 +1779,43 @@ class ResumeBeforeFetchTest(FetchCase):
         self.assertEqual(code, 1)
         self.assertNotIn("0.14.1", err)
 
+    def test_unexpected_exception_still_reports_old_work_dir(self):
+        """実装のレビュー 6 の重大 1: 予期しない例外（大きすぎる --timeout の OverflowError など）も、例外の出口
+        （report_failure）を通り、旧版の写しを知らせる。トレースバックと例外の名前も標準エラーに出す。"""
+        self.take_dom()
+        self.make_legacy()
+        with mock.patch.object(wiki_fetch, "build", side_effect=OverflowError("timestamp out of range")):
+            code, out, err = self.run_main_capture("--json")
+        self.assertEqual(code, 1)
+        self.assertEqual(out, "")
+        self.assertIn("Traceback", err)
+        self.assertIn("OverflowError: timestamp out of range", err)
+        self.assertIn("0.14.1 までの版", err)
+
+    def test_failure_outputs_are_kept(self):
+        """例外の出口をまとめても、今までの出力（入れ子の深すぎる HTML の JSON、OSError の注記）は変えない。"""
+        with mock.patch.object(wiki_fetch, "build", side_effect=RecursionError()):
+            code, out, err = self.run_main_capture("--json")
+        self.assertEqual(code, 2)
+        self.assertEqual(json.loads(out), {"error": "too_deep", "message": "HTML の入れ子が深すぎて変換できない"})
+        self.assertEqual(err.strip(), "HTML の入れ子が深すぎて変換できない")
+        failure = OSError("書けない")
+        failure.add_note("古い画像を戻しきれなかった: raw/assets/.page.old")
+        with mock.patch.object(wiki_fetch, "build", side_effect=failure):
+            code, out, err = self.run_main_capture("--json")
+        self.assertEqual(code, 1)
+        self.assertEqual(out, "")
+        self.assertEqual(err.strip(), "ファイルを書けない: 書けない\n古い画像を戻しきれなかった: raw/assets/.page.old")
+
+    def test_timeout_must_be_positive_and_finite(self):
+        """--timeout は、0 より大きく上限以下の有限の秒数だけを受け付ける（inf や 1e20 は OverflowError になった）。"""
+        self.assertEqual(wiki_fetch.timeout_seconds("30"), 30.0)
+        for value in ("inf", "1e20", "nan", "0", "-1", "x"):
+            with self.subTest(value=value):
+                with self.assertRaises(SystemExit) as raised:
+                    self.run_main_capture("--timeout", value)
+                self.assertEqual(raised.exception.code, 2)
+
     def test_unreadable_json_and_bad_slug_do_not_raise(self):
         """実装のレビュー 5 の軽微 1: 桁の多すぎる整数や、入れ子の深すぎる fetch.json は、JSONDecodeError でない例外
         （ValueError、RecursionError）を上げる。写しの判定と、例外の出口の旧版の判定は、それで止まらない。
