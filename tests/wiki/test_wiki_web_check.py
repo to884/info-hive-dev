@@ -1461,5 +1461,311 @@ class MainAndWorkDirTest(RawCheckCase):
         self.assertTrue((target / "keep.txt").is_file())
 
 
+def offline(url, timeout, max_bytes, accept="", block_private=False):
+    raise wiki_fetch.FetchError("ネットにつながらない")
+
+
+# 途中から続けるときに返す、前の取得の出力の値。実装の定数（wiki_rawcheck.RESUME_KEYS）に頼らずに書き並べる。
+RESUMED_KEYS = ("title", "source_lang", "encoding", "content_root", "ja_ratio", "needs_translation", "chars",
+                "images", "dropped_images", "removed_by_rule", "warnings")
+
+
+class ResumeBeforeFetchTest(FetchCase):
+    """途中の取り込みは、取得の前に再開する（docs/plans/wiki-fetch-resume-before-fetch-2026-11-14.md）。
+
+    DOM（--html-file）で取ったページは、URL で取り直した HTML とバイト列が違う。再開の判定を取得の前に置かないと、
+    写しがそろっていても、比べた時点で終了コード 3（existing_differs）になり、ネットにつながらなければ取得の失敗になる。
+    """
+
+    ARTICLE = f'<p>{LONG}</p><img src="i.png" width="300" height="200"><p>{LONG}</p>'
+    DOM = html_page(ARTICLE, head='<meta name="saved-by" content="browser">')
+    HTML = html_page(ARTICLE)
+
+    def take_dom(self, content: bytes = DOM, **kw) -> dict:
+        path = self.base / "saved.html"
+        path.write_bytes(content)
+        result, text, _ = self.build(b"", html_file=path, page_url=PAGE_URL, **kw)
+        self.assertIn('source_sha256_of: "dom"', text)
+        return result
+
+    def refetch(self, stub=None, **kw) -> tuple[int, dict, FetchStub]:
+        stub = stub or FetchStub(self.HTML)
+        with mock.patch.object(wiki_fetch, "fetch", stub), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
+            code, result = wiki_fetch.build(self.args(**kw))
+        return code, result, stub
+
+    def run_main(self, *extra: str) -> tuple[int, str]:
+        out = io.StringIO()
+        argv = [PAGE_URL, "--wiki", str(self.wiki), "--raw-root", str(self.raw), "--slug", "page", *extra]
+        with mock.patch.object(wiki_fetch, "fetch", offline), contextlib.redirect_stdout(out), \
+                contextlib.redirect_stderr(io.StringIO()):
+            code = wiki_fetch.main(argv)
+        return code, out.getvalue()
+
+    def test_dom_take_resumes_without_fetch(self):
+        """再現: DOM で取ったあと、URL だけで呼ぶ。直す前は、取得して比べ、終了コード 3 になった。"""
+        first = self.take_dom()
+        raw_before = (self.raw / "page.md").read_bytes()
+        code, result, stub = self.refetch()
+        self.assertEqual(code, 0, result)
+        self.assertNotIn("error", result)
+        self.assertEqual(stub.requested, [])
+        self.assertTrue(result["unchanged"])
+        self.assertTrue(result["fetch_skipped"])
+        self.assertTrue(result["work_dir"])
+        self.assertEqual(result["work_stage"], "fetched")
+        self.assertEqual(result["source_sha256"], first["source_sha256"])
+        self.assertEqual(result["final_url"], first["final_url"])
+        for key in RESUMED_KEYS:
+            self.assertEqual(result[key], first[key], key)
+        self.assertEqual((self.raw / "page.md").read_bytes(), raw_before)
+
+    def test_offline_resume_after_freeze(self):
+        """ネットにつながらなくても、削除を固定したあとの段から続けられる。補足を書く画像は、残ったものだけ。"""
+        first = self.take_dom()
+        text = (self.raw / "page.md").read_text(encoding="utf-8")
+        line = next(x for x in text.split("\n") if x.startswith("!["))
+        (self.raw / "page.md").write_text(text.replace(line + "\n\n", ""), encoding="utf-8", newline="\n")
+        (self.raw / first["images"][0]["path"]).unlink()
+        self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "page")[0], 0)
+        code, result, _ = self.refetch(stub=offline)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["work_stage"], "frozen")
+        self.assertEqual(result["images"], [])
+        code, out = self.run_main("--json")
+        self.assertEqual(code, 0)
+        self.assertTrue(json.loads(out)["fetch_skipped"])
+
+    def test_text_output_does_not_claim_same_content(self):
+        """取得していないので、「前回と同じ」とは書かない。取り直す方法（--force）を示す。"""
+        self.take_dom()
+        code, out = self.run_main()
+        self.assertEqual(code, 0)
+        self.assertNotIn("前回と同じ", out)
+        self.assertIn("取得せず", out)
+        self.assertIn("--force", out)
+
+    def test_url_take_resumes_even_if_page_changed(self):
+        """URL で取ったページも、途中の取り込みがあれば取得しない。ページの更新は、取り込みを終えるまで見ない（意図した変更）。"""
+        self.build(self.HTML)
+        code, result, stub = self.refetch(stub=FetchStub(html_page(f"<p>{LONG} Updated.</p>")))
+        self.assertEqual(code, 0, result)
+        self.assertEqual(stub.requested, [])
+        self.assertTrue(result["fetch_skipped"])
+
+    # ---- 対照: 今の動き（取得して比べる）を変えない
+
+    def test_force_refetches(self):
+        self.take_dom()
+        code, result, stub = self.refetch(force=True)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(stub.requested[0], PAGE_URL)
+        self.assertNotIn("fetch_skipped", result)
+        self.assertIn('source_sha256_of: "html"', (self.raw / "page.md").read_text(encoding="utf-8"))
+
+    def test_html_file_is_read_and_compared(self):
+        """--html-file は、渡した内容で取るという入力なので、再開に吸い込まず、読んで比べる。"""
+        self.take_dom()
+        again = self.base / "again.html"
+        again.write_bytes(self.DOM)
+        code, result, stub = self.refetch(html_file=again, page_url=PAGE_URL)
+        self.assertEqual(code, 0, result)
+        self.assertTrue(result["unchanged"])
+        self.assertTrue(result["work_dir"])
+        self.assertNotIn("fetch_skipped", result)
+        again.write_bytes(html_page(self.ARTICLE, head='<meta name="saved-by" content="browser-2">'))
+        code, result, stub = self.refetch(html_file=again, page_url=PAGE_URL)
+        self.assertEqual(code, 3, result)
+        self.assertEqual(result["error"], "existing_differs")
+        self.assertEqual(stub.requested, [])
+
+    def test_other_url_is_fetched(self):
+        self.take_dom()
+        other = "https://site.example/other"
+        requested: list[str] = []
+
+        def stub(url, timeout, max_bytes, accept="", block_private=False):
+            requested.append(url)
+            return self.HTML, url, "text/html; charset=utf-8"
+
+        code, result, _ = self.refetch(stub=stub, url=other)
+        self.assertEqual(code, 3, result)
+        self.assertEqual(requested, [other])
+
+    def test_edited_frontmatter_is_fetched(self):
+        """raw の frontmatter が写しと違えば（別の版に戻した、など）、写しで続けない。"""
+        self.take_dom()
+        raw = self.raw / "page.md"
+        raw.write_text(raw.read_text(encoding="utf-8").replace("fetched_at: ", "fetched_at: 2000-01-01T00:00:00+09:00\nold: ", 1),
+                       encoding="utf-8", newline="\n")
+        code, result, stub = self.refetch()
+        self.assertEqual(code, 3, result)
+        self.assertEqual(stub.requested, [PAGE_URL])
+
+    def test_removed_work_dir_is_fetched(self):
+        """写しがなければ（取り込みを終えた、写しを失った）、今までどおり取得して比べる（設計書の限界）。"""
+        self.take_dom()
+        wiki_rawcheck.remove_work_dir(self.wiki, "page")
+        code, result, stub = self.refetch()
+        self.assertEqual(code, 3, result)
+        self.assertEqual(stub.requested, [PAGE_URL])
+
+    def test_resume_returns_the_first_warnings(self):
+        """設計のレビュー 1 の重大 1: 本文が短いという警告を、続けるときも返す。返さないと、ブラウザで本文を取り直す
+        段（W3）を飛ばして、取れなかった本文のまま続けてしまう。"""
+        short = html_page("<p>記事を読み込んでいます</p>")
+        first, _, _ = self.build(short)
+        self.assertTrue(any("本文が短い" in w for w in first["warnings"]))
+        code, result, stub = self.refetch(stub=FetchStub(self.HTML))
+        self.assertEqual(code, 0, result)
+        self.assertTrue(result["fetch_skipped"])
+        self.assertEqual(stub.requested, [])
+        for key in RESUMED_KEYS:
+            self.assertEqual(result[key], first[key], key)
+        code, out = self.run_main()
+        self.assertIn("注意: 本文が短い", out)
+        # 取得して比べる枝（--html-file に同じ内容）も、前の取得の警告を返し、文字の出力にも並べる。
+        path = self.base / "short.html"
+        path.write_bytes(short)
+        self.build(b"", html_file=path, page_url=PAGE_URL, force=True)
+        code, result, _ = self.refetch(html_file=path, page_url=PAGE_URL)
+        self.assertTrue(result["work_dir"])
+        self.assertTrue(any("本文が短い" in w for w in result["warnings"]))
+        code, out = self.run_main("--html-file", str(path), "--page-url", PAGE_URL)
+        self.assertEqual(code, 0)
+        self.assertIn("前回と同じ", out)
+        self.assertIn("注意: 本文が短い", out)
+
+    def test_another_take_of_the_same_page_is_not_resumed(self):
+        """実装のレビュー 1 の重大 1: 同じ URL の同じ原文を、別の設定（--keep-noise）で取った fetch.json は、取得元と
+        ハッシュが同じでも、写しの fetched.md と内容で結ばれていないので、その記録で続けない。"""
+        page = html_page('<p><a href="https://site.example/tag/ai">AI</a></p>' + f"<p>{LONG}</p>")
+        first, _, _ = self.build(page)
+        self.assertEqual([r["rule"] for r in first["removed_by_rule"]], ["tag_links"])
+        wd = wiki_rawcheck.work_dir(self.wiki, "page")
+        raw_a, fetched_a = (self.raw / "page.md").read_bytes(), (wd / "fetched.md").read_bytes()
+        second, _, _ = self.build(page, keep_noise=True, force=True)
+        self.assertEqual((second["url"], second["final_url"], second["source_sha256"]),
+                         (first["url"], first["final_url"], first["source_sha256"]))
+        # 取得 A の raw と fetched.md を戻し、fetch.json だけを取得 B のものにする（一部だけを戻したバックアップ）。
+        (self.raw / "page.md").write_bytes(raw_a)
+        (wd / "fetched.md").write_bytes(fetched_a)
+        code, result, stub = self.refetch(stub=FetchStub(page))
+        self.assertEqual(stub.requested, [PAGE_URL])
+        self.assertNotIn("fetch_skipped", result)
+        self.assertTrue(result["unchanged"])
+        self.assertFalse(result["work_dir"])
+
+    def test_record_without_snapshot_hash(self):
+        """0.14.0 が書いた写し（fetch.json に fetched_sha256 がない）は、取得の前には続けない。取得して原文が同じ
+        なら、0.14.0 と同じに続ける（取り込みの途中で更新しても、途中の作業を失わない）。"""
+        def drop_hash():
+            path = wiki_rawcheck.work_dir(self.wiki, "page") / "fetch.json"
+            saved = json.loads(path.read_text(encoding="utf-8"))
+            del saved["fetched_sha256"]
+            path.write_bytes(json.dumps(saved, ensure_ascii=False).encode("utf-8"))
+
+        self.build(self.HTML)
+        drop_hash()
+        code, result, stub = self.refetch()
+        self.assertEqual(code, 0, result)
+        self.assertEqual(stub.requested, [PAGE_URL])
+        self.assertNotIn("fetch_skipped", result)
+        self.assertTrue(result["work_dir"])
+        self.assertEqual(result["work_stage"], "fetched")
+        # DOM で取った 0.14.0 の写しは、今までどおり終了コード 3 になる（設計書の限界）。
+        self.take_dom(force=True)
+        drop_hash()
+        code, result, stub = self.refetch()
+        self.assertEqual(code, 3, result)
+        self.assertEqual(stub.requested, [PAGE_URL])
+
+    def test_frozen_resume_returns_freeze_report(self):
+        """実装のレビュー 1 の重大 2: freeze の出力を読む前に止まっても、続けるときに freeze の報告（消した行と警告）を
+        返す。止まる前に読むはずだった報告を読み直して、本文を消していないかを確かめられる。"""
+        tail = "This closing paragraph is long enough that removing it trips the twenty percent warning. " * 3
+        first, _, _ = self.build(html_page(f"<p>{LONG * 3}</p><p>{tail}</p>"))
+        self.assertEqual(first["warnings"], [])
+        raw = self.raw / "page.md"
+        text = raw.read_text(encoding="utf-8")
+        raw.write_text(text.replace("\n\n" + tail.strip(), ""), encoding="utf-8", newline="\n")
+        code, frozen = wiki_rawcheck.freeze(self.wiki, self.raw, "page")
+        self.assertEqual(code, 0, frozen["errors"])
+        self.assertEqual([w["kind"] for w in frozen["warnings"]], ["removed_much"])
+        code, result, _ = self.refetch(stub=offline)
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["work_stage"], "frozen")
+        self.assertEqual(result["freeze"], {"removed_lines": frozen["removed_lines"],
+                                            "shortened_lines": frozen["shortened_lines"],
+                                            "warnings": frozen["warnings"]})
+        self.assertEqual(result["images"], frozen["images"])
+        self.assertEqual(result["warnings"], [])  # 取得の警告と、freeze の警告を混ぜない
+        code, out = self.run_main()
+        self.assertIn("警告: 消した文字が本文の 2 割を超える", out)
+        self.assertIn("消した行: " + tail.strip()[:40], out)
+
+    def test_frontmatter_final_url_of_another_type_is_not_resumed(self):
+        """frontmatter の final_url が文字列でなければ（[] など）、ないものとして url で代えずに、続けない。"""
+        self.build(self.HTML)
+        wd = wiki_rawcheck.work_dir(self.wiki, "page")
+        for path in (self.raw / "page.md", wd / "fetched.md"):
+            path.write_bytes(path.read_bytes().replace(b"\nsource_lang:", b"\nfinal_url: []\nsource_lang:", 1))
+        record = wd / "fetch.json"
+        saved = json.loads(record.read_text(encoding="utf-8"))
+        saved["fetched_sha256"] = wiki_rawcheck.snapshot_sha256((wd / "fetched.md").read_bytes())
+        record.write_bytes(json.dumps(saved, ensure_ascii=False).encode("utf-8"))
+        self.assertTrue(wiki_rawcheck.work_dir_matches_raw(self.wiki, "page", self.raw / "page.md"))
+        code, result, stub = self.refetch()
+        self.assertEqual(stub.requested, [PAGE_URL])
+        self.assertFalse(result["work_dir"])
+
+    def test_fetch_json_of_another_fetch_is_not_resumed(self):
+        """設計のレビュー 1 の重大 2: fetch.json の取得元とハッシュが、写しの fetched.md（と raw）の frontmatter と
+        違えば（一部だけを戻したバックアップなど）、その記録で続けない。"""
+        other = "https://site.example/other"
+        for change in ({"url": other}, {"source_sha256": "b" * 64}, {"final_url": other}):
+            with self.subTest(change=change):
+                self.build(self.HTML, force=True)
+                path = wiki_rawcheck.work_dir(self.wiki, "page") / "fetch.json"
+                saved = json.loads(path.read_text(encoding="utf-8"))
+                saved.update(change)
+                path.write_bytes(json.dumps(saved).encode("utf-8"))
+                requested: list[str] = []
+
+                def stub(url, timeout, max_bytes, accept="", block_private=False):
+                    requested.append(url)
+                    return self.HTML, url, "text/html; charset=utf-8"
+
+                url = change.get("url", PAGE_URL)
+                code, result, _ = self.refetch(stub=stub, url=url)
+                self.assertEqual(requested, [url])
+                self.assertNotIn("fetch_skipped", result)
+                self.assertFalse(result["work_dir"])
+
+    def test_malformed_fetch_json_is_not_resumed(self):
+        """fetch.json が JSON として読めても、取得器の書いた形（続けるときに使うキーがその型）でなければ、続けずに
+        取得に進む。例外では止まらない（設計のレビュー 1 の軽微: images が null のまま frozen で選び直すと落ちた）。"""
+        self.build(self.HTML)
+        path = wiki_rawcheck.work_dir(self.wiki, "page") / "fetch.json"
+        good = json.loads(path.read_text(encoding="utf-8"))
+        broken = ["[]", '{"source_sha256": "x"}', '{"url": 1, "source_sha256": "x"}']
+        for key, value in (("images", None), ("images", [1]), ("images", [{"path": None}]),
+                           ("removed_by_rule", [{"rule": "x"}]), ("warnings", [1]), ("needs_translation", "yes"),
+                           ("final_url", None)):
+            broken.append(json.dumps({**good, key: value}))
+        for content in broken:
+            with self.subTest(content=content[:80]):
+                self.build(self.HTML, force=True)
+                (wiki_rawcheck.work_dir(self.wiki, "page") / "cleaned.md").write_bytes(
+                    (self.raw / "page.md").read_bytes())
+                path.write_bytes(content.encode("utf-8"))
+                code, result, stub = self.refetch()
+                self.assertEqual(code, 0, result)
+                self.assertEqual(stub.requested, [PAGE_URL])
+                self.assertTrue(result["unchanged"])
+                self.assertFalse(result["work_dir"])
+
+
 if __name__ == "__main__":
     unittest.main()
