@@ -14,7 +14,7 @@
       }
     },
     {
-      "check": "メインが Agent に model を渡していない（記録の入力と、Claude Code のメタデータ）",
+      "check": "メインが Agent に model を渡していない（入力と、Claude Code のメタデータの launchedWithDefaults）",
       "ok": true,
       "detail": {
         "model": [
@@ -26,38 +26,44 @@
       }
     },
     {
-      "check": "メインの応答のモデルが opus",
+      "check": "メインのすべての応答のモデルが opus",
       "ok": true,
       "detail": [
         "claude-opus-5-5"
       ]
     },
     {
-      "check": "wiki:web-raw の応答のモデルが Sonnet（記録と prefix.json）",
-      "ok": true,
-      "detail": [
-        "claude-sonnet-5-5"
-      ]
-    },
-    {
-      "check": "wiki_fetch.py は wiki:web-raw だけが実行した",
+      "check": "wiki:web-raw のすべての応答のモデルと、prefix.json のモデルが Sonnet",
       "ok": true,
       "detail": {
-        "main": []
+        "responses": [
+          "claude-sonnet-5-5"
+        ],
+        "prefix": [
+          "claude-sonnet-5-5"
+        ]
       }
     },
     {
-      "check": "freeze は wiki:web-raw だけが実行した",
+      "check": "wiki_fetch.py と freeze を実行したのは wiki:web-raw だけ",
       "ok": true,
-      "detail": null
+      "detail": {}
     },
     {
-      "check": "メインは raw と画像に書いていない（道具の入力に現れる書き込み）",
+      "check": "W8 の check --finish が通り、作業用の写しを消した（道具の結果）",
       "ok": true,
-      "detail": []
+      "detail": {
+        "finish_commands": 1,
+        "removed_in_results": true
+      }
     },
     {
-      "check": "wiki:web-raw は wiki のページ、index.md、log.md に書いていない（道具の入力に現れる書き込み）",
+      "check": "raw に書いた（Edit、Write）のは wiki:web-raw だけ",
+      "ok": true,
+      "detail": {}
+    },
+    {
+      "check": "wiki:web-raw は wiki のページ、index.md、log.md に書いていない（Edit、Write）",
       "ok": true,
       "detail": []
     },
@@ -106,6 +112,14 @@
     }
   ],
   "ok": true,
+  "bash_to_review": {
+    "main": [
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom\" && ls -la && ls -la wiki raw 2>&1 | head -50; cat CLAUDE.md AGENTS.md 2>/dev/null | head -50",
+      "cd \"C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references\" && ls && cat web-raw.md",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom\" && ls -la raw raw/assets/ブルームフィルタ; ls wiki/.wiki-cache/ingest 2>&1; wc -c -l raw/ブルームフィルタ.md; head -15 raw/ブルームフィルタ.md",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki\" && cat >> log.md <<'EOF'\n\n## [2026-11-14] ingest | ブルームフィルタ（日本語版 Wikipedia）\n   作成: sources/ブルームフィルタ、concepts/bloom-filter、concepts/counting-filter、concepts/bloomier-filter。人と話"
+    ]
+  },
   "translated_by": "",
   "caption_names": [
     "Claude Sonnet 5.5"

@@ -214,6 +214,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
                  self.use("Bash", {"command": "python - <<'EOF'\nfrom pathlib import Path\n"
                                               "Path('raw/cqrs.md').write_text('訳', encoding='utf-8')\nEOF"}, sonnet),
                  self.use("Bash", {"command": "python wiki_rawcheck.py check --slug cqrs --finish"}, sonnet),
+                 self.got('{"ok": true, "work_dir_removed": true}'),
                  *agent_extra]
         return main, [({"agentType": "wiki:web-raw", "launchedWithDefaults": True}, agent)]
 
@@ -224,10 +225,6 @@ class SyntheticTranscriptTest(unittest.TestCase):
         report = self.write(*self.good())
         self.assertTrue(report["ok"], self.failed(report))
 
-    def test_reading_or_copying_raw_out_is_not_a_write(self):
-        report = self.write(*self.good(main_extra=[self.use("Bash", {"command": "cp raw/cqrs.md /tmp/copy.md; ls raw 2>&1"})]))
-        self.assertTrue(report["ok"], self.failed(report))
-
     def test_unrelated_subagent_is_listed_not_judged(self):
         main, agents = self.good()
         agents.append(({"agentType": "general-purpose", "launchedWithDefaults": True, "_model": "claude-opus-5-5"},
@@ -236,46 +233,58 @@ class SyntheticTranscriptTest(unittest.TestCase):
         self.assertTrue(report["ok"], self.failed(report))
         self.assertEqual([o["type"] for o in report["other_subagents"]], ["general-purpose"])
 
-    def test_counterexamples_are_caught(self):
+    def test_structured_counterexamples_fail(self):
+        """確かに読み取れる違反（構造のある道具、メタデータ、応答のモデル、W8、文の受け渡し）は不合格にする。"""
+        main, agents = self.good()
+        other_writes_raw = (main + [self.use("Agent", {"subagent_type": "general-purpose", "prompt": "直す"}, uid="u-gp")],
+                            agents + [({"agentType": "general-purpose", "launchedWithDefaults": True,
+                                        "_model": "claude-opus-5-5"},
+                                       [self.use("Write", {"file_path": str(self.project / "raw/cqrs.md"), "content": "x"})])])
+        no_model = self.good()
+        no_model[1][0] = (no_model[1][0][0], [{"message": {**r["message"], "model": ""}} for r in no_model[1][0][1]])
+        no_defaults = self.good()
+        no_defaults[1][0] = ({"agentType": "wiki:web-raw"}, no_defaults[1][0][1])
+        no_finish = self.good()
+        no_finish[1][0] = (no_finish[1][0][0], [r for r in no_finish[1][0][1]
+                                               if "--finish" not in json.dumps(r, ensure_ascii=False)
+                                               and "work_dir_removed" not in json.dumps(r, ensure_ascii=False)])
+        before_main, before_agents = self.good()
         cases = {
-            "main_python_writes_raw": self.good(main_extra=[self.use("Bash", {"command": (
-                "python -c \"from pathlib import Path; Path('raw/x.md').write_text('changed', encoding='utf-8')\"")})]),
-            "agent_python_writes_index": self.good(agent_extra=[self.use("Bash", {"command": (
-                "python -c \"from pathlib import Path; Path('wiki/index.md').write_text('changed', encoding='utf-8')\"")},
-                "claude-sonnet-5-5")]),
-            "main_text_before_agent": self.good(),
+            "other_subagent_writes_raw": other_writes_raw,
+            "response_model_missing": no_model,
+            "launched_with_defaults_missing": no_defaults,
+            "check_finish_missing": no_finish,
+            "main_text_before_agent": ([self.said("訳はこうする: " + RAW_BODY)] + before_main, before_agents),
             "second_prompt_has_raw": self.good(main_extra=[self.use("Agent", {
                 "subagent_type": "wiki:web-raw", "prompt": "この訳を書き込む: " + RAW_BODY}, uid="u-second")]),
             "model_passed": self.good(call_input={"model": "opus"}),
+            "agent_edits_index": self.good(agent_extra=[self.use(
+                "Edit", {"file_path": str(self.project / "wiki/index.md")}, "claude-sonnet-5-5")]),
         }
-        main, agents = cases["main_text_before_agent"]
-        cases["main_text_before_agent"] = ([self.said("訳はこうする: " + RAW_BODY)] + main, agents)
         for name, (main, agents) in cases.items():
             with self.subTest(case=name):
                 report = self.write(main, agents)
                 self.assertFalse(report["ok"], name)
 
+    def test_bash_writes_are_listed_for_review(self):
+        """Bash のコマンドの中の書き込みは合否を決めず、担当ごとに一覧に出す（レビューの反例を含む）。"""
+        sonnet = "claude-sonnet-5-5"
+        main_cmds = ["python -c \"from pathlib import Path; Path('raw/x.md').write_text('changed', encoding='utf-8')\"",
+                     "mv raw/assets/cqrs/cqrs-01.png /tmp/stolen.png", "cd raw && echo changed > cqrs.md"]
+        agent_cmds = ["python -c \"from pathlib import Path; Path('wiki/index.md').write_text('changed')\"",
+                      "mv wiki/index.md /tmp/stolen-index.md"]
+        report = self.write(*self.good(main_extra=[self.use("Bash", {"command": c}) for c in main_cmds],
+                                       agent_extra=[self.use("Bash", {"command": c}, sonnet) for c in agent_cmds]))
+        self.assertTrue(report["ok"], self.failed(report))
+        listed = report["bash_to_review"]
+        for c in main_cmds:
+            self.assertIn(c[:300], listed["main"])
+        for c in agent_cmds:
+            self.assertIn(c[:300], listed["wiki:web-raw"])
+
 
 class TranscriptCheckTest(unittest.TestCase):
     """実地の確かめのスクリプトの判定（記録を読まない部分）。"""
-
-    def test_raw_write_detection(self):
-        m = check_web_raw_agent
-
-        def hits(command: str) -> bool:
-            targets = m.bash_write_targets([command]) + m.command_write_targets([command])
-            return any(m.is_raw_target(t, Path("/no/such/raw")) for t in targets) or bool(
-                m.python_writes([command], m.RAW_PATH_RE))
-
-        for c in ("echo x > raw/cqrs.md", "sed -i 's/a/b/' raw/cqrs.md", "cp a.png raw/assets/cqrs/a.png",
-                  'python x.py >> "raw/cqrs.md"', "Set-Content raw\\cqrs.md x", "rm raw/assets/cqrs/a.png",
-                  "python -c \"from pathlib import Path; Path('raw/x.md').write_text('y')\""):
-            with self.subTest(hit=c):
-                self.assertTrue(hits(c))
-        for c in ("ls raw 2>&1; cat raw/cqrs.md", "wc -c raw/cqrs.md", "grep -n x raw/cqrs.md 2>/dev/null",
-                  "python wiki_rawcheck.py check --raw-root raw --slug cqrs", "cp raw/x.md /tmp/copy.md"):
-            with self.subTest(miss=c):
-                self.assertFalse(hits(c))
 
     def test_bash_write_targets(self):
         targets = check_web_raw_agent.bash_write_targets(

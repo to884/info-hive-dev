@@ -41,3 +41,7 @@ claude -p "/wiki:ingest <URL> 人と話し合わないまとめての取り込�
 - 文を考えたモデル。試験が見つけるのは、長い文の並びの受け渡しだけである。
 - 本文が取れないページ（`needs_browser`）、同じスラッグの別版（`existing_differs`）、警告が残る場合（`warnings`）の流れ。
 - 組織の許可リストやフォールバックの連鎖で、エージェントが Sonnet 以外で動く場合。
+
+## 調べ直し（4 回目のレビューのあと）
+
+4 回目のレビュー（`docs/agent-runs/2026-11-14-wiki-web-raw-agent-review/review-4.md`）のあと、実地の確かめのスクリプトを、Bash のコマンドの中の書き込みで合否を決めない形に改めた（`root-causes-4.md`）。改めたスクリプトで 2 回の記録を調べ直すと、どちらも 14 項目とも通った（`trial-cqrs.json`、`trial-bloom.json`）。一覧（`bash_to_review`）に出たメインのコマンド（CQRS 3 件、ブルームフィルタ 4 件）を読むと、どれも読み取り（`ls`、`cat`、`sed -n`）と `log.md` への追記で、raw に書いたものはなかった。エージェントのコマンドは、一覧に出なかった。
