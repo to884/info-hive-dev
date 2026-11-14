@@ -2,16 +2,16 @@
 type: "concept"
 title: "frontmatter のリストの値の読み方と、そろえる関数の違い"
 tags: ["検索"]
-sources: ["検索の結果のtagsとsourcesの修正-wiki-0.12.1", "titleが値なしや配列のときの修正-wiki-0.12.2"]
+sources: ["検索の結果のtagsとsourcesの修正-wiki-0.12.1", "titleが値なしや配列のときの修正-wiki-0.12.2", "typeとupdatedの配列の扱いの修正-wiki-0.14.1"]
 created: 2026-11-13
-updated: 2026-11-13
+updated: 2026-11-14
 ---
 
 # frontmatter のリストの値の読み方と、そろえる関数の違い
 
 `tags`、`sources`、`raw` のようにリストを入れる欄でも、frontmatter のパーサー（`wiki_text.parse_frontmatter_text`）は、書かれた形のまま、文字か文字の配列を返す。値を 1 つだけ書くと文字になる。使う側でリストにそろえる関数が 3 つあり、空の値、空白、文字でない値の扱いがそれぞれ違う。wiki 0.12.1 で、検索の結果の欄がそろっていなかったのを直した（[[検索の結果のtagsとsourcesの修正-wiki-0.12.1]]）。
 
-逆に、`title` のように 1 つの文字を入れる欄でも、パーサーは配列を返すことがある。読む側が文字と決めつけていたので、wiki 0.12.2 で、検索などが止まっていたのを直した（[[titleが値なしや配列のときの修正-wiki-0.12.2]]）。
+逆に、`title` のように 1 つの文字を入れる欄でも、パーサーは配列を返すことがある。読む側が文字と決めつけていたので、wiki 0.12.2 で、検索などが止まっていたのを直した（[[titleが値なしや配列のときの修正-wiki-0.12.2]]）。`type`、`kind`、`updated`、`created` も、wiki 0.14.1 で同じ規則にそろえた（[[typeとupdatedの配列の扱いの修正-wiki-0.14.1]]）。
 
 ## パーサーが返す値
 
@@ -58,15 +58,24 @@ updated: 2026-11-13
 - 使う所は、検索（CLI と MCP の `query`）、lint の `--suggest-pages`、グラフの抽出とグラフの lint、判定レイヤー、MCP の `list_index` である。browse の中核は使っていない。
 - 配列の扱いは、作者が「要素をつなぐ」と「題名なしとみなす」から選んだ。lint は、引用符付きの `title: ["WIP"]` を何も指摘しないので、題名なしとみなすと、利用者が気づけないまま題名が消える。
 
+`type`、`kind`、`updated`、`created` は、0.14.1 から `wiki_pages.scalar_value()`、`type_value()`、`kind_value()` でそろえる（[[typeとupdatedの配列の扱いの修正-wiki-0.14.1]]）。
+
+- 文字と `None` はそのまま返す。`""` も変えない。
+- 配列は `title` と同じく、空でない要素を「, 」でつなぐ。`type` と `kind` の要素は、日本語の別名（`概念`、`人物` など）を英語に直す。文字の値は、読み込みの `canonical_meta()` で直してある。
+- 空なら `None` を返す。検索の結果では `null`、人が読む出力の type の欄では「?」になる。グラフのノードでは、今までどおり `""` にする。
+- 要素が 2 つ以上ある `type: [concept, entity]` は「concept, entity」になり、`--type "concept, entity"` にだけ当たる。`updated` は、つないだ値の先頭の 10 文字を日付として読む。
+- 使う所は、検索（CLI と MCP の `query`、`--type` と `--since` の絞り込み）、統計、lint、グラフの抽出とグラフの lint（`--decide` の証拠の判定を含む）、判定レイヤーである。browse の中核は使っていない。
+- lint の指摘のうち、書き方を指摘するもの（`non_iso_dates` の `value`）だけは、書かれた形のまま出す。判定に使った値を示す欄（`index_type_mismatch` と `unresolved_sources` の `type`、`stale_pages` の `updated`）は、比べた値と同じく、そろえた値を出す。
+
 ## 残っている欠陥
 
-2026-11-13 の修正では直さず、範囲の外として残したもの。`title` を配列で書くと検索が止まる件は、0.12.2 で直した（上の「1 つの文字の欄」）。
+2026-11-13 の修正では直さず、範囲の外として残したもの。`title` を配列で書くと検索が止まる件は 0.12.2 で、`type` と `updated` が配列のまま出る件は 0.14.1 で直した（上の「1 つの文字の欄」）。
 
 | 書き方 | 起きること |
 | --- | --- |
 | `title: [x, y]` のページを browse で開く | 止まらないが、題名を `['x', 'y']` と表示する。browse の中核が `str(meta.get("title") or ...)` で文字にしている |
-| `type: [concept]`、`updated: [2026-01-01]` | `--json` の `type` と `updated` が配列のまま出る。契約（文字か `null`）から外れる。lint は `updated` を `non_iso_dates` として指摘する |
+| `type: [concept]` のページを browse で開く | 止まらないが、索引にないページを種類で分ける欄に `['concept']` と出る。browse の中核が `str(meta.get("type") or "")` で文字にしている |
 | パースキャッシュの `tags` が `5` のような数 | `--tag` で絞り込むと、`normalize_tags()` が `TypeError` を出す |
 | `tags: 検索` のページを MCP の `get_page` で読む | `meta.tags` は文字のまま返る。`get_page` の説明は、日本語の別名のキーを英語にそろえることしか約束していない |
 
-> 残っている欠陥の表 補足: `type` と `updated` は、配列で書かれたときにどの値を使うか（先頭か、つなげるか、誤りとするか）を決めないと直せない。`title` は、作者がつなげると決めて直した。browse は、別の作業で中核を変えている途中なので、そちらで `text_value()` を使えば同じ題名になる。
+> 残っている欠陥の表 補足: browse は、別の作業で中核を変えている途中なので、そちらで `text_value()` と `type_value()` を使えば、ほかの機能と同じ題名と種類になる。
