@@ -1687,6 +1687,7 @@ class ResumeBeforeFetchTest(FetchCase):
         self.assertEqual(stub.requested, [PAGE_URL])
         self.assertTrue(result["unchanged"])
         self.assertFalse(result["work_dir"])
+        self.assertTrue(result["old_work_dir"])
         # 削除を固定したあとの写しも続けない。
         self.assertEqual(wiki_rawcheck.freeze(self.wiki, self.raw, "page")[0], 0)
         code, result, stub = self.refetch()
@@ -1702,6 +1703,53 @@ class ResumeBeforeFetchTest(FetchCase):
         self.assertEqual(code, 0, result)
         self.assertFalse(result["work_dir"])
         self.assertEqual(result["source_sha256_of"], "dom")
+
+    def test_old_work_dir_is_reported_on_every_outcome(self):
+        """実装のレビュー 4 の重大 1: 0.14.1 までの版で DOM から始めた取り込みを URL だけで呼ぶと、原文のハッシュが
+        違うので終了コード 3 になる。そのときも、取得に失敗したときも、続けられない旧版の写しがあることを、印
+        （old_work_dir）と文字の出力で知らせる。"""
+        self.take_dom()
+        self.make_legacy()
+        # 原文が違う（終了コード 3）。
+        code, result, stub = self.refetch()
+        self.assertEqual(code, 3, result)
+        self.assertEqual(stub.requested, [PAGE_URL])
+        self.assertTrue(result["old_work_dir"])
+        out = wiki_fetch.render_text(code, result)
+        self.assertIn("0.14.1 までの版", out)
+        self.assertIn("--force", out)
+        self.assertIn("ページが更新されたからとは限らない", out)
+        # 取得に失敗した（終了コード 2）。
+        stdout, stderr = io.StringIO(), io.StringIO()
+        argv = [PAGE_URL, "--wiki", str(self.wiki), "--raw-root", str(self.raw), "--slug", "page", "--json"]
+        with mock.patch.object(wiki_fetch, "fetch", offline), contextlib.redirect_stdout(stdout), \
+                contextlib.redirect_stderr(stderr):
+            self.assertEqual(wiki_fetch.main(argv), 2)
+        self.assertTrue(json.loads(stdout.getvalue())["old_work_dir"])
+        self.assertIn("0.14.1 までの版", stderr.getvalue())
+        # 原文が同じ（同じ HTML のファイル）。
+        code, result, _ = self.refetch(html_file=self.base / "saved.html", page_url=PAGE_URL)
+        self.assertEqual(code, 0, result)
+        self.assertFalse(result["work_dir"])
+        self.assertTrue(result["old_work_dir"])
+        self.assertIn("0.14.1 までの版", wiki_fetch.render_text(code, result))
+        # 対照: --force では問わない。
+        code, result, _ = self.refetch(force=True)
+        self.assertNotIn("old_work_dir", result)
+
+    def test_old_work_dir_is_not_reported_for_new_work_dirs(self):
+        """対照: 新しい版の写し（続けられないものも含む）と、写しがないときは、old_work_dir を付けない。"""
+        self.take_dom()
+        again = self.base / "again.html"
+        again.write_bytes(html_page(self.ARTICLE, head='<meta name="saved-by" content="browser-2">'))
+        code, result, _ = self.refetch(html_file=again, page_url=PAGE_URL)
+        self.assertEqual(code, 3, result)
+        self.assertNotIn("old_work_dir", result)
+        self.assertNotIn("0.14.1", wiki_fetch.render_text(code, result))
+        wiki_rawcheck.remove_work_dir(self.wiki, "page")
+        code, result, _ = self.refetch()
+        self.assertEqual(code, 3, result)
+        self.assertNotIn("old_work_dir", result)
 
     def test_restored_old_record_of_another_setting_is_not_resumed(self):
         """実装のレビュー 3 の重大 1: 同じ原文を別の設定（--keep-noise）で取った 0.14.1 までの版の fetch.json を丸ごと戻しても、
