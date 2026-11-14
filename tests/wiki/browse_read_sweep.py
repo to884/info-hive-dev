@@ -63,6 +63,10 @@ WIKI = {
     "concepts/c.md": b"# c\n\n## h\n",
     "graph/ontology.yaml": b"node_types: {concept: {}}\npredicates: {}\n",
     "raw/x.md": b"not an input\n",
+    # 名前の変換で初めて生じる別名（予約名の data に接尾辞が付き、その 8.3 の短い名前が data~a~1 と同じ綴りになる）。
+    # 実装の 6 回目のレビューの重大 1
+    "data/a.md": b"# data a\n",
+    "data~a~1/b.md": b"# data b\n",
 }
 WALK_CALLS = ("w_scandir_open", "w_next", "w_is_symlink", "w_is_dir", "w_is_junction", "w_stat", "w_file_id")
 PARSE_CALLS = ("i_parse", "i_frontmatter", "i_render_page")

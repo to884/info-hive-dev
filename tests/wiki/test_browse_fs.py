@@ -78,6 +78,9 @@ PURE_OS_CALLS = {
     "os.fspath", "os.environ.get", "os.path.join", "os.path.dirname", "os.path.basename", "os.path.abspath",
     "os.path.expanduser", "os.path.normcase", "os.path.splitext", "os.path.relpath",
 }
+# 層の外で参照してよい os と io の名前（呼び出しでない参照を含む）
+PURE_OS_REFS = PURE_OS_CALLS | {"os.path", "os.environ", "os.sep", "os.name"}
+PURE_IO_REFS = {"io.TextIOWrapper", "io.BytesIO", "io.StringIO"}
 # 口（層）の中だけで呼んでよい os の入出力の関数（設計の 3.1 の口の一覧）。
 LAYER_OS_CALLS = {
     "lstat", "stat", "scandir", "mkdir", "open", "read", "write", "close", "rename", "replace", "unlink",
@@ -158,7 +161,7 @@ def io_violations(source: str, module: str) -> list:
             # レビューの軽微）。shutil は取り込まない
             if module != "wiki_browse_fs.py":
                 for a in node.names:
-                    if a.name in ("os", "os.path") and a.asname is not None or a.name == "shutil":
+                    if a.name in ("os", "os.path", "io") and a.asname is not None or a.name == "shutil":
                         found.append(f"{module}:{node.lineno} {a.name} を別名で、または取り込む")
             self.generic_visit(node)
 
@@ -174,6 +177,17 @@ def io_violations(source: str, module: str) -> list:
             self.generic_visit(node)
 
         def visit_Attribute(self, node):
+            # 呼び出しだけでなく、参照も照らす。`read = os.read` のように関数を変数に入れる形も見つける
+            # （実装の 6 回目のレビューの軽微）。os と io の参照は、許す一覧の名前か、その途中までだけを許す
+            if module != "wiki_browse_fs.py":
+                root = node
+                while isinstance(root, ast.Attribute):
+                    root = root.value
+                if isinstance(root, ast.Name) and root.id in ("os", "io") and not isinstance(node.ctx, ast.Store):
+                    full = ast.unparse(node)
+                    allowed = PURE_OS_REFS if root.id == "os" else PURE_IO_REFS
+                    if full not in allowed and not any(a.startswith(full + ".") for a in allowed):
+                        found.append(f"{module}:{node.lineno} {full} を参照する")
             if module != "wiki_browse_fs.py" and node.attr in ("Path", "WindowsPath", "PosixPath") \
                     and ast.unparse(node.value) == "pathlib":
                 found.append(f"{module}:{node.lineno} pathlib.Path を持つ")
@@ -225,6 +239,9 @@ class LayerContractTest(unittest.TestCase):
             (browse + "\n\nfrom pathlib import Path as P\n\ndef leak(p):\n    return P(p).open()\n", "wiki_browse.py"),
             (core + "\n\ndef leak(fd):\n    return os.read(fd, 1024)\n", "wiki_browse_core.py"),
             (core + "\n\nimport os as o\n\ndef leak(fd):\n    return o.read(fd, 1)\n", "wiki_browse_core.py"),
+            (core + "\n\nread = os.read\n\ndef leak(fd):\n    return read(fd, 1)\n", "wiki_browse_core.py"),
+            (browse + "\n\nimport io as i\n\ndef leak(p):\n    return i.FileIO(p, 'w')\n", "wiki_browse.py"),
+            (core + "\n\ndef leak(p):\n    return io.FileIO(p, 'w')\n", "wiki_browse_core.py"),
             (browse + "\n\nfrom os import read\n\ndef leak(fd):\n    return read(fd, 1)\n", "wiki_browse.py"),
             (browse + "\n\ndef leak(fd, data):\n    return os.write(fd, data)\n", "wiki_browse.py"),
             (core + "\n\nimport pathlib as pl\n\ndef leak(p):\n    return pl.Path(p).open()\n", "wiki_browse_core.py"),

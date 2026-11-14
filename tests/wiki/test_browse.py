@@ -387,6 +387,19 @@ class NamesTest(unittest.TestCase):
                     self.assertEqual(fs.build(wiki, out, files, False, owner, os.path.join(base, "data", "browse")),
                                      0)
 
+    def test_no_output_directory_looks_like_a_short_name(self):
+        # 8.3 の短い名前と同じ形のディレクトリの名前は、ほかの出力のディレクトリの短い名前で、同じディレクトリに
+        # 届きうる（実装の 6 回目のレビューの重大 1）。どの出力のディレクトリも、その形にしない
+        ids = ["data/a", "data~a~1/b", "LONGDI~1/c", "x~1.ab/d", "a~b/e", "ok/f"]
+        names = core.assign_names(ids)
+        for name in names.values():
+            for part in name.split("/")[:-1]:
+                self.assertFalse(core.looks_like_short_name(part), (name, part))
+        self.assertEqual(names["ok/f"], "ok/f.html")
+        for text, want in (("DATA~A~1", True), ("data~a~1", True), ("LONGDI~1.TXT", True), ("a~b", True),
+                           ("data", False), ("data~a451b6e6", False), ("a~1.html", False), ("x.y.z~1", False)):
+            self.assertEqual(core.looks_like_short_name(text), want, text)
+
     def test_reserved_names(self):
         for name in ("CON", "con", "COM0", "COM¹", "LPT²", "CONIN$", "CONOUT$", "nul.txt", "COM9 "):
             out = core.export_name(f"x/{name}")
@@ -959,6 +972,18 @@ class BuildTest(TempWiki):
             self.build(self.base / "no-parent" / "out")
         self.assertFalse((self.base / "no-parent").exists())
         self.assertEqual(tree_state(self.wiki), before)
+
+    def test_short_name_shaped_directories_build_twice(self):
+        # 8.3 の短い名前が作られる NTFS でも、書き出した世代が次の書き出しの門を通る（実装の 6 回目のレビューの重大 1）
+        write(self.wiki, "data/a.md", page("# A"))
+        write(self.wiki, "data~a~1/b.md", page("# B"))
+        out = self.base / "site"
+        for _ in range(2):
+            report = self.build(out)
+            self.assertEqual(report["pages"], 4)
+        files = sorted(p.relative_to(out).as_posix() for p in out.rglob("*.html") if p.parent.name.startswith("data"))
+        self.assertEqual(len(files), 2, files)
+        self.assertEqual(len({f.split("/")[0] for f in files}), 2, files)
 
     def test_sibling_and_empty_destination(self):
         view = self.base / "work" / "view"
