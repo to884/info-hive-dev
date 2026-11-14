@@ -55,3 +55,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-13] ingest | /wiki:ingest のモデルの比較（2026-11-13）
    ページ: sources/ingestのモデルの比較-2026-11-13、concepts/ingestに使うモデル（SCHEMA.md のタグの体系に `取り込み` を足した）
+
+## [2026-11-14] update | /wiki:ingest に使うモデル（raw の段だけを Sonnet にする）
+   ページ: concepts/ingestに使うモデル（グローバルの指示を消し、0.15.0 からエージェント wiki:web-raw が raw の段を行うことを書いた）
