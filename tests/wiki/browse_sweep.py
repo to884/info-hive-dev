@@ -244,6 +244,20 @@ LAST_COMMIT: list = [None]              # 同じく、1 回目の実行の確定
 SKIPPED: list = []                      # リンクを作れずに飛ばした状態
 
 
+def _outside_territory(sb, t):
+    """書き出し先の木から、その中にある領分（<data_dir> とその下。利用者が指した場所）を除く。
+
+    --out が <data_dir> を含む状態で、領分とその祖先を作ることは、設計の 2.1 が許す。拒む書き出し先は、それを除いて
+    変わってはならない。
+    """
+    if t is None:
+        return None
+    inner = os.path.relpath(sb.data, sb.out).replace(os.sep, "/")
+    if inner.startswith(".."):
+        return t
+    return {k: v for k, v in t.items() if not (k == inner or k.startswith(inner + "/")) and k != "."}
+
+
 def check_build(sb, at, mode, second=None, baseline=None, natural=None, commit=None):
     """1 回の実行と、そのあとの手を入れない実行を確かめる。破れた決まりの一覧を返す。
 
@@ -293,7 +307,7 @@ def check_build(sb, at, mode, second=None, baseline=None, natural=None, commit=N
             and any(t not in (FileNotFoundError, NotADirectoryError) for t in injector.failed.values())):
         problems.append(where("手を入れない実行で起きた「分からない」の失敗を、警告なしに吸収して 0 で終わった"))
     if protected:
-        if after_out != before_out:
+        if _outside_territory(sb, after_out) != _outside_territory(sb, before_out):
             problems.append(where("browse のものでない書き出し先か、Wiki のルートが変わった"))
         if rc == 0:
             problems.append(where("browse のものでない書き出し先か、Wiki のルートで 0 で終わった"))
@@ -332,7 +346,7 @@ def check_build(sb, at, mode, second=None, baseline=None, natural=None, commit=N
     if not world_same(sb, before_world, world(sb), injected=at is not None):
         problems.append(where("次の実行で、書き出し先と領分の外が変わった"))
     if protected:
-        if rc2 != "stop" or after2 != before_out:
+        if rc2 != "stop" or _outside_territory(sb, after2) != _outside_territory(sb, before_out):
             problems.append(where("次の実行が、browse のものでない書き出し先か、Wiki のルートで止まらなかった"))
     else:
         if rc2 != 0 or content(after2, manifest=False) != EXP_N:
@@ -864,6 +878,8 @@ CONTROLS = {
     "cache_ids_by_name": [("gen+datajunction", "asis", True)],
     "recover_unchecked": [("absent", "old-junction", False)],
     "accept_out_link": [("outlink-junction", "asis", True)],
+    # 実装の 1 回目のレビューの重大 1（拒む判定の前に、領分の根を作った）
+    "enter_root_first": [("datainout", "asis", False), ("insidewiki-nodata", "asis", False)],
 }
 SERVER_CONTROLS = (
     ("warn_on_record_failure", lambda: sweep_server(MODES)[1]),

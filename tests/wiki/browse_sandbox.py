@@ -43,6 +43,9 @@ WORK_LINK = "work-link"
 OUT_LINK = ("outlink-junction", "outlink-symlink")
 # 作業用の old-N、tmp-N、del-N の名前そのものがリンク。old-N は、書き出し先に戻さない（設計の 6.4 の 3）
 ENTRY_LINK = ("old-junction", "old-symlink", "left-links")
+# 拒む書き出し先で、<data_dir> がまだない（実装の 1 回目のレビューの重大 1）。--out が <data_dir> を含むものと、
+# --out が Wiki の中にあるもの。手を入れない実行は、砂場の全体が変わらない（拒む判定を、何も作る前に済ませる）
+REFUSED_NODATA = ("datainout", "insidewiki-nodata")
 
 
 def write(path, data):
@@ -172,7 +175,9 @@ class Sandbox:
                 junction(self.data, self.data_real)
             except OSError as e:
                 self.skipped = f"リンクを作れない: {type(e).__name__}"
-        elif out_state != "nodata":
+        elif out_state == "datainout":
+            self.data = self.data_real = os.path.join(r, "user", "data")
+        elif out_state not in ("nodata", "insidewiki-nodata"):
             os.makedirs(os.path.join(r, "data", "browse"))
         self.wiki = os.path.join(r, "wiki")
         if default:
@@ -184,8 +189,10 @@ class Sandbox:
                 write(os.path.join(r, "emptywiki", "SCHEMA.md"), b"# schema\n")
             self.wiki = os.path.join(r, "emptywiki")
             self.out = self.wiki
-        elif out_state == "insidewiki":
+        elif out_state in ("insidewiki", "insidewiki-nodata"):
             self.out = os.path.join(r, "wiki", "site")
+        elif out_state == "datainout":
+            self.out = os.path.join(r, "user")
         else:
             self.out = os.path.join(r, "exports", "site")
         if default and out_state == "datainwiki":
@@ -194,7 +201,7 @@ class Sandbox:
             if initialized:
                 write(os.path.join(self.wiki, "SCHEMA.md"), b"# schema\n")
         self.work = self.out + ".browse-work"
-        self.state_dir = os.path.join(r, "data", "browse", key + ".server")
+        self.state_dir = os.path.join(self.data, "browse", key + ".server")
         out, work = self.out, self.work
         marker_text = owner.encode("utf-8") if default else b""
         if out_state in OUT_LINK:
@@ -272,7 +279,7 @@ class Sandbox:
         """browse の書き出しと確かめられない書き出し先、Wiki のルートと重なる書き出し先、名前そのものがリンクの
         書き出し先と領分。手を入れない実行は、止まり、何も変えない（設計の 9.1）。"""
         return ((self.out_state in FOREIGN and not self.default) or self.out_state in WHOLE
-                or self.out_state in ROOT_LINK or self.work_state == WORK_LINK or self.out_state in OUT_LINK)
+                or self.out_state in REFUSED_NODATA or self.out_state in ROOT_LINK or self.work_state == WORK_LINK or self.out_state in OUT_LINK)
 
     def real(self, path):
         """名前を、砂場の中の実の場所に直す。<data_dir> がジャンクションなら、その先の名前にする（世界の差分は
@@ -390,9 +397,11 @@ def world_same(sb, before, after, injected=False, extra_territory=()):
             return {k: v for k, v in t.items() if not (k == root or k.startswith(root + "/"))
                     and not (os.path.join(sb.data, "browse").startswith(os.path.join(sb.root, k) + os.sep))}
         return outside(before) == outside(after)
+    if sb.out_state in REFUSED_NODATA and not injected:
+        return before == after          # 拒む判定を、何も作る前に済ませる（設計の 9.1）
     if sb.out_state in OUT_LINK and not injected:
         return before == after          # 書き出し先の名前の確かめで、作業用も作らずに止まる（設計の 6.4 の 1）
-    if sb.out_state in WHOLE:
+    if sb.out_state in WHOLE or sb.out_state == "insidewiki-nodata":
         if not injected:
             return before == after
         top = rel(sb, sb.wiki)
@@ -464,6 +473,7 @@ def build_cases(quick=False):
                 cases += [(s, w, True) for s in DATA_LINK for w in ("asis", "leftovers")]
         if not default:
             # --out の書き出しも領分の根に入る（設計の 11。8 回目のレビューの C）。根がリンクなら止まる
+            cases += [(s, "asis", False) for s in REFUSED_NODATA]
             if not quick:
                 cases += [(s, "asis", False) for s in ROOT_LINK]
     return cases

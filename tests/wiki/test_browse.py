@@ -363,6 +363,30 @@ class UnreadableExcludedDirTest(TempWiki):
 
 
 class NamesTest(unittest.TestCase):
+    def test_directories_differing_only_in_case_share_one_spelling(self):
+        # 大文字と小文字を区別しない書き出し先でも、一覧と書き出し先の綴りが合う（実装の 1 回目のレビューの重大 2）
+        names = core.assign_names(["A/x", "a/y", "A/B/p", "a/b/q"])
+        dirs = {}
+        for name in names.values():
+            parts = name.split("/")[:-1]
+            for i in range(1, len(parts) + 1):
+                prefix = "/".join(parts[:i])
+                dirs.setdefault(prefix.casefold(), set()).add(prefix)
+        self.assertTrue(all(len(v) == 1 for v in dirs.values()), dirs)
+        self.assertEqual(len({n.casefold() for n in names.values()}), 4)
+        # 書き出して、もう一度書き出すと、門を通る
+        files = {name: name.encode("utf-8") for name in names.values()}
+        with tempfile.TemporaryDirectory() as d:
+            base = os.path.realpath(d)
+            wiki = os.path.join(base, "wiki")
+            os.makedirs(wiki)
+            out = os.path.join(base, "site")
+            owner = fs.owner_of(wiki)
+            for _ in range(2):
+                with redirect_stderr(io.StringIO()):
+                    self.assertEqual(fs.build(wiki, out, files, False, owner, os.path.join(base, "data", "browse")),
+                                     0)
+
     def test_reserved_names(self):
         for name in ("CON", "con", "COM0", "COM¹", "LPT²", "CONIN$", "CONOUT$", "nul.txt", "COM9 "):
             out = core.export_name(f"x/{name}")
@@ -749,6 +773,79 @@ class UnreadableInputTest(TempWiki):
         self.assertNotEqual(mid, before)
         write(self.wiki, "graph/ontology.yaml", "node_types: {concept: {}}\n")
         self.assertNotEqual(core.signature(self.wiki), mid)
+
+
+class PartialFailureTest(TempWiki):
+    """部分の失敗（構造の直しの設計の 7.2。実装の 1 回目のレビューの重大 3）。1 つの入力の解釈の例外は、その入力を
+    「描けない」か「読めない」と示し、全体を止めない。"""
+
+    def setUp(self):
+        super().setUp()
+        write(self.wiki, "concepts/a.md", page("# A\n\n[[b]]", type="concept"))
+        write(self.wiki, "concepts/b.md", page("# B\n\nBOOM [[a]]", type="concept"))
+        write(self.wiki, "index.md", "- [[a]]\n- [[indexes/more]]\n")
+        write(self.wiki, "indexes/more.md", "BOOMINDEX\n\n- [[b]]\n")
+
+    def parser_failing_on(self, needle):
+        real = wiki_pages.new_parser
+
+        def new_parser():
+            parser = real()
+            original = parser.parse
+
+            def parse(text, env=None):
+                if needle in text:
+                    raise ValueError("injected")
+                return original(text, env)
+            parser.parse = parse
+            return parser
+        return mock.patch.object(wiki_pages, "new_parser", new_parser)
+
+    def test_body_parse_failure_draws_that_page_as_broken(self):
+        with self.parser_failing_on("BOOM ["):
+            c = build_core(self.wiki)
+            self.assertIn("このページを描けない", c.render("concepts/b.html"))
+            self.assertIn("concepts/b", c.render_failures)
+            self.assertIn("被リンク", c.render("concepts/a.html"))
+        self.assertIn("concepts/b.md", c.unreadable_pages)
+        self.assertIn("不完全", c.render("concepts/a.html"))
+
+    def test_frontmatter_failure_is_read_as_unreadable(self):
+        real = wiki_lint.parse_frontmatter_raw
+
+        def failing(text):
+            if "BOOM [" in text:
+                raise ValueError("injected")
+            return real(text)
+        with mock.patch.object(wiki_lint, "parse_frontmatter_raw", failing):
+            c = build_core(self.wiki)
+        self.assertNotIn("concepts/b", c.drawn)
+        self.assertIn({"kind": "read_error", "page": "concepts/b", "reason": "parse"}, c.diagnostics)
+        self.assertIn("concepts/b.md", c.unreadable_pages)
+
+    def test_index_parse_failure_is_read_as_unreadable(self):
+        with self.parser_failing_on("BOOMINDEX"):
+            c = build_core(self.wiki)
+            html = c.render_index()
+        self.assertIn("ナビゲーションは不完全", html)
+        for anchor in __import__("re").findall(r'href="#([^"]+)"', html):
+            self.assertIn(f'id="{anchor}"', html)
+
+    def test_undecodable_page_is_marked_incomplete(self):
+        (self.wiki / "concepts" / "b.md").write_bytes(b"\xff\xfe broken")
+        c = build_core(self.wiki)
+        self.assertIn("concepts/b.md", c.unreadable_pages)
+        self.assertEqual(c.snapshot.transient, [])        # 読み直しても変わらないので、サーバーはやり直さない
+        self.assertIn("不完全", c.render("concepts/a.html"))
+
+    def test_failed_rebuild_keeps_stale_with_same_signature(self):
+        state = wiki_browse.BrowseState(self.wiki)
+        c, stale = state.get()
+        self.assertIsNone(stale)
+        state.failed = "InputsUnknown"
+        self.assertEqual(state._answer(c, c.snapshot.signature, "failed"), (c, "failed"))
+        state.failed = None
+        self.assertEqual(state._answer(c, c.snapshot.signature, None), (c, None))
 
 
 class CoreHoldsNoMachineInfoTest(TempWiki):

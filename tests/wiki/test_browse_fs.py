@@ -62,6 +62,14 @@ FORBIDDEN_ATTRS = {
     "isdir", "islink", "samefile", "touch", "symlink", "link", "truncate", "rmtree", "copytree", "copy", "copy2",
     "move", "utime", "access", "fdopen", "readlink",
 }
+# 受け手を問わずに、層の外で呼んではならない入出力のメソッドの名前（pathlib.Path と DirEntry のもの）。変数に入れた
+# Path でも見つける（実装の 1 回目のレビューの軽微）。中核のメソッドや str と名前が重なる resolve と stat は、
+# 引数のない呼び出しだけを数える。
+ANY_RECEIVER = {
+    "read_text", "read_bytes", "write_text", "write_bytes", "is_file", "is_dir", "is_symlink", "is_junction",
+    "exists", "iterdir", "rglob", "glob", "mkdir", "rmdir", "unlink", "touch", "lstat", "chmod", "samefile",
+    "readlink", "symlink_to", "hardlink_to",
+}
 # 口（層）の中だけで呼んでよい os の入出力の関数（設計の 3.1 の口の一覧）。
 LAYER_OS_CALLS = {
     "lstat", "stat", "scandir", "mkdir", "open", "read", "write", "close", "rename", "replace", "unlink",
@@ -103,8 +111,11 @@ def io_violations(source: str, module: str) -> list:
                 found.append(f"{where} 組み込みの open")
             if isinstance(f, ast.Attribute):
                 base = ast.unparse(f.value)
-                if module != "wiki_browse_fs.py":
-                    if f.attr in FORBIDDEN_ATTRS and base in ("os", "os.path", "shutil", "Path", "pathlib.Path") \
+                if module != "wiki_browse_fs.py" and base not in ("fs", "wiki_browse_fs"):
+                    if f.attr in ANY_RECEIVER or (f.attr in ("resolve", "stat") and not node.args
+                                                  and not node.keywords):
+                        found.append(f"{where} {base}.{f.attr}")
+                    elif f.attr in FORBIDDEN_ATTRS and base in ("os", "os.path", "shutil", "Path", "pathlib.Path") \
                             or (f.attr in FORBIDDEN_ATTRS and isinstance(f.value, ast.Call)
                                 and ast.unparse(f.value.func) in ("Path", "pathlib.Path")):
                         found.append(f"{where} {base}.{f.attr}")
@@ -155,6 +166,9 @@ class LayerContractTest(unittest.TestCase):
         controls = (
             (core + "\n\ndef leak(p):\n    return Path(p).read_text()\n", "wiki_browse_core.py"),
             (core + "\n\ndef leak(p):\n    return open(p).read()\n", "wiki_browse_core.py"),
+            (core + "\n\ndef leak():\n    p = Path('x')\n    return p.read_text(encoding='utf-8')\n",
+             "wiki_browse_core.py"),
+            (browse + "\n\ndef leak(root):\n    return root.resolve()\n", "wiki_browse.py"),
             (browse + "\n\ndef leak(p):\n    return os.path.isfile(p)\n", "wiki_browse.py"),
             (browse + "\n\ndef leak():\n    try:\n        pass\n    except OSError:\n        pass\n", "wiki_browse.py"),
             (layer + "\n\ndef leak(p):\n    return os.lstat(p)\n", "wiki_browse_fs.py"),
