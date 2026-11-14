@@ -1,0 +1,96 @@
+[ask-codex 22:39:52] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\affectionate-vaughan-42c8af）
+## 判定
+
+**却下。確信度：高。** 失敗・競合を入れずに、入れ子のデータ領域を作って既存の書き出しを更新不能にする反例を確認した。また、公開後の出力失敗によって終了コードが120になる経路が残っている。
+
+## 致命的・重大な欠陥
+
+### 1. 重大：入れ子の検査がデータ置き場の祖先を見ず、既存の書き出しを更新不能にする
+
+初期化済みの `C:\box\wiki` を使い、次の順で実行する。
+
+1. `INFO_HIVE_DATA_DIR=C:\box\base-data` として、`--out C:\box\site` に書き出す。
+2. `INFO_HIVE_DATA_DIR=C:\box\site\data` に変え、出力先を省略して書き出す。
+3. データ置き場を元に戻し、再び `--out C:\box\site` に書き出す。
+
+2は成功し、既存世代の中に `site\data\browse\...` を作る。3は「一覧にない、または種類が違う: `data/browse`」で止まる。2の警告は空だった。
+
+**検証結果：食い違い。** 製品の `wiki_browse.build()` を、ファイル入出力だけメモリー上の代役にして実行した。1は門を通る世代、2は成功、3は `Stop` になった。失敗・競合は入れていない。
+
+**根拠：** [入れ子の判定](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:902)が目印を探すのは出力先の親からの祖先だけで、データ置き場側の祖先は調べない。さらに[既定の書き出しの分岐](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:951)は `_check_nesting()` 自体を呼ばない。共通ロック内での再検査でも、この対象の欠落は埋まらない。設計6.1の入れ子の禁止に反する。
+
+### 2. 重大：公開後の出力失敗を警告にしても、プロセスは120で終了する
+
+標準出力をパイプにつなぎ、受け手が読み取り側を閉じてから公開後の通知を実行する。
+
+`report()` は出力失敗を警告に変え、`build()` も正常に戻る。しかし、バッファーに残った出力をPythonが終了時に再フラッシュし、**終了コード120**になる。
+
+**検証結果：食い違い。** 実際の子プロセスと閉じたパイプで確認した。ファイル入出力はメモリー上だが、製品の `build()` を通し、次を得た。
+
+```text
+警告: 知らせを出せなかった（stdout_write: OSError）
+PUBLIC_BUILD_RETURNED C:/box/site OUTER_GATE generation
+Exception ignored while flushing sys.stdout:
+OSError: [Errno 22] Invalid argument
+EXIT_CODE 120
+```
+
+これは失敗を入れた経路であり、9.1の反例ではない。ただし、設計7・9.2の「確定後の知らせの失敗は終了コードを変えない」を破る。
+
+**根拠：** [stdout_write()](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:211)と[report()](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:1110)の境界は、インタープリター終了時のフラッシュまで覆わない。探索では[stdout_writeを単に成功扱いする](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/tests/wiki/browse_sweep.py:150)ため、この経路を通らない。
+
+### 3. 重大・既存から残る欠陥：`core` が別のWikiの内容を返す
+
+**仮定：** Windowsで大文字・小文字を区別するディレクトリを使い、`C:\box\A` と `C:\box\a` が別のWikiとして存在する。
+
+両方の `a.md` を同じ大きさ・更新時刻にし、本文だけを次のように変える。
+
+```text
+A\a.md: # UPPER_WIKI
+a\a.md: # lower_wiki
+```
+
+同じ `core` プロセスへ、A、aの順にページ要求を送る。`PureWindowsPath` は両ルートを等しいキーとして扱うため、入力の印が一致すると、aにもAの中核を返す。
+
+**検証結果：食い違い。** 2つのルートを別々に読む代役で `core_loop()` を実行した。写しの取得はAの1回だけで、両応答が `UPPER_WIKI` と同じ世代識別子を返した。実ディスクでのケース区別設定は未実施である。
+
+**根拠：** [core_loop()](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:210)は、キャッシュをパスの等値性と入力の印だけで再利用し、ルートの実体を照合しない。この構造は `origin/main` にもあり、今回の新規混入ではない。
+
+## 崩れる前提
+
+- **出力先側の祖先を調べれば、入れ子になる場所をすべて検査できる。** データ置き場そのものが別の世代の中にある配置で崩れる。
+- **公開後の関数が正常に戻れば、プロセスも0で終了する。** Python終了時の標準出力の再フラッシュで崩れる。
+- **Windowsのパスの等値性は、Wikiの実体の同一性を表す。** ケースを区別するディレクトリで崩れる。
+
+## 見落としと軽微な問題
+
+- **軽微：Path禁止の構文木検査は別名の取り込みを見逃す。** 次を加えた写しに対し、`io_violations()` は `[]` を返した。
+
+  ```python
+  from pathlib import Path as P
+
+  def leak(p):
+      return P(p).open()
+  ```
+
+  [検査](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/tests/wiki/test_browse_fs.py:130)は、指定した名前・参照形を検出しているだけで、「Pathを持たない」こと全体は検査していない。
+
+- **軽微：読み取り失敗と入力除去の比較は、設計9.2の全項目を量っていない。** [_semantic()](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/tests/wiki/browse_read_sweep.py:280)は各ページのHTMLを比較せず、本文リンクも状態とページIDしか残さない。`anchor`、`missing_heading`、HTMLだけの食い違いは、この追加比較では検出できない。実際の製品の食い違いを確認した指摘ではなく、試験範囲の不足である。
+
+## 検証した事実
+
+- **一致：** 前回の未作成パスの反例2件は、作成前に `Stop` となり、メモリー上の木は変わらなかった。
+- **一致：** 前回の公開後の `Stop` は警告になり、新しい世代を残して0を返した。
+- **一致：** Windowsの作成口には、`FILE_FLAG_OPEN_REPARSE_POINT` と開いたハンドルの属性検査がある。
+- **実行結果：** `LayerContractTest` の2件と `ClassifyTest.test_absent_and_unknown` は成功した。
+- **検証範囲：** Windows／Python 3.14.6。ファイルは変更していない。実ディスクへの書き出し、全探索、実PyYAMLによる関係表の一連の検証は未実施。
+
+## 崩せなかった点
+
+- `A/x` と `a/y` の出力ディレクトリは、同じ綴りにそろった。
+- 1ページの本文解析を例外にしても、正常なページは描かれ、失敗したページには `render-error` が出た。
+- `serve_finish()` と `remove_record()` が、状態ディレクトリに触れる前に `_enter_state()` を通ることはコード上で確認した。前回と同じリンク差し替えの抜け道は確認できなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 23:01:53] 完了。session 01a1da49-3573-7e02-b728-c32bddc87b12  usage {"input_tokens": 6193773, "cached_input_tokens": 6004352, "cache_write_input_tokens": 0, "output_tokens": 27273, "reasoning_output_tokens": 14635}
