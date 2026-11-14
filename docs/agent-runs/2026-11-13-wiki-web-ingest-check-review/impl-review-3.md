@@ -1,0 +1,115 @@
+## 判定
+
+**却下。確信度：高。** 取得器が実際に出す Markdown で、正しい補足や削除を拒否する。許可されたスラッグによっては、取得済み画像のファイル欠落と補足欠落を両方見逃す。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】`%20` を含むスラッグで、画像欠落を両段階とも見逃す
+
+`a%20b` は `check_slug()` を通る。画像を取得すると、取得器は次を生成し、`fetch.json` にも同じパスを記録する。
+
+```markdown
+![x](assets/a%20b/a%20b-01.png "https://x.example/i.png")
+```
+
+ところが、`image_src()` はこれを `assets/a b/a b-01.png` に変換する。取得記録との照合が崩れ、次の結果になる。
+
+| 状態 | 実行結果 |
+|---|---|
+| 無編集、画像ファイルあり | `freeze` が「画像を消したのに、ファイルが残っている」で拒否 |
+| 画像記法を残してファイルだけ削除 | `freeze` が終了コード0 |
+| 上記の後、`translated_by` を設定し、補足なしで検査 | `check` も終了コード0、警告なし |
+
+`impl-root-causes-2.md` の「`unquote` で取得記録と同じ形に戻す」は、日本語パスでは成立するが、パス自体が百分率表記を含む場合には成立しない。
+
+根拠：[画像パスの復号](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:191)、[freeze のファイル照合](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:346)、[check の取得済み判定](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:420)。
+
+### 2. 【重大】訳さないページで、引用内への正しい補足を拒否する
+
+次の HTML を実際の `build()` に通した。言語判定は `needs_translation: false` になる。
+
+```html
+<blockquote>
+<p>前書きである。</p>
+<img src="i.png">
+<p>後書きである。</p>
+</blockquote>
+```
+
+無編集の `freeze` は通る。その後、手順どおり画像と同じ引用内に、空行を挟んで補足する。
+
+```markdown
+> 前書きである。
+>
+> ![](assets/a/a-01.png "https://x.example/i.png")
+>
+> > Model 補足: 図である。
+>
+> 後書きである。
+```
+
+**`check` は終了コード1、`text` エラーになる。** 木から補足を除く処理と構造比較は通るが、文字列の比較で拒否される。
+
+補足の行範囲を消しても、追加した区切りの `>` 行が残る。後続の空行を消す判定は `.strip()` なので、引用内の空行を空行として扱わない。同じ問題は、画像のあるリスト項目の後ろに次の項目がある場合にも再現した。
+
+根拠：[補足の行範囲の記録](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:442)、[訳さない本文の比較](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:580)。既存の `UntranslatedTest` はトップレベルの画像しか検査していない。
+
+### 3. 【重大】参照定義の行番号を内容として比較し、正しい削除・補足を拒否する
+
+取得器に次を渡す。
+
+```html
+<p>noise</p>
+<p>[x]: https://x.example/path</p>
+<p>Body.</p>
+```
+
+生成された本文から `noise` の段落だけを削除すると、**`freeze` は「参照の定義を書き足したか、変えた」で拒否する。** 定義自体は無変更である。
+
+`references_of()` の返す値には、URL・title に加えて `map` が入っている。再現時には次の差だけが発生した。
+
+```text
+変更前: map: [5, 6]
+変更後: map: [3, 4]
+```
+
+画像の後ろに参照定義がある場合も、画像に正しく補足するだけで定義の行番号がずれ、**`check` が `references` エラーになる**ことを確認した。
+
+根拠：[参照定義の取得](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:200)、[freeze の比較](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:328)、[check の比較](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:574)。
+
+## 崩れる前提
+
+- **`unquote` すれば取得記録のパスに戻る。** ファイル名自体に `%20` などが含まれると、別のパスになる。
+- **補足の行と後続の空行を消せば、元の本文に戻る。** 引用内の `>` 行や、元は空行のなかったリスト項目間で崩れる。
+- **パーサーの参照定義辞書は、定義内容だけを表す。** 行番号を含み、重複定義のすべては含まない。
+- **トークンの木から削除だけで導出できれば、原文から文字列を削除したものになる。** 木に残らない記法の書き換えや追記で崩れる。
+
+## 見落としと軽微な問題
+
+- **【軽微】`freeze` は記法の書き足し・書き換えを許す。** 取得器が出した `## Section` を `Section` と下線による見出しに変え、コードフェンスをバッククォートから `~~~` に変えても終了コード0だった。内容の意味は同じでも、「文字列を消すことだけ」という条件とは食い違う。`Node.signature()` は見出しやフェンスの `markup` を比較しない。根拠：[signature と derivable](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:157)。
+
+- **【軽微】重複した参照定義の追記が通る。** 原文に `[x]: https://x.example/path` がある状態で、末尾に `[x]: https://evil.example/path` を追記しても `freeze` が通る。原文を先に固定した翻訳段階でも、同じ追記が `check` を警告なしで通る。描画上は先の定義が使われるためリンク変更とは判定しないが、参照定義の追記禁止は保証していない。根拠は `references_of()` が `env["references"]` だけを返す箇所。
+
+- **【軽微】雑音規則の文字数補正が、本文の文字も削って数える。** `<p>` 内の `"x_" * 40` は表示上80文字だが、40文字として数えられる。その後の `Top highlight` は削除される一方、`"x" * 80` の後では残る。また、長いタグURLのラベルを `abc` から `a]b` に変えると、取得器が生成する `[a\]b](…)` を規則が認識できず、タグと `Top highlight` の両方が残った。根拠：[雑音規則の正規表現と文字数計算](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:367)。
+
+- **【軽微】回帰試験の成功は、修正した条件の組み合わせを保証しない。** 日本語スラッグ試験は百分率表記を含むスラッグを扱わない。引用・リスト内の補足試験は主に翻訳ありで、訳さない本文の文字列比較との組み合わせを扱わない。参照定義試験は新規定義の追加拒否だけで、定義を残したまま前方を編集する正常系を扱わない。`test_raw_is_not_written_when_snapshot_fails` の失敗注入先は現在は `os.replace` であり、JSONの部分書き込みそのものではない。
+
+## 検証した事実
+
+- **一致：** 指定された実装、差分、設計、過去2回のレビューと原因分類、試験を確認した。差分内の追加 `wiki_rawcheck.py` は実ファイルと一致した。
+- **一致：** `wiki_pages.new_parser()` は同梱パーサーを使い、`commonmark`、HTML無効、表有効である。
+- **一致：** ファイル入出力をメモリに置き換えた実行で、検査関連29試験と、雑音規則・HTMLファイル・作業用写し関連12試験が成功した。
+- **一致：** `fetched.md`、一時JSON、`fetch.json` への名前変更、raw出力の順で処理される。名前変更失敗時にrawを書かず、写しを不完全と判定する試験も、メモリ上で成功した。
+- **食い違い：** 上記の追加反例は、既存41試験が成功する状態でも再現した。HTML変換と検査は実装を使い、ネットワークとファイル入出力を置き換えた。
+- **確かめられず：** 指定コマンドによる試験全体の成功。65試験中58試験が、一時ディレクトリを作れない環境制約でエラーになった。実装の失敗とは数えていない。実ファイルの削除やジャンクション作成は行っていない。
+
+## 崩せなかった点
+
+- 部分列判定の貪欲法そのものと、過去の重複段落による誤判定。
+- リスト内のコード変更、コード本文の接頭辞風文字の変更、エスケープされた `]` を含むリンクのURL変更。
+- 強調内の共有リンクだけの削除、入れ子の補足の拒否、原文の補足形式の引用を残す既存反例。
+- 通常の日本語画像パスの照合とファイル欠落検出。
+- `../..` の拒否。実ジャンクションに対する削除拒否は、環境制約で未検証。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

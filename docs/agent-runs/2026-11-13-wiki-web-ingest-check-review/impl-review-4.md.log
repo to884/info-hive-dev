@@ -1,0 +1,145 @@
+[ask-codex 21:44:21] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\web-ingest-check）
+## 判定
+
+**却下。確信度：高。** 取得器が生成する Markdown で、正しい削除・翻訳を拒否する。一方、原文にない文字列を追記した raw が、両段階の検査を警告なしで通る。
+
+## 致命的・重大な欠陥
+
+以下は、ファイル入出力とネットワークをメモリ上に置き換え、実物の `build()`・`freeze()`・`check()` で確認した。
+
+### 1. 【重大】表の余分なセルへの追記を検出できない
+
+次の HTML を取得する。
+
+```html
+<table>
+<tr><th>A</th><th>B</th></tr>
+<tr><td>1</td><td>2</td></tr>
+</table>
+```
+
+取得器が生成する表：
+
+```markdown
+| A | B |
+|---|---|
+| 1 | 2 |
+```
+
+データ行だけを次に変更する。
+
+```markdown
+| 1 | 2 | NEW RAW PAYLOAD |
+```
+
+**`freeze` は終了コード0、警告なし。** 追加文字列を含む内容が `cleaned.md` に固定される。
+
+また、無編集で `freeze` した後、同じ追記と `translated_by` の設定を行うと、**`check` も終了コード0、警告なし**になる。
+
+同梱パーサーは、見出しで決まった列数を超えるセルをトークンに残さない。検査はその木だけを照らすため、追加内容が消える。描画上は見えないが、raw と固定した基準には追加内容が保存される。
+
+「文字列を消すことだけ」という設計条件とは**食い違う**。単なる記法の変更ではなく、任意の内容を追記できる。
+
+根拠：[table.py:206](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/_vendor/markdown_it/rules_block/table.py:206)、[wiki_rawcheck.py:167](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:167)、[derivable:302](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:302)、[compare:506](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:506)。
+
+### 2. 【重大】通常の本文を参照定義と誤認し、正しい翻訳を拒否する
+
+次の HTML を取得する。
+
+```html
+<p>References:<br>[x]: active</p>
+```
+
+取得器の出力：
+
+```markdown
+References:  
+[x]: active
+```
+
+**実際のパーサーの参照定義辞書は空**であり、これは改行を含む通常の段落である。
+
+無編集の `freeze` 後、改行と識別子を保持して訳す。
+
+```markdown
+参照:  
+[x]: 有効
+```
+
+`translated_by` を設定しても、**`check` は終了コード1、`references` エラーだけを返す**。
+
+`references_of()` はパーサーの結果に加えて、本文全行へ正規表現を当てる。そのため、参照定義ではない `[x]: active` まで保護対象になる。3回目の原因分類で行番号の比較は解消したが、今回追加した「定義の行」の収集が構造を誤認している。
+
+根拠：[wiki_rawcheck.py:204](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:204)、[references_of:207](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:207)、[check:590](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:590)、取得側の改行生成は [wiki_fetch.py:778](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:778)。
+
+### 3. 【重大】番号付きリストの先頭の雑音項目を削除できない
+
+次の HTML を取得する。
+
+```html
+<ol><li>Share</li><li>Body text.</li></ol>
+```
+
+取得器の出力：
+
+```markdown
+1. Share
+2. Body text.
+```
+
+雑音である先頭項目の行だけを削除する。
+
+```markdown
+2. Body text.
+```
+
+書き足し、並べ替え、本文の変更はないが、**`freeze` は終了コード1、`edit` エラー**になる。
+
+先頭項目の削除に伴い、`ordered_list` の `start` 属性が1から2に変わる。`Node.signature()` がこれを比較するため、子の部分列判定に進む前に拒否する。
+
+設計61行の「ブロックの属性は同じ」とは**一致**する。しかし、設計15行の削除方針と、残った雑音を削る目的には食い違う。これは貪欲法の問題ではなく、削除で自然に変わる親属性を固定した問題である。
+
+根拠：[wiki_fetch.py:860](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:860)、[wiki_rawcheck.py:160](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:160)、[derivable:308](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:308)、[設計:15](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/docs/plans/wiki-web-ingest-check-2026-11-13.md:15)。
+
+## 崩れる前提
+
+- **トークンの木に、raw の検査に必要な内容がすべて残る。** 表の列数を超えるセルは失われ、追記を検出できない。
+- **`[ラベル]: 値` に見える行は参照定義である。** 通常段落の継続行では成立しない。
+- **許可された削除では、親の属性は変わらない。** 番号付きリストの先頭項目を削除すると `start` が変わる。
+- **`translated_by` の最初の行が、他の処理でも使われる値である。** 重複キーがあると、検査と既存の frontmatter 読み取り処理で値が異なる。
+
+## 見落としと軽微な問題
+
+- **【軽微】重複した `translated_by` で、実際には空の値を通せる。**
+
+  ```yaml
+  translated_by: "Model"
+  translated_by: ""
+  ```
+
+  翻訳対象ページで `check` は成功し、結果に `Model` を返した。一方、既存の `wiki_text.parse_frontmatter_text()` は後の値を採用し、空文字列を返した。根拠：[wiki_rawcheck.py:578](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:578)、[wiki_text.py:574](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_text.py:574)。
+
+- **【軽微】雑音規則の80文字判定は、今回も表示上の本文と一致しない。** `<p><code>` の中に `"x*" * 40` を置くと、表示上80文字なのに40文字として数え、その後の `Top highlight` を削除した。また、`#hashtag` で始まる80文字以上の通常段落も、`#` という接頭辞だけで段落候補から除外された。いずれも実際の `build()` で確認した。根拠：[wiki_fetch.py:370](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:370)、[同:379](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:379)。
+
+- **【軽微】試験の説明と失敗注入箇所が一致しない。** `test_raw_is_not_written_when_snapshot_fails` は「書き込みの途中」と説明するが、注入先は `os.replace` であり、一時JSONの書き込み後の名前変更失敗である。今回、別途JSONの部分書き込み失敗を注入すると、raw保持と不完全判定は成立した。実装の欠陥ではなく、既存試験が保証する範囲の問題である。根拠：[test_wiki_web_check.py:193](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/test_wiki_web_check.py:193)。
+
+## 検証した事実
+
+- **一致：** 指定実装、設計、差分、過去3回のレビュー・原因分類、試験を確認した。差分に含まれる追加 `wiki_rawcheck.py` は実ファイルと一致した。
+- **一致：** `wiki_pages.new_parser()` は同梱パーサーを使い、`commonmark`、HTML無効、表有効である。
+- **一致：** ファイル入出力をメモリに置き換え、検査関連33試験と取得関連14試験が成功した。上記の追加反例も同じ実装で再現した。
+- **一致：** JSONの部分書き込みを失敗させると、既存rawは保持され、`work_dir_complete()` は偽になった。
+- **確かめられず：** 通常のファイル入出力による全試験の成功。指定コマンドに `-B` を加えて実行したところ、72試験中65試験が一時ディレクトリを作れずエラーになった。環境制約による結果として扱った。
+- リポジトリのファイルは変更していない。実ネットワーク取得、実ジャンクション作成、実際の再帰削除は行っていない。
+
+## 崩せなかった点
+
+- 部分列判定で最も早い対応を選ぶ貪欲法そのものと、重複段落による過去の誤拒否。
+- リスト内コード、コード本文の接頭辞風文字、エスケープした `]` を含むリンク・画像の既存反例。
+- 強調内の共有リンクだけの削除、入れ子の補足の拒否、原文の補足形式の引用を残す既存反例。
+- 日本語・`%20` を含む画像パスと、引用・リスト内の訳さない本文への補足に関する既存反例。
+- 参照定義の行番号移動、重複定義追記、見出し・フェンス記法変更に関する既存反例。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 21:55:39] 完了。session 01a1d4f0-05f3-7db1-8f61-b44c49a2b5fa  usage {"input_tokens": 1770321, "cached_input_tokens": 1674240, "cache_write_input_tokens": 0, "output_tokens": 16885, "reasoning_output_tokens": 9104}

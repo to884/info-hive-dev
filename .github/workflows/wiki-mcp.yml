@@ -7,6 +7,8 @@ name: Wiki MCP server
 # - tests/wiki/test_source_claims.py: ソースの要約ページの「主張と行き先」の規定とひな形の整合（標準ライブラリだけ）
 # - tests/wiki/test_template_script_paths.py: ひな形が書き出すコマンドのスクリプトのパスと、検索の例の実行（標準ライブラリだけ）
 # - tests/wiki/test_wiki_fetch.py: Web ページの取得の <picture> の図と <pre> の <br>、保存の名前の変更の試し直し（標準ライブラリだけ、ネットにつながない）
+# - tests/wiki/test_wiki_web_check.py: URL の取り込みの raw の書き換えの検査（wiki_rawcheck.py）と、取得の雑音の規則、
+#   --html-file、作業用の写し（標準ライブラリと同梱のパーサーだけ、ネットにつながない）
 # - tests/wiki/test_graph_duplicate_slugs.py: 同じスラッグと同じノード ID のページのグラフの抽出（PyYAML が要る）
 # - tests/wiki/test_graph_lint_edge_refs.py: グラフの lint が contradicts と supersedes のエッジの ID を認めること（PyYAML が要る）
 # - tests/wiki/test_graph_frontmatter_values.py: グラフの抽出が読む frontmatter の値が lint と同じこと（PyYAML が要る）
@@ -96,6 +98,9 @@ jobs:
       - name: Web ページの取得の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_wiki_fetch.py -v
+      - name: URL の取り込みの検査の試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_wiki_web_check.py -v
       # markdown-it-py はプラグインに同梱している。グラフの比較には PyYAML が要る。
       - name: ページの集合とリンクの規則の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}

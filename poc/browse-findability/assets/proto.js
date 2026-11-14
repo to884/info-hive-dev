@@ -1,0 +1,396 @@
+/* browse の索引とサイドバーの試作。classic なスクリプトだけを使い、style を触らない（クラスと属性だけ）。 */
+(function () {
+  "use strict";
+  var doc = document.documentElement;
+  var root = doc.getAttribute("data-root") || "";
+  var variant = doc.getAttribute("data-variant") || "a";
+  var NAV = window.PROTO_NAV || { groups: [] };
+  var S = window.WIKI_SEARCH;
+  var TYPE = { source: "ソース", entity: "エンティティ", concept: "コンセプト", synthesis: "シンセシス" };
+  var art = document.getElementById("_article");
+  var current = art ? art.getAttribute("data-page-id") : null;
+  var isIndex = !art;
+  var navbody = document.getElementById("_navbody");
+
+  function href(path) { return root + path.split("/").map(encodeURIComponent).join("/"); }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) { e.className = cls; }
+    if (text != null) { e.textContent = text; }
+    return e;
+  }
+  // 照合と強調で同じそろえ方にする。1 文字ずつ、大文字にしてから小文字にする（語末の ς と σ をそろえる）
+  function fold(c) { return c.toUpperCase().toLowerCase(); }
+  function norm(s) { return Array.from(String(s || "").normalize("NFC")).map(fold).join(""); }
+  function typeLabel(t) { return Object.prototype.hasOwnProperty.call(TYPE, t) ? TYPE[t] : (t || "種類なし"); }
+  function badge(t) { return el("span", "badge t-" + (t || "none"), typeLabel(t)); }
+
+  // --- 検索 ---
+  var rows = [];
+  if (S) {
+    rows = S.rows.map(function (r) {
+      return { p: r[0], i: r[1], t: r[2], s: r[3], y: r[4], g: r[5], h: r[6], u: r[7], gp: r[8],
+               nt: norm(r[2]), ns: norm(r[3]), ng: r[5].map(norm), nh: r[6].map(norm) };
+    });
+  }
+  // 語を空白で分け、どの語もどこかの欄に当たる行を返す。題名 > タグ > 見出し > 要約 の順に重みを付ける。
+  function search(q) {
+    var terms = norm(q).split(/\s+/).filter(Boolean);
+    if (!terms.length) { return []; }
+    var out = [];
+    rows.forEach(function (r) {
+      var score = 0, hits = [], ok = true;
+      terms.forEach(function (term) {
+        var best = 0;
+        if (r.nt.indexOf(term) >= 0) { best = r.nt.indexOf(term) === 0 ? 12 : 8; hits.push(["題名", r.t, term]); }
+        r.ng.forEach(function (g, k) { if (g.indexOf(term) >= 0) { best = Math.max(best, g === term ? 6 : 4); hits.push(["タグ", r.g[k], term]); } });
+        r.nh.forEach(function (h, k) { if (h.indexOf(term) >= 0) { best = Math.max(best, 3); hits.push(["見出し", r.h[k], term]); } });
+        if (r.ns.indexOf(term) >= 0) { best = Math.max(best, 2); hits.push(["要約", r.s, term]); }
+        if (!best) { ok = false; }
+        score += best;
+      });
+      if (ok) { out.push({ r: r, score: score, hits: hits }); }
+    });
+    out.sort(function (a, b) { return b.score - a.score || (a.r.t < b.r.t ? -1 : 1); });
+    return out;
+  }
+  // 当たった文字に <mark> を付けて、要素に入れる（innerHTML は使わない）
+  function highlight(node, text, terms) {
+    // 符号位置ごとに小文字にした列で探し、元の文字の境界に戻す（全体を一度に小文字にした位置は使わない）
+    text = String(text).normalize("NFC");
+    var chars = Array.from(text), low = "", starts = [], acc = 0, pos = 0, marks = [];
+    chars.forEach(function (c) { starts.push([low.length, acc]); low += fold(c); acc += c.length; });
+    starts.push([low.length, acc]);
+    function back(k) { for (var j = starts.length - 1; j >= 0; j--) { if (starts[j][0] <= k) { return starts[j][1]; } } return 0; }
+    function fwd(k) { for (var j = 0; j < starts.length; j++) { if (starts[j][0] >= k) { return starts[j][1]; } } return acc; }
+    terms.forEach(function (t) { var k = low.indexOf(t); if (k >= 0) { marks.push([back(k), fwd(k + t.length)]); } });
+    marks.sort(function (a, b) { return a[0] - b[0]; });
+    // 重なるか接する範囲はつないで 1 つにする。範囲は捨てない
+    var merged = [];
+    marks.forEach(function (m) {
+      var last = merged[merged.length - 1];
+      if (last && m[0] <= last[1]) { last[1] = Math.max(last[1], m[1]); } else { merged.push([m[0], m[1]]); }
+    });
+    merged.forEach(function (m) {
+      node.appendChild(document.createTextNode(text.slice(pos, m[0])));
+      node.appendChild(el("mark", null, text.slice(m[0], m[1])));
+      pos = m[1];
+    });
+    node.appendChild(document.createTextNode(text.slice(pos)));
+  }
+  function resultList(found, q, limit, rich) {
+    var terms = norm(q).split(/\s+/).filter(Boolean);
+    var ul = el("ul", "sr-results");
+    found.slice(0, limit).forEach(function (f, n) {
+      var li = el("li"), a = el("a");
+      a.href = href(f.r.p);
+      if (n === 0) { a.className = "is-active"; }
+      var title = el("span", "sr-title"); highlight(title, f.r.t, terms); a.appendChild(title);
+      var meta = el("span", "sr-meta");
+      meta.appendChild(badge(f.r.y));
+      if (f.r.gp.length) { meta.appendChild(document.createTextNode(" " + f.r.gp.join(" › "))); }
+      a.appendChild(meta);
+      var other = f.hits.filter(function (h) { return h[0] !== "題名"; })[0];
+      if (rich && other) {
+        var hit = el("span", "sr-hit", other[0] + ": "); highlight(hit, other[1], terms); a.appendChild(hit);
+      } else if (rich && f.r.s) {
+        a.appendChild(el("span", "sr-hit", f.r.s));
+      }
+      li.appendChild(a); ul.appendChild(li);
+    });
+    return ul;
+  }
+  function makeSearch(container, opts) {
+    var wrap = el("div", "search");
+    var input = el("input");
+    input.type = "search"; input.id = "_q"; input.autocomplete = "off";
+    input.placeholder = opts.placeholder || "題名、タグ、見出し、要約で探す";
+    input.setAttribute("aria-label", "ページを探す");
+    wrap.appendChild(input);
+    var hint = el("p", "search-hint");
+    hint.appendChild(el("kbd", null, "/")); hint.appendChild(document.createTextNode(" で移動 · "));
+    hint.appendChild(el("kbd", null, "Enter")); hint.appendChild(document.createTextNode(" で最初の結果を開く"));
+    wrap.appendChild(hint);
+    container.appendChild(wrap);
+    if (!S) { input.disabled = true; hint.textContent = "検索の索引を読めない"; return input; }
+    input.addEventListener("input", function () { opts.onQuery(input.value, search(input.value)); });
+    input.addEventListener("keydown", function (e) {
+      if (e.isComposing || e.keyCode === 229) { return; }   // かな漢字の変換中
+      if (e.key === "Enter") {
+        // 記事のページは検索の結果の先頭、索引のページは絞り込んだ一覧で見えている先頭の行を開く
+        var box = opts.resultsBox() || document;
+        var first = box.querySelector(".sr-results a") ||
+          Array.prototype.filter.call(box.querySelectorAll(".fx-row"), function (li) { return !li.hidden; })
+            .map(function (li) { return li.querySelector(".ix-title"); })[0];
+        if (first) { location.href = first.href; }
+      } else if (e.key === "Escape") { input.value = ""; opts.onQuery("", []); }
+    });
+    return input;
+  }
+  document.addEventListener("keydown", function (e) {
+    var q = document.getElementById("_q");
+    if (e.key === "/" && q && document.activeElement !== q && !/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName)) {
+      e.preventDefault(); q.focus(); q.select();
+    }
+  });
+
+  // --- 狭い幅では、木と一覧を「メニュー」に畳む ---
+  function drawer(content) {
+    var d = el("details", "drawer");
+    var s = el("summary", null, "メニュー");
+    d.appendChild(s); d.appendChild(content);
+    var mq = window.matchMedia("(max-width: 48rem)");
+    function sync() { d.open = !mq.matches; }
+    sync();
+    if (mq.addEventListener) { mq.addEventListener("change", sync); }
+    return d;
+  }
+
+  // 現在のページを含むグループの道
+  // 今のページへの道を、最初の 1 本で止めずにすべて集める
+  function pathsTo(groups, id, prefix, out) {
+    groups.forEach(function (g) {
+      var here = prefix.concat([g]);
+      if (g.items.some(function (it) { return it.i === id; })) { out.push(here); }
+      pathsTo(g.children, id, here, out);
+    });
+    return out;
+  }
+  var trails = current ? pathsTo(NAV.groups, current, [], []) : [];
+  var trail = trails[0] || [];
+  var openIds = {};
+  trails.forEach(function (t) { t.forEach(function (g) { openIds[g.id] = true; }); });
+
+  function itemLink(it) {
+    var li = el("li");
+    if (it.state === "resolved") {
+      var a = el("a", it.i === current ? "is-current" : null, it.t);
+      a.href = href(it.p);
+      if (it.i === current) { a.setAttribute("aria-current", "page"); }
+      li.appendChild(a);
+    } else if (it.state === "group") {
+      var g = el("a", null, it.t + " →"); g.href = href("index.html") + "#group=" + it.g; li.appendChild(g);
+    } else {
+      li.appendChild(el("span", "unresolved", it.t));
+    }
+    return li;
+  }
+
+  // --- A. 分類の木 ---
+  function treeA() {
+    var box = el("div", "tree");
+    function group(g, depth) {
+      var d = el("details");
+      d.open = !!openIds[g.id] || (isIndex && depth === 0 && NAV.groups.length <= 2);
+      var s = el("summary", null, g.title || "索引");
+      s.appendChild(el("span", "count", String(g.count)));
+      s.setAttribute("data-gid", g.id);
+      if (variant === "d") {
+        // D: グループの名前の横の「一覧」で、索引のページの一覧をこのグループに絞る
+        var f = el("a", "tree-filter", "一覧");
+        f.href = href("index.html") + "#group=" + g.id;
+        f.setAttribute("aria-label", g.title + " のページを一覧で見る");
+        s.appendChild(f);
+      }
+      d.appendChild(s);
+      if (g.items.length) {
+        var ul = el("ul");
+        g.items.forEach(function (it) { ul.appendChild(itemLink(it)); });
+        d.appendChild(ul);
+      }
+      g.children.forEach(function (c) { d.appendChild(group(c, depth + 1)); });
+      return d;
+    }
+    NAV.groups.forEach(function (g) { box.appendChild(group(g, 0)); });
+    return box;
+  }
+
+  // --- D の索引のページ: 木をグループの名前と件数までに畳む。名前を押すと、右の一覧をそのグループに絞る ---
+  function groupTreeD() {
+    function list(groups) {
+      var ul = el("ul");
+      groups.forEach(function (g) {
+        var li = el("li"), a = el("a");
+        a.href = "#group=" + g.id;
+        a.setAttribute("data-gid", g.id);
+        a.appendChild(el("span", null, g.title || "索引"));
+        a.appendChild(el("span", "count", String(g.count)));
+        li.appendChild(a);
+        if (g.children.length) { li.appendChild(list(g.children)); }
+        ul.appendChild(li);
+      });
+      return ul;
+    }
+    var box = el("div", "tree tree-groups");
+    var all = el("a", null, "すべてのページ");
+    all.href = "#"; all.setAttribute("data-gid", "");
+    var top = el("ul"), li = el("li");
+    li.appendChild(all); top.appendChild(li);
+    box.appendChild(top);
+    box.appendChild(list(NAV.groups));
+    return box;
+  }
+
+  // --- B. グループの名前だけ ---
+  function groupsB() {
+    var ul = el("ul", "groups");
+    var currentTop = trail.length ? trail[0].id : null;
+    NAV.groups.forEach(function (g) {
+      var li = el("li"), a = el("a");
+      a.href = href("index.html") + "#group=" + g.id;
+      if (g.id === currentTop) { a.className = "is-current"; }
+      a.appendChild(el("span", null, g.title)); a.appendChild(el("span", "count", String(g.count)));
+      li.appendChild(a); ul.appendChild(li);
+      g.children.forEach(function (c) {
+        var sl = el("li", "sub"), sa = el("a");
+        sa.href = href("index.html") + "#group=" + c.id;
+        sa.appendChild(el("span", null, c.title)); sa.appendChild(el("span", "count", String(c.count)));
+        sl.appendChild(sa); ul.appendChild(sl);
+      });
+    });
+    return ul;
+  }
+
+  // --- C. このページの場所と、同じグループのページ ---
+  function placeC() {
+    var box = el("div");
+    if (!trail.length) { return box; }
+    box.appendChild(el("p", "place", "場所: " + trail.map(function (g) { return g.title; }).filter(Boolean).join(" › ")));
+    var ul = el("ul", "siblings");
+    trail[trail.length - 1].items.forEach(function (it) { ul.appendChild(itemLink(it)); });
+    box.appendChild(ul);
+    return box;
+  }
+
+  // サイドバーの検索の結果（A と C の記事のページ、B の記事のページ）
+  var sideResults = el("div");
+  function sideQuery(q, found) {
+    sideResults.textContent = "";
+    if (!q.trim()) { navMain.hidden = false; return; }
+    navMain.hidden = true;
+    if (!found.length) { sideResults.appendChild(el("p", "sr-empty", "当たるページはない")); return; }
+    sideResults.appendChild(el("p", "sr-empty", found.length + " 件"));
+    sideResults.appendChild(resultList(found, q, 30, false));
+  }
+  var navMain;
+  if (variant === "d" && isIndex) { navMain = groupTreeD(); }
+  else if (variant === "a" || variant === "d") { navMain = treeA(); }
+  else if (variant === "b") { navMain = groupsB(); }
+  else { navMain = placeC(); }
+
+  if (variant === "c" && isIndex) {
+    // C の索引のページでは、検索欄は本文の上の大きな 1 つだけにする
+    navbody.appendChild(drawer(groupsB()));
+  } else if ((variant === "b" || variant === "d") && isIndex) {
+    // 索引のページでは、検索欄は一覧の上の 1 つだけにする
+    navbody.appendChild(drawer(navMain));
+  } else {
+    makeSearch(navbody, { onQuery: sideQuery, resultsBox: function () { return sideResults; } });
+    navbody.appendChild(sideResults);
+    navbody.appendChild(drawer(navMain));
+  }
+  var cur = navbody.querySelector(".is-current");
+  if (cur && cur.scrollIntoView) { cur.scrollIntoView({ block: "center" }); window.scrollTo(0, 0); }
+
+  // --- B の索引: 絞り込みと並べ替え ---
+  if ((variant === "b" || variant === "d") && isIndex) {
+    var allGroups = [];
+    (function flat(gs) { gs.forEach(function (g) { allGroups.push(g); flat(g.children); }); })(NAV.groups);
+    var bar = document.getElementById("_filters"), list = document.getElementById("_list");
+    var count = document.getElementById("_count");
+    var items = Array.prototype.slice.call(list.children);
+    var state = { q: "", type: "", tag: "", group: "", sort: "order" };
+    makeSearch(bar, { placeholder: "この一覧を絞る（題名、タグ、見出し、要約）",
+                      onQuery: function (q) { state.q = q; apply(); }, resultsBox: function () { return list; } });
+    var chips = el("div", "chips");
+    var types = new Set();
+    items.forEach(function (li) { types.add(li.getAttribute("data-type")); });
+    [""].concat(Array.from(types).sort()).forEach(function (t) {
+      var b = el("button", null, t ? typeLabel(t) : "すべて");
+      b.type = "button"; b.setAttribute("aria-pressed", t === "" ? "true" : "false");
+      b.addEventListener("click", function () {
+        state.type = t;
+        Array.prototype.forEach.call(chips.children, function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+        apply();
+      });
+      chips.appendChild(b);
+    });
+    bar.appendChild(chips);
+    // タグは属性に詰めず、行の span.tag の文字から読む（区切りの文字がタグに入っても読み戻せる）
+    function tagsOf(li) { return Array.prototype.map.call(li.querySelectorAll(".tag"), function (t) { return t.textContent; }); }
+    var tagSel = el("select"), tags = new Map();
+    items.forEach(function (li) { tagsOf(li).forEach(function (t) { if (t) { tags.set(t, (tags.get(t) || 0) + 1); } }); });
+    tagSel.appendChild(new Option("タグ: すべて", ""));
+    Array.from(tags.keys()).sort().forEach(function (t) { tagSel.appendChild(new Option(t + "（" + tags.get(t) + "）", t)); });
+    tagSel.setAttribute("aria-label", "タグで絞る");
+    tagSel.addEventListener("change", function () { state.tag = tagSel.value; apply(); });
+    bar.appendChild(tagSel);
+    var sortSel = el("select");
+    [["order", "索引の順"], ["updated", "更新の新しい順"], ["title", "題名の順"]].forEach(function (o) { sortSel.appendChild(new Option(o[1], o[0])); });
+    sortSel.setAttribute("aria-label", "並べ方");
+    sortSel.addEventListener("change", function () { state.sort = sortSel.value; apply(); });
+    bar.appendChild(sortSel);
+    var groupNote = el("button", null, "");
+    groupNote.type = "button"; groupNote.hidden = true;
+    groupNote.addEventListener("click", function () { state.group = ""; location.hash = ""; apply(); });
+    bar.appendChild(groupNote);
+    var byPath = {};
+    rows.forEach(function (r) { byPath[r.p] = r; });
+    function apply() {
+      var found = state.q.trim() ? search(state.q) : null, ok = {};
+      if (found) { found.forEach(function (f) { ok[f.r.p] = true; }); }
+      var shown = 0;
+      items.forEach(function (li) {
+        var p = li.querySelector(".ix-title").getAttribute("href");
+        var vis = (!found || ok[decodeURIComponent(p)]) && (!state.type || li.getAttribute("data-type") === state.type)
+          && (!state.tag || tagsOf(li).indexOf(state.tag) >= 0)
+          && (!state.group || (li.getAttribute("data-groups") || "").split(" ").indexOf(state.group) >= 0);
+        li.hidden = !vis;
+        if (vis) { shown++; }
+      });
+      var key = state.sort;
+      items.slice().sort(function (a, b) {
+        if (key === "updated") { return (b.getAttribute("data-updated") || "").localeCompare(a.getAttribute("data-updated") || "") || 0; }
+        if (key === "title") { return a.getAttribute("data-title").localeCompare(b.getAttribute("data-title"), "ja"); }
+        return a.getAttribute("data-order") - b.getAttribute("data-order");
+      }).forEach(function (li) { list.appendChild(li); });
+      count.textContent = items.length + " 件中 " + shown + " 件";
+      var g = allGroups.filter(function (x) { return x.id === state.group; })[0];
+      groupNote.hidden = !g;
+      groupNote.textContent = g ? "グループ: " + g.title + " ×" : "";
+      // D: 絞っているグループを、畳んだ木の中で強調する
+      Array.prototype.forEach.call(navbody.querySelectorAll(".tree-groups a[data-gid]"), function (a) {
+        var on = a.getAttribute("data-gid") === state.group;
+        a.classList.toggle("is-current", on);
+        if (on) { a.setAttribute("aria-current", "true"); } else { a.removeAttribute("aria-current"); }
+      });
+    }
+    function fromHash() {
+      // #group= の後ろの全体を ID として読み、木にない ID なら絞らない（設計 4.3）
+      var m = /^#group=(_g[0-9a-z]+)$/.exec(location.hash);
+      var known = m && allGroups.some(function (g) { return g.id === m[1]; });
+      state.group = known ? m[1] : "";
+      apply();
+    }
+    window.addEventListener("hashchange", fromHash);
+    fromHash();
+  }
+
+  // --- C の索引: 大きな検索欄 ---
+  if (variant === "c" && isIndex) {
+    var resultsBox = document.getElementById("_results"), browse = document.getElementById("_browse");
+    makeSearch(document.getElementById("_herosearch"), {
+      placeholder: "題名、タグ、見出し、要約で探す",
+      resultsBox: function () { return resultsBox; },
+      onQuery: function (q, found) {
+        resultsBox.textContent = "";
+        if (!q.trim()) { resultsBox.hidden = true; browse.hidden = false; return; }
+        resultsBox.hidden = false; browse.hidden = true;
+        resultsBox.appendChild(el("p", "sr-empty", found.length ? found.length + " 件" : "当たるページはない"));
+        resultsBox.appendChild(resultList(found, q, 50, true));
+      }
+    });
+    var q0 = document.getElementById("_q");
+    if (q0) { q0.focus(); }
+  }
+})();

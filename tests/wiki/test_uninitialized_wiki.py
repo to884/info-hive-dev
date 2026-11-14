@@ -266,6 +266,10 @@ class ReaderEntryTests(EntryCase):
             "browse-stop": [SCRIPTS / "wiki_browse.py", "stop", w],
             "fetch": [SCRIPTS / "wiki_fetch.py", "http://127.0.0.1:9/", "--wiki", w, "--raw-root", self.raw,
                       "--slug", "記事", "--json"],
+            "rawcheck-freeze": [SCRIPTS / "wiki_rawcheck.py", "freeze", "--wiki", w, "--raw-root", self.raw,
+                                "--slug", "記事", "--json"],
+            "rawcheck-check": [SCRIPTS / "wiki_rawcheck.py", "check", "--wiki", w, "--raw-root", self.raw,
+                               "--slug", "記事", "--finish"],
         }
 
     def test_path_through_missing_directory_is_refused(self):
@@ -468,6 +472,7 @@ class EntranceInventoryTests(unittest.TestCase):
         "wiki_graph_query.py": "ReaderEntryTests の graph-query",
         "wiki_lint.py": "ReaderEntryTests の lint",
         "wiki_mcp_server.py": "tests/wiki/test_mcp_server.py の UninitializedWikiTests",
+        "wiki_rawcheck.py": "tests/wiki/test_wiki_web_check.py の MainAndWorkDirTest.test_uninitialized_wiki_is_refused",
         "wiki_search.py": "ReaderEntryTests の search、search-cache、backlinks",
         "wiki_stats.py": "ReaderEntryTests の stats",
     }
