@@ -1671,14 +1671,14 @@ class ResumeBeforeFetchTest(FetchCase):
         self.assertFalse(result["work_dir"])
 
     def make_legacy(self):
-        """写しの fetch.json を、0.14.0 が書いた形にする（fetched_sha256 と source_sha256_of がない）。"""
+        """写しの fetch.json を、0.14.1 までの版が書いた形にする（fetched_sha256 と source_sha256_of がない）。"""
         path = wiki_rawcheck.work_dir(self.wiki, "page") / "fetch.json"
         saved = json.loads(path.read_text(encoding="utf-8"))
         del saved["fetched_sha256"], saved["source_sha256_of"]
         path.write_bytes(json.dumps(saved, ensure_ascii=False).encode("utf-8"))
 
-    def test_record_of_0_14_0_is_not_resumed(self):
-        """実装のレビュー 3 の重大 1・2: 0.14.0 が書いた写しは、fetch.json と fetched.md を結べず（別の設定で取った
+    def test_record_of_old_versions_is_not_resumed(self):
+        """実装のレビュー 3 の重大 1・2: 0.14.1 までの版が書いた写しは、fetch.json と fetched.md を結べず（別の設定で取った
         記録を見分けられない）、どの取得かも分からない（source_sha256_of がない）ので、どちらの枝でも続けない。"""
         self.build(self.HTML)
         self.make_legacy()
@@ -1692,7 +1692,7 @@ class ResumeBeforeFetchTest(FetchCase):
         code, result, stub = self.refetch()
         self.assertFalse(result["work_dir"])
         out = wiki_fetch.render_text(code, result)
-        self.assertIn("0.14.0", out)
+        self.assertIn("0.14.1 までの版", out)
         self.assertIn("--force", out)
         # DOM で取った写しに同じ HTML のファイルを渡しても（取得して比べる枝）、続けない。
         self.take_dom(force=True)
@@ -1703,8 +1703,8 @@ class ResumeBeforeFetchTest(FetchCase):
         self.assertFalse(result["work_dir"])
         self.assertEqual(result["source_sha256_of"], "dom")
 
-    def test_restored_0_14_0_record_of_another_setting_is_not_resumed(self):
-        """実装のレビュー 3 の重大 1: 同じ原文を別の設定（--keep-noise）で取った 0.14.0 の fetch.json を丸ごと戻しても、
+    def test_restored_old_record_of_another_setting_is_not_resumed(self):
+        """実装のレビュー 3 の重大 1: 同じ原文を別の設定（--keep-noise）で取った 0.14.1 までの版の fetch.json を丸ごと戻しても、
         取得して原文が同じだからといって、その記録で続けない（本文が空という今の取得の警告を消さない）。"""
         page = html_page('<p><a href="https://site.example/tag/ai">AI</a></p>' + f"<p>{LONG}</p>")
         self.build(page, keep_noise=True)
