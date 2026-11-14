@@ -1,0 +1,150 @@
+## 判定
+
+**却下。確信度：高。** 同じPC・同じ利用者の、書く段に参加するプロセスだけで別々のロックを取得でき、成功を返した追記を失う反例が残る。ATとAVにも、記載した規則と試験の食い違いがある。
+
+未実装の設計への判定である。適用の反例は設計から導き、パーサーと既存コードの挙動は読み取りとメモリ上の実行で検証した。
+
+## 致命的・重大な欠陥
+
+### 1.【重大】管理領域の環境変数が異なると、参加する書き手どうしでも変更を失う
+
+設計は、同じPC・同じ利用者なら管理領域とロックが一つになることに依存している。しかし、採用する `wiki_mcp_common.data_dir()` は、**プロセスごとの環境変数**から場所を決める。
+
+同じ利用者が起動した二つのClaude Codeセッションについて、次の設定を考える。途中の設定変更や外部の書き手は不要である。
+
+```text
+A: INFO_HIVE_DATA_DIR=C:/data/info-hive-a
+B: INFO_HIVE_DATA_DIR=C:/data/info-hive-b
+
+wiki と raw のルートは、A・Bで同じ。
+両データディレクトリは wiki と raw の外。
+```
+
+既存関数で、取得するロックの名前が次のように分かれることを確認した。
+
+```text
+A: C:/data/info-hive-a/apply/apply.lock
+B: C:/data/info-hive-b/apply/apply.lock
+```
+
+両方が別々の `begin` からログ追記の計画を作り、承認を得たあと、次の順序になる。
+
+1. A・Bが、それぞれのロックを取得する。
+2. 両方が手順5で同じログ `L0` を読み、Aは `L0＋A`、Bは `L0＋B` を作る。
+3. Aが配置し、手順8のハッシュ照合を通り、`done` になる。
+4. Bが配置し、同じく照合を通り、`done` になる。
+5. **両方が成功を返すが、Aの追記が消える。**
+
+各プロセスは自分の管理領域の日誌しか探索しないため、復旧の順序でも防げない。両方とも `wiki_apply.py` の参加者であり、「保証しないこと」の別PC・別アカウント・非参加者には該当しない。
+
+根拠：[設計書の管理領域と環境変数](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:165)、同書134・174行の保証、356行のロック取得、357行の日誌探索、410行の「どちらでもない」が起きない理由、[既存の `data_dir()`](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_common.py:47)。
+
+対照表687行の「同じPCの同じ利用者の書き手の間では生じない」は、この設定では成立しない。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| 同じPC・同じ利用者のプロセスは、同じ管理領域を使う | `INFO_HIVE_DATA_DIR`、またはデータディレクトリを決める環境変数が異なる |
+| 追加文を単独で解析しても、ファイル内と同じ子トークンになる | 追加文が、ファイル内の既存の参照定義を使う |
+| AVが列挙する呼び出しから、既存の出力文を分類できる | 文をレンダラーで組み立てる、または `sys.stdout.write` で出力する |
+| 既存の `schema.md` は、そのディレクトリを子wikiにする | 大文字と小文字を区別するファイルシステムでは成立しない |
+
+## 見落としと軽微な問題
+
+### 1.【軽微】既存の参照定義を使う正常な追記を、インライン比較が拒む
+
+変更前のログを次とする。
+
+```markdown
+## [2026-11-14] ingest | A
+   See [doc][r].
+
+[r]: https://old.example
+```
+
+Aの項目へ、次のサブ行を登録する。
+
+```text
+--line "Added [doc][r]."
+```
+
+同梱パーサーで確認した結果は次のとおりだった。
+
+- ブロックの `sig` は変わらない。
+- 参照定義の `(href, title)` は変わらない。
+- 既存部分の子トークンも変わらない。
+- **追加部分の比較だけが一致しない。**
+
+ファイル全体の解析では、追加した `[doc][r]` は `link_open`、`text`、`link_close` になる。一方、274行が指定する「足した行だけ」の解析には参照定義がなく、`Added [doc][r].` 全体が `text` になる。
+
+したがって、記載どおりの比較では `structure_changed` になる。同じ問題は、新しいブロックを単独解析する `log-entry` と `index-add` にもある。ASは既存の定義の行番号による誤拒否を解消するが、解析する文脈の差は解消していない。
+
+根拠：[インライン比較の規則](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:274)、[同梱パーサーの設定](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:391)。
+
+### 2.【軽微】AVの列挙規則では、必須試験が求める出力文を列挙できない
+
+532行の列挙対象は、`print`、`sys.stderr.write`、`argparse`、例外の引数に渡す文字列である。しかし、追加された試験が対象とする `wiki_rawcheck.py:1072` の文字列は、実際には次の経路にある。
+
+```python
+out.append("警告があるので、…理由を log.md …")
+# render() の末尾
+return "\n".join(out)
+
+# main()
+print(json.dumps(result, ...) if args.json else render(result))
+```
+
+ASTで確認すると、1071行は `out.append(Constant)`、1137行の `print` の引数は `IfExp` である。**1072行は、指定された出力呼び出しの文字列引数ではない。** 1106行の `help` と同じ方法では列挙できない。
+
+534行の「定数でない引数を落とす」をそのまま適用すると、1137行を拒む。さらに既存の `wiki_stats.py`、`wiki_lint.py` などの `print(json.dumps(...))` やレンダラーの呼び出しも拒む。表にあるrawcheckの二つの文面変更だけでは、この検査を通せない。
+
+出力先の漏れもある。既存の `wiki_help.py` は `sys.stdout.write` を使うが、532行の列挙にはない。この呼び出しへ直接の編集指示の定数を加える試験入力は、列挙された出力検査にも、ファイルへの書き込み検査にも当たらない。
+
+根拠：[AVの列挙・拒否規則](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:532)、同書578行の必須試験、[rawcheckの文字列の組み立て](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:1071)、同ファイル1137行、[既存の標準出力への書き込み](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_help.py:562)。
+
+### 3.【軽微】ATの既存ページの説明と試験が、ファイルシステムの大小文字の規則を無視している
+
+大文字と小文字を区別するファイルシステムで、次の配置を考える。
+
+```text
+W/SCHEMA.md
+W/sources/schema.md
+W/sources/SCHEMA.md は存在しない
+```
+
+この場合、既存の `wiki_initialized` は `sources` を初期化済みwikiとみなさない。247行の検査も、`sources/SCHEMA.md` の存在を調べるので、`sources/x.md` を `nested_wiki` にはしない。
+
+一方、246行の失敗の形、保証外11、576行の試験は、既存の小文字 `schema.md` によってディレクトリが子wikiになり、書き込みが拒まれると説明している。**大小文字を区別する配置では、試験の期待と規則が両立しない。**
+
+新規作成を `casefold()` で広く拒む規則自体への反例ではない。既存ファイルについての説明と試験の食い違いである。
+
+根拠：[ATの説明と子wiki検査](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:244)、同書576・609行、[既存の目印の照会](C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py:83)。ADR-0019も大小文字の扱いをファイルシステムに任せている。
+
+## 検証した事実
+
+| 確かめた主張 | 結果 |
+| --- | --- |
+| サブモジュールの参照版 | **一致。** HEADは `83dbb30abcce7d4ed56babee134cd6247ad7803d` |
+| `data_dir()` が利用者ごとに一意になる | **食い違い。** 環境変数を変えると、同じプロセスでも別のロックのパスを返した |
+| 親の実際の索引への通常の追加 | **一致。** 既存のインラインを保ち、項目一つ分の5トークンが増えた |
+| 親の実際のログへの通常のサブ行追加 | **一致。** `sig` と、既存の子＋`softbreak`＋追加文の条件を満たした |
+| ASによる7回目の参照定義の反例への対応 | **一致。** `map` は `[3,4]` から `[6,7]` に動くが、比較する `(href, title)` は変わらない |
+| 既存の参照定義を使う追加文 | **食い違い。** ファイル内の解析と単独解析で子トークンが異なる |
+| AVが対象とするrawcheckの文字列の位置 | **食い違い。** 1072行は `print` の直接の引数ではなく、レンダラー内の `out.append` にある |
+| 新しい適用・復旧の実行結果 | **確かめられず。** 実装がないため、状態遷移は設計から検討した |
+
+ファイルの変更、mount、実プロセスの停止試験は行っていない。`concurrency-check.md` の数値は記録を確認し、独立した再測定はしていない。
+
+## 崩せなかった点
+
+- 1・2回目の元のリンク、親子パス、入力の再読み込みによる反例は、現在の拒否条件とメモリ上の写しでは成立しない。
+- 全体の前像ハッシュによる `edit` と、同じファイルの `ops` の逐次合成から、旧版の変更消失は導けなかった。
+- **管理領域が共通である条件では**、適用済み印のロック内での再確認によって、待機プロセスによる旧版の二重適用を導けなかった。
+- AOで前後が異なる条件を保つ限り、変更のない読み取り専用ファイルを不要に戻す6回目の反例は成立しない。
+- 前後が異なり、配置済み項目を復元できる条件では、ALの巻き戻しから新たな変更消失は導けなかった。
+- ATによって、新しい `sources/schema.md` が子wikiの目印になる7回目の反例は拒まれる。
+- AUの、書く項目がない場合の日誌を省く分岐は崩せなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
