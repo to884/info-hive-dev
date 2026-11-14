@@ -1,0 +1,148 @@
+## 判定
+
+**却下。確信度：高。** 参加する書き手だけでログの追記先を取り違える反例と、停止後の計画を二重適用する反例が残る。PC 共通の日誌を別の wiki から再開するための検査条件も不足している。
+
+未実装の設計へのレビューである。以下の停止・再適用は設計手順から導いた反例であり、実プロセスの破壊試験ではない。同梱パーサーと文面検査の条件は、メモリ上で検証した。ファイルは変更していない。
+
+## 致命的・重大な欠陥
+
+### 1.【重大】入れ子の wiki では、親から子の `log.md` を `edit` でき、`nth` が別の項目を指す
+
+次の配置は、3 版目が明示的に受け入れている。
+
+```text
+W1 = /kb/wiki
+W2 = /kb/wiki/sub
+
+W1/SCHEMA.md
+W2/SCHEMA.md
+W2/log.md
+```
+
+リンクも mount も不要である。
+
+1. A が W2 で `log-entry` を適用し、見出し H、`nth=1` を受け取る。
+2. B が W1 で `edit --path sub/log.md` を登録する。
+3. B は、その写しで既存の H より前に同じ見出し H の別項目を追加し、承認を得て適用する。
+4. A が仕上げとして `log-sub --entry H --nth 1` を適用する。
+5. A のグラフのサブ行が、B の挿入した項目へ付く。
+
+`sub/log.md` は正規の相対パスである。`log.md` に限定した操作制限にも、計画内の同一実体の重複判定にも当たらない。B が A の適用後に準備すれば、前像のハッシュも一致する。
+
+**全員が同じロックを取り、順番に実行しても起きる。** 排他を共通にしても、wiki のルートごとに変わる特殊ファイルの扱いは共通にならない。
+
+同梱パーサーで、B の挿入後には H が二つの見出しとして認識され、`nth=1` が B の項目になることを確認した。
+
+根拠：[入れ子の wiki を受け入れる説明](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:111)、[特殊ファイルの制限](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:179)、[前に見出しを差し込めないという主張](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:231)。
+
+### 2.【重大】`done` と `D/applied.json` の間で停止すると、日誌の回収後に二重適用する
+
+ログの追記だけを持つ計画 A で、次の順序になる。
+
+1. 手順 7〜8 が成功し、ログへ項目を追加する。
+2. 手順 9 が日誌を `done` にする。
+3. **`D/applied.json` を書く前に停止する。**
+4. 30 日を超えてから、同じ D、同じハッシュで A を再実行する。
+5. 手順 0 には適用済みの印がない。
+6. 手順 2 が期限を過ぎた `done` の日誌を消す。
+7. 手順 3 には日誌がないため、新規の適用へ進む。
+8. `log-entry` が同じ項目をもう一度追加する。
+
+外部の書き手は不要である。`--keep` がなくても、D を消す前の停止なので成立する。
+
+別の計画が `pending` を前に進めた場合にも、その手順は日誌を `done` にするだけで、元の D に適用済みの印を残す規定がない。
+
+これは保存日数の選択の問題ではない。**日誌を消してよい状態と、日誌以外に再実行を止める記録がある状態が一致していない。** 326 行と対照表 569 行の保証が成立しない。
+
+根拠：[手順 9 の順序](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:300)、[前に進めたときの完了処理](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:313)、[日誌の回収と再実行防止](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:326)。
+
+### 3.【重大・仕様の欠落】別の wiki の日誌を再開するための `Writer` の情報がない
+
+次の実行を考える。
+
+1. A が `apply_plan()` で W_A、R_A に対する計画を適用し、手順 7 の途中で停止する。
+2. A の日誌が PC 共通の管理領域に残る。ライブラリ経由なので D は存在しない。
+3. B が別の W_B、R_B に対して `apply` する。
+4. B は手順 0 で、W_B と R_B の実体集合を持つ `Writer` を作る。
+5. 手順 2 が A の日誌を前に進めようとする。
+
+この `Writer` をそのまま使うと、W_A への書き込みは検査 d の領域制限で拒まれる。前進処理は `Writer` の拒否を `stuck` にするため、通常の停止から PC 全体の書き込み停止へ進む。
+
+一方、日誌ごとに別の `Writer` を作る手順は記載されていない。日誌に保存する項目には **`raw_root` がなく**、ライブラリ経由では元の `plan.json` もない。保存された `plan_sha256` から R_A は復元できない。そのため、元の raw の検査条件を維持して再開する手順も構成できない。
+
+「どの wiki の次の書き手でも前に進める」という V の中心的な契約に、必要な情報が欠けている。これは外部の書き手による競合という保証外の事象ではない。
+
+根拠：[Writer が保持する情報と領域制限](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:115)、[Writer の作成と共通日誌の再開](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:276)、[日誌の保存項目](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:297)、[D を作らないライブラリ経路](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:332)。
+
+### 4.【重大】初期化後の `SCHEMA.md` の編集指示が移行一覧に漏れ、文面検査も検出しない
+
+83dbb30 の `commands/init.md` の手順 4 は、生成済みの `SCHEMA.md` の場所を記したブロックを、選んだパスへ設定するよう命じている。ページの種類、タグ、ワークフローのカスタマイズも続く。
+
+これは `init_wiki.py` による「ないファイルだけの作成」の後で、モデルが既存の `SCHEMA.md` を編集する手順である。しかし、10 節には `commands/init.md` の移行先も、残すという分類もない。実装対象の文書一覧にもない。
+
+さらに、その手順 4 の段落には次の結果になる。
+
+```text
+書く先の語: SCHEMA.md
+指定された書く語: 該当なし
+文面検査の検出: false
+```
+
+「設定する」「カスタマイズ」は、429 行が列挙する書く語に含まれない。実ファイルの該当行で、この不検出を確認した。
+
+モデルの編集指示なので、Python の書き込み箇所を調べる AST 検査でも検出できない。したがって、**二つの機械検査が通っても、一覧にない直接編集の手順が残る。** 対照表 559・567 行の「生じない」は、この検査からは導けない。
+
+根拠：[実際の初期化後の編集指示](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/commands/init.md:16)、[移行一覧](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:404)、[文面検査の条件](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:429)、[変更対象の文書一覧](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:514)。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| 正規のパスなら、`log.md` の特殊扱いを字面だけで守れる | 同じファイルを、子の wiki では `log.md`、親では `sub/log.md` として扱う |
+| 日誌が `done` なら、D にも適用済みの印がある | 手順 9 の二つの書き込みの間で停止する。または別の計画が日誌だけを完了する |
+| 共通の日誌には、誰でも安全に再開できる情報がそろっている | 別の wiki の日誌を読む。特に D のない `apply_plan()` の日誌である |
+| 書き込み指示は、列挙した語と書く先が同じ段落に現れる | 「設定する」など別の動詞で既存ファイルの変更を命じる |
+
+## 見落としと軽微な問題
+
+**1.【軽微】通常の索引追記でも、既存項目が一括して緩いリストになる。**
+
+親の `wiki/index.md` のソースの節では、`bullet_list_open.map` が次の見出しの前の空行まで含む。その終端へ新しい項目を足すと、既存項目との間に空行が入る。
+
+同梱パーサーで、既存項目の `paragraph_open.hidden` が `True` から `False` に変わることを確認した。一方、提案された `sig` は一致する。本文の消失はないが、通常の追記だけで既存項目の段落表示も変わる。
+
+根拠：[最後の行の決定](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:194)、[`hidden` を含まない比較](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:198)、[実際の索引](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/wiki/index.md:13)。
+
+**2.【軽微】スクリプト検査の分類一覧に、グラフの書き出しがない。**
+
+430 行は全書き込み箇所に分類を要求するが、列挙された分類には `graph/` の書き手がない。既存の `wiki_graph_extract.py` は、既定でそこへ成果物を書き、`write_outputs()` を呼ぶ。記載された分類だけでは、この既存処理も検査を通らない。
+
+根拠：[分類一覧](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:430)、[既存の書き出し](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_graph_extract.py:1141)。
+
+## 検証した事実
+
+| 確かめた主張 | 結果 |
+| --- | --- |
+| 既存コードの参照版 | **一致。** サブモジュール HEAD は `83dbb30abcce7d4ed56babee134cd6247ad7803d` |
+| 初期化判定が入れ子の wiki を拒むか | **拒まない。** ルートと直下の `SCHEMA.md` の種類を調べる。ADR-0019 と一致 |
+| X が通常の索引追記を許すか | **一致。** 実際の `wiki/index.md` で、期待する項目のトークン追加と一致した |
+| X が通常のログのサブ行追記を許すか | **一致。** 実際の `wiki/log.md` で、追記前後の `sig` が一致した |
+| `~~~` のサブ行を拒めるか | **一致。** 同じログへの挿入で `sig` が変わる |
+| `<div>` と `\| a \|` が段落の文になるか | **一致。** 同梱パーサーで、両方とも `sig` を変えずに段落へ入る |
+| 2 回目の重大 6 に挙がった五つの漏れ | **設計上の移行先は追記されている。** ただし、今回の初期化後の編集指示は別に漏れている |
+| 初期化スクリプトが「wiki がないとき」だけ動くか | **食い違い。** `--upgrade` は初期化済みの wiki に対して動き、欠けたテンプレートも作る |
+| 停止、並行適用、bind mount、UNC | **今回の実機検証なし。** 設計の手順と既存コードから判断した |
+| `concurrency-check.md` の消失数 | 記録を読んだ。今回の独立再測定はしていない |
+
+## 崩せなかった点
+
+- 1 回目の `journal` のリンク、`W/indexes -> W`、`.md` を途中に含む親子パスという**元の入力**は、追加された拒否条件に当たる。
+- 2 回目の、ロック待ち中に `D/edit` を変える反例は、手順 0 のバイト列だけを後続で使う規定により成立しない。
+- 独立した `begin` の同内容の計画は、`plan_id` によって区別される。
+- 全体の前像ハッシュで比較する `edit` から、別の節の完成形を適用済みの証拠にする旧反例は導けなかった。
+- 同じファイルの `ops` を順に合成する規則から、旧版の計画内の変更消失は導けなかった。
+- 一時ファイルを先に消す順序により、2 回目の「残った一時名への `O_EXCL` 再作成」という元の反例は成立しない。
+- 通常の索引・ログについて、X が旧版と同じ理由で追記を拒む反例は得られなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
