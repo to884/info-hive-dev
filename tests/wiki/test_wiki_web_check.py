@@ -1751,6 +1751,58 @@ class ResumeBeforeFetchTest(FetchCase):
         self.assertEqual(code, 3, result)
         self.assertNotIn("old_work_dir", result)
 
+    def run_main_capture(self, *extra: str, slug: str = "page") -> tuple[int, str, str]:
+        stdout, stderr = io.StringIO(), io.StringIO()
+        argv = [PAGE_URL, "--wiki", str(self.wiki), "--raw-root", str(self.raw), "--slug", slug, *extra]
+        with mock.patch.object(wiki_fetch, "fetch", offline), contextlib.redirect_stdout(stdout), \
+                contextlib.redirect_stderr(stderr):
+            code = wiki_fetch.main(argv)
+        return code, stdout.getvalue(), stderr.getvalue()
+
+    def test_old_work_dir_is_reported_on_every_exception(self):
+        """実装のレビュー 5 の重大 1: build が取得の失敗のほかの例外（--html-file のファイルがない、UTF-8 でない）で
+        止まっても、続けられない旧版の写しがあることを知らせる（例外の出口は report_failure の 1 か所）。"""
+        self.take_dom()
+        self.make_legacy()
+        missing = self.base / "missing.html"
+        broken = self.base / "broken.html"
+        broken.write_bytes(html_page(f"<p>{LONG}</p>").replace(b"body text", "café".encode("cp1252")))
+        for path in (missing, broken):
+            with self.subTest(path=path.name):
+                code, out, err = self.run_main_capture("--html-file", str(path), "--page-url", PAGE_URL, "--json")
+                self.assertEqual(code, 1)
+                self.assertEqual(out, "")
+                self.assertIn("0.14.1 までの版", err)
+        # 対照: 旧版の写しがなければ、案内を出さない。
+        wiki_rawcheck.remove_work_dir(self.wiki, "page")
+        code, out, err = self.run_main_capture("--html-file", str(missing), "--page-url", PAGE_URL)
+        self.assertEqual(code, 1)
+        self.assertNotIn("0.14.1", err)
+
+    def test_unreadable_json_and_bad_slug_do_not_raise(self):
+        """実装のレビュー 5 の軽微 1: 桁の多すぎる整数や、入れ子の深すぎる fetch.json は、JSONDecodeError でない例外
+        （ValueError、RecursionError）を上げる。写しの判定と、例外の出口の旧版の判定は、それで止まらない。
+        規則に反するスラッグでも、例外の出口は旧版の判定で止まらない。"""
+        page = self.base / "saved.html"
+        for content in ('{"x":' + "1" * 5000 + "}", "[" * 100000 + "]" * 100000):
+            with self.subTest(content=content[:12]):
+                self.build(self.HTML, force=True)
+                path = wiki_rawcheck.work_dir(self.wiki, "page") / "fetch.json"
+                path.write_bytes(content.encode("utf-8"))
+                self.assertFalse(wiki_rawcheck.work_dir_complete(self.wiki, "page"))
+                self.assertFalse(wiki_rawcheck.old_version_work_dir(self.wiki, "page", self.raw / "page.md"))
+                code, result, _ = self.refetch()
+                self.assertEqual(code, 0, result)
+                self.assertFalse(result["work_dir"])
+                page.write_bytes(self.HTML)
+                code, out, err = self.run_main_capture("--html-file", str(page), "--page-url", PAGE_URL,
+                                                       "--max-bytes", "1", "--json")
+                self.assertEqual(code, 2)
+                self.assertEqual(json.loads(out)["error"], "fetch_failed")
+        code, out, err = self.run_main_capture("--json", slug="..")
+        self.assertEqual(code, 1)
+        self.assertIn("スラッグ", err)
+
     def test_restored_old_record_of_another_setting_is_not_resumed(self):
         """実装のレビュー 3 の重大 1: 同じ原文を別の設定（--keep-noise）で取った 0.14.1 までの版の fetch.json を丸ごと戻しても、
         取得して原文が同じだからといって、その記録で続けない（本文が空という今の取得の警告を消さない）。"""
