@@ -1164,6 +1164,32 @@ class ScanTests(CliCase):
         self.assertNotIn("QUFBQUFB", text2)
         self.assertNotIn("QUJDRA", text2)
 
+    # ---- 6 回目のレビューで崩れた前提（impl-review-6.md）: 探す文字列を形で選ばない
+
+    def test_every_key_line_is_searched(self):
+        """塊の行は、形で選ばずに探す（前提: 16 文字未満の本体の行には数字か記号が入る）。"""
+        for end in ("\n-----END PRIVATE KEY-----", ""):
+            with self.subTest(terminated=bool(end)):
+                p = self.secret_transcript(f"-----BEGIN PRIVATE KEY-----\nQUFBQUFBQUFBQUFB\nQUJDREVG{end}")
+                dec = self.init(transcript=p)
+                self.scan(dec, "行は QUJDREVG だった", transcript=p, code=1)
+                self.ok(["show", *self.common(p), "--title", "QUJDREVG", "--decisions", dec, "--slug", "qujdrevg",
+                         "--meta"], code=1)
+
+    def test_long_assistant_chain_is_linear(self):
+        import time
+        b = Builder(session_id="1a1c2d3e-aaaa-4bbb-8ccc-0123456789ab")
+        b.human("始める")
+        for i in range(8000):
+            b.text(f"返答 {i}")
+        p = self.outside / f"{b.session_id}.jsonl"
+        p.write_bytes(b.to_bytes())
+        started = time.perf_counter()
+        ex = extract_file(p)
+        self.assertLess(time.perf_counter() - started, 10)
+        self.assertEqual([t.kind for t in ex.turns], ["user", "claude"])
+        self.assertEqual(ex.turns[1].reply_to, 1)
+
     def test_repeated_unterminated_headers_are_linear(self):
         import time
         started = time.perf_counter()
