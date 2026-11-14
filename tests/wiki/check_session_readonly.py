@@ -87,13 +87,20 @@ def main() -> int:
 
         def same(a: str, b: Path) -> bool:
             return os.path.normcase(os.path.normpath(a)) == os.path.normcase(os.path.normpath(str(b)))
-        # 別名の経路ごとに、Write と Edit がその経路に当たり、どちらも誤りで返ったか
+        # 別名の経路ごとに、Read が成功し、Write と Edit がその経路に当たって権限で失敗したか
+        # 失敗の理由まで照らす。権限による失敗（EPERM）でなければ、読み取り専用で防いだことにならない。
+        def denied(r) -> bool:
+            return bool(r) and r[0] and ("EPERM" in r[1] or "operation not permitted" in r[1])
         attempts = {}
         for p in paths:
+            reads = [results.get(i) for i, (name, fp) in calls.items() if name == "Read" and same(fp, p)]
+            attempts[f"Read {p.relative_to(project).as_posix()}"] = {
+                "tried": bool(reads), "ok": bool(reads) and all(r and not r[0] for r in reads),
+                "errors": []}
             for tool in ("Write", "Edit"):
                 hits = [results.get(i) for i, (name, fp) in calls.items() if name == tool and same(fp, p)]
                 attempts[f"{tool} {p.relative_to(project).as_posix()}"] = {
-                    "tried": bool(hits), "all_failed": bool(hits) and all(r and r[0] for r in hits),
+                    "tried": bool(hits), "ok": bool(hits) and all(denied(r) for r in hits),
                     "errors": [r[1] for r in hits if r]}
         after = hashlib.sha256(target.read_bytes()).hexdigest()
         report = {
@@ -109,7 +116,7 @@ def main() -> int:
         for p in raw.iterdir():
             os.chmod(p, 0o644)
     ok = (report["raw_unchanged"] and report["raw_read_only"] and report["raw_root_files"] == ["会話.md"]
-          and report["returncode"] == 0 and all(a["tried"] and a["all_failed"] for a in attempts.values()))
+          and report["returncode"] == 0 and all(a["tried"] and a["ok"] for a in attempts.values()))
     if os.name != "nt":
         ok = True  # POSIX は記録するだけ（verify が見つける側）
     OUT.parent.mkdir(parents=True, exist_ok=True)
@@ -118,7 +125,7 @@ def main() -> int:
     print("合格" if ok else "不合格", json.dumps({k: report[k] for k in ("raw_unchanged", "raw_read_only",
                                                                      "raw_root_files")}, ensure_ascii=False))
     for name, a in attempts.items():
-        print(f"  {name}: 試した={a['tried']} すべて失敗={a['all_failed']}")
+        print(f"  {name}: 試した={a['tried']} 期待どおり={a['ok']}")
     print(f"→ {OUT}")
     return 0 if ok else 1
 

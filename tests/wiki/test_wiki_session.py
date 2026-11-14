@@ -493,6 +493,19 @@ class BindingTests(CliCase):
         self.ok(["decide", "mark", *self.common(), "--decisions", dec, "--target", "T6", "--text", "し", "--nth", "2"])
         self.assertEqual(len(json.loads(dec.read_bytes())["spans"]), 1)
 
+    def test_overlapping_matches_are_ambiguous(self):
+        """重なる一致も数える（前提: 一致の長さだけ進めても、すべての一致を数えられる）。"""
+        b = Builder(session_id="3a1c2d3e-aaaa-4bbb-8ccc-0123456789ab")
+        b.human("abababa の件")
+        b.text("了解")
+        p = self.outside / f"{b.session_id}.jsonl"
+        p.write_bytes(b.to_bytes())
+        dec = self.init(transcript=p)
+        args = ["decide", "mark", *self.common(p), "--decisions", dec, "--target", "T1", "--text", "ababa"]
+        self.ok(args, code=1)
+        self.ok(args + ["--nth", "2"])
+        self.assertEqual(json.loads(dec.read_bytes())["spans"], [{"target": "T1", "start": 2, "end": 7}])
+
     def test_title_with_hidden_text_is_refused(self):
         dec = self.init()
         self.ok(["decide", "mark", *self.common(), "--decisions", dec, "--text", "顧客A", "--all-turns"])
@@ -586,6 +599,25 @@ class RawExclusiveTests(CliCase):
     def test_control_process_race_with_os_replace_overwrites(self):
         a, b = self.process_race("replace", reps=60)
         self.assertGreater(sum(1 for pair in zip(a, b) if list(pair) == ["created", "created"]), 0)
+
+    def test_access_denied_during_a_concurrent_rename_becomes_conflict(self):
+        """Windows で、相手の名前の変更の最中に返るアクセスの拒否は、行き先を確かめ直して conflict にする。"""
+        target = self.raw / "競争.md"
+
+        def busy(tmp, dst):
+            dst.write_bytes("相手の版\n".encode("utf-8"))
+            raise PermissionError(13, "アクセスが拒否されました")
+        with mock.patch.object(ws, "publish_exclusive", busy), mock.patch.object(ws.os, "name", "nt"):
+            state, path = ws.write_raw(self.wiki, self.raw, "競争", "自分の版\n".encode("utf-8"))
+        self.assertEqual((state, path), ("conflict", target))
+        self.assertEqual(sorted(p.name for p in self.raw.iterdir()), ["競争.md"])
+
+        def denied(tmp, dst):
+            raise PermissionError(13, "アクセスが拒否されました")
+        with mock.patch.object(ws, "publish_exclusive", denied), mock.patch.object(ws.time, "sleep"):
+            with self.assertRaises(ws.Fail):
+                ws.write_raw(self.wiki, self.raw, "書けない", b"x\n")
+        self.assertEqual(sorted(p.name for p in self.raw.iterdir()), ["競争.md"])
 
     def test_two_processes_one_created(self):
         for i in range(3):
@@ -967,6 +999,62 @@ class ScanTests(CliCase):
         _done, result = self.scan(dec, SECRET_KEY, "sk-", SECRET_KEY[3:], transcript=p, code=1)
         self.assertIn("pattern_secret", {f["rule"] for f in result["findings"]})
         self.scan(dec, "ABCDEF の件", "ABCDEF の件", transcript=p, code=0)
+
+    # ---- 2 回目のレビューで崩れた前提（impl-review-2.md、impl-root-causes.md）
+
+    def test_redaction_is_applied_to_the_joined_body(self):
+        """秘密の鍵の塊がブロックをまたいでも、つないだ本文の全体で伏せる（前提: ブロックごとの伏せ字は全体と同じ）。"""
+        body = "QUFBQUFBQUFBQUFB\nQkJCQkJCQkJCQkJC"
+        b = Builder(session_id="4a1c2d3e-aaaa-4bbb-8ccc-0123456789ab")
+        b.human("鍵を見せて")
+        b.assistant([{"type": "text", "text": "-----BEGIN PRIVATE KEY-----"},
+                     {"type": "text", "text": f"{body}\n-----END PRIVATE KEY-----"}])
+        b.text("-----BEGIN RSA PRIVATE KEY-----")
+        b.text(f"{body}\n-----END RSA PRIVATE KEY-----")
+        p = self.outside / f"{b.session_id}.jsonl"
+        p.write_bytes(b.to_bytes())
+        ex = extract_file(p)
+        text = ws.render(ex, TITLE, [], []).decode()
+        self.assertNotIn("QUFBQUFB", text)
+        self.assertNotIn("QkJCQkJC", text)
+        dec = self.init(transcript=p)
+        self.scan(dec, f"鍵は\n{body}\n", transcript=p, code=1)
+
+    def test_column_survives_reordering_and_long_lines_are_fast(self):
+        """位置の対応は、正規化で切れない塊ごとに取る（前提: 接頭辞の長さから元の位置が分かる）。"""
+        p = self.secret_transcript("太郎さんに聞いた")
+        dec = self.init(transcript=p)
+        self.mark(p, dec, "太郎")
+        ex = extract_file(p, utc_offset="+09:00")
+        spans = ws.load_decisions(dec).spans
+        rows, _ = ws.scan_text("あ" + chr(0x0315) + chr(0x0300) + "x太郎", ex, spans, [])
+        self.assertEqual(rows, [{"line": 1, "column": 5, "rule": "manual"}])
+        import time
+        started = time.perf_counter()
+        rows, _ = ws.scan_text("太郎。" * 3000, ex, spans, [])
+        self.assertEqual(len(rows), 3000)
+        self.assertEqual(rows[1]["column"], 4)
+        self.assertLess(time.perf_counter() - started, 5)
+
+    def test_path_scans_the_written_files(self):
+        """書いたあとのファイルの全体を照らす（前提: 新しい断片に秘密がなければ、書いたあとのページにもない）。
+        関連ページの「顧客Bについて。」の B を A に直すと、断片の「A」は通るが、書いたあとのページは当たる。"""
+        p = self.secret_transcript("顧客Aの相談")
+        dec = self.init(transcript=p)
+        self.mark(p, dec, "顧客A")
+        page = self.wiki / "concepts" / "相談.md"
+        page.parent.mkdir()
+        page.write_bytes("# 相談\n\n顧客Bについて。\n".encode("utf-8"))
+        self.scan(dec, "A", transcript=p, code=0)  # 断片だけでは見つからない
+        page.write_bytes(page.read_bytes().replace("B".encode(), "A".encode()))
+        clean = self.wiki / "sources" / "会話.md"
+        clean.write_bytes("# 会話\n\n問題のない要約。\n".encode("utf-8"))
+        done = self.ok(["scan", *self.common(p), "--decisions", dec, "--path", clean, "--path", page, "--json"], code=1)
+        result = json.loads(done.stdout)
+        self.assertEqual(result["findings"], [{"path": str(page), "line": 3, "column": 1, "rule": "manual"}])
+        self.assertNotIn("顧客A".encode(), done.stdout)
+        self.ok(["scan", *self.common(p), "--decisions", dec, "--path", clean])
+        self.ok(["scan", *self.common(p), "--decisions", dec, "--path", self.wiki / "ない.md"], code=1)
 
     def test_invalid_utf8_input_is_refused(self):
         dec = self.init()

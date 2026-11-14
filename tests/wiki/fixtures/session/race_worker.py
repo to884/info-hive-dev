@@ -19,7 +19,15 @@ def main() -> int:
     sys.path.insert(0, scripts)
     import wiki_session as ws
     if mode == "replace":
-        ws.publish_exclusive = os.replace
+        def replace(tmp, target):
+            # 対照: 上書きする公開。Windows では、同時の名前の変更がアクセスの拒否になるので、通るまで試し直す。
+            for _ in range(200):
+                try:
+                    return os.replace(tmp, target)
+                except PermissionError:
+                    time.sleep(0.005)
+            raise RuntimeError("os.replace が通らなかった")
+        ws.publish_exclusive = replace
     base, wiki, raw = Path(base), Path(wiki), Path(raw)
     who, reps = int(who), int(reps)
     sync = base / "sync"
