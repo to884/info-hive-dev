@@ -35,10 +35,12 @@
 
 info-hive-wiki の 3 つのコミットは層になっている。`f50e940` が試し直しだけで、`ffa9913` と `4e12188` が上の 4 点である。後ろの 2 つは外せる。
 
+レビューのあとで main に 0.14.0（URL の取り込みの検査）が入り、`build` が作業用の写しの印（`fetch.json`）を `os.replace` で置くようになった。`wiki_fetch.py` の中の同じ形の名前の変更なので、マージのあとで `replace_with_retry` に替え、試験を 2 件足した。`wiki_rawcheck.write_atomic` の `os.replace` は、検査の CLI だけが使い、`wiki_fetch.py` からは呼ばないので直していない。
+
 ## 確かめたこと
 
-- `tests/wiki/test_wiki_fetch.py` は 31 件が通る（Python 3.14 と `uv run --python 3.12`）。PyYAML を付けて `test_uninitialized_wiki.py` と `test_wiki_lint.py` も合わせた 84 件が通る。
-- 修正の要所を 1 つずつ壊した写し 12 通り（試し直しをなくす、4 つの名前の変更（退避、配置、本文、戻し）のどれかを `os.replace` に戻す、`OSError` を全部試し直す、Windows の判定を見ない、後始末で退避をいつも消す、注記をなくす、退避の場所を使い回す、移してから記録する、`main` で注記を出さない）では、それぞれ対応する試験が落ちる。
+- `tests/wiki/test_wiki_fetch.py` は 33 件が通る（Python 3.14 と `uv run --python 3.12`）。0.14.0 をマージしたあと、PyYAML を付けて `test_wiki_web_check.py`、`test_uninitialized_wiki.py`、`test_wiki_lint.py` も合わせた 185 件が通る。
+- 修正の要所を 1 つずつ壊した写し 13 通り（`fetch.json` の名前の変更を `os.replace` に戻す、試し直しをなくす、4 つの名前の変更（退避、配置、本文、戻し）のどれかを `os.replace` に戻す、`OSError` を全部試し直す、Windows の判定を見ない、後始末で退避をいつも消す、注記をなくす、退避の場所を使い回す、移してから記録する、`main` で注記を出さない）では、それぞれ対応する試験が落ちる。
 - Windows の実機で、別スレッドが `open(path, "rb")` で raw か古い画像を開いたまま `write_outputs` を呼んだ。0.3 秒で閉じれば書け、1.5 秒開いたままなら約 1.01 秒で `PermissionError`（raw は winerror 5、古い画像は winerror 32）を上げ、前の raw と画像が残り、一時のファイルも残らない。main の版では、どちらもすぐに失敗する。
 
 ## 限界（直さない）
