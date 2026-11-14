@@ -1,0 +1,98 @@
+[ask-codex 23:40:35] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\affectionate-vaughan-42c8af）
+確認できた反例と検証範囲を整理しています。前回の根そのものへの入れ子、確定後の `Stop`、停止後の記録削除、両標準出力の閉鎖は、今回の確認では崩せませんでした。8.3 別名の反例は、実ディスクで確認した性質と、代役で実行した部分を分けて記載します。## 判定
+
+**却下。確信度：中。** Windows の8.3別名が生成される配置では、失敗も競合も入れずに、拒否するはずの `--out` を作成してしまう反例がある。別名の性質は実ディスクで確認したが、反例全体の実行はメモリ上の代役による。
+
+## 致命的・重大な欠陥
+
+### 1. 重大／A：未作成の名前の比較が8.3別名を扱えず、作成後に拒否する
+
+**前提：** 8.3別名の生成が有効なNTFS上で、`NewDataDirectory` を作ると `NEWDAT~1` が割り当てられる状態とする。`C:\box\wiki` は初期化済みで、両方の名前はまだ存在しない。
+
+```powershell
+$env:INFO_HIVE_DATA_DIR = 'C:\box\NewDataDirectory'
+python -B info-hive-wiki/skills/info-hive/scripts/wiki_browse.py build C:\box\wiki --out C:\box\NEWDAT~1
+```
+
+最初の `_check_nesting()` は、未作成の名前を `casefold()` で比較するため、重なりを見落とす。その後、データディレクトリの作成によって `NEWDAT~1` が同じ場所を指すようになる。共通ロック内の再検査は重なりを検出するが、既に次のものが残っている。
+
+```text
+NewDataDirectory/
+NewDataDirectory/browse/
+NewDataDirectory/browse/build.lock
+```
+
+つまり、終了コード1で拒否しながら、`--out` は「ない」から「ディレクトリ」に変わる。作成前の拒否という約束を破る。
+
+**検証結果：食い違い。** ファイルの口に8.3別名を実装したメモリ上の代役を使い、製品の `wiki_browse.build()` → `fs.build()` を実行した。
+
+```text
+BEFORE_OUT absent
+EXCEPTION Stop
+EXIT 1 AFTER_OUT dir
+```
+
+実ディスクでは、`GetShortPathNameW()` が返した短い名前と長い名前の `win_file_id()` が一致し、`abspath()` は両者の綴りの違いを残すことを確認した。新規ディレクトリへの別名割り当てを含む実ディスク再現は未実施である。
+
+**根拠：**
+
+- [未作成の名前を保持する `_planned()`](C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:860)
+- [`casefold()` だけで比較する `_within()`](C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:899)
+- [最初の検査後に根を作り、その後で再検査する `build()`](C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:985)
+- [設計9.1の、拒否時の状態に関する約束](C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/docs/plans/wiki-browse-structure-2026-11-11.md:463)
+
+## 崩れる前提
+
+- **未作成の場所の重なりは、既存祖先の識別子と、残りの名前の `casefold()` 比較で決まる。** ディレクトリの作成によって、それまでなかった8.3別名が生まれる場合に崩れる。
+- **ロック内の再検査が拒否すれば、作成前の検査の不足を補える。** 再検査より前に、拒否対象そのものがデータ領域として作られる場合には補えない。
+- **許可する `os` 関数を列挙すれば、層外の入出力を検出できる。** インポートの別名を追跡していないため崩れる。
+
+## 見落としと軽微な問題
+
+### 軽微：構文木検査は `os` の別名・直接インポートを見逃す
+
+次の両方について、`io_violations()` は実際に `[]` を返した。
+
+```python
+import os as o
+def leak(fd):
+    return o.read(fd, 1)
+```
+
+```python
+from os import read
+def leak(fd):
+    return read(fd, 1)
+```
+
+許可一覧の適用が、文字列として `os.` で始まる呼び出しに依存している。「ほかの `os` 呼び出しはどれも違反」という `responses.md` の説明より検出範囲が狭い。製品コードにこの漏れを利用した入出力があるとは確認していない。
+
+根拠：[検査の名前判定](C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/tests/wiki/test_browse_fs.py:123)。
+
+### 軽微：設計9.1の「何も変えない」と、実装・試験の条件が一致しない
+
+利用者のファイルがある `--out` を拒否するときも、実装はデータ領域、共通ロック、作業用ディレクトリと目印を先に作る。メモリ上で確認した。書き出し先の利用者ファイルは変わらない。
+
+設計9.1の「止まり、何も変えない」を砂場全体に適用すると食い違う。一方、6.4の手順と試験は、領分内の変化を許しているため、これは仕様内部の不一致として扱う。
+
+根拠：[門を通す位置](C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/info-hive-wiki/skills/info-hive/scripts/wiki_browse_fs.py:1056)、[世界の差分から領分を除外する判定](C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/tests/wiki/browse_sandbox.py:423)。
+
+## 検証した事実
+
+- **一致：** `LayerContractTest` の2件と `ClassifyTest.test_absent_and_unknown` は成功した。
+- **一致：** 前回指摘された、場所自身の目印の検査、両標準出力の最終フラッシュ、`remove_record()` 全体の例外境界は実装されている。
+- **食い違い：** 未作成の名前の比較と、層外の `os` 呼び出し検査の一般化には、上記の漏れがある。
+- **確かめられず：** この環境では `origin/main` を参照できず、変更前との差分比較はできなかった。
+- **検証範囲：** Windows／Python 3.14.6。ファイル変更なし。全探索、実ディスクへの書き出し、実サーバー通信、Linux・macOSでの検証は未実施。
+
+## 崩せなかった点
+
+- 領分の根そのものが既存世代である起動は、メモリ上の実行で、変更前に `Stop` になった。
+- 確定後の `_after_commit()` に `Stop` を入れても、書き出しは0を返し、警告が残った。
+- `remove_record()` の領分確認に `Unknown` を入れても、例外は外へ出ず、警告が残った。
+- 標準出力・標準エラーの両方を閉じたパイプにした子プロセスは、最終フラッシュ後に0で終了した。
+- 小さな入力では、読めないページを除いた結果と、そのページを取り除いた結果が、HTML・リンク解決を含めて一致した。frontmatterの解釈失敗も、該当ページの除外にとどまった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 00:01:05] 完了。session 01a1da80-cdec-71f0-90eb-b106d1b59e86  usage {"input_tokens": 6039545, "cached_input_tokens": 5834496, "cache_write_input_tokens": 0, "output_tokens": 24313, "reasoning_output_tokens": 13257}
