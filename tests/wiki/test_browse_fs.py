@@ -356,6 +356,16 @@ class QuickSweepTest(unittest.TestCase):
                 if not sweep.SKIPPED:
                     self.assertGreater(runs, 0)
 
+    def test_read_side_holds(self):
+        # 走査、入力の読み取り、解釈の入口にも手を入れる（実装の 1 回目のレビューの重大 4）
+        try:
+            import browse_read_sweep as rs
+        except ImportError as e:      # 中核は同梱の markdown-it を読み込む。PyYAML は要らない
+            self.skipTest(f"読む側の探索を読み込めない: {e}")
+        runs, problems = rs.sweep_read("absent", ("denied", "raise"), only_roles=("walk", "read:", "assets", "parse"))
+        self.assertGreater(runs, 0)
+        self.assertEqual(problems[:3], [])
+
     def test_server_states_hold(self):
         runs, problems = sweep.sweep_server_root(("denied",))
         self.assertEqual(problems[:3], [])
