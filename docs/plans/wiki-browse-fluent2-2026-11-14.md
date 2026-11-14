@@ -4,7 +4,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 4 版目。3 版目は 3 回目のレビュー（[design-review-3.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-3.md)）で「条件付きで採用可」、分類 A は 0 件だった。止める条件に従い、残りを直すか限界に書いた。作者の承認を待つ。試作の見た目は作者が承認した（2026年11月14日）。1 版目と 2 版目は、Sol の設計のレビュー（[design-review-1.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-1.md) は分類 A が 3 件、[design-review-2.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-2.md) は 1 件）で却下された |
+| 状態 | 4 版目を、作者が**承認した**（2026年11月14日）。3 版目は 3 回目のレビュー（[design-review-3.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-3.md)）で「条件付きで採用可」、分類 A は 0 件だった。止める条件に従い、残りを直すか限界に書いた。試作の見た目は作者が承認した（2026年11月14日）。1 版目と 2 版目は、Sol の設計のレビュー（[design-review-1.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-1.md) は分類 A が 3 件、[design-review-2.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-2.md) は 1 件）で却下された |
 | 対象 | `info-hive-wiki` の `browse_assets/`（`fluent2.css`、`style.css`、`app.js`、新しい `theme.js`）、`wiki_browse_core.py` の HTML の骨組み、開発リポジトリの `tests/wiki/` |
 | 前提 | [browse の構造の直し](wiki-browse-structure-2026-11-11.md)が `info-hive-wiki` の main に入ってから実装する。F1 は[探しやすさの設計](wiki-browse-findability-2026-11-13.md)の実装と一緒に行う |
 | 決定 | [ADR-0021](../adr/0021-wiki-browse-uses-fluent2-replica.md) |

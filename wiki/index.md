@@ -39,6 +39,7 @@
 - [[git-bashのパス変換]]: Git Bash が `git show <リビジョン>:<パス>` の引数を書き換える形と、`MSYS_NO_PATHCONV=1` での避け方
 - [[pythonの書き戻しの改行]]: Windows の Python の `write_text` と標準出力が LF を CRLF に変えることと、避け方と気づき方
 - [[browseの画面の確かめ方]]: browse の画面を、作者のサーバーを使い回さずに、2 つの配色で実際のブラウザで確かめる手順
+- [[browseのデザインシステム]]: browse の画面を Fluent 2 の再現の CSS で描く決まりと、レビューで崩れた配色と折り返しの前提
 - [[frontmatterのリストの値]]: パーサーがリストの欄を文字のまま、1 つの文字の欄（`title`、`type`、`updated` など）を配列で返す形と、そろえる関数の違い、残っている欠陥
 - [[初期化されたwikiの判定]]: ルートの `SCHEMA.md` で初期化された wiki を見分ける規則、判定する場所と例外、試験の素材の決まり
 - [[ingestに使うモデル]]: /wiki:ingest の raw の段は Sonnet 5.5 で行う決定と、その理由、受け入れた弱点。0.15.0 からはエージェント wiki:web-raw が行う

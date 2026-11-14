@@ -4,7 +4,7 @@ title: "browse の画面を実際のブラウザで確かめる手順"
 tags: ["browse", "試験"]
 sources: ["browseのスコープ表示とリリース-wiki-0.12.0"]
 created: 2026-11-13
-updated: 2026-11-13
+updated: 2026-11-14
 ---
 
 # browse の画面を実際のブラウザで確かめる手順
@@ -48,6 +48,14 @@ Claude のブラウザペインでは、`resize_window` の `colorScheme` で `p
 | ユーザースコープ（`~/info-hive/W0_Wiki`） | 明るい | `#0550ae` | `#ddf4ff` |
 | ユーザースコープ | 暗い | `#a5d6ff` | `#0c2d6b` |
 
+## 配色の切り替え（Fluent 2 のあと）
+
+Fluent 2 にしたあとの画面（[[browseのデザインシステム]]）は、`<html>` の `data-theme`（`auto`、`light`、`dark`）で配色が決まる。`auto` のときだけ OS の配色に従う。
+
+- 確かめるたびに、`document.documentElement.getAttribute("data-theme")` と、`auto` のときは `matchMedia('(prefers-color-scheme: dark)').matches` を読む。
+- サイドバーの「配色」で選んだ値は、サーバーでは cookie、`file://` では localStorage に残る。前の確かめで選んだ値が残っていると、OS の配色を変えても画面が変わらない。「OS に合わせる」に戻してから確かめる。
+- 0.12.0 のスコープの色の表は、Fluent 2 の実装（F1）で色が変わったら書き直す。
+
 ## 片付け
 
 確かめたら、起動したサーバーを `stop` で止め、出力の `stopped` が `true` であることを確かめる。作者が開いているサーバーには触れない。
@@ -56,3 +64,4 @@ Claude のブラウザペインでは、`resize_window` の `colorScheme` で `p
 
 - [[browseのスコープ表示とリリース-wiki-0.12.0]]
 - [[リリースの確かめ方]]
+- [[browseのデザインシステム]]
