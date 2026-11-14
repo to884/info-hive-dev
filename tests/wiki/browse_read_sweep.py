@@ -278,12 +278,23 @@ def _unreadable(sb, rel):
 
 
 def _semantic(c) -> dict:
-    """読み取りの印に依らない値（リンクの解決、被リンク、未解決リンク、ナビゲーション、関係表）。"""
+    """設計の 9.2 の比べる値: リンクの解決（解決、曖昧、未解決と、行き先、アンカー、見出しのない行き先）、被リンク、
+    未解決リンク、関係表、ナビゲーション、各ページの HTML。読み取りの印（「不完全」）は決まった場所に置くので取り除き、
+    世代の識別子は読み取りの情報から作るので、そろえる（実装の 3 回目のレビューの軽微）。"""
     import json
-    return {"links": {pid: [(r["state"], r.get("id")) for r in c.links[pid]] for pid in sorted(c.drawn)},
+    import re
+    strip = re.compile(r'<p class="notice incomplete">[^<]*</p>\n?|<section id="_incomplete">\s*</section>\n?'
+                       r'|<section id="_relations"><h2>関係</h2><p class="state-error">オントロジーを読めない</p>'
+                       r'</section>\n?')
+
+    def clean(text):
+        return strip.sub("", text.replace(c.generation, "GEN"))
+    return {"links": {pid: [{k: r.get(k) for k in ("state", "id", "anchor", "missing_heading", "candidates", "label")}
+                            for r in c.links[pid]] for pid in sorted(c.drawn)},
             "backlinks": c.backlinks, "unresolved": c.unresolved(),
             "nav": json.dumps(c._nav_json()["groups"], ensure_ascii=False),
-            "relations": json.dumps(c.relations, ensure_ascii=False, sort_keys=True, default=str)}
+            "relations": json.dumps(c.relations, ensure_ascii=False, sort_keys=True, default=str),
+            "pages": {name: clean(c.render(name)) for name in c.page_names()}}
 
 
 def gen(sb):

@@ -16,6 +16,7 @@ import ast
 import errno
 import os
 import stat
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -84,6 +85,7 @@ OSERROR_ALLOWED = {
     ("wiki_browse.py", "say"), ("wiki_browse.py", "_route"), ("wiki_browse.py", "send_error"),
     ("wiki_browse.py", "_live_status"), ("wiki_browse.py", "_locate"), ("wiki_browse.py", "_emit"),
     ("wiki_browse.py", "stop"), ("wiki_browse.py", "_print_json"), ("wiki_browse.py", "_exit_for"),
+    ("wiki_browse.py", "_final_flush"),
 }
 OSERROR_NAMES = {"OSError", "IOError", "EnvironmentError", "PermissionError", "FileNotFoundError",
                  "FileExistsError", "NotADirectoryError", "IsADirectoryError", "BlockingIOError",
@@ -135,6 +137,21 @@ def io_violations(source: str, module: str) -> list:
                 found.append(f"{module}:{node.lineno} Path を持つ")
             self.generic_visit(node)
 
+        def visit_Import(self, node):
+            # pathlib を丸ごと取り込むと、別名でも Path に届く。層の外では取り込まない
+            if module != "wiki_browse_fs.py" and any(a.name == "pathlib" for a in node.names):
+                found.append(f"{module}:{node.lineno} pathlib を取り込む")
+            self.generic_visit(node)
+
+        def visit_ImportFrom(self, node):
+            # pathlib から取り込んでよいのは、入出力を持たない純粋なパスだけである。別名でも見つける
+            # （実装の 3 回目のレビューの軽微）
+            if module != "wiki_browse_fs.py" and node.module == "pathlib":
+                for a in node.names:
+                    if a.name not in ("PurePath", "PurePosixPath", "PureWindowsPath"):
+                        found.append(f"{module}:{node.lineno} pathlib から {a.name} を取り込む")
+            self.generic_visit(node)
+
         def visit_Attribute(self, node):
             if module != "wiki_browse_fs.py" and node.attr in ("Path", "WindowsPath", "PosixPath") \
                     and ast.unparse(node.value) == "pathlib":
@@ -184,6 +201,8 @@ class LayerContractTest(unittest.TestCase):
              "wiki_browse_core.py"),
             (browse + "\n\ndef leak(root):\n    return root.resolve()\n", "wiki_browse.py"),
             (browse + "\n\nfrom pathlib import Path\n\ndef leak(p):\n    return Path(p).open()\n", "wiki_browse.py"),
+            (browse + "\n\nfrom pathlib import Path as P\n\ndef leak(p):\n    return P(p).open()\n", "wiki_browse.py"),
+            (core + "\n\nimport pathlib as pl\n\ndef leak(p):\n    return pl.Path(p).open()\n", "wiki_browse_core.py"),
             (core + "\n\nimport pathlib\n\ndef leak(p):\n    q = pathlib.Path(p)\n    return q.stat(follow_symlinks=False)\n",
              "wiki_browse_core.py"),
             (browse + "\n\ndef leak(p):\n    return os.path.isfile(p)\n", "wiki_browse.py"),
@@ -449,6 +468,59 @@ class SecondReviewTest(unittest.TestCase):
         self.assertEqual(self.build(out, self.base / "data" / "browse"), 0)
         self.assertEqual(sorted(p.name for p in work.iterdir()),
                          sorted([fs.WORK_MARKER, "build.lock", "tmp-not-a-number", "old-x", "del-"]))
+
+
+class ThirdReviewTest(unittest.TestCase):
+    """実装の 3 回目のレビューの指摘（docs/agent-runs/2026-11-14-wiki-browse-structure-impl/impl-review-3.md）。"""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.base = Path(os.path.realpath(self._tmp.name))
+        self.wiki = self.base / "wiki"
+        self.wiki.mkdir()
+        (self.wiki / "SCHEMA.md").write_text("# s\n", encoding="utf-8")
+        self.owner = fs.owner_of(self.wiki)
+        fs.WARNINGS.clear()
+
+    def tearDown(self):
+        fs.WARNINGS.clear()
+        self._tmp.cleanup()
+
+    def test_data_dir_inside_a_generation_is_refused(self):
+        site = self.base / "site"
+        files = {"index.html": b"x"}
+        self.assertEqual(fs.build(str(self.wiki), str(site), files, False, self.owner,
+                                  str(self.base / "base-data" / "browse")), 0)
+        before = bs.tree(str(self.base))
+        inner_root = site / "data" / "browse"
+        with self.assertRaises(fs.Stop):         # 既定の書き出し（データの場所が、ほかの世代の中）
+            fs.build(str(self.wiki), str(inner_root / "KEY"), files, True, self.owner, str(inner_root))
+        with self.assertRaises(fs.Stop):         # 起動も同じ
+            fs.serve_start(str(self.wiki), str(inner_root), str(inner_root / "KEY.server"), self.owner,
+                           lambda: {"instance": "x"})
+        self.assertEqual(bs.tree(str(self.base)), before)
+        # 前の世代は、次の書き出しでも門を通る
+        self.assertEqual(fs.build(str(self.wiki), str(site), files, False, self.owner,
+                                  str(self.base / "base-data" / "browse")), 0)
+
+    def test_failed_final_flush_keeps_exit_zero(self):
+        # 標準出力の読み手が閉じていても、公開したあとなら終了コードは 0（Python の終わるときのフラッシュで 120 に
+        # ならない。設計の 7）
+        out = self.base / "site"
+        code = (
+            "import os, sys\n"
+            f"sys.path.insert(0, {str(SCRIPTS)!r})\n"
+            "r, w = os.pipe()\n"
+            "os.close(r)\n"
+            "sys.stdout = open(w, 'w', encoding='utf-8', buffering=1 << 16)\n"
+            "import wiki_browse\n"
+            f"sys.exit(wiki_browse.main(['build', {str(self.wiki)!r}, '--out', {str(out)!r}]))\n"
+        )
+        env = dict(os.environ, INFO_HIVE_DATA_DIR=str(self.base / "data"), PYTHONUTF8="1")
+        p = subprocess.run([sys.executable, "-X", "utf8", "-B", "-c", code], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", env=env, timeout=120)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertTrue((out / "index.html").is_file())
 
 
 # ---------------------------------------------------------------------------

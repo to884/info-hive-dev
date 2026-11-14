@@ -1286,6 +1286,27 @@ class CoreLoopTest(TempWiki):
         wiki_browse.core_loop(io.StringIO("".join(json.dumps(r) + "\n" for r in requests)), out)
         return [json.loads(line) for line in out.getvalue().splitlines()]
 
+    def test_cache_key_is_the_exact_spelling(self):
+        # 大文字と小文字を区別するディレクトリでは、綴りだけが違うルートは別の Wiki である。写しの使い回しは、
+        # パスの等しさ（PureWindowsPath は大文字と小文字を同一視する）ではなく、綴りそのままで決める
+        # （実装の 3 回目のレビューの重大 3）
+        write(self.wiki, "a.md", page("# A"))
+        calls = []
+        real = core.take_snapshot
+
+        def counting(root, entries=None):
+            calls.append(os.fspath(root))
+            return real(root, entries)
+        # 大文字と小文字を区別するディレクトリは、作るのに管理者の権限が要る。入口の解決を、綴りをそのまま返す形に
+        # 差し替えて、綴りだけが違う 2 つのルートを作る
+        from pathlib import PureWindowsPath
+        other = str(self.wiki).swapcase()
+        with mock.patch.object(core, "take_snapshot", counting), \
+                mock.patch.object(wiki_browse, "wiki_root", lambda arg: PureWindowsPath(arg)):
+            self.run_loop({"op": "manifest", "wiki": str(self.wiki)}, {"op": "manifest", "wiki": str(self.wiki)},
+                          {"op": "manifest", "wiki": other})
+        self.assertEqual(len(calls), 2, calls)
+
     def test_manifest_and_page(self):
         write(self.wiki, "a.md", page("# A"))
         res = self.run_loop({"op": "manifest", "wiki": str(self.wiki)},
