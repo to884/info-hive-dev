@@ -71,6 +71,12 @@ ANY_RECEIVER = {
     "exists", "iterdir", "rglob", "glob", "mkdir", "rmdir", "unlink", "touch", "lstat", "chmod", "samefile",
     "readlink", "symlink_to", "hardlink_to",
 }
+# 層の外の 2 つのモジュールが呼んでよい os の関数（入出力をしない、純粋なもの）。ここにない os の呼び出しは、
+# どれも違反にする（実装の 4 回目のレビューの軽微。禁じる名前を数え上げると、os.read などが漏れる）
+PURE_OS_CALLS = {
+    "os.fspath", "os.environ.get", "os.path.join", "os.path.dirname", "os.path.basename", "os.path.abspath",
+    "os.path.expanduser", "os.path.normcase", "os.path.splitext", "os.path.relpath",
+}
 # 口（層）の中だけで呼んでよい os の入出力の関数（設計の 3.1 の口の一覧）。
 LAYER_OS_CALLS = {
     "lstat", "stat", "scandir", "mkdir", "open", "read", "write", "close", "rename", "replace", "unlink",
@@ -113,6 +119,11 @@ def io_violations(source: str, module: str) -> list:
                 found.append(f"{where} 組み込みの open")
             if isinstance(f, ast.Attribute):
                 base = ast.unparse(f.value)
+                full = ast.unparse(f)
+                if module != "wiki_browse_fs.py" and "(" not in full \
+                        and (full.startswith("os.") or full.startswith("shutil.")) \
+                        and full not in PURE_OS_CALLS:
+                    found.append(f"{where} {full}")
                 if module != "wiki_browse_fs.py" and base not in ("fs", "wiki_browse_fs"):
                     if f.attr in ANY_RECEIVER or (f.attr in ("resolve", "stat") and not node.args
                                                   and not node.keywords):
@@ -202,6 +213,8 @@ class LayerContractTest(unittest.TestCase):
             (browse + "\n\ndef leak(root):\n    return root.resolve()\n", "wiki_browse.py"),
             (browse + "\n\nfrom pathlib import Path\n\ndef leak(p):\n    return Path(p).open()\n", "wiki_browse.py"),
             (browse + "\n\nfrom pathlib import Path as P\n\ndef leak(p):\n    return P(p).open()\n", "wiki_browse.py"),
+            (core + "\n\ndef leak(fd):\n    return os.read(fd, 1024)\n", "wiki_browse_core.py"),
+            (browse + "\n\ndef leak(fd, data):\n    return os.write(fd, data)\n", "wiki_browse.py"),
             (core + "\n\nimport pathlib as pl\n\ndef leak(p):\n    return pl.Path(p).open()\n", "wiki_browse_core.py"),
             (core + "\n\nimport pathlib\n\ndef leak(p):\n    q = pathlib.Path(p)\n    return q.stat(follow_symlinks=False)\n",
              "wiki_browse_core.py"),
@@ -521,6 +534,72 @@ class ThirdReviewTest(unittest.TestCase):
                            encoding="utf-8", errors="replace", env=env, timeout=120)
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertTrue((out / "index.html").is_file())
+
+
+class FourthReviewTest(unittest.TestCase):
+    """実装の 4 回目のレビューの指摘（docs/agent-runs/2026-11-14-wiki-browse-structure-impl/impl-review-4.md）。"""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.base = Path(os.path.realpath(self._tmp.name))
+        self.wiki = self.base / "wiki"
+        self.wiki.mkdir()
+        (self.wiki / "SCHEMA.md").write_text("# s\n", encoding="utf-8")
+        self.owner = fs.owner_of(self.wiki)
+        fs.WARNINGS.clear()
+
+    def tearDown(self):
+        fs.WARNINGS.clear()
+        self._tmp.cleanup()
+
+    def test_data_root_that_is_a_generation_is_refused(self):
+        gen = self.base / "browse"
+        files = {"index.html": b"x"}
+        self.assertEqual(fs.build(str(self.wiki), str(gen), files, False, self.owner,
+                                  str(self.base / "base-data" / "browse")), 0)
+        before = bs.tree(str(self.base))
+        with self.assertRaises(fs.Stop):         # 起動（データの場所の根そのものが、ほかの世代）
+            fs.serve_start(str(self.wiki), str(gen), str(gen / "KEY.server"), self.owner, lambda: {"instance": "x"})
+        with self.assertRaises(fs.Stop):         # 既定の書き出し
+            fs.build(str(self.wiki), str(gen / "KEY"), files, True, self.owner, str(gen))
+        self.assertEqual(bs.tree(str(self.base)), before)
+        # 状態のディレクトリそのものが、ほかの browse のディレクトリ（世代）
+        root = self.base / "data" / "browse"
+        self.assertEqual(fs.build(str(self.wiki), str(root / "KEY"), files, True, self.owner, str(root)), 0)
+        with self.assertRaises(fs.Stop):
+            fs.serve_start(str(self.wiki), str(root), str(root / "KEY"), self.owner, lambda: {"instance": "x"})
+
+    def test_closed_stderr_keeps_exit_zero(self):
+        out = self.base / "site"
+        (self.wiki / "concepts").mkdir()
+        # ページの本文に絶対パスがあるので、公開のあとに警告を出す
+        (self.wiki / "concepts" / "a.md").write_text(f"# a\n\n`{self.base}`\n", encoding="utf-8")
+        code = (
+            "import os, sys\n"
+            f"sys.path.insert(0, {str(SCRIPTS)!r})\n"
+            "r, w = os.pipe()\n"
+            "os.close(r)\n"
+            "sys.stderr = open(w, 'w', encoding='utf-8', buffering=1 << 16)\n"
+            "import wiki_browse\n"
+            f"sys.exit(wiki_browse.main(['build', {str(self.wiki)!r}, '--out', {str(out)!r}]))\n"
+        )
+        env = dict(os.environ, INFO_HIVE_DATA_DIR=str(self.base / "data"), PYTHONUTF8="1")
+        p = subprocess.run([sys.executable, "-X", "utf8", "-B", "-c", code], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", env=env, timeout=120)
+        self.assertEqual(p.returncode, 0, p.stdout)
+        self.assertTrue((out / "index.html").is_file())
+
+    def test_remove_record_failure_is_a_warning(self):
+        def failing(*a, **k):
+            raise fs.failure(fs.Unknown, "scandir_open: PermissionError", "x")
+        saved = fs._enter_state
+        fs._enter_state = failing
+        try:
+            fs.remove_record(str(self.wiki), str(self.base / "data" / "browse"), str(self.base / "s"), self.owner,
+                             "i")
+        finally:
+            fs._enter_state = saved
+        self.assertTrue(any("記録を消せなかった" in w for w in fs.WARNINGS), fs.WARNINGS)
 
 
 # ---------------------------------------------------------------------------
