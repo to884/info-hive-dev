@@ -142,8 +142,27 @@ class ReferenceTest(unittest.TestCase):
         phrase = "「本文が短いまま続ける」"
         row = next(line for line in text.splitlines() if line.lstrip().startswith("| `needs_browser` |"))
         self.assertIn(phrase, row)
+        # 続ける答えで fetch を残すと、前の呼び出しの --force や --html-file でまた取り直す（レビュー 5 の反例）
+        self.assertNotIn("`fetch` は変えずに", row)
         w3 = text[text.index("- **W3.**"):text.index("- **W4.**")]
         self.assertIn(phrase, w3)
+
+    def test_one_shot_fetch_options_are_reset_on_every_call(self):
+        # force、html_file、page_url は 1 回の取得への指示。呼び直すたびに戻さないと、続けるだけの呼び直しでも
+        # 取り直して途中の作業を消す。戻せば、wiki_fetch.py は途中の写しから続ける
+        # （tests/wiki/test_wiki_web_check.py の test_dom_take_resumes_without_fetch がスクリプトの側を確かめる）。
+        text = read(REFERENCE)
+        step4 = text[text.index("\n4. "):text.index("\n5. ")]
+        self.assertIn("`fetch.force` を `false`、`fetch.html_file` と `fetch.page_url` を `null` に戻して", step4)
+        self.assertIn("「本文が短いまま続ける」を消す", step4)
+
+    def test_old_work_dir_does_not_hide_fetch_errors(self):
+        # 終了コード 1 と 2 では、取得や --html-file の誤りを先に返す（old_work_dir の問いで隠さない）
+        text = read(REFERENCE)
+        w2 = text[text.index("- **W2.**"):text.index("- **W3.**")]
+        bullet = next(line for line in w2.splitlines() if "`\"old_work_dir\": true`" in line)
+        self.assertIn("終了コード 1 と 2 では、まずその誤り", bullet)
+        self.assertIn("`failed`", bullet)
 
 
 class EntryPointsTest(unittest.TestCase):
