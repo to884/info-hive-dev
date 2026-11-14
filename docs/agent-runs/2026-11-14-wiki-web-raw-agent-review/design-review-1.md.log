@@ -1,0 +1,101 @@
+[ask-codex 09:40:31] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\web-ingest-check）
+## 判定
+
+**却下。確信度: 高。** 現設計には、Sonnet 以外で動く経路の見落とし、再呼び出し時の状態欠落、警告を受け入れた理由が記録される前に検査資料を消す問題がある。予定された実地試験も、モデル間の分担を破った実装が通る。
+
+## 致命的・重大な欠陥
+
+1. **重大：`model` 引数と強制環境変数以外にも、Sonnet 以外になる経路がある。**
+
+   **反例:** メインを Opus とし、組織の `availableModels` が Sonnet を許可していない環境で呼ぶ。公式仕様では、許可された代替がなければサブエージェントは親のモデルに戻る。また、フォールバックチェーンを設定した環境では、Sonnet の利用不能時に別モデルで処理を続ける。どちらも、メインが `model` を渡さず、`CLAUDE_CODE_SUBAGENT_MODEL_FORCE` を設定しなくても起きる。
+
+   設計の「モデルを守ること」は、この二つを扱っていない。起動時だけ Sonnet でも、途中のモデル変更によって複数モデルが raw を作る場合があり、単一の `translated_by` ではその履歴を表せない。
+
+   **根拠:** [設計の前提とモデル制御](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/docs/plans/wiki-web-raw-agent-2026-11-14.md:122)。公式の [許可リストによる代替](https://code.claude.com/docs/en/sub-agents.md#when-an-allowlist-blocks-a-subagent-model)、[サブエージェントにも適用されるフォールバック](https://code.claude.com/docs/en/model-config.md#fallback-model-chains) と照合して、**前提の網羅性に食い違い**がある。
+
+2. **重大：再呼び出しが、新規起動なのか履歴を保持した再開なのか定義されていない。取得条件も累積して引き継がれない。**
+
+   **反例:** 通常取得した短いページから `needs_browser` になり、保存した HTML を渡す。この HTML は通常取得と SHA-256 が違うため、同じスラッグで `--force` なしなら `existing_differs` になる。次の呼び出しで設計どおり「前の答え」の `--force` だけを渡すと、HTML のパスと `--page-url` が失われ、通常取得へ戻る。
+
+   同様に、ブラウザ取得後に `display_name` を尋ねた場合も、表示名だけを渡した新規起動では取得条件が失われる。`work_stage` は取得元の一致を確認した後でしか返らないので、この問題を救えない。
+
+   **根拠:** [設計の再呼び出し手順](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/docs/plans/wiki-web-raw-agent-2026-11-14.md:106)、[取得器の既存ファイル判定](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:1234)。公式では、[通常の呼び出しは毎回新しいインスタンス](https://code.claude.com/docs/en/sub-agents.md#resume-subagents)である。入出力をメモリ上で差し替えて実行し、HTML への切り替え時と HTML 条件を失った再取得時の双方で、終了コード 3、`error: existing_differs` を確認した。
+
+3. **重大：警告を受け入れた理由が永続化される前に、検査の基準を削除する。**
+
+   **反例:** エージェントが警告を受け入れ、`check --finish --accept-warnings` を実行した直後、最終 JSON を返す前に API エラーや中断が起きる。作業用フォルダーは消えているが、メインは `accepted_warnings` を受け取っておらず、`log.md` に理由を書けない。再取得すると `unchanged: true, work_dir: false` となり、受け入れた理由を通常の再開経路から復元できない。
+
+   正常に報告できても、後段の話し合いでユーザーが中止すれば、取り込みのログを書く前に終わる。従来の「理由を `log.md` に書いてから削除する」という順序を崩した影響が扱われていない。
+
+   **根拠:** [設計の警告受け入れ](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/docs/plans/wiki-web-raw-agent-2026-11-14.md:102)、[現行手順の記録順序](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references/ingest-workflow.md:116)、[実際の削除処理](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:976)。削除処理は報告やログの保存を確認しない。**順序の変更は確認でき、障害時の回復手順は確認できなかった。**
+
+4. **重大：JSON の受け取り手順が、`done` の完成条件を検証しない。**
+
+   **反例:** 例と同じキーを持ち、`web_raw: 1`、`status: "done"` だが、`work_dir_removed: false` の報告を返す。設計 §4 の明示された検査は、JSON の有無、版、既知の `status` だけなので通過し、W9 に進む。依頼と違う `slug`・`raw`・`url` を持つ報告についても、対応関係の検査がない。
+
+   これは起こり得るスクリプト状態と結び付く。警告付きの `check --finish` は、**終了コード 0、`ok: true` のまま `work_dir_kept: "warnings"`** を返す。成功コードを完了と読み違えると、検査の基準を残した未完了状態を `done` にできる。
+
+   **根拠:** [設計の完成条件](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/docs/plans/wiki-web-raw-agent-2026-11-14.md:82)、同ファイル107〜109行、[終了コードと削除の分岐](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:980)。警告付きの分岐は、`check` の結果だけを差し替えた実行でも上記の出力になり、削除関数が呼ばれないことを確認した。
+
+5. **重大：メインが読んだスキーマと、会話で指定された raw の条件が委譲先に届く契約がない。**
+
+   **反例:** ユーザーが「この URL は英語のまま保存して」と依頼する、または対象 wiki の `SCHEMA.md` に独自の翻訳規則がある。メインはその条件を読めるが、設計の委譲プロンプトに列挙されるのは URL、ルート、スラッグ、前の答えだけである。エージェント側には W1〜W8 と Web の節を読む指示しかなく、対象 `SCHEMA.md` を読む指示がない。そのままなら既定の翻訳処理を行う。
+
+   **根拠:** [設計のエージェント指示](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/docs/plans/wiki-web-raw-agent-2026-11-14.md:50)、同ファイル106行。[現行スキルはスキーマによる上書きを要求](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/SKILL.md:21)し、[現行コマンドも取得前に読む](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/commands/ingest.md:14)。公式でも、[非 fork のサブエージェントには親の会話や既読ファイルは渡らない](https://code.claude.com/docs/en/sub-agents.md#what-loads-at-startup)。**現行の優先規則を維持する経路が設計から抜けている。**
+
+6. **重大：実地試験が、処理を担当したモデルを確かめずに合格できる。**
+
+   **反例:** Sonnet が raw と要約ページまで作り、Opus は最後に完了を報告する実装を考える。予定された検査では、`wiki:web-raw` の呼び出し、子の Sonnet 応答、親の Opus 応答、Sonnet 名の `translated_by`、要約ページの存在がすべて成立する。しかし後段をユーザーのモデルが担当する目的には反する。
+
+   逆に、メインが raw を編集した後、Sonnet が検査と表示名の記入だけをしても、列挙された検査項目は成立する。静的試験は手順の文言と JSON の例を調べるだけなので、この反例を排除しない。
+
+   **根拠:** [設計の試験項目](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/docs/plans/wiki-web-raw-agent-2026-11-14.md:143)。ファイル操作の担当、W9 以降を子が実行していないこと、メインが W4〜W7 を実行していないことは検査対象にない。**目的に対して偽陽性のある試験計画である。**
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| `model: sonnet` と `model` 引数の省略で Sonnet が選ばれる | 許可リストによる親モデルへの代替、フォールバックチェーン |
+| 「呼び直す」と前回の条件が残る | 新しい Agent 呼び出しになり、過去の HTML パス、取得フラグ、判断理由を渡さない |
+| `translated_by` で raw の担当モデルを後から識別できる | 日本語ページでは空欄。画像もなければ補足の表示名も残らない |
+| メインが読んだ規約を子も知っている | 非 fork の委譲で、スキーマや会話上の条件を渡さない |
+| エージェントを呼べなければ、自分で同じ手順を行える | 呼び出し元自身が深い階層のサブエージェントで、ユーザーへの質問もできない |
+| スラッグを分ければ並列処理は衝突しない | 別セッションが同じ wiki・スラッグを使用する。取得器に排他処理はなく、取り直しは既存の作業用フォルダーを削除する |
+
+最後の条件は、設計が扱う単一メイン内の予約だけでは防げない。競合を実際に発生させる試験は行っていない。
+
+## 見落としと軽微な問題
+
+- **軽微：自然言語からの取り込みでは、報告を処理する手順の参照先がない。** 設計 §5 はスキルに「任せる」と書くが、JSON の検査、質問の中継、再呼び出しの手順は `commands/ingest.md` に置く。自然言語の依頼では、そのコマンド文書は自動で読まれない。スキル側から同じ受け取り手順へ到達する記述がない。根拠は設計35行、104〜116行。
+
+- **軽微：参照文書への移動時に、パス記法が衝突する。** 現行 W2〜W8 は `${CLAUDE_PLUGIN_ROOT}` を使う一方、`SKILL.md` 43〜49行は、参照文書では `<skill-root>` を使うと定めている。設計の静的試験はプラグイン内にパスが存在するかを調べるだけで、この違反を検出しない。**そのまま移した場合**、通常ファイルとして読む参照文書の変数は展開されない。[公式の展開対象](https://code.claude.com/docs/en/plugins/manifest-reference.md#where-each-variable-resolves)とも照合した。未実装なので、実際の置換忘れがあるとは断定しない。
+
+- **軽微：書き込み許可範囲が、変更しない取得器の一時ファイルを含まない。** 設計51行の三つの保存先に対し、`wiki_fetch.py` 1148〜1151行は `<RAW_ROOT>/.<slug>.md.<pid>.tmp` と `assets/.<slug>.<pid>.new`・`.old` にも書く。文字どおりの制限とは両立しない。現状のツール指定にパス制限の強制機能があるわけではないため、実行が拒否されるとは断定しない。
+
+- **軽微：`failed` と `needs_user` の形式が完成していない。** エラー理由の専用フィールド、`question` 内のキー、未知の `question.kind`、キャンセルされた回答の扱いが定義されていない。JSON の例は `done` 一つだけで、質問と失敗について「形を守ったか」を判定できない。根拠は設計54〜93行、147行。
+
+- **軽微：速度と費用の根拠を raw の段へ外挿している。** 設計9行は raw の段が Opus の1/7〜1/2の時間と読めるが、比較レポート87行は計測時間を「取り込み全体」と明記し、費用比も算出できないとしている。分割後は、メインによる raw の再読、子の起動、質問後の新規起動が加わる。分割後の時間・費用の優位は**確かめられていない**。
+
+- **軽微：並列呼び出し数に上限がない。** 多数 URL を同時起動できる記述に対し、同時実行枠不足時の待機と、自分で処理するフォールバックの区別がない。枠不足まで「呼べない」と解釈すると、残りをメインで raw 化する経路になる。これは**設計の曖昧さから生じる推測**であり、実際のモデル挙動は未確認である。
+
+## 検証した事実
+
+- **一致:** 指定された8ファイルを読んだ。予定の `agents/web-raw.md` と `references/web-raw.md` は存在せず、未実装という説明と一致する。
+- **一致:** プラグインのエージェント配置、名前空間、モデル選択の基本優先順位、`AskUserQuestion` の除外、無視される frontmatter は公式文書と一致する。ただし、モデル選択の例外は上記のとおり不足する。
+- **一致:** `wiki_fetch.py` は `unchanged` の場合に作業用の写しを調べ、`fetched`／`frozen` と再開に使う値を返す。`frozen` の画像は削除後の本文から取り直す。
+- **一致・実行確認:** 警告付き `check --finish` は終了コード0でも写しを残す。
+- **一致・実行確認:** 訳さず画像もない日本語 raw は、`translated_by: ""`、`caption_names: []` のまま検査に通る。設計の「`translated_by` であとから分かる」は、この入力では成立しない。
+- **食い違い:** 比較レポートの時間は取り込み全体の値であり、raw の処理時間ではない。
+- **確かめられず:** 実際の Claude Code 上での分担、表示名の取得可能性、再呼び出し時のモデル挙動。今回はファイルを変更せず、実地のモデル実行も行っていない。実行確認はメモリ上の入力とモックを使用した。
+
+## 崩せなかった点
+
+- `model` 引数を省略し、モデルの代替が起きない通常環境で、定義の `model: sonnet` を選ぶ基本経路。
+- 手順をスキル配下の参照文書へ置くこと自体は、プラグイン外への配布と両立する。
+- メインが子の raw を読み直すという設計109行は、コンテキスト分離による読み落としに対処している。
+- 作業用の写しがそろっている場合の `fetched`／`frozen` による再開は、現行スクリプトに実在する。
+- 子の書き込みを raw の段にとどめ、後段をメインへ返す構成自体が不可能だという根拠は見つからなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 09:49:12] 完了。session 01a1d77f-afe7-7b33-b0a4-da3743c095c3  usage {"input_tokens": 2962641, "cached_input_tokens": 2769152, "cache_write_input_tokens": 0, "output_tokens": 13750, "reasoning_output_tokens": 5196}
