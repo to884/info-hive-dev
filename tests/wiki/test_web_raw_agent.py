@@ -136,6 +136,15 @@ class ReferenceTest(unittest.TestCase):
         for kind in ("fetch_failed", "not_initialized", "no_raw_root", "model_unknown"):
             self.assertIn(f"`{kind}`", text)
 
+    def test_needs_browser_can_continue_with_the_short_body(self):
+        # 取り直さずに今の本文で続ける答えにも、依頼の変え方（conditions の決まった文）があり、W3 がそれに従う
+        text = read(REFERENCE)
+        phrase = "「本文が短いまま続ける」"
+        row = next(line for line in text.splitlines() if line.lstrip().startswith("| `needs_browser` |"))
+        self.assertIn(phrase, row)
+        w3 = text[text.index("- **W3.**"):text.index("- **W4.**")]
+        self.assertIn(phrase, w3)
+
 
 class EntryPointsTest(unittest.TestCase):
     def test_command_and_skill_point_to_the_reference(self):
