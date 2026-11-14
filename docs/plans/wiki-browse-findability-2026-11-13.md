@@ -4,8 +4,8 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 7 版目を、作者が**承認した**（2026年11月14日）。7 回目のレビュー（[design-review-7.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-7.md)）で「条件付きで採用可」、分類 A は 0 件だった。止める条件（「作者が決めたこと」）に従い、残りを直すか「7 回目のレビューのあとに残したもの」に書いた。実装は、構造の直しが main に入ってから始める。1〜6 版目は、Sol の設計のレビューで却下された（[design-review-1.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-1.md) は重大 4 件、[design-review-2.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-2.md) と [design-review-3.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-3.md) は重大 1 件ずつ、[design-review-4.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-4.md) と [design-review-5.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-5.md) は重大 2 件ずつ、止める条件を付けた [design-review-6.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-6.md) は分類 A が 1 件） |
-| 対象 | `info-hive-wiki` の `wiki_browse_core.py`、`wiki_browse.py`、`browse_assets/app.js`、`browse_assets/style.css`、`commands/browse.md` と、開発リポジトリの `tests/wiki/` |
+| 状態 | 8 版目を、作者が**承認した**（2026年11月14日）。7 版目の承認のあと、作者の決定で Fluent 2 化を組み込んだ（[Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)）。改訂した所は、作者が決めたこと、1 節の画面の契約、3〜5 節の部品の注、7 節、9 節、10 節、範囲の外である。木の規則、データ、検索の規則は変えていない。改訂は Fluent 2 の設計と一緒に Sol のレビューにかけ、3 回目で分類 A が 0 件になった。7 版目は、作者が**承認した**（2026年11月14日）。7 回目のレビュー（[design-review-7.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-7.md)）で「条件付きで採用可」、分類 A は 0 件だった。止める条件（「作者が決めたこと」）に従い、残りを直すか「7 回目のレビューのあとに残したもの」に書いた。実装は、構造の直しが main に入ってから始める。1〜6 版目は、Sol の設計のレビューで却下された（[design-review-1.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-1.md) は重大 4 件、[design-review-2.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-2.md) と [design-review-3.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-3.md) は重大 1 件ずつ、[design-review-4.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-4.md) と [design-review-5.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-5.md) は重大 2 件ずつ、止める条件を付けた [design-review-6.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-6.md) は分類 A が 1 件） |
+| 対象 | `info-hive-wiki` の `wiki_browse_core.py`、`wiki_browse.py`、`browse_assets/app.js`、`browse_assets/style.css`、`browse_assets/theme.js`（新しい資産）、`browse_assets/fluent2.css`（同梱する資産）、`commands/browse.md` と、開発リポジトリの `tests/wiki/` |
 | 前提 | [browse の構造の直し](wiki-browse-structure-2026-11-11.md)が `info-hive-wiki` の main に入ってから実装する。この設計は、描く側が機械の情報を持たず（構造の直しの P7）、読めない入力に「不完全」の印が付く（同 4.1）形を前提に書く |
 | 元の設計 | [browse の第 1 段階の設計](wiki-browse-stage1-2026-11-09.md)。3.7（ナビゲーション）、4（画面の契約）、「範囲の外」の検索を書き換える |
 | 試作 | `poc/browse-findability/`（案 D）。今の画面の写しと、試作の作り方は `docs/agent-runs/2026-11-13-wiki-browse-findability/` にある |
@@ -15,13 +15,14 @@
 
 | 日付 | 決定 |
 | --- | --- |
-| 2026年11月13日 | 直す画面は、索引のページとサイドバーである。記事のページの本文、メタ欄、被リンク、関係表、診断は変えない |
+| 2026年11月13日 | 直す画面は、索引のページとサイドバーである。記事のページの本文、メタ欄、被リンク、関係表、診断は変えない（2026年11月14日に改めた。この設計では、記事のページの色をトークンに替えるだけで、配置と大きさは変えない。記事のページの部品は [Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)の F2 で当てる） |
 | 同 | 探す手段は、静的の検索まで入れる。ADR-0010 の決定 5 の A（題名、要約、タグ、見出しの部分一致。NFC にそろえ、小文字にして照合）とする。サーバーの `live`（MCP の `query`）は入れない |
 | 同 | 実装は、構造の直しが main に入ったあとにする。この設計は、それまでに書いてレビューにかける |
 | 同 | 4 つの試作（A 分類の木、B 絞り込める一覧、C 検索が主役、D は A と B の組み合わせ）から、D を選んだ。左のペインは A の木、索引のページの本文は B の一覧にする |
 | 同 | 索引のページでは、左の木をグループの名前と件数までに畳む。ページの名前が左右に二重に出ないようにするためである |
 | 2026年11月14日（5 回目のレビューのあと） | レビューを止める条件を付ける。**失敗も競合も入れない正しい使い方で、設計の約束を破る反例**（分類 A）が出なければ、残りの指摘は限界（11）に書いて、作者の承認に回す。参照の実装や試作だけの欠陥で、設計の文が正しいもの（分類 B）と、表現や試験の網羅の指摘（分類 C）は、止める理由にしない。構造の直しの設計と同じ条件である |
 | 2026年11月14日（7 回目のレビューのあと） | 7 版目を承認した。木の 2 段目より下は、索引のファイルの見出しで決まり、記事のタグや種類では決めないことを確かめた。木の深さに上限は設けない |
+| 2026年11月14日（承認のあと） | 画面を Fluent 2 にする。この設計の画面の部品は、[Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)の 4 節の部品で描く（F1）。ライト、ダーク、OS に合わせる、を選べる配色の切り替えを足す。プロジェクトの wiki の札は中立の色にし、木の字下げは 4 段目で止める |
 
 ## 今の画面で探しにくいところ
 
@@ -94,7 +95,7 @@
 | 守ること 4 と構造の直しの P7 | 足すデータ（要約、見出し、グループの階層）は、どれも入力の中身から作る。生成器は機械の情報を足さない |
 | 守ること 6 | サーバーと静的版は、同じ関数で索引のページと `data/search.js` を描く |
 | 守ること 9 | 検索で、「索引を読めない」「世代が違う」「0 件」「読めないページがあって不完全」を見分けて示す |
-| 画面の契約（第 1 段階の 4） | インラインの `style`、インラインのスクリプト、イベントの属性を出さない。`app.js` も要素の `style` を触らない（クラス、`hidden`、`open`、`aria-*` だけを変える）。classic な `<script src>` だけを使う |
+| 画面の契約（第 1 段階の 4） | インラインの `style`、インラインのスクリプト、イベントの属性を出さない。`app.js` も要素の `style` を触らない（クラス、`hidden`、`open`、`aria-*` だけを変える）。例外は、`theme.js` と `app.js` が `<html>` の `data-theme` を書き換えること（配色の切り替え。Fluent 2 の設計の 3 節）だけである。classic な `<script src>` だけを使う |
 | 足すこと 1 | JavaScript を切っても、索引のページで全ページの題名、種類、更新日、要約、タグ、グループの階層を読める |
 | 足すこと 2 | キーボードだけで、検索、絞り込み、木の開閉、ページの移動ができる |
 
@@ -186,6 +187,8 @@ window.WIKI_NAV = {
 
 ## 3. サイドバー（左のペイン）
 
+部品のマークアップと見た目は、[Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)の 4 節の表に従う。`#_nav` は `nav.fui-NavDrawer`、グループは `details.fui-NavCategory`、ページは `a.fui-NavSubItem` である。この節の class（`tree`、`tree-filter`、`is-current`、`drawer` など）は、Fluent の class と並べて付ける。
+
 ### 3.1 記事のページ
 
 `#_nav` の中を、上から次の順にする。
@@ -216,13 +219,15 @@ window.WIKI_NAV = {
 
 幅 48rem 以下では、`#_nav` を本文の上に置き、木を `<details class="drawer">`（「メニュー」）に入れて閉じておく。記事のページの検索欄は、畳まずに見せる。48rem より広いときは、`app.js` が `matchMedia` で `drawer` を開き、「メニュー」の `<summary>` は CSS で隠す。
 
-今の切り替えの幅は 40rem である。サイドバーの幅を 16rem から 17rem に広げるので、本文の幅が 30rem を割らないように、切り替えを 48rem に上げる。
+今の切り替えの幅は 40rem である。サイドバーの幅を 16rem から 260px（Fluent の Nav の既定の幅。Fluent 2 の設計の 4 節）に広げるので、本文の幅が 30rem を割らないように、切り替えを 48rem に上げる。
 
 ### 3.4 JavaScript を切ったとき
 
 今と同じく、`#_nav` には `<noscript>` の「索引へ」のリンクだけが出る。索引のページの一覧（4）は、JavaScript なしで読める。
 
 ## 4. 索引のページ（右）
+
+部品のマークアップと見た目は、[Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)の 4 節の表に従う。4.1 の骨組みの class はそのまま付け、Fluent の class を並べて付ける（`h1.fui-Title2`、`span.badge.fui-Badge`、`span.tag.fui-Tag` と `span.fui-Tag__primaryText`、種類のボタンは `button.fui-ToggleButton.fui-Button`、並べ方は `span.fui-Select`、絞り込みの欄は `span.fui-SearchBox.fui-Input`）。
 
 ### 4.1 骨組み
 
@@ -353,6 +358,8 @@ ADR-0010 の決定 5 のとおり、NFC にそろえ、小文字にして、部�
 
 ### 5.3 記事のページの検索欄
 
+欄は `span.fui-SearchBox.fui-Input`（small）、結果は `ul.fui-List` で描く（[Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)の 4 節）。消去ボタンは `app.js` が受け持つ。
+
 - 入力すると、木を隠し、その場所に結果を出す。結果は最大 30 件で、件数を先に出す。結果の 1 件は、題名（当たった文字に `<mark>`）、種類の印、グループの階層である。
 - 結果のリンクは `href`（5.2）である。`hit` があれば、「タグ: …」「見出し: …」「要約: …」の形で、題名の下に示す。
 - 欄を空にするか Esc を押すと、結果を消して木に戻る。Enter で最初の結果を開く。どのページでも `/` を押すと、欄に移る（ほかの入力欄にいるときは除く）。
@@ -388,12 +395,14 @@ ADR-0010 の決定 5 のとおり、NFC にそろえ、小文字にして、部�
 
 ## 7. 画面の部品と CSS
 
-- `style.css` は、今のファイルを元にして、規則を足す。試作の `proto.css` で置き換えない。試作は、表の配置のクラス（`ta-left` など）、外部リンクの印、曖昧のリンクの表示を持たず、本文の余白と幅も今と違うからである。
-- 今の色を、値を変えずに `:root` の変数にし、`prefers-color-scheme: dark` で変数を差し替える。記事のページの本文、メタ欄、被リンク、関係表、診断の見た目は、色の値を含めて今と同じにする。
-- 足すクラス: `fx-bar`、`fx-count`、`fx-list`、`fx-row`、`fx-path`、`ix-line`、`ix-title`、`ix-summary`、`ix-tags`、`tag`、`badge`、`t-<type>`、`tree`、`tree-groups`、`tree-filter`、`is-current`、`drawer`、`search`、`search-hint`、`sr-results`、`sr-title`、`sr-meta`、`sr-hit`、`sr-empty`、`chips`。`wl` で始まるクラスは、本文の wikilink と、木と 4.4 の状態つきの項目だけに使う。今の試験は、記事のページの `class="wl` の数が wikilink の数と等しいことを確かめている。
-- 種類の印の色は、明と暗のそれぞれで、文字と背景のコントラスト比を 4.5:1 以上にする。実装の段で測る。
-- フォーカスの輪郭（`:focus-visible`）を、リンク、入力欄、選択、ボタン、`<summary>` に付ける。
-- 画面の部品の ID は、今と同じく `_` で始める（`_filters`、`_count`、`_index`、`_ixhead`、`_index_unresolved`、`_q`）。
+画面の部品と CSS は、[Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)に従う。この節は、7 版目の決まりのうち、何を残し何を改めたかを書く。
+
+- `style.css` は、今のファイルを元にする。試作の `proto.css` では置き換えない。今の色は、値を変えずに変数にするのではなく、Fluent のトークンに置き換え、`prefers-color-scheme` の規則をなくす（Fluent 2 の設計の 4.1）。下敷きにする試作は `poc/browse-fluent2/assets/style.css` である。
+- 記事のページの本文、メタ欄、被リンク、関係表、診断は、配置と大きさを今と同じにし、色だけをトークンに替える（Fluent 2 の設計の 4.1）。部品は F2 で当てる。
+- 足すクラス: `fx-bar`、`fx-count`、`fx-list`、`fx-row`、`fx-path`、`ix-line`、`ix-title`、`ix-summary`、`ix-tags`、`tag`、`badge`、`t-<type>`、`tree`、`tree-groups`、`tree-filter`、`is-current`、`drawer`、`search`、`search-hint`、`sr-results`、`sr-title`、`sr-meta`、`sr-hit`、`sr-empty`、`chips`。これに Fluent の class（`fui-` で始まる）を並べて付ける。部品ごとの対応は、Fluent 2 の設計の 4 節の表にある。`wl` で始まるクラスは、本文の wikilink と、木と 4.4 の状態つきの項目だけに使う。今の試験は、記事のページの `class="wl` の数が wikilink の数と等しいことを確かめている。
+- 種類の印の色は、パレットのトークンの組で当て、明と暗のそれぞれで、文字と背景のコントラスト比を 4.5:1 以上にする。試作で測り、light と dark の 27 の画面で、すべて 4.5:1 以上だった（`docs/agent-runs/2026-11-14-wiki-browse-fluent2/shots/report.json`）。実装でも試験で測る。
+- フォーカスの輪郭（`:focus-visible`）は、Fluent の各部品の規則に任せ、独自の要素（一覧の題名、木の「一覧」、`<summary>`）には共通の輪を付ける。
+- 画面の部品の ID は、今と同じく `_` で始める（`_filters`、`_count`、`_index`、`_ixhead`、`_index_unresolved`、`_q`、`_theme`）。
 
 ## 8. 振る舞いが変わる点
 
@@ -412,6 +421,8 @@ ADR-0010 の決定 5 のとおり、NFC にそろえ、小文字にして、部�
 | 索引の未解決と曖昧の行 | 索引のページの入れ子の中に、状態つきで出る | 一覧の後の「ページに決まらない索引の行」に出る。サイドバーの木には、今と同じく出る |
 
 ## 9. 試験
+
+画面の見た目と配色の切り替えの試験は、[Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)の 6 節にある。この節の試験と一緒に足す。
 
 今の試験のうち、次のものは期待を書き換える。
 
@@ -449,12 +460,14 @@ ADR-0010 の決定 5 のとおり、NFC にそろえ、小文字にして、部�
 
 構造の直しが `info-hive-wiki` の main に入ってから始める。
 
-1. この設計を、構造の直しが入ったあとのコードと照らし直す。`Recorder` がなくなったこと、内容と読み取りの情報が分かれたこと、「不完全」の印の持ち方を確かめ、食い違いがあれば設計を直す。
+1. この設計と Fluent 2 の設計を、構造の直しが入ったあとのコードと照らし直す。`Recorder` がなくなったこと、内容と読み取りの情報が分かれたこと、「不完全」の印の持ち方を確かめ、食い違いがあれば設計を直す。
 2. 木を組む規則（2）と `nav.js` の形を直し、試験を書き換える。
 3. 索引のページ（4）と要約（4.2）を描く。
 4. `data/search.js`（5.1）と、2 つの方式の扱い（6）を足す。
 5. `app.js` を、試作の `proto.js`（`poc/browse-findability/assets/`）を下敷きにして書き直す。試作は、記事のページの検索の結果と、索引のページの絞り込みを持つ。書き直すときに、5.4 の後からの読み込み、5.5 の状態の表示、`window.__browse.search()` を足す。`style.css` は、今のファイルに、試作の規則のうち 7 に挙げた部品の分を足す。試作の要約の取り方（`proto.py`）は 4.2 と違うので、移さない。
 6. ブラウザの試験と起動の速さを流し、5 つのブラウザで手で確かめる。
+
+Fluent 2 化（F1）は、この順の中で行う。2 の前に、`info-hive-wiki` のブランチ `feature/browse-fluent2` の同梱の資産（`browse_assets/fluent2.css`、`licenses/`、`README.md`）を取り込み、`ASSETS`、`_head`、`theme.js`、`data-theme` を入れ、今の `style.css` の色をトークンに替える（Fluent 2 の設計の 2〜4.1）。3〜5 の画面は、Fluent 2 の設計の 4 節の部品で描く。
 
 版は、利用者に見える機能を足すので、マイナー版を上げる。番号はマージの前に決める。
 
@@ -483,7 +496,7 @@ ADR-0010 の決定 5 のとおり、NFC にそろえ、小文字にして、部�
 
 ## 範囲の外
 
-- 記事のページの本文の見た目（題名の見出し、目次、メタ欄の作り）
+- 記事のページの本文の見た目（題名の見出し、目次、メタ欄の作り）。部品は [Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)の F2 で当てる。この設計では色をトークンに替えるだけである
 - サーバーの `live` の検索、本文の検索、RAG
 - サーバーの 404 のページの見た目
 - 木の開閉の保存と、グループの ID の安定化

@@ -24,5 +24,6 @@ info-hive の設計で決めたことと、その理由を残す。1 つの判�
 | [0018](0018-wiki-requires-python-312.md) | info-hive の wiki の同梱のスクリプトは、Python 3.12 以上を対象にする | 承認 | 2026年11月12日 |
 | [0019](0019-wiki-root-is-marked-by-schema.md) | wiki とみなすのは、ルートに SCHEMA.md がある（初期化された）ディレクトリだけにする | 提案 | （承認の日を入れる） |
 | [0020](0020-session-raw-is-rendered-once-from-decisions.md) | Claude Code のセッションの raw は、会話だけを抜き出し、人の決定を当てて、スクリプトが 1 回で、重ねて書かない形で作る | 承認 | 2026年11月14日 |
+| [0021](0021-wiki-browse-uses-fluent2-replica.md) | `/wiki:browse` の画面は、Fluent 2 を再現した CSS を書き換えずに同梱して描き、配色を選べるようにする | 承認 | 2026年11月14日 |
 
 各 ADR には、状態、決定日、決定者、関連を表で書き、続けて背景、決定、理由、検討した選択肢、影響、参照を書く。判断を変えるときは元の ADR を書き換えず、新しい ADR を書いて、元の ADR の状態を「置き換え済み」にする。

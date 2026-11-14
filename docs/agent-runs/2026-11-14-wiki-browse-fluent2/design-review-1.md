@@ -1,0 +1,61 @@
+## 判定
+
+**却下。分類 A が 3 件ある。** 通常の検索操作でコントラストの約束が崩れ、指定した Tag 部品は長いタグではみ出し、書き出しでは同梱元自身の著作権表示が欠落する。確信度は高。ただし追加のブラウザ実測は環境制限で行えていない。
+
+## 致命的・重大な欠陥
+
+1. **［A・重大］ダークテーマの検索結果は、ホバーするとコントラスト比が約 4.18:1 になる。約束 4 違反。**
+
+   操作は、記事を開き、ダークを選び、「検索」を入力して結果の行にポインターを置く。
+
+   設計は、結果のホバー背景を `colorSubtleBackgroundHover`、題名をブランドのリンク色に指定している。同梱 CSS のダーク側では、それぞれ `#383838` と `#479ef5` である。この組のコントラスト比を計算すると **4.175:1** になり、4.5:1 に届かない。試作の `.sr-title` にはホバー時の文字色変更もない。
+
+   根拠：[設計の検索結果の指定](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/docs/plans/wiki-browse-fluent2-2026-11-14.md:130)、[試作のホバー背景と題名色](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/poc/browse-fluent2/assets/style.css:69)、[ダーク側のリンク色](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/info-hive-wiki/skills/info-hive/scripts/browse_assets/fluent2.css:694)、[ホバー背景色](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/info-hive-wiki/skills/info-hive/scripts/browse_assets/fluent2.css:764)。
+
+2. **［A・重大］長いタグを一つ持つだけで、索引が横にはみ出す。約束 4 違反。**
+
+   入力例は、タグの一つを `"W"` 200 個の文字列にしたページ。これを幅 320 で開く。
+
+   設計が指定する `.fui-Tag` は `width: fit-content`、内部の `.fui-Tag__primaryText` は `white-space: nowrap` である。`.ix-tags` の `flex-wrap` はタグ同士を改行するだけで、タグ内部は折り返さない。親の `overflow-wrap: anywhere` も `nowrap` を解除しないため、タグの最小幅が本文幅を超える。
+
+   タグ長の上限は設計にない。試作の生成関数にこの値をメモリ上で与え、200 文字が省略されず HTML に出ることを確認した。はみ出しの判断は CSS 規則によるもので、ブラウザ実測は未実施。
+
+   根拠：[設計の Tag 指定](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/docs/plans/wiki-browse-fluent2-2026-11-14.md:144)、[Tag の幅](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/info-hive-wiki/skills/info-hive/scripts/browse_assets/fluent2.css:6766)、[内部の改行禁止](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/info-hive-wiki/skills/info-hive/scripts/browse_assets/fluent2.css:6936)、[タグの配置規則](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/poc/browse-fluent2/assets/style.css:131)。
+
+3. **［A・重大］静的出力に、同梱元自身の著作権表示が付いて回らない。約束 5 違反。**
+
+   通常どおり静的出力を作り、出力フォルダーだけを渡すと発生する。
+
+   同梱元の `LICENSE` は `Copyright (c) 2026 to884` と、その表示を複製物に含める条件を持つ。しかし設計は `licenses/` を出力から除外する。代わりに残す `fluent2.css` のコメントには Microsoft 等の第三者表示がある一方、**to884 の表示はない**。既存の `out/project-neutral/` 全ファイルを検索しても、この表示は存在しなかった。
+
+   根拠：[出力からライセンス文書を除く設計](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/docs/plans/wiki-browse-fluent2-2026-11-14.md:50)、[同梱元の著作権表示と条件](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/info-hive-wiki/skills/info-hive/scripts/browse_assets/licenses/fluent2-html-replica.LICENSE:3)、[CSS の通知コメント](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/info-hive-wiki/skills/info-hive/scripts/browse_assets/fluent2.css:1)。
+
+## 崩れる前提
+
+- **通常時の配色が合格すれば操作時も合格する。** 検索結果のホバーで背景だけが変わり、文字との組が不合格になる。
+- **親に折り返しを指定すれば部品内部も折り返す。** Tag 内部の `white-space: nowrap` がこの前提を崩す。
+- **第三者通知が CSS に入っていれば、必要な表示が全部残る。** 同梱元自身の `LICENSE` にだけある表示は失われる。
+
+## 見落としと軽微な問題
+
+- **［B・軽微］字下げを止める段が設計と違う。** 記事の木は深さを 0 から数えているため、`.nav-depth-4 .tree-group` による停止は「5 段目まで字下げして、その次から停止」になる。索引の木には `.tree-groups .tree-groups` の字下げが全段に適用され、停止規則がない。根拠：[深さの付与](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/poc/browse-fluent2/assets/app.js:145)、[記事と索引の字下げ規則](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/poc/browse-fluent2/assets/style.css:80)。
+
+- **［B・軽微］Markdown 表の見出しの中央寄せ・右寄せが失われる。** `th.ta-center`／`th.ta-right` に対して、詳細度の高い `#_body th { text-align: start; }` が勝つ。設計の「`ta-*` は残す」と表示結果が食い違う。根拠：[該当規則](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/poc/browse-fluent2/assets/style.css:167)。
+
+- **［C・軽微］`report.json` は約束全体の検証記録にはなっていない。** コントラストは各セレクターの最初の一要素だけで、検索結果の題名を測らず、ホバー操作もない。`problems` の判定にもコントラスト比は入っていない。禁則、強制カラーの輪郭、F1 単独の記事も検査していない。根拠：[測定対象と方法](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/poc/browse-fluent2/shoot.mjs:44)、[問題判定](/C:/Works/info-hive-dev/.claude/worktrees/browse-fluent2/poc/browse-fluent2/shoot.mjs:171)。
+
+## 検証した事実
+
+- **一致：** 同梱 CSS は 625,811 バイト、SHA-256 は README 記載の `0b393938b1b5349f2436780eda73d8786e730bc793f4c3fc103ecf6913e8b4bb` と一致した。
+- **一致：** コメントを除いた同梱 CSS に、`url()`、`@import`、`@font-face` はない。
+- **一致：** 保存済みレポートの 27 ケースでは、記録された `[style]`、CSP 違反、外部要求、はみ出しはすべて 0。記録されたコントラスト比の最小値は 5.18。ただし測定対象は前述の範囲に限る。
+- **一致：** レポートには、`file://` のページ移動後と別ポートで `dark`、localStorage 例外後の再読み込みで `auto`、スクリプトなしで一覧 12 行と記録されている。
+- **確かめられず：** この環境での追加ブラウザ実測。Playwright は一時ディレクトリ作成時に `EPERM` で停止した。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- CSS と JavaScript の読み込み順、classic な外部スクリプトだけを使う構成に、約束 1 を破る反例は見つからなかった。
+- F1 で既存色を全面的にトークン化し、従来の OS 依存規則を除くという設計文からは、配色混在の反例を示せなかった。F1 単独の実装検証は未実施。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
