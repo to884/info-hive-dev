@@ -519,6 +519,18 @@ class BindingTests(CliCase):
         self.ok(["show", *self.common(), "--title", TITLE, "--decisions", dec, "--slug", "顧客A-相談", "--meta"], code=1)
         self.assertFalse(list(self.raw.iterdir()))
 
+    def test_decisions_file_name_has_no_slug(self):
+        """決定のファイルの名前に、利用者が決めた文字列（スラッグ）を入れない。あとで mark する名前が、伏せる前に
+        パスに残らないようにするため。どの取り込みのものかは中身で見分ける。"""
+        dec = self.init(slug="顧客A-相談")
+        self.assertRegex(dec.name, r"^[0-9a-f]{16}\.json$")
+        self.assertEqual(dec.parent, self.wiki / ".wiki-cache" / "session")
+        self.assertEqual(json.loads(dec.read_bytes())["session_id"], "5f1c2d3e-aaaa-4bbb-8ccc-0123456789ab")
+        self.assertFalse([p for p in snapshot(self.base) if "顧客A" in p])
+        listed = json.loads(self.ok(["decide", "list", "--decisions", dec, "--json"]).stdout)
+        self.assertEqual(set(listed), {"session_id", "source_sha256", "cut_before", "spans", "drop"})
+        self.assertEqual(listed["source_sha256"], extract_file(self.transcript).source_sha256)
+
     def test_slug_with_a_secret_is_refused_before_writing(self):
         """スラッグは、ディスクに書く前に検査する（前提: 最後の確認で検査すれば、保存先にも出ない）。"""
         before = snapshot(self.base)

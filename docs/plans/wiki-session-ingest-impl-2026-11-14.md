@@ -71,7 +71,7 @@
 
 ### `decide` の引数
 
-- `decide init --transcript <P> [共通の引数] --wiki <W> --slug <S>` が、`<W>/.wiki-cache/session/<S>-<16 進 8 桁>.json` を重ねて書かない形で作り、そのパスを出す（設計の 8 節の置き場所）。wiki が初期化されていなければ、何も書かずに止まる。
+- `decide init --transcript <P> [共通の引数] --wiki <W> --slug <S>` が、`<W>/.wiki-cache/session/<16 進 16 桁>.json` を重ねて書かない形で作り、そのパスを出す（設計の 8 節の置き場所。名前にスラッグを入れないのは、実装の 4 回目のレビューのあとの変更で、作者が承認した）。スラッグは、書く前に `check_slug_value()` で確かめる。wiki が初期化されていなければ、何も書かずに止まる。
 - `decide mark` と `decide drop` も `--transcript` と共通の引数を取り、土台を作り直して、決定のファイルの `source_sha256` と `base_sha256` に一致しなければ拒む。
 - 決定のファイルを渡すコマンド（`decide mark`、`decide drop`、`show`、`write`、`scan`）では、共通の引数のうち省いたもの（`--tools`、`--keep-reminders`、`--utc-offset`、`--before`、`--session-id`）を決定のファイルから取る。渡した値が決定のファイルと違えば拒む。
 - `decide mark --all-turns` は、`--target` を省いてよく、すべてのターンと `cwd` と `git_branch` のすべての一致を足す。
