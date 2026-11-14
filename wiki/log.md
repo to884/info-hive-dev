@@ -58,3 +58,7 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-14] ingest | /wiki:help の個別のヘルプと、wiki 0.14.0 のリリースの記録
    ページ: sources/helpの個別のヘルプとリリース-wiki-0.14.0、concepts/コマンドの引数の渡し方、concepts/コマンドの出力のリンク（concepts/リリースの確かめ方 を更新。SCHEMA.md のタグの体系に `コマンド` を足した）
+
+## [2026-11-14] ingest | LLM Wiki 記事作成の方法論 — 使い分けと Skill 設計
+   ページ: sources/llm-wiki記事作成の方法論、concepts/記事作成の5区分（SCHEMA.md のタグの体系に `wiki設計` を足した）
+   グラフ: ノード +2、型付きエッジ +0
