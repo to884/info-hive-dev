@@ -97,6 +97,16 @@ def bash_commands(tools: list[dict]) -> list[str]:
     return [str(t["input"].get("command", "")) for t in tools if t["name"] in ("Bash", "PowerShell")]
 
 
+REDIRECT_RE = re.compile(r"(?<![0-9&])>>?\s*[\"']?([^\s;|&\"'<>]+)")
+WIKI_PAGE_RE = re.compile(r"(?:^|/)(?:index\.md|log\.md|SCHEMA\.md)$|(?:^|/)(?:sources|entities|concepts|synthesis)/[^/]+\.md$")
+
+
+def bash_write_targets(commands: list[str]) -> list[str]:
+    """Bash のリダイレクト（`>`、`>>`）の書き込み先。`2>` や `&>` の行き先は数えない。"""
+    return [m.group(1).replace("\\", "/") for c in commands for m in REDIRECT_RE.finditer(c)
+            if m.group(1) not in ("/dev/null", "nul", "NUL")]
+
+
 def under(path: str, root: Path) -> bool:
     p = path.replace("\\", "/").lower()
     r = str(root).replace("\\", "/").lower().rstrip("/") + "/"
@@ -165,12 +175,14 @@ def analyze(session: str, project: Path, main_model: str) -> dict:
     check("メインは raw と画像に書いていない", not any(under(p, raw) for p in main_writes) and not main_raw_bash,
           {"paths": [p for p in main_writes if under(p, raw)], "bash": main_raw_bash})
     agent_wiki_writes = [p for p in agent_writes if under(p, wiki) and "/.wiki-cache/" not in p]
+    agent_wiki_writes += [p for p in bash_write_targets(agent_bash) if WIKI_PAGE_RE.search(p)]
     check("エージェントは wiki のページ、index.md、log.md に書いていない", not agent_wiki_writes, agent_wiki_writes)
+    main_targets = main_writes + bash_write_targets(main_bash)
     check("メインが要約ページ、index.md、log.md を書いた",
           any(under(p, wiki / "sources") for p in main_writes)
-          and any(p.lower().endswith("wiki/index.md") for p in main_writes)
-          and any(p.lower().endswith("wiki/log.md") for p in main_writes),
-          sorted(set(main_writes)))
+          and any(p.lower().endswith("index.md") for p in main_targets)
+          and any(p.lower().endswith("log.md") for p in main_targets),
+          sorted(set(main_targets)))
 
     # 文章の受け渡し
     sources = sorted((wiki / "sources").glob("*.md"))

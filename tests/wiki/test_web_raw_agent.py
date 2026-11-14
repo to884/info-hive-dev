@@ -153,6 +153,14 @@ class TranscriptCheckTest(unittest.TestCase):
             with self.subTest(miss=c):
                 self.assertFalse(check_web_raw_agent.RAW_WRITE_RE.search(c))
 
+    def test_bash_write_targets(self):
+        targets = check_web_raw_agent.bash_write_targets(
+            ["cd wiki && cat >> log.md <<'EOF'\nx\nEOF", "ls raw 2>&1; echo a > 'index.md'", "cmd 2>/dev/null",
+             "python x.py &> out.txt"])
+        self.assertEqual(targets, ["log.md", "index.md"])
+        self.assertTrue(check_web_raw_agent.WIKI_PAGE_RE.search("wiki/sources/ブルームフィルタ.md"))
+        self.assertFalse(check_web_raw_agent.WIKI_PAGE_RE.search("wiki/.wiki-cache/ingest/a/fetched.md"))
+
     def test_shared_text_ignores_source_phrases(self):
         summary = "CQRS は Command Query Responsibility Segregation の略で、読み書きのモデルを分ける考え方である。" * 2
         raw = "Command Query Responsibility Segregation の略である。"
