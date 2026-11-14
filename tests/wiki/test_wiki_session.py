@@ -681,7 +681,7 @@ class RawExclusiveTests(CliCase):
         def busy(tmp, dst):
             dst.write_bytes("相手の版\n".encode("utf-8"))
             raise PermissionError(13, "アクセスが拒否されました")
-        with mock.patch.object(ws, "publish_exclusive", busy), mock.patch.object(ws.os, "name", "nt"):
+        with mock.patch.object(ws, "publish_exclusive", busy), mock.patch.object(ws, "WINDOWS", True):
             state, path = ws.write_raw(self.wiki, self.raw, "競争", "自分の版\n".encode("utf-8"))
         self.assertEqual((state, path), ("conflict", target))
         self.assertEqual(sorted(p.name for p in self.raw.iterdir()), ["競争.md"])
