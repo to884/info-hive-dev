@@ -706,6 +706,19 @@ class RawExclusiveTests(CliCase):
         self.write(dec, sha, code=1, raw=link / "raw")
         self.assertEqual(list(real.rglob("*.md")), [])
 
+    def test_link_above_an_outside_raw_root_is_refused(self):
+        """raw のルートが wiki の親の外にあっても、途中の階層のリンクを拒む（設計の 9 節）。"""
+        outside = Path(tempfile.mkdtemp())
+        self.addCleanup(force_rmtree, outside)
+        (outside / "real" / "raw").mkdir(parents=True)
+        if not make_junction(outside / "redirect", outside / "real"):
+            self.skipTest("リンクを作れない")
+        dec = self.init()
+        sha = self.meta(dec)["render_sha256"]
+        self.write(dec, sha, code=1, raw=outside / "redirect" / "raw")
+        self.assertEqual(list((outside / "real" / "raw").iterdir()), [])
+        self.write(dec, sha, raw=outside / "real" / "raw")
+
     def test_link_target_is_refused_even_if_identical(self):
         dec = self.init()
         sha = self.meta(dec)["render_sha256"]
@@ -1118,8 +1131,44 @@ class ScanTests(CliCase):
         text = ws.render(ex, TITLE, [], []).decode()
         self.assertNotIn("NOSHOW", text)
         self.assertNotIn("system-reminder", text)
-        self.assertIn("質問です", text)
+        # 終わりの行のない鍵の塊は文の最後までを伏せる（閉じる側）。続く発言も伏せられる（5 回目の直し）。
+        self.assertNotIn("質問です", text)
         self.assertEqual({w["code"] for w in ws.summarize_warnings(ex.warnings)}, {"stripped_reminder"})
+        p2 = self.secret_transcript("<system-reminder>NOSHOW-差し込み\n-----BEGIN PRIVATE KEY-----\nQUFB\n"
+                                    "-----END PRIVATE KEY-----</system-reminder>\n質問です")
+        text2 = ws.render(extract_file(p2), TITLE, [], []).decode()
+        self.assertNotIn("NOSHOW", text2)
+        self.assertIn("質問です", text2)
+
+    # ---- 5 回目のレビューで崩れた前提（impl-review-5.md）
+
+    def test_title_and_slug_use_the_same_forbidden_set_as_scan(self):
+        """題名とスラッグは scan と同じ禁じる文字列の集合で確かめる（前提: 切り出した秘密も単独で規則に当たる）。"""
+        p = self.secret_transcript("password=SECONDSECRET です")
+        dec = self.init(transcript=p)
+        for title, slug in (("SECONDSECRET", "会話"), (TITLE, "secondsecret")):
+            with self.subTest(title=title, slug=slug):
+                self.ok(["show", *self.common(p), "--title", title, "--decisions", dec, "--slug", slug, "--meta"],
+                        code=1)
+        self.ok(["decide", "init", *self.common(p), "--wiki", self.wiki, "--slug", "secondsecret"], code=1)
+
+    def test_unterminated_key_is_hidden_to_the_end(self):
+        """終わりの行のない鍵の塊は、終わりを推さずに部品の最後まで伏せる（前提: 本体の行はどれも 16 文字以上）。"""
+        body = f"{self.KEY_BODY}\nQUJDRA=="
+        p, text = self.key_session(lambda b: b.human(f"-----BEGIN PRIVATE KEY-----\n{body}"))
+        self.assertNotIn("QUJDRA", text)
+        dec = self.init(transcript=p)
+        self.scan(dec, "最後の行は QUJDRA== だった", transcript=p, code=1)
+        p2, text2 = self.key_session(lambda b: (b.text("-----BEGIN PRIVATE KEY-----"),
+                                                b.tool_use("Grep", {"pattern": body})))
+        self.assertNotIn("QUFBQUFB", text2)
+        self.assertNotIn("QUJDRA", text2)
+
+    def test_repeated_unterminated_headers_are_linear(self):
+        import time
+        started = time.perf_counter()
+        ws.find_secrets("-----BEGIN PRIVATE KEY-----\nnot_key\n" * 8000)
+        self.assertLess(time.perf_counter() - started, 2)
 
     def test_many_hits_are_not_quadratic(self):
         import time
