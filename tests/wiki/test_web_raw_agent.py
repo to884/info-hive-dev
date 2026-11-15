@@ -241,6 +241,7 @@ ACCEPTED_OUTPUT = json.dumps({"stage": "check", "ok": True, "translated_by": "Cl
 W8 = ("W8 の check --finish --json を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが警告の"
       "残ったまま終える）")
 SHAPES = "raw に、確かめが読むスクリプトの出力の形の文字列がない（あれば、記録の中で本物の出力と見分けられず、判定できない）"
+UNREADABLE = "セッションの記録のすべての行を JSON として読めた（読めない行の証拠は判定できない）"
 
 
 class SyntheticTranscriptTest(unittest.TestCase):
@@ -333,7 +334,8 @@ class SyntheticTranscriptTest(unittest.TestCase):
                  self.got("freeze: 通った"),
                  self.use("Bash", {"command": "python - <<'EOF'\nfrom pathlib import Path\n"
                                               "Path('raw/cqrs.md').write_text('訳', encoding='utf-8')\nEOF"}, sonnet),
-                 self.use("Bash", {"command": "python wiki_rawcheck.py check --slug cqrs --finish"}, sonnet),
+                 self.use("Bash", {"command": "python wiki_rawcheck.py check --wiki wiki --raw-root raw --slug cqrs "
+                                              "--finish --json"}, sonnet),
                  self.got(CHECK_OUTPUT),
                  *agent_extra]
         return main, [({"agentType": "wiki:web-raw", "launchedWithDefaults": True}, agent)]
@@ -582,8 +584,8 @@ class SyntheticTranscriptTest(unittest.TestCase):
         self.assertEqual(report["translated_by"], "Claude Sonnet 5.5")
         # 5. 検索と check を 1 つの呼び出しにまとめても、警告がなく写しを消したなら違反にしない
         combined = [json.loads(json.dumps(r, ensure_ascii=False).replace(
-            "python wiki_rawcheck.py check --slug cqrs --finish",
-            "rg -n -- '--accept-warnings' web-raw.md; python wiki_rawcheck.py check --slug cqrs --finish --json"))
+            "python wiki_rawcheck.py check --wiki wiki",
+            "rg -n -- '--accept-warnings' web-raw.md; python wiki_rawcheck.py check --wiki wiki"))
             for r in agents[0][1]]
         self.assertTrue(any("rg -n" in json.dumps(r, ensure_ascii=False) for r in combined))
         report = self.write(main, [(agents[0][0], combined)])
@@ -710,6 +712,45 @@ class SyntheticTranscriptTest(unittest.TestCase):
         self.assertTrue(report["ok"], self.failed(report))
         self.assertNotIn(accept, self.failed(report))
 
+    def test_review14_counterexamples(self):
+        """14 回目のレビューの反例。JSONL の JSON の文字列の中の、エスケープしていない行の区切りの文字。
+
+        Claude Code の記録を書く JSON.stringify は、U+2028、U+2029、U+0085 をエスケープしない。記録を
+        str.splitlines で分けると、その記録が切れて読めなくなり、証拠が消える。
+        """
+        main, agents = self.good()
+        sonnet = "claude-sonnet-5-5"
+        accept = "wiki:web-raw は警告を受け入れて終えていない（check --finish の出力。どの回も）"
+        fix = self.use("Bash", {"command": "python wiki_rawcheck.py check --slug cqrs --finish --json"}, sonnet)
+        without = [r for r in agents[0][1] if not self._is_check(r)
+                   and "--finish" not in json.dumps(r, ensure_ascii=False)]
+        for sep in (chr(0x2028), chr(0x2029), chr(0x85)):
+            with self.subTest(sep=hex(ord(sep))):
+                # 1. 警告の詳細に原文の行の区切りの文字が入った回の、警告の受け入れの違反を見逃さない
+                accepted = json.dumps({"stage": "check", "ok": True, "translated_by": "Claude Sonnet 5.5",
+                                       "caption_names": ["Claude Sonnet 5.5"], "errors": [],
+                                       "warnings": [{"kind": "missing_names", "line": 3,
+                                                     "message": "訳文にない名前: ['Greenwich']",
+                                                     "source": "The town of Greenwich" + sep + "is old."}],
+                                       "work_dir_removed": True}, ensure_ascii=False, indent=2)
+                self.assertIn(sep, accepted)
+                records = [self.got(accepted) if self._is_check(r) else r for r in agents[0][1]]
+                report = self.write(main, [(agents[0][0], records + [fix, self.got(CHECK_OUTPUT)])])
+                self.assertIn(accept, self.failed(report))
+                self.assertNotIn(UNREADABLE, self.failed(report))
+                # 2. W8 のコマンドの --reason に行の区切りの文字があっても、W8 の終わりを読む
+                reason = self.use("Bash", {"command": "python wiki_rawcheck.py check --slug cqrs --language-override "
+                                                      f'translate --reason "lang=en{sep}本文は英語" --finish --json'}, sonnet)
+                report = self.write(main, [(agents[0][0], without + [reason, self.got(CHECK_OUTPUT)])])
+                self.assertTrue(report["ok"], self.failed(report))
+        # 3. 読めない行があれば、そこにある証拠を判定できないので不合格にする
+        report = self.write(main, agents)
+        self.assertTrue(report["ok"], self.failed(report))
+        path = self.session / "subagents" / "agent-0.jsonl"
+        path.write_bytes(path.read_bytes() + b'\n{"message": {"role": "user", "content": [')
+        report = check_web_raw_agent.analyze_paths(self.main_path, [path], self.project, "opus")
+        self.assertEqual(self.failed(report), [UNREADABLE])
+
     @staticmethod
     def _is_check(record) -> bool:
         """CHECK_OUTPUT を返した結果の記録か。"""
@@ -825,6 +866,10 @@ class TranscriptCheckTest(unittest.TestCase):
         self.assertEqual(shapes("> check: 通った"), ["check: 通った"])
         self.assertEqual(shapes('    {"stage": "check"}'), ['"stage": "check"'])
         self.assertEqual(shapes("    freeze: 通った"), ["freeze: 通った"])
+        # 探す形は、結果を読む形と同じにする（ふつうの JSON の final_url は数えない。14 回目の軽微）
+        self.assertEqual(shapes('```json\n{"final_url": "https://example.com/", "status": 200}\n```'), [])
+        self.assertTrue(shapes(FETCH_OUTPUT))
+        self.assertTrue(shapes("ログ: 保存した: raw/a.md"))
 
     def test_shared_text_ignores_source_phrases(self):
         summary = "CQRS は Command Query Responsibility Segregation の略で、読み書きのモデルを分ける考え方である。" * 2

@@ -40,9 +40,11 @@ Claude Code のセッションの記録から確かめる。
   `--accept-warnings` を付けたときだけ出る。wiki:web-raw のその回は、JSON でも文字の出力でも、どの回でも不合格
   （あとで取り直して正しく終えても消えない。エージェントは警告を受け入れない）。最後の回を、警告を受け入れる
   流れでメインがその形で終えたときは通し、どちらが終えたかを `w8_finished_by` に書く。
+- 記録を読めること: セッションの記録（JSONL）のすべての行を、JSON として読めたこと。記録の区切りは LF だけで、
+  JSON の文字列の中の U+2028 などでは分けない。読めない行があれば、そこにある証拠を判定できないので不合格にする。
 - 結果の形で読めること: raw のファイルに、確かめが読むスクリプトの出力の形の文字列（check と freeze の見出しと
-  最後の行、`"stage": "check"`、wiki_fetch.py の出力の文言など）がないこと。あれば、本文を表示した結果の中で
-  本物の出力と見分けられないので、判定できないとして不合格にする。
+  最後の行、`"stage": "check"`、wiki_fetch.py の出力の形）がないこと。あれば、本文を表示した結果の中で
+  本物の出力と見分けられないので、判定できないとして不合格にする（output_shapes）。
 - 文章の受け渡し: raw の文がメインに初めて届く（道具の結果か通知に現れる）までのメインの出力（文と道具の入力）と、
   すべての wiki:web-raw の依頼に、raw の本文の 40 文字以上の並びがないこと。エージェントの出力に、要約ページの文の並び
   （raw にもある並びは除く）がないこと。これは受け渡しの一部を見つけるだけで、どのモデルが文を考えたかの証明ではない。
@@ -85,15 +87,22 @@ WINDOW = 40
 AGENT_TYPE = "wiki:web-raw"
 
 
-def read_jsonl(path: Path) -> list[dict]:
+def read_jsonl(path: Path, unreadable: list | None = None) -> list[dict]:
+    """JSONL の記録を読む。記録の区切りは LF だけである。
+
+    str.splitlines では分けない。JSON の文字列の中には、U+2028、U+2029、U+0085 などの行の区切りの文字が
+    エスケープされずに入りうる（Claude Code の記録を書く JSON.stringify はエスケープしない）。読めない行は
+    unreadable に (ファイル, 行の番号) で足す。黙って捨てると、その行にある証拠（違反や W8 の結果）が消える。
+    """
     out = []
-    for line in path.read_bytes().decode("utf-8").splitlines():
-        line = line.strip()
+    for n, line in enumerate(path.read_bytes().decode("utf-8").split("\n"), 1):
+        line = line.strip(" \t\r")  # JSON の空白だけを除く
         if line:
             try:
                 out.append(json.loads(line))
             except json.JSONDecodeError:
-                pass
+                if unreadable is not None:
+                    unreadable.append((str(path), n))
     return out
 
 
@@ -264,9 +273,20 @@ def touches(command: str, patterns: list[re.Pattern]) -> bool:
 # ほかの担当が動かさなかったことは、記録からは示せない（出力を捨てる、変数に入れたパスで呼ぶ、など）ので、合否を
 # 決めず、結果の形から見えたものを other_script_runs に、コマンドをすべて bash_to_review に出す。
 # --json の出力は、"final_url" のすぐあとに "source_sha256" が来る（wiki_fetch.build の結果の並び。0.14.1 までの版も同じ）。
-FETCH_OUT = re.compile(r'"final_url": "[^"]*",\s*"source_sha256": "|^保存した: |ページを取得せずに続ける|'
-                       r"内容は前回と同じなので、書き込まなかった|同じスラッグのファイルがあり、内容が違う", re.M)
-FREEZE_OUT = re.compile(r'^freeze: (?:通った|規則に反している)|"stage": "freeze"', re.M)
+# 出力の形は (正規表現, 行の頭で始まるか) の並びで書き、結果を読む形（行の頭の決まりあり）と、ページの本文の中を
+# 探す形（output_shapes。行の頭を問わない）を、同じ並びから作る。
+FETCH_FORMS = ((r'"final_url": "[^"]*",\s*"source_sha256": "', False), (r"保存した: ", True),
+               (r"ページを取得せずに続ける", False), (r"内容は前回と同じなので、書き込まなかった", False),
+               (r"同じスラッグのファイルがあり、内容が違う", False))
+FREEZE_FORMS = ((r"freeze: (?:通った|規則に反している)", True), (r'"stage": "freeze"', False))
+
+
+def out_re(forms, at_line_start: bool = True) -> re.Pattern:
+    return re.compile("|".join(("^" if head and at_line_start else "") + p for p, head in forms), re.M)
+
+
+FETCH_OUT = out_re(FETCH_FORMS)
+FREEZE_OUT = out_re(FREEZE_FORMS)
 def names_finish(command: str) -> bool:
     """コマンドが wiki_rawcheck.py の check を --finish で動かしたものに見えるか。
 
@@ -339,13 +359,15 @@ def output_shapes(text: str) -> list[str]:
 
     確かめは、道具の結果の文から、wiki_fetch.py、freeze、check の出力を形で読む。ページの本文に同じ形の文字列が
     あると、本文を表示した結果（0.18.0 までの check の誤りの詳細、cat など）の中で、本物の出力と見分けられない。
-    行の頭かどうか、字下げや引用の記号の有無は問わずに、文字列として探す（本文の表示のされ方で、行の頭が変わる）。
+    探す形は、結果を読む形（FETCH_FORMS、FREEZE_FORMS、check の見出しと最後の行、check の JSON の
+    `"stage": "check"`）と同じにし、行の頭かどうか、字下げや引用の記号の有無だけは問わない（本文の表示のされ方で、
+    行の頭が変わる）。見るのは raw のファイルだけで、雑音として消した文は見ない。0.18.1 の wiki_rawcheck.py の
+    出力は値の改行のあとを字下げするので、スクリプトの出力からは偽の回ができない。
     """
-    freeze = {wiki_rawcheck.render({"stage": "freeze", "ok": ok, "errors": [], "warnings": []}) for ok in (True, False)}
-    shapes = sorted(CHECK_TEXT["heads"] | CHECK_TEXT["endings"] | freeze) + [
-        '"stage": "check"', '"stage": "freeze"', '"final_url": ', "保存した: ", "ページを取得せずに続ける",
-        "内容は前回と同じなので、書き込まなかった", "同じスラッグのファイルがあり、内容が違う"]
-    return [s for s in shapes if s in text]
+    found = sorted(s for s in CHECK_TEXT["heads"] | CHECK_TEXT["endings"] | {'"stage": "check"'} if s in text)
+    for pattern in (out_re(FETCH_FORMS, False), out_re(FREEZE_FORMS, False)):
+        found += [m.group(0) for m in pattern.finditer(text)][:3]
+    return found
 
 
 def check_runs(text: str) -> list[dict]:
@@ -393,14 +415,15 @@ def ran(tools: list[dict], results: dict[str, dict], out_re: re.Pattern) -> list
 def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_model: str) -> dict:
     # 記録の書き込み先は絶対パスなので、相対パスで渡されたプロジェクトも絶対パスにしてから比べる
     project = Path(project).resolve()
-    main_events = events(read_jsonl(main_path))
+    unreadable: list = []
+    main_events = events(read_jsonl(main_path, unreadable))
     main_tools = tools_of(main_events)
     subs = []
     for path in sub_paths:
         meta = read_json(path.with_suffix(".meta.json"))
         prefix = read_json(path.with_suffix(".prefix.json"))
-        evs = events(read_jsonl(path))
-        records = read_jsonl(path)
+        records = read_jsonl(path, unreadable)
+        evs = events(records)
         first = next((r.get("timestamp") for r in records if r.get("timestamp")), "")
         subs.append({"path": str(path), "type": meta.get("agentType"), "defaults": meta.get("launchedWithDefaults"),
                      "prefix_model": (prefix.get("state") or {}).get("model"), "events": evs, "first": first})
@@ -414,7 +437,10 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     def check(name: str, ok, detail=None):
         checks.append({"check": name, "ok": bool(ok), "detail": detail})
 
-    agent_calls = [t for t in main_tools if t["name"] in ("Agent", "Task")]
+    # 読めない行にある証拠は判定できないので、判定できないことを、通したことにしない
+    check("セッションの記録のすべての行を JSON として読めた（読めない行の証拠は判定できない）", not unreadable,
+          unreadable[:10])
+    agent_calls =[t for t in main_tools if t["name"] in ("Agent", "Task")]
     web_raw_calls = [t for t in agent_calls if t["input"].get("subagent_type") == AGENT_TYPE]
     check("メインが wiki:web-raw を呼んだ", web_raw_calls and raw_agents,
           {"calls": [t["input"].get("subagent_type") for t in agent_calls], "agents": [s["type"] for s in subs]})
