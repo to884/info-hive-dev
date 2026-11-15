@@ -15,6 +15,9 @@ claude -p "/wiki:ingest <URL> 人と話し合わないまとめての取り込�
 | --- | --- | --- | --- | --- | --- | --- |
 | CQRS（英語） | 14 / 14 | `claude-opus-5-5` | `claude-sonnet-5-5` | 訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5 | 248 秒 | 1.92 USD（Opus 1.73、Sonnet 0.19） |
 | ブルームフィルタ（日本語の Wikipedia） | 14 / 14 | `claude-opus-5-5` | `claude-sonnet-5-5` | 訳: なし、補足: Claude Sonnet 5.5 | 197 秒 | 1.61 USD（Opus 1.46、Sonnet 0.15） |
+| CQRS（英語、0.16.1 の版。2026年11月15日） | 15 / 15 | `claude-opus-5-5` | `claude-sonnet-5-5` | 訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5 | 350 秒 | 1.85 USD（Opus 1.65、Sonnet 0.20） |
+
+3 行目は、main の 0.14.1 と #57（`wiki_fetch.py` の取得の前の再開）を取り込み、取り直したら W3 に戻る決まりを足した版（`info-hive-wiki` の `fix/web-raw-w3-after-fetch`）で動かした。結果は `trial-0161-cqrs.json` にある。そのあと、8 回目のレビューで確かめのスクリプトを直し（項目は 17）、3 件とも 17 / 17 で通ることを確かめ直した。
 
 時間は `claude -p` の `duration_ms` である。
 

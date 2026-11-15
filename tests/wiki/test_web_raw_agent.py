@@ -177,6 +177,12 @@ class ReferenceTest(unittest.TestCase):
         steps = text[text.index("## W1〜W8"):]
         steps = steps[:steps.index("\n## ", 5)] if "\n## " in steps[5:] else steps
         self.assertIn("**取り直したら、W2 の出力の扱いと W3 に戻る。**", steps)
+        # 途中の写しから続けるときは取り直しではないので、段ごとの続け方に従う（レビュー 8 の軽微。frozen の写しに
+        # W3 から戻ると、訳したあとの raw に freeze をかけ直してしまう）
+        rule = steps[steps.index("**取り直したら"):]
+        rule = rule[:rule.index("\n")]
+        self.assertIn('`"unchanged": false`', rule)
+        self.assertIn('`"work_dir": true`', rule)
         retakes = [s for s in re.split(r"(?<=。)", steps) if re.search(r"取り直|--force", s)]
         self.assertTrue(retakes)
         for sentence in retakes:
@@ -482,10 +488,65 @@ class SyntheticTranscriptTest(unittest.TestCase):
         self.assertTrue(report["ok"], self.failed(report))
         listed = report["bash_to_review"]
         for c in main_cmds:
-            self.assertIn(c[:300], listed["main"])
+            self.assertIn(c, listed["main"])
         for c in agent_cmds:
-            self.assertIn(c[:300], listed["wiki:web-raw"])
+            self.assertIn(c, listed["wiki:web-raw"])
 
+
+    def test_review8_counterexamples(self):
+        """8 回目のレビューの反例。範囲の中の違反を通さず、手順に従った取り込みを落とさない。"""
+        sonnet = "claude-sonnet-5-5"
+
+        def said_as(text, model, mid):
+            return {"message": {"role": "assistant", "model": model, "id": mid, "content": [{"type": "text", "text": text}]}}
+
+        main, agents = self.good()
+        # 1. 別の応答が同じ文を返しても、モデルの違いを落とさない
+        same = (main, [(agents[0][0], agents[0][1] + [said_as("確かめた。", sonnet, "m1"),
+                                                      said_as("確かめた。", "claude-opus-5-5", "m2")])])
+        self.assertIn("wiki:web-raw のすべての応答のモデルと、prefix.json のモデルが Sonnet", self.failed(self.write(*same)))
+        # 要求の写し（api-request-blob。モデルを持たない）は、応答に数えない
+        blob = {"type": "api-request-blob", "message": {"role": "assistant", "content": [
+            {"type": "text", "text": "前の応答の写し"}]}}
+        report = self.write(main, [(agents[0][0], agents[0][1] + [blob])])
+        self.assertTrue(report["ok"], self.failed(report))
+        # 3. index.md で終わる別のファイルは、索引の更新に数えない
+        swapped = [self.use("Write", {"file_path": str(self.project / "wiki/notindex.md"), "content": "x"})
+                   if isinstance(r["message"]["content"], list) and r["message"]["content"][0].get("name") == "Edit"
+                   else r for r in main]
+        self.assertIn("メインが要約ページ、index.md、log.md を書いた（要約ページはファイルがある）",
+                      self.failed(self.write(swapped, agents)))
+        # 5. 訳の表示名が Sonnet でなければ不合格
+        raw = self.project / "raw/cqrs.md"
+        original = raw.read_bytes()
+        raw.write_bytes(original.replace(b"Claude Sonnet 5.5", b"Claude Opus 5.5"))
+        self.addCleanup(raw.write_bytes, original)
+        self.assertIn("raw の translated_by と補足の表示名が Sonnet（空はよい）", self.failed(self.write(main, agents)))
+        raw.write_bytes(original)
+        # 6. エージェントが --accept-warnings を付けたら不合格（W8 の証拠にもしない）
+        accepted = [json.loads(json.dumps(r, ensure_ascii=False).replace("--finish", "--finish --accept-warnings"))
+                    for r in agents[0][1]]
+        failed = self.failed(self.write(main, [(agents[0][0], accepted)]))
+        self.assertIn("wiki:web-raw は --accept-warnings を付けていない", failed)
+
+    def test_review8_correct_runs_pass_and_long_commands_are_kept(self):
+        """行の継続で分けた W8 は通し（4）、長いコマンドは切り詰めずに見直しの一覧に出す（2）。"""
+        main, agents = self.good()
+        wrapped = json.loads(json.dumps(agents[0][1], ensure_ascii=False))
+        continued = "python wiki_rawcheck.py check \\\n  --slug cqrs --finish"
+        for rec in wrapped:
+            for part in rec["message"]["content"] if isinstance(rec["message"]["content"], list) else []:
+                if part.get("type") == "tool_use" and "--finish" in str(part["input"].get("command", "")):
+                    part["input"]["command"] = continued
+        self.assertTrue(any(continued in json.dumps(r, ensure_ascii=False) or
+                            continued == r["message"]["content"][0].get("input", {}).get("command")
+                            for r in wrapped if isinstance(r["message"]["content"], list)))
+        long_cmd = ("python - <<'EOF'\n# " + "x" * 600 +
+                    "\nopen('wiki/log.md', 'a', encoding='utf-8').write('raw')\nEOF")
+        report = self.write(main + [self.use("Bash", {"command": long_cmd})], [(agents[0][0], wrapped)])
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertEqual(report["w8_finished_by"], ["wiki:web-raw"])
+        self.assertIn(long_cmd, report["bash_to_review"]["main"])
 
 class TranscriptCheckTest(unittest.TestCase):
     """実地の確かめのスクリプトの判定（記録を読まない部分）。"""

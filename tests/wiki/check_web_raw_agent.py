@@ -27,7 +27,8 @@ analyze に渡すプロジェクトは、空のフォルダーから始めた取
 - スクリプトの実行: wiki:web-raw が wiki_fetch.py と freeze の出力を受け取ったこと（呼び出しの id で対応させた道具の
   結果の形で決める）。W8 は、wiki:web-raw が自分で `wiki_rawcheck.py check … --finish` を実行し、その結果が、通って
   作業用の写しを消した形であること。警告を受け入れる流れで、メインが `--finish --accept-warnings` で終えたときも
-  通し、どちらが終えたかを `w8_finished_by` に書く。
+  通し、どちらが終えたかを `w8_finished_by` に書く。wiki:web-raw のコマンドに `--accept-warnings` が見えれば不合格
+  （エージェントは警告を受け入れない）。
 - 文章の受け渡し: raw の文がメインに初めて届く（道具の結果か通知に現れる）までのメインの出力（文と道具の入力）と、
   すべての wiki:web-raw の依頼に、raw の本文の 40 文字以上の並びがないこと。エージェントの出力に、要約ページの文の並び
   （raw にもある並びは除く）がないこと。これは受け渡しの一部を見つけるだけで、どのモデルが文を考えたかの証明ではない。
@@ -94,18 +95,26 @@ def find_transcripts(session: str) -> tuple[Path, list[Path]]:
 def events(records: list[dict]) -> list[dict]:
     """記録を、順に並んだ出来事にする。応答の部品（text、tool_use）と、届いた内容（tool_result、利用者の文）。
 
-    同じ部品が 2 度記録されることがあるので、部品の id（なければ中身）で重ねない。
+    同じ応答が 2 度記録されることがあるので、重ねない。重ねるのは、同じ部品と分かるときだけにする。道具の部品は
+    その id で、文の部品は、応答の id（なければ記録の uuid）とモデルと中身がすべて同じときである。別の応答が同じ文を
+    返しても（モデルが違っても、モデルが欠けていても）、別の出来事として残す（モデルの確かめで落とさないため）。
     """
     out, seen = [], set()
-    for rec in records:
+    for n, rec in enumerate(records):
+        # 会話の記録（type が assistant と user）だけを読む。api-request-blob などは、要求に入れた前の応答の写しで、
+        # 応答そのものではない（モデルを持たないので、数えるとモデルの確かめを誤る）。
+        if rec.get("type") not in (None, "assistant", "user"):
+            continue
         msg = rec.get("message") or {}
         role = msg.get("role")
         content = msg.get("content")
         parts = content if isinstance(content, list) else ([{"type": "text", "text": content}] if content else [])
+        origin = msg.get("id") or rec.get("uuid") or f"record-{n}"
         for part in parts:
             if not isinstance(part, dict):
                 continue
-            key = part.get("id") or part.get("tool_use_id") or json.dumps(part, ensure_ascii=False, sort_keys=True)
+            key = part.get("id") or part.get("tool_use_id") or (
+                origin, msg.get("model"), json.dumps(part, ensure_ascii=False, sort_keys=True))
             key = (role, part.get("type"), key)
             if key in seen:
                 continue
@@ -244,7 +253,9 @@ FETCH_OUT = re.compile(r'"final_url": "[^"]*",\s*"source_sha256": "|^保存し�
 FREEZE_OUT = re.compile(r'^freeze: (?:通った|規則に反している)|"stage": "freeze"', re.M)
 # W8 のコマンド: wiki_rawcheck.py の check を --finish で動かしたもの。前の出力を cat で表示しただけの呼び出しを、
 # W8 の証拠にしないために、結果の形に加えてコマンドも見る（あったことを示す側なので、読めない形は通さない）。
-FINISH_CMD_RE = re.compile(r"wiki_rawcheck\.py[\"']?\s+[\"']?check\b[^\n]*--finish\b")
+# check と --finish の間は、同じ 1 つのコマンドの中（行の継続 `\` と PowerShell の `` ` `` は越え、`;`、`&`、`|`、
+# ふつうの改行は越えない）とする。
+FINISH_CMD_RE = re.compile(r"wiki_rawcheck\.py[\"']?\s+[\"']?check\b(?:[^\n;&|]|\\\r?\n|`\r?\n)*?--finish\b")
 
 
 def check_finished(text: str) -> bool:
@@ -322,7 +333,7 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
           fetch_runs[AGENT_TYPE] and freeze_runs[AGENT_TYPE],
           {"fetch": len(fetch_runs[AGENT_TYPE]), "freeze": len(freeze_runs[AGENT_TYPE])})
     # ほかの担当の実行は、記録からは「なかった」と示せないので、見えたものを出すだけにする（合否を決めない）。
-    other_runs = {n: [c[:300] for c in fetch_runs[n] + freeze_runs[n]] for n in actors
+    other_runs = {n: fetch_runs[n] + freeze_runs[n] for n in actors
                   if n != AGENT_TYPE and (fetch_runs[n] or freeze_runs[n])}
 
     def finishers(name: str) -> list[dict]:
@@ -331,7 +342,11 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
                 and FINISH_CMD_RE.search(str(t["input"].get("command", "")))
                 and succeeded(t, results[name]) and check_finished(results[name][t["id"]]["text"])]
 
-    agent_finished = finishers(AGENT_TYPE)
+    # エージェントは --accept-warnings を付けない（agents/web-raw.md）。付けた終わり方は W8 の証拠にせず、違反とする。
+    agent_accepted = [str(t["input"].get("command", "")) for t in actors[AGENT_TYPE]
+                      if t["name"] in ("Bash", "PowerShell") and "--accept-warnings" in str(t["input"].get("command", ""))]
+    check("wiki:web-raw は --accept-warnings を付けていない", not agent_accepted, agent_accepted)
+    agent_finished = [t for t in finishers(AGENT_TYPE) if "--accept-warnings" not in str(t["input"].get("command", ""))]
     # 警告を受け入れる流れ（references/web-raw.md の warnings）では、メインが --accept-warnings を付けて終える。
     main_finished = [t for t in finishers("main") if "--accept-warnings" in str(t["input"].get("command", ""))]
     w8_by = ([AGENT_TYPE] if agent_finished else []) + (["main"] if main_finished else [])
@@ -346,15 +361,19 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     check("wiki:web-raw は wiki のページ、index.md、log.md に書いていない（Edit、Write）", not agent_wiki, agent_wiki)
     ok_bash = [str(t["input"].get("command", "")) for t in actors["main"]
                if t["name"] in ("Bash", "PowerShell") and succeeded(t, results["main"])]
-    main_targets = written["main"] + bash_write_targets(ok_bash)
+    # Edit と Write は、書き込み先のパスがそのまま分かるので、wiki の index.md と log.md そのものと比べる。Bash の
+    # リダイレクトは、cd のあとの相対パスでも書くので、ファイルの名前が同じかで見る（`notindex.md` は数えない）。
+    def wrote(name: str) -> bool:
+        target = norm(wiki / name, project).lower()
+        return (any(p.lower() == target for p in written["main"])
+                or any(Path(p).name.lower() == name for p in bash_write_targets(ok_bash)))
+
     # Write の入力だけでは、書けたかは分からない（権限の誤りなど）。成功した書き込みで、ファイルがあることを求める
     # （前の取り込みの要約ページが残っていても、今回の書き込みが失敗していれば通さない）。
     main_sources = [p for p in written["main"] if under(p, wiki / "sources")]
     check("メインが要約ページ、index.md、log.md を書いた（要約ページはファイルがある）",
-          any(Path(p).is_file() for p in main_sources)
-          and any(p.lower().endswith("index.md") for p in main_targets)
-          and any(p.lower().endswith("log.md") for p in main_targets),
-          sorted(set(main_targets)))
+          any(Path(p).is_file() for p in main_sources) and wrote("index.md") and wrote("log.md"),
+          sorted(set(written["main"] + bash_write_targets(ok_bash))))
 
     # 文章の受け渡し
     raws = sorted(raw.glob("*.md"))
@@ -382,6 +401,11 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     translated_by = re.search(r'^translated_by: "(.*)"$', fm, re.M)
     captions = sorted(set(re.findall(r"^> ?(?:> )*(.{1,60}?) 補足: ", body_of(fm), re.M)))
     check("raw がある", raws, [str(p) for p in raws])
+    # 表示名は、訳したなら Sonnet の名前（訳さないページの空の translated_by と、画像がないときの補足のなさはよい。
+    # references/web-raw.md の呼び出す側の手順 6）。
+    names = ([translated_by.group(1)] if translated_by and translated_by.group(1) else []) + captions
+    check("raw の translated_by と補足の表示名が Sonnet（空はよい）", all("sonnet" in n.lower() for n in names),
+          {"translated_by": translated_by.group(1) if translated_by else None, "caption_names": captions})
     log = (wiki / "log.md").read_bytes().decode("utf-8") if (wiki / "log.md").exists() else ""
     check("log に raw の段の分担のサブ行がある", re.search(r"raw:.*web-raw", log) is not None)
     ingest = wiki / ".wiki-cache" / "ingest"
@@ -393,7 +417,8 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     for name, cmds in bash.items():
         picked = [c for c in cmds if touches(c, [WIKI_PAGE_IN_TEXT_RE])] if name == AGENT_TYPE else list(cmds)
         if picked:
-            review[name] = [c[:300] for c in picked]
+            # 人が読む証拠なので、切り詰めない（長いコマンドの後半に書き込みがあることがある）
+            review[name] = picked
     return {"project": str(project), "checks": checks, "ok": all(c["ok"] for c in checks),
             "bash_to_review": review, "other_script_runs": other_runs, "w8_finished_by": w8_by,
             "translated_by": translated_by.group(1) if translated_by else None, "caption_names": captions,
