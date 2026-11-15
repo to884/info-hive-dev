@@ -193,6 +193,24 @@ class RequestTest(InProcess):
         code, body, headers = self.get("assets/app.js")
         self.assertEqual(code, 200)
         self.assertTrue(headers["Content-Type"].startswith("text/javascript"))
+        # Fluent 2 の同梱の CSS と、配色を決める theme.js（Fluent 2 の設計の 2、6）
+        for name, kind in (("assets/fluent2.css", "text/css"), ("assets/theme.js", "text/javascript"),
+                           ("assets/style.css", "text/css")):
+            code, body, headers = self.get(name)
+            self.assertEqual(code, 200, name)
+            self.assertTrue(headers["Content-Type"].startswith(kind), name)
+            self.assertEqual(body.encode("utf-8"), (SCRIPTS / "browse_assets" / name.split("/")[1]).read_bytes(), name)
+
+    def test_search_data_is_embedded(self):
+        # data/search.js を返し、静的の書き出しと同じ中身になる。capabilities.search は embedded（探しやすさの設計の 6）
+        code, body, headers = self.get("data/search.js")
+        self.assertEqual(code, 200)
+        self.assertTrue(headers["Content-Type"].startswith("text/javascript"))
+        self.assertTrue(body.startswith("window.WIKI_SEARCH="))
+        snap = core.take_snapshot(self.wiki)
+        self.assertEqual(body, core.Core(snap).render_data("data/search.js"))
+        manifest = self.get("data/manifest.js")[1]
+        self.assertIn('"search":"embedded"', manifest)
 
     def test_control(self):
         code, body, _h = request(self.port, "GET", f"/{self.app.control_token}/control/status")

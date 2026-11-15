@@ -194,7 +194,7 @@ brand のリンクの色（`colorBrandForegroundLink`）を使うのは、本文
 
 ### 4.3 利用者の文字を持つ部品の折り返し
 
-Fluent の部品のいくつかは、文字を折り返さない（`white-space: nowrap`）。Tag の `fui-Tag__primaryText`、Badge、Button、ToggleButton、Nav の項目である。利用者の文字（ページの題名、グループの名前、タグ、種類の値、未解決のリンクの行き先、検索の結果）を入れる部品では、`style.css` で `white-space: normal`、`overflow-wrap: anywhere`、`max-width: 100%`、`height: auto` にして折り返す。決まった文字だけを入れる部品（スコープの札、配色の選択、種類のボタンのうち 4 つの決まった種類）は、この規則がなくてもはみ出さないが、種類のボタンには利用者の種類の値も入る（探しやすさ 4.1）ので、ボタンにも当てる。
+Fluent の部品のいくつかは、文字を折り返さない（`white-space: nowrap`）。Tag の `fui-Tag__primaryText`、Badge、Button、ToggleButton、Nav の項目である。利用者の文字（ページの題名、グループの名前、タグ、種類の値、未解決のリンクの行き先、検索の結果）を入れる部品では、`style.css` で `white-space: normal`、`overflow-wrap: anywhere`、`max-width: 100%`、`height: auto` にして折り返す。ネイティブの選択（`fui-Select`。タグの選択）は、いちばん長い選択肢の幅になるので、`max-width: 100%` で包む要素の幅に止める（実装の段で、200 文字のタグで横にはみ出すのを試験が見つけた）。決まった文字だけを入れる部品（スコープの札、配色の選択、種類のボタンのうち 4 つの決まった種類）は、この規則がなくてもはみ出さないが、種類のボタンには利用者の種類の値も入る（探しやすさ 4.1）ので、ボタンにも当てる。
 
 ## 5. 記事のページ（F2）
 

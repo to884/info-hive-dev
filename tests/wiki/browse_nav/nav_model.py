@@ -44,12 +44,18 @@ class StageOneCore(core.Core):
     def _nav(self):
         # 今の _nav() は、索引のファイルのグループの ID を "_g" + short_hash(disk_rel, 10) で作る。
         # その 2 か所だけを、並びの番号に差し替えて呼ぶ。ほかの short_hash の呼び出し（出力の名前）は桁が違う。
-        order = {f.disk_rel: k for k, f in enumerate(self.snapshot.by_kind("index"))}
+        # 番号は、グループを作る（読めて解釈できた）索引のファイルの並びで振る（設計の 2.2。実装の段で直した）。
+        # 書き換える前の中核は、解釈できたファイルだけについて、索引のファイルの並びの順に ID を求めるので、
+        # 初めて求められた順に番号を振れば、その並びの番号になる。
+        index_disks = {f.disk_rel for f in self.snapshot.by_kind("index")}
+        assigned = {}
         original = core.short_hash
 
         def file_id(text, digits=8):
-            if digits == 10 and text in order:
-                return f"f{order[text]}"
+            if digits == 10 and text in index_disks:
+                if text not in assigned:
+                    assigned[text] = f"f{len(assigned)}"
+                return assigned[text]
             return original(text, digits)
 
         core.short_hash = file_id
@@ -88,10 +94,10 @@ def stage_one(root: Path) -> tuple:
     索引のファイルを、今の Core は別のグループ（ディスク上の綴りのハッシュの ID）にするからである。
     """
     c = StageOneCore(core.take_snapshot(root))
-    order = {f.disk_rel: k for k, f in enumerate(c.snapshot.by_kind("index"))}
-    # 読めない索引と、解釈できない索引（構造の直しのあと）はグループを作らない
+    # 読めない索引と、解釈できない索引（構造の直しのあと）はグループを作らず、番号も数えない
     failed = {rel for kind, rel in c.parse_failures if kind == "index"}
     readable = [f for f in c.snapshot.by_kind("index") if f.text is not None and f.rel not in failed]
+    order = {f.disk_rel: k for k, f in enumerate(readable)}
     file_groups = list(zip(readable, c.nav_groups[:len(readable)]))
     for f, g in file_groups:
         assert g["id"] == f"_gf{order[f.disk_rel]}", "ファイルのグループの並びが想定と違う"
