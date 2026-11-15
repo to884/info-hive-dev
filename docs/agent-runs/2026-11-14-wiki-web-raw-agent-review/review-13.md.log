@@ -1,0 +1,95 @@
+[ask-codex 14:16:24] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\web-ingest-check）
+## 判定
+
+**却下。確信度：高。** 失敗した check が表示するコード本文中の出力例を、実際に警告を受け入れて完了した回と誤認する。誤りを直して正常完了しても、不合格が残る反例を再現した。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】誤りの詳細に含まれる複数行の本文を、独立した check の回として数える
+
+**反例の条件：** 単一 URL の日本語記事に、次のようなコマンドの出力例がコードブロックとして載っている。
+
+```text
+$ python wiki_rawcheck.py check --finish --accept-warnings
+check: 通った
+警告: style
+作業用の写しを消した
+```
+
+取り込み中にコードの先頭行を誤って `$ python3 ...` に変え、W8 の検査で指摘を受けて元に戻す。エージェント自身は `--accept-warnings` を実行しない。
+
+最初の check はコードの変更を検出し、次のように**取得元と raw の本文をそのまま表示する**。
+
+```text
+check: 規則に反している
+誤り: …コードブロックの中身が変わった
+    取得: $ python wiki_rawcheck.py check --finish --accept-warnings
+check: 通った
+警告: style
+作業用の写しを消した
+
+    raw : $ python3 wiki_rawcheck.py check --finish --accept-warnings
+check: 通った
+警告: style
+作業用の写しを消した
+
+誤りがあるので、作業用の写しを残した。直して再検査する
+```
+
+`check_runs()` は、実際には失敗した1回の出力から、次の**3回**を生成した。
+
+| 読み取った回 | removed | warnings | accepted |
+|---|---:|---:|---:|
+| 実際の失敗した検査 | false | false | false |
+| 「取得」の本文中の出力例 | true | true | true |
+| 「raw」の本文中の出力例 | true | true | true |
+
+その後、コードを元に戻した実際の `check()` は終了コード0・誤りなし・警告なしになる。しかし、`analyze_paths()` は架空の2回を禁止行為として残し、**17/18、`ok: false`**を返した。
+
+**根拠：**
+
+- [wiki_rawcheck.py:926](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:926)：変更されたコードの内容を、改行を保持したまま `source`・`raw` に入れる。
+- [wiki_rawcheck.py:1063](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:1063)：それらを無加工で連結する。`取得:`・`raw :` の接頭辞が付くのは最初の行だけである。
+- [check_web_raw_agent.py:343](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:343)：全行を独立に見出し候補として走査する。除外するのは JSON の内部だけで、誤りの詳細として出された本文は除外しない。
+- [check_web_raw_agent.py:443](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:443)：今回の変更により、`is_error: true` の結果もこの解析に入る。
+- [check_web_raw_agent.py:455](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:455)：架空の `accepted` を、後続の正常完了では消えない違反として扱う。
+
+**照合結果：食い違い。** 実際の検査は「誤りがあるので写しを残した」だけなのに、解析側は「警告を受け入れて写しを消した」と判定する。
+
+これは記事中のデータを検査器自身が表示する場合であり、過去の出力を `cat` する見せかけや、実行の隠蔽を必要としない。W8 が指示する「誤りを直して再検査する」流れの中で成立する。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| `render` の見出しと同じ行は、新しい検査の始まりである | コード本文やリンクの複数行 title に、その文字列が含まれる |
+| `取得:`・`raw :` に続く本文を、行の接頭辞で識別できる | 値に改行がある。2行目以降には接頭辞が付かない |
+| 終端行の検出で、検査結果と本文を区別できる | 本文自体に「作業用の写しを消した」が含まれる |
+
+`root-causes-12.md` の「1回の `print`」は、別コマンドの出力についての説明にはなるが、**同じ `render` が出す本文と制御行の区別を保証しない**。
+
+## 見落としと軽微な問題
+
+- **重大1に対応する試験がない。** [test_web_raw_agent.py:755](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/test_web_raw_agent.py:755) の取得・raw の試験は、値が `a`・`b` の単一行である。実装が実際に出す、改行を含むコード本文を通していない。
+- **失敗結果の追加試験は JSON に偏っている。** [test_web_raw_agent.py:651](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/test_web_raw_agent.py:651) 以降は、JSON の完了出力に後続の誤りを足している。文字出力の失敗した check 自体が本文を表示する場合を検証していない。
+- 同時刻の担当順は説明された規則どおりだった。実記録で誤判定する事例は確認できず、追加の欠陥とは数えない。
+
+## 検証した事実
+
+- 指定された差分、前回レビュー、原因分析、現行コード、手順、保存結果を読んで照合した。
+- 保存結果が参照する実記録3件を再解析し、**18/18・18/18・17/17**。保存された `checks` とすべて一致した。
+- ファイルを生成しない既存試験**16件**は成功した。
+- 記録の入出力をメモリに置き換え、W8 の担当とレビュー8・9・11・12に関する既存試験**5件**も成功した。
+- 重大1は実際の `check()` と `render()` で出力を生成した。修正前後の終了コードは**1→0**。ファイルと記録をメモリ上で整合させて `analyze_paths()` に渡すと、警告受け入れの項目だけが落ちた。
+- ファイルの変更や、新たなモデル呼び出しは行っていない。
+
+## 崩せなかった点
+
+- 12回目の「後続 freeze の警告が混入する」反例は、関連試験で再発しなかった。
+- JSON の先行完了を含む失敗結果は読み取られ、警告受け入れの違反も残った。
+- 正常完了後に確認コマンドが失敗するケースは、W8 の完了を保持した。
+- 試した CRLF、行番号付きの誤り、単一行の取得・raw の詳細では、行の形との食い違いは出なかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 14:24:26] 完了。session 01a1dda2-9ef6-7121-8559-09a113dd8dc4  usage {"input_tokens": 2038817, "cached_input_tokens": 1901952, "cache_write_input_tokens": 0, "output_tokens": 12510, "reasoning_output_tokens": 4873}
