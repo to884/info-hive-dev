@@ -1,0 +1,17 @@
+{
+  "id": "evolve-capture-writes-crlf-2026-11-15",
+  "task": "/wiki:learn で、経験の記録を wiki_evolve.py capture で raw/experiences/ に保存する",
+  "outcome": "failure",
+  "actions": [
+    "インストール済みの wiki 0.11.0 の wiki_evolve.py capture --raw raw --record <JSON> で、4 つの経験を記録した",
+    "capture が返した sha256 と、保存されたファイルのバイト列の SHA-256 を比べた",
+    "保存されたファイルに CRLF が入っていることを確かめ、wiki_evolve.py の capture を読んだ。path.open('x', encoding='utf-8') の文字のモードで書き、newline を指定していない",
+    "info-hive-wiki 0.18.1 の wiki_evolve.py も、149 行と 183 行で同じ書き方をしていることを確かめた"
+  ],
+  "verification": "raw/experiences/extraction-metrics-string-presence-2026-11-15.json について、capture が返した sha256 は 87919184f7a664d5…、ファイルのバイト列の SHA-256 は def2d0757e195430…で、ファイルは CRLF だった。ほかの 3 つの記録も同じく CRLF で、返した値とファイルの値が違った",
+  "model": "Claude Opus 5.5（claude-opus-5-5）",
+  "tools": "wiki 0.11.0（インストール済みのプラグイン）の wiki_evolve.py、Python 3.14.6、Windows 11。0.18.1 はコードを読んだだけで、実行していない",
+  "scope": "Windows で wiki_evolve.py capture を使い、返された sha256 でファイルを確かめるとき",
+  "hypothesis": "Windows の Python は、文字のモードで開いたファイルに書く \\n を \\r\\n に変える。capture は変える前の文字列の SHA-256 を返すので、ファイルの SHA-256 と食い違う",
+  "counterexamples": "Linux と macOS では、文字のモードでも \\n のまま書くので、食い違わないはずである（確かめていない）。capture が返した sha256 を、ほかの処理が使っているかは確かめていない"
+}

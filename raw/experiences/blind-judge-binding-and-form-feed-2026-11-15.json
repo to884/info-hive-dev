@@ -1,0 +1,18 @@
+{
+  "id": "blind-judge-binding-and-form-feed-2026-11-15",
+  "task": "抽出の出力を方式の名前を伏せて GPT-6.1 Sol に採点させ、判定を出力と結び付けて集計する（docs/research/markitdown-benchmark-2026-11-15/judge/）",
+  "outcome": "failure",
+  "actions": [
+    "出力を試料ごとに A〜D の記号に置き換えて judge/ に写し、記号と方式の対応表を worktree の外に置き、方式の名前が分かる outputs/ と results.json を判定のあいだ worktree の外に移して、Sol に判定させた",
+    "最初の判定（docs/agent-runs/2026-11-15-markitdown-benchmark-review/judge-1/sol-result.md）で、Sol は pdftotext と pdfminer の slides.pdf の出力に改ページの文字（U+000C）が 5 個あるのに「明示的なページ境界はない」として位置を 2 点にした",
+    "集計（aggregate.py）は、最初は judge/ の写しと outputs/ の出力のバイト列を比べるだけだった。Sol の 2 回目のレビュー（review-2.md）が、写しと出力を同時に差し替えると、古い判定が新しい出力に付いて集計が通ることを、メモリ上で示した",
+    "prepare_judge.py が judge/manifest.json に写しごとの SHA-256、対応表の SHA-256、それらのダイジェストを書き、Sol に読んだダイジェストを判定の JSON の judge_digest に書かせ、aggregate.py がダイジェスト、写し、出力、対応表のすべての一致を確かめるようにした",
+    "判定の依頼（judge/task.md）に、改ページの文字をページの区切りとして数え、バイト列か repr で調べるよう書き足し、判定をやり直した"
+  ],
+  "verification": "やり直した判定（judge/sol-result.md）の judge_digest が manifest.json の digest（7a2de558…cca4c）と一致し、aggregate.py が終了コード 0 で集計した。やり直した判定では、pdftotext と pdfminer の PDF の位置が 4 つとも 5 点になった。outputs/policy.xml__text.md に 1 バイト足すと、aggregate.py が「判定と出力が合わない」で止まった（ダイジェストを入れる前の版で確かめた。ダイジェストを入れたあとの版では、出力を変えて止まることは確かめていない）",
+  "model": "Claude Opus 5.5（claude-opus-5-5）が仕組みを作り、GPT-6.1 Sol（gpt-6.1-sol、effort high）が判定とレビューをした",
+  "tools": "Claude Code デスクトップアプリ、Codex CLI 0.166.0（ask-codex スキルの ask と review、読み取り専用）、Python 3.12.13 と 3.14.6",
+  "scope": "外部のモデルに、ファイルに書いた出力を伏せて採点させ、その判定を出力と組にして集計するとき。出力に制御文字（改ページなど）が入るとき",
+  "hypothesis": "判定のファイルに、採点した中身の識別子がなかったので、ファイル名の対応だけでは古い判定と新しい出力を見分けられなかった。モデルは画面に見えない制御文字を読み飛ばすので、制御文字で表す目印は、数え方を依頼に書かないと採点に入らない",
+  "counterexamples": "ダイジェストは、モデルが manifest.json を読んで書き写した値であり、モデルが実際にその写しを読んだことの証明ではない。判定は 1 回ずつで、点のぶれは測っていない。方式は出力の書き方（## p. N など）から推測できた可能性がある"
+}

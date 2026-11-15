@@ -1,0 +1,16 @@
+{
+  "id": "powershell-select-first-stops-writer-2026-11-15",
+  "task": "uv run --script scripts/run_bench.py --metrics-only で、results.json の指標と版の記録を書き直す",
+  "outcome": "failure",
+  "actions": [
+    "PowerShell で uv run --script scripts/run_bench.py --metrics-only 2>&1 | Select-Object -First 1 と実行し、出力の 1 行目（「指標の自己試験: 通った」）だけを見た",
+    "そのあと results.json を読むと、versions.pdftotext が書き直す前の文字列（pdftotext version 4.00）のままだった",
+    "同じコマンドを Select-Object -Last 1 で実行し直すと、versions.pdftotext が path と version の辞書に変わった"
+  ],
+  "verification": "results.json の versions.pdftotext が、-First 1 の実行のあとは \"pdftotext version 4.00\"、-Last 1 の実行のあとは {\"path\": \"C:\\\\Program Files\\\\Git\\\\mingw64\\\\bin\\\\pdftotext.EXE\", \"version\": [...]} だった。スクリプトは、すべての出力を書いたあとに results.json を書く",
+  "model": "Claude Opus 5.5（claude-opus-5-5）",
+  "tools": "PowerShell 7.6.9（Claude Code の PowerShell ツール）、uv 0.12.2、Python 3.12.13、Windows 11",
+  "scope": "PowerShell で、最後にファイルを書くスクリプトの出力を Select-Object -First でしぼるとき",
+  "hypothesis": "Select-Object -First は、必要な数の行を受け取るとパイプラインの上流を止める。そのため、1 行目を出したあとの処理（results.json の書き込み）の前に、スクリプトが止まったと考えられる",
+  "counterexamples": "Select-Object -Last や Out-Null、ファイルへのリダイレクトでは止まらなかった（-Last で書けたことを確かめた）。Bash の head でも同じことが起きうるかは、ここでは確かめていない"
+}

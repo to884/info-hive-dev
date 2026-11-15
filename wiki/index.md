@@ -31,7 +31,14 @@
 - [[browseの記事のページのFluent2のリリース-wiki-0.19.0]]: browse の記事のページの部品を Fluent 2 にした wiki 0.19.0（段 F2）、試作との見比べ、3 つのブラウザの結果、CI を待たずに入った自動マージ
 - [[セッションの取り込みの設計-2026-11-14]]: Claude Code のセッションを `/wiki:ingest` で取り込む設計、7 回の敵対的レビューと 4 体の再設計、ADR-0020
 - [[stopの記録の読み取りの直し-wiki-0.19.1]]: browse の stop が Windows で記録を読めずに止まる件の原因の実測、読む口の共有と 7.1 の待ちの直し、2 回の敵対的レビュー
+- [[captureの記録の改行の直しとリリース-wiki-0.19.2]]: capture が Windows で raw を CRLF で書き、返す sha256 がファイルと食い違う件の直し、CRLF の記録の扱い、0.19.1 と 0.19.2 のリリースの確かめ
 - [[wikiの書く段の設計-2026-11-15]]: wiki の書き込みを `wiki_apply.py` に移す設計、15 回の敵対的レビュー、作者の判断（wiki ごとの残るロック）、ADR-0023
+- [[抽出の方式の比較-markitdown-2026-11-15]]: 今の抽出（pdftotext、pdfminer、PDFium、wiki_fetch）と MarkItDown 0.1.9 を、Office で作った 15 の試料で、速度、指標、Sol の判定で比べた調査
+- [[extraction-metrics-string-presence-2026-11-15]]: 経験（failure）。抽出の指標が文字列の有無だけを見て、数値の境目、表の列、混線を見逃した
+- [[blind-judge-binding-and-form-feed-2026-11-15]]: 経験（failure）。伏せた判定が採点した中身に結び付かず、Sol が改ページの文字を読み飛ばした
+- [[office-com-word-export-2026-11-15]]: 経験（failure）。Word の COM の `Documents.Open` が、読み取り専用の引数で止まり、Windows PowerShell 5.1 で null を返した
+- [[powershell-select-first-stops-writer-2026-11-15]]: 経験（failure）。`Select-Object -First` が、`results.json` を書く前のスクリプトを止めた
+- [[evolve-capture-writes-crlf-2026-11-15]]: 経験（failure）。`wiki_evolve.py capture` が Windows で raw を CRLF で書き、返す SHA-256 とファイルが食い違った（0.11.0 で観測。0.19.2 で直った）
 
 ## エンティティ
 
@@ -45,6 +52,8 @@
 - [[pdfのヘッダーの条件]]: rag が PDF を確かめる 2 つの段階、ヘッダーの境界と書き方、rag の版による違い
 - [[リリースの確かめ方]]: リリースの完了の条件、タグとリリースの形、使い捨ての設定での導入の確かめ方、マージの順番
 - [[git-bashのパス変換]]: Git Bash が `git show <リビジョン>:<パス>` の引数を書き換える形と、`MSYS_NO_PATHCONV=1` での避け方
+- [[officeのcomでの書き出し]]: Word の COM で文書を開いて PDF に書き出すときの引数、PowerShell の版、時間の上限（仮説の段階）
+- [[powershellのパイプの打ち切り]]: `Select-Object -First` が上流のスクリプトを止め、最後のファイルの書き込みが起きないこと（仮説の段階）
 - [[pythonの書き戻しの改行]]: Windows の Python の `write_text` と標準出力が LF を CRLF に変えることと、避け方と気づき方
 - [[browseの画面の確かめ方]]: browse の画面を、作者のサーバーを使い回さずに、2 つの配色で実際のブラウザで確かめる手順
 - [[browseのデザインシステム]]: browse の画面を Fluent 2 の再現の CSS で描く決まりと、レビューで崩れた配色と折り返しの前提
@@ -56,6 +65,7 @@
 - [[記事作成の5区分]]: 記事作成を発見、構造化、体系化、執筆、維持に分け、きっかけごとに使う手法と使わない手法を決める整理
 - [[セッションの記録の構造]]: Claude Code のセッションの記録（JSONL）から会話を抜き出すときに頼れる性質と頼れない性質
 - [[editとwriteの書き込みの競合]]: Claude Code の Edit と Write を同時の書き込みと並べた結果と、読み取り専用のファイルの守り
+- [[抽出の品質の測り方]]: 抽出の方式を比べるときに、数値の境目、表の列、読み順を見誤らない指標の作り方と、判定を採点した中身に結び付ける方法
 - [[windowsのファイルの共有と削除待ち]]: Windows で置き換えと削除の途中のファイルを開くと失敗する 3 つの原因（共有の指定、削除待ち）と、試験で途中の状態を作る方法
 - [[敵対的レビューで設計を直す進め方]]: 状態を推さない、直しの仕組みから次の指摘が出る、重大を発生の度合いで分けて止める、という 2 つの設計で確かめたこと
 
