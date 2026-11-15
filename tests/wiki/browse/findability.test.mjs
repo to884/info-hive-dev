@@ -156,6 +156,22 @@ async function newPage(browser, opts = {}) {
   return { context, page, errors };
 }
 
+// 変換中の Enter と Esc は扱わない（isComposing が真か、keyCode が 229）。記事のページと索引のページの両方
+async function imeChecks(page, tag) {
+  await page.fill("#_q", "検索");
+  const before = page.url();
+  for (const [key, composing, code] of [["Enter", true, 13], ["Escape", false, 229], ["Enter", false, 229]]) {
+    await page.evaluate(([k, c, kc]) => {
+      const ev = new KeyboardEvent("keydown", { key: k, isComposing: c, bubbles: true, cancelable: true });
+      Object.defineProperty(ev, "keyCode", { get: () => kc });
+      document.getElementById("_q").dispatchEvent(ev);
+    }, [key, composing, code]);
+  }
+  await page.waitForTimeout(200);
+  check(page.url() === before && (await page.inputValue("#_q")) === "検索", `${tag}: 変換中のキーで移動したか、欄が空になった`);
+  await page.fill("#_q", "");
+}
+
 async function articleChecks(browser, base, tag) {
   const { context, page, errors } = await newPage(browser);
   const requests = [];
@@ -198,18 +214,7 @@ async function articleChecks(browser, base, tag) {
   check(greek.includes("ΟΣ"), `${tag}: ΟΣ に mark が付かない: ${greek}`);
   await page.fill("#_q", "zzzz");
   check(await page.locator(".sr-empty").count() === 1, `${tag}: 0 件の表示がない`);
-  // 変換中の Enter と Esc は扱わない
-  await page.fill("#_q", "検索");
-  const before = page.url();
-  for (const [key, composing, code] of [["Enter", true, 13], ["Escape", false, 229], ["Enter", false, 229]]) {
-    await page.evaluate(([k, c, kc]) => {
-      const ev = new KeyboardEvent("keydown", { key: k, isComposing: c, bubbles: true, cancelable: true });
-      Object.defineProperty(ev, "keyCode", { get: () => kc });
-      document.getElementById("_q").dispatchEvent(ev);
-    }, [key, composing, code]);
-  }
-  await page.waitForTimeout(200);
-  check(page.url() === before && (await page.inputValue("#_q")) === "検索", `${tag}: 変換中のキーで移動したか、欄が空になった`);
+  await imeChecks(page, tag + " 記事");
   const health = await page.evaluate(() => window.__health());
   check(health.style === 0 && health.dupIds.length === 0 && health.csp.length === 0 && health.errors.length === 0,
     `${tag}: 記事のページの [style]、ID の重複、CSP、画面のエラー: ${JSON.stringify(health)}`);
@@ -243,6 +248,21 @@ async function indexChecks(browser, base, tag) {
   await page.evaluate((id) => { location.hash = "#group=" + id + "garbage"; }, firstId);
   await page.waitForTimeout(100);
   check((await page.textContent("#_count")) === `${total} 件`, `${tag}: 知らない ID で絞った`);
+  // 壊れた断片（%）でも、例外にならず、前の絞り込みを外す（2 回目の実装のレビューの A）
+  await page.evaluate((id) => { location.hash = "#group=" + id; }, firstId);
+  await page.waitForTimeout(100);
+  await page.evaluate(() => { location.hash = "#group=%"; });
+  await page.waitForTimeout(100);
+  check((await page.textContent("#_count")) === `${total} 件` && (await page.locator(".group-chip:visible").count()) === 0,
+    `${tag}: 壊れた断片で前の絞り込みが残る`);
+  {
+    const p2 = await page.context().newPage();
+    const errs = [];
+    p2.on("pageerror", (e) => errs.push(String(e)));
+    await p2.goto(url(base, "index.html") + "#group=%");
+    check(await p2.evaluate(() => window.__browse.navLoaded) && errs.length === 0, `${tag}: #group=% で開くと止まる: ${errs}`);
+    await p2.close();
+  }
   // 並べ方
   await page.selectOption(".sort-select select", "updated");
   const upd = await page.evaluate(() => Array.from(document.querySelectorAll("#_index .fx-row"), (r) => r.getAttribute("data-updated")));
@@ -271,6 +291,7 @@ async function indexChecks(browser, base, tag) {
   await page.waitForFunction(() => window.__browse.searchLoaded);
   await page.waitForTimeout(100);
   check((await page.textContent("#_count")).startsWith(`${total} 件中 1 件`), `${tag}: 検索で絞った件数が違う`);
+  await imeChecks(page, tag + " 索引");
   const health = await page.evaluate(() => window.__health());
   check(health.style === 0 && health.dupIds.length === 0 && health.csp.length === 0 && health.errors.length === 0,
     `${tag}: 索引のページの [style]、ID の重複、CSP、画面のエラー: ${JSON.stringify(health)}`);
@@ -344,13 +365,17 @@ async function layoutChecks(browser, base, tag) {
 
 async function colorChecks(browser, base, tag) {
   for (const dark of [false, true]) {
-    for (const rel of ["concepts/bm25.html", "index.html"]) {
+    // 記事のページは、木を出した状態と、検索の結果を出した状態（木は隠れる）の両方で測る
+    for (const [rel, query] of [["concepts/bm25.html", null], ["concepts/bm25.html", "検索"], ["index.html", null]]) {
       const { context, page } = await newPage(browser, { dark });
       await page.goto(url(base, rel));
-      if (rel !== "index.html") {
+      if (query) {
         await page.focus("#_q");
-        await page.fill("#_q", "検索");
+        await page.fill("#_q", query);
         await page.waitForFunction(() => window.__browse.searchLoaded);
+      } else if (rel !== "index.html") {
+        // 木のすべてのグループを開き、ポインターと押下の状態を測れるようにする
+        await page.evaluate(() => document.querySelectorAll("details.tree-group").forEach((d) => { d.open = true; }));
       }
       const c = await contrastOf(page);
       const low = Object.entries(c).filter(([, v]) => v < 4.5);
