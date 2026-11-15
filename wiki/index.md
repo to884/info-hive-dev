@@ -32,6 +32,7 @@
 - [[セッションの取り込みの設計-2026-11-14]]: Claude Code のセッションを `/wiki:ingest` で取り込む設計、7 回の敵対的レビューと 4 体の再設計、ADR-0020
 - [[stopの記録の読み取りの直し-wiki-0.19.1]]: browse の stop が Windows で記録を読めずに止まる件の原因の実測、読む口の共有と 7.1 の待ちの直し、2 回の敵対的レビュー
 - [[captureの記録の改行の直しとリリース-wiki-0.19.2]]: capture が Windows で raw を CRLF で書き、返す sha256 がファイルと食い違う件の直し、CRLF の記録の扱い、0.19.1 と 0.19.2 のリリースの確かめ
+- [[browseを5つのブラウザで確かめた記録とリリース-wiki-0.19.3]]: browse を Firefox、WebKit、Edge、Chrome で確かめた結果、製品の Chrome と Edge の favicon.ico の 404 の直し（wiki 0.19.3）、競合で始まらなかった親の CI
 - [[wikiの書く段の設計-2026-11-15]]: wiki の書き込みを `wiki_apply.py` に移す設計、15 回の敵対的レビュー、作者の判断（wiki ごとの残るロック）、ADR-0023
 - [[抽出の方式の比較-markitdown-2026-11-15]]: 今の抽出（pdftotext、pdfminer、PDFium、wiki_fetch）と MarkItDown 0.1.9 を、Office で作った 15 の試料で、速度、指標、Sol の判定で比べた調査
 - [[extraction-metrics-string-presence-2026-11-15]]: 経験（failure）。抽出の指標が文字列の有無だけを見て、数値の境目、表の列、混線を見逃した
@@ -55,7 +56,7 @@
 - [[officeのcomでの書き出し]]: Word の COM で文書を開いて PDF に書き出すときの引数、PowerShell の版、時間の上限（仮説の段階）
 - [[powershellのパイプの打ち切り]]: `Select-Object -First` が上流のスクリプトを止め、最後のファイルの書き込みが起きないこと（仮説の段階）
 - [[pythonの書き戻しの改行]]: Windows の Python の `write_text` と標準出力が LF を CRLF に変えることと、避け方と気づき方
-- [[browseの画面の確かめ方]]: browse の画面を、作者のサーバーを使い回さずに、2 つの配色で実際のブラウザで確かめる手順
+- [[browseの画面の確かめ方]]: browse の画面を、作者のサーバーを使い回さずに、2 つの配色と 5 つのブラウザで確かめる手順
 - [[browseのデザインシステム]]: browse の画面を Fluent 2 の再現の CSS で描く決まりと、レビューで崩れた配色と折り返しの前提
 - [[frontmatterのリストの値]]: パーサーがリストの欄を文字のまま、1 つの文字の欄（`title`、`type`、`updated` など）を配列で返す形と、そろえる関数の違い、残っている欠陥
 - [[初期化されたwikiの判定]]: ルートの `SCHEMA.md` で初期化された wiki を見分ける規則、判定する場所と例外、試験の素材の決まり

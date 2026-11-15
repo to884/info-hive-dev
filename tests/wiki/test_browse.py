@@ -486,6 +486,11 @@ class RenderTest(TempWiki):
         self.assertNotIn("style=", html)
         self.assertIn('class="ta-right"', html)
         self.assertIn('<meta name="referrer" content="no-referrer">', html)
+        # アイコンがないことを <head> で宣言する（製品の Chrome と Edge が /favicon.ico を要求して 404 になるのを防ぐ）。
+        # data: は CSP の img-src が許す値でなければならない
+        head = html[:html.index("</head>")]
+        self.assertIn('<link rel="icon" href="data:,">', head)
+        self.assertIn("img-src 'self' data:", core.CSP)
         # 未解決の wikilink が外側のリンクでクリックできるようにならない
         start = html.index("wl-unresolved")
         self.assertGreater(html.rfind("</a>", 0, start), html.rfind("<a ", 0, start))

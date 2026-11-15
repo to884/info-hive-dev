@@ -1,0 +1,65 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index 45f98c3..a013a68 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "wiki",
+-  "version": "0.19.2",
++  "version": "0.19.3",
+   "description": "日本語による Markdown の wiki を構築し、ローカルのハイブリッド検索、出典つきの回答、グラフ、タスクの経験からのスキル改善を提供する。praneybehl/llm-wiki-plugin v4.0.1 の日本語向け移植版。",
+   "author": {
+     "name": "to884"
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 7a8d95d..30f227e 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,12 @@
+ 
+ ## [Unreleased]
+ 
++## [0.19.3] - 2026-11-15
++
++### Fixed
++
++- 閲覧（`/wiki:browse`）のサーバーの画面を製品の Chrome と Edge で開くと、ページを開くたびに `/favicon.ico` を要求して 404 になり、開発者ツールのコンソールにエラーが出ていた。閲覧のページと、サーバーの「見つからない」のページの `<head>` で、アイコンがないことを宣言する（`<link rel="icon" href="data:,">`）。CSP は変えていない（`img-src` が `data:` を許す）。
++
+ ## [0.19.2] - 2026-11-15
+ 
+ ### Fixed
+diff --git a/skills/info-hive/scripts/wiki_browse.py b/skills/info-hive/scripts/wiki_browse.py
+index 966d10a..32bf58c 100644
+--- a/skills/info-hive/scripts/wiki_browse.py
++++ b/skills/info-hive/scripts/wiki_browse.py
+@@ -488,7 +488,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
+                               else "Wiki を組み立てられない。lint で確かめる", {"Retry-After": "5"})
+         if not c.knows(name):
+             index = "index.html"
+-            body = ('<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>見つからない</title></head>'
++            body = ('<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>見つからない</title>'
++                    f'{core.ICON_LINK}</head>'
+                     '<body><p>ページが見つからない。Wiki が更新されたかもしれない。</p>'
+                     f'<p><a href="{html.escape(core.rel_href(name, index))}">索引へ</a></p></body></html>\n')
+             return self._send(404, body.encode("utf-8"), "text/html; charset=utf-8")
+diff --git a/skills/info-hive/scripts/wiki_browse_core.py b/skills/info-hive/scripts/wiki_browse_core.py
+index 3a9d03c..230d41e 100644
+--- a/skills/info-hive/scripts/wiki_browse_core.py
++++ b/skills/info-hive/scripts/wiki_browse_core.py
+@@ -49,6 +49,9 @@ CORE_VERSION = "browse-core-2"
+ NAME_LIMIT = 200
+ CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+        "base-uri 'none'; form-action 'none'")
++# アイコンがないことを宣言する。宣言がないと、製品の Chrome と Edge はサーバーの /favicon.ico を要求し、
++# 404 になってコンソールにエラーが出る（Playwright に同梱の Chromium は要求しない）。data: は CSP の img-src が許す
++ICON_LINK = '<link rel="icon" href="data:,">'
+ RAW_MODES = ("text", "link", "basename", "none")
+ # 画面の部品。fluent2.css は Fluent 2 の再現の CSS の同梱の写し（Fluent 2 の設計の 2）、theme.js は配色を描く前に決める
+ ASSETS = ("assets/app.js", "assets/style.css", "assets/fluent2.css", "assets/theme.js")
+@@ -1319,6 +1322,7 @@ class Core:
+                 f'<meta name="referrer" content="no-referrer">\n'
+                 f'<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+                 f"<title>{html.escape(full_title)}</title>\n"
++                f"{ICON_LINK}\n"
+                 f'<link rel="stylesheet" href="{prefix}assets/fluent2.css">\n'
+                 f'<link rel="stylesheet" href="{prefix}assets/style.css">\n'
+                 f'<script src="{prefix}assets/theme.js"></script>\n</head>\n'
