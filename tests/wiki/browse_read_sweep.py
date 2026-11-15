@@ -288,7 +288,7 @@ def _semantic(c) -> dict:
     import json
     import re
     strip = re.compile(r'<p class="notice incomplete">[^<]*</p>\n?|<section id="_incomplete">\s*</section>\n?'
-                       r'|<section id="_relations"><h2>関係</h2><p class="state-error">オントロジーを読めない</p>'
+                       r'|<section id="_relations"><h2 class="fui-Subtitle2">関係</h2><p class="state-error">オントロジーを読めない</p>'
                        r'</section>\n?')
 
     def clean(text):

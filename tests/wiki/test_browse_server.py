@@ -332,6 +332,265 @@ class RequestTest(InProcess):
         self.assertNotIn(self.app.control_token, log)
 
 
+class RecordReads(fs.Os):
+    """記録（server.json）を開く口を見張る。fails() が真のあいだは PermissionError にする（fails がなければ手を入れない）。
+
+    記録を開けなかったら（入れた失敗でも、OS の失敗でも）、unreadable を立てる。試験の補助のスレッドは、時間ではなく
+    この合図で次に進む。stop が読めない記録を見たあとでだけ、サーバーの次の段（記録を消す、ロックを離す）に進む。
+    """
+
+    def __init__(self, fails=None):
+        self.fails = fails
+        self.denied = 0
+        self.unreadable = threading.Event()
+
+    def open_read(self, path):
+        record = os.path.basename(os.fspath(path)) == "server.json"
+        if record and self.fails is not None and self.fails():
+            self.denied += 1
+            self.unreadable.set()
+            raise PermissionError(13, "injected")
+        try:
+            return super().open_read(path)
+        except PermissionError:
+            if record:
+                self.unreadable.set()
+            raise
+
+    def wait_unreadable(self, done: threading.Event) -> None:
+        wait_either(self.unreadable, done)
+
+
+def wait_either(event: threading.Event, done: threading.Event) -> None:
+    """event が立つか、done（stop が終わった）が立つまで待つ。時間では抜けない（順を時間で作らない）。
+
+    stop が合図を立てずに終われば、補助のスレッドも先に進み、試験の確かめ（合図が立ったか）が落ちる。
+    """
+    while not event.wait(0.05):
+        if done.is_set():
+            return
+
+
+def win_hold_for_delete(path, pending: bool):
+    """Windows で、名前を付け替えるか消す途中のハンドル（DELETE の権利、共有はすべて）を開いて返す。
+
+    os.replace（MoveFileExW）と os.unlink（DeleteFileW）は、途中でこの形のハンドルを持つ。pending なら、削除の印を
+    付け（FileDispositionInfo）、名前を削除待ちにする。閉じるまで、名前はどの共有でも開けない。閉じると名前が消える。
+    """
+    import ctypes
+    from ctypes import wintypes
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    k32.CreateFileW.restype = wintypes.HANDLE
+    k32.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD, wintypes.LPVOID,
+                                wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    k32.SetFileInformationByHandle.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
+    k32.SetFileInformationByHandle.restype = wintypes.BOOL
+    handle = k32.CreateFileW(str(path), 0x00010000, 0x7, None, 3, 0x80, None)    # DELETE、OPEN_EXISTING
+    if handle in (None, wintypes.HANDLE(-1).value):
+        raise ctypes.WinError(ctypes.get_last_error())
+    if pending:
+        delete = ctypes.c_ubyte(1)          # FILE_DISPOSITION_INFO（DeleteFile = TRUE）
+        if not k32.SetFileInformationByHandle(handle, 4, ctypes.byref(delete), 1):
+            error = ctypes.get_last_error()
+            k32.CloseHandle(handle)
+            raise ctypes.WinError(error)
+    return handle
+
+
+def win_close(handle) -> None:
+    import ctypes
+    ctypes.windll.kernel32.CloseHandle(ctypes.c_void_p(handle))
+
+
+class UnreadableRecordTest(InProcess):
+    """サーバーがロックを持ち、記録を読めない（分からない）あいだ、stop と serve は待つ（構造の直しの設計の 7.1）。
+
+    0.19.0 までの stop は、記録を読めない失敗で、すぐに「確かめられないので、何も変えずに止める」で終わった。
+    Windows では、サーバーが記録を置き換えるか消している途中に、stop の読み取りがそうなる（CI の
+    test_stop_while_starting_waits_for_record が、ときどき落ちた）。ここでは、その途中の状態を作って確かめる。
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.record = self.state_dir / "server.json"
+        self.lock = state_lock(self.wiki)
+        self.assertTrue(self.lock.try_acquire())
+        self.write_record()
+        self.stop_done = threading.Event()        # stop が戻った（成功でも例外でも）
+        self.held = []                            # 開いたままの Windows のハンドル（一時ディレクトリを消す前に閉じる）
+
+    def close_held(self):
+        while self.held:
+            win_close(self.held.pop())
+
+    def tearDown(self):
+        self.stop_done.set()
+        self.close_held()
+        self.lock.release()
+        fs.MUTANTS.clear()
+        super().tearDown()
+
+    def write_record(self):
+        self.record.write_text(json.dumps(dict(self.app.record(), owner=self.owner)), encoding="utf-8")
+
+    def stop(self, reads=None):
+        from contextlib import redirect_stdout
+        out = io.StringIO()
+        try:
+            with mock.patch.object(fs, "X", reads or fs.Os()), redirect_stdout(out), redirect_stderr(io.StringIO()):
+                code = wiki_browse.stop(self.wiki)
+        finally:
+            self.stop_done.set()
+        return code, json.loads(out.getvalue())
+
+    def release_after_stop(self, then=None) -> threading.Thread:
+        """stop の要求が届いたら、then() を呼んでからロックを離す（終わるサーバーの順）。stop が要求を送らずに
+        終われば、そこでロックを離す（時間では進まない）。"""
+        def later():
+            wait_either(self.app._stopping, self.stop_done)
+            if then is not None:
+                then()
+            self.lock.release()
+        helper = threading.Thread(target=later)
+        helper.start()
+        return helper
+
+    def assert_reports_like_ci(self, error):
+        # 対照の失敗は、CI で出た知らせと同じ形になる
+        err = io.StringIO()
+        with redirect_stderr(err):
+            wiki_browse._exit_for(error, False)
+        self.assertIn("確かめられないので、何も変えずに止める: open_read: PermissionError", err.getvalue())
+
+    def test_stop_waits_while_the_starting_server_record_is_unreadable(self):
+        reads = RecordReads(lambda: reads.denied < 3)
+        helper = self.release_after_stop()
+        code, out = self.stop(reads)
+        helper.join(30)
+        self.assertEqual((code, out["stopped"]), (0, True))
+        self.assertEqual(reads.denied, 3)
+        self.assertTrue(self.app._stopping.is_set())
+
+    def test_control_stop_fails_on_the_unreadable_record(self):
+        fs.MUTANTS.add("unreadable_record_fails")
+        reads = RecordReads(lambda: reads.denied < 3)
+        with self.assertRaises(fs.Unknown) as caught:
+            self.stop(reads)
+        self.assertFalse(self.app._stopping.is_set())
+        self.assert_reports_like_ci(caught.exception)
+
+    def test_stop_waits_while_the_finishing_server_removes_the_record(self):
+        # 止める要求のあと、終わるサーバーが記録を消す途中（読めない）でも、ロックがあるあいだは待つ。終わるサーバーは、
+        # stop がロックのあるあいだに読めない記録を見てから、記録を消してロックを離す（順を合図で決める）
+        reads = RecordReads(lambda: self.app._stopping.is_set() and self.lock.fd is not None)
+
+        def finishing():
+            reads.wait_unreadable(self.stop_done)
+            self.record.unlink()
+        helper = self.release_after_stop(finishing)
+        try:
+            code, out = self.stop(reads)
+        finally:
+            helper.join(30)
+        self.assertEqual((code, out["stopped"]), (0, True))
+        self.assertGreater(reads.denied, 0)
+
+    def test_control_stop_fails_while_the_finishing_server_removes_the_record(self):
+        fs.MUTANTS.add("unreadable_record_fails")
+        reads = RecordReads(lambda: self.app._stopping.is_set())
+        helper = self.release_after_stop(lambda: reads.wait_unreadable(self.stop_done))
+        try:
+            with self.assertRaises(fs.Unknown):
+                self.stop(reads)
+        finally:
+            helper.join(30)
+        self.assertGreater(reads.denied, 0)
+
+    def test_stop_reports_the_unreadable_record_when_time_runs_out(self):
+        reads = RecordReads(lambda: True)
+        with mock.patch.object(wiki_browse, "RECORD_WAIT", 0.6):
+            with self.assertRaises(wiki_browse.Failed) as caught:
+                self.stop(reads)
+        self.assertIn("サーバーの記録を読めないので、止められない: open_read: PermissionError", str(caught.exception))
+        self.assertFalse(self.app._stopping.is_set())
+
+    def test_serve_waits_and_reports_the_unreadable_record(self):
+        reads = RecordReads(lambda: True)
+        with mock.patch.object(fs, "X", reads), mock.patch.object(wiki_browse, "RECORD_WAIT", 0.6), \
+                redirect_stderr(io.StringIO()):
+            self.assertEqual(fs.serve_start(self.wiki, wiki_browse.browse_dir(), str(self.state_dir), self.owner,
+                                            lambda: {"instance": "x"})[0], "unreadable")
+            with self.assertRaises(wiki_browse.Failed) as caught:
+                wiki_browse.serve(self.wiki, None, False, 600)
+        self.assertIn("動いているサーバーの記録を読めないので、使い回せない: open_read: PermissionError",
+                      str(caught.exception))
+
+    @unittest.skipUnless(os.name == "nt", "共有の指定と削除待ちは Windows だけ")
+    def test_record_held_for_rename_or_delete_is_read(self):
+        # os.replace と os.unlink の途中のハンドル（DELETE の権利）があっても、記録を読める（設計の 3.1）
+        handle = win_hold_for_delete(self.record, pending=False)
+        try:
+            self.assertEqual(fs.read_record(str(self.state_dir))["instance"], self.app.instance)
+            fs.MUTANTS.add("read_without_share_delete")      # 対照: os.open は共有違反で開けない
+            with self.assertRaises(fs.Unknown):
+                fs.read_record(str(self.state_dir))
+        finally:
+            win_close(handle)
+
+    @unittest.skipUnless(os.name == "nt", "共有の指定は Windows だけ")
+    def test_reading_the_record_does_not_block_its_removal(self):
+        # 読んで開いているあいだも、サーバーは記録を消せる（読む側が FILE_SHARE_DELETE で開く。設計の 3.1）
+        fd = fs.X.open_read(str(self.record))
+        try:
+            os.unlink(self.record)
+        finally:
+            os.close(fd)
+        self.assertFalse(self.record.exists())
+        self.write_record()
+        fs.MUTANTS.add("read_without_share_delete")          # 対照: os.open で開くと、消す側が共有違反になる
+        fd = fs.X.open_read(str(self.record))
+        try:
+            with self.assertRaises(PermissionError):
+                os.unlink(self.record)
+        finally:
+            os.close(fd)
+
+    @unittest.skipUnless(os.name == "nt", "削除待ちは Windows だけ")
+    def test_stop_waits_while_the_record_is_delete_pending(self):
+        # 実際の OS の状態で、CI の失敗を作る。記録は削除待ちで、どの共有でも開けない。サーバーは、stop が削除待ちの
+        # 記録を見てから、記録を消し終え、新しい記録を書き、止める要求を受けてからロックを離す（順を合図で決める）
+        self.held.append(win_hold_for_delete(self.record, pending=True))
+        self.assertEqual(fs.probe_server(self.wiki, wiki_browse.browse_dir(), str(self.state_dir), self.owner)[0],
+                         "unreadable")
+        reads = RecordReads()          # 手を入れずに見張る（失敗は OS の削除待ちだけ）
+
+        def server():
+            reads.wait_unreadable(self.stop_done)
+            self.close_held()
+            self.write_record()
+            wait_either(self.app._stopping, self.stop_done)
+            self.lock.release()
+        helper = threading.Thread(target=server)
+        helper.start()
+        try:
+            code, out = self.stop(reads)
+        finally:
+            helper.join(30)
+        self.assertTrue(reads.unreadable.is_set())
+        self.assertEqual((code, out["stopped"]), (0, True))
+
+    @unittest.skipUnless(os.name == "nt", "削除待ちは Windows だけ")
+    def test_control_stop_fails_while_the_record_is_delete_pending(self):
+        handle = win_hold_for_delete(self.record, pending=True)
+        try:
+            fs.MUTANTS.add("unreadable_record_fails")
+            with self.assertRaises(fs.Unknown) as caught:
+                self.stop()
+        finally:
+            win_close(handle)
+        self.assert_reports_like_ci(caught.exception)
+
+
 class RebuildTest(InProcess):
     def setUp(self):
         super().setUp()
