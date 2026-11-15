@@ -20,7 +20,7 @@
 - **環境**: 開発用の PC ではない、新しい Windows 11 の VM。Cowork（確認 8）は PC の上の VM を使うので、入れ子の仮想化を有効にしておく。スナップショットを取れること。
 - **アカウント**: Claude のアカウント（デスクトップアプリへのサインイン用）。GitHub のアカウントと SSH の鍵は、VM に置かない（確認 2 で、鍵がない状態を確かめるため）。
 - **ネットワーク**: ふつうのインターネットの接続。社内のプロキシ（Zscaler など）の内側での確認（確認 9）は、その環境があるときだけ行う。
-- **記録のフォルダー**: `%USERPROFILE%\stage2-records\`。OneDrive に同期されない場所に作る。
+- **記録のフォルダー**: VM の外に置く。確認 4 の終わりと確認 5〜10 の始めで、VM をスナップショットに戻すので、VM の中に置いた記録はそのたびに消える。ホストと共有するフォルダー（VM のソフトの共有フォルダーの機能）か、ネットワークのドライブを使い、VM の中からは `R:\stage2-records\` のようなドライブで開けるようにする（この表では、この場所を `<記録>` と書く）。VM の外に置けないときは、スナップショットに戻す前に、毎回 `<記録>` の中身を VM の外へ写す。どちらの方法にしたかを `00-versions.txt` に書く。
 - **大きさを計る PowerShell の関数**: 各確認で使う。PowerShell を開くたびに、次を貼り付けて実行する。
 
 ```powershell
@@ -273,15 +273,33 @@ S1 に戻してから行う。
 
 S1 に戻し、プロキシの内側のネットワークにつないでから行う。
 
+S1 では依存を取り終えているので、そのまま `--ensure` を実行しても、uv はキャッシュを使い、プロキシを通る通信も証明書の検証も起きないことがある。それでは、設定の前と後のどちらが成功しても、設定が効いたかは分からない。そこで、設定の前と後のそれぞれを、空のキャッシュとデータの置き場所から始める。`tests/wiki/test_uv_tls.py` と `tests/wiki/check_first_run_mcp.py` も、同じに `UV_CACHE_DIR` と `INFO_HIVE_DATA_DIR` を空の一時ディレクトリにして確かめている。
+
 1. `uv --version` と、確認 1-2 の最後のコマンドの出力を写す。
-2. `UV_SYSTEM_CERTS` を設定しない状態で、確認 3 の `--ensure` のコマンドを実行し、出力と終了コードを写す。
-3. `UV_SYSTEM_CERTS` を設定し、デスクトップアプリと PowerShell を開き直してから、2 をもう一度行う。
+2. 設定の前: 新しい PowerShell で次を実行する。`<版>` は確認 3 と同じである。
+
+   ```powershell
+   Remove-Item Env:UV_SYSTEM_CERTS, Env:UV_NATIVE_TLS -ErrorAction SilentlyContinue
+   $run = Join-Path $env:TEMP ("proxy-before-" + (Get-Date -Format "yyyyMMddHHmmss"))
+   $env:UV_CACHE_DIR = "$run\uv-cache"
+   $env:INFO_HIVE_DATA_DIR = "$run\data"
+   $launch = "$env:USERPROFILE\.claude\plugins\cache\info-hive\wiki\<版>\skills\info-hive\scripts\wiki_mcp_launch.py"
+   uv run --quiet --script $launch --ensure
+   $LASTEXITCODE
+   (Get-ChildItem -LiteralPath "$run\uv-cache" -Recurse -Force -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum / 1MB
+   Get-ChildItem -LiteralPath "$run\data" -Recurse -Filter *.log | ForEach-Object { "== $($_.FullName)"; Get-Content $_.FullName -Encoding UTF8 }
+   ```
+
+   最後の 2 つのコマンドで、空のキャッシュに依存を取ってきたこと（大きさが 0 から増えたこと）と、起動処理のログ（証明書の検証に失敗して、OS の証明書ストアでやり直したか）を見る。
+3. 設定の後: `UV_SYSTEM_CERTS` をユーザーの環境変数に設定し、デスクトップアプリと PowerShell を開き直す。新しい PowerShell で、2 のコマンドを、`proxy-before-` を `proxy-after-` に変え、1 行目の `Remove-Item` を除いて実行する（空の別のディレクトリから始めるため）。
 
    ```powershell
    [Environment]::SetEnvironmentVariable("UV_SYSTEM_CERTS", "true", "User")
    ```
 
-写すもの: `09-proxy.txt`（各手順の出力。失敗したときは `%LOCALAPPDATA%\info-hive\logs\launch.log` の中身）
+写すもの: `09-proxy.txt`（各手順の出力、終了コード、キャッシュの大きさ、ログの中身）
+
+判定: 2 と 3 のどちらでも、キャッシュの大きさが 0 から増えていれば、プロキシを通る取得が起きている。そのうえで、2 で失敗するか、ログに OS の証明書ストアでのやり直しが出て、3 では設定どおり 1 回で通れば、`UV_SYSTEM_CERTS` が効いている。キャッシュが増えていなければ、その回は通信が起きておらず、判定に使えない。
 
 ## 確認 10. ハウツーの手順（C2〜C5、W3〜W5）
 
@@ -298,7 +316,7 @@ S1 に戻し、プロキシの内側のネットワークにつないでから�
 
 ## あとで行う確認: W2（計画の「段階 1 で作者が決めたこと」の 2）
 
-W2 は、browse の 0.17.0（to884/info-hive-wiki#60）と Fluent 2 の画面（to884/info-hive-dev#105）が入った版のリリースのあとで確かめる。そのときは、S0 から確認 2 と 3 をやり直して、その版の S1（`S1-wiki-<その版>`）を作り、確認 5 の W1 から続けて通す。古い S1 に戻して W2 だけを確かめることはしない。
+W2 は、browse の 0.17.0（to884/info-hive-wiki#60）と Fluent 2 の画面（to884/info-hive-dev#105）が入った版のリリースのあとで確かめる。そのときは、S0 に戻して確認 1〜3 をやり直し（S0 には git も uv も入っていないので、確認 1-2 の導入から行う）、その版の S1（`S1-wiki-<その版>`）を作り、確認 5 の W1 から続けて通す。古い S1 に戻して W2 だけを確かめることはしない。
 
 W2 の手順（W1 に続けて、同じセッションで行う。3 回通す）:
 
