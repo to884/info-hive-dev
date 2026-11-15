@@ -380,7 +380,9 @@ class 名は v9 の静的な class 名である。根の要素が `fui-<Componen
 - JS が値を書くときは CSSOM（`element.style.setProperty`）を使う。CSSOM の書き込みは `style-src 'self'` の下でも効く。
 - マークアップの style 属性と `<style>` 要素は、CSP の下では無視される。部品の働きに要る値は style 属性で渡さない。
   - ProgressBar の値: 根に `data-percent`（0〜100 の整数）を書くか、`data-fui-enhance` の中に置いて `display.js` に計算させる。
-  - Popover と Menu の位置: `popovertarget` か `commandfor` で開けば、トリガーが暗黙のアンカーになる。Tooltip は `overlays.js` が CSSOM で結ぶ。
+  - Popover と Menu の位置: `popovertarget` か `commandfor` で開けば、トリガーが暗黙のアンカーになる。Tooltip は `overlays.js` が CSSOM で結ぶ。Menu を下矢印で開くときは、`overlays.js` が `showPopover({ source })` でトリガーを渡すので、同じく暗黙のアンカーになる（`source` に対応しないブラウザーでは位置がずれる）。
+  - Tooltip がトリガーに書く `anchor-name` は、利用者の CSS や style が書いた名前を残して足し、閉じたら足す前の宣言に戻す（開いている間に利用者が書いた宣言には触らない）。
+- `fluent2.js` のキーの処理は、IME の変換中のキー（`isComposing` が真か、`keyCode` が 229）を受けない。日本語の変換を確定する Enter、取り消す Esc、候補を選ぶ矢印は、部品の操作にならない（v9 との意図した差）。
 - 見本の中の配置のための style 属性（flex、gap、max-width）は、CSP の下では無視されて並びが変わる。ページの配置は、自分の CSS ファイルか `layout.css` の `f2-` の class で書く。
 - 設計書の HTML（公開のリポジトリ to884/fluent2-html-replica の `docs/fluent2-web-spec.html`）は CSS と JS を埋め込んでいるので、この CSP の下では表示できない。
 

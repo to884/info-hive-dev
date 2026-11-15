@@ -460,6 +460,7 @@ div.fui-Combobox                         根: 枠、背景、下線の ::after�
 - 打ち込みは、値で始まる最初の選択肢を強調するだけで、一覧を絞り込まない。v9 でも絞り込みは利用者のコードの責任である。`freeform` と、フォーカスが外れたときに値を選択に戻す処理は再現していない。
 - invalid の規則は、v9 でも無効かどうかを見ない（`useComboboxStyles.styles.ts:301-302`）。`:not(:focus-within)` を含む詳細度 (0,2,0) が disabled の (0,1,0) に勝つので、無効かつ不正のときは赤い枠になると読める（推論。描画では確かめていない）。
 - `aria-autocomplete` は v9 のスナップショットにないので付けない。
+- IME の変換中のキー（`isComposing` が真か、`keyCode` が 229）は、一覧の操作にしない。v9 はこれを見ないので、日本語の変換を Enter で確定すると、強調中の選択肢が選ばれて入力が上書きされる。ここでは v9 と違えて止め、変換で入れたあとは入力中として扱う（確定の直後の Space を選択にしない）。Safari は変換を確定する keydown で `isComposing` を偽にするので、229 も見る。`tools/verify/behavior.html` で合成のイベントを使って確かめた。実際の IME での操作は確かめていない。
 - inline の一覧（v9 の `inlinePopup`）の `z-index: 1` は、popover で最上層に出すので書いていない。
 
 ## Dropdown
@@ -740,7 +741,7 @@ span.fui-SpinButton                        根: inline-grid。枠は ::before、
 
 - 既定の属性と、端に達したボタンの無効: `useSpinButton.tsx:300-342`。ARIA の値: `useSpinButton.tsx:350-356`。
 - キーボード（`useSpinButton.tsx:190-231`。この JS が再現する）: ArrowUp / ArrowDown で 1 ステップ、PageUp / PageDown で大きなステップ、Home / End で最小 / 最大（Shift なし）、Enter で確定、Escape で打ちかけを戻す。キーを押している間は対応するボタンに `fui-SpinButton__button_active` を付けて押した見た目にする。
-- ボタンを押し続けると繰り返す。最初は 300ms、1000ms かけて 80ms まで縮める（`useSpinButton.tsx:39-46,139-150`）。
+- ボタンを押し続けると繰り返す。最初は 300ms、1000ms かけて 80ms まで縮め、そのあとは 80ms で繰り返す（`useSpinButton.tsx:39-46,139-150`。80ms で止めるのは v9 との差。「v9 との差と未確認の点」を参照）。
 - ステップは根の `data-step` と `data-step-page`（v9 の `step` と `stepPage`。既定 1）で与える。
 
 出典のファイル: `react-spinbutton/library/src/components/SpinButton/useSpinButtonStyles.styles.ts`、`react-spinbutton/library/src/components/SpinButton/useSpinButton.tsx`、`react-spinbutton/library/src/components/SpinButton/SpinButton.types.ts`
@@ -841,6 +842,8 @@ span.fui-SpinButton                        根: inline-grid。枠は ::before、
 
 - 表示の書式（v9 の `displayValue`）と、制御された値（`value` と `onChange`）は再現していない。JS は数値を `step` の小数の桁で丸めて表示する。
 - 打った値を確定するときは、v9 と同じく範囲に収めない（`useSpinButton.tsx:240-264`）。
+- 長押しの間隔は 80ms で止める。v9 は線形の補間の比を 1 で止めないので（`useSpinButton.tsx:143-148`）、1000ms を過ぎると間隔が 80ms を下回り、0 に近づいて値が急に速く進む（300、234、182.5、142.4、111、86.6、67.6、52.7 ms…）。`MIN_SPIN_DELAY_MS` の名前に合わせて、ここでは v9 と違えた。
+- IME の変換中のキー（`isComposing` が真か、`keyCode` が 229）では、値を確定も増減もしない。v9 は見ないので、全角の数字を変換して Enter で確定すると、打ちかけの文字が元の値に戻る。Combobox と同じ理由で v9 と違えた。
 - underline のボタンの規則は、基本と同じ値を書き直すだけなので CSS では省いた（`useSpinButtonStyles.styles.ts:329-349`）。
 
 ## TagPicker

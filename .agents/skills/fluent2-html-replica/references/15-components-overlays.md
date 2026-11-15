@@ -350,7 +350,7 @@ Popover は、部品を操作したときに出る小さな面である。作業
 | 矢印 | `fui-PopoverSurface__arrow`（作った class） | 面の最初の子の `div`、`aria-hidden="true"` | `packages/react-components/react-popover/library/src/components/PopoverSurface/renderPopoverSurface.tsx:11-26` |
 
 - トリガーに `popovertarget="<id>"` を書けば JS なしで開閉する。Esc と外側のクリックで閉じる（`popover="auto"`）。v9 も Esc で閉じる（`packages/react-components/react-popover/library/src/components/PopoverSurface/usePopoverSurface.ts:87-96`）。
-- 位置はアンカー位置決めで決める。`popovertarget` か `commandfor` で開く面は、開いたトリガーがブラウザーの暗黙のアンカーになるので、`anchor-name` も `position-anchor` も書かない（Chromium 156 で確かめた）。インラインの style 属性を使わないので、CSP（`style-src 'self'`）の下でも位置が決まる。JS から `showPopover()` で開く面（Tooltip）は暗黙のアンカーができないので、`overlays.js` が開くときに CSSOM でトリガーと面を結ぶ。既定は above・center で、offset は 0（矢印ありは矢印の高さ）である（`packages/react-components/react-popover/library/src/components/Popover/usePopover.ts:266-282`）。
+- 位置はアンカー位置決めで決める。`popovertarget` か `commandfor` で開く面は、開いたトリガーがブラウザーの暗黙のアンカーになるので、`anchor-name` も `position-anchor` も書かない（Chromium 156 で確かめた）。インラインの style 属性を使わないので、CSP（`style-src 'self'`）の下でも位置が決まる。JS から `showPopover()` で開く面（Tooltip）は暗黙のアンカーができないので、`overlays.js` が開くときに CSSOM でトリガーと面を結ぶ。Menu を下矢印で開くときは、`overlays.js` が `showPopover({ source })` でトリガーを渡し、同じく暗黙のアンカーにする。既定は above・center で、offset は 0（矢印ありは矢印の高さ）である（`packages/react-components/react-popover/library/src/components/Popover/usePopover.ts:266-282`）。
 - `trapFocus` 相当（`role="dialog"` とフォーカスの閉じ込め）が要るときは、modal の `<dialog>` を使う。
 
 ### バリエーション
@@ -459,7 +459,7 @@ Menu は、トリガーを操作すると出る選択肢の一覧である。選
 
 - スロットの順は checkmark、icon、content（subText を含む）、secondaryContent、submenuIndicator である（`packages/react-components/react-menu/library/src/components/MenuItem/useMenuItemBase.tsx:104-119`）。
 - checkbox と radio のチェックは `Checkmark16Filled` である。サブメニューの印は `ChevronRight` の Regular と Filled の組で、hover で Filled に切り替える（`packages/react-components/react-menu/library/src/components/MenuItem/useMenuItemStyles.styles.ts:47-52`）。
-- キーボード（`data-fui-enhance` で `overlays.js` が扱う）: 上下の矢印で循環して移る、Home と End、先頭文字で探す（`packages/react-components/react-menu/library/src/components/MenuList/useMenuList.ts:49`、`packages/react-components/react-menu/library/src/components/MenuItem/useMenuItemBase.tsx:121`）。Enter と Space で選ぶ。Esc で閉じてトリガーへ戻る。Tab で閉じてトリガーへ戻る（`packages/react-components/react-menu/library/src/components/MenuPopover/useMenuPopover.ts:40-46,99-110`）。トリガーで下矢印を押すと開く（`packages/react-components/react-menu/library/src/components/MenuTrigger/useMenuTrigger.ts:84`）。
+- キーボード（`data-fui-enhance` で `overlays.js` が扱う）: 上下の矢印で循環して移る、Home と End、先頭文字で探す（`packages/react-components/react-menu/library/src/components/MenuList/useMenuList.ts:49`、`packages/react-components/react-menu/library/src/components/MenuItem/useMenuItemBase.tsx:121`）。Enter と Space で選ぶ。Esc で閉じてトリガーへ戻る。Tab で閉じてトリガーへ戻る（`packages/react-components/react-menu/library/src/components/MenuPopover/useMenuPopover.ts:40-46,99-110`）。トリガーで下矢印を押すと開く（`packages/react-components/react-menu/library/src/components/MenuTrigger/useMenuTrigger.ts:84`）。無効（`disabled` か `aria-disabled="true"`）のトリガーと、ほかが既定の動作を止めた keydown では開かない（同 `:123`、`:223-225`）。下矢印は `showPopover({ source: トリガー })` で開く。トリガーが invoker になるので、クリックで開いたときと同じく暗黙のアンカーになって位置がそろい、開いている `popover="auto"` の中のトリガーから開いても親は閉じない。v9 と同じく、クリックのイベントは起こさない。
 - マウスが乗った項目にフォーカスを移す（`packages/react-components/react-menu/library/src/components/MenuItem/useMenuItemBase.tsx:79-85`）。無効の項目は `aria-disabled="true"` で、フォーカスは受ける（同 `:70-71`）。
 - 項目を選ぶと閉じる（`packages/react-components/react-menu/library/src/components/MenuItem/useMenuItemBase.tsx:87`）。checkbox は閉じない（`persistOnClick`、`packages/react-components/react-menu/library/src/components/MenuItemCheckbox/useMenuItemCheckbox.tsx:45`）。Menu の根に `data-persist-on-item-click` を書くと、どの項目でも閉じない。radio は同じ `role="group"` の中の同じ `data-name` で 1 つだけ選ぶ（v9 の `name`）。
 
@@ -577,6 +577,7 @@ Menu は、トリガーを操作すると出る選択肢の一覧である。選
 ### v9 との差と未確認の点
 
 - MenuPopover は `popover` 属性で開き、位置はアンカー位置決めで近似する（Popover の節を参照）。v9 の既定の位置（below・start、サブメニューは after・top）は `position-area` に写した。
+- 下矢印で開くときの `showPopover({ source })` は、Chromium 157 で確かめた。`source` に対応しないブラウザーでは引数が無視され、下矢印で開いた面だけ暗黙のアンカーがなく、位置がクリックとずれる。開いている `popover="auto"` の中のトリガーから開くと、親が閉じる。クリックと Enter では起きない。どのブラウザーが対応するかは確かめていない。
 - サブメニューの開閉（hover の 500ms の遅延、右矢印で開く、左矢印で閉じる、safe zone）は `overlays.js` では扱わない。見た目（`aria-expanded="true"`）だけを用意した。
 - 複数行の判定は `:has(.fui-MenuItem__subText)` で行う。v9 は `subText` の有無を state で見る。
 - v9 で空の icon と checkmark を描いて揃えるのは、MenuList（または Menu）に `hasIcons`、`hasCheckmarks` を渡したときだけである（既定は false、`packages/react-components/react-menu/library/src/components/MenuList/useMenuList.ts:180-181`、`MenuItem/useMenuItemBase.tsx:104`）。ここではマークアップに空の `span` を書いて揃える。最初の見本は `hasIcons` を渡した v9 と同じ形である。MenuItemCheckbox と MenuItemRadio の checkmark は v9 が常に描く（`MenuItemCheckbox/useMenuItemCheckbox.tsx:49`）。
@@ -664,6 +665,9 @@ hover と focus で出る Tooltip（`overlays.js` が必要）。
 - `popover="manual"` で開き、`overlays.js` が遅延と blur と Esc を扱う。`popover="hint"` や `interestfor` のような新しい仕組みは、対応状況を確かめていないので使っていない。JS がないと Tooltip は出ない。
 - 対象が画面から見えなくなったとき（v9 の `referenceHidden`）の `visibility: hidden` は、`data-hidden` 属性で写した。`overlays.js` はこの判定をしない。
 - 位置と矢印は Popover と同じ近似である。
+- 位置のために、`overlays.js` は開いている間だけトリガーの `anchor-name` に名前を足す。初めて足すときの計算値（利用者の CSS と style の名前）に自分の名前を連結し、利用者の `!important` にも負けないよう important で書く。閉じたら、足す前の style の宣言（値と優先度）に戻す。開いている間に利用者が style の `anchor-name` を書いたら、その宣言には触らない（そこに Tooltip の名前が残ることがある）。名前は開くたびに新しく作る（`--fui-tooltip-<id>-<連番>`）ので、残った古い名前を参照することはない。
+- 1 つの Tooltip を複数のトリガーで使い、開いたままポインターを別のトリガーへ直接移すと、Tooltip は前のトリガーに付いたままになる（一度閉じてから開けば、開いたトリガーに付く）。
+- Esc で消す処理は、IME の変換を取り消す Esc では動かない（入力欄に付けた Tooltip のため。v9 との意図した差）。
 - Web Components v3 は padding が `4px 10px 6px` で、横が v9 より 1px 狭い。v9 の値を採った。
 
 ## Toast

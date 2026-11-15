@@ -360,6 +360,8 @@ Breadcrumb は、サイトやアプリの階層での現在地を示し、上の
 
 - 区切りは `ChevronRightRegular`（RTL は `ChevronLeftRegular`）である（`[bc]BreadcrumbDivider/useBreadcrumbDivider.tsx:73-75`）。CSS は RTL で右向きの形を左右反転する。
 - 現在の項目の `aria-disabled="true"` は、disabled の見た目にしない。v9 は Button の `disabled` を渡していないからである。disabled の見た目にするのは、`:disabled` か、`aria-current` のない `aria-disabled="true"`（v9 の `disabledFocusable`）である。
+- 操作: v9 の BreadcrumbButton は Button と同じく `useARIAButtonProps` を通るので、`aria-disabled="true"` ならクリックと Enter、Space を止める。現在の項目も止まる（`packages/react-components/react-aria/library/src/button/useARIAButtonProps.ts:50-74`）。React を使わない HTML では、Breadcrumb を `data-fui-enhance` の中に置けば、`actions.js` が同じく止める。
+- 無効の `<a>` は `href` を書かない。v9 は無効の `<a>` から `href` を外し、`role="link"` を付ける（同 `:124-146`）。`href` を残すと、`actions.js` がクリックとキーを止めても、中クリックやコンテキストメニューから開ける。現在の項目は、`href` を書かずに `<button>` で描く（`href` がなければ `button` になる）。
 - キーボード: 既定の `focusMode="tab"` は Tab キーで項目を移る。`focusMode="arrow"` は矢印キーのグループになる（`[bc]Breadcrumb/Breadcrumb.types.ts:33-35`）。`navigation.js` は arrow を扱わない。
 
 ### バリエーション
@@ -408,7 +410,7 @@ BreadcrumbItem の文字は `colorNeutralForeground2`（`[bc]BreadcrumbItem/useB
 ### 実装の例
 
 ```html demo
-<nav class="fui-Breadcrumb" aria-label="パンくずリスト">
+<nav class="fui-Breadcrumb" aria-label="パンくずリスト" data-fui-enhance>
   <ol class="fui-Breadcrumb__list" role="list">
     <li class="fui-BreadcrumbItem">
       <a class="fui-BreadcrumbButton" href="#">
@@ -428,14 +430,14 @@ BreadcrumbItem の文字は `colorNeutralForeground2`（`[bc]BreadcrumbItem/useB
 
 ```html demo
 <div style="display: grid; gap: 8px">
-  <nav class="fui-Breadcrumb" aria-label="small のパンくずリスト" data-size="small">
+  <nav class="fui-Breadcrumb" aria-label="small のパンくずリスト" data-size="small" data-fui-enhance>
     <ol class="fui-Breadcrumb__list" role="list">
       <li class="fui-BreadcrumbItem"><a class="fui-BreadcrumbButton" href="#">ホーム</a></li>
       <li class="fui-BreadcrumbDivider" aria-hidden="true"><svg class="fui-Icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M7.65 4.15c.2-.2.5-.2.7 0l5.49 5.46c.21.22.21.57 0 .78l-5.49 5.47a.5.5 0 0 1-.7-.71L12.8 10 7.65 4.85a.5.5 0 0 1 0-.7"/></svg></li>
       <li class="fui-BreadcrumbItem"><button class="fui-BreadcrumbButton" type="button" aria-current="page" aria-disabled="true">設定</button></li>
     </ol>
   </nav>
-  <nav class="fui-Breadcrumb" aria-label="large のパンくずリスト" data-size="large">
+  <nav class="fui-Breadcrumb" aria-label="large のパンくずリスト" data-size="large" data-fui-enhance>
     <ol class="fui-Breadcrumb__list" role="list">
       <li class="fui-BreadcrumbItem"><a class="fui-BreadcrumbButton" href="#">ホーム</a></li>
       <li class="fui-BreadcrumbDivider" aria-hidden="true"><svg class="fui-Icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M7.65 4.15c.2-.2.5-.2.7 0l5.49 5.46c.21.22.21.57 0 .78l-5.49 5.47a.5.5 0 0 1-.7-.71L12.8 10 7.65 4.85a.5.5 0 0 1 0-.7"/></svg></li>
@@ -854,6 +856,8 @@ CarouselNavButton の点（`[car]CarouselNavButton/useCarouselNavButtonStyles.st
 - 前後のボタンの背景: v9 は Carousel の `colorNeutralBackgroundAlpha` を Button の class より前に結合するので、Button の subtle の背景（透明）が勝つと読める（`[car]CarouselButton/useCarouselButtonStyles.styles.ts:38-43`。Griffel の `mergeClasses` の順からの推論）。CSS は subtle の背景にした。ブラウザーで確かめていない。
 - `aria-roledescription="carousel"` は v9 のソースにない。WAI-ARIA の APG に沿うなら足してよい。
 - v9 はキーボードの左右の矢印で点を移る。`navigation.js` は Tab キーでの移動とクリックだけを扱う。
+- 前後のボタンの無効は、利用者の値を優先する。v9 も利用者の props を端の判定のあとで展開する（`[car]CarouselButton/useCarouselButton.tsx:114-119`）。`navigation.js` が書くのは端で付ける無効だけで、付ける前の値を覚え、端を離れたら戻す。付けている間に利用者が `disabled` か `aria-disabled` を変えたら、変えた属性だけは戻さずに利用者の値を残し、変えていない属性は戻す。利用者があとから無効を外したり付けたりしても、カードを動かしたときに上書きしない。端でないボタンには `aria-disabled` を書かない。v9 は端でないときも `aria-disabled="false"` を描く（`[car]CarouselButton/useCarouselButton.tsx:116`）が、`false` と属性なしは同じ意味である。`aria-disabled="true"` のクリックは、Button と同じく `actions.js` が止める（v9 の `useButton_unstable` と同じ）。
+- 点（CarouselNavButton）は、`aria-disabled="true"` でもクリックで移る。v9 も `useARIAButtonProps` の `onClick` を自分の処理で上書きするので、止まらない（`[car]CarouselNavButton/useCarouselNavButton.ts:87-88`）。
 
 ## Table
 

@@ -175,8 +175,17 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
 (() => {
   'use strict';
 
+  // IME の変換中のキー（isComposing、Safari は keyCode 229）は、部品の操作にしない。
+  // 変換を確定する Enter、取り消す Esc、候補を選ぶ矢印が、部品のキーとして働かないようにする（docs/conventions.md の「キーボード」）
+  const isComposingKey = (e) => e.isComposing || e.keyCode === 229;
+
   const ENHANCE = '[data-fui-enhance]';
-  const CONTROL = '.fui-Button, .fui-Link, .fui-InfoButton';
+  // v9 で useARIAButtonProps を通る部品。BreadcrumbButton は fui-Button を持たないが、
+  // useButtonBase_unstable を通る（react-breadcrumb/library/src/components/BreadcrumbButton/useBreadcrumbButton.ts:54-64）。
+  // 現在の項目にも aria-disabled="true" が付き、同じく操作が止まる。
+  // CarouselButton（前・次）も useButton_unstable を通る（react-carousel/library/src/components/CarouselButton/useCarouselButton.tsx:105-121）。
+  // CarouselNavButton は useARIAButtonProps の onClick を自分の処理で上書きするので（useCarouselNavButton.ts:87-88）、v9 でも止まらない。ここにも入れない
+  const CONTROL = '.fui-Button, .fui-Link, .fui-InfoButton, .fui-BreadcrumbButton, .fui-CarouselButton';
 
   const enhanced = (el) => el instanceof Element && el.closest(ENHANCE) !== null;
 
@@ -205,6 +214,7 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
     }, true);
 
     document.addEventListener('keydown', (ev) => {
+      if (isComposingKey(ev)) return;
       if (ev.key !== 'Enter' && ev.key !== ' ') return;
       if (blockedControl(ev.target)) {
         ev.preventDefault();
@@ -266,6 +276,7 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
     });
 
     toolbar.addEventListener('keydown', (ev) => {
+      if (isComposingKey(ev)) return;
       const all = items();
       const index = all.indexOf(document.activeElement);
       if (index < 0) return;
@@ -417,6 +428,11 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
     return nav[key] || 'None';
   };
 
+  // IME の変換中のキー。変換を確定する Enter や候補を選ぶ矢印を、部品の操作として扱わない。
+  // Safari は変換を確定する keydown で isComposing を false にするので、keyCode 229 も見る。
+  // v9 はどちらも見ていない（v9 との意図した差）
+  const isComposingKey = (e) => e.isComposing || e.keyCode === 229;
+
   const optionText = (opt) => (opt.getAttribute('data-text') ?? opt.textContent ?? '').trim();
   const isSelected = (opt) => opt.getAttribute('aria-selected') === 'true' || opt.getAttribute('aria-checked') === 'true';
 
@@ -560,6 +576,11 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
     trigger.addEventListener('click', () => (open ? hide() : show()));
     trigger.addEventListener('blur', () => hide());
     trigger.addEventListener('keydown', (e) => {
+      // 変換中は文字を入れている最中なので、入力中として扱う（確定の直後の Space を選択の操作にしない）
+      if (isComposingKey(e)) {
+        if (isCombobox) isTyping = true;
+        return;
+      }
       const action = getAction(e, open, multiselect());
       if (isCombobox) {
         if (action === 'Type') isTyping = true;
@@ -634,6 +655,7 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
         trigger.focus();
       });
       expandIcon.addEventListener('keydown', (e) => {
+        if (isComposingKey(e)) return;
         if (open && e.key === 'Escape') {
           e.preventDefault();
           e.stopPropagation();
@@ -666,6 +688,7 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
      SpinButton
      react-spinbutton/library/src/components/SpinButton/useSpinButton.tsx:
      間隔 39-46（最初 300ms、1000ms かけて 80ms へ線形に縮める）、増減 110-150、キー 190-238、端のボタンの無効 313-342
+     v9 との意図した差: 間隔を 80ms で止める（下の spin）。変換中のキーで値を確定も増減もしない（isComposingKey）
      値の属性: aria-valuemin、aria-valuemax（min、max）、根の data-step、data-step-page（step、stepPage。既定 1）
      ------------------------------------------------------------------------ */
   const DEFAULT_SPIN_DELAY_MS = 300;
@@ -742,7 +765,9 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
       stepValue(dir, false);
       timer = window.setTimeout(() => {
         spinTime += spinDelay;
-        spinDelay = DEFAULT_SPIN_DELAY_MS + (MIN_SPIN_DELAY_MS - DEFAULT_SPIN_DELAY_MS) * (spinTime / MAX_SPIN_TIME_MS);
+        // v9（useSpinButton.tsx:143-148）は lerp の比を 1 で止めないので、1000ms を過ぎると間隔が 80ms を下回り、0 に近づく。
+        // ここでは MIN_SPIN_DELAY_MS の名前のとおり 80ms で止める
+        spinDelay = DEFAULT_SPIN_DELAY_MS + (MIN_SPIN_DELAY_MS - DEFAULT_SPIN_DELAY_MS) * Math.min(spinTime / MAX_SPIN_TIME_MS, 1);
         spin(dir);
       }, spinDelay);
     };
@@ -764,7 +789,7 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
       dec.classList.toggle('fui-SpinButton__button_active', button === dec);
     };
     input.addEventListener('keydown', (e) => {
-      if (input.readOnly) return;
+      if (input.readOnly || isComposingKey(e)) return;
       let state = null;
       if (e.key === 'ArrowUp') { e.preventDefault(); stepValue(1, false); state = inc; }
       else if (e.key === 'ArrowDown') { e.preventDefault(); stepValue(-1, false); state = dec; }
@@ -927,6 +952,10 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
  */
 (() => {
   'use strict';
+
+  // IME の変換中のキー（isComposing、Safari は keyCode 229）は、部品の操作にしない。
+  // 変換を確定する Enter、取り消す Esc、候補を選ぶ矢印が、部品のキーとして働かないようにする（docs/conventions.md の「キーボード」）
+  const isComposingKey = (e) => e.isComposing || e.keyCode === 229;
 
   // --- getInitials（react-avatar/library/src/utils/getInitials.ts）---------------------------
   // 正規表現の \u エスケープを避け、文字の範囲を数値で比べる（内容は v9 の正規表現と同じ）
@@ -1138,6 +1167,7 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
       toggle(event);
     });
     card.addEventListener('keydown', (event) => {
+      if (isComposingKey(event)) return;
       if (event.key !== 'Enter') return;
       const focusable = event.target.closest(FOCUSABLE);
       if (focusable && focusable !== checkbox && focusable !== card) return;
@@ -1193,6 +1223,10 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
  */
 (function () {
   'use strict';
+
+  // IME の変換中のキー（isComposing、Safari は keyCode 229）は、部品の操作にしない。
+  // 変換を確定する Enter、取り消す Esc、候補を選ぶ矢印が、部品のキーとして働かないようにする（docs/conventions.md の「キーボード」）
+  const isComposingKey = (e) => e.isComposing || e.keyCode === 229;
 
   // 矢印キーでの移動の共通処理: items の中で、current から delta だけ進んだ要素を返す（circular なら端で回る）
   function step(items, current, delta, circular) {
@@ -1269,6 +1303,7 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
       }
     });
     list.addEventListener('keydown', (ev) => {
+      if (isComposingKey(ev)) return;
       const prevKey = vertical ? 'ArrowUp' : 'ArrowLeft';
       const nextKey = vertical ? 'ArrowDown' : 'ArrowRight';
       const rtl = !vertical && getComputedStyle(list).direction === 'rtl';
@@ -1328,6 +1363,7 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
       focusItem(item);
     });
     tree.addEventListener('keydown', (ev) => {
+      if (isComposingKey(ev)) return;
       const item = document.activeElement;
       if (!item || !item.classList || !item.classList.contains('fui-TreeItem') || !tree.contains(item)) return;
       const items = visibleItems();
@@ -1431,6 +1467,7 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
     });
     nav.addEventListener('toggle', syncCategories, true);
     nav.addEventListener('keydown', (ev) => {
+      if (isComposingKey(ev)) return;
       if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
       const items = focusables();
       const cur = document.activeElement;
@@ -1450,6 +1487,22 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
     const prev = car.querySelector('.fui-CarouselButton[data-direction="prev"]');
     const next = car.querySelector('.fui-CarouselButton[data-direction="next"]');
     const circular = car.hasAttribute('data-circular');
+    // 前後のボタンの無効は、利用者の値を優先する（v9 は利用者の props を端の判定のあとで展開する。useCarouselButton.tsx:114-119）。
+    // ここで書くのは、端で付ける無効だけである。付ける前の値を覚え、端を離れたら戻す。付けている間に利用者が
+    // disabled か aria-disabled を変えたら（MutationObserver で見る）、変えた属性だけは戻さずに利用者の値を残す。
+    // 変えていないほうの属性は戻す（属性ごとに決める）
+    const buttons = [prev, next].filter(Boolean);
+    const edgeSaved = new Map(); // ボタン → 端の無効を付ける前の { disabled, aria }
+    const touched = new Map(); // ボタン → 端の無効を付けたあとで、利用者が変えた属性の名前の Set
+    const markTouched = (r) => {
+      if (!touched.has(r.target)) touched.set(r.target, new Set());
+      touched.get(r.target).add(r.attributeName);
+    };
+    const watch = typeof MutationObserver === 'function'
+      ? new MutationObserver((records) => records.forEach(markTouched))
+      : null;
+    if (watch) buttons.forEach((b) => watch.observe(b, { attributes: true, attributeFilter: ['disabled', 'aria-disabled'] }));
+    const takeAuthorChanges = () => { if (watch) watch.takeRecords().forEach(markTouched); };
     let index = 0;
 
     function goTo(i) {
@@ -1471,12 +1524,29 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
         c.setAttribute('aria-hidden', String(k !== i));
       });
       // 端では前後のボタンを使えなくする（useCarouselButton.tsx:95-97。循環しないとき）
+      takeAuthorChanges();
       [[prev, 0], [next, cards.length - 1]].forEach(([btn, edge]) => {
         if (!btn) return;
         const off = !circular && i === edge;
-        btn.disabled = off;
-        btn.setAttribute('aria-disabled', String(off));
+        const saved = edgeSaved.get(btn);
+        if (off && !saved) {
+          edgeSaved.set(btn, { disabled: btn.disabled, aria: btn.getAttribute('aria-disabled') });
+          touched.delete(btn);
+          btn.disabled = true;
+          btn.setAttribute('aria-disabled', 'true');
+        } else if (!off && saved) {
+          edgeSaved.delete(btn);
+          const changed = touched.get(btn) || new Set();
+          if (!changed.has('disabled')) btn.disabled = saved.disabled;
+          if (!changed.has('aria-disabled')) {
+            if (saved.aria === null) btn.removeAttribute('aria-disabled');
+            else btn.setAttribute('aria-disabled', saved.aria);
+          }
+          touched.delete(btn);
+        }
       });
+      // 自分の書き込みの記録は、利用者の変更として数えない
+      if (watch) watch.takeRecords();
     }
 
     if (prev) prev.addEventListener('click', () => goTo(index - 1));
@@ -1533,6 +1603,10 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
 (() => {
   'use strict';
 
+  // IME の変換中のキー（isComposing、Safari は keyCode 229）は、部品の操作にしない。
+  // 変換を確定する Enter、取り消す Esc、候補を選ぶ矢印が、部品のキーとして働かないようにする（docs/conventions.md の「キーボード」）
+  const isComposingKey = (e) => e.isComposing || e.keyCode === 229;
+
   const ENHANCE = '[data-fui-enhance]';
   const reduceMotion = () => window.matchMedia('screen and (prefers-reduced-motion: reduce)').matches;
 
@@ -1569,6 +1643,7 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
     }
     // show() で開いた non-modal は、ブラウザーによっては Esc で閉じない。v9 は閉じる
     dialog.addEventListener('keydown', (ev) => {
+      if (isComposingKey(ev)) return;
       if (ev.key === 'Escape' && dialog.open && !dialog.matches(':modal')) {
         ev.preventDefault();
         dialog.close();
@@ -1626,6 +1701,7 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
     });
 
     popover.addEventListener('keydown', (ev) => {
+      if (isComposingKey(ev)) return;
       const list = items();
       const index = list.indexOf(document.activeElement);
       switch (ev.key) {
@@ -1699,16 +1775,20 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
       }
     });
 
-    // トリガーで下矢印を押すと開く（MenuTrigger/useMenuTrigger.ts:84）
+    // トリガーで下矢印を押すと開く（MenuTrigger/useMenuTrigger.ts:84）。無効のトリガーと、ほかが既定の動作を止めた keydown では開かない（同 :123、:223-225）。
+    // showPopover({ source }) でトリガーを invoker として渡す。引数なしで開くと、暗黙のアンカーがなくて位置がクリックとずれ、
+    // 開いている popover="auto" の中のトリガーでは、親子の関係がなくて親が閉じる（source で両方がクリックと同じになる。Chromium 157 で確かめた）。
+    // v9 と同じくクリックは起こさない。source を読まないブラウザーでは引数が無視され、引数なしと同じになる
     const t = trigger();
     if (t) {
       t.setAttribute('aria-haspopup', 'menu');
       t.setAttribute('aria-expanded', 'false');
       t.addEventListener('keydown', (ev) => {
-        if (ev.key === 'ArrowDown' && !popover.matches(':popover-open')) {
-          ev.preventDefault();
-          popover.showPopover();
-        }
+        if (isComposingKey(ev)) return;
+        if (ev.key !== 'ArrowDown' || ev.defaultPrevented || popover.matches(':popover-open')) return;
+        if (t.matches(':disabled') || t.getAttribute('aria-disabled') === 'true') return;
+        ev.preventDefault();
+        popover.showPopover({ source: t });
       });
     }
   }
@@ -1718,6 +1798,55 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
   // :245-248（blur ではすぐ消す）、:141-157（Esc で消す）
   let visibleTooltip = null;
 
+  // トリガーの anchor-name。利用者の CSS や style が書いたものを消さずに、自分の名前を足し、閉じたら戻す。
+  // - 初めて足すとき、そのときの計算値（CSS と style の両方。none なら空）を覚え、それと自分の名前を連結して、
+  //   利用者の CSS の !important に負けないよう important で書く。利用者の値は分割も編集もしない。
+  // - 自分のものかどうかは、今の style の宣言（値と優先度）が、最後に自分が書いたものと同一かで決める。
+  //   同一なら、自分の名前を足し引きして書き直し、自分の名前がなくなったら足す前の宣言に戻す。
+  //   違えば、利用者が書いたものとして宣言には触らず、覚えたことを捨てる（次に足すときは、その宣言から始め直す）
+  const anchorState = new WeakMap();
+  const declOf = (el) => ({ value: el.style.getPropertyValue('anchor-name'), priority: el.style.getPropertyPriority('anchor-name') });
+  const sameDecl = (a, b) => a.value === b.value && a.priority === b.priority;
+  const writeAnchorNames = (el, st) => {
+    const value = [st.base].concat([...st.own]).filter((v) => v !== '').join(', ');
+    el.style.setProperty('anchor-name', value, 'important');
+    st.written = declOf(el);
+  };
+  // 利用者が書き換えていれば、覚えたことを捨てて undefined を返す
+  const ownedState = (el) => {
+    const st = anchorState.get(el);
+    if (st && !sameDecl(declOf(el), st.written)) {
+      anchorState.delete(el);
+      return undefined;
+    }
+    return st;
+  };
+  const addAnchorName = (el, name) => {
+    let st = ownedState(el);
+    if (!st) {
+      // 計算値は削らずにそのまま使う（末尾のエスケープした空白 --a\ を壊さないため）
+      const computed = getComputedStyle(el).getPropertyValue('anchor-name');
+      st = { original: declOf(el), base: computed.trim() === 'none' ? '' : computed, own: new Set(), written: null };
+      anchorState.set(el, st);
+    }
+    st.own.add(name);
+    writeAnchorNames(el, st);
+  };
+  const removeAnchorName = (el, name) => {
+    const st = ownedState(el);
+    if (!st || !st.own.delete(name)) return;
+    if (st.own.size > 0) {
+      writeAnchorNames(el, st);
+      return;
+    }
+    anchorState.delete(el);
+    if (st.original.value) el.style.setProperty('anchor-name', st.original.value, st.original.priority);
+    else el.style.removeProperty('anchor-name');
+  };
+  // アンカーの名前は、開くたびに新しく作る。id を置き換えただけだと tip.a と tip_a が同じ名前になり、
+  // Tooltip ごとに 1 つの名前だと、利用者が途中で書いた宣言に残った名前を、別のトリガーで開き直したときに参照してしまう
+  let anchorSeq = 0;
+
   function setupTooltip(tip) {
     if (!tip.id) return;
     const id = CSS.escape(tip.id);
@@ -1726,24 +1855,43 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
     const hideDelay = Number(tip.getAttribute('data-hide-delay') ?? 250);
     let timer = 0;
     // JS から開く popover には暗黙のアンカーができないので、CSSOM でトリガーと面を結ぶ。
-    // style 属性ではなく CSSOM で書くので、CSP（style-src 'self'）の下でも効く
-    const anchorName = `--fui-tooltip-${tip.id.replace(/[^A-Za-z0-9_-]/g, '_')}`;
+    // style 属性ではなく CSSOM で書くので、CSP（style-src 'self'）の下でも効く。
+    // 名前は開いている間だけトリガーに足し、閉じたら外す（Tooltip には閉じる動きがない）
+    const idPart = tip.id.replace(/[^A-Za-z0-9_-]/g, '_');
     let current = null;
+    let anchored = null;
+    let anchoredName = '';
+    const unanchor = () => {
+      if (anchored) removeAnchorName(anchored, anchoredName);
+      anchored = null;
+      anchoredName = '';
+    };
     const show = () => {
       if (tip.matches(':popover-open')) return;
       if (visibleTooltip && visibleTooltip !== tip) visibleTooltip.hidePopover();
-      targets.forEach((t) => { if (t !== current && t.style.getPropertyValue('anchor-name') === anchorName) t.style.removeProperty('anchor-name'); });
+      unanchor();
       if (current) {
-        current.style.setProperty('anchor-name', anchorName);
-        tip.style.setProperty('position-anchor', anchorName);
+        anchorSeq += 1;
+        anchoredName = `--fui-tooltip-${idPart}-${anchorSeq}`;
+        addAnchorName(current, anchoredName);
+        tip.style.setProperty('position-anchor', anchoredName);
+        anchored = current;
       }
       tip.showPopover();
+      // beforetoggle で開くのが取り消されたら、toggle は届かないので、ここで外す
+      if (!tip.matches(':popover-open')) {
+        unanchor();
+        return;
+      }
       visibleTooltip = tip;
     };
     const hide = () => {
       if (tip.matches(':popover-open')) tip.hidePopover();
       if (visibleTooltip === tip) visibleTooltip = null;
     };
+    // 別の Tooltip が出て閉じられたとき（上の visibleTooltip.hidePopover()）も、名前を外す
+    // toggle は後から届くので、そのときにもう開き直していれば外さない
+    tip.addEventListener('toggle', () => { if (!tip.matches(':popover-open')) unanchor(); });
     const schedule = (fn, delay) => {
       clearTimeout(timer);
       timer = window.setTimeout(fn, delay);
@@ -1757,6 +1905,7 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
         hide();
       });
       target.addEventListener('keydown', (ev) => {
+        if (isComposingKey(ev)) return;
         if (ev.key === 'Escape' && tip.matches(':popover-open')) {
           ev.preventDefault();
           clearTimeout(timer);
@@ -1874,6 +2023,7 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
     toaster.setAttribute('role', 'list');
     // Esc ですべて閉じる（Toaster/useToaster.tsx:36-46）、上下の矢印で移る（useToasterFocusManagement.ts:45-60）
     toaster.addEventListener('keydown', (ev) => {
+      if (isComposingKey(ev)) return;
       const list = Array.from(toaster.querySelectorAll(':scope > .fui-ToastContainer'));
       if (ev.key === 'Escape') {
         ev.preventDefault();
