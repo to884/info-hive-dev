@@ -50,6 +50,7 @@ put("concepts/strasse.md", pg({ type: "__proto__", title: "Straße", updated: "2
 put("concepts/istanbul.md", pg({ type: "entity", title: "İstanbul", tags: ["__proto__", "toString"] }, "# İstanbul\n\n街。"));
 put("concepts/abc.md", pg({ type: "concept", title: "abcdef" }, "# abcdef\n\n文字。"));
 put("concepts/nfd.md", pg({ type: "concept", title: NFD, tags: [NFD] }, `# ${NFD}\n\n## 固有の語ズズズ\n\n本文。`));
+put("concepts/note.md", pg({ type: "note", title: "ノートの種類" }, "# ノートの種類\n\n知らない種類。"));
 put("concepts/long.md", pg({ type: "W".repeat(120), title: "長い値", tags: ["W".repeat(200)] }, "# 長い値\n\n本文。"));
 
 function python(args) {
@@ -248,7 +249,22 @@ async function indexChecks(browser, base, tag) {
   const nonEmpty = upd.filter(Boolean);
   check(JSON.stringify(nonEmpty) === JSON.stringify(nonEmpty.slice().sort().reverse()) && upd.slice(nonEmpty.length).every((x) => !x),
     `${tag}: 更新の新しい順が違う: ${upd}`);
-  await page.selectOption(".sort-select select", "order");
+  // 並べ替えたあとの Enter は、いま見えている先頭の行を開く（1 回目の実装のレビューの A）
+  await page.selectOption(".sort-select select", "title");
+  const firstHref = await page.evaluate(() => document.querySelector("#_index .fx-row:not([hidden]) .ix-title").href);
+  await page.focus("#_q");
+  await Promise.all([page.waitForURL((u) => u.href !== page.url(), { timeout: 5000 }).catch(() => {}),
+                     page.keyboard.press("Enter")]);
+  check(page.url() === firstHref, `${tag}: 並べ替えたあとの Enter が見えている先頭の行を開かない: ${page.url()} != ${firstHref}`);
+  await page.goto(url(base, "index.html"));
+  await page.waitForFunction(() => window.__browse.navLoaded);
+  // 知らない種類の札は、中立の色（Fluent の既定の brand の色にしない）
+  const badge = await page.evaluate(() => ({
+    note: getComputedStyle(document.querySelector(".badge.t-note")).backgroundColor,
+    other: getComputedStyle(document.querySelector(".badge.t-other")).backgroundColor,
+    concept: getComputedStyle(document.querySelector(".badge.t-concept")).backgroundColor,
+  }));
+  check(badge.note === badge.other && badge.note !== badge.concept, `${tag}: 知らない種類の札の色が違う: ${JSON.stringify(badge)}`);
   // 検索での絞り込み
   await page.focus("#_q");
   await page.fill("#_q", "カイド");
@@ -322,7 +338,7 @@ async function layoutChecks(browser, base, tag) {
   await page.goto(url(base, "index.html"));
   const r = await page.evaluate(() => ({ theme: document.documentElement.getAttribute("data-theme"),
     rows: document.querySelectorAll("#_index .fx-row").length, titles: document.querySelectorAll("#_index .ix-title").length }));
-  check(r.theme === "auto" && r.rows === 7 && r.titles === 7, `${tag}: スクリプトなしの索引のページが違う: ${JSON.stringify(r)}`);
+  check(r.theme === "auto" && r.rows === 8 && r.titles === 8, `${tag}: スクリプトなしの索引のページが違う: ${JSON.stringify(r)}`);
   await context.close();
 }
 
