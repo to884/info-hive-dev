@@ -6,7 +6,7 @@
   3.10 にない標準ライブラリのどれで先に止まっても、この試験で分かる。
   手元に 3.10 や 3.11 がなければ飛ばす。環境変数 WIKI_TEST_REQUIRE_OLD_PYTHON=1 のとき（CI）は、飛ばさずに失敗する。
 - 古い版を真似て（sys.version_info を差し替えて）wiki_text.py を読み込むと止まり、3.12 では止まらないこと。
-- uv で動くスクリプトの PEP 723 の宣言が、どれもプラグインの CI で試す範囲（3.12 以上 3.15 未満。ADR-0025）を求めること。
+- uv で動くスクリプトの PEP 723 の宣言が、どれもプラグインの CI で試す範囲（3.12 以上 3.15 未満。ADR-0026）を求めること。
 
 3.9 以前は対象にしない（3.6 以前では、wiki_text.py の `from __future__ import annotations` が構文の誤りになり、
 版の確かめより先に止まる）。
@@ -137,7 +137,7 @@ class OldPythonTests(unittest.TestCase):
 class SourceTests(unittest.TestCase):
     def test_pep723_headers_require_the_tested_range(self):
         # uv で動くスクリプトは、どれも同じ範囲を宣言する。範囲は、プラグインの CI で試す版の最小から最大まで
-        # である（ADR-0025）。上限がないと、Python のない PC で uv がいちばん新しい版を取り、依存の配布物（wheel）が
+        # である（ADR-0026）。上限がないと、Python のない PC で uv がいちばん新しい版を取り、依存の配布物（wheel）が
         # その版にまだないと起動しない（0.19.4 で、CPython 3.15 と onnxruntime 1.31.1）。CI の行列を広げたら、
         # 宣言の上限もそろえて上げる。
         pattern = re.compile(r'^# requires-python = "(.+)"$', re.MULTILINE)

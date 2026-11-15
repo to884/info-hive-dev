@@ -1,8 +1,10 @@
 # Python の上限と、依存を解決できない失敗の扱いの直し（wiki 0.19.5）の敵対的レビュー
 
-利用者向け文書の段階 2 の確認（[確認表](../../research/usage-docs-stage2-checklist-2026-11-15.md)の確認 3）で見つけたプラグインの不具合を、作者の決定で直した。Python の入っていない新しい Windows 11 で、uv 0.13.8 は CPython 3.15 を取り、`onnxruntime==1.31.1` に 3.15 の wheel がないので、MCP サーバーの依存を解決できなかった。中継は、これを壊れた環境と取り違えて入れ直し、理由は `server.log` にしか残らなかった。決定は [ADR-0025](../../adr/0025-wiki-uv-scripts-cap-python-at-tested-range.md) にある。
+利用者向け文書の段階 2 の確認（[確認表](../../research/usage-docs-stage2-checklist-2026-11-15.md)の確認 3）で見つけたプラグインの不具合を、作者の決定で直した。Python の入っていない新しい Windows 11 で、uv 0.13.8 は CPython 3.15 を取り、`onnxruntime==1.31.1` に 3.15 の wheel がないので、MCP サーバーの依存を解決できなかった。中継は、これを壊れた環境と取り違えて入れ直し、理由は `server.log` にしか残らなかった。決定は [ADR-0026](../../adr/0026-wiki-uv-scripts-cap-python-at-tested-range.md) にある。
 
 レビューは GPT-6.1 Sol（effort high）に 3 回頼んだ。
+
+ADR は、レビューのときは 0025 だったが、同じ日に別の PR（to884/info-hive-dev#127）が 0025 を使ってマージされたので、0026 に付け替えた。レビューの記録（`review-*.md`）の 0025 は、この ADR を指す。
 
 ## 1 回目（プラグインの 1cdd88e）
 
@@ -13,7 +15,7 @@
 | 指摘 | 対応 |
 | --- | --- |
 | 重大: ふつうの失敗の理由が `launch.log` に残らない | 上のとおり |
-| 前提: 3.15 しかなく、uv が Python を取れない環境では起動しない | ADR-0025 の影響と、README のトラブルシューティングに、範囲の Python を入れる手順を書いた |
+| 前提: 3.15 しかなく、uv が Python を取れない環境では起動しない | ADR-0026 の影響と、README のトラブルシューティングに、範囲の Python を入れる手順を書いた |
 | 前提: プラグインの CI の行列は、MCP サーバーの依存を範囲の版で試さない | `tests/wiki/check_script_python_range.py` を足し、範囲のすべての minor の版で、uv で動くすべてのスクリプトに `uv sync --script` をかける。`wiki-mcp.yml` で流す |
 | 軽微: 行列の書き方の違いで読み落とす | 2 回目の対応で YAML として読むようにした |
 | 軽微: パスに含まれた句で、依存の解決の失敗と誤判定する | 行の頭の `error:` でだけ見分ける |

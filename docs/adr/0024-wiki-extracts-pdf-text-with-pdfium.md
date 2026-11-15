@@ -2,7 +2,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 提案 |
+| 状態 | 取り下げ（承認の条件 1 を満たさなかったので、[ADR-0025](0025-pdf-text-layer-with-pdfminer-vertical.md) を代わりに提案した） |
 | 決定日 | （承認の日を入れる） |
 | 決定者 | info-hive の開発者（このリポジトリの作者） |
 | 関連 | ADR-0012（wiki が共有の部品を持つ）、ADR-0013（rag の PDF の記録）、ADR-0014（rag の抽出の版 `EXTRACT_REVISION`）、ADR-0018（wiki の Python の版）、[今の取り込みと MarkItDown の抽出の比較](../research/markitdown-benchmark-2026-11-15.md)、Sol による敵対的レビュー（[1 回目](../agent-runs/2026-11-15-adr-0024-review/review-1.md)、[2 回目](../agent-runs/2026-11-15-adr-0024-review/review-2.md)、[3 回目](../agent-runs/2026-11-15-adr-0024-review/review-3.md)） |
@@ -113,6 +113,8 @@ rag の `ocr_mode` を `always` にすれば、すべてのページが OCR さ�
 ## 承認の条件
 
 次の 2 つがそろってから、この ADR を承認する。
+
+> 2026年11月15日の検証（[報告](../research/adr-0024-verification-2026-11-15.md)）で、条件 1 は満たさなかった。日本の官公庁の資料（組版のソフト、作成したソフトの記録がないもの）で、読み順が pdftotext と pdfminer を下回った。この ADR を書き直すか、種類で分けるか、取り下げるかは、作者が決める。
 
 1. **公開の PDF での検証。** 試料、比べる方式、見る点は次のとおりにする。
    - **試料:** 誰でも手に入る公開の PDF を使い、作者の書籍は使わない。Office でないソフトで作った PDF を含める。LaTeX で作った論文（arXiv など）、組版のソフトで作った官公庁の資料、段の多い PDF、縦書きの PDF、スキャンの PDF である。
