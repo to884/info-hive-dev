@@ -20,7 +20,7 @@ ADR-0018 は、wiki の同梱のスクリプトの対象を Python 3.12 以上�
 | 項目 | 決定 |
 | --- | --- |
 | uv で動くスクリプト | PEP 723 の `requires-python` を、どれも同じ範囲にする。範囲は、プラグインの CI（`info-hive-wiki/.github/workflows/wiki-tests.yml`）の行列で試す版の最小から最大までで、上限は最大の次の minor の未満とする。今は `">=3.12,<3.15"` である |
-| 宣言と CI を結ぶ | info-hive-dev の `tests/wiki/test_python_version.py` が、すべての宣言が CI の行列から作った範囲と同じかを確かめる。行列の `python:` を 1 つでも読めなければ落ちる。CI の行列に新しい版を足すと、宣言の上限も上げるまで試験が落ちる |
+| 宣言と CI を結ぶ | info-hive-dev の `tests/wiki/test_python_version.py` が、すべての宣言が CI の行列から作った範囲と同じかを確かめる。行列は YAML として読み（各ジョブの `strategy.matrix` の `python` と `include` の項目）、版として読めない値が 1 つでもあれば落ちる。CI の行列に新しい版を足すと、宣言の上限も上げるまで試験が落ちる |
 | 範囲のすべての版で依存が入る | プラグインの CI の行列は、範囲の両端の版しか試さず、MCP サーバーの依存を入れない。そこで、info-hive-dev の CI（`wiki-mcp.yml`）が、`tests/wiki/check_script_python_range.py` で、宣言の範囲のすべての minor の版で、uv で動くすべてのスクリプトに `uv sync --script` をかける。1 つでも失敗すれば落ちる |
 | 上限を上げるとき | CI の行列に新しい版を足し、上の 2 つの確かめが通ってから、宣言の上限を上げる。どちらも同じ変更で行う |
 | `python` で直接動くスクリプト | ADR-0018 のまま、利用者の `python` で動き、上限を付けない。標準ライブラリだけを使うので、依存の配布物の問題は起きない |

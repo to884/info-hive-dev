@@ -1,0 +1,109 @@
+CI の参照先にも食い違いがありました。親の最新コミット `b41fdbd` は、サブモジュールを旧版 `9deda8f` のまま記録しています。ワークフローはその参照を取得するため、今回の修正ではなく旧版を検査します。旧版の内容をメモリ上で読み込ませると、宣言の試験と追加の範囲検査がどちらも失敗しました。
+## 判定
+
+**条件付きで採用可。確信度：高。** 対象の親コミットは旧プラグインを参照しており、そのままでは追加した CI 検査が失敗する。行列の読み落としと、失敗時の出力が `launch.log` に残らない経路も残っている。
+
+## 致命的・重大な欠陥
+
+- **重大：親コミットの CI は、今回のプラグイン修正を取得しない。**
+
+  親 HEAD `b41fdbd` の記録は次のとおりだった。
+
+  ```text
+  git ls-tree HEAD info-hive-wiki
+  160000 commit 9deda8f318e0325a760aa93ed574f4fa17003978 info-hive-wiki
+  ```
+
+  `9deda8f` は0.19.4で、宣言は `>=3.12`。作業ディレクトリの `050def7` とは異なる。[wiki-mcp.yml](/C:/Works/info-hive-dev/.claude/worktrees/wiki-py315/.github/workflows/wiki-mcp.yml:72) はこの記録から SHA を取り、77行目で取得する。
+
+  **再現結果：** 取得される旧版のスクリプトを、ファイルを変更せず読み取り結果に差し替えたところ、以下の両方が失敗した。
+
+  - `test_pep723_headers_require_the_tested_range`：宣言の不一致。
+  - `check_script_python_range.main()`：終了コード1。「`requires-python が >=3.X,<3.Y の形でない: '>=3.12'`」。
+
+  参照更新を後工程とするなら、これは統合未完了という指摘である。現時点の親コミットの CI が `050def7` を検証する、という前提は成立しない。
+
+## 崩れる前提
+
+- **「行列にコメントを加えても、すべての版を読み取れる」**  
+  成立しない。親キーへのコメントや、ブロック形式の途中のコメントで読み落とす。具体例は次節。
+
+- **「診断の行頭が常に装飾のない `error:` である」**  
+  ANSI エスケープを含む入力では成立しない。uv は `FORCE_COLOR` による色の強制を公式にサポートしている。[uv の環境変数仕様](https://docs.astral.sh/uv/reference/environment/#force_color)  
+  実際の uv 0.13.8 の出力バイト列は未検証であり、その環境での発生は**推測**。判定関数と再試行経路の反例自体は再現した。
+
+- **「範囲検査が通れば、その範囲で MCP が起動する」**  
+  追加検査が行うのは `uv sync` までで、依存の import やサーバー起動は行わない。また CI は Linux のみ。Windows の24通りの成功は依頼元の報告として扱い、こちらでは追試できていない。
+
+## 見落としと軽微な問題
+
+- **軽微：行列の読み落としが残っている。**
+
+  Windows 側だけを次の有効な YAML にし、Linux 側を現状のまま残した。
+
+  ```yaml
+  matrix:
+    python:
+      - '3.12'
+      # 新しい版
+      - '3.15'
+  ```
+
+  メモリ上で読み取り結果を差し替えると、`tested_python_range()` は `('3.12', '3.14')` を返し、宣言の試験も通った。コメントで読み取りを打ち切り、途中まで読んだリストを採用している。
+
+  また、Windows 側の親キーを `matrix: # Windows Python versions` とするだけでも、その行列全体を無視する。
+
+  根拠：[test_python_version.py](/C:/Works/info-hive-dev/.claude/worktrees/wiki-py315/tests/wiki/test_python_version.py:192) の親キーの完全一致と、203〜206行目の読み取り打ち切り。ADR-0025の「行列の `python:` を1つでも読めなければ落ちる」と**食い違う**。
+
+- **軽微：タイムアウトでは、取得済みの原因が依然 `launch.log` に残らない。**
+
+  `subprocess.run` が次の途中出力を持つ `TimeoutExpired` を送出する状態を再現した。
+
+  ```text
+  error: Failed to download Python
+    cause: proxy connection refused
+  ```
+
+  出力先には原因が残ったが、`launch.log` 相当の記録はコマンドとタイムアウト時間だけだった。`_uv_sync_result` が結果を返す前の例外なので、新しい要約処理を通らない。
+
+  根拠：[wiki_mcp_common.py](/C:/Works/info-hive-dev/.claude/worktrees/wiki-py315/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_common.py:467)。タイムアウト自体は記録されるため、前回の重大指摘と同じ重大度にはしない。ただし CHANGELOG の「どれも、uv の出力の要約と一緒に」は成立しない。
+
+- **軽微：ANSI 装飾付きの依存解決エラーを見逃す。実 uv での発生は推測。**
+
+  次の入力で `is_resolve_error()` は `False` になった。
+
+  ```python
+  "\x1b[1;31merror\x1b[0m: No solution found when resolving dependencies\n"
+  ```
+
+  この出力を子プロセスに返させると、ASCII 版では1回で `UvResolveError`、装飾版では3回呼び出して `--reinstall` に進み、`RuntimeError` になった。
+
+  根拠：`wiki_mcp_common.py` の391〜392行目。580〜581行目では色を無効化せず、環境変数を引き継ぐ。
+
+- **軽微：README が `UvResolveError` の原因を wheel 不在に断定している。**
+
+  [README.md](/C:/Works/info-hive-dev/.claude/worktrees/wiki-py315/info-hive-wiki/README.md:258) は「使う Python の版に合う依存の配布物がない」と断定する。しかし判定は解決失敗の見出しだけで、固定バージョン同士の矛盾も同じ分類になる。実装のコメント自身も両方を列挙しており、文書と**食い違う**。
+
+## 検証した事実
+
+| 主張 | 結果 |
+| --- | --- |
+| 前回のプロキシ失敗の原因を記録する | **一致**。原因を含む記録が1件残った |
+| 前回のパス中の句による誤判定を防ぐ | **一致**。当該入力は解決失敗に分類されない |
+| 新しい検査が8スクリプト×3版を呼ぶ | **一致**。子プロセス差し替えで24通りを確認 |
+| 24通りのうち1件でも失敗すれば終了コード1 | **一致** |
+| `test_uv_tls.py` を CI から呼ぶ | **一致**。ワークフロー99行目に実行あり |
+| Python を取得できない場合を文書に記載する | **一致**。README・ADR・CHANGELOGに記載あり |
+| ガード・宣言・行列パーサーの既存試験 | **5件成功** |
+| 実 uv による依存取得・TLS結合試験・更新後の起動 | **確かめられず**。環境に uv が見つからない |
+
+ファイルは変更していない。
+
+## 崩せなかった点
+
+- 装飾のない提示済みの解決失敗では、入れ直さずに止まり、記録も重複しなかった。
+- 前回の通常失敗の反例では、終了コードに加えてプロキシ接続拒否の原因が残った。
+- コメントを含まない1行形式とブロック形式の混在は読み取れた。既存試験の動的式などは、黙って無視せず失敗した。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

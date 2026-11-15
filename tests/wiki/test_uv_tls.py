@@ -331,6 +331,28 @@ class UvSyncTest(unittest.TestCase):
         fake = FakeUv([(2, output)])
         self.assertEqual(self.sync(fake), 2)
 
+    def test_colored_resolve_error_is_recognized(self):
+        # uv は FORCE_COLOR などで、パイプにも色を付けることがある。色の指定を除いてから見分ける。
+        output = b"\x1b[1;31merror\x1b[0m: No solution found when resolving dependencies\n" + RESOLVE_OUTPUT[53:]
+        fake = FakeUv([(1, output)])
+        with self.assertRaises(common.UvResolveError) as caught:
+            self.sync(fake)
+        self.assertEqual(len(fake.calls), 1)
+        self.assertNotIn("\x1b", str(caught.exception))
+
+    def test_timeout_records_uv_output_in_launch_log(self):
+        # 待ちきれずに止まったときも、それまでの uv の出力の理由の行を launch.log に残す。
+        def slow(command, **kwargs):
+            if "--help" in command:
+                return subprocess.CompletedProcess(command, 0, stdout=NEW_HELP, stderr=b"")
+            raise subprocess.TimeoutExpired(command, 1, output=b"error: Failed to download Python\n"
+                                                              b"  cause: proxy connection refused\n")
+        with mock.patch.object(common.subprocess, "run", slow), self.assertRaises(subprocess.TimeoutExpired):
+            common.prepare_script(RELAY, output=io.StringIO(), timeout=1, log=self.logs.append)
+        log = (self.data / "logs" / "launch.log").read_text(encoding="utf-8")
+        self.assertIn("TimeoutExpired", log)
+        self.assertIn("uv の出力: error: Failed to download Python / cause: proxy connection refused", log)
+
     def test_unresolvable_after_tls_retry_is_reported_as_resolve_error(self):
         # 証明書の問題は OS の証明書ストアで直ったが、依存を解決できなかった。
         fake = FakeUv([(2, TLS_OUTPUT), (1, RESOLVE_OUTPUT)])

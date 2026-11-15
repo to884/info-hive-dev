@@ -11,8 +11,8 @@
 3.9 以前は対象にしない（3.6 以前では、wiki_text.py の `from __future__ import annotations` が構文の誤りになり、
 版の確かめより先に止まる）。
 
-実行（標準ライブラリだけで動く。古い版の Python は uv で探す）:
-    python -X utf8 -B -m unittest tests/wiki/test_python_version.py -v
+実行（CI の行列を読むのに PyYAML が要る。古い版の Python は uv で探す）:
+    uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_python_version.py -v
 """
 from __future__ import annotations
 
@@ -156,19 +156,21 @@ class SourceTests(unittest.TestCase):
 
 
 class MatrixParserTests(unittest.TestCase):
-    def test_reads_inline_and_block_lists_together(self):
-        # 片方の行列だけを、続く行の書き方に変えて新しい版を足しても、読み落とさない。
+    def test_reads_every_matrix_however_it_is_written(self):
+        # 片方の行列だけを、続く行の書き方やコメントつきに変えて新しい版を足しても、読み落とさない。
+        # ジョブの名前の python と、include の項目の python も、取り違えずに読む。
         workflow = ("jobs:\n  python:\n    strategy:\n      matrix:\n        python: ['3.12', '3.14']\n"
-                    "  b:\n    strategy:\n      matrix:\n        python:\n          - '3.12'\n          - '3.14'\n"
-                    "          - '3.15'\n        os: [windows-latest]\n")
-        self.assertEqual(matrix_python_lists(workflow), [["3.12", "3.14"], ["3.12", "3.14", "3.15"]])
-        self.assertEqual(python_range_of(matrix_python_lists(workflow)), ("3.12", "3.15"))
+                    "  b:\n    strategy:\n      matrix: # Windows の版\n        python:\n          - '3.12'\n"
+                    "          # 新しい版\n          - '3.15'\n        os: [windows-latest]\n"
+                    "  c:\n    strategy:\n      matrix:\n        os: [x]\n        include:\n"
+                    "          - os: x\n            python: '3.16'\n")
+        self.assertEqual(matrix_python_lists(workflow), [["3.12", "3.14"], ["3.12", "3.15"], ["3.16"]])
+        self.assertEqual(python_range_of(matrix_python_lists(workflow)), ("3.12", "3.16"))
 
-    def test_unreadable_key_stops(self):
-        for body in ("        python: ${{ fromJSON(inputs.versions) }}\n", "        python: ['3.12',\n",
-                     "        python:\n        os: [x]\n"):
-            workflow = "      matrix:\n" + body
-            with self.subTest(workflow=workflow), self.assertRaises(AssertionError):
+    def test_unreadable_value_stops(self):
+        for value in ("${{ fromJSON(inputs.versions) }}", "[]", "[3.12, '3.x']"):
+            workflow = f"jobs:\n  a:\n    strategy:\n      matrix:\n        python: {value}\n"
+            with self.subTest(value=value), self.assertRaises(AssertionError):
                 matrix_python_lists(workflow)
 
 
@@ -179,38 +181,27 @@ def tested_python_range() -> tuple[str, str]:
 
 
 def matrix_python_lists(workflow: str) -> list[list[str]]:
-    """ワークフローの `matrix:` のすぐ下の `python:` のキーごとに、版の並びを返す。1 行の `[...]` と、続く行の
-    `- '3.x'` の両方を読む。読めないキーが 1 つでもあれば止まる。読み落としたまま、残りの行列だけで範囲を
-    決めないためである。`matrix:` の下にない `python:`（ジョブの名前など）は読まない。"""
-    lines = workflow.splitlines()
+    """ワークフローの各ジョブの `strategy.matrix` の `python` と、`include` の各項目の `python` の版を返す。
+    YAML として読む（PyYAML が要る）。行を手で読むと、コメントや書き方の違いで黙って読み落とすためである。
+    `python` が版の並びや版でなければ止まる。読み落としたまま、残りの行列だけで範囲を決めないためである。"""
+    import yaml  # 試験の中でだけ使う。CI は --with pyyaml で入れる
+    data = yaml.safe_load(workflow) or {}
     found = []
-    for index, line in enumerate(lines):
-        key = re.match(r"^(\s*)python:\s*(.*?)\s*$", line)
-        if not key:
-            continue
-        indent, rest = len(key.group(1)), key.group(2)
-        parent = next((above for above in reversed(lines[:index])
-                       if above.strip() and len(above) - len(above.lstrip()) < indent), "")
-        if parent.strip() != "matrix:":
-            continue
-        if rest.startswith("["):
-            if not rest.endswith("]"):
-                raise AssertionError(f"wiki-tests.yml の {index + 1} 行目の python: の並びを読めない: {line!r}")
-            items = [v.strip().strip("'\"") for v in rest[1:-1].split(",") if v.strip()]
-        elif rest == "":
-            items = []
-            for follow in lines[index + 1:]:
-                item = re.match(r"^(\s*)-\s*(.+?)\s*$", follow)
-                if not item or len(item.group(1)) < indent:
-                    break
-                items.append(item.group(2).strip("'\""))
-        else:
-            raise AssertionError(f"wiki-tests.yml の {index + 1} 行目の python: の値を読めない: {line!r}")
-        if not items or not all(re.fullmatch(r"3\.\d+", v) for v in items):
-            raise AssertionError(f"wiki-tests.yml の {index + 1} 行目の python: の版を読めない: {items!r}")
-        found.append(items)
+    for name, job in (data.get("jobs") or {}).items():
+        matrix = ((job or {}).get("strategy") or {}).get("matrix") or {}
+        if not isinstance(matrix, dict):
+            raise AssertionError(f"ジョブ {name} の matrix を読めない: {matrix!r}")
+        entries = [("python", matrix["python"])] if "python" in matrix else []
+        entries += [("include", item["python"]) for item in matrix.get("include") or []
+                    if isinstance(item, dict) and "python" in item]
+        for where, value in entries:
+            items = value if isinstance(value, list) else [value]
+            items = [str(v) for v in items]
+            if not items or not all(re.fullmatch(r"3\.\d+", v) for v in items):
+                raise AssertionError(f"ジョブ {name} の matrix の {where} の python の版を読めない: {value!r}")
+            found.append(items)
     if not found:
-        raise AssertionError("wiki-tests.yml に Python の版の行列が見つからない")
+        raise AssertionError("ワークフローに Python の版の行列が見つからない")
     return found
 
 

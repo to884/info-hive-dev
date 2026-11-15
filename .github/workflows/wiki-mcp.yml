@@ -1,7 +1,7 @@
 name: Wiki MCP server
 
 # wiki の MCP サーバー（info-hive-wiki）を Linux で確かめる。Windows は手元で確かめる。
-# - tests/wiki/test_python_version.py: 同梱のスクリプトの Python の版の扱い（3.12 以上。uv で動くものは CI の範囲の上限つき。標準ライブラリだけ。入口を本物の 3.10 と 3.11 で動かす）
+# - tests/wiki/test_python_version.py: 同梱のスクリプトの Python の版の扱い（3.12 以上。uv で動くものは CI の範囲の上限つき。行列の読み取りに PyYAML が要る。入口を本物の 3.10 と 3.11 で動かす）
 # - tests/wiki/test_wiki_lint.py: lint の索引、出典、原本、タグの検査（標準ライブラリだけ）
 # - tests/wiki/test_uninitialized_wiki.py: SCHEMA.md のないディレクトリを、どの入口も wiki として扱わないこと（ADR-0019。PyYAML が要る）
 # - tests/wiki/test_source_claims.py: ソースの要約ページの「主張と行き先」の規定とひな形の整合（標準ライブラリだけ）
@@ -90,7 +90,7 @@ jobs:
           WIKI_TEST_REQUIRE_OLD_PYTHON: '1'
         run: |
           uv python install 3.10 3.11
-          uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_python_version.py -v
+          uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -m unittest tests/wiki/test_python_version.py -v
       - name: uv で動くスクリプトの依存が、宣言した Python の範囲のすべての版で入ること（ADR-0025）
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 tests/wiki/check_script_python_range.py
