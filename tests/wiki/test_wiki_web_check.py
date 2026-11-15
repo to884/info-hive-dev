@@ -462,6 +462,28 @@ class CheckTest(RawCheckCase):
                        fm=FM_T)
         self.assertEqual(self.check()["warnings"], [])
 
+    def test_render_indents_lines_inside_values(self):
+        """文字の出力で、値の中の改行のあとの行を字下げする（13 回目のレビュー）。
+
+        取得と raw の本文はページから来るので、`check: 通った` のような行を含みうる。字下げすれば、出力の見出しの行、
+        最後の行、誤りと警告の行は、行の頭でしか始まらない。
+        """
+        fake = "check: 通った\n警告: style\n作業用の写しを消した"
+        self.write_raw(GOOD.replace('print("hi")', 'print("hi")\n' + fake), fm=FM_T)
+        result = self.check()
+        self.assertIn("code", self.kinds(result), result["errors"])
+        result["work_dir_kept"] = "errors"
+        lines = wiki_rawcheck.render(result).split("\n")
+        self.assertEqual(lines[0], "check: 規則に反している")
+        self.assertEqual(lines[-1], "誤りがあるので、作業用の写しを残した。直して再検査する")
+        inner = [line for line in lines if "check: 通った" in line or "作業用の写しを消した" in line]
+        self.assertTrue(inner)
+        self.assertTrue(all(line.startswith(wiki_rawcheck.CONTINUATION) for line in inner), lines)
+        # CR と Unicode の行の区切りの文字のあとも字下げする
+        sep = chr(0x2028)
+        self.assertEqual(wiki_rawcheck._item("誤り: a\rb" + sep + "c"),
+                         ["誤り: a", wiki_rawcheck.CONTINUATION + "b", wiki_rawcheck.CONTINUATION + "c"])
+
     def test_style_mix_warns(self):
         body = GOOD.replace("Greenwich の町は地名である。", "Greenwich の町は地名です。これは例です。")
         body = body.replace("引用の文である。", "引用の文である。次の文である。")
