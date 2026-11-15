@@ -33,9 +33,11 @@ Claude Code のセッションの記録から確かめる。
   結果の形で決める）。W8 は、wiki:web-raw の呼び出しのコマンドに `wiki_rawcheck`、`check`、`--finish` が書かれ、その
   結果に、検査が通って作業用の写しを消した check の出力があること（シェルの区切りや引用符は読まない）。結果が
   誤り（あとのコマンドが失敗して、呼び出し全体が誤りになる）でも、その中の出力は読む。1 つの結果の中の check の
-  出力は、出た順の 1 回ずつに分ける。JSON の回（行の頭の `{` から始まるもの）と、文字の出力の回である。文字の
-  出力の回は、wiki_rawcheck.render が書く行の形（render から作る）に合う行だけで、freeze の出力などのほかの行が
-  来たら終わる。W8 の終わりは、写しを消した回のうち、時刻と記録の順で最後の回で、JSON の回でなければならない
+  出力は、出た順の 1 回ずつに分ける。JSON の回と、文字の出力の回である。文字の出力の回は、
+  wiki_rawcheck.render が書く行の形（render から作る）に合う行だけで、freeze の出力などのほかの行が来たら終わる。
+  JSON の回は、印（`"stage": "check"`）をどれも説明して読む。印の前の `{` から check の結果として読めれば回にし
+  （行の途中からでもよい。前のコマンドの改行のない出力が続くことがある）、render の文字の出力の値の行の中の印は
+  ページの値なので数えない。それ以外の印は、読めない候補とする。W8 の終わりは、写しを消した回のうち、時刻と記録の順で最後の回で、JSON の回でなければならない
   （W8 は `--json` で動かす。0.18.1 の手順）。警告が残ったまま写しを消した回は、check に
   `--accept-warnings` を付けたときだけ出る。wiki:web-raw のその回は、JSON でも文字の出力でも、どの回でも不合格
   （あとで取り直して正しく終えても消えない。エージェントは警告を受け入れない）。最後の回を、警告を受け入れる
@@ -45,8 +47,12 @@ Claude Code のセッションの記録から確かめる。
   - セッションの記録（JSONL）の、読めない行（UTF-8 か JSON として読めない、オブジェクトでない）。記録の区切りは
     LF だけで、JSON の文字列の中の U+2028 などでは分けない。
   - エージェントのメタデータ（`agent-*.meta.json`、`agent-*.prefix.json`）が、ないか読めない。
-  - check `--finish` の呼び出しの結果がないか、結果の中の行の頭から始まる check の JSON の候補を読めない
-    （出力の途中で切れた、など）。
+  - メインの wiki:web-raw の呼び出しが、記録と結べない。Agent の結果の `toolUseResult.agentId` で、記録のファイル
+    （`agent-<agentId>.jsonl`）と結ぶ。結果に agentId がない、ファイルがない、wiki:web-raw の記録でない、応答が
+    ない、のどれか（起動に失敗した呼び出しは除く）。見つかったファイルを読めたことは、起動したエージェントの
+    記録がすべてあることを意味しない。
+  - check `--finish` の呼び出しの結果がないか、結果の中の check の JSON の印を説明できない（出力の途中で切れた、
+    ソースを検索した結果に印がある、など）。印より前で切れた出力（`{"stage": "ch` など）は見つけられない。
 - 結果の形で読めること: raw のファイルに、確かめが読むスクリプトの出力の形の文字列（check と freeze の見出しと
   最後の行、`"stage": "check"`、wiki_fetch.py の出力の形）がないこと。あれば、本文を表示した結果の中で
   本物の出力と見分けられないので、判定できないとして不合格にする（output_shapes）。
@@ -194,8 +200,11 @@ def events(records: list[dict]) -> list[dict]:
                     c = part.get("content")
                     text = c if isinstance(c, str) else " ".join(
                         x.get("text", "") for x in (c or []) if isinstance(x, dict))
+                    # Agent の結果には、Claude Code が起動したサブエージェントの id（記録のファイルの agent-<id>）を書く
+                    used = rec.get("toolUseResult")
                     out.append({"kind": "in", "text": text, "tool_use_id": part.get("tool_use_id"),
-                                "is_error": bool(part.get("is_error"))})
+                                "is_error": bool(part.get("is_error")),
+                                "agent_id": used.get("agentId") if isinstance(used, dict) else None})
                 else:
                     text = part.get("text", "") if isinstance(part.get("text"), str) else ""
                     out.append({"kind": "in", "text": text, "tool_use_id": None, "is_error": False})
@@ -329,36 +338,41 @@ def names_finish(command: str) -> bool:
         and "--finish" in command
 
 
-def check_json_spans(text: str, broken: list | None = None) -> list[tuple[int, int, dict]]:
+CHECK_MARK = '"stage": "check"'
+
+
+def check_json_spans(text: str, broken: list | None = None, values=()) -> list[tuple[int, int, dict]]:
     """結果の文の中の、wiki_rawcheck.py check --json の出力の JSON を、(始まり, 終わり, 値) で出た順にすべて返す。
 
-    --json の出力は、行の頭の `{` から始まる（json.dumps の indent=2 を print したもの。`"stage"` が最初のキー）。
-    行の途中から始まる JSON は数えない。文字の出力の誤りの詳細（`    取得: {…}`）に、ページの中の 1 行の JSON が
-    出ることがあるからである。行の頭から始まる候補が JSON として読めなければ（出力の途中で切れた、など）、その
-    位置を broken に足す。「候補がない」と「候補を読めない」を分けるためである（読めない回に、警告の受け入れの
-    違反があるかもしれない）。
+    印（`"stage": "check"`。--json の出力の最初のキー）を、どれも説明する。印の前のいちばん近い `{` から JSON として
+    読めて check の結果なら、回にする。読めなければ（出力の途中で切れた、など）、その位置を broken に足す。
+    「候補がない」と「候補を読めない」を分けるためである（読めない回に、警告の受け入れの違反があるかもしれない）。
+    行の頭からかどうかは問わない。1 つの呼び出しの結果には、前のコマンドの改行のない出力（`printf` など）が続き、
+    JSON が行の途中から始まることがある。
+
+    values は、render の文字の出力の値の行の範囲（render_blocks）である。その中の印は、ページから来た値を表示
+    したもので、出力ではないので数えない（0.18.1 の render は、値を項目の頭の文字か字下げのあとに出す）。ページの
+    本文そのものに印があれば、output_shapes が判定できないとする。
     """
     out, pos = [], 0
     decoder = json.JSONDecoder()
     while True:
-        at = text.find('"stage": "check"', pos)
+        at = text.find(CHECK_MARK, pos)
         if at < 0:
             return out
-        start = text.rfind("{", 0, at)
         pos = at + 1
-        if start < 0 or (start > 0 and text[start - 1] != "\n"):
+        if any(s <= at < e for s, e in values):
             continue
+        start = text.rfind("{", 0, at)
         try:
-            value, end = decoder.raw_decode(text[start:])
+            value, end = decoder.raw_decode(text[start:]) if start >= 0 else (None, 0)
         except json.JSONDecodeError:
-            if broken is not None:
-                broken.append(start)
-            continue
+            value = None
         if isinstance(value, dict) and value.get("stage") == "check":
             out.append((start, start + end, value))
             pos = start + end
         elif broken is not None:
-            broken.append(start)
+            broken.append(at if start < 0 else start)
 
 
 def check_jsons(text: str) -> list[dict]:
@@ -392,6 +406,60 @@ def check_text_forms() -> dict:
 CHECK_TEXT = check_text_forms()
 
 
+def freeze_text_forms() -> dict:
+    """wiki_rawcheck.render が freeze の文字の出力に書く行の形。render そのものから作る。
+
+    見出しの行、誤りと警告の行、freeze だけの行（補足を書く画像、規則で消した、消した行、一部を消した行）の順に
+    並ぶ。最後の行はない。値（消した行など）はページから来るので、その中の印を出力と取り違えないために使う。
+    """
+    heads = {wiki_rawcheck.render({"stage": "freeze", "ok": ok, "errors": [], "warnings": []}) for ok in (True, False)}
+    sample = wiki_rawcheck.render({
+        "stage": "freeze", "ok": True, "errors": [], "warnings": [],
+        "images": [{"line": "\0", "path": "\0", "alt": "\0"}], "removed_by_rule": [{"rule": "\0", "text": "\0"}],
+        "removed_lines": ["\0"], "shortened_lines": [{"fetched": "\0", "raw": "\0"}]}).split("\n")
+    return {"heads": heads, "items": CHECK_TEXT["items"] + tuple(line.split("\0")[0] for line in sample[1:])}
+
+
+FREEZE_TEXT = freeze_text_forms()
+
+
+def render_blocks(text: str) -> tuple[list[dict], list[tuple[int, int]]]:
+    """結果の文の中の、render の文字の出力（check と freeze）を読む。(check の回, 値の行の範囲) を返す。
+
+    見出しの行から、render が書く形の行だけを読む。最後の行で終わり、形に合わない行（ほかの段の出力、ほかの
+    コマンドの出力、JSON）が来たら、そこで終わる。ほかの段の警告を、check の回に数えないためである。値の行の
+    範囲は、check_json_spans が、ページから来た値の中の印を数えないために使う。
+    """
+    lines, offsets, at = [], [], 0
+    for line in text.split("\n"):
+        lines.append(line.rstrip("\r"))  # Windows の print は CRLF で書く
+        offsets.append(at)
+        at += len(line) + 1
+    runs, values = [], []
+    for i, head in enumerate(lines):
+        is_check = head in CHECK_TEXT["heads"]
+        if not is_check and head not in FREEZE_TEXT["heads"]:
+            continue
+        forms = CHECK_TEXT if is_check else FREEZE_TEXT
+        warnings = removed = False
+        j = i + 1
+        while j < len(lines):
+            line = lines[j]
+            if is_check and line in CHECK_TEXT["endings"]:
+                removed = line == CHECK_TEXT["removed"]
+                j += 1
+                break
+            if not line.startswith(forms["items"]):
+                break
+            warnings = warnings or line.startswith(CHECK_TEXT["warning"])
+            j += 1
+        values.append((offsets[i], offsets[j] if j < len(lines) else len(text)))
+        if is_check:
+            runs.append({"pos": offsets[i], "json": None, "removed": head == CHECK_TEXT["passed"] and removed,
+                         "warnings": warnings})
+    return runs, values
+
+
 def output_shapes(text: str) -> list[str]:
     """ページの本文の中の、確かめが読むスクリプトの出力の形の文字列。
 
@@ -408,38 +476,19 @@ def output_shapes(text: str) -> list[str]:
     return found
 
 
-def check_runs(text: str, spans: list | None = None) -> list[dict]:
+def check_runs(text: str, broken: list | None = None) -> list[dict]:
     """1 つの結果の中の check の出力を、出た順の 1 回ずつに分ける。
 
     1 つの呼び出しで、check を何度か動かすことがある（検査、直す、再検査。取り直してもう一度）。回ごとに、
     写しを消したか（removed）、警告が残ったまま消したか（accepted。--accept-warnings を付けたときだけ起きる。
-    wiki_rawcheck.main）、JSON（文字の出力なら None）を返す。JSON の回は、その JSON の値で決める。文字の出力の回は、
-    見出しの行から、render が書く形（check_text_forms）の行だけを読む。最後の行で終わり、形に合わない行（freeze の
-    出力、ほかのコマンドの出力、JSON）が来たら、そこで終わる。ほかの段の警告を、check の回に数えないためである。
-    spans は、同じ text の check_json_spans の結果（読めない候補を別に集めた呼び出し側が渡す）。
+    wiki_rawcheck.main）、JSON（文字の出力なら None）を返す。文字の出力の回は render_blocks で、JSON の回は
+    check_json_spans で読む（文字の出力の値の行の中の印は、JSON の回に数えない）。読めない JSON の候補の位置は
+    broken に足す。
     """
-    spans = check_json_spans(text) if spans is None else spans
-    runs = [{"pos": start, "json": value, "removed": value.get("ok") is True and value.get("work_dir_removed") is True,
-             "warnings": bool(value.get("warnings"))} for start, _, value in spans]
-    inside = lambda i: any(s <= i < e for s, e, _ in spans)  # noqa: E731
-    lines, offsets, at = [], [], 0
-    for line in text.split("\n"):
-        lines.append(line.rstrip("\r"))  # Windows の print は CRLF で書く
-        offsets.append(at)
-        at += len(line) + 1
-    for i, head in enumerate(lines):
-        if head not in CHECK_TEXT["heads"] or inside(offsets[i]):
-            continue
-        warnings = removed = False
-        for line in lines[i + 1:]:
-            if line in CHECK_TEXT["endings"]:
-                removed = line == CHECK_TEXT["removed"]
-                break
-            if not line.startswith(CHECK_TEXT["items"]):
-                break
-            warnings = warnings or line.startswith(CHECK_TEXT["warning"])
-        runs.append({"pos": offsets[i], "json": None, "removed": head == CHECK_TEXT["passed"] and removed,
-                     "warnings": warnings})
+    runs, values = render_blocks(text)
+    spans = check_json_spans(text, broken, values)
+    runs += [{"pos": start, "json": value, "removed": value.get("ok") is True and value.get("work_dir_removed") is True,
+              "warnings": bool(value.get("warnings"))} for start, _, value in spans]
     for run in runs:
         run["accepted"] = run["removed"] and run["warnings"]
     return sorted(runs, key=lambda r: r["pos"])
@@ -483,6 +532,27 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     web_raw_calls = [t for t in agent_calls if t["input"].get("subagent_type") == AGENT_TYPE]
     check("メインが wiki:web-raw を呼んだ", web_raw_calls and raw_agents,
           {"calls": [t["input"].get("subagent_type") for t in agent_calls], "agents": [s["type"] for s in subs]})
+    # 見つかった記録のファイルを読めたことと、起動したエージェントの記録がすべてあることは別である。Agent の呼び出しの
+    # 結果の agentId で、記録のファイル（agent-<id>.jsonl）と結ぶ。結べない、ファイルがない、wiki:web-raw の
+    # 記録でない、応答がない、のどれかなら、その呼び出しの証拠は判定できない。起動に失敗した呼び出し（結果が誤り）は、
+    # 記録がないのが正しい。
+    main_results = results_of(main_events)
+    by_id = {Path(s["path"]).stem.removeprefix("agent-"): s for s in subs}
+    unlinked = []
+    for t in web_raw_calls:
+        r = main_results.get(t.get("id"))
+        linked = by_id.get(r["agent_id"]) if r and r.get("agent_id") else None
+        if r is not None and r["is_error"]:
+            continue
+        reason = ("呼び出しの結果がない" if r is None else "結果に agentId がない" if not r.get("agent_id")
+                  else "記録のファイルがない" if linked is None
+                  else "wiki:web-raw の記録でない" if linked["type"] != AGENT_TYPE
+                  else "記録に応答がない" if not [e for e in linked["events"] if e["kind"] in ("out_text", "tool_use")]
+                  else None)
+        if reason:
+            unlinked.append({"call": t.get("id"), "agent_id": r.get("agent_id") if r else None, "reason": reason})
+    check("wiki:web-raw のすべての呼び出しに、応答のある記録がある（Agent の結果の agentId で、記録のファイルと結ぶ）",
+          not unlinked, unlinked)
     check("メインが Agent に model を渡していない（入力と、Claude Code のメタデータの launchedWithDefaults）",
           all("model" not in t["input"] for t in web_raw_calls) and raw_agents
           and all(s["defaults"] is True for s in raw_agents),
@@ -544,11 +614,11 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
                 gaps.append({"actor": name, "command": command, "reason": "呼び出しの結果がない"})
                 continue
             broken: list[int] = []
-            spans = check_json_spans(result["text"], broken)
+            found = check_runs(result["text"], broken)
             if broken:
-                gaps.append({"actor": name, "command": command, "reason": "check の JSON を読めない",
+                gaps.append({"actor": name, "command": command, "reason": "check の JSON の印を読めない",
                              "positions": broken})
-            for run in check_runs(result["text"], spans):
+            for run in found:
                 out.append({**run, "actor": name, "command": command, "key": (t.get("ts") or "", order, n, run["pos"])})
         return out
 

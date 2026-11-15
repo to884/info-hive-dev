@@ -275,12 +275,24 @@ class SyntheticTranscriptTest(unittest.TestCase):
         return {"message": {"role": "assistant", "model": model, "content": [{"type": "text", "text": text}]}}
 
     @staticmethod
-    def got(text, is_error=False):
-        """直前の呼び出しの結果（write で、直前の tool_use の id に結ぶ）。"""
+    def got(text, is_error=False, used=None):
+        """直前の呼び出しの結果（write で、直前の tool_use の id に結ぶ）。
+
+        used は、記録の toolUseResult（Claude Code が書く。Agent なら、起動したサブエージェントの agentId）。
+        """
         part = {"type": "tool_result", "tool_use_id": "x", "content": text}
         if is_error:
             part["is_error"] = True
-        return {"message": {"role": "user", "content": [part]}}
+        record = {"message": {"role": "user", "content": [part]}}
+        if used is not None:
+            record["toolUseResult"] = used
+        return record
+
+    @staticmethod
+    def launched(agent_id="0"):
+        """Agent の起動の結果。記録のファイル agent-<agent_id>.jsonl と結ぶ（write は agent-<番号>.jsonl に書く）。"""
+        return SyntheticTranscriptTest.got("Async agent launched",
+                                           used={"agentId": agent_id, "status": "async_launched"})
 
     @staticmethod
     def paired(records, unanswered=()):
@@ -325,7 +337,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
     def good(self, main_extra=(), agent_extra=(), call_input=None):
         call = {"subagent_type": "wiki:web-raw", "prompt": "この依頼の raw を作る。\n```json\n{\"web_raw_request\": 1}\n```"}
         call.update(call_input or {})
-        main = [self.use("Agent", call), self.got("Async agent launched"),
+        main = [self.use("Agent", call), self.launched(),
                 {"message": {"role": "user", "content": "<task-notification>done</task-notification>"}},
                 self.use("Read", {"file_path": str(self.project / "raw/cqrs.md")}), self.got(RAW_BODY),
                 self.use("Write", {"file_path": str(self.project / "wiki/sources/cqrs.md"), "content": SUMMARY_BODY}),
@@ -842,6 +854,49 @@ class SyntheticTranscriptTest(unittest.TestCase):
         self.assertTrue(report["ok"], self.failed(report))
         self.assertTrue(report["display_names_verified"])
         self.assertEqual(report["w8_finished_by"], ["wiki:web-raw"])
+
+    def test_review15_counterexamples(self):
+        """15 回目のレビューの反例。行の途中から始まる check の JSON と、起動したエージェントの記録の欠け。"""
+        main, agents = self.good()
+        sonnet = "claude-sonnet-5-5"
+        accept = "wiki:web-raw は警告を受け入れて終えていない（check --finish の出力。どの回も）"
+        fix = self.use("Bash", {"command": "python wiki_rawcheck.py check --slug cqrs --finish --json"}, sonnet)
+
+        def agent_with(result, extra=()):
+            return [(agents[0][0], [result if self._is_check(r) else r for r in agents[0][1]] + list(extra))]
+
+        # 1. 前のコマンドの改行のない出力（printf）のあとの JSON も読む。警告の受け入れの違反を見逃さない
+        report = self.write(main, agent_with(self.got("check result: " + ACCEPTED_OUTPUT), [fix, self.got(CHECK_OUTPUT)]))
+        self.assertIn(accept, self.failed(report))
+        # 1. 正しく終えた最後の W8 に、改行のない前置きがあっても、W8 の終わりを読む
+        report = self.write(main, agent_with(self.got("check result: " + CHECK_OUTPUT)))
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertTrue(report["display_names_verified"])
+        # 1. 同じ呼び出しの freeze の「消した行」の値（雑音として消した、ページの 1 行の JSON）は、回に数えない
+        render = check_web_raw_agent.wiki_rawcheck.render
+        one_line = '{"stage": "check", "ok": true, "work_dir_removed": true, "warnings": [1]}'
+        freeze = render({"stage": "freeze", "ok": True, "errors": [], "warnings": [], "removed_lines": [one_line]})
+        report = self.write(main, agent_with(self.got(freeze + "\n" + CHECK_OUTPUT)))
+        self.assertTrue(report["ok"], self.failed(report))
+        # 1. 出力でも値でもない印（ソースを検索した結果など）は説明できないので、判定できないとする
+        grep = 'wiki_rawcheck.py:1048:    result = {"stage": "check", "ok": not errors, "needs_translation": translate,'
+        report = self.write(main, agent_with(self.got(grep + "\n" + CHECK_OUTPUT)))
+        self.assertEqual(self.failed(report), [GAPS])
+        # 2. 起動したエージェントの記録のファイルがない。正しい記録がほかにあっても通さない
+        links = "wiki:web-raw のすべての呼び出しに、応答のある記録がある（Agent の結果の agentId で、記録のファイルと結ぶ）"
+        again = self.use("Agent", {"subagent_type": "wiki:web-raw", "prompt": "この依頼の raw を作る（取り直す）"})
+        report = self.write(main + [again, self.launched("1")], agents)
+        self.assertEqual(self.failed(report), [links])
+        # 2. 記録のファイルはあるが、応答がない（空の記録）。ほかのエージェントの応答で補わない
+        empty = ({"agentType": "wiki:web-raw", "launchedWithDefaults": True}, [])
+        report = self.write(main + [again, self.launched("1")], agents + [empty])
+        self.assertEqual(self.failed(report), [links])
+        # 2. 起動に失敗した呼び出し（結果が誤り）には、記録がないのが正しい
+        report = self.write(main + [again, self.got("起動できなかった", is_error=True)], agents)
+        self.assertTrue(report["ok"], self.failed(report))
+        # 2. 結果に agentId がない呼び出しは、記録と結べないので通さない
+        report = self.write(main + [again, self.got("Async agent launched")], agents)
+        self.assertEqual(self.failed(report), [links])
 
     @staticmethod
     def _is_check(record) -> bool:
