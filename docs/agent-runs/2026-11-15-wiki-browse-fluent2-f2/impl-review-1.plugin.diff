@@ -1,0 +1,245 @@
+diff --git a/skills/info-hive/scripts/browse_assets/style.css b/skills/info-hive/scripts/browse_assets/style.css
+index 7f15fce..e9bc7e9 100644
+--- a/skills/info-hive/scripts/browse_assets/style.css
++++ b/skills/info-hive/scripts/browse_assets/style.css
+@@ -28,7 +28,7 @@
+    色、間隔、角丸、線、書体、時間はトークンの CSS 変数で書き、hex と px を直に書かない。
+    土台は [data-theme] に 14px を当てるので、長さに rem を使わない（media query の rem は初期値の 16px で決まる）。
+    日本語の組版の指定（禁則、折り返し、字間）は、選択肢のレポートの 6.7 節と 7.2 節による。
+-   記事のページの本文、メタ欄、被リンク、関係表、診断は、配置と大きさを今のままにし、色だけをトークンにする（F1。設計の 4.1）。 */
++   記事のページの本文、メタ欄、被リンク、関係表、診断は、Fluent の部品とトークンで描く（F2。設計の 5）。 */
+ 
+ /* --- 配色の宣言（ブラウザが描くスクロールバーや選択の一覧を、配色に合わせる。v9 からの逸脱） --- */
+ :root[data-theme="light"] { color-scheme: light; }
+@@ -61,7 +61,7 @@ body.fui-FluentProvider {
+   padding: var(--spacingVerticalXXL) var(--spacingHorizontalXXXL) var(--spacingVerticalXXXL);
+ }
+ /* 記事の本文の大きさと行間は今と同じ 16px と 1.8（土台の 14px と 20px にしない） */
+-.page-article #_main { font-size: var(--fontSizeBase400); line-height: 1.8; max-width: 46em; }
++.page-article #_main { font-size: var(--fontSizeBase400); line-height: 1.8; max-width: 48em; }
+ .page-index #_main { max-width: 64em; }
+ #_main, #_nav { line-break: strict; word-break: normal; overflow-wrap: anywhere; }
+ @supports (text-autospace: normal) { #_main { text-autospace: normal; } }
+@@ -200,25 +200,88 @@ p.notice, p.incomplete {
+   border-radius: var(--borderRadiusMedium);
+ }
+ 
+-/* --- 記事のページ（F1: 配置と大きさは今のまま、色をトークンにする） --- */
++/* --- 記事のページ（F2。Fluent 2 の設計の 5） --- */
++/* リンクは brand のリンクの色。祖先の地が状態で変わらない場所（本文、メタ欄、被リンク、関係表）だけで使う（4.2）。
++   ホバーでは地を変えず、文字を Hover の色にする（Fluent の Link と同じ）。押下の色（LinkPressed）は、暗い配色で
++   地との比が 3.85:1 になり 4.5:1 を割るので使わない。押している間もホバーの色のままにする */
+ #_main a { color: var(--colorBrandForegroundLink); }
+ #_main a:hover { color: var(--colorBrandForegroundLinkHover); }
++/* 文中のリンクは、色だけで見分けさせないように下線を付ける */
++#_body a, #_meta a, #_backlinks a, #_relations a { text-decoration-line: underline; text-underline-offset: 0.15em; }
++
++/* 本文（Markdown の出力。class は足さない）。16px と行間 1.8 は記事のページの #_main が持つ */
++#_body h1, #_body h2, #_body h3, #_body h4 { font-weight: var(--fontWeightSemibold); }
++#_body h1 { font-size: var(--fontSizeHero700); line-height: var(--lineHeightHero700); margin: var(--spacingVerticalL) 0 var(--spacingVerticalM); }
++#_body h2 {
++  font-size: var(--fontSizeBase600); line-height: var(--lineHeightBase600);
++  margin: var(--spacingVerticalXXL) 0 var(--spacingVerticalS); padding-bottom: var(--spacingVerticalXS);
++  border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
++}
++#_body h3 { font-size: var(--fontSizeBase500); line-height: var(--lineHeightBase500); margin: var(--spacingVerticalXL) 0 var(--spacingVerticalXS); }
++#_body h4 { font-size: var(--fontSizeBase400); line-height: var(--lineHeightBase400); margin: var(--spacingVerticalL) 0 var(--spacingVerticalXS); }
+ code, pre { font-family: var(--browse-font-mono); }
+-pre { overflow-x: auto; white-space: pre; background-color: var(--colorNeutralBackground3); padding: 0.75em; }
+-code { overflow-wrap: anywhere; }
+-#_main table { border-collapse: collapse; display: block; overflow-x: auto; max-width: 100%; }
+-#_main th, #_main td { border: var(--strokeWidthThin) solid var(--colorNeutralStroke1); padding: 0.25em 0.5em; vertical-align: top; }
+-#_main .ta-left { text-align: left; }
+-#_main .ta-center { text-align: center; }
+-#_main .ta-right { text-align: right; }
+-.meta th { text-align: left; white-space: nowrap; }
++code {
++  font-size: 0.9em; background-color: var(--colorNeutralBackground3); color: var(--colorNeutralForeground1);
++  padding: 0 var(--spacingHorizontalXXS); border-radius: var(--borderRadiusSmall); overflow-wrap: anywhere;
++}
++pre {
++  overflow-x: auto; white-space: pre; background-color: var(--colorNeutralBackground3); color: var(--colorNeutralForeground1);
++  padding: var(--spacingVerticalM) var(--spacingHorizontalM); border-radius: var(--borderRadiusMedium);
++  border: var(--strokeWidthThin) solid var(--colorNeutralStroke2); line-height: 1.6;
++}
++pre code { background: none; padding: 0; font-size: var(--fontSizeBase300); overflow-wrap: normal; }
++/* 本文の表は、今と同じく display: block で横に送る */
++#_body table {
++  border-collapse: collapse; display: block; overflow-x: auto; max-width: 100%;
++  font-size: var(--fontSizeBase300); line-height: var(--lineHeightBase300);
++}
++#_body th, #_body td {
++  border: var(--strokeWidthThin) solid var(--colorNeutralStroke1);
++  padding: var(--spacingVerticalXS) var(--spacingHorizontalS); vertical-align: top;
++}
++#_body th { font-weight: var(--fontWeightSemibold); text-align: start; background-color: var(--colorNeutralBackground2); }
++/* 配置の class は、#_body th の揃えに詳細度で負けないように #_body を付ける */
++#_body .ta-left { text-align: left; }
++#_body .ta-center { text-align: center; }
++#_body .ta-right { text-align: right; }
++#_body blockquote {
++  margin: var(--spacingVerticalM) 0; padding: 0 var(--spacingHorizontalL);
++  border-inline-start: var(--strokeWidthThicker) solid var(--colorNeutralStroke1); color: var(--colorNeutralForeground2);
++}
++#_body hr { border: none; border-top: var(--strokeWidthThin) solid var(--colorNeutralStroke2); margin: var(--spacingVerticalXL) 0; }
++img { max-width: 100%; }
++/* wikilink の状態は色だけで区別せず、下線の形でも示す。未解決と曖昧は span で、木の項目にも使う。
++   見出しのない行き先は a なので、#_body a の下線に詳細度で負けないように、形を #_main a で決める */
+ .wl-unresolved { color: var(--colorPaletteRedForeground1); text-decoration: underline dotted; }
+ .wl-ambiguous { color: var(--colorPaletteMarigoldForeground2); text-decoration: underline wavy; }
+-.wl-missing-heading { text-decoration: underline dotted; }
++.wl-missing-heading, #_main a.wl-missing-heading { text-decoration: underline dotted; }
+ a.ext::after { content: " ↗"; }
+ .state-error { color: var(--colorPaletteRedForeground1); }
+ .state-empty { color: var(--colorNeutralForeground3); }
+-img { max-width: 100%; }
++
++/* メタ欄: Fluent の Table（small）。幅は内容に合わせる（独自） */
++#_meta.fui-Table { width: auto; max-width: 100%; table-layout: auto; margin-bottom: var(--spacingVerticalL); }
++#_meta .fui-TableCell, #_meta .fui-TableHeaderCell { height: auto; padding-block: var(--spacingVerticalXS); vertical-align: top; }
++#_meta th {
++  white-space: nowrap; text-align: start; color: var(--colorNeutralForeground3);
++  font-weight: var(--fontWeightRegular); padding-inline-end: var(--spacingHorizontalL);
++}
++
++/* 被リンク、関係、診断の節 */
++#_backlinks, #_relations, #_diagnostics { margin-top: var(--spacingVerticalXXL); font-size: var(--fontSizeBase300); line-height: var(--lineHeightBase300); }
++#_backlinks h2, #_relations h2, #_diagnostics h2 { margin: 0 0 var(--spacingVerticalS); }
++#_backlinks .fui-ListItem { padding-block: var(--spacingVerticalXS); }
++/* 関係表: 9 列なので最小幅を 48em にし、表だけを横に送る（独自の入れ物）。
++   語はセルの中で折らない。日本語は文字の間で折り返す（利用者の文字を 1 行に伸ばさない。4.3） */
++.table-scroll { overflow-x: auto; max-width: 100%; border-radius: var(--borderRadiusMedium); }
++.table-scroll:focus-visible { outline: var(--strokeWidthThick) solid var(--colorStrokeFocus2); outline-offset: var(--strokeWidthThin); }
++.relations.fui-Table { table-layout: auto; min-width: 48em; }
++.relations .fui-TableCell, .relations .fui-TableHeaderCell { height: auto; padding-block: var(--spacingVerticalXS); vertical-align: top; overflow-wrap: normal; }
++.relations .fui-TableHeaderCell { white-space: nowrap; text-align: start; font-weight: var(--fontWeightSemibold); }
++/* 診断: 一覧の印だけを警告の色にし、文字は中立の色にする */
++.diag-list { margin: 0; padding-inline-start: var(--spacingHorizontalXL); }
++.diag-list li { color: var(--colorNeutralForeground1); }
++.diag-list li::marker { color: var(--colorStatusWarningForeground3); }
+ 
+ /* --- フォーカス（独自の要素） --- */
+ .ix-title:focus-visible, #_main a:focus-visible, .tree-filter:focus-visible, summary:focus-visible {
+diff --git a/skills/info-hive/scripts/wiki_browse_core.py b/skills/info-hive/scripts/wiki_browse_core.py
+index 0ba7c00..3a9d03c 100644
+--- a/skills/info-hive/scripts/wiki_browse_core.py
++++ b/skills/info-hive/scripts/wiki_browse_core.py
+@@ -1167,6 +1167,16 @@ class Core:
+         self._body_cache[pid] = rendered
+         return rendered
+ 
++    @staticmethod
++    def _meta_row(label: str, cell: str) -> str:
++        """メタ欄の 1 行。Fluent の Table（small）の行、見出しのセル、値のセル（Fluent 2 の設計の 5）。cell は HTML。"""
++        return (f'<tr class="fui-TableRow"><th class="fui-TableHeaderCell" scope="row">{label}</th>'
++                f'<td class="fui-TableCell">{cell}</td></tr>')
++
++    def _meta_html(self, pid: str, path: str, raw_mode: str) -> str:
++        return (f'<table id="_meta" class="meta fui-Table" data-size="small" aria-label="ページの情報">'
++                f'<tbody class="fui-TableBody">{self._meta_rows(pid, path, raw_mode)}</tbody></table>\n')
++
+     def _meta_rows(self, pid: str, path: str, raw_mode: str) -> str:
+         meta = self.page(pid)["meta"]
+         rows = []
+@@ -1176,7 +1186,7 @@ class Core:
+             if value in (None, "", []):
+                 continue
+             text = "、".join(map(str, value)) if isinstance(value, list) else str(value)
+-            rows.append(f"<tr><th>{label}</th><td>{html.escape(text)}</td></tr>")
++            rows.append(self._meta_row(label, html.escape(text)))
+         sources = wiki_pages.ref_values(meta.get("sources"))
+         if sources:
+             cells = []
+@@ -1189,12 +1199,12 @@ class Core:
+                                  f"{html.escape(self.title(sp))}</a>")
+                 else:
+                     cells.append(f'<span class="wl wl-unresolved">{html.escape(ref)}</span>')
+-            rows.append(f"<tr><th>出典</th><td>{'、'.join(cells)}</td></tr>")
++            rows.append(self._meta_row("出典", "、".join(cells)))
+         raws = wiki_pages.ref_values(meta.get("raw"))
+         if raws and raw_mode != "none":
+             sha = str(meta.get("raw_sha256") or "")
+             cells = [self._raw_html(classify_raw(v), sha, raw_mode, path) for v in raws]
+-            rows.append(f"<tr><th>原本</th><td>{'<br>'.join(cells)}</td></tr>")
++            rows.append(self._meta_row("原本", "<br>".join(cells)))
+         return "".join(rows)
+ 
+     def _raw_html(self, raw: dict, sha: str, mode: str, path: str) -> str:
+@@ -1211,14 +1221,20 @@ class Core:
+         tail = f"（SHA-256 {html.escape(sha[:12])}…）" if sha else ""
+         return f"<code>{html.escape(base)}</code>{tail}"
+ 
++    @staticmethod
++    def _section_head(text: str) -> str:
++        """記事のページの節（被リンク、関係、診断）の見出し。Fluent の Subtitle2（Fluent 2 の設計の 5）。"""
++        return f'<h2 class="fui-Subtitle2">{text}</h2>'
++
+     def _relations_html(self, pid: str, path: str) -> str:
+         if self.relations_state == "none":
+             return ""
++        head = self._section_head("関係")
+         if self.relations_state == "error":
+-            return '<section id="_relations"><h2>関係</h2><p class="state-error">オントロジーを読めない</p></section>\n'
++            return f'<section id="_relations">{head}<p class="state-error">オントロジーを読めない</p></section>\n'
+         rel = self.relations[pid]
+         if not rel["out"] and not rel["in"]:
+-            return ('<section id="_relations"><h2>関係</h2>' + self._incomplete_html()
++            return (f'<section id="_relations">{head}' + self._incomplete_html()
+                     + '<p class="state-empty">関係はない</p></section>\n')
+         rows = []
+         for direction, label in (("out", "→"), ("in", "←")):
+@@ -1238,12 +1254,17 @@ class Core:
+                             cell = (f'<a href="{html.escape(rel_href(path, self.out_name[found["id"]]))}">'
+                                     f"{html.escape(self.title(found['id']))}</a>")
+                     cells.append(cell)
+-                rows.append("<tr>" + "".join(f"<td>{c}</td>" for c in cells) + "</tr>")
+-        head = "".join(f"<th>{h}</th>" for h in ("向き", "述語", "相手", "状態", "開始", "終了", "確からしさ",
+-                                                 "出典", "証拠"))
+-        return (f'<section id="_relations"><h2>関係</h2>{self._incomplete_html()}'
+-                f'<table class="relations"><thead><tr>{head}</tr></thead>'
+-                f"<tbody>{''.join(rows)}</tbody></table></section>\n")
++                rows.append('<tr class="fui-TableRow">'
++                            + "".join(f'<td class="fui-TableCell">{c}</td>' for c in cells) + "</tr>")
++        cols = "".join(f'<th class="fui-TableHeaderCell" scope="col">{h}</th>'
++                       for h in ("向き", "述語", "相手", "状態", "開始", "終了", "確からしさ", "出典", "証拠"))
++        # 9 列の表は狭い幅で本文からはみ出すので、表だけを横に送る入れ物で包む（Fluent 2 の設計の 5）。
++        # 入れ物はキーボードでも送れるように、フォーカスできる領域にする
++        return (f'<section id="_relations">{head}{self._incomplete_html()}'
++                f'<div class="table-scroll" role="region" aria-label="関係の表" tabindex="0">'
++                f'<table class="relations fui-Table" data-size="small">'
++                f'<thead class="fui-TableHeader"><tr class="fui-TableRow">{cols}</tr></thead>'
++                f'<tbody class="fui-TableBody">{"".join(rows)}</tbody></table></div></section>\n')
+ 
+     def page_diagnostics(self, pid: str) -> list:
+         return [d for d in self.diagnostics if d.get("page") == pid]
+@@ -1258,7 +1279,8 @@ class Core:
+                 if d.get(key):
+                     parts.append(f"{key}: {d[key]}")
+             lis.append(f"<li>{html.escape(' / '.join(map(str, parts)))}</li>")
+-        return f'<section id="_diagnostics"><h2>診断</h2><ul>{"".join(lis)}</ul></section>\n'
++        return (f'<section id="_diagnostics">{self._section_head("診断")}'
++                f'<ul class="diag-list">{"".join(lis)}</ul></section>\n')
+ 
+     def _scope_html(self) -> str:
+         """サイドバーの先頭に置く、スコープの表示。スクリプトなしでも見える。
+@@ -1317,16 +1339,17 @@ class Core:
+     def render_page(self, pid: str, raw_mode: str = "text", stale: "str | None" = None) -> str:
+         path = self.out_name[pid]
+         title = self.title(pid)
+-        back = "".join(f'<li><a href="{html.escape(rel_href(path, self.out_name[b]))}">'
++        back = "".join(f'<li class="fui-ListItem"><a href="{html.escape(rel_href(path, self.out_name[b]))}">'
+                        f"{html.escape(self.title(b))}</a></li>" for b in self.backlinks[pid])
+         diags = list(self.page_diagnostics(pid))
+         if stale:
+             diags.insert(0, {"kind": "stale", "reason": stale})
+         return (self._head(path, title, stale)
+                 + f'<article id="_article" data-page-id="{html.escape(pid)}">\n'
+-                + f'<table id="_meta" class="meta">{self._meta_rows(pid, path, raw_mode)}</table>\n'
++                + self._meta_html(pid, path, raw_mode)
+                 + f'<div id="_body">\n{self.body_html(pid)}</div>\n</article>\n'
+-                + f'<section id="_backlinks"><h2>被リンク</h2>{self._incomplete_html()}<ul>{back}</ul></section>\n'
++                + f'<section id="_backlinks">{self._section_head("被リンク")}{self._incomplete_html()}'
++                  f'<ul class="fui-List" role="list">{back}</ul></section>\n'
+                 + self._relations_html(pid, path)
+                 + self._diagnostics_html(diags, path)
+                 + self._tail(path))
