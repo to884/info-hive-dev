@@ -6,13 +6,13 @@
   3.10 にない標準ライブラリのどれで先に止まっても、この試験で分かる。
   手元に 3.10 や 3.11 がなければ飛ばす。環境変数 WIKI_TEST_REQUIRE_OLD_PYTHON=1 のとき（CI）は、飛ばさずに失敗する。
 - 古い版を真似て（sys.version_info を差し替えて）wiki_text.py を読み込むと止まり、3.12 では止まらないこと。
-- uv で動くスクリプトの PEP 723 の宣言が、どれも 3.12 以上を求めること。
+- uv で動くスクリプトの PEP 723 の宣言が、どれもプラグインの CI で試す範囲（3.12 以上 3.15 未満。ADR-0026）を求めること。
 
 3.9 以前は対象にしない（3.6 以前では、wiki_text.py の `from __future__ import annotations` が構文の誤りになり、
 版の確かめより先に止まる）。
 
-実行（標準ライブラリだけで動く。古い版の Python は uv で探す）:
-    python -X utf8 -B -m unittest tests/wiki/test_python_version.py -v
+実行（CI の行列を読むのに PyYAML が要る。古い版の Python は uv で探す）:
+    uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_python_version.py -v
 """
 from __future__ import annotations
 
@@ -135,7 +135,11 @@ class OldPythonTests(unittest.TestCase):
 
 
 class SourceTests(unittest.TestCase):
-    def test_pep723_headers_require_312(self):
+    def test_pep723_headers_require_the_tested_range(self):
+        # uv で動くスクリプトは、どれも同じ範囲を宣言する。範囲は、プラグインの CI で試す版の最小から最大まで
+        # である（ADR-0026）。上限がないと、Python のない PC で uv がいちばん新しい版を取り、依存の配布物（wheel）が
+        # その版にまだないと起動しない（0.19.4 で、CPython 3.15 と onnxruntime 1.31.1）。CI の行列を広げたら、
+        # 宣言の上限もそろえて上げる。
         pattern = re.compile(r'^# requires-python = "(.+)"$', re.MULTILINE)
         found = {}
         for path in sorted(SCRIPTS.glob("*.py")):
@@ -145,7 +149,73 @@ class SourceTests(unittest.TestCase):
             match = pattern.search(source)
             found[path.name] = match.group(1) if match else None
         self.assertGreaterEqual(len(found), 8)
-        self.assertEqual({name: value for name, value in found.items() if value != ">=3.12"}, {})
+        lowest, highest = tested_python_range()
+        upper = f"3.{int(highest.split('.')[1]) + 1}"
+        expected = f">={lowest},<{upper}"
+        self.assertEqual({name: value for name, value in found.items() if value != expected}, {})
+
+
+class MatrixParserTests(unittest.TestCase):
+    def test_reads_every_matrix_however_it_is_written(self):
+        # 片方の行列だけを、続く行の書き方やコメントつきに変えて新しい版を足しても、読み落とさない。
+        # ジョブの名前の python と、include の項目の python も、取り違えずに読む。
+        workflow = ("jobs:\n  python:\n    strategy:\n      matrix:\n        python: ['3.12', '3.14']\n"
+                    "  b:\n    strategy:\n      matrix: # Windows の版\n        python:\n          - '3.12'\n"
+                    "          # 新しい版\n          - '3.15'\n        os: [windows-latest]\n"
+                    "  c:\n    strategy:\n      matrix:\n        os: [x]\n        include:\n"
+                    "          - os: x\n            python: '3.16'\n")
+        self.assertEqual(matrix_python_lists(workflow), [["3.12", "3.14"], ["3.12", "3.15"], ["3.16"]])
+        self.assertEqual(python_range_of(matrix_python_lists(workflow)), ("3.12", "3.16"))
+
+    def test_unreadable_value_stops(self):
+        for value in ("${{ fromJSON(inputs.versions) }}", "[]", "[3.12, '3.x']"):
+            workflow = f"jobs:\n  a:\n    strategy:\n      matrix:\n        python: {value}\n"
+            with self.subTest(value=value), self.assertRaises(AssertionError):
+                matrix_python_lists(workflow)
+        workflow = ("jobs:\n  a:\n    strategy:\n      matrix:\n        python: ['3.12', '3.14']\n"
+                    "        include: ${{ fromJSON(needs.versions.outputs.extra) }}\n")
+        with self.subTest("include の実行時の式"), self.assertRaises(AssertionError):
+            matrix_python_lists(workflow)
+
+
+def tested_python_range() -> tuple[str, str]:
+    """プラグインの CI（info-hive-wiki/.github/workflows/wiki-tests.yml）の行列の、Python の版の最小と最大。"""
+    workflow = (ROOT / "info-hive-wiki/.github/workflows/wiki-tests.yml").read_text(encoding="utf-8")
+    return python_range_of(matrix_python_lists(workflow))
+
+
+def matrix_python_lists(workflow: str) -> list[list[str]]:
+    """ワークフローの各ジョブの `strategy.matrix` の `python` と、`include` の各項目の `python` の版を返す。
+    YAML として読む（PyYAML が要る）。行を手で読むと、コメントや書き方の違いで黙って読み落とすためである。
+    `python` が版の並びや版でなければ止まる。読み落としたまま、残りの行列だけで範囲を決めないためである。"""
+    import yaml  # 試験の中でだけ使う。CI は --with pyyaml で入れる
+    data = yaml.safe_load(workflow) or {}
+    found = []
+    for name, job in (data.get("jobs") or {}).items():
+        matrix = ((job or {}).get("strategy") or {}).get("matrix") or {}
+        if not isinstance(matrix, dict):
+            raise AssertionError(f"ジョブ {name} の matrix を読めない: {matrix!r}")
+        entries = [("python", matrix["python"])] if "python" in matrix else []
+        include = matrix.get("include") or []
+        if not isinstance(include, list) or not all(isinstance(item, dict) for item in include):
+            # `${{ fromJSON(...) }}` などの実行時の式では、足される版が分からない。
+            raise AssertionError(f"ジョブ {name} の matrix の include を読めない: {include!r}")
+        entries += [("include", item["python"]) for item in include if "python" in item]
+        for where, value in entries:
+            items = value if isinstance(value, list) else [value]
+            items = [str(v) for v in items]
+            if not items or not all(re.fullmatch(r"3\.\d+", v) for v in items):
+                raise AssertionError(f"ジョブ {name} の matrix の {where} の python の版を読めない: {value!r}")
+            found.append(items)
+    if not found:
+        raise AssertionError("ワークフローに Python の版の行列が見つからない")
+    return found
+
+
+def python_range_of(lists: list[list[str]]) -> tuple[str, str]:
+    versions = {v for items in lists for v in items}
+    ordered = sorted(versions, key=lambda v: tuple(int(p) for p in v.split(".")))
+    return ordered[0], ordered[-1]
 
 
 if __name__ == "__main__":
