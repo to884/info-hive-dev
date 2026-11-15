@@ -172,6 +172,10 @@ class MatrixParserTests(unittest.TestCase):
             workflow = f"jobs:\n  a:\n    strategy:\n      matrix:\n        python: {value}\n"
             with self.subTest(value=value), self.assertRaises(AssertionError):
                 matrix_python_lists(workflow)
+        workflow = ("jobs:\n  a:\n    strategy:\n      matrix:\n        python: ['3.12', '3.14']\n"
+                    "        include: ${{ fromJSON(needs.versions.outputs.extra) }}\n")
+        with self.subTest("include の実行時の式"), self.assertRaises(AssertionError):
+            matrix_python_lists(workflow)
 
 
 def tested_python_range() -> tuple[str, str]:
@@ -192,8 +196,11 @@ def matrix_python_lists(workflow: str) -> list[list[str]]:
         if not isinstance(matrix, dict):
             raise AssertionError(f"ジョブ {name} の matrix を読めない: {matrix!r}")
         entries = [("python", matrix["python"])] if "python" in matrix else []
-        entries += [("include", item["python"]) for item in matrix.get("include") or []
-                    if isinstance(item, dict) and "python" in item]
+        include = matrix.get("include") or []
+        if not isinstance(include, list) or not all(isinstance(item, dict) for item in include):
+            # `${{ fromJSON(...) }}` などの実行時の式では、足される版が分からない。
+            raise AssertionError(f"ジョブ {name} の matrix の include を読めない: {include!r}")
+        entries += [("include", item["python"]) for item in include if "python" in item]
         for where, value in entries:
             items = value if isinstance(value, list) else [value]
             items = [str(v) for v in items]
