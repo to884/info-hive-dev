@@ -110,3 +110,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-15] ingest | browse の記事のページの Fluent 2（段 F2）と wiki 0.19.0 のリリースの記録
    ページ: sources/browseの記事のページのFluent2のリリース-wiki-0.19.0（concepts/browseのデザインシステム、concepts/リリースの確かめ方 を更新）
+
+## [2026-11-15] ingest | browse の stop の記録の読み取りの直し（wiki 0.19.1）
+   ページ: sources/stopの記録の読み取りの直し-wiki-0.19.1、concepts/windowsのファイルの共有と削除待ち（新規）
