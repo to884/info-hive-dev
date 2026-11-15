@@ -30,5 +30,6 @@ info-hive の設計で決めたことと、その理由を残す。1 つの判�
 | [0024](0024-wiki-extracts-pdf-text-with-pdfium.md) | wiki の取り込みの PDF の本文は、rag と同じ PDFium の文字の層から、同じページの区切りで取り出す | 取り下げ（0025 を代わりに提案） | － |
 | [0025](0025-pdf-text-layer-with-pdfminer-vertical.md) | wiki と rag は、PDF の文字の層を pdfminer（縦書きの検出あり）で取り出し、ページの判定と OCR の画像は PDFium で作る | 提案 | （承認の日を入れる） |
 | [0026](0026-wiki-uv-scripts-cap-python-at-tested-range.md) | wiki の uv で動くスクリプトは、CI で試す Python の範囲に上限を付ける | 承認 | 2026年11月15日 |
+| [0027](0027-youtube-captions-via-pinned-yt-dlp.md) | YouTube の動画は、固定した yt-dlp で字幕を取るスクリプトが raw を 1 回で作り、取り込みの手順に動画の分岐を足す | 提案 | （承認の日を入れる） |
 
 各 ADR には、状態、決定日、決定者、関連を表で書き、続けて背景、決定、理由、検討した選択肢、影響、参照を書く。判断を変えるときは元の ADR を書き換えず、新しい ADR を書いて、元の ADR の状態を「置き換え済み」にする。
