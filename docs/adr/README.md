@@ -27,6 +27,7 @@ info-hive の設計で決めたことと、その理由を残す。1 つの判�
 | [0021](0021-wiki-browse-uses-fluent2-replica.md) | `/wiki:browse` の画面は、Fluent 2 を再現した CSS を書き換えずに同梱して描き、配色を選べるようにする | 承認 | 2026年11月14日 |
 | [0022](0022-usage-docs-are-html-in-plugin-docs.md) | 利用者向けの文書は、各プラグインの `docs/` に、Fluent 2 の見た目の HTML で直接書く | 承認 | 2026年11月15日 |
 | [0023](0023-wiki-apply-uses-journal-and-per-wiki-lock.md) | wiki の書く段は、モデルが用意した変更を、wiki ごとの残るロックを持つ Python のプロセスが、日誌で前に進めて当てる | 承認 | 2026年11月15日 |
-| [0024](0024-wiki-extracts-pdf-text-with-pdfium.md) | wiki の取り込みの PDF の本文は、rag と同じ PDFium の文字の層から、同じページの区切りで取り出す | 提案 | （承認の日を入れる） |
+| [0024](0024-wiki-extracts-pdf-text-with-pdfium.md) | wiki の取り込みの PDF の本文は、rag と同じ PDFium の文字の層から、同じページの区切りで取り出す | 取り下げ（0025 を代わりに提案） | － |
+| [0025](0025-pdf-text-layer-with-pdfminer-vertical.md) | wiki と rag は、PDF の文字の層を pdfminer（縦書きの検出あり）で取り出し、ページの判定と OCR の画像は PDFium で作る | 提案 | （承認の日を入れる） |
 
 各 ADR には、状態、決定日、決定者、関連を表で書き、続けて背景、決定、理由、検討した選択肢、影響、参照を書く。判断を変えるときは元の ADR を書き換えず、新しい ADR を書いて、元の ADR の状態を「置き換え済み」にする。
