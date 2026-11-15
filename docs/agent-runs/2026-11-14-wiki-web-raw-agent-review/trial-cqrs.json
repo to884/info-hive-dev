@@ -53,12 +53,12 @@
       }
     },
     {
-      "check": "wiki:web-raw は check に --accept-warnings を付けていない",
+      "check": "wiki:web-raw は警告を受け入れて終えていない（check --finish の出力）",
       "ok": true,
       "detail": []
     },
     {
-      "check": "W8 の check --finish を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインの --accept-warnings）",
+      "check": "W8 の check --finish を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが警告の残ったまま終える）",
       "ok": true,
       "detail": {
         "finished_by": [
@@ -84,11 +84,16 @@
       ]
     },
     {
-      "check": "index.md に、メインが書いた要約ページへのリンクがある（ファイルの中身）",
+      "check": "index.md に、メインが書いた要約ページのすべてへのリンクがある（ファイルの中身）",
       "ok": true,
-      "detail": [
-        "cqrs"
-      ]
+      "detail": {
+        "pages": [
+          "cqrs"
+        ],
+        "linked": [
+          "cqrs"
+        ]
+      }
     },
     {
       "check": "raw の文が届くまでのメインの出力と、wiki:web-raw へのすべての依頼に、raw の文がない",
@@ -128,9 +133,11 @@
       }
     },
     {
-      "check": "log に取り込みの行と、raw の段の分担のサブ行がある（ファイルの中身）",
+      "check": "log の取り込みの項目に、raw の段の分担のサブ行がある（ファイルの中身）",
       "ok": true,
-      "detail": null
+      "detail": [
+        "## [2026-11-14] ingest | CQRS"
+      ]
     },
     {
       "check": "作業用の写しが消えた",
@@ -225,5 +232,5 @@
       }
     }
   },
-  "reanalyzed": "2026-11-15: 9 回目のレビューの指摘を直した確かめのスクリプトで確かめ直した（費用と時間は、取り込んだときの値）"
+  "reanalyzed": "2026-11-15: 10 回目のレビューの指摘を直した確かめのスクリプトで確かめ直した（費用と時間は、取り込んだときの値）"
 }

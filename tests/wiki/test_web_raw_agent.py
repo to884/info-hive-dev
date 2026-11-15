@@ -226,6 +226,11 @@ FETCH_OUTPUT = json.dumps({"path": "raw/cqrs.md", "url": "https://martinfowler.c
 CHECK_OUTPUT = json.dumps({"stage": "check", "ok": True, "translated_by": "Claude Sonnet 5.5",
                            "caption_names": ["Claude Sonnet 5.5"], "errors": [], "warnings": [], "work_dir_removed": True},
                           indent=2)
+# check --finish --accept-warnings で、警告が残ったまま写しを消したときの出力（の一部）
+ACCEPTED_OUTPUT = json.dumps({"stage": "check", "ok": True, "translated_by": "Claude Sonnet 5.5",
+                              "caption_names": ["Claude Sonnet 5.5"], "errors": [],
+                              "warnings": [{"kind": "style", "line": None, "message": "文体が混ざっている"}],
+                              "work_dir_removed": True}, indent=2)
 
 
 class SyntheticTranscriptTest(unittest.TestCase):
@@ -380,11 +385,11 @@ class SyntheticTranscriptTest(unittest.TestCase):
     def test_w8_needs_the_agents_own_finish(self):
         """W8 は、wiki:web-raw が自分で check --finish を動かして通ったことで決める（レビュー 7）。
 
-        前の出力を cat で表示しただけ、メインが --accept-warnings なしで代わりに終えた、は通さない。
-        警告を受け入れる流れで、メインが --finish --accept-warnings で終えたときは通し、終えた担当を書く。
+        前の出力を cat で表示しただけ、メインが警告のない check で代わりに終えた、は通さない。
+        警告を受け入れる流れで、メインが警告の残ったまま終えたとき（--accept-warnings）は通し、終えた担当を書く。
         """
-        name = ("W8 の check --finish を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインの "
-                "--accept-warnings）")
+        name = ("W8 の check --finish を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが警告の"
+                "残ったまま終える）")
         finish = "python wiki_rawcheck.py check --slug cqrs --finish"
         main, agents = self.good()
         sonnet = "claude-sonnet-5-5"
@@ -399,7 +404,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
         for case, (m, a) in cases.items():
             with self.subTest(case=case):
                 self.assertIn(name, self.failed(self.write(m, a)))
-        accepted = main + [self.use("Bash", {"command": finish + " --accept-warnings"}), self.got(CHECK_OUTPUT)]
+        accepted = main + [self.use("Bash", {"command": finish + " --accept-warnings"}), self.got(ACCEPTED_OUTPUT)]
         report = self.write(accepted, [(agents[0][0], without)])
         self.assertTrue(report["ok"], self.failed(report))
         self.assertEqual(report["w8_finished_by"], ["main"])
@@ -517,7 +522,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
         index.write_bytes("# 索引\n".encode("utf-8"))
         self.addCleanup(index.write_bytes, original_index)
         moved = main + [self.use("Bash", {"command": "mkdir -p notes && printf 'topic' >> notes/index.md"})]
-        self.assertIn("index.md に、メインが書いた要約ページへのリンクがある（ファイルの中身）",
+        self.assertIn("index.md に、メインが書いた要約ページのすべてへのリンクがある（ファイルの中身）",
                       self.failed(self.write(moved, agents)))
         index.write_bytes(original_index)
         # 5. 表示名は W8 の check --json の結果から取り、Sonnet でなければ不合格（9 回目: リストの中の補足も、
@@ -529,11 +534,51 @@ class SyntheticTranscriptTest(unittest.TestCase):
                    for r in agents[0][1]]
         self.assertIn("W8 の check の結果の、訳と補足の表示名が Sonnet（空はよい）",
                       self.failed(self.write(main, [(agents[0][0], swapped)])))
-        # 6. エージェントが --accept-warnings を付けて check を動かしたら不合格（W8 の証拠にもしない）
-        accepted = [json.loads(json.dumps(r, ensure_ascii=False).replace("--finish", "--finish --accept-warnings"))
-                    for r in agents[0][1]]
+        # 6. エージェントが警告の残ったまま写しを消したら（--accept-warnings を付けたときだけ起きる）不合格。
+        #    W8 の証拠にもしない
+        accepted = [self.got(ACCEPTED_OUTPUT) if self._is_check(r) else r for r in agents[0][1]]
         failed = self.failed(self.write(main, [(agents[0][0], accepted)]))
-        self.assertIn("wiki:web-raw は check に --accept-warnings を付けていない", failed)
+        self.assertIn("wiki:web-raw は警告を受け入れて終えていない（check --finish の出力）", failed)
+
+    def test_review10_counterexamples(self):
+        """10 回目のレビューの反例（1、2、3、5）。"""
+        main, agents = self.good()
+        index = self.project / "wiki/index.md"
+        log = self.project / "wiki/log.md"
+        original_index, original_log = index.read_bytes(), log.read_bytes()
+        self.addCleanup(index.write_bytes, original_index)
+        self.addCleanup(log.write_bytes, original_log)
+        template = PLUGIN / "skills" / "info-hive" / "assets"
+        # 1. 初期の index.md と log.md の説明文の記入例（インラインのコード）だけでは通さない
+        index.write_bytes((template / "index.md.template").read_bytes().replace("[[消費税]]".encode("utf-8"), b"[[cqrs]]"))
+        log.write_bytes((template / "log.md.template").read_bytes() + "   raw: `wiki:web-raw` に任せた\n".encode("utf-8"))
+        failed = self.failed(self.write(main, agents))
+        self.assertIn("index.md に、メインが書いた要約ページのすべてへのリンクがある（ファイルの中身）", failed)
+        self.assertIn("log の取り込みの項目に、raw の段の分担のサブ行がある（ファイルの中身）", failed)
+        log.write_bytes(original_log)
+        # 2. パス付きのリンクと、別名やアンカーの付いたリンクは通す
+        for link in ("[[sources/cqrs]]", "[[sources/cqrs|別名]]", "[[cqrs|別名]]", "[[cqrs#要点]]"):
+            with self.subTest(link=link):
+                index.write_bytes(f"# 索引\n\n- {link}: CQRS の要約\n".encode("utf-8"))
+                report = self.write(main, agents)
+                self.assertTrue(report["ok"], self.failed(report))
+        index.write_bytes(original_index)
+        # 3. 1 つの呼び出しで check を 2 度動かしたときは、写しを消した最後の出力の表示名を使う
+        before = CHECK_OUTPUT.replace('"Claude Sonnet 5.5"', '"Claude Opus 5.5"').replace(
+            '"work_dir_removed": true', '"work_dir_kept": "errors"')
+        self.assertNotIn("work_dir_removed", before)
+        twice = [self.got(before + "\n" + CHECK_OUTPUT) if self._is_check(r) else r for r in agents[0][1]]
+        report = self.write(main, [(agents[0][0], twice)])
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertEqual(report["translated_by"], "Claude Sonnet 5.5")
+        # 5. 検索と check を 1 つの呼び出しにまとめても、警告がなく写しを消したなら違反にしない
+        combined = [json.loads(json.dumps(r, ensure_ascii=False).replace(
+            "python wiki_rawcheck.py check --slug cqrs --finish",
+            "rg -n -- '--accept-warnings' web-raw.md; python wiki_rawcheck.py check --slug cqrs --finish --json"))
+            for r in agents[0][1]]
+        self.assertTrue(any("rg -n" in json.dumps(r, ensure_ascii=False) for r in combined))
+        report = self.write(main, [(agents[0][0], combined)])
+        self.assertTrue(report["ok"], self.failed(report))
 
     @staticmethod
     def _is_check(record) -> bool:
@@ -602,9 +647,17 @@ class TranscriptCheckTest(unittest.TestCase):
         self.assertFalse(names("cat previous-check-output.json"))
         self.assertFalse(names("python wiki_rawcheck.py freeze --slug a"))
         self.assertFalse(names("python wiki_rawcheck.py check --slug a"))
-        found = check_web_raw_agent.check_json('ls\r\n{\r\n  "stage": "check",\r\n  "ok": true\r\n}\r\nafter')
-        self.assertEqual(found, {"stage": "check", "ok": True})
-        self.assertIsNone(check_web_raw_agent.check_json("check: 通った"))
+        jsons = check_web_raw_agent.check_jsons
+        found = jsons('ls\r\n{\r\n  "stage": "check",\r\n  "ok": true\r\n}\r\nafter')
+        self.assertEqual(found, [{"stage": "check", "ok": True}])
+        self.assertEqual(jsons("check: 通った"), [])
+        two = '{"stage": "check", "ok": false}\n{"stage": "check", "ok": true, "work_dir_removed": true, "warnings": []}'
+        self.assertEqual(len(jsons(two)), 2)
+        finish = check_web_raw_agent.finish_result
+        self.assertEqual(finish(two)["json"]["ok"], True)
+        self.assertFalse(finish(two)["warnings"])
+        self.assertIsNone(finish('{"stage": "check", "ok": true, "work_dir_kept": "warnings"}'))
+        self.assertTrue(finish("check: 通った\n警告: 文体\n作業用の写しを消した")["warnings"])
 
     def test_shared_text_ignores_source_phrases(self):
         summary = "CQRS は Command Query Responsibility Segregation の略で、読み書きのモデルを分ける考え方である。" * 2
