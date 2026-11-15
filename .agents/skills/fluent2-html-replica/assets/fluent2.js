@@ -1866,17 +1866,24 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
       anchored = null;
       anchoredName = '';
     };
-    const show = () => {
-      if (tip.matches(':popover-open')) return;
-      if (visibleTooltip && visibleTooltip !== tip) visibleTooltip.hidePopover();
+    // 今のトリガーにアンカーを付ける（前のトリガーの名前は外し、新しい名前を作る）
+    const anchorToCurrent = () => {
       unanchor();
-      if (current) {
-        anchorSeq += 1;
-        anchoredName = `--fui-tooltip-${idPart}-${anchorSeq}`;
-        addAnchorName(current, anchoredName);
-        tip.style.setProperty('position-anchor', anchoredName);
-        anchored = current;
+      if (!current) return;
+      anchorSeq += 1;
+      anchoredName = `--fui-tooltip-${idPart}-${anchorSeq}`;
+      addAnchorName(current, anchoredName);
+      tip.style.setProperty('position-anchor', anchoredName);
+      anchored = current;
+    };
+    const show = () => {
+      if (tip.matches(':popover-open')) {
+        // 複数のトリガーで共有する Tooltip で、開いたままポインターやフォーカスが別のトリガーへ移ったら、付け替える
+        if (current !== anchored) anchorToCurrent();
+        return;
       }
+      if (visibleTooltip && visibleTooltip !== tip) visibleTooltip.hidePopover();
+      anchorToCurrent();
       tip.showPopover();
       // beforetoggle で開くのが取り消されたら、toggle は届かないので、ここで外す
       if (!tip.matches(':popover-open')) {
