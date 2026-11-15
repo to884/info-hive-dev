@@ -2,6 +2,11 @@
   "project": "C:\\UserData\\toshiki\\Temp\\claude\\870eed15d1242065\\50a39d3c-95c9-49f9-ad35-626aae661353\\scratchpad\\agent-trial\\cqrs",
   "checks": [
     {
+      "check": "セッションの記録のすべての行を JSON として読めた（読めない行の証拠は判定できない）",
+      "ok": true,
+      "detail": []
+    },
+    {
       "check": "メインが wiki:web-raw を呼んだ",
       "ok": true,
       "detail": {
@@ -45,16 +50,27 @@
       }
     },
     {
-      "check": "wiki_fetch.py と freeze を実行したのは wiki:web-raw だけ",
-      "ok": true,
-      "detail": {}
-    },
-    {
-      "check": "W8 の check --finish が通り、作業用の写しを消した（道具の結果）",
+      "check": "wiki:web-raw が wiki_fetch.py と freeze の出力を受け取った（道具の結果の形）",
       "ok": true,
       "detail": {
-        "finish_commands": 1,
-        "removed_in_results": true
+        "fetch": 1,
+        "freeze": 1
+      }
+    },
+    {
+      "check": "wiki:web-raw は警告を受け入れて終えていない（check --finish の出力。どの回も）",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "check": "W8 の check --finish --json を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが警告の残ったまま終える）",
+      "ok": true,
+      "detail": {
+        "finished_by": [
+          "wiki:web-raw"
+        ],
+        "final_actor": "wiki:web-raw",
+        "final_is_json": true
       }
     },
     {
@@ -68,16 +84,23 @@
       "detail": []
     },
     {
-      "check": "メインが要約ページ、index.md、log.md を書いた",
+      "check": "メインが要約ページを Edit か Write で書いた（成功した呼び出しで、ファイルがある）",
       "ok": true,
       "detail": [
-        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki/SCHEMA.md",
-        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki/concepts/command-query-responsibility-segregation.md",
-        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki/entities/martin-fowler.md",
-        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki/index.md",
-        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki/log.md",
         "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki/sources/cqrs.md"
       ]
+    },
+    {
+      "check": "index.md に、メインが書いた要約ページのすべてへのリンクがある（ファイルの中身）",
+      "ok": true,
+      "detail": {
+        "pages": [
+          "cqrs"
+        ],
+        "linked": [
+          "cqrs"
+        ]
+      }
     },
     {
       "check": "raw の文が届くまでのメインの出力と、wiki:web-raw へのすべての依頼に、raw の文がない",
@@ -86,6 +109,13 @@
         "before": [],
         "prompts": []
       }
+    },
+    {
+      "check": "要約ページがある",
+      "ok": true,
+      "detail": [
+        "C:\\UserData\\toshiki\\Temp\\claude\\870eed15d1242065\\50a39d3c-95c9-49f9-ad35-626aae661353\\scratchpad\\agent-trial\\cqrs\\wiki\\sources\\cqrs.md"
+      ]
     },
     {
       "check": "wiki:web-raw の出力に、要約ページの文がない",
@@ -100,9 +130,26 @@
       ]
     },
     {
-      "check": "log に raw の段の分担のサブ行がある",
+      "check": "raw に、確かめが読むスクリプトの出力の形の文字列がない（あれば、記録の中で本物の出力と見分けられず、判定できない）",
       "ok": true,
-      "detail": null
+      "detail": []
+    },
+    {
+      "check": "W8 の check の結果の、訳と補足の表示名が Sonnet（空はよい）",
+      "ok": true,
+      "detail": {
+        "translated_by": "Claude Sonnet 5.5",
+        "caption_names": [
+          "Claude Sonnet 5.5"
+        ]
+      }
+    },
+    {
+      "check": "log の取り込みの項目に、raw の段の分担のサブ行がある（ファイルの中身）",
+      "ok": true,
+      "detail": [
+        "## [2026-11-14] ingest | CQRS"
+      ]
     },
     {
       "check": "作業用の写しが消えた",
@@ -114,10 +161,19 @@
   "bash_to_review": {
     "main": [
       "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs\" && ls -la && ls wiki raw 2>&1 | head -50; cat wiki/SCHEMA.md 2>&1 | head -200",
-      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs\" && sed -n '200,400p' wiki/SCHEMA.md; echo ----INDEX; cat wiki/index.md; echo ----LOG; cat wiki/log.md; echo ----; find wiki raw -type f | grep -v SCHEMA; ls \"C:/Works/info-hive-dev/",
-      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs\" && ls wiki/.wiki-cache/ingest 2>&1; ls raw raw/assets/cqrs; wc -c raw/cqrs.md; cat raw/cqrs.md"
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs\" && sed -n '200,400p' wiki/SCHEMA.md; echo ----INDEX; cat wiki/index.md; echo ----LOG; cat wiki/log.md; echo ----; find wiki raw -type f | grep -v SCHEMA; ls \"C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references/\"",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs\" && cat wiki/.page-template.md",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs\" && ls wiki/.wiki-cache/ingest 2>&1; ls raw raw/assets/cqrs; wc -c raw/cqrs.md; cat raw/cqrs.md",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs\" && tail -c 200 wiki/log.md | od -c | tail -3",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki\" && for f in sources/cqrs.md concepts/command-query-responsibility-segregation.md entities/martin-fowler.md; do sed -i 's/^tags: \\[\\]$/tags: [\"ソフトウェアアーキテクチャ\"]/' \"$f\"; grep -n '^tags' \"$f\"; done",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/cqrs/wiki\" && for f in log.md index.md; do echo \"$f crlf=$(grep -c $'\\r$' $f) lines=$(wc -l < $f)\"; done"
     ]
   },
+  "other_script_runs": {},
+  "w8_finished_by": [
+    "wiki:web-raw"
+  ],
+  "display_names_verified": true,
   "translated_by": "Claude Sonnet 5.5",
   "caption_names": [
     "Claude Sonnet 5.5"
@@ -187,5 +243,6 @@
         "costBasis": "list"
       }
     }
-  }
+  },
+  "reanalyzed": "2026-11-15: 14 回目のレビューの指摘を直した確かめのスクリプトで確かめ直した（費用と時間は、取り込んだときの値）"
 }

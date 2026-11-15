@@ -2,6 +2,11 @@
   "project": "C:\\UserData\\toshiki\\Temp\\claude\\870eed15d1242065\\50a39d3c-95c9-49f9-ad35-626aae661353\\scratchpad\\agent-trial\\bloom",
   "checks": [
     {
+      "check": "セッションの記録のすべての行を JSON として読めた（読めない行の証拠は判定できない）",
+      "ok": true,
+      "detail": []
+    },
+    {
       "check": "メインが wiki:web-raw を呼んだ",
       "ok": true,
       "detail": {
@@ -45,16 +50,27 @@
       }
     },
     {
-      "check": "wiki_fetch.py と freeze を実行したのは wiki:web-raw だけ",
-      "ok": true,
-      "detail": {}
-    },
-    {
-      "check": "W8 の check --finish が通り、作業用の写しを消した（道具の結果）",
+      "check": "wiki:web-raw が wiki_fetch.py と freeze の出力を受け取った（道具の結果の形）",
       "ok": true,
       "detail": {
-        "finish_commands": 1,
-        "removed_in_results": true
+        "fetch": 1,
+        "freeze": 1
+      }
+    },
+    {
+      "check": "wiki:web-raw は警告を受け入れて終えていない（check --finish の出力。どの回も）",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "check": "W8 の check --finish --json を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが警告の残ったまま終える）",
+      "ok": true,
+      "detail": {
+        "finished_by": [
+          "wiki:web-raw"
+        ],
+        "final_actor": "wiki:web-raw",
+        "final_is_json": true
       }
     },
     {
@@ -68,17 +84,23 @@
       "detail": []
     },
     {
-      "check": "メインが要約ページ、index.md、log.md を書いた",
+      "check": "メインが要約ページを Edit か Write で書いた（成功した呼び出しで、ファイルがある）",
       "ok": true,
       "detail": [
-        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki/SCHEMA.md",
-        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki/concepts/bloom-filter.md",
-        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki/concepts/bloomier-filter.md",
-        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki/concepts/counting-filter.md",
-        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki/index.md",
-        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki/sources/ブルームフィルタ.md",
-        "log.md"
+        "C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki/sources/ブルームフィルタ.md"
       ]
+    },
+    {
+      "check": "index.md に、メインが書いた要約ページのすべてへのリンクがある（ファイルの中身）",
+      "ok": true,
+      "detail": {
+        "pages": [
+          "ブルームフィルタ"
+        ],
+        "linked": [
+          "ブルームフィルタ"
+        ]
+      }
     },
     {
       "check": "raw の文が届くまでのメインの出力と、wiki:web-raw へのすべての依頼に、raw の文がない",
@@ -87,6 +109,13 @@
         "before": [],
         "prompts": []
       }
+    },
+    {
+      "check": "要約ページがある",
+      "ok": true,
+      "detail": [
+        "C:\\UserData\\toshiki\\Temp\\claude\\870eed15d1242065\\50a39d3c-95c9-49f9-ad35-626aae661353\\scratchpad\\agent-trial\\bloom\\wiki\\sources\\ブルームフィルタ.md"
+      ]
     },
     {
       "check": "wiki:web-raw の出力に、要約ページの文がない",
@@ -101,9 +130,26 @@
       ]
     },
     {
-      "check": "log に raw の段の分担のサブ行がある",
+      "check": "raw に、確かめが読むスクリプトの出力の形の文字列がない（あれば、記録の中で本物の出力と見分けられず、判定できない）",
       "ok": true,
-      "detail": null
+      "detail": []
+    },
+    {
+      "check": "W8 の check の結果の、訳と補足の表示名が Sonnet（空はよい）",
+      "ok": true,
+      "detail": {
+        "translated_by": "",
+        "caption_names": [
+          "Claude Sonnet 5.5"
+        ]
+      }
+    },
+    {
+      "check": "log の取り込みの項目に、raw の段の分担のサブ行がある（ファイルの中身）",
+      "ok": true,
+      "detail": [
+        "## [2026-11-14] ingest | ブルームフィルタ（日本語版 Wikipedia）"
+      ]
     },
     {
       "check": "作業用の写しが消えた",
@@ -115,11 +161,25 @@
   "bash_to_review": {
     "main": [
       "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom\" && ls -la && ls -la wiki raw 2>&1 | head -50; cat CLAUDE.md AGENTS.md 2>/dev/null | head -50",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki\" && cat SCHEMA.md index.md log.md && find . -type f | grep -v .wiki-cache | head -50",
       "cd \"C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references\" && ls && cat web-raw.md",
+      "cat \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki/.page-template.md\"",
+      "cd \"C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references\" && cat ingest-workflow.md",
+      "cd \"C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references\" && grep -n \"^#\" ingest-workflow.md",
+      "cd \"C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references\" && wc -l page-conventions.md && grep -n \"^#\" page-conventions.md",
       "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom\" && ls -la raw raw/assets/ブルームフィルタ; ls wiki/.wiki-cache/ingest 2>&1; wc -c -l raw/ブルームフィルタ.md; head -15 raw/ブルームフィルタ.md",
-      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki\" && cat >> log.md <<'EOF'\n\n## [2026-11-14] ingest | ブルームフィルタ（日本語版 Wikipedia）\n   作成: sources/ブルームフィルタ、concepts/bloom-filter、concepts/counting-filter、concepts/bloomier-filter。人と話"
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki\" && cat >> log.md <<'EOF'\n\n## [2026-11-14] ingest | ブルームフィルタ（日本語版 Wikipedia）\n   作成: sources/ブルームフィルタ、concepts/bloom-filter、concepts/counting-filter、concepts/bloomier-filter。人と話し合わないまとめての取り込み。\n   raw: `wiki:web-raw` に任せた（報告したモデル: Claude Sonnet 5.5）。訳: なし、補足: Claude Sonnet 5.5\n   グラフ: ユーザーの指示で手順を飛ばした（型付きエッジは追加していない）\n   要確認: ソースの「Joe Killian」と書誌の「J. Kilian」の綴りの食い違い、Bloomier filter の検索時間を「線形時間」とする記述。ソースのスラッグと重なるため、概念のページは英語のスラッグ bloom-filter にした\nEOF\ntail -8 log.md",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom\" && python \"C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py\" wiki/ 2>&1 | head -60",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki\" && for f in concepts/bloom-filter.md concepts/bloomier-filter.md concepts/counting-filter.md sources/ブルームフィルタ.md; do python -I -c \"\nimport sys,io\np=sys.argv[1]\ns=open(p,encoding='utf-8').read()\nassert s.count('tags: []\\n')==1\nopen(p,'w',encoding='utf-8',newline='').write(s.replace('tags: []\\n','tags: [\\\"データ構造\\\"]\\n',1))\n\" \"$f\"; grep -n '^tags' \"$f\"; done",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki\" && python -I -c \"\nimport sys\nfor p,old in [('concepts/counting-filter.md','aliases: [\\\"Counting Bloom filter\\\", \\\"カウンティングフィルタ\\\"]\\n'),('concepts/bloomier-filter.md','aliases: [\\\"ブルーミアフィルタ\\\"]\\n')]:\n    s=open(p,encoding='utf-8').read(); assert s.count(old)==1\n    open(p,'w',encoding='utf-8',newline='').write(s.replace(old,'',1))\n\" && cat >> log.md <<'EOF'\n\n## [2026-11-14] schema | タグ「データ構造」をタグの体系に追加\n   空の tags を lint が必須項目の不足として指摘したため、取り込んだ 4 ページに付けた\nEOF\ncd .. && python \"C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py\" wiki/ --allowed-tags \"データ構造\" 2>&1 | head -40",
+      "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial/bloom/wiki\" && sed -n '/## タグの体系/,/タグは日本語/p' SCHEMA.md"
     ]
   },
+  "other_script_runs": {},
+  "w8_finished_by": [
+    "wiki:web-raw"
+  ],
+  "display_names_verified": true,
   "translated_by": "",
   "caption_names": [
     "Claude Sonnet 5.5"
@@ -189,5 +249,6 @@
         "costBasis": "list"
       }
     }
-  }
+  },
+  "reanalyzed": "2026-11-15: 14 回目のレビューの指摘を直した確かめのスクリプトで確かめ直した（費用と時間は、取り込んだときの値）"
 }
