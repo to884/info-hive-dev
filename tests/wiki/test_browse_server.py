@@ -145,6 +145,8 @@ class RequestTest(InProcess):
         self.assertEqual(code, 404)
         self.assertIn('href="../index.html"', body)
         self.assertNotIn(str(self.wiki), body)
+        # 見つからないページも、アイコンがないことを宣言し、製品の Chrome と Edge に /favicon.ico を要求させない
+        self.assertIn(core.ICON_LINK, body)
 
     def test_other_methods_and_bad_request_line(self):
         for method in ("PATCH", "OPTIONS", "DELETE"):

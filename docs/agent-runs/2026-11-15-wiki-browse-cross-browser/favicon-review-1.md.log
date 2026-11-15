@@ -1,0 +1,47 @@
+[ask-codex 17:45:40] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\browse-fluent2）
+## 判定
+
+**条件付きで採用可。確信度：中。** 通常の HTML への修正は崩せなかった。ただし、503 などを含む「サーバーのどの画面でも favicon の 404 が出ない」という約束まで満たす根拠はなく、宣言が届かない応答が残っている。
+
+## 致命的・重大な欠陥
+
+なし。閲覧不能や CSP の弱体化を示す欠陥は確認できなかった。
+
+## 崩れる前提
+
+- **閲覧 URL の応答が必ず `_head()` または HTML の 404 を通るという前提。** 初回の組み立て失敗、組み立て待機のタイムアウト、起動後の `SCHEMA.md` 消失では、宣言のない `text/plain` の 503 になる。描画処理の例外では同様に 500 になる。
+- **CSP が暗黙の favicon 要求も止めるという前提。** `/favicon.ico` は同一オリジンなので、現在の `img-src 'self' data:` が許す。Chromium の `Document::IconURLs()` も、宣言がなく HTTP 系 URL なら、CSP を確認して既定アイコンを候補にする。これはブラウザ実装からの推論であり、今回の製品版での実測ではない。[Chromium の実装](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/third_party/blink/renderer/core/dom/document.cc#8297)
+
+## 見落としと軽微な問題
+
+1. **軽微：503・500 の画面では、元の要求が残る可能性がある。ブラウザでの再発は推測。**  
+   再現候補は、サーバー起動後に `SCHEMA.md` を除去し、新しいブラウザコンテキストから閲覧 URL を開くこと。応答は favicon 宣言のない 503 になり、仮に `/favicon.ico` が要求されると、経路検証で 404 が返る。  
+   根拠：`info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:481–488`、同 `:475`。実際の Handler を抽出して実行し、503 の３状態すべてで宣言がなく、`/favicon.ico` が 404 になることは確認した。ブラウザでの要求発生は未確認。
+
+2. **軽微：HTML の 404 は、CSP をヘッダーと `<meta>` の両方で出すという約束と食い違う。**  
+   正常な Wiki で `concepts/nope.html` を要求すると、favicon 宣言はあるが CSP の `<meta>` はない。HTTP ヘッダーには CSP があるため、これを保護の欠落とは判定しない。また、この不一致は変更前から存在する。  
+   根拠：`info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:491–495`。応答生成の実行でも確認した。
+
+3. **軽微：追加試験は、上記の経路とブラウザ固有の退行を検出しない。**  
+   `tests/wiki/test_browse.py:491–493` は記事の `<head>` 内の文字列、`tests/wiki/test_browse_server.py:149` は HTML の 404 本文中の文字列だけを検査する。503・500 に宣言がなくても、追加された検査は失敗しない。既存の 503 試験も、ステータスや案内文を確認するだけである（`test_browse_server.py:634–678`）。  
+   さらに、修正後のブラウザ試験は通常の索引・記事を巡回しており、HTML の 404 や 503 を開いていない。
+
+## 検証した事実
+
+- **一致：** CSP の値は指定どおりで、差分に変更はない。
+- **一致：** 記事、索引、描画失敗時の代替 HTML は共通の `_head()` を通り、favicon 宣言を受け取る。
+- **一致：** HTML の 404 にも宣言が入り、HTTP の CSP ヘッダーが付く。
+- **食い違い：** HTML の 404 には CSP の `<meta>` がない。
+- **記録上は一致：** `after-fix/browse-chrome.json` と `browse-msedge.json` は、静的・サーバーの両方式で失敗・コンソールエラーともに空。ただし異常応答の検証記録ではない。
+- **確かめられず：** 今回の Chrome／Edge 実測。Playwright の起動は、一時ディレクトリ作成が読み取り専用環境で `EPERM` になったため実行できなかった。既存の試験一式も再実行していない。
+
+## 崩せなかった点
+
+- 共通 `_head()` を使う HTML から favicon 宣言が抜ける経路。
+- この差分による外部 URL、`style` 属性、インラインスクリプトの追加。
+- `data:,` と既存 CSP の許可条件との衝突。
+- 通常画面について、静的方式とサーバー方式で favicon 宣言が異なる可能性。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 17:50:50] 完了。session 01a1de62-3c5e-7ee0-a958-7f3ccdca7786  usage {"input_tokens": 869356, "cached_input_tokens": 779136, "cache_write_input_tokens": 0, "output_tokens": 7280, "reasoning_output_tokens": 2141}

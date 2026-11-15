@@ -58,10 +58,10 @@ Fluent 2 にしたあとの画面（[[browseのデザインシステム]]）は�
 
 ## Chromium のほかのブラウザで流す
 
-ブラウザの試験は、環境変数 `BROWSERS` で、`chromium`、`firefox`、`webkit`、`msedge`、`chrome` を選べる。CI は Chromium だけを流す。2026年11月15日に、0.19.1 を 5 つのブラウザで確かめた（記録は `docs/agent-runs/2026-11-15-wiki-browse-cross-browser/`）。画面の違いは見えなかった。落ちた試験は、どれも試験の道具か環境の違いによるもので、次の 3 つは、次に流すときにも出る。
+ブラウザの試験は、環境変数 `BROWSERS` で、`chromium`、`firefox`、`webkit`、`msedge`、`chrome` を選べる。CI は Chromium だけを流す。2026年11月15日に、0.19.1 を 5 つのブラウザで確かめた（記録は `docs/agent-runs/2026-11-15-wiki-browse-cross-browser/`）。画面の違いは見えなかった。落ちた試験の原因から、次の 3 つが分かった。
 
 - **Firefox は `file://` の要求を見せない。** Firefox の Playwright は、`file://` の要求を `page.route` でも `page.on("request")` でも捕まえない。これに頼る静的の方式の試験（`search.js` の後読み、世代の不一致）は、Firefox では落ちる。同じ確かめは、サーバーの方式で通るかを見る。
-- **製品の Edge と Chrome は `/favicon.ico` を要求する。** Playwright に同梱の Chromium は要求しない。ページが `<link rel="icon">` を持たないので、サーバーの方式で 404 になり、コンソールにエラーが出る。CI では見えない。
+- **製品の Edge と Chrome は `/favicon.ico` を要求する。** Playwright に同梱の Chromium は要求しない。0.19.2 までのページは `<link rel="icon">` を持たず、サーバーの方式で 404 になり、コンソールにエラーが出ていた。0.19.3 で、ページと 404 の HTML に `<link rel="icon" href="data:,">` を出して直した。503 と 500 のテキストの画面では、今も要求する。CI では、この種の問題は見えないので、製品のブラウザで流して確かめる。
 - **WebKit では、撮るたびに CSP の違反が出る。** `page.screenshot` が足すスタイルシートを、ページの CSP が拒む。ページが出した違反ではないので、CSP の違反を数える試験では、撮る前に数える。
 
 4 つのブラウザで両方の方式を同時に流すと、`findability.test.mjs` が 4〜8 分かかる。

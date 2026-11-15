@@ -32,7 +32,26 @@ wiki 0.19.0 と 0.18.0 のリリースで残した「Chromium のほかのブラ
 
 ### Edge と Chrome のサーバーの 1 件は、ファビコンの 404
 
-コンソールのエラーは `Failed to load resource: the server responded with a status of 404 (Not Found)` で、URL は `http://127.0.0.1:<ポート>/favicon.ico` だった（`probe.mjs`）。Playwright に同梱の Chromium はファビコンを要求しないので、CI では出ない。製品の Edge と Chrome は、ページが `<link rel="icon">` を持たないと `/favicon.ico` を要求し、サーバーが 404 を返す。画面は壊れないが、利用者のブラウザの開発者ツールに毎回エラーが出る。
+コンソールのエラーは `Failed to load resource: the server responded with a status of 404 (Not Found)` で、URL は `http://127.0.0.1:<ポート>/favicon.ico` だった（`probe.mjs`）。Playwright に同梱の Chromium はファビコンを要求しないので、CI では出ない。製品の Edge と Chrome は、ページが `<link rel="icon">` を持たないと `/favicon.ico` を要求し、サーバーが 404 を返す。画面は壊れないが、利用者のブラウザの開発者ツールに毎回エラーが出る。0.19.3 で直した（下の「直し」）。
+
+## 直し（0.19.3）
+
+閲覧のページ（`wiki_browse_core.py` の `_head`）と、サーバーの「見つからない」のページ（`wiki_browse.py`）の `<head>` で、`<link rel="icon" href="data:,">` を出し、アイコンがないことを宣言した。CSP は変えていない（`img-src 'self' data:`）。
+
+- 直したあと、`browse.test.mjs` と `findability.test.mjs` は、Chromium、Chrome、Edge、WebKit（両方の方式）と Firefox（サーバーの方式）で、失敗 0 だった（`after-fix/`）。
+- 製品の Chrome と Edge で、エラーの画面を `probe-errors.mjs` で開いた。
+  - 404 の HTML: `/favicon.ico` を要求しなくなった。コンソールには、文書そのものの 404 だけが出る。
+  - 503 のテキスト（組み立てられないとき）: 今までどおり `/favicon.ico` を要求し、404 になる。テキストの応答は宣言を持てない。文書そのものの 503 のエラーもコンソールに出る画面なので、範囲の外とした。500 も同じである。
+
+### Sol のレビュー
+
+Sol の敵対的レビューを 1 回受けた（`favicon-review-1.md`）。致命と重大は 0 件だった。
+
+| 指摘 | 扱い |
+| --- | --- |
+| 503 と 500 のテキストの画面では、要求が残る（推測） | 測って確かめた（上）。残るが、その画面は応答そのもののエラーがもともと出る。どの画面でも出ないことを約束するには、トークンのないパス（`/favicon.ico`）にサーバーが答える必要があり、要求の境界（構造の直しの設計 8.1）を変える。0.19.3 の約束は、ふつうに描いたページと 404 の HTML にとどめ、CHANGELOG に書いた |
+| 404 の HTML に CSP の `<meta>` がない | 直す前からで、HTTP のヘッダーで CSP を出している。範囲の外とした |
+| 試験が 503 と 500 の経路を捕まえない | 上のとおり約束の外なので、試験も足さない。ブラウザの要求そのものは、CI の Chromium が要求しないので、CI では捕まえられない |
 
 ## 画面の見比べ
 
