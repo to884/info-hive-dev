@@ -481,7 +481,7 @@ async function articlePartsChecks(browser, base, tag) {
       meta: { display: getComputedStyle(meta).display, narrow: meta.offsetWidth < document.getElementById("_main").clientWidth,
               th: cs("#_meta th").whiteSpace },
       rel: { display: getComputedStyle(rel).display, min: Math.abs(px(getComputedStyle(rel).minWidth) - px(getComputedStyle(rel).fontSize) * 48) < 0.5,
-             wrap: cs("#_relations td").overflowWrap, inScroll: !!rel.closest(".table-scroll") },
+             wrap: cs("#_relations td").overflowWrap + " " + cs("#_relations td").wordBreak, inScroll: !!rel.closest(".table-scroll") },
       backlinks: getComputedStyle(document.querySelector("#_backlinks ul")).listStyleType,
       marker: color(getComputedStyle(document.querySelector("#_diagnostics li"), "::marker").color)
         === color(token("--colorStatusWarningForeground3")),
@@ -501,7 +501,7 @@ async function articlePartsChecks(browser, base, tag) {
   check(r.code === true && r.pre && r.quote && r.hr, `${tag}: 本文のコード、整形済み、引用、区切りの線が違う: ${JSON.stringify([r.code, r.pre, r.quote, r.hr])}`);
   check(r.bodyTable === "block", `${tag}: 本文の表が横に送れる形（block）でない: ${r.bodyTable}`);
   check(r.meta.display === "table" && r.meta.narrow && r.meta.th === "nowrap", `${tag}: メタ欄の表の形が違う: ${JSON.stringify(r.meta)}`);
-  check(r.rel.display === "table" && r.rel.min && r.rel.wrap === "normal" && r.rel.inScroll, `${tag}: 関係表の形が違う: ${JSON.stringify(r.rel)}`);
+  check(r.rel.display === "table" && r.rel.min && r.rel.wrap === "normal keep-all" && r.rel.inScroll, `${tag}: 関係表の形が違う: ${JSON.stringify(r.rel)}`);
   check(r.backlinks === "none", `${tag}: 被リンクが Fluent の List でない: ${r.backlinks}`);
   check(r.marker, `${tag}: 診断の一覧の印が警告の色でない`);
   // 読むだけの行の地がポインターと押下で変わらないことは、colorChecks の stateContrast がすべての行で比べる
