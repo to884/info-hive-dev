@@ -1,0 +1,248 @@
+/*!
+ * 閲覧の画面は、同梱の fluent2.css（スキル fluent2-html-replica の写し）で描く。fluent2.css の先頭のコメントにある
+ * Fluent UI と Fluent UI System Icons の表示に加え、fluent2-html-replica 自身の表示を次に写す。
+ *
+ * MIT License
+ *
+ * Copyright (c) 2026 to884
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+/* 閲覧の画面の独自の CSS（試作）。fluent2.css のあとに読む。
+   色、間隔、角丸、線、書体はトークンの CSS 変数で書き、hex と px を直に書かない。
+   土台は [data-theme] に 14px を当てるので、長さに rem を使わない（media query の rem は初期値の 16px で決まる）。
+   日本語の組版の指定（禁則、折り返し、字間）は、選択肢のレポートの 6.7 節と 7.2 節による。 */
+
+/* --- 配色の宣言（ブラウザが描くスクロールバーや選択の一覧を、テーマに合わせる。v9 からの逸脱） --- */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
+@media (prefers-color-scheme: dark) { :root[data-theme="auto"] { color-scheme: dark; } }
+
+/* --- 書体: 等幅に日本語のゴシックを足す（独自） --- */
+:root {
+  --browse-font-mono: var(--fontFamilyMonospace), "BIZ UDGothic", "Noto Sans Mono CJK JP", monospace;
+}
+
+/* --- 外枠: ナビと本文の 2 列。48rem 以下では 1 列にする --- */
+body.fui-FluentProvider {
+  margin: 0;
+  display: grid;
+  grid-template-columns: var(--f2-nav-width) minmax(0, 1fr);
+  min-height: 100vh;
+  /* ナビの列の地を、ナビより下までのばす（ナビは画面の高さで止まる） */
+  background-image: linear-gradient(to right, var(--colorNeutralBackground4) var(--f2-nav-width), transparent 0);
+}
+#_nav {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  border-inline-end: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+}
+#_main {
+  min-width: 0;
+  box-sizing: border-box;
+  padding: var(--spacingVerticalXXL) var(--spacingHorizontalXXXL) var(--spacingVerticalXXXL);
+}
+.page-article #_main { font-size: var(--fontSizeBase400); line-height: 1.8; max-width: 48em; }
+.page-index #_main { max-width: 64em; }
+#_main, #_nav { line-break: strict; word-break: normal; overflow-wrap: anywhere; }
+@supports (text-autospace: normal) { #_main { text-autospace: normal; } }
+
+/* --- ナビの見出し: スコープ、索引、配色 --- */
+.nav-head { gap: var(--spacingVerticalS); padding-block: var(--spacingVerticalM); }
+.scope { margin: 0; }
+.scope .fui-Badge { white-space: normal; height: auto; }
+/* プロジェクトのスコープの緑（パレットの色。状態の色の success ではない） */
+.fui-Badge.scope-green {
+  background-color: var(--colorPaletteGreenBackground1);
+  color: var(--colorPaletteGreenForeground1);
+  border-color: var(--colorPaletteGreenBorder1);
+}
+.nav-home { font-weight: var(--fontWeightSemibold); }
+.theme-field { display: flex; align-items: center; gap: var(--spacingHorizontalS); }
+.theme-label { font-size: var(--fontSizeBase200); color: var(--colorNeutralForeground3); }
+.theme-field .fui-Select { flex: 1; }
+
+/* --- 検索欄と結果 --- */
+.search { padding: 0 var(--spacingHorizontalM) var(--spacingVerticalS); }
+.search .fui-SearchBox { width: 100%; }
+.search-hint { margin: var(--spacingVerticalXS) 0 0; color: var(--colorNeutralForeground3); }
+.sr-area { padding: 0 var(--spacingHorizontalS); }
+.sr-count, .sr-empty { margin: var(--spacingVerticalXS) var(--spacingHorizontalS); color: var(--colorNeutralForeground3); }
+.sr-link {
+  display: block;
+  padding: var(--spacingVerticalSNudge) var(--spacingHorizontalS);
+  border-radius: var(--borderRadiusMedium);
+  color: var(--colorNeutralForeground1);
+  text-decoration: none;
+}
+.sr-link:hover { background-color: var(--colorSubtleBackgroundHover); }
+.sr-link:focus-visible { outline: var(--strokeWidthThick) solid var(--colorStrokeFocus2); outline-offset: calc(var(--strokeWidthThick) * -1); }
+/* 地が状態で変わる行では、brand のリンクの色を使わず、中立の文字の色にする（暗い配色のホバーの地で 4.5:1 を割るため） */
+.sr-title { display: block; font-weight: var(--fontWeightSemibold); color: var(--colorNeutralForeground1); }
+.sr-meta { display: block; color: var(--colorNeutralForeground2); }
+
+/* --- 木（Nav の NavCategory を各段に繰り返す独自の拡張） --- */
+.tree { padding-bottom: var(--spacingVerticalL); }
+.tree-name { flex: 1; min-width: 0; white-space: normal; }
+.tree-count { color: var(--colorNeutralForeground3); font-variant-numeric: tabular-nums; }
+.fui-NavCategoryItem { gap: var(--spacingHorizontalXS); height: auto; min-height: var(--f2-size360); }
+.fui-NavSubItem { white-space: normal; height: auto; padding-block: var(--spacingVerticalSNudge); }
+/* 2 段目より深い段の字下げ。4 段目で止め、それより深い段は同じ位置に置き、左の線で段を示す */
+.fui-NavSubItemGroup .tree-group { margin-inline-start: var(--spacingHorizontalL); }
+.tree-group.nav-depth-4, .tree-group.nav-depth-5, .tree-group.nav-depth-6 { margin-inline-start: 0; }
+.tree-group.nav-depth-4, .tree-group.nav-depth-5, .tree-group.nav-depth-6 {
+  border-inline-start: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+}
+.fui-NavSubItemGroup { overflow: visible; }
+/* 「一覧」は地が状態で変わる summary の中にあるので、押下の色を含めて中立の文字にする（4.2） */
+.tree-filter, .tree-filter:hover, .tree-filter:active { visibility: hidden; font-size: var(--fontSizeBase200); color: var(--colorNeutralForeground2); }
+.fui-NavCategoryItem:hover .tree-filter, .fui-NavCategoryItem:focus-within .tree-filter, .tree-filter:focus-visible, .fui-NavCategoryItem .tree-filter:active {
+  visibility: visible;
+}
+.tree-groups { list-style: none; margin: 0; padding: 0; }
+.tree-groups .tree-groups { padding-inline-start: var(--spacingHorizontalL); }
+.tree-groups.nav-depth-4, .tree-groups.nav-depth-5, .tree-groups.nav-depth-6 {
+  padding-inline-start: 0; border-inline-start: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+}
+.tree-groups .fui-NavItem, .tree-all { display: flex; gap: var(--spacingHorizontalS); height: auto; min-height: var(--f2-size360); }
+.fui-NavItem.is-current, .fui-NavSubItem.is-current {
+  background-color: var(--colorNeutralBackground4Selected);
+  /* Nav の選択の印（::after）は、入れ子の NavSubItemGroup と details の中で切れて見えない。
+     印は内側の影で描く（独自。日本語の画面だけなので左に描く） */
+  box-shadow: inset var(--strokeWidthThicker) 0 0 var(--colorCompoundBrandForeground1);
+}
+.fui-NavSubItem.is-current::after { content: none; }
+
+/* --- 狭い幅の「メニュー」 --- */
+.drawer > summary { display: none; }
+.drawer > summary::-webkit-details-marker { display: none; }
+
+/* --- 索引のページ --- */
+#_ixhead h1 { margin: 0; }
+.ix-stats { margin: var(--spacingVerticalXS) 0 var(--spacingVerticalL); color: var(--colorNeutralForeground3); }
+.fx-bar {
+  display: flex; flex-wrap: wrap; gap: var(--spacingVerticalS) var(--spacingHorizontalM); align-items: center;
+  padding: var(--spacingVerticalM) var(--spacingHorizontalM);
+  background-color: var(--colorNeutralBackground2);
+  border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
+  border-radius: var(--borderRadiusLarge);
+  position: sticky; top: 0; z-index: 1;
+}
+.fx-bar .fui-SearchBox { flex: 1 1 16em; }
+.chips { display: flex; flex-wrap: wrap; gap: var(--spacingHorizontalXS); }
+.fx-count { margin: var(--spacingVerticalM) 0 var(--spacingVerticalXS); color: var(--colorNeutralForeground3); }
+.fx-list { list-style: none; margin: 0; padding: 0; }
+.fx-row { padding: var(--spacingVerticalM) 0; border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke2); }
+.fx-path { color: var(--colorNeutralForeground3); }
+.ix-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacingVerticalXS) var(--spacingHorizontalS); }
+.ix-title {
+  font-size: var(--fontSizeBase400); line-height: var(--lineHeightBase400); font-weight: var(--fontWeightSemibold);
+  color: var(--colorBrandForegroundLink); text-decoration: none;
+}
+.ix-title:hover { text-decoration: underline; color: var(--colorBrandForegroundLinkHover); }
+.ix-line time { margin-inline-start: auto; color: var(--colorNeutralForeground3); font-variant-numeric: tabular-nums; }
+.ix-summary { margin: var(--spacingVerticalXXS) 0 0; color: var(--colorNeutralForeground2); line-height: 1.7; }
+.ix-tags { display: flex; flex-wrap: wrap; gap: var(--spacingHorizontalXS); margin-top: var(--spacingVerticalXS); }
+#_index_unresolved { margin-top: var(--spacingVerticalXXL); }
+.state { color: var(--colorNeutralForeground3); }
+
+/* 地を状態で変えてよいのは、操作できる要素（リンク、ボタン、summary、ナビの項目）だけにする。
+   読むだけの表と一覧の行は、Fluent の部品がホバーで地を変えても打ち消す（brand のリンクの色が 4.5:1 を割るため） */
+#_main .fui-TableRow:hover, #_main .fui-TableRow:active, #_main .fui-ListItem:hover { background-color: transparent; }
+
+/* 利用者の文字（タグ、種類の値、グループの名前、題名）を持つ部品は、Fluent の nowrap を外して折り返す */
+.fui-Tag, .fui-Badge.badge, .chips .fui-ToggleButton { max-width: 100%; height: auto; min-width: 0; }
+.fui-Tag__primaryText, .fui-Badge.badge, .chips .fui-ToggleButton { white-space: normal; overflow-wrap: anywhere; text-align: start; }
+.fui-Tag { padding-block: var(--spacingVerticalXXS); }
+
+/* 種類の印: パレットの色（独自）。Avatar の色の組と同じ Background2 と Foreground2 */
+.fui-Badge.t-source { background-color: var(--colorPalettePumpkinBackground2); color: var(--colorPalettePumpkinForeground2); border-color: transparent; }
+.fui-Badge.t-entity { background-color: var(--colorPaletteLavenderBackground2); color: var(--colorPaletteLavenderForeground2); border-color: transparent; }
+.fui-Badge.t-concept { background-color: var(--colorPaletteTealBackground2); color: var(--colorPaletteTealForeground2); border-color: transparent; }
+.fui-Badge.t-synthesis { background-color: var(--colorPaletteCornflowerBackground2); color: var(--colorPaletteCornflowerForeground2); border-color: transparent; }
+.fui-Badge.t-other { background-color: var(--colorNeutralBackground4); color: var(--colorNeutralForeground3); border-color: transparent; }
+
+mark { background-color: var(--colorPaletteYellowBackground2); color: var(--colorNeutralForeground1); border-radius: var(--borderRadiusSmall); }
+
+/* --- 注意の帯 --- */
+.fui-MessageBar { margin-bottom: var(--spacingVerticalL); }
+
+/* --- 記事のページ（F2） --- */
+#_meta { width: auto; table-layout: auto; margin-bottom: var(--spacingVerticalL); }
+#_meta th { white-space: nowrap; color: var(--colorNeutralForeground3); font-weight: var(--fontWeightRegular); text-align: start; padding-inline-end: var(--spacingHorizontalL); }
+#_meta .fui-TableCell, #_meta .fui-TableHeaderCell { height: auto; padding-block: var(--spacingVerticalXS); }
+#_body h1 { font-size: var(--fontSizeHero700); line-height: var(--lineHeightHero700); font-weight: var(--fontWeightSemibold); margin: var(--spacingVerticalL) 0 var(--spacingVerticalM); }
+#_body h2 { font-size: var(--fontSizeBase600); line-height: var(--lineHeightBase600); font-weight: var(--fontWeightSemibold); margin: var(--spacingVerticalXXL) 0 var(--spacingVerticalS); padding-bottom: var(--spacingVerticalXS); border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke2); }
+#_body h3 { font-size: var(--fontSizeBase500); line-height: var(--lineHeightBase500); font-weight: var(--fontWeightSemibold); margin: var(--spacingVerticalXL) 0 var(--spacingVerticalXS); }
+#_body h4 { font-size: var(--fontSizeBase400); line-height: var(--lineHeightBase400); font-weight: var(--fontWeightSemibold); }
+#_body a, #_backlinks a, #_meta a, #_relations a { color: var(--colorBrandForegroundLink); text-decoration: underline; text-underline-offset: 0.15em; }
+#_body a:hover, #_backlinks a:hover, #_meta a:hover, #_relations a:hover { color: var(--colorBrandForegroundLinkHover); }
+a.ext::after { content: " ↗"; }
+.wl-unresolved { color: var(--colorPaletteRedForeground1); text-decoration: underline dotted; }
+.wl-ambiguous { color: var(--colorPaletteMarigoldForeground2); text-decoration: underline wavy; }
+.wl-missing-heading { text-decoration: underline dotted; }
+code, pre { font-family: var(--browse-font-mono); }
+code { font-size: 0.9em; background-color: var(--colorNeutralBackground3); padding: 0 var(--spacingHorizontalXXS); border-radius: var(--borderRadiusSmall); overflow-wrap: anywhere; }
+pre { overflow-x: auto; white-space: pre; background-color: var(--colorNeutralBackground3); padding: var(--spacingVerticalM) var(--spacingHorizontalM); border-radius: var(--borderRadiusMedium); line-height: 1.6; }
+pre code { background: none; padding: 0; font-size: var(--fontSizeBase300); }
+#_body table { border-collapse: collapse; display: block; overflow-x: auto; max-width: 100%; font-size: var(--fontSizeBase300); line-height: var(--lineHeightBase300); }
+#_body th, #_body td { border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke2); padding: var(--spacingVerticalS) var(--spacingHorizontalM); vertical-align: top; }
+#_body th { font-weight: var(--fontWeightSemibold); text-align: start; }
+#_body .ta-left { text-align: left; }
+#_body .ta-center { text-align: center; }
+#_body .ta-right { text-align: right; }
+#_body blockquote { margin: var(--spacingVerticalM) 0; padding: 0 var(--spacingHorizontalL); border-inline-start: var(--strokeWidthThicker) solid var(--colorNeutralStroke1); color: var(--colorNeutralForeground2); }
+#_body hr { border: none; border-top: var(--strokeWidthThin) solid var(--colorNeutralStroke2); margin: var(--spacingVerticalXL) 0; }
+img { max-width: 100%; }
+#_backlinks, #_relations, #_diagnostics { margin-top: var(--spacingVerticalXXL); font-size: var(--fontSizeBase300); line-height: var(--lineHeightBase300); }
+#_backlinks h2, #_relations h2, #_diagnostics h2 { margin: 0 0 var(--spacingVerticalS); }
+#_backlinks .fui-ListItem { padding-block: var(--spacingVerticalXS); }
+.table-scroll { overflow-x: auto; max-width: 100%; }
+.relations.fui-Table { table-layout: auto; min-width: 48em; overflow-wrap: normal; word-break: keep-all; }
+.relations .fui-TableCell, .relations .fui-TableHeaderCell { height: auto; padding-block: var(--spacingVerticalXS); }
+.diag-list { margin: 0; padding-inline-start: var(--spacingHorizontalXL); color: var(--colorStatusWarningForeground3); }
+.diag-list li { color: var(--colorNeutralForeground1); }
+.diag-list li::marker { color: var(--colorStatusWarningForeground3); }
+
+/* --- フォーカス（独自の要素） --- */
+.ix-title:focus-visible, #_body a:focus-visible, #_backlinks a:focus-visible, .tree-filter:focus-visible, summary:focus-visible {
+  outline: var(--strokeWidthThick) solid var(--colorStrokeFocus2);
+  outline-offset: var(--strokeWidthThin);
+  border-radius: var(--borderRadiusSmall);
+}
+
+/* --- 狭い幅 --- */
+@media (max-width: 48rem) {
+  body.fui-FluentProvider { display: block; background-image: none; }
+  #_nav { position: static; height: auto; max-height: none; width: auto; border-inline-end: none; border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke2); }
+  #_main { padding: var(--spacingVerticalL) var(--spacingHorizontalL); }
+  .drawer > summary { display: inline-flex; margin: 0 var(--spacingHorizontalM) var(--spacingVerticalS); }
+  .fx-bar { position: static; }
+  .ix-line time { margin-inline-start: 0; }
+}
+
+/* --- 強制カラー: 今のページと絞っているグループを、システムの色で示す --- */
+@media (forced-colors: active) {
+  .fui-NavItem.is-current, .fui-NavSubItem.is-current { outline: var(--strokeWidthThick) solid Highlight; }
+  .fui-Badge.t-source, .fui-Badge.t-entity, .fui-Badge.t-concept, .fui-Badge.t-synthesis, .fui-Badge.t-other, .fui-Badge.scope-green {
+    border-color: CanvasText;
+  }
+  .wl-unresolved, .wl-ambiguous { color: LinkText; }
+}
