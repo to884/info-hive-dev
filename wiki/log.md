@@ -113,3 +113,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-15] ingest | browse の stop の記録の読み取りの直し（wiki 0.19.1）
    ページ: sources/stopの記録の読み取りの直し-wiki-0.19.1、concepts/windowsのファイルの共有と削除待ち（新規）
+
+## [2026-11-15] update | browse を 5 つのブラウザで確かめた
+   ページ: concepts/browseの画面の確かめ方
