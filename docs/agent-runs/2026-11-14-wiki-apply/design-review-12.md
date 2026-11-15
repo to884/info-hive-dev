@@ -1,0 +1,174 @@
+## 判定
+
+**却下。確信度：高。** 差分保存の取り違えと、電源断後に成功済みの変更を失う反例が残る。BI・BJにも、通常の検査と片付けを完結させるための規定が不足している。
+
+未実装の設計への判定である。以下では、設計から導いた反例と、既存コード・Windowsで確認した結果を区別する。
+
+## 致命的・重大な欠陥
+
+### 1.【重大】配置先の永続化より先に完了印が永続化され、成功済みの変更を失う
+
+7aは一時ファイルを `fsync` するが、7bの配置後に、**配置先のディレクトリを `fsync` する手順がない**。一方、9は完了印を置いたディレクトリまで `fsync` してから成功を返す。
+
+Linuxの、未同期のディレクトリエントリーが電源断で失われうるファイルシステムを仮定する。この状態は `fsync` の保証範囲内である。ファイルの `fsync` だけでは、その名前を保持するディレクトリエントリーの永続化は保証されない。[Linux man-pages: fsync(2)](https://man7.org/linux/man-pages/man2/fsync.2.html)
+
+反例は次のとおりである。
+
+1. 設計が明示的に許す配置として、`W/sources` を、`.wiki-cache` とは別のファイルシステムに置く。
+2. `new sources/x.md` を適用する。7aのファイル同期、7bの配置、8の読み直しが成功する。
+3. 9で完了印が永続化され、終了コード0が返る。
+4. 配置先のディレクトリが永続化される前に電源が切れる。
+5. 再起動後、完了印は残るが、`sources/x.md` の名前がない。
+6. 同じ計画の再実行は、0で完了印を見て `already_applied` を返す。日誌を再開して欠落を埋める処理には入らない。
+
+**成功を返した変更が失われ、再実行も成功扱いになる。** 電源断は282行の失敗一覧に含まれ、保証外にはされていない。単なるプロセス強制終了とは異なる失敗である。
+
+日誌の `before/`・`after/` のファイル作成と、待機差分の配置にも、ファイルの同期と名前の永続化を結ぶ同種の欠落がある。
+
+根拠：[日誌の保存・501行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:501)、[配置・504行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:504)、[完了印・507行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:507)、[別ファイルシステムを許す説明・517行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:517)。
+
+電源断の実機試験は行っていない。APIの保証範囲と設計の順序から導いた反例である。
+
+### 2.【重大・仕様の衝突】BIの規則でも、正常な `.wiki-cache` 自身の検査が閉じていない
+
+310行は `.wiki-cache` 自身を許可一覧に加え、所属検査では特別扱いした。しかし、その後の別名検査は、引き続き次を要求する。
+
+> `p` の親とその祖先（`W/.wiki-cache` まで）の実体が、wiki のページのディレクトリの実体の集まりにない
+
+正常な配置でも、次の関係になる。
+
+```text
+p        = W/.wiki-cache
+p.parent = W
+W        ∈ wiki のディレクトリの実体の集まり
+```
+
+564行は、wiki側の集合に**ルート自身を含める**。したがって、明記された `p.parent` を検査すれば、Wとの一致で拒む。また、Wの祖先を上っても、その子である `.wiki-cache` には到達しないため、「`.wiki-cache` まで」という区間自体が成立しない。
+
+314行は、根にも同じa〜dを適用すると明記している。312行の `bootstrap()` は作成時の規定であり、すでに存在する根の開始時検査を免除しない。
+
+既存の `_existing_chain(p.parent)` を正常な親wikiで実行し、wiki集合に含まれるWが現れることを確認した。**許可一覧の追加だけでは、11回目の重大2を解消していない。** 対照表885行の「生じない」は、この別名検査について成立しない。
+
+根拠：[検査d・310行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:310)、[根にも同じ検査・314行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:314)、[集合にルートを含める規則・564行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:564)。
+
+### 3.【重大】待機差分とメタデータが、異なる承認内容の組になる
+
+保存先は `P/<plan_id>/` であり、`plan.diff` と `pending.json` を、それぞれ独立した `os.replace` で置く。二つを同じ承認内容の組として公開する規則はない。
+
+同じDについて、次の実行が許される。
+
+1. Aが承認内容H1を0で読み、ロックを待つ。
+2. モデルがDの写しを変更し、新しい内容H2の承認を得る。
+3. Bが同じDからH2を読み、ロックを待つ。完了前なので計画は凍っていない。
+4. A・Bの両方が待ち切れる。
+
+688行は、待機中にDを変更しても、Aは先に読んだ内容を使うことを明示的に要求している。そのため、A・Bは**同じ `plan_id`、異なるハッシュ**を保持する。
+
+差分も毎回置く解釈では、次の順序になる。
+
+```text
+A: plan.diff    ← H1の差分
+B: plan.diff    ← H2の差分
+B: pending.json ← plan_sha256=H2
+A: pending.json ← plan_sha256=H1
+```
+
+最終状態は、**H2の差分と、H1を指すメタデータ**である。この組み合わせはメモリ上でも確認した。H1の差分は失われ、DにもH2しか残らない。
+
+「2回目は `pending.json` だけを置き直す」という解釈でも、計画変更後の再待機で、古い差分と新しいハッシュが組になる。さらに、既存の一組を更新する途中の停止でも、同じ不整合が残る。
+
+`--force`、外部の書き手、別PCは不要である。283行の「差分は消えない」と、268行の保存内容の対応関係を満たさない。失敗一覧にもない。
+
+根拠：[二つのファイルの配置・268行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:268)、[入力を保持する規則・478行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:478)、[凍結の条件・612行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:612)、[待機中の変更を許す試験・688行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:688)。
+
+### 4.【重大・仕様の欠落】BJは、途中で止まった待機差分を片付ける経路を閉じていない
+
+`pending --discard` は削除を行うので、303行に従ってraw集合を持つ `Writer` が必要である。しかし、301行の取得元の対応表に `pending` がない。608行のCLIにも `--raw-root` がない。
+
+道具自身の停止だけで、次の状態を作れる。
+
+1. Aがロックを待ち切れる。
+2. 268行が許す順序で、`P/<plan_id>/plan.diff` を置く。
+3. **`pending.json` を置く前にAが終了する。**
+4. `abort --apply-dir D` でDを消す。
+5. ロックの持ち主は通常どおり終了し、ロックもなくなる。
+6. `pending --wiki W --discard <plan_id>` を実行する。
+
+この時点で、その計画のrawルートを持つ計画・日誌・ロック・`pending.json` はない。`plan.diff` にrawルートを復元できる形式も定義されていない。
+
+301行は取得不能時に `--raw-root` を求めるとするが、**この削除コマンドには渡せない**。検査を守れば削除不能になり、検査を省けば「すべての書き込みをWriterへ通す」契約を破る。
+
+完成した `pending.json` にはrawルートが入るものの、それを取得元にする契約も未記載である。外部による破損を扱う298行では、道具自身が残すこの状態を覆えない。
+
+根拠：[待機差分の保存・268行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:268)、[raw取得元・301行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:301)、[全削除もWriter経由・303行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:303)、[pendingの引数・608行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:608)。
+
+### 5.【重大・仕様の欠落】`LOG.md` にも特殊ファイルの制限が及ぶ規定がない
+
+368行は `log.md` を `ops` だけに制限する。378行の `casefold()` は、計画内の同一ファイル判定のキーに対する規定であり、**特殊ファイルの種類制限にも適用するとは書かれていない**。`SCHEMA.md` には369行で大小文字の扱いが別途書かれているが、ログにはない。
+
+368行を記載どおりの字面で照合する実装では、Windowsで次が成立する。
+
+1. Aが `log-entry` を適用し、見出しH、`nth=1` を得る。
+2. Bが `edit --path LOG.md` を登録する。
+3. Bが、既存のHより前に同じ見出しHを挿入し、承認を得て適用する。
+4. Aが `log-sub --entry H --nth 1` を適用する。
+5. サブ行がBの挿入した項目に付く。
+
+frontmatter検査の影響を除くため、正常なfrontmatterを持つログを初期状態と仮定する。Bの計画は一項目だけなので、計画内の実体重複検査にも当たらない。
+
+手元のWindowsで、実際の `wiki/LOG.md` と `wiki/log.md` の `samefile()` が真であることを確認した。同梱パーサーでも、同じHを先に挿入すると、最初の出現が新しい項目になる。
+
+これは実装済みの欠陥ではなく、**字面の正規性だけから433行の「前に見出しを差し込めない」を導くための条件の欠落**である。対照表813・826行の保証は、現状の記述だけでは確定しない。
+
+根拠：[特殊ファイルの制限・368行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:368)、[キーへのcasefold・378行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:378)、[見出しを差し込めないという主張・433行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:433)。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| 完了印が永続化されれば、ページの配置も永続化されている | 配置先のディレクトリを同期する前に電源が切れる |
+| 根を許可一覧に加えれば、根も同じ別名検査を通る | 検査対象自身が `.wiki-cache` で、親が集合に含まれるWである |
+| 同じ `plan_id` の待機要求は同じ承認内容を持つ | 待機中にDを変更し、同じDから別の適用を開始する |
+| 二つの原子的なファイル配置は、原子的な一組になる | 配置が交錯する、または一方だけ更新して停止する |
+| 削除時にはrawルートを保持する記録が残る | 待機差分の保存途中で停止し、その後Dを削除する |
+| パスの重複判定の正規化だけで、特殊ファイルも保護される | 大小文字を区別しない環境で別の綴りを単独登録する |
+
+## 見落としと軽微な問題
+
+- **【軽微】BNの修正が停止時説明まで及んでいない。** 542行は「6より前に止まれば、同じ `apply` をやり直せばよい」とする。しかし、ロック取得後・日誌作成前に終了すれば、ロックは残る。完了印もないため、再実行は待って終了コード4になる。701行の試験には `unlock` を追加した一方、この説明には前提操作がない。[設計:542](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:542)
+
+- **【軽微】BJに関する説明が相互に食い違う。** 607行は `unlock --raw-root` を追加したが、611行は「`--raw-root` を取るのは `begin` だけ」のままである。42行の「計画を持たずにWriterを作る操作がなくなった」、879行の「どの操作も計画か日誌から読む」も、ロックから読む273・301行と一致しない。[設計:611](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:611)
+
+- **【軽微】698行の試験には対応する動作規定がない。** ロック取得後にファイルの実体を置換すると「取り直す」とするが、現在の手順が `lock_id` を読み直すのは解放時である。適用中に置換を検出して取り直す段は定義されていない。[設計:698](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:698)
+
+## 検証した事実
+
+| 確かめた事項 | 結果 |
+| --- | --- |
+| サブモジュールの参照版 | **一致。** `83dbb30abcce7d4ed56babee134cd6247ad7803d` |
+| 新しい実装の有無 | **未実装。** `wiki_apply.py`、`wiki_fsguard.py` は存在しない |
+| Windowsの2^30バイト目へのロック | **確認。** 読み取り専用で開いた実ファイルをロックでき、別プロセスは本文を読めた。同じ位置のロック取得は `PermissionError` になった |
+| 上記検証でのファイル変更 | **なし。** 解放後のバイト列は元と一致 |
+| `.wiki-cache` の親とwiki集合の一致 | **確認。** `_existing_chain()` にWの実体が現れた |
+| 待機差分の二つの置換の交錯 | **メモリ上で確認。** H2の差分とH1のメタデータが残った |
+| `LOG.md` と `log.md` | **手元のWindowsでは同一。** `samefile()` が真 |
+| 親の索引への通常の追記 | **解析結果は一致。** 項目一つ分の5トークンが増えた |
+| 親のログへの通常のサブ行追記 | **解析結果は一致。** 規定のブロック列を保った |
+| 初期化判定 | **ADR-0019と一致。** ルートと直下の `SCHEMA.md` の種類を検査し、中身は読まない |
+| 電源断、mount、新実装の停止・並行適用 | **実機では確かめていない。** 設計からの反例として扱った |
+| `concurrency-check.md` の消失数 | 記録を確認した。独立した再測定はしていない |
+
+リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- BHによって、回復者が別環境のDへ完了印を書こうとして拒まれる、11回目の重大1の元の反例は成立しなくなった。
+- BKについて、ロックした先頭バイトのため持ち主情報を読めない、11回目の重大4の元の反例は、手元のWindowsでは解消していた。ネットワークドライブは未確認である。
+- 独立した `begin` の計画を `plan_id` で区別する規則から、旧版の同内容計画の取り違えは導けなかった。
+- 入力を一度だけ読み、その写しを使う規則から、待機中の編集内容を未承認のまま配置する旧反例は導けなかった。重大3は、その後の差分保存の問題である。
+- 同じファイルの `ops` を順に合成する規則と、全体の前像ハッシュで照合する `edit` は、以前の変更消失の反例では崩せなかった。
+- 正規の綴りのパスと静的な配置では、子wiki、途中のリンク、祖先へ戻る別名、途中に `.md` を含む親子パスを使う旧反例は拒否条件に当たる。
+- 生きている持ち主への `unlock --force` と、解放中の `unlock` の競合は、明記された保証外として扱い、欠陥には数えていない。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

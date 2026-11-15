@@ -1,0 +1,132 @@
+[ask-codex 20:53:56] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-apply-design）
+## 判定
+
+**却下。確信度：高。** 新しいインライン検査が通常の索引追記を拒む。また、7a を通った計画だけで PC 全体を停止させる経路と、日誌の回収後に同じ計画を二重適用する経路が残る。
+
+未実装の設計へのレビューである。パーサーはメモリ上で検証した。以下の配置・停止・復旧の反例は設計手順から導いたもので、実ファイルの変更試験ではない。
+
+## 致命的・重大な欠陥
+
+### 1.【重大】AJ のインライン検査が、既存の箇条書きへの正常な追記を拒む
+
+227 行は、既存の箇条書きへの `index-add` について、追加項目の直前の項目もインライン検査の対象にする。その検査は、変更前の子トークンに `softbreak` と追加行の子トークンを続けた列との一致を要求する。
+
+次の通常の追記では、この条件を満たせない。
+
+```markdown
+変更前:
+## ソース
+
+- [[a]]: A
+
+変更後:
+## ソース
+
+- [[a]]: A
+- [[b]]: B
+```
+
+同梱パーサーで、既存項目の子トークンは追記前後とも次のままだった。
+
+```text
+[("text", "[[a]]: A")]
+```
+
+新しい項目は別の `list_item` と別の `inline` になる。既存項目に `softbreak` も追加文も入らない。追加項目側の `inline` を検査しても、既存項目の子トークンを接頭辞に持たない。
+
+親の実際の `wiki/index.md` でも確認した。ソース節の最後の空でない行は 25 行目であり、その直後への追加は、231 行の**ブロック列の条件には一致し、227 行の条件には不一致**だった。
+
+したがって、227 行を記述どおり適用すると、通常の `index-add` が `structure_changed` になる。497 行の正常系の試験と、603 行の「ふつうの追記を拒むことは生じない」に反する。
+
+根拠：[設計・227 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:227)、[期待するブロック列・231 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:231)、[実際の索引・25 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/wiki/index.md:25)。
+
+### 2.【重大】一時ファイルを作れても既存ファイルを置換できず、参加する書き手だけで全 wiki が停止する
+
+7a が確かめるのは、一時ファイルの作成・書き込み・fsync である。**既存の行き先を置換できることは確かめていない。**
+
+反例として、開始前から次の状態を置く。
+
+```text
+W/concepts/          一時ファイルを作成できる
+W/concepts/a.md      通常の、置換できるファイル
+W/concepts/z.md      読めるが置換できないファイル
+```
+
+Windows の読み取り専用ファイルなど、親への新規作成と既存ファイルの削除・置換で可否が異なる状態で成立する。両ファイルの本文は正常な UTF-8 と frontmatter を持つものとする。
+
+1. 両ファイルの `edit` を用意し、承認する。
+2. パス、実体、前像ハッシュの検査を通る。
+3. 7a は両方の一時ファイルを作れて、日誌を `prepared` にする。
+4. 7b は `a.md` を置換する。
+5. `z.md` の置換は失敗する。
+6. 次の `apply` が復旧する。`a.md` は後像なので通過するが、`z.md` は前像のままで、置換が再び失敗する。
+7. 342 行の規則で `stuck` となり、その PC のすべての wiki の適用が終了コード 5 になる。
+
+途中で誰かが場所や権限を変える必要はない。最初から置けない計画が 7a を通るため、「計画そのものが置けないときは 7a で `aborted`」「この例外は非参加者が場所を変えたときだけ」という主張が成立しない。
+
+既存の `replace_with_retry()` は置換を試し直すだけで、恒久的な置換拒否を解消しない。
+
+根拠：[設計・326 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:326)、[復旧時の例外処理・342 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:342)、[保証外 9 の発生条件・526 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:526)、[`replace_with_retry()`・1147 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:1147)。
+
+### 3.【重大】ロック前の適用済み判定を通過したプロセスは、日誌の回収後に同じ計画を再適用できる
+
+同じ D に対する二つの `apply` を考える。計画は `log-entry` だけを持ち、ハッシュは H とする。
+
+1. B が手順 0 を終える。入力をメモリに保持し、`D/applied.json` がないことを確認する。
+2. **B をロック取得前で中断する。**
+3. A が同じ D、同じ H を `apply --keep` で適用する。ログ、適用済みの印、`done` の日誌ができる。
+4. 31 日後、別の計画 C が、356 行に従って A の日誌を回収する。D には適用済みの印があるため、回収条件を満たす。
+5. B を再開する。ロックは取得できる。
+6. B の手順 2・3 には、同じ `plan_id` の日誌がない。
+7. B は `ops` を現在のログに当て、**同じログ項目をもう一度追加する。**
+
+303 行は、手順 0 より後で D を読み直さない。そのため、A が残した適用済みの印は B を止めない。356 行の「D を消したあとの再実行は手順 0 で止まる」も、すでに手順 0 を通過した B には当たらない。
+
+ここでは、プロセスがロック前で 31 日以上中断されうると仮定した。設計には、その中断時間やメモリ上の計画の有効期間の上限がない。外部の書き手も、計画の改変も不要である。
+
+根拠：[設計・303 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:303)、[ロック内の判定・309 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:309)、[日誌の回収と再適用防止の主張・356 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:356)。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| 箇条書きへの項目追加は、直前の項目の段落も拡張する | 通常の Markdown の箇条書きとして、独立した項目が追加される |
+| 一時ファイルを作れれば、行き先にも置ける | 新規作成は許され、既存ファイルの置換は拒まれる |
+| 復旧時の配置失敗は、非参加者による途中変更でしか起きない | 初めから置換できない対象が 7a を通る |
+| 日誌回収時に D に印があれば、すべての再実行を止められる | 別のプロセスが、印の作成前に手順 0 を通過している |
+
+## 見落としと軽微な問題
+
+- **【軽微】`pending`／`prepared` の導入が停止時の説明と試験に反映されていない。** 326 行では 7b より前に `prepared` になるが、354 行は「9 の途中で止まれば `pending` のまま」とする。342 行では `pending` を前進せず `aborted` にするため、同じ状態として扱えない。また、499 行は一時ファイル作成直後の停止でも再試行が `already_applied` になることを要求するが、352 行の規則では、その停止は未適用の `aborted` になる。[設計・354 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:354)、[試験・499 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:499)。
+
+- **【軽微】10 節の「洗い出した表」には、なお記載のない指示がある。** `references/architecture.md:26` は、新しい種類を追加するときにディレクトリを作り、スキーマを書き、索引のテンプレートを更新する指示である。同文書は移行表にも変更対象一覧にもない。ただし、今回の「すべての段落に分類を求める」検査なら、この段落も分類対象になる。旧版のように二つの検査を通過して直接編集が残る反例までは示せていない。[実際の指示・26 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/references/architecture.md:26)、[移行表・435 行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:435)。
+
+## 検証した事実
+
+| 確かめた主張 | 結果 |
+| --- | --- |
+| サブモジュールの参照版 | **一致。** HEAD は `83dbb30abcce7d4ed56babee134cd6247ad7803d` |
+| 実際の索引への通常の追記 | **食い違い。** ブロック列は期待どおりだが、AJ のインライン条件に不一致 |
+| 実際のログへの通常のサブ行追加 | **一致。** ブロック列とインライン条件の両方を満たした |
+| `<div>` と `\| a \|` のサブ行 | **一致。** 同じログで両条件を満たした |
+| `~~~` のサブ行 | **一致。** ブロック列が変わり、拒否条件に当たった |
+| バッククォートによる旧反例 | **一致。** 子トークンが `code_inline` に変わり、AJ で検出できる |
+| 過去の移行漏れ | W8、メモリの定型文、Retrieval、lint の修正、初期化後の設定、索引分割時のスキーマ更新、評価ループの移行先は追加されている |
+| 新しい適用・復旧処理の実行結果 | **確かめられず。** 実装がないため、手順から検討した |
+| `concurrency-check.md` の消失数 | 記録を確認した。独立した再測定は行っていない |
+
+リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- `journal` のリンク、`W/indexes -> W`、途中に `.md` を含む親子パスという、1 回目の元の入力は拒否条件に当たる。
+- 独立した `begin` の同内容の計画は、`plan_id` によって区別される。
+- W の一度だけ読んだバイト列を使う規則では、ロック待ち中の `D/edit` の変更を未承認のまま置く旧反例は成立しない。
+- 全体の前像ハッシュを照合する `edit` と、同じファイルの `ops` を順に合成する規則では、旧版の取り違え・計画内の上書き消失は導けなかった。
+- AA は、開始時から初期化済みの子 wiki の `log.md` を、親から編集する旧反例を拒む。
+- AF と AG は、4 回目のルートの取り違えと、変更済みの適用済み計画を成功扱いする元の反例を拒む。
+- 短い一時名と要素長の制限は、4 回目の長い接尾辞による元の反例を排除する。ただし、7a が配置可能性を保証するという一般化は、重大 2 のとおり崩れる。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 21:12:22] 完了。session 01a1d9e8-38ed-7b80-bd38-6ff3a029d5ca  usage {"input_tokens": 5175927, "cached_input_tokens": 4934144, "cache_write_input_tokens": 0, "output_tokens": 26370, "reasoning_output_tokens": 15444}
