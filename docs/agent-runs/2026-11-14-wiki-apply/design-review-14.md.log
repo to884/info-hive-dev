@@ -1,0 +1,145 @@
+[ask-codex 09:25:26] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-apply-design）
+## 判定
+
+**却下。確信度：高。** BWには、ページから参照されている原本を上書きできる経路と、保護集合を確定する前・更新しないまま raw に書く経路が残る。
+
+以下は未実装の設計から導いた反例であり、新実装での再現結果ではない。
+
+## 致命的・重大な欠陥
+
+### 1.【重大】ディレクトリを指す `raw:` が再構築から落ち、その中の Markdown 原本を上書きできる
+
+既存の `missing_raw()` は、複数部分からなるソースについて、`raw:` がディレクトリを指す形を明示的に認めている。一方、BWの再構築が拾うのは「`.md` の raw のファイルの親」だけである。
+
+Linuxで、開始前から次の配置があるとする。実体の識別子と必要な権限は取得できるものとする。
+
+```text
+W = /kb/wiki
+R1 = /archive/raw-old
+R2 = /archive/raw-new
+
+W/catalog.md
+  type: "source"
+  raw: "/archive/raw-old/bundle"
+
+R1/bundle/chapter.md          Markdown の原本
+W/sources                    R1/bundle の bind mount
+
+raw-roots.json               初回利用なので、まだない
+```
+
+1. R2を指定して計画を作り、`edit --path sources/chapter.md` を登録する。
+2. `apply` がページから記録を再構築する。
+3. `catalog.md` の参照先は、`.md` ファイルではなくディレクトリなので、R1も `R1/bundle` も記録に入らない。
+4. 行き先の親の実体は `R1/bundle` だが、raw集合にはR2しかない。bind mountはリンクでも祖先へ戻る輪でもなく、ページ用の領域検査も通る。
+5. 置換によって **`R1/bundle/chapter.md` が書き換わる**。
+
+原本を引くページは残っているため、保証外14の「記録にもページにもない raw」には該当しない。参照先の存在を模擬した既存 `missing_raw()` の実行でも、ディレクトリ参照に対する結果は `[]` だった。
+
+根拠：[再構築の対象・630行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:630)、[既存のディレクトリ参照の契約・213行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:213)、[保証外14・836行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:836)。
+
+### 2.【重大】記録の再構築より先に、過去の raw 内へ作業フォルダーを作れる
+
+ページからの再構築は、最初の `apply` がロックを取ったあとに行う。しかし、`begin` はそれより前に書き込む。
+
+次の配置では、リンクも並行実行も不要である。
+
+```text
+W  = /kb/wiki
+R1 = /archive/raw-old
+R2 = /archive/raw-new
+
+W/sources/old-summary.md
+  type: "source"
+  raw: "/archive/raw-old/old.md"
+
+INFO_HIVE_DATA_DIR=/archive/raw-old
+raw-roots.json はまだない
+```
+
+1. `begin --wiki W --raw-root R2` を実行する。
+2. この時点の保護集合は、指定されたR2と既存の記録から作る。記録がなく、ページからの再構築もまだなので、R1は含まれない。
+3. R2はWとも `data_dir()`＝R1とも重ならず、`raw_root_problem()` を通る。
+4. `begin` が **`R1/apply/work/<名前>-<乱数>/` にDと計画を書く**。
+5. モデルが指定どおりDに記事案を書くと、承認前の本文も過去のraw内に保存される。
+
+あとで `apply` がR1を発見しても、すでに行った書き込みは防げない。「自分のすべての書き込みがrawのディレクトリに入らない」という契約を満たさない。
+
+既存 `data_dir()` が、この環境変数から上記Kを返すことも確認した。
+
+根拠：[保護集合の取得元・331行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:331)、[beginの書き込み・356行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:356)、[再構築する時点・630行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:630)、[data_dirの実装・47行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_common.py:47)。
+
+### 3.【重大】待機失敗の経路は1cを通らず、記録に追加済みのrawへ差分を書ける
+
+1cは、ロック取得に成功した書き手だけが実行する。待機失敗時の差分保存には、保護集合を更新する手順がない。
+
+次の静的な配置を考える。
+
+```text
+L は通常のディレクトリ
+P は R1/pending-area の bind mount
+R1/pending-area は空
+raw-roots.json の初期内容は R2だけ
+```
+
+この空のPは、R1を知る書き手の開始時検査でも、記載された規則では通る。検査cが調べるのは **P自身ではなくPの親の祖先列**だからである。Pに子がなく、`.wiki-cache` はwikiのページ集合から除かれるので、ほかの検査にも当たらない。
+
+次の順序になる。
+
+1. BがR2の計画で手順0を終える。Bのraw集合にはR2だけがある。
+2. AがR1の計画でロックを取り、1cでR1を記録に追加する。Aはロックを保持したまま、7b直前で中断される。
+3. Bがロックを待ち切れず、1cを通らずに差分保存へ進む。
+4. Bの古い集合はPの実体をrawと認識せず、**`R1/pending-area/` 内に差分とJSONを書く**。
+
+R1は、この書き込み時点では記録にある。別名の途中変更、別wiki、`unlock --force`、キャッシュの削除はいずれも不要である。
+
+既存 `_existing_chain()` に実体表を与えた検証でも、Pの開始時検査と古い集合での子の作成は通り、更新後の集合では子の作成を拒むことを確認した。1cの追加だけでは、ロック外の書き込みまで保護できない。
+
+根拠：[検査c・349行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:349)、[待機失敗と1cの分岐・523行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:523)、[差分の保存処理・298行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:298)。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| ページから参照されるMarkdown原本は、`.md` ファイルへの直接参照から列挙できる | `raw:` が複数部分のソースのディレクトリを指す |
+| 最初のapplyで記録を作れば、初回利用の書き込みも守れる | beginが先にDを作り、モデルもDへ書く |
+| 1cで記録を読み直せば、待機中の追加にも対応できる | ロックを取得できず、1cを通らない経路で書き込む |
+| 管理ディレクトリの開始時検査で、そのディレクトリ自体とrawの重なりも検出する | 検査cが対象の親だけを調べ、対象自身が空のbind mountである |
+
+## 見落としと軽微な問題
+
+**【軽微・保証範囲の記載漏れ】保証外14は、再構築が意図的に除外する参照を尽くしていない。**
+
+630行は、原本の親がW自身、Wの祖先、`.wiki-cache` 配下になる場合も記録に足さない。一方、失敗一覧と保証外14が説明するのは、原本を引くページがない場合である。
+
+例えば `raw: "/kb/wiki/original.md"` を持つページが残っていても、その親Wは除外される。通常の `edit original.md` を止めるraw集合には入らない。これは630行で認めた除外だが、保証外14の条件とは一致しない。
+
+根拠：[除外条件・630行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:630)、[失敗一覧・638行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:638)、[保証外14・836行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:836)。
+
+## 検証した事実
+
+| 確かめた事項 | 結果 |
+| --- | --- |
+| サブモジュールの版 | **一致。** `83dbb30abcce7d4ed56babee134cd6247ad7803d` |
+| 新実装の有無 | **未実装。** `wiki_apply.py`、`wiki_fsguard.py` は存在しない |
+| `raw:` のディレクトリ参照 | **既存コードは受理する。** 文書化されており、存在確認を模擬した実行でも検出結果は空 |
+| `INFO_HIVE_DATA_DIR` によるKの変更 | **確認。** 過去のraw配下を返せる |
+| 古いraw集合による管理用書き込みの通過 | **実体表を使ったメモリ上の検証で確認。** 実際のmountは実施していない |
+| 親の索引への通常追記 | 同梱パーサーで、項目一つ分の5トークンが増えた |
+| 親のログへの通常のサブ行追記 | 同梱パーサーで、ブロックの構造を維持した |
+| 初期化判定 | **ADR-0019と一致。** ルートと直下の `SCHEMA.md` の種類を確認し、本文は読まない |
+| 電源断、新実装の停止・並行実行 | **確かめられず。** 設計手順から検討した |
+
+リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- **BV:** `D/base` も保持し、そのハッシュを照合する規則では、待機中の `rebase` によって承認済み差分の前像を失う旧反例は成立しない。
+- **BH・BP・BR・BS:** 完了印を別環境のDへ書けない問題、正常な `.wiki-cache` 自身の拒否、pending削除時のrawルート欠落、`LOG.md` による制限回避は、追加された規則で止まる。
+- **通常の適用:** 全体ハッシュによる `edit`、同じファイルへの `ops` の順次合成、完了印のロック内再確認から、旧来の変更消失・二重適用は導けなかった。
+- **BO:** POSIXで各同期が成功する条件では、完了印だけが行き先より先に永続化される旧反例は導けなかった。
+- **BY:** 列挙された4条件以外の、確実な `stuck` 条件は今回追加できなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 09:43:44] 完了。session 01a1dc98-41a9-78d2-b60f-4d6c0acdecdf  usage {"input_tokens": 6234068, "cached_input_tokens": 5924480, "cache_write_input_tokens": 0, "output_tokens": 25099, "reasoning_output_tokens": 15414}

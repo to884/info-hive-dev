@@ -1,0 +1,149 @@
+[ask-codex 20:32:23] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-apply-design）
+適用済みの印がある場合、計画と承認ハッシュを照合せずに成功を返す規定も見つかりました。残した計画を変更して新しい差分を承認しても、その変更が適用されない手順を組めます。旧反例の再確認と新しい欠陥を分けて、最終判定にまとめます。
+## 判定
+
+**却下。確信度：高。** 指定した wiki と異なる wiki に書く経路、変更した計画を適用せず成功扱いする経路、参加する書き手だけで PC 全体の適用を停止させる入力が残る。移行一覧と文面検査にも、同じ書き込み指示の漏れがある。
+
+未実装の設計へのレビューである。以下は設計から導いた反例であり、実際の適用・mount・プロセス停止試験は行っていない。パーサー、パスの正規化、ファイル名の制限は、読み取りとメモリ上の検証で確認した。
+
+## 致命的・重大な欠陥
+
+### 1.【重大】ルートへの `abspath()` が、指定された場所を別の wiki に変える
+
+次の静的な配置を考える。
+
+```text
+/kb/choice/SCHEMA.md             wiki B
+/kb/choice/link -> /archive/wikiA/sub
+/archive/wikiA/SCHEMA.md         wiki A
+/archive/wikiA/sub/              通常のディレクトリ
+```
+
+次の指定が OS 上で指すのは wiki A である。
+
+```text
+begin --wiki /kb/choice/link/.. --raw-root /raw --name review
+```
+
+しかし、1 節は計画に保存する際に `os.path.abspath()` を使う。その結果、計画の `wiki` は **`/kb/choice`、つまり wiki B** になる。
+
+1. 元の引数に対する初期化検査は、wiki A を見て通る。
+2. 計画には wiki B が記録される。
+3. `new sources/x.md` を用意して承認する。
+4. `apply` は計画の B から `Writer` を作り、B に書く。
+
+B も初期化済みなので、適用時の検査では止まらない。相対パスと書く内容が同じなら、規定された差分出力からも、このルートの取り違えは分からない。
+
+`raw_root` にも同じ変換を行うため、保護対象の raw のルートについても同じ問題がある。ハッシュは、取り違えたあとの値を固定するだけである。
+
+**検証結果：一致。** 模擬ファイルシステム上の `posixpath.realpath()` では、入力は `/archive/wikiA`、`abspath()` 後は `/kb/choice` になった。
+
+根拠：[ルートの保存規則・145行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:145)、[適用時の Writer 作成・289行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:289)、[差分の出力項目・411行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:411)。既存の [wiki_initialized.resolve()・108行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py:108) は、指定したパスを判定してから解決する契約を持っている。
+
+### 2.【重大】`applied.json` があると、変更された計画と新しい承認を無視して成功する
+
+6 節の手順 0 は、`D/applied.json` の存在だけで、ハッシュを照合する前に `already_applied` を返す。一方、`new`、`edit`、`index-add`、`drop`、`diff` には、適用済みの D を変更・確認できなくする規定がない。
+
+反例は次のとおりである。
+
+1. 計画 A を `apply --keep` で適用する。D に A の `applied.json` が残る。
+2. 同じ D の `edit` を変更するか、`index-add` で操作を追加する。
+3. `diff` が変更後の計画 B とハッシュ HB を出す。ユーザーが承認する。
+4. `apply --expect-sha256 HB` を実行する。
+5. 手順 0 が A の結果を返して終了コード 0 にする。**B の変更は適用されない。**
+
+計画が変更不可という前提は明文化されておらず、この手順を禁止する状態検査もない。さらに、手順 3 は「同じ `plan_id` で計画を変えたら終了コード 1」とするが、印のある通常の完了状態では、そこへ到達しない。
+
+根拠：[手順 0・289行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:289)、[変更された計画の拒否・295行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:295)、[登録・diff の規則・398行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:398)。
+
+### 3.【重大】合法な行き先でも、一時ファイル名が作れず、日誌の復旧で PC 全体が停止する
+
+行き先の最後の要素を、次の 250 文字にする。
+
+```python
+name = "a" * 247 + ".md"
+```
+
+この名前は 3 節の条件を満たす。一方、6 節が要求する一時ファイル名は次の **300 文字**になる。
+
+```python
+name + ".wiki-apply-" + plan_id + "-0.tmp"
+```
+
+手順は次のようになる。
+
+1. `new sources/<250文字の名前>` を登録し、正常な UTF-8 の本文を用意する。
+2. パス・内容・差分の検査を通る。
+3. 手順 6 が `pending` の日誌を確定する。
+4. 手順 7 の一時ファイル作成が、名前の長さで失敗する。
+5. 次の適用による復旧も同じ名前で失敗し、326 行の規則で `stuck` になる。
+6. `recover --discard` まで、その PC のすべての wiki の適用が止まる。
+
+**外部の書き手も、ファイルの差し替えも不要である。** 「`stuck` は参加しない書き手による変更時だけ」という保証外 9 の発生条件と食い違う。
+
+**検証結果：一致。** 手元の NTFS は、読み取り専用の `GetVolumeInformationW` で要素名の上限が 255 と確認できた。250 文字の名前への照会は「不存在」、300 文字は「不正な名前」になった。
+
+根拠：[パスの条件・184行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:184)、[一時名の決定・310行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:310)、[復旧失敗の扱い・326行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:326)、[保証外 9・503行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:503)。
+
+### 4.【重大】索引分割時のスキーマ更新が、移行表と文面検査の両方から漏れる
+
+83dbb30 の `scaling-playbook.md` の手順 4 は、次の独立した箇条書き項目である。
+
+> 4. スキーマを更新して、分割した構造を記す。
+
+10 節の移行表は、この文書について「索引、ログ」だけを挙げ、移し方も分割索引の `new`、トップ索引の `edit`、`log-entry` だけである。**このスキーマ更新の移行先も、残すという分類もない。**
+
+さらに、この項目は443行の対象語を一つも含まない。「スキーマ」は列挙された `SCHEMA.md` と一致しない。箇条書き項目単位で検査するという規定なので、隣の項目の `index.md` では補えない。
+
+したがって、指定された移行だけを行い、二つの機械検査が通っても、モデルによる直接の `SCHEMA.md` 更新が残る。Python の AST 検査では、文書中のこの指示を検出できない。
+
+**検証結果：食い違い。** 実ファイルの当該項目に、列挙された対象語を照合した結果は 0 件だった。対照表585行の「漏れを二つの機械検査で閉じる」は成立しない。
+
+根拠：[実際の指示・27行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/references/scaling-playbook.md:27)、[移行表・437行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:437)、[文面検査の対象語・443行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:443)。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| `abspath()` は、指定されたディレクトリの実体を変えない | シンボリックリンクの直後に `..` がある |
+| 適用済みの印があれば、今の D も同じ計画である | `--keep` した D の内容や操作を変更する |
+| 正規の行き先なら、そこへ置く一時ファイルも作れる | 行き先の名前が上限に近く、固定の接尾辞で上限を超える |
+| 書く先の対象語を挙げれば、既存の書き込み指示を列挙できる | 「スキーマ」のような別表記で書かれ、対象語が同じ項目にない |
+| ブロックの `sig` が同じなら、前の行の解釈も保たれる | 追加行が、前の行のインライン記法を閉じる |
+
+## 見落としと軽微な問題
+
+- **【軽微】`sig` が一致しても、既存の文がインラインコードに変わる。** ログの既存段落を `` `page: [[x]] `` とし、`log-sub --line` でバッククォート一つを追加すると、既存の文まで `code_inline` に入る。同梱パーサーで、ブロックの `sig` は完全に一致し、`inline.content` の最後には追加行が残ることを確認した。211行はインラインの子を比較しないため、この変化を検出しない。ブロック列の保存は、既存行の表示やリンクとしての解釈の保存を意味しない。[構造検査・211行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:211)
+
+- **【軽微・仕様の衝突】M 自身を検査するときの対象が定まっていない。** 138行は M 自身にも管理の検査 a〜d を当てるが、d は `p.parent` の祖先に M があることを要求する。`p=M` として適用すると、既存の正常な M でも常に失敗する。`bootstrap()` の例外は作成時についての記述であり、その後の管理領域検査には例外がない。[検査 d・134行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:134)、[管理領域の確かめ・138行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:138)
+
+## 検証した事実
+
+| 確かめた主張 | 結果 |
+| --- | --- |
+| サブモジュールの参照版 | **一致。** HEAD は `83dbb30abcce7d4ed56babee134cd6247ad7803d` |
+| AE の規則で、実際の索引へ通常の項目を追加できる | **一致。** `wiki/index.md` のソース節で、期待するトークン追加と一致し、詰まったリストを保った |
+| 実際のログへの通常のサブ行追加 | **一致。** `wiki/log.md` で追加前後の `sig` が一致した |
+| `parse_frontmatter_text()` が frontmatter と本文を分ける | **食い違い。** 実装は frontmatter の本文を受け取り、辞書を返す。207行の記述どおりの分離用 API ではない |
+| 既存の初期化判定 | **一致。** ルートと直下の `SCHEMA.md` の種類を検査し、内容は読まない |
+| 過去の移行漏れへの対応 | `query-workflow`、`retrieval-setup`、評価ループ、初期化後の編集、グラフ出力の分類は追加されている。ただし、上記の漏れが別に残る |
+| 新しい実装の停止・復旧・並行適用 | **確かめられず。** 実装がまだない。実機の破壊試験は行っていない |
+| `concurrency-check.md` の消失数 | 記録を読んだ。今回の独立再測定はしていない |
+
+リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 1 回目の `journal` のリンク、`W/indexes -> W`、途中に `.md` を含む親子パスという元の反例は、追加された拒否条件に当たる。
+- 独立した `begin` で同内容の計画を作る反例は、`plan_id` で区別される。
+- 全体の前像ハッシュを比較する `edit` では、別の節の完成形を適用済みの証拠にする旧反例は成立しなかった。
+- 同じファイルの `ops` を順に合成する規則では、計画内の操作どうしが上書きする旧反例は成立しなかった。
+- W の、入力を一度だけ読み、そのバイト列を使う規則では、ロック待ち中の `D/edit` の変更を未承認のまま書く旧反例は成立しなかった。
+- AA は、開始時から初期化済みの子 wiki を親から編集する、3 回目の元の反例を拒む。
+- AB の「印を先に書き、印か D の消失を確認して日誌を回収する」順序では、3 回目の停止位置による二重追記の元の反例は成立しなかった。
+- AC の日誌の情報からは、別の wiki の `Writer` を再構成できる。
+- 一時名を再作成より先に消す規則では、残った一時名との衝突による旧反例は成立しなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: [research](/C:/UserData/toshiki/.agents/skills/research/SKILL.md)
+[ask-codex 20:51:56] 完了。session 01a1d9d4-7e64-7a73-884d-1e84a1ed10ef  usage {"input_tokens": 5359135, "cached_input_tokens": 5155072, "cache_write_input_tokens": 0, "output_tokens": 29260, "reasoning_output_tokens": 18238}
