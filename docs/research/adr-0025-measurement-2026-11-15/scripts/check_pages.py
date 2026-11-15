@@ -11,8 +11,10 @@
   目印（MARKER-Pnn）が入り、ほかのページの目印が入らないかを確かめる。CropBox の外の文字と、注釈だけの
   ページの扱いが、2 つのエンジンで同じかも記録する。
 - ほかの PDF: ページの数と、ページごとの本文の似かた（空白を除いた文字の 2 文字組の Jaccard 係数）を数える。
-  同じページを指していれば、似かたは高くなる。0.5 未満のページを挙げ、そのページを前後 2 ページの
-  pdfminer の本文とも比べて、もっとも似るずれ（best_offset）を記録する。0 以外なら、ページがずれている。
+  同じページを指していれば、似かたは高くなる。0.5 未満のページを挙げる。すべてのページを前後 2 ページの
+  pdfminer の本文とも比べ、もっとも似るずれ（best_offset）と、同じページとの差（margin）を記録する。
+  best_offset が 0 以外なら、ページがずれている。margin が小さいページは、似た本文が続いていて、
+  この方法では見分けにくい（似かたで分かるのは、ずれが見つからないことまでで、対応が一意であることではない）。
 - ページツリーの形（入れ子の深さ、/Pages のノードの数、受け継いだ /Rotate のあるページ）を pypdf で数える。
 """
 
@@ -119,19 +121,29 @@ def main() -> None:
                 sims.append({"page": i + 1, "kind": a[i]["kind"], "jaccard": round(sim, 3),
                              "pdfium_chars": len(a[i]["text"].strip()), "pdfminer_chars": len(b[i].strip())})
             low = [s for s in sims if s["jaccard"] < 0.5]
-            # 似かたの低いページは、前後 2 ページの pdfminer の本文とも比べる。ページがずれていれば、
-            # ずれた先のほうが似る。0 のずれがもっとも似ていれば、ずれではなく取り出し方の違いと見る。
-            for s in low:
+            # すべてのページを、前後 2 ページの pdfminer の本文とも比べる。ページがずれていれば、
+            # ずれた先のほうが似る。同じページとの似かたと、前後のページのもっとも高い似かたの差
+            # （margin）が小さいページは、似た本文が続いていて、この方法ではずれを見分けにくい。
+            bmaps = [bigrams(t) for t in b]
+            for s in sims:
                 i = s["page"] - 1
                 x = bigrams(a[i]["text"])
                 near = {}
                 for d in range(-2, 3):
                     if 0 <= i + d < len(b):
-                        y = bigrams(b[i + d])
+                        y = bmaps[i + d]
                         near[d] = round(len(x & y) / len(x | y), 3) if (x | y) else 1.0
-                s["neighbours"] = near
                 s["best_offset"] = max(near, key=lambda d: (near[d], d == 0))
-            result["shifted_pages"] = [s["page"] for s in low if s["best_offset"] != 0]
+                others = [v for d, v in near.items() if d != 0]
+                s["margin"] = round(near[0] - max(others), 3) if others else None
+                if s["best_offset"] != 0:
+                    s["neighbours"] = near
+            result["shifted_pages"] = [s["page"] for s in sims if s["best_offset"] != 0]
+            margins = sorted(s["margin"] for s in sims if s["margin"] is not None)
+            result["margin_min"] = margins[0] if margins else None
+            result["margin_median"] = margins[len(margins) // 2] if margins else None
+            result["pages_margin_below_0_1"] = [s["page"] for s in sims if s["margin"] is not None and s["margin"] < 0.1]
+            result["pages_both_blank"] = [s["page"] for s in sims if s["pdfium_chars"] == 0 and s["pdfminer_chars"] == 0]
             result["jaccard_median"] = sorted(s["jaccard"] for s in sims)[len(sims) // 2] if sims else None
             result["jaccard_min"] = min((s["jaccard"] for s in sims), default=None)
             result["kinds"] = dict(sorted({k: sum(1 for p in a if p["kind"] == k) for k in {p["kind"] for p in a}}.items()))
@@ -149,7 +161,8 @@ def main() -> None:
         out = BENCH / "results" / f"pages-{path.stem}.json"
         out.parent.mkdir(exist_ok=True)
         out.write_bytes(json.dumps(result, ensure_ascii=False, indent=2).encode("utf-8"))
-        brief = {k: v for k, v in result.items() if k not in ("pages", "low_pages")}
+        brief = {k: v for k, v in result.items() if k not in ("pages", "low_pages", "pages_margin_below_0_1")}
+        brief["pages_margin_below_0_1_count"] = len(result.get("pages_margin_below_0_1", []))
         print(json.dumps(brief, ensure_ascii=False))
 
 

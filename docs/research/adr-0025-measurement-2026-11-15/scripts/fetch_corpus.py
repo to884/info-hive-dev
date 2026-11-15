@@ -22,6 +22,10 @@ SOURCES = {
 def main() -> None:
     corpus = BENCH / "corpus"
     corpus.mkdir(exist_ok=True)
+    record = BENCH / "sources.json"
+    # 記録した SHA-256 があれば、取り直した PDF がそれと同じかを確かめる。配布元が差し替えていたら、
+    # 結果の JSON と違う試料になるので、上書きせずに止まる。
+    recorded = json.loads(record.read_bytes().decode("utf-8")) if record.exists() else {}
     found = {}
     for name, (url, note) in SOURCES.items():
         request = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -29,10 +33,14 @@ def main() -> None:
             data = response.read()
         if not data.startswith(b"%PDF-"):
             raise SystemExit(f"{name}: PDF ではない応答が返った")
+        digest = hashlib.sha256(data).hexdigest()
+        if name in recorded and recorded[name]["sha256"] != digest:
+            raise SystemExit(f"{name}: SHA-256 が記録と違う（記録 {recorded[name]['sha256']}、取得 {digest}）。"
+                             "配布元が差し替えた可能性がある。結果は記録した試料のものなので、上書きしない")
         (corpus / name).write_bytes(data)
-        found[name] = {"url": url, "note": note, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+        found[name] = {"url": url, "note": note, "bytes": len(data), "sha256": digest}
         print(name, len(data), "bytes")
-    (BENCH / "sources.json").write_bytes(json.dumps(found, ensure_ascii=False, indent=2).encode("utf-8"))
+    record.write_bytes(json.dumps(found, ensure_ascii=False, indent=2).encode("utf-8"))
 
 
 if __name__ == "__main__":
