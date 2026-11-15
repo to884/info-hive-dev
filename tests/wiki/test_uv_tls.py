@@ -322,6 +322,15 @@ class UvSyncTest(unittest.TestCase):
         log = (self.data / "logs" / "launch.log").read_text(encoding="utf-8")
         self.assertEqual(log.count("UvResolveError"), 1)
 
+    def test_resolve_phrase_inside_a_path_is_not_a_resolve_error(self):
+        # 同じ句がパスに含まれていても、行の頭の誤りでなければ、依存を解決できない失敗とはみなさない。
+        # 壊れた環境の失敗なので、入れ直しに任せる（UvResolveError で止めない）。
+        output = (b"error: Failed to read metadata from installed package at "
+                  b"C:/cache/no solution found when resolving/pkg.dist-info/METADATA\n")
+        self.assertFalse(common.is_resolve_error(output.decode()))
+        fake = FakeUv([(2, output)])
+        self.assertEqual(self.sync(fake), 2)
+
     def test_unresolvable_after_tls_retry_is_reported_as_resolve_error(self):
         # 証明書の問題は OS の証明書ストアで直ったが、依存を解決できなかった。
         fake = FakeUv([(2, TLS_OUTPUT), (1, RESOLVE_OUTPUT)])
@@ -331,8 +340,10 @@ class UvSyncTest(unittest.TestCase):
 
     def test_other_prepare_failures_are_recorded_once(self):
         # 入れ直しても直らなかったなど、UvSetupError でない失敗も launch.log に残す。中継がサーバーの環境を
-        # 用意するときは、ここで残さないと、利用者が読む場所に理由が残らない。
-        fake = FakeUv([(2, b"error: Failed to read metadata\n")] * 3)
+        # 用意するときは、ここで残さないと、利用者が読む場所に理由が残らない。終了コードだけでなく、uv の
+        # 出力の理由の行も残す（Python を取れない、プロキシに断られた、など）。
+        output = b"error: Failed to download Python\n  cause: connection refused by proxy 127.0.0.1:9\n"
+        fake = FakeUv([(2, output)] * 3)
         lock = Path(tempfile.mkdtemp(prefix="wiki-tls-lock-"))
         self.addCleanup(shutil.rmtree, lock, ignore_errors=True)
         with mock.patch.object(common.subprocess, "run", fake), \
@@ -343,6 +354,7 @@ class UvSyncTest(unittest.TestCase):
         log = (self.data / "logs" / "launch.log").read_text(encoding="utf-8")
         self.assertEqual(log.count("の環境を用意できなかった"), 1)
         self.assertIn("--reinstall", log)
+        self.assertIn("error: Failed to download Python / cause: connection refused by proxy", log)
 
 
 def make_self_signed(directory: Path) -> tuple[Path, Path] | None:

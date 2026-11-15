@@ -20,6 +20,8 @@ name: Wiki MCP server
 # - tests/wiki/test_graph_frontmatter_values.py: グラフの抽出が読む frontmatter の値が lint と同じこと（PyYAML が要る）
 # - tests/wiki/test_frontmatter_parser.py と test_frontmatter_raw.py: frontmatter のパーサーが読む YAML の書き方（PyYAML が要る）
 # - tests/wiki/test_mcp_spawn_flags.py: 入口、中継、サーバーの子プロセスの起動の旗（標準ライブラリだけ）
+# - tests/wiki/check_script_python_range.py: uv で動くスクリプトの依存が、宣言した Python の範囲のすべての版で入ること（ADR-0025。ネットにつなぐ）
+# - tests/wiki/test_uv_tls.py: uv の失敗の扱い（証明書のやり直し、依存を解決できないとき、launch.log への記録。cryptography が要る）
 # - tests/wiki/test_wiki_index.py と test_mcp_server.py: テスト用の埋め込みで、索引、中継、サーバーの起動と停止
 # - tests/wiki/run_mcp_gate.py: 本物のモデル（約 530 MB）を取得して、評価ゲートを ADR-0011 の融合の設定で通す
 #
@@ -89,6 +91,12 @@ jobs:
         run: |
           uv python install 3.10 3.11
           uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_python_version.py -v
+      - name: uv で動くスクリプトの依存が、宣言した Python の範囲のすべての版で入ること（ADR-0025）
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 python -X utf8 tests/wiki/check_script_python_range.py
+      - name: uv の失敗の扱いの試験（証明書、依存の解決、launch.log への記録）
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 --with cryptography python -X utf8 -m unittest tests/wiki/test_uv_tls.py -v
       - name: lint の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_wiki_lint.py -v

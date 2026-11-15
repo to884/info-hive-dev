@@ -155,14 +155,67 @@ class SourceTests(unittest.TestCase):
         self.assertEqual({name: value for name, value in found.items() if value != expected}, {})
 
 
+class MatrixParserTests(unittest.TestCase):
+    def test_reads_inline_and_block_lists_together(self):
+        # 片方の行列だけを、続く行の書き方に変えて新しい版を足しても、読み落とさない。
+        workflow = ("jobs:\n  python:\n    strategy:\n      matrix:\n        python: ['3.12', '3.14']\n"
+                    "  b:\n    strategy:\n      matrix:\n        python:\n          - '3.12'\n          - '3.14'\n"
+                    "          - '3.15'\n        os: [windows-latest]\n")
+        self.assertEqual(matrix_python_lists(workflow), [["3.12", "3.14"], ["3.12", "3.14", "3.15"]])
+        self.assertEqual(python_range_of(matrix_python_lists(workflow)), ("3.12", "3.15"))
+
+    def test_unreadable_key_stops(self):
+        for body in ("        python: ${{ fromJSON(inputs.versions) }}\n", "        python: ['3.12',\n",
+                     "        python:\n        os: [x]\n"):
+            workflow = "      matrix:\n" + body
+            with self.subTest(workflow=workflow), self.assertRaises(AssertionError):
+                matrix_python_lists(workflow)
+
+
 def tested_python_range() -> tuple[str, str]:
     """プラグインの CI（info-hive-wiki/.github/workflows/wiki-tests.yml）の行列の、Python の版の最小と最大。"""
     workflow = (ROOT / "info-hive-wiki/.github/workflows/wiki-tests.yml").read_text(encoding="utf-8")
-    versions = set()
-    for line in re.findall(r"^\s*python:\s*\[(.+)\]\s*$", workflow, re.MULTILINE):
-        versions.update(v.strip().strip("'\"") for v in line.split(","))
-    if not versions:
+    return python_range_of(matrix_python_lists(workflow))
+
+
+def matrix_python_lists(workflow: str) -> list[list[str]]:
+    """ワークフローの `matrix:` のすぐ下の `python:` のキーごとに、版の並びを返す。1 行の `[...]` と、続く行の
+    `- '3.x'` の両方を読む。読めないキーが 1 つでもあれば止まる。読み落としたまま、残りの行列だけで範囲を
+    決めないためである。`matrix:` の下にない `python:`（ジョブの名前など）は読まない。"""
+    lines = workflow.splitlines()
+    found = []
+    for index, line in enumerate(lines):
+        key = re.match(r"^(\s*)python:\s*(.*?)\s*$", line)
+        if not key:
+            continue
+        indent, rest = len(key.group(1)), key.group(2)
+        parent = next((above for above in reversed(lines[:index])
+                       if above.strip() and len(above) - len(above.lstrip()) < indent), "")
+        if parent.strip() != "matrix:":
+            continue
+        if rest.startswith("["):
+            if not rest.endswith("]"):
+                raise AssertionError(f"wiki-tests.yml の {index + 1} 行目の python: の並びを読めない: {line!r}")
+            items = [v.strip().strip("'\"") for v in rest[1:-1].split(",") if v.strip()]
+        elif rest == "":
+            items = []
+            for follow in lines[index + 1:]:
+                item = re.match(r"^(\s*)-\s*(.+?)\s*$", follow)
+                if not item or len(item.group(1)) < indent:
+                    break
+                items.append(item.group(2).strip("'\""))
+        else:
+            raise AssertionError(f"wiki-tests.yml の {index + 1} 行目の python: の値を読めない: {line!r}")
+        if not items or not all(re.fullmatch(r"3\.\d+", v) for v in items):
+            raise AssertionError(f"wiki-tests.yml の {index + 1} 行目の python: の版を読めない: {items!r}")
+        found.append(items)
+    if not found:
         raise AssertionError("wiki-tests.yml に Python の版の行列が見つからない")
+    return found
+
+
+def python_range_of(lists: list[list[str]]) -> tuple[str, str]:
+    versions = {v for items in lists for v in items}
     ordered = sorted(versions, key=lambda v: tuple(int(p) for p in v.split(".")))
     return ordered[0], ordered[-1]
 
