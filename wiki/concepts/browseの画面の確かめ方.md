@@ -54,7 +54,7 @@ Fluent 2 にしたあとの画面（[[browseのデザインシステム]]）は�
 
 - 確かめるたびに、`document.documentElement.getAttribute("data-theme")` と、`auto` のときは `matchMedia('(prefers-color-scheme: dark)').matches` を読む。
 - サイドバーの「配色」で選んだ値は、サーバーでは cookie、`file://` では localStorage に残る。前の確かめで選んだ値が残っていると、OS の配色を変えても画面が変わらない。「OS に合わせる」に戻してから確かめる。
-- 0.12.0 のスコープの色の表は、Fluent 2 の実装（F1）で色が変わったら書き直す。
+- 0.18.0 から、スコープの札は Fluent の Badge で、ユーザースコープは brand の色、プロジェクトは中立の色になった。下の 0.12.0 の表は、0.17.0 までの色である。
 
 ## 片付け
 

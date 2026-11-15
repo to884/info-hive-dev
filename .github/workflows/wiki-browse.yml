@@ -16,6 +16,7 @@ on:
       - info-hive-wiki
       - tests/wiki/test_browse*.py
       - tests/wiki/browse/**
+      - tests/wiki/browse_nav/**
       - .github/workflows/wiki-browse.yml
 
 permissions:
@@ -93,6 +94,12 @@ jobs:
         env:
           OUT: ${{ runner.temp }}/browse-results.json
         run: node browse.test.mjs
+      - name: 探しやすさと Fluent 2 の試験（静的版とサーバー、Chromium）
+        if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
+        working-directory: tests/wiki/browse
+        env:
+          OUT: ${{ runner.temp }}/findability-results.json
+        run: node findability.test.mjs
       - name: 起動の速さ（1,000 ページの合成 Wiki）
         if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
         working-directory: tests/wiki/browse
@@ -102,5 +109,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: browse-results-${{ matrix.os }}-${{ matrix.python }}
-          path: ${{ runner.temp }}/browse-results.json
+          path: |
+            ${{ runner.temp }}/browse-results.json
+            ${{ runner.temp }}/findability-results.json
           if-no-files-found: ignore

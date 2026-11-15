@@ -1,0 +1,1972 @@
+diff --git a/README.md b/README.md
+index 5960185..b74293f 100644
+--- a/README.md
++++ b/README.md
+@@ -155,7 +155,7 @@ Claude はインデックスを読んで候補のページを見つけ、それ
+ | `/wiki:lint` | 構造と内容の健全性をチェックする。`wiki/graph/ontology.yaml` があればグラフの lint も実行する。 |
+ | `/wiki:stats` | wiki の規模、リンク密度、スケーリングのどの閾値に達しているかを表示する。 |
+ | `/wiki:graph <action>` | コンパイル済みのグラフ層に対して `extract` / `lint` / `neighbors` / `edges` / `path` / `facts` を実行する。 |
+-| `/wiki:browse [slug]` | wiki をブラウザで閲覧する。必要なときだけ 127.0.0.1 のサーバーを起動する。`--stop` で止める。 |
++| `/wiki:browse [slug]` | wiki をブラウザで閲覧する。分類の木、検索、全ページの一覧の絞り込み、配色の切り替えを持つ。必要なときだけ 127.0.0.1 のサーバーを起動する。`--stop` で止める。 |
+ | `/wiki:learn <task artifacts>` | 検証済みの経験を記録し、根拠にリンクした再利用できるパターンにまとめる。 |
+ | `/wiki:evolve <goal or action>` | スキルの改善案を作成・評価・確認・適用し、ロールバックする。すべての試行の結果を残す。 |
+ | `/wiki:upgrade` | 既存の wiki を現在のプラグインのバージョンにアップグレードする（冪等なファイル操作と、手順を追った SCHEMA.md のマージ）。 |
+@@ -263,6 +263,8 @@ MIT。移植元の著作権表示（Praney Behl）を含む [LICENSE](./LICENSE)
+ 
+ `skills/info-hive/scripts/_vendor/` には、Markdown の解析器 markdown-it-py と mdurl（どちらも MIT ライセンス）を同梱している。それぞれの著作権表示と許諾文は [_vendor/licenses/](./skills/info-hive/scripts/_vendor/licenses/) に、取得元と版は [_vendor/README.md](./skills/info-hive/scripts/_vendor/README.md) にある。
+ 
++閲覧（`/wiki:browse`）の画面は、Fluent 2 の Web 版のデザインを React を使わない CSS で再現した `fluent2.css`（スキル fluent2-html-replica の同梱のファイル、MIT ライセンス）を、書き換えずに `skills/info-hive/scripts/browse_assets/` に同梱して描く。元になった Fluent UI と Fluent UI System Icons（どちらも MIT ライセンス、Copyright (c) Microsoft Corporation）の表示は [browse_assets/licenses/](./skills/info-hive/scripts/browse_assets/licenses/) に、取得元と版は [browse_assets/README.md](./skills/info-hive/scripts/browse_assets/README.md) にある。info-hive は Microsoft の製品ではなく、Microsoft の提携、推薦、承認を受けたものでもない。Fluent、Microsoft、Segoe は Microsoft Corporation の商標である。書体は同梱しない。
++
+ ## コントリビュート
+ 
+ Issue と PR を歓迎する。スキル本体は `skills/info-hive/`、スラッシュコマンドは `commands/` にある。[CONTRIBUTING.md](./CONTRIBUTING.md) を参照。PR を出す前に、同梱のスクリプトを小さなテスト用の wiki に対して実行し、何も壊れていないことを確かめてほしい。
+diff --git a/commands/browse.md b/commands/browse.md
+index f2ef364..96e6aca 100644
+--- a/commands/browse.md
++++ b/commands/browse.md
+@@ -4,7 +4,7 @@ argument-hint: "[slug] | --stop"
+ argument-description: "slug を付けると、そのページを開く（`[[slug]]` と同じ規則で探す。見つからなければ索引を開く）。`--stop` を付けると、動いている閲覧のサーバーを止める。"
+ ---
+ 
+-wiki を、日本語の CSS と、ナビゲーション、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示つきの HTML で閲覧する。閲覧はいつも読むだけで、wiki のファイルを作ったり書き換えたりしない。未解決リンクをクリックしても、ページはできない。
++wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。配色は OS に合わせるほか、サイドバーの「配色」でライトとダークを選べる。閲覧はいつも読むだけで、wiki のファイルを作ったり書き換えたりしない。未解決リンクをクリックしても、ページはできない。
+ 
+ 引数: $ARGUMENTS
+ 
+diff --git a/docs/commands.md b/docs/commands.md
+index dbe2b47..4ebe1c4 100644
+--- a/docs/commands.md
++++ b/docs/commands.md
+@@ -108,7 +108,7 @@ wiki の型付きグラフ層をコンパイル、lint、またはクエリす
+ 
+ ## `/wiki:browse [slug]`
+ 
+-wiki を、日本語の CSS と、ナビゲーション、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示つきの HTML で閲覧する。必要なときだけ 127.0.0.1 で待ち受けるサーバーを起動し、操作がない状態が 30 分続くと終わる。閲覧は読むだけで、wiki のファイルを変えない。
++wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。配色は OS に合わせるほか、サイドバーの「配色」でライトとダークを選べる。必要なときだけ 127.0.0.1 で待ち受けるサーバーを起動し、操作がない状態が 30 分続くと終わる。閲覧は読むだけで、wiki のファイルを変えない。
+ 
+ ```bash
+ /wiki:browse
+diff --git a/skills/info-hive/SKILL.md b/skills/info-hive/SKILL.md
+index 96403c6..116f858 100644
+--- a/skills/info-hive/SKILL.md
++++ b/skills/info-hive/SKILL.md
+@@ -220,7 +220,7 @@ gist をめぐるコミュニティの議論で、このパターンがうまく
+ - `scripts/wiki_graph_lint.py`: バージョンを固定した PyYAML を使い、型付きエッジをオントロジーと照らして検証する
+ - `scripts/wiki_graph_query.py`: `graph.sqlite` に対する neighbors、edges、facts、最短経路のクエリ
+ - `scripts/wiki_graph_common.py`: グラフの 3 つのスクリプトが共有する、オントロジーの有無の判定と、生成物の置き換え
+-- `scripts/wiki_browse.py`、`scripts/wiki_browse_core.py`、`scripts/wiki_browse_fs.py`、`scripts/browse_assets/`: wiki の閲覧（`/wiki:browse`）。中核は wiki を 1 度だけ読み、lint と同じリンクの判定で HTML を描く。`build` は静的の HTML を wiki の外に書き出し、`serve` は 127.0.0.1 のサーバーを起動する。wiki のファイルは変えない
++- `scripts/wiki_browse.py`、`scripts/wiki_browse_core.py`、`scripts/wiki_browse_fs.py`、`scripts/browse_assets/`: wiki の閲覧（`/wiki:browse`）。中核は wiki を 1 度だけ読み、lint と同じリンクの判定で HTML を描く。`build` は静的の HTML を wiki の外に書き出し、`serve` は 127.0.0.1 のサーバーを起動する。画面は同梱の `browse_assets/fluent2.css`（Fluent 2 の再現の CSS）で描き、検索の索引（`data/search.js`）は後から読む。wiki のファイルは変えない
+ - `scripts/wiki_workspace.py`: 作業領域の設定（`.info-hive/workspace.json`）を読み、`--wiki` を省いたときの既定（`dirs.wiki`、設定がなければ `./wiki`）を決める
+ - `scripts/wiki_mcp_launch.py`、`scripts/wiki_mcp_relay.py`、`scripts/wiki_mcp_server.py`: wiki の MCP サーバー。入口がプラグインの `.mcp.json` で登録され、中継の環境を確かめてから中継を動かす。中継は127.0.0.1 のサーバーを 1 つだけ起動して使う。ツールは `query`、`get_page`、`list_index`、`lint`、`stats`、`graph`、`index_chunks`
+ - `scripts/wiki_index.py`: MCP サーバーの検索の基盤（ruri-v3-130m の ONNX、usearch、Tantivy）。索引は wiki の外に置く
+diff --git a/skills/info-hive/scripts/browse_assets/README.md b/skills/info-hive/scripts/browse_assets/README.md
+new file mode 100644
+index 0000000..4f7d7ae
+--- /dev/null
++++ b/skills/info-hive/scripts/browse_assets/README.md
+@@ -0,0 +1,35 @@
++# 閲覧（browse）の画面の資産
++
++閲覧の画面の CSS と JavaScript を置く。ページは CSP（`style-src 'self'; script-src 'self'`）の下で描くので、どれもファイルとして読み込む。
++
++| ファイル | 中身 |
++| --- | --- |
++| `style.css` | 閲覧の画面の独自の CSS |
++| `app.js` | ナビゲーションを組み立て、データの世代を確かめるスクリプト |
++| `fluent2.css` | Fluent 2 の Web 版のデザインを、React を使わない CSS で再現したもの（非公式）。下の「同梱した Fluent 2 の CSS」を参照 |
++| `licenses/` | 同梱したファイルのライセンスの文書。閲覧の出力には含めない |
++
++## 同梱した Fluent 2 の CSS
++
++`fluent2.css` は、スキル `fluent2-html-replica`（to884/fluent2-html-replica の `skills/fluent2-html-replica/`）に同梱された `assets/fluent2.css` を、中身を書き換えずに写したものである。プラグインは、このファイルだけを読み、スキルの場所には依存しない。
++
++| 項目 | 値 |
++| --- | --- |
++| 写した元 | スキル `fluent2-html-replica` の `assets/fluent2.css`（スキルの `computedHash` は `14bc59994c3d16920cc9ffd1e4b4d124fe32b1bcc7624fbcdd9778a0b511cb29`） |
++| 基準の版 | `@fluentui/react-components` 9.75.2、`@fluentui/tokens` 1.0.0-alpha.24、microsoft/fluentui の commit `f9720c35ba893c9630f4c0389d07dc6d6fd6068d` |
++| 大きさ | 625,811 バイト |
++| SHA-256 | `0b393938b1b5349f2436780eda73d8786e730bc793f4c3fc103ecf6913e8b4bb` |
++| 写した日 | 2026年11月14日 |
++| ライセンス | MIT（[licenses/fluent2-html-replica.LICENSE](licenses/fluent2-html-replica.LICENSE)）。元になった Fluent UI（MIT、Copyright (c) Microsoft Corporation）と Fluent UI System Icons（MIT）の表示は [licenses/fluent2-html-replica.THIRD-PARTY-NOTICES.txt](licenses/fluent2-html-replica.THIRD-PARTY-NOTICES.txt) にある。同じ表示が `fluent2.css` の先頭のコメントにも入っているので、閲覧の出力に写した `fluent2.css` にも表示が付いて回る |
++
++- このプラグインと `fluent2.css` は Microsoft の製品ではなく、Microsoft の提携、推薦、承認を受けたものでもない。Fluent、Microsoft、Segoe は Microsoft Corporation の商標である。
++- 書体は同梱しない。`fluent2.css` は、フォントスタックに Segoe UI と日本語の書体（Yu Gothic UI、Meiryo UI ほか）の名前を並べるだけである。Segoe UI のない環境では、並びの次の書体で表示する。
++- スキルの `fluent2.js` は同梱しない。要素の `style` に書き込むので、閲覧の画面の約束（要素の `style` を変えない）に反するからである。部品のふるまいが要るときは、`app.js` が受け持つ。
++- `fluent2.css` は生成物なので、手で直さない。閲覧の独自の規則は `style.css` に書き、`fluent2.css` のあとに読む。
++
++## 写し直すとき
++
++1. スキル `fluent2-html-replica` を更新し、`SKILL.md` の基準の版と、`references/08-plain-html.md` の「互換性の注意」を読む。CSS 変数の名前は Fluent の内部の実装で、版で変わりうる。
++2. スキルの `assets/fluent2.css` を、このディレクトリの `fluent2.css` に写す。`LICENSE` と `THIRD-PARTY-NOTICES.txt` も、`licenses/` の同じ名前のファイルに写す。
++3. 上の表の基準の版、大きさ、SHA-256、写した日を書き換える。
++4. 開発リポジトリの閲覧の試験（`tests/wiki/test_browse*.py` と `tests/wiki/browse/`）を流し、明るい配色と暗い配色の画面を確かめる。
+diff --git a/skills/info-hive/scripts/browse_assets/app.js b/skills/info-hive/scripts/browse_assets/app.js
+index acae17a..11eb286 100644
+--- a/skills/info-hive/scripts/browse_assets/app.js
++++ b/skills/info-hive/scripts/browse_assets/app.js
+@@ -1,97 +1,700 @@
+ /* wiki の閲覧（browse）の画面。classic なスクリプトだけを使い、fetch、ES モジュール、Web Worker を使わない。
+-   ページの HTML には本文、メタ欄、被リンク、関係表、診断が描いてあるので、このスクリプトはナビゲーションを
+-   組み立て、データの世代を確かめるだけである。インラインの style は使わず、クラスだけを付ける。 */
++   ページの HTML には本文、メタ欄、被リンク、関係表、診断、索引の一覧が描いてあるので、このスクリプトは
++   ナビゲーションの木、検索、索引の一覧の絞り込み、配色の切り替えを組み立て、データの世代を確かめるだけである。
++   要素を作るほかに変えるのは、class、hidden、open、aria-* と、<html> の data-theme（theme.js を通す）だけで、
++   要素の style には触らない。部品のマークアップは Fluent 2 の設計（docs/plans/wiki-browse-fluent2-2026-11-14.md）の
++   4 節、ふるまいは探しやすさの設計（docs/plans/wiki-browse-findability-2026-11-13.md）の 3〜5 節による。 */
+ (function () {
+   "use strict";
++  var PROTOCOL = 2;
+   var doc = document.documentElement;
+   var root = doc.getAttribute("data-root") || "";
+   var generation = doc.getAttribute("data-generation") || "";
+-  var state = window.__browse = { navLoaded: false, errors: [], stale: false, mismatch: [] };
++  var state = window.__browse = { navLoaded: false, errors: [], stale: false, mismatch: [], searchLoaded: false,
++                                  search: function () { return null; } };
++  var TYPE_LABELS = { source: "ソース", entity: "エンティティ", concept: "コンセプト", synthesis: "シンセシス" };
++  var GROUP_ID = /^_g[0-9a-z]+$/;
++  var SVG_NS = "http://www.w3.org/2000/svg";
++  var ICONS = {
++    chevron: "M15.85 7.65c.2.2.2.5 0 .7l-5.46 5.49a.55.55 0 0 1-.78 0L4.15 8.35a.5.5 0 1 1 .7-.7L10 12.8l5.15-5.16c.2-.2.5-.2.7 0",
++    search: "M13.73 14.44a6.5 6.5 0 1 1 .7-.7l3.42 3.4a.5.5 0 0 1-.63.77l-.07-.06zm-.71-.71A5.5 5.5 0 0 0 15 9.5a5.5 5.5 0 1 0-1.98 4.23",
++    dismiss: "m4.09 4.22.06-.07a.5.5 0 0 1 .63-.06l.07.06L10 9.29l5.15-5.14a.5.5 0 0 1 .63-.06l.07.06c.18.17.2.44.06.63l-.06.07L10.71 10l5.14 5.15c.18.17.2.44.06.63l-.06.07a.5.5 0 0 1-.63.06l-.07-.06L10 10.71l-5.15 5.14a.5.5 0 0 1-.63.06l-.07-.06a.5.5 0 0 1-.06-.63l.06-.07L9.29 10 4.15 4.85a.5.5 0 0 1-.06-.63l.06-.07z",
++    warning: "M7.37 3.56a3 3 0 0 1 5.26 0l5.5 10A3 3 0 0 1 15.5 18h-11a3 3 0 0 1-2.63-4.44zM10 12.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5m0-6.25a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V7a.5.5 0 0 0-.5-.5",
++    error: "M7.88 1.88a3 3 0 0 1 4.24 0l6 6a3 3 0 0 1 0 4.24l-6 6a3 3 0 0 1-4.24 0l-6-6a3 3 0 0 1 0-4.24zM13.1 6.9a.5.5 0 0 0-.7 0L10 9.3 7.6 6.9a.5.5 0 0 0-.7.7L9.3 10l-2.4 2.4a.5.5 0 0 0 .7.7l2.4-2.4 2.4 2.4a.5.5 0 0 0 .7-.7L10.7 10l2.4-2.4a.5.5 0 0 0 0-.7"
++  };
+ 
+-  function href(path) {
+-    return root + path.split("/").map(encodeURIComponent).join("/");
++  function has(obj, key) { return Object.prototype.hasOwnProperty.call(obj, key); }
++  function typeLabel(t) { return has(TYPE_LABELS, t) ? TYPE_LABELS[t] : (t || "種類なし"); }
++  function typeClass(t) { return /^[a-z][a-z0-9_-]*$/.test(t || "") ? "t-" + t : "t-other"; }
++  function href(path) { return root + String(path).split("/").map(encodeURIComponent).join("/"); }
++
++  function el(tag, cls, text) {
++    var e = document.createElement(tag);
++    if (cls) { e.className = cls; }
++    if (text !== undefined && text !== null) { e.textContent = text; }
++    return e;
++  }
++
++  function icon(name, size) {
++    var svg = document.createElementNS(SVG_NS, "svg");
++    svg.setAttribute("class", "fui-Icon");
++    svg.setAttribute("width", size || "20");
++    svg.setAttribute("height", size || "20");
++    svg.setAttribute("viewBox", "0 0 20 20");
++    svg.setAttribute("fill", "currentColor");
++    svg.setAttribute("aria-hidden", "true");
++    svg.setAttribute("focusable", "false");
++    var p = document.createElementNS(SVG_NS, "path");
++    p.setAttribute("d", ICONS[name]);
++    svg.appendChild(p);
++    return svg;
+   }
+ 
+-  function notice(text, cls) {
++  // ページの先頭の知らせ（Fluent の MessageBar）。cls は notice-updated、notice-error など、試験が使う印
++  var noticeCount = 0;
++  function notice(title, body, cls, intent) {
+     var main = document.getElementById("_main");
+     if (!main) { return; }
+-    var p = document.createElement("p");
+-    p.className = "notice " + cls;
+-    p.textContent = text;
+-    main.insertBefore(p, main.firstChild);
++    noticeCount += 1;
++    var id = "_notice" + noticeCount;
++    var bar = el("div", "notice " + cls + " fui-MessageBar");
++    bar.id = id;
++    bar.setAttribute("role", "group");
++    bar.setAttribute("aria-labelledby", id + "_title");
++    bar.setAttribute("data-intent", intent || "warning");
++    bar.setAttribute("data-layout", "multiline");
++    var ic = el("div", "fui-MessageBar__icon");
++    ic.setAttribute("aria-hidden", "true");
++    ic.appendChild(icon(intent === "error" ? "error" : "warning"));
++    var bodyEl = el("div", "fui-MessageBarBody");
++    var t = el("span", "fui-MessageBarTitle", title);
++    t.id = id + "_title";
++    bodyEl.appendChild(t);
++    if (body) { bodyEl.appendChild(document.createTextNode(body)); }
++    bar.appendChild(ic);
++    bar.appendChild(bodyEl);
++    bar.appendChild(el("div", "fui-MessageBarActions"));
++    bar.appendChild(el("div", "fui-MessageBar__bottomReflowSpacer"));
++    main.insertBefore(bar, main.firstChild);
++  }
++
++  function updatedNotice() {
++    if (!state.updatedShown) {
++      state.updatedShown = true;
++      notice("Wiki が更新された。", "再読み込みする。", "notice-updated", "warning");
++    }
+   }
+ 
++  /* --- データの契約と世代 --- */
+   var data = [["WIKI_NAV", window.WIKI_NAV], ["WIKI_MANIFEST", window.WIKI_MANIFEST],
+               ["WIKI_DIAGNOSTICS", window.WIKI_DIAGNOSTICS]];
+   for (var i = 0; i < data.length; i++) {
+     var value = data[i][1];
+     if (!value) { continue; }
+-    if (value.protocol_version !== 1) {
++    if (value.protocol_version !== PROTOCOL) {
+       state.errors.push("未対応の契約の版: " + data[i][0]);
+-      notice("この画面は、データの契約の版に対応していない。", "notice-error");
++      notice("この画面は、データの契約の版に対応していない。", "", "notice-error", "error");
+       return;
+     }
+-    if (value.generation !== generation) {
+-      state.mismatch.push(data[i][0]);
+-    }
+-  }
+-  if (state.mismatch.length) {
+-    notice("Wiki が更新された。再読み込みする。", "notice-updated");
++    if (value.generation !== generation) { state.mismatch.push(data[i][0]); }
+   }
+-  if (window.WIKI_MANIFEST && window.WIKI_MANIFEST.stale) {
+-    state.stale = true;
++  if (state.mismatch.length) { updatedNotice(); }
++  var manifest = window.WIKI_MANIFEST || {};
++  if (manifest.stale) { state.stale = true; }
++  var incompletePages = !!(manifest.incomplete && manifest.incomplete.unreadable_pages);
++
++  /* --- 配色の切り替え（Fluent の Select）。theme.js が描く前に当てた値を表す --- */
++  function themeField() {
++    var api = window.__browseTheme;
++    if (!api) { return null; }
++    var wrap = el("div", "theme-field");
++    var label = el("label", "fui-Label theme-label", "配色");
++    label.htmlFor = "_theme";
++    var box = el("span", "fui-Select");
++    box.setAttribute("data-size", "small");
++    var select = el("select", "fui-Select__select");
++    select.id = "_theme";
++    var names = { auto: "OS に合わせる", light: "ライト", dark: "ダーク" };
++    for (var k = 0; k < api.values.length; k++) {
++      var o = el("option", "", names[api.values[k]]);
++      o.value = api.values[k];
++      select.appendChild(o);
++    }
++    select.value = api.read();
++    select.addEventListener("change", function () { api.save(select.value); });
++    var ic = el("span", "fui-Select__icon");
++    ic.appendChild(icon("chevron", "1em"));
++    box.appendChild(select);
++    box.appendChild(ic);
++    wrap.appendChild(label);
++    wrap.appendChild(box);
++    return wrap;
+   }
++  var head = document.querySelector("#_nav .nav-head");
++  var tf = themeField();
++  if (head && tf) { head.appendChild(tf); }
+ 
+-  var nav = document.getElementById("_nav");
+-  if (!nav || !window.WIKI_NAV) {
++  var NAV = window.WIKI_NAV;
++  var navBody = document.getElementById("_navbody");
++  if (!navBody || !NAV) {
+     state.errors.push("nav.js を読めない");
+     return;
+   }
++  var article = document.getElementById("_article");
++  var current = article ? article.getAttribute("data-page-id") : null;
++  var isIndex = !article && !!document.getElementById("_index");
++
++  /* --- 照合（5.2）。照合と強調は、同じ 1 つのそろえ方を使う --- */
++  // 1 文字（符号位置）ずつ、大文字にしてから小文字にする。全体を一度に小文字にしない（語末の Σ）
++  function foldChar(c) { return c.toUpperCase().toLowerCase(); }
++  function fold(s) { return Array.from(String(s || "").normalize("NFC")).map(foldChar).join(""); }
++  function terms(q) { return fold(q).split(/[\s　]+/).filter(function (t) { return t; }); }
++
++  var SEARCH = null;     // 読み込んだ WIKI_SEARCH を、照合しやすい形にしたもの
++  function prepare(raw) {
++    var f = raw.fields;
++    var at = {};
++    for (var k = 0; k < f.length; k++) { at[f[k]] = k; }
++    return raw.rows.map(function (r) {
++      var row = { path: r[at.path], id: r[at.id], title: r[at.title], summary: r[at.summary], type: r[at.type],
++                  tags: r[at.tags], headings: r[at.headings], updated: r[at.updated], group: r[at.group_path] };
++      row.nTitle = fold(row.title);
++      row.nSummary = fold(row.summary);
++      row.nTags = row.tags.map(fold);
++      row.nHeadings = row.headings.map(function (h) { return fold(h[1]); });
++      return row;
++    });
++  }
++
++  function score(row, ts) {
++    var total = 0;
++    var hit = null;
++    for (var k = 0; k < ts.length; k++) {
++      var t = ts[k];
++      var best = 0;
++      var p = row.nTitle.indexOf(t);
++      if (p === 0) { best = 12; } else if (p > 0) { best = 8; }
++      for (var g = 0; g < row.nTags.length; g++) {
++        if (row.nTags[g] === t) { best = Math.max(best, 6); } else if (row.nTags[g].indexOf(t) >= 0) { best = Math.max(best, 4); }
++      }
++      for (var h = 0; h < row.nHeadings.length; h++) {
++        if (row.nHeadings[h].indexOf(t) >= 0) { best = Math.max(best, 3); }
++      }
++      if (row.nSummary.indexOf(t) >= 0) { best = Math.max(best, 2); }
++      if (!best) { return null; }
++      total += best;
++    }
++    // 結果に示す当たり: 題名のほかの欄で、タグ、見出し、要約の順に最初に当たったもの（データの並びで最初）
++    function any(s) { for (var k2 = 0; k2 < ts.length; k2++) { if (s.indexOf(ts[k2]) >= 0) { return true; } } return false; }
++    for (var g2 = 0; g2 < row.nTags.length && !hit; g2++) {
++      if (any(row.nTags[g2])) { hit = { field: "tag", text: row.tags[g2] }; }
++    }
++    for (var h2 = 0; h2 < row.nHeadings.length && !hit; h2++) {
++      if (any(row.nHeadings[h2])) { hit = { field: "heading", text: row.headings[h2][1], id: row.headings[h2][0] }; }
++    }
++    if (!hit && row.summary && any(row.nSummary)) { hit = { field: "summary", text: row.summary }; }
++    return { score: total, hit: hit };
++  }
++
++  function search(q) {
++    if (!SEARCH) { return null; }
++    var ts = terms(q);
++    if (!ts.length) { return []; }
++    var out = [];
++    for (var k = 0; k < SEARCH.length; k++) {
++      var row = SEARCH[k];
++      var s = score(row, ts);
++      if (!s) { continue; }
++      out.push({ rel_path: row.id + ".md", title: row.title, type: row.type, tags: row.tags.slice(),
++                 updated: row.updated, score: s.score, snippet: s.hit ? s.hit.text : row.summary,
++                 heading_path: s.hit && s.hit.field === "heading" ? [s.hit.text] : [],
++                 href: href(row.path) + (s.hit && s.hit.field === "heading" ? "#" + encodeURIComponent(s.hit.id) : ""),
++                 hit: s.hit, id: row.id, group_path: row.group });
++    }
++    // 点の高い順、同じなら題名の文字（UTF-16 の符号の順。localeCompare は使わない）
++    out.sort(function (a, b) {
++      if (b.score !== a.score) { return b.score - a.score; }
++      return a.title < b.title ? -1 : (a.title > b.title ? 1 : 0);
++    });
++    return out;
++  }
++  state.search = search;
+ 
+-  function item(it) {
+-    var li = document.createElement("li");
++  // 当たった文字に <mark> を付けて node に入れる。そろえた列の中で探し、元の文字の境界に戻す（5.3）
++  function highlight(node, text, ts) {
++    text = String(text || "").normalize("NFC");
++    var chars = Array.from(text);
++    var low = "";
++    var starts = [];      // [そろえた列の位置, 元の文字列の位置]
++    var acc = 0;
++    for (var k = 0; k < chars.length; k++) {
++      starts.push([low.length, acc]);
++      low += foldChar(chars[k]);
++      acc += chars[k].length;
++    }
++    starts.push([low.length, acc]);
++    function back(pos) { for (var j = starts.length - 1; j >= 0; j--) { if (starts[j][0] <= pos) { return starts[j][1]; } } return 0; }
++    function fwd(pos) { for (var j = 0; j < starts.length; j++) { if (starts[j][0] >= pos) { return starts[j][1]; } } return acc; }
++    var marks = [];
++    for (var m = 0; m < ts.length; m++) {
++      var p = low.indexOf(ts[m]);
++      if (p >= 0) { marks.push([back(p), fwd(p + ts[m].length)]); }
++    }
++    marks.sort(function (a, b) { return a[0] - b[0]; });
++    var merged = [];
++    for (var n = 0; n < marks.length; n++) {
++      var last = merged[merged.length - 1];
++      if (last && marks[n][0] <= last[1]) { last[1] = Math.max(last[1], marks[n][1]); } else { merged.push([marks[n][0], marks[n][1]]); }
++    }
++    var pos = 0;
++    for (var r = 0; r < merged.length; r++) {
++      node.appendChild(document.createTextNode(text.slice(pos, merged[r][0])));
++      node.appendChild(el("mark", null, text.slice(merged[r][0], merged[r][1])));
++      pos = merged[r][1];
++    }
++    node.appendChild(document.createTextNode(text.slice(pos)));
++  }
++
++  /* --- 検索の索引を後から読む（5.4） --- */
++  var waiting = [];
++  var loadState = "idle";       // idle、loading、ready、failed
++  var loadMessage = "";
++  function withSearch(fn) {
++    if (loadState === "ready" || loadState === "failed") { fn(); return; }
++    waiting.push(fn);
++    if (loadState === "loading") { return; }
++    loadState = "loading";
++    var s = document.createElement("script");
++    s.src = root + "data/search.js";
++    s.onload = function () {
++      var raw = window.WIKI_SEARCH;
++      if (!raw || raw.protocol_version !== PROTOCOL) {
++        loadState = "failed";
++        loadMessage = "この画面は、検索の索引の版に対応していない";
++      } else {
++        if (raw.generation !== generation) { state.mismatch.push("WIKI_SEARCH"); updatedNotice(); }
++        SEARCH = prepare(raw);
++        state.searchIncomplete = !!raw.incomplete;
++        loadState = "ready";
++        state.searchLoaded = true;
++      }
++      flush();
++    };
++    s.onerror = function () {
++      loadState = "failed";
++      loadMessage = "検索の索引を読めない";
++      flush();
++    };
++    document.body.appendChild(s);
++  }
++  function flush() {
++    if (loadState === "failed") { failSearch(); }
++    var w = waiting;
++    waiting = [];
++    for (var k = 0; k < w.length; k++) { w[k](); }
++  }
++  state.loadSearch = withSearch;
++
++  /* --- 検索欄（Fluent の SearchBox） --- */
++  function searchBox(placeholder, onQuery, onEnter) {
++    var box = el("span", "fui-SearchBox fui-Input");
++    box.setAttribute("data-size", "small");
++    var before = el("span", "fui-SearchBox__contentBefore fui-Input__contentBefore");
++    before.appendChild(icon("search", "1em"));
++    var input = el("input", "fui-SearchBox__input fui-Input__input");
++    input.type = "search";
++    input.id = "_q";
++    input.autocomplete = "off";
++    input.placeholder = placeholder;
++    input.setAttribute("aria-label", placeholder);
++    var after = el("span", "fui-SearchBox__contentAfter fui-Input__contentAfter");
++    var dismiss = el("span", "fui-SearchBox__dismiss");
++    dismiss.setAttribute("role", "button");
++    dismiss.setAttribute("aria-label", "消去");
++    dismiss.tabIndex = -1;
++    dismiss.appendChild(icon("dismiss", "1em"));
++    // 消去ボタンを押してもフォーカスを外さない（fluent2.js の代わり）
++    dismiss.addEventListener("mousedown", function (ev) { ev.preventDefault(); });
++    dismiss.addEventListener("click", function () { input.value = ""; onQuery(""); input.focus(); });
++    after.appendChild(dismiss);
++    box.appendChild(before);
++    box.appendChild(input);
++    box.appendChild(after);
++    input.addEventListener("focus", function () { withSearch(function () { onQuery(input.value); }); });
++    input.addEventListener("input", function () { onQuery(input.value); });
++    input.addEventListener("keydown", function (ev) {
++      if (ev.isComposing || ev.keyCode === 229) { return; }    // かな漢字の変換中のキーは扱わない
++      if (ev.key === "Enter") { onEnter(); } else if (ev.key === "Escape") { input.value = ""; onQuery(""); }
++    });
++    return { box: box, input: input };
++  }
++
++  document.addEventListener("keydown", function (ev) {
++    var q = document.getElementById("_q");
++    var a = document.activeElement;
++    if (ev.key === "/" && q && a !== q && !(a && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))) {
++      ev.preventDefault();
++      q.focus();
++    }
++  });
++
++  /* --- 左の木 --- */
++  function groupLink(g) {
++    var a = el("a", "fui-Link tree-filter", "一覧");
++    a.href = href("index.html") + "#group=" + encodeURIComponent(g.id);
++    return a;
++  }
++
++  function containsCurrent(g) {
++    for (var k = 0; k < g.items.length; k++) { if (g.items[k].state === "resolved" && g.items[k].id === current) { return true; } }
++    for (var c = 0; c < g.children.length; c++) { if (containsCurrent(g.children[c])) { return true; } }
++    return false;
++  }
++
++  function treeItem(it) {
+     if (it.state === "resolved") {
+-      var a = document.createElement("a");
++      var a = el("a", "fui-NavSubItem", it.label);
+       a.href = href(it.path) + (it.anchor ? "#" + encodeURIComponent(it.anchor) : "");
+-      a.textContent = it.label;
++      var here = it.id === current;
++      a.setAttribute("aria-current", here ? "page" : "false");
++      if (here) { a.classList.add("is-current"); }
++      return a;
++    }
++    if (it.state === "group") {
++      var g = el("a", "fui-NavSubItem", it.label);
++      g.href = href("index.html") + "#group=" + encodeURIComponent(it.group);
++      return g;
++    }
++    var span = el("span", "fui-NavSubItem wl wl-" + it.state, it.label);
++    span.title = it.state === "unresolved" ? "ページがない" : "行き先を 1 つに決められない";
++    return span;
++  }
++
++  function treeGroup(g, depth) {
++    var d = el("details", "fui-NavCategory tree-group nav-depth-" + Math.min(depth, 6));
++    d.open = containsCurrent(g);
++    var sum = el("summary", "fui-NavCategoryItem");
++    sum.appendChild(el("span", "tree-name", g.title));
++    sum.appendChild(el("span", "fui-Caption1 tree-count", String(g.count)));
++    sum.appendChild(groupLink(g));
++    var exp = el("span", "fui-NavCategoryItem__expandIcon");
++    exp.setAttribute("aria-hidden", "true");
++    exp.appendChild(icon("chevron"));
++    sum.appendChild(exp);
++    d.appendChild(sum);
++    var sub = el("div", "fui-NavSubItemGroup");
++    for (var k = 0; k < g.items.length; k++) { sub.appendChild(treeItem(g.items[k])); }
++    for (var c = 0; c < g.children.length; c++) { sub.appendChild(treeGroup(g.children[c], depth + 1)); }
++    d.appendChild(sub);
++    return d;
++  }
++
++  function indexTree(groups, depth) {
++    var ul = el("ul", "tree-groups nav-depth-" + Math.min(depth, 6));
++    for (var k = 0; k < groups.length; k++) {
++      var g = groups[k];
++      var li = el("li");
++      var a = el("a", "fui-NavItem");
++      a.href = "#group=" + encodeURIComponent(g.id);
++      a.setAttribute("data-group", g.id);
++      a.appendChild(el("span", "tree-name", g.title));
++      a.appendChild(el("span", "fui-Caption1 tree-count", String(g.count)));
++      li.appendChild(a);
++      if (g.children.length) { li.appendChild(indexTree(g.children, depth + 1)); }
++      ul.appendChild(li);
++    }
++    return ul;
++  }
++
++  var groupIds = {};
++  var groupTitles = {};
++  (function collect(groups) {
++    for (var k = 0; k < groups.length; k++) {
++      groupIds[groups[k].id] = true;
++      groupTitles[groups[k].id] = groups[k].title;
++      collect(groups[k].children);
++    }
++  })(NAV.groups || []);
++
++  var drawer = el("details", "drawer");
++  var drawerSum = el("summary", "fui-Button drawer-toggle", "メニュー");
++  drawerSum.setAttribute("data-appearance", "subtle");
++  drawer.appendChild(drawerSum);
++  var tree = el("div", "tree");
++
++  if (isIndex) {
++    var all = el("a", "fui-NavItem tree-all");
++    all.href = "#";
++    all.setAttribute("data-group", "");
++    all.appendChild(el("span", "tree-name", "すべてのページ"));
++    tree.appendChild(all);
++    tree.appendChild(indexTree(NAV.groups || [], 0));
++  } else {
++    // 記事のページ: 検索欄と、その結果の場所（木の場所に出す）
++    var results = el("div", "sr-area");
++    results.hidden = true;
++    var field = el("div", "search");
++    var hint = el("p", "fui-Caption1 search-hint", "/ で検索欄に移る。Enter で最初の結果を開く");
++    var sb = searchBox("ページを探す", function (q) { showResults(q); }, function () {
++      var first = results.querySelector("a.sr-link");
++      if (first && !results.hidden) { location.href = first.href; }
++    });
++    field.appendChild(sb.box);
++    field.appendChild(hint);
++    navBody.appendChild(field);
++    navBody.appendChild(results);
++    for (var n = 0; n < (NAV.groups || []).length; n++) { tree.appendChild(treeGroup(NAV.groups[n], 0)); }
++  }
++  // 読めない索引のファイルがあるとき、木が不完全であることを示す（構造の直しの設計の 4.1、10）
++  if (NAV.incomplete) {
++    tree.insertBefore(el("p", "fui-Caption1 nav-incomplete", "読めない索引のファイルがあるので、この木は不完全"),
++                      tree.firstChild);
++  }
++  drawer.appendChild(tree);
++  navBody.appendChild(drawer);
++
++  function showResults(q) {
++    var ts = terms(q);
++    if (!ts.length) {
++      results.hidden = true;
++      tree.hidden = false;
++      return;
++    }
++    if (loadState !== "ready") {
++      if (loadState === "failed") { failSearch(); }
++      return;
++    }
++    var found = search(q);
++    while (results.firstChild) { results.removeChild(results.firstChild); }
++    results.appendChild(el("p", "fui-Caption1 sr-count", found.length + " 件"));
++    if (!found.length) { results.appendChild(el("p", "fui-Caption1 sr-empty", "当たるページはない")); }
++    var ul = el("ul", "fui-List sr-results");
++    ul.setAttribute("role", "list");
++    found.slice(0, 30).forEach(function (f) {
++      var li = el("li", "fui-ListItem");
++      var a = el("a", "sr-link");
++      a.href = f.href;
++      var title = el("span", "sr-title");
++      highlight(title, f.title, ts);
++      a.appendChild(title);
++      var meta = el("span", "fui-Caption1 sr-meta");
++      meta.appendChild(el("span", "badge fui-Badge " + typeClass(f.type), typeLabel(f.type)));
++      if (f.group_path.length) { meta.appendChild(document.createTextNode(" " + f.group_path.join(" › "))); }
++      a.appendChild(meta);
++      if (f.hit) {
++        var names = { tag: "タグ", heading: "見出し", summary: "要約" };
++        var hitEl = el("span", "fui-Caption1 sr-hit", names[f.hit.field] + ": ");
++        highlight(hitEl, f.hit.text, ts);
++        a.appendChild(hitEl);
++      }
+       li.appendChild(a);
+-    } else if (it.state === "group") {
+-      var g = document.createElement("a");
+-      g.href = href("index.html") + "#" + encodeURIComponent(it.group);
+-      g.textContent = it.label;
+-      li.appendChild(g);
+-    } else {
+-      var span = document.createElement("span");
+-      span.className = "wl wl-" + it.state;
+-      span.textContent = it.label;
+-      li.appendChild(span);
+-    }
+-    return li;
+-  }
+-
+-  function group(g, depth) {
+-    var section = document.createElement("section");
+-    section.className = "nav-group nav-depth-" + Math.min(depth, 6);
+-    if (g.title) {
+-      var h = document.createElement("h2");
+-      h.textContent = g.title;
+-      section.appendChild(h);
+-    }
+-    if (g.items.length) {
+-      var ul = document.createElement("ul");
+-      for (var k = 0; k < g.items.length; k++) { ul.appendChild(item(g.items[k])); }
+-      section.appendChild(ul);
+-    }
+-    for (var c = 0; c < g.children.length; c++) { section.appendChild(group(g.children[c], depth + 1)); }
+-    return section;
+-  }
+-
+-  var home = document.createElement("a");
+-  home.href = href("index.html");
+-  home.className = "nav-home";
+-  home.textContent = "索引";
+-  nav.appendChild(home);
+-  var groups = window.WIKI_NAV.groups || [];
+-  for (var n = 0; n < groups.length; n++) { nav.appendChild(group(groups[n], 0)); }
++      ul.appendChild(li);
++    });
++    results.appendChild(ul);
++    if (state.searchIncomplete) {
++      results.appendChild(el("p", "fui-Caption1 sr-incomplete", "読めないページがあるので、結果は不完全"));
++    }
++    results.hidden = false;
++    tree.hidden = true;
++  }
++
++  // 検索の索引を使えないとき（読めない、版が違う）。欄を使えなくし、理由を欄の下に出す（5.5）
++  function failSearch() {
++    var q = document.getElementById("_q");
++    if (q) { q.disabled = true; }
++    var h = document.querySelector(".search-hint, .fx-hint");
++    if (h) {
++      h.textContent = loadMessage;
++      h.hidden = false;
++      h.classList.add("search-error");
++    }
++  }
++
++  // 広い幅では「メニュー」を開いておき、summary は CSS で隠す（3.3）
++  var narrow = window.matchMedia ? window.matchMedia("(max-width: 48rem)") : null;
++  function syncDrawer() { if (!narrow || !narrow.matches) { drawer.open = true; } }
++  syncDrawer();
++  if (narrow && narrow.addEventListener) { narrow.addEventListener("change", syncDrawer); }
++
++  var cur = tree.querySelector(".is-current");
++  if (cur && cur.scrollIntoView) {
++    // 木だけを送る。ページ全体は送らない
++    var box = navBody.getBoundingClientRect();
++    var r = cur.getBoundingClientRect();
++    if (r.top < box.top || r.bottom > box.bottom) { navBody.scrollTop += r.top - box.top - box.height / 3; }
++  }
++
++  /* --- 索引のページの絞り込みと並べ替え（4.3） --- */
++  if (isIndex) {
++    var list = document.getElementById("_index");
++    var rows = Array.prototype.slice.call(list.querySelectorAll(".fx-row"));
++    var bar = document.getElementById("_filters");
++    var countEl = document.getElementById("_count");
++    var filt = { q: "", type: null, tag: null, group: "" };
++    var noscript = bar.querySelector("noscript");
++    if (noscript) { bar.removeChild(noscript); }
++
++    var fsb = searchBox("題名、タグ、見出し、要約で絞る", function (q) { filt.q = q; apply(); }, function () {
++      // いま見えている先頭の行は、DOM の今の並び（並べ替えのあと）から読む。行の順は DOM だけが持つ
++      var first = list.querySelector(".fx-row:not([hidden])");
++      if (first) { location.href = first.querySelector(".ix-title").href; }
++    });
++    var fhint = el("p", "fui-Caption1 fx-hint");
++    fhint.hidden = true;
++
++    // 種類のボタン。種類は Map で集める（__proto__ のような値も、ふつうの種類として扱う）
++    var types = new Map();
++    rows.forEach(function (r) { var t = r.getAttribute("data-type") || ""; types.set(t, (types.get(t) || 0) + 1); });
++    var chips = el("div", "chips");
++    chips.setAttribute("role", "group");
++    chips.setAttribute("aria-label", "種類");
++    function chip(label, value) {
++      var b = el("button", "fui-ToggleButton fui-Button", label);
++      b.type = "button";
++      b.setAttribute("data-size", "small");
++      b.setAttribute("data-shape", "circular");
++      b.setAttribute("aria-pressed", value === null ? "true" : "false");
++      b.addEventListener("click", function () {
++        filt.type = value;
++        Array.prototype.forEach.call(chips.children, function (c) { c.setAttribute("aria-pressed", c === b ? "true" : "false"); });
++        apply();
++      });
++      chips.appendChild(b);
++    }
++    chip("すべて", null);
++    types.forEach(function (_n, t) { chip(typeLabel(t), t); });
++
++    // タグの選択。タグは行の span.tag の文字から読み、Map で数える
++    var tagCount = new Map();
++    rows.forEach(function (r) {
++      var seen = new Set();
++      Array.prototype.forEach.call(r.querySelectorAll("span.tag"), function (s) {
++        var t = s.textContent;
++        if (seen.has(t)) { return; }
++        seen.add(t);
++        tagCount.set(t, (tagCount.get(t) || 0) + 1);
++      });
++    });
++    var tagBox = el("span", "fui-Select tag-select");
++    tagBox.setAttribute("data-size", "small");
++    var tagSel = el("select", "fui-Select__select");
++    tagSel.setAttribute("aria-label", "タグ");
++    var optAll = el("option", "", "タグ: すべて");
++    optAll.value = "";
++    tagSel.appendChild(optAll);
++    var tagNames = Array.from(tagCount.keys()).sort(function (a, b) { return a < b ? -1 : (a > b ? 1 : 0); });
++    tagNames.forEach(function (t, k) {
++      var o = el("option", "", t + "（" + tagCount.get(t) + "）");
++      o.value = String(k + 1);
++      tagSel.appendChild(o);
++    });
++    tagSel.addEventListener("change", function () { filt.tag = tagSel.value ? tagNames[Number(tagSel.value) - 1] : null; apply(); });
++    var tagIc = el("span", "fui-Select__icon");
++    tagIc.appendChild(icon("chevron", "1em"));
++    tagBox.appendChild(tagSel);
++    tagBox.appendChild(tagIc);
++
++    var sortBox = el("span", "fui-Select sort-select");
++    sortBox.setAttribute("data-size", "small");
++    var sortSel = el("select", "fui-Select__select");
++    sortSel.setAttribute("aria-label", "並べ方");
++    [["order", "索引の順"], ["updated", "更新の新しい順"], ["title", "題名の順"]].forEach(function (o) {
++      var op = el("option", "", o[1]);
++      op.value = o[0];
++      sortSel.appendChild(op);
++    });
++    sortSel.addEventListener("change", apply);
++    var sortIc = el("span", "fui-Select__icon");
++    sortIc.appendChild(icon("chevron", "1em"));
++    sortBox.appendChild(sortSel);
++    sortBox.appendChild(sortIc);
++
++    var groupChip = el("button", "fui-Button group-chip");
++    groupChip.type = "button";
++    groupChip.setAttribute("data-size", "small");
++    groupChip.setAttribute("data-shape", "circular");
++    groupChip.hidden = true;
++    groupChip.addEventListener("click", function () { history.replaceState(null, "", location.pathname + location.search); fromHash(); });
++
++    bar.appendChild(fsb.box);
++    bar.appendChild(chips);
++    bar.appendChild(tagBox);
++    bar.appendChild(sortBox);
++    bar.appendChild(groupChip);
++    bar.appendChild(fhint);
++
++    var byId = {};
++    function rowMatches(r) {
++      if (filt.type !== null && (r.getAttribute("data-type") || "") !== filt.type) { return false; }
++      if (filt.group && (" " + r.getAttribute("data-groups") + " ").indexOf(" " + filt.group + " ") < 0) { return false; }
++      if (filt.tag !== null) {
++        var ok = Array.prototype.some.call(r.querySelectorAll("span.tag"), function (s) { return s.textContent === filt.tag; });
++        if (!ok) { return false; }
++      }
++      var ts = terms(filt.q);
++      if (ts.length) {
++        if (loadState !== "ready") { return true; }       // 読み終わったときに照らし直す
++        var row = byId[r.getAttribute("data-id")];
++        if (!row || !score(row, ts)) { return false; }
++      }
++      return true;
++    }
++
++    function apply() {
++      if (terms(filt.q).length && loadState === "idle") { withSearch(apply); }
++      if (loadState === "ready" && SEARCH && !Object.keys(byId).length) {
++        SEARCH.forEach(function (row) { byId[row.id] = row; });
++      }
++      var shown = 0;
++      rows.forEach(function (r) {
++        var ok = rowMatches(r);
++        r.hidden = !ok;
++        if (ok) { shown++; }
++      });
++      var key = sortSel.value;
++      function order(r) { return Number(r.getAttribute("data-order")); }
++      var sorted = rows.slice().sort(function (a, b) {
++        if (key === "updated") {
++          var ua = a.getAttribute("data-updated") || "";
++          var ub = b.getAttribute("data-updated") || "";
++          if (!ua !== !ub) { return ua ? -1 : 1; }      // 値のない行は最後
++          if (ua !== ub) { return ua > ub ? -1 : 1; }
++        } else if (key === "title") {
++          var c = a.getAttribute("data-title").localeCompare(b.getAttribute("data-title"), "ja");
++          if (c) { return c; }
++        }
++        return order(a) - order(b);
++      });
++      sorted.forEach(function (r) { list.appendChild(r); });
++      var filtered = filt.q || filt.type !== null || filt.tag !== null || filt.group;
++      countEl.textContent = filtered ? rows.length + " 件中 " + shown + " 件" : rows.length + " 件";
++      if (incompletePages || state.searchIncomplete) {
++        countEl.appendChild(el("span", "count-incomplete", "（読めないページがあるので不完全）"));
++      }
++      Array.prototype.forEach.call(tree.querySelectorAll("[data-group]"), function (a) {
++        var on = a.getAttribute("data-group") === filt.group;
++        a.setAttribute("aria-current", on ? "true" : "false");
++        a.classList.toggle("is-current", on);
++      });
++      groupChip.hidden = !filt.group;
++      groupChip.textContent = filt.group ? "グループ: " + groupTitles[filt.group] + " ×" : "";
++    }
++
++    function fromHash() {
++      // グループの ID は `_g` と英小文字か数字だけで、URL で符号化されない。断片は解かずに、そのまま形と木にあるかを
++      // 確かめる（解くと、`%` のような壊れた断片で例外になり、前の絞り込みが残る。2 回目の実装のレビューの A）
++      var m = /^#group=(.+)$/.exec(location.hash);
++      var id = m ? m[1] : "";
++      filt.group = GROUP_ID.test(id) && has(groupIds, id) ? id : "";
++      apply();
++    }
++    window.addEventListener("hashchange", fromHash);
++    all.addEventListener("click", function (ev) {
++      ev.preventDefault();
++      history.replaceState(null, "", location.pathname + location.search);
++      fromHash();
++    });
++    fromHash();
++  }
+   state.navLoaded = true;
+ })();
+diff --git a/skills/info-hive/scripts/browse_assets/licenses/fluent2-html-replica.LICENSE b/skills/info-hive/scripts/browse_assets/licenses/fluent2-html-replica.LICENSE
+new file mode 100644
+index 0000000..97a014d
+--- /dev/null
++++ b/skills/info-hive/scripts/browse_assets/licenses/fluent2-html-replica.LICENSE
+@@ -0,0 +1,21 @@
++MIT License
++
++Copyright (c) 2026 to884
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+diff --git a/skills/info-hive/scripts/browse_assets/licenses/fluent2-html-replica.THIRD-PARTY-NOTICES.txt b/skills/info-hive/scripts/browse_assets/licenses/fluent2-html-replica.THIRD-PARTY-NOTICES.txt
+new file mode 100644
+index 0000000..9300460
+--- /dev/null
++++ b/skills/info-hive/scripts/browse_assets/licenses/fluent2-html-replica.THIRD-PARTY-NOTICES.txt
+@@ -0,0 +1,161 @@
++THIRD-PARTY NOTICES
++
++このスキルの CSS、JS、トークンの値、設計書は、次のソフトウェアから値と規則を写して作った非公式の再現である。
++Fluent、Microsoft、Segoe は Microsoft Corporation の商標である。このスキルは Microsoft の製品ではなく、Microsoft が推奨するものでもない。
++
++------------------------------------------------------------------------
++1. Fluent UI（microsoft/fluentui、commit f9720c35ba893c9630f4c0389d07dc6d6fd6068d）
++   対象: トークンの値（@fluentui/tokens）、コンポーネントのスタイルの規則（@fluentui/react-components、@fluentui/web-components）、
++         scripts/brand_ramp.py と scripts/_hue_map.py（テーマデザイナー packages/react-components/theme-designer の色の計算を写したもの。
++         テーマデザイナーの色の変換は CSSWG の CSS Color 4 のサンプルコード、曲線は three.js に由来すると、元のコードに記されている）
++   https://github.com/microsoft/fluentui
++------------------------------------------------------------------------
++
++MIT License
++
++Copyright (c) Microsoft Corporation.
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE
++
++NOTE: Usage of the fonts and icons referenced in Fluent UI React is subject to the terms listed at https://aka.ms/fluentui-assets-license
++
++------------------------------------------------------------------------
++2. Fluent UI System Icons（microsoft/fluentui-system-icons、@fluentui/svg-icons 1.1.345）
++   対象: 設計書と参照の原稿の例に埋め込んだ SVG のアイコンの形
++   https://github.com/microsoft/fluentui-system-icons
++------------------------------------------------------------------------
++
++MIT License
++
++Copyright (c) 2020 Microsoft Corporation
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
++------------------------------------------------------------------------
++3. three.js（mrdoob/three.js、r133 の当時の版）
++   対象: scripts/brand_ramp.py の 2 次ベジェ曲線の計算。テーマデザイナーの colors/geometry.ts が three.js から写したと記している
++   https://github.com/mrdoob/three.js
++------------------------------------------------------------------------
++
++The MIT License
++
++Copyright © 2010-2021 three.js authors
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++THE SOFTWARE.
++
++------------------------------------------------------------------------
++4. css.land の lch.js と multiply-matrices.js（Lea Verou）
++   対象: scripts/brand_ramp.py の色域への収め方（snap_into_gamut）と、行列とベクトルの積。
++         テーマデザイナーの colors/csswg.ts が、LeaVerou/css.land の lch/lch.js と、
++         「@author Lea Verou 2020 MIT License」と記した multiply-matrices.js から写したと記している
++   https://github.com/LeaVerou/css.land
++------------------------------------------------------------------------
++
++MIT License
++
++Copyright (c) 2021 Lea Verou
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
++------------------------------------------------------------------------
++5. CSS Color Module Level 4 のサンプルコード（W3C の CSS Working Group）
++   対象: scripts/brand_ramp.py の色空間の変換（sRGB、XYZ、D50 と D65、Lab、LCH）。
++         テーマデザイナーの colors/csswg.ts が https://drafts.csswg.org/css-color-4/conversions.js から写したと記している
++------------------------------------------------------------------------
++
++This software includes material derived from CSS Color Module Level 4, sample code for color conversions
++(https://drafts.csswg.org/css-color-4/conversions.js). Copyright © 2021 World Wide Web Consortium.
++https://www.w3.org/copyright/software-license-2023/
++
++W3C Software and Document License（2023 年版）
++https://www.w3.org/copyright/software-license-2023/
++
++This work is being provided by the copyright holders under the following license.
++
++License
++
++By obtaining and/or copying this work, you (the licensee) agree that you have read, understood, and will comply with the following terms and conditions.
++
++Permission to copy, modify, and distribute this work, with or without modification, for any purpose and without fee or royalty is hereby granted, provided that you include the following on ALL copies of the work or portions thereof, including modifications:
++
++- The full text of this NOTICE in a location viewable to users of the redistributed or derivative work.
++- Any pre-existing intellectual property disclaimers, notices, or terms and conditions. If none exist, the W3C software and document short notice should be included.
++- Notice of any changes or modifications, through a copyright statement on the new code or document such as "This software or document includes material copied from or derived from [title and URI of the W3C document]. Copyright © [$year-of-document] World Wide Web Consortium. https://www.w3.org/copyright/software-license-2023/"
++
++Disclaimers
++
++THIS WORK IS PROVIDED "AS IS," AND COPYRIGHT HOLDERS MAKE NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO, WARRANTIES OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE USE OF THE SOFTWARE OR DOCUMENT WILL NOT INFRINGE ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
++
++COPYRIGHT HOLDERS WILL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, SPECIAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF ANY USE OF THE SOFTWARE OR DOCUMENT.
++
++The name and trademarks of copyright holders may NOT be used in advertising or publicity pertaining to the work without specific, written prior permission. Title to copyright in this work will at all times remain with copyright holders.
++
++------------------------------------------------------------------------
++6. 書体について
++------------------------------------------------------------------------
++
++フォントの並び（font-family）は Segoe UI、Yu Gothic UI、Meiryo UI などの書体名を指すだけで、書体のファイルは同梱しない。
++これらの書体を Web フォントとして配ったり、形式を変えたりしてはならない。
+diff --git a/skills/info-hive/scripts/browse_assets/style.css b/skills/info-hive/scripts/browse_assets/style.css
+index e96373e..7f15fce 100644
+--- a/skills/info-hive/scripts/browse_assets/style.css
++++ b/skills/info-hive/scripts/browse_assets/style.css
+@@ -1,62 +1,248 @@
+-/* wiki の閲覧（browse）の日本語の CSS。選択肢のレポートの第 7 節の指定（禁則、折り返し、字間）による。 */
++/*!
++ * 閲覧の画面は、同梱の fluent2.css（スキル fluent2-html-replica の写し）で描く。fluent2.css の先頭のコメントにある
++ * Fluent UI と Fluent UI System Icons の表示に加え、fluent2-html-replica 自身の表示を次に写す。
++ *
++ * MIT License
++ *
++ * Copyright (c) 2026 to884
++ *
++ * Permission is hereby granted, free of charge, to any person obtaining a copy
++ * of this software and associated documentation files (the "Software"), to deal
++ * in the Software without restriction, including without limitation the rights
++ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++ * copies of the Software, and to permit persons to whom the Software is
++ * furnished to do so, subject to the following conditions:
++ *
++ * The above copyright notice and this permission notice shall be included in all
++ * copies or substantial portions of the Software.
++ *
++ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++ * SOFTWARE.
++ */
++/* wiki の閲覧（browse）の独自の CSS。fluent2.css のあとに読む（Fluent 2 の設計の 2.4）。
++   色、間隔、角丸、線、書体、時間はトークンの CSS 変数で書き、hex と px を直に書かない。
++   土台は [data-theme] に 14px を当てるので、長さに rem を使わない（media query の rem は初期値の 16px で決まる）。
++   日本語の組版の指定（禁則、折り返し、字間）は、選択肢のレポートの 6.7 節と 7.2 節による。
++   記事のページの本文、メタ欄、被リンク、関係表、診断は、配置と大きさを今のままにし、色だけをトークンにする（F1。設計の 4.1）。 */
++
++/* --- 配色の宣言（ブラウザが描くスクロールバーや選択の一覧を、配色に合わせる。v9 からの逸脱） --- */
++:root[data-theme="light"] { color-scheme: light; }
++:root[data-theme="dark"] { color-scheme: dark; }
++@media (prefers-color-scheme: dark) { :root[data-theme="auto"] { color-scheme: dark; } }
++
++/* --- 書体: 等幅に日本語のゴシックを足す --- */
+ :root {
+-  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN",
+-    "Yu Gothic UI", "Meiryo", "Noto Sans CJK JP", "Noto Sans JP", sans-serif;
+-  line-height: 1.8;
+-  color: #1f2328;
+-  background: #ffffff;
+-}
+-body { margin: 0; display: grid; grid-template-columns: 16rem minmax(0, 1fr); }
+-#_nav { border-right: 1px solid #d0d7de; padding: 1rem; overflow: auto; max-height: 100vh; position: sticky; top: 0; }
+-#_main { padding: 1rem 2rem; max-width: 46rem; min-width: 0; }
+-#_main, #_nav {
+-  line-break: strict;
+-  word-break: normal;
+-  overflow-wrap: anywhere;
+-}
+-@supports (text-autospace: normal) {
+-  #_main { text-autospace: normal; }
+-}
+-code, pre { font-family: ui-monospace, "Cascadia Mono", "BIZ UDGothic", "Noto Sans Mono CJK JP", monospace; }
+-pre { overflow-x: auto; white-space: pre; background: #f6f8fa; padding: 0.75rem; }
++  --browse-font-mono: var(--fontFamilyMonospace), "BIZ UDGothic", "Noto Sans Mono CJK JP", monospace;
++}
++
++/* --- 外枠: ナビと本文の 2 列。48rem 以下では 1 列にする（探しやすさの 3.3） --- */
++body.fui-FluentProvider {
++  margin: 0;
++  display: grid;
++  grid-template-columns: var(--f2-nav-width) minmax(0, 1fr);
++  min-height: 100vh;
++  /* ナビの列の地を、ナビより下までのばす（ナビは画面の高さで止まる） */
++  background-image: linear-gradient(to right, var(--colorNeutralBackground4) var(--f2-nav-width), transparent 0);
++}
++#_nav {
++  position: sticky;
++  top: 0;
++  height: 100vh;
++  border-inline-end: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
++}
++#_main {
++  min-width: 0;
++  box-sizing: border-box;
++  padding: var(--spacingVerticalXXL) var(--spacingHorizontalXXXL) var(--spacingVerticalXXXL);
++}
++/* 記事の本文の大きさと行間は今と同じ 16px と 1.8（土台の 14px と 20px にしない） */
++.page-article #_main { font-size: var(--fontSizeBase400); line-height: 1.8; max-width: 46em; }
++.page-index #_main { max-width: 64em; }
++#_main, #_nav { line-break: strict; word-break: normal; overflow-wrap: anywhere; }
++@supports (text-autospace: normal) { #_main { text-autospace: normal; } }
++
++/* --- ナビの見出し: スコープ、索引、配色 --- */
++.nav-head { gap: var(--spacingVerticalS); padding-block: var(--spacingVerticalM); }
++.scope { margin: 0; }
++.scope .fui-Badge { white-space: normal; height: auto; }
++.nav-home { font-weight: var(--fontWeightSemibold); }
++.theme-field { display: flex; align-items: center; gap: var(--spacingHorizontalS); }
++.theme-label { font-size: var(--fontSizeBase200); color: var(--colorNeutralForeground3); }
++.theme-field .fui-Select { flex: 1; }
++
++/* --- 検索欄と結果 --- */
++.search { padding: 0 var(--spacingHorizontalM) var(--spacingVerticalS); }
++.search .fui-SearchBox { width: 100%; }
++.search-hint, .fx-hint { margin: var(--spacingVerticalXS) 0 0; color: var(--colorNeutralForeground3); }
++.search-error { color: var(--colorPaletteRedForeground1); }
++.sr-area { padding: 0 var(--spacingHorizontalS); }
++.sr-count, .sr-empty, .sr-incomplete { margin: var(--spacingVerticalXS) var(--spacingHorizontalS); color: var(--colorNeutralForeground3); }
++.sr-link {
++  display: block;
++  padding: var(--spacingVerticalSNudge) var(--spacingHorizontalS);
++  border-radius: var(--borderRadiusMedium);
++  color: var(--colorNeutralForeground1);
++  text-decoration: none;
++}
++.sr-link:hover { background-color: var(--colorSubtleBackgroundHover); }
++.sr-link:focus-visible { outline: var(--strokeWidthThick) solid var(--colorStrokeFocus2); outline-offset: calc(var(--strokeWidthThick) * -1); }
++/* 地が状態で変わる行では、brand のリンクの色を使わず、中立の文字の色にする（Fluent 2 の設計の 4.2） */
++.sr-title { display: block; font-weight: var(--fontWeightSemibold); color: var(--colorNeutralForeground1); }
++.sr-meta, .sr-hit { display: block; color: var(--colorNeutralForeground2); }
++
++/* --- 木（Nav の NavCategory を各段に繰り返す独自の拡張） --- */
++.tree { padding-bottom: var(--spacingVerticalL); }
++.nav-incomplete { margin: 0 var(--spacingHorizontalM) var(--spacingVerticalS); color: var(--colorNeutralForeground2); }
++.tree-name { flex: 1; min-width: 0; white-space: normal; }
++.tree-count { color: var(--colorNeutralForeground3); font-variant-numeric: tabular-nums; }
++.fui-NavCategoryItem { gap: var(--spacingHorizontalXS); height: auto; min-height: var(--f2-size360); }
++.fui-NavSubItem { white-space: normal; height: auto; padding-block: var(--spacingVerticalSNudge); }
++/* 1〜4 段目は 1 段ごとに字下げし、5 段目より深い段は 4 段目と同じ位置に置き、左の線で段を示す（作者の決定） */
++.fui-NavSubItemGroup .tree-group { margin-inline-start: var(--spacingHorizontalL); }
++.tree-group.nav-depth-4, .tree-group.nav-depth-5, .tree-group.nav-depth-6 { margin-inline-start: 0; }
++.tree-group.nav-depth-4, .tree-group.nav-depth-5, .tree-group.nav-depth-6 {
++  border-inline-start: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
++}
++.fui-NavSubItemGroup { overflow: visible; }
++/* 「一覧」は地が状態で変わる summary の中にあるので、押下の色を含めて中立の文字にする（4.2） */
++.tree-filter, .tree-filter:hover, .tree-filter:active { visibility: hidden; font-size: var(--fontSizeBase200); color: var(--colorNeutralForeground2); }
++.fui-NavCategoryItem:hover .tree-filter, .fui-NavCategoryItem:focus-within .tree-filter, .tree-filter:focus-visible,
++.fui-NavCategoryItem .tree-filter:active {
++  visibility: visible;
++}
++.tree-groups { list-style: none; margin: 0; padding: 0; }
++.tree-groups .tree-groups { padding-inline-start: var(--spacingHorizontalL); }
++.tree-groups.nav-depth-4, .tree-groups.nav-depth-5, .tree-groups.nav-depth-6 {
++  padding-inline-start: 0; border-inline-start: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
++}
++.tree-groups .fui-NavItem, .tree-all { display: flex; gap: var(--spacingHorizontalS); height: auto; min-height: var(--f2-size360); }
++.fui-NavItem.is-current, .fui-NavSubItem.is-current {
++  background-color: var(--colorNeutralBackground4Selected);
++  /* Nav の選択の印（::after）は、入れ子の NavSubItemGroup と details の中で切れて見えない。
++     印は内側の影で描く（独自。日本語の画面だけなので左に描く） */
++  box-shadow: inset var(--strokeWidthThicker) 0 0 var(--colorCompoundBrandForeground1);
++}
++.fui-NavSubItem.is-current::after { content: none; }
++
++/* hidden の要素は、Fluent の部品（Button など）の display より強く隠す。app.js は hidden だけで出し入れする */
++#_nav [hidden], #_main [hidden] { display: none !important; }
++
++/* --- 狭い幅の「メニュー」 --- */
++.drawer > summary { display: none; }
++.drawer > summary::-webkit-details-marker { display: none; }
++
++/* --- 索引のページ --- */
++#_ixhead h1 { margin: 0; }
++.ix-stats { margin: var(--spacingVerticalXS) 0 var(--spacingVerticalL); color: var(--colorNeutralForeground3); }
++.fx-bar {
++  display: flex; flex-wrap: wrap; gap: var(--spacingVerticalS) var(--spacingHorizontalM); align-items: center;
++  padding: var(--spacingVerticalM) var(--spacingHorizontalM);
++  background-color: var(--colorNeutralBackground2);
++  border: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
++  border-radius: var(--borderRadiusLarge);
++  position: sticky; top: 0; z-index: 1;
++}
++.fx-bar .fui-SearchBox { flex: 1 1 16em; }
++.fx-hint { flex-basis: 100%; }
++.chips { display: flex; flex-wrap: wrap; gap: var(--spacingHorizontalXS); }
++.fx-count { margin: var(--spacingVerticalM) 0 var(--spacingVerticalXS); color: var(--colorNeutralForeground3); }
++.count-incomplete { margin-inline-start: var(--spacingHorizontalS); }
++.fx-list { list-style: none; margin: 0; padding: 0; }
++.fx-row { padding: var(--spacingVerticalM) 0; border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke2); }
++.fx-path { color: var(--colorNeutralForeground3); }
++.ix-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacingVerticalXS) var(--spacingHorizontalS); }
++.ix-title {
++  font-size: var(--fontSizeBase400); line-height: var(--lineHeightBase400); font-weight: var(--fontWeightSemibold);
++  color: var(--colorBrandForegroundLink); text-decoration: none;
++}
++.ix-title:hover { text-decoration: underline; color: var(--colorBrandForegroundLinkHover); }
++.ix-line time { margin-inline-start: auto; color: var(--colorNeutralForeground3); font-variant-numeric: tabular-nums; }
++.ix-summary { margin: var(--spacingVerticalXXS) 0 0; color: var(--colorNeutralForeground2); line-height: 1.7; }
++.ix-tags { display: flex; flex-wrap: wrap; gap: var(--spacingHorizontalXS); margin-top: var(--spacingVerticalXS); }
++#_index_unresolved { margin-top: var(--spacingVerticalXXL); }
++.state { color: var(--colorNeutralForeground3); }
++
++/* 地を状態で変えてよいのは、操作できる要素（リンク、ボタン、summary、ナビの項目）だけにする。
++   読むだけの表と一覧の行は、Fluent の部品がホバーで地を変えても打ち消す（Fluent 2 の設計の 4.2） */
++#_main .fui-TableRow:hover, #_main .fui-TableRow:active, #_main .fui-ListItem:hover { background-color: transparent; }
++
++/* 利用者の文字（タグ、種類の値、グループの名前、題名）を持つ部品は、Fluent の nowrap を外して折り返す（4.3） */
++.fui-Tag, .fui-Badge.badge, .chips .fui-ToggleButton, .group-chip { max-width: 100%; height: auto; min-width: 0; }
++.fui-Tag__primaryText, .fui-Badge.badge, .chips .fui-ToggleButton, .group-chip { white-space: normal; overflow-wrap: anywhere; text-align: start; }
++.fui-Tag { padding-block: var(--spacingVerticalXXS); }
++/* 選択（タグの選択など）は、いちばん長い選択肢の幅になるので、帯の幅で止める */
++.fx-bar .fui-Select { max-width: 100%; min-width: 0; }
++.fx-bar .fui-Select__select { max-width: 100%; text-overflow: ellipsis; }
++
++/* 種類の印は、既定で中立の色にする。色を持つのは知っている 4 つの種類だけ（Fluent 2 の設計の 4）。
++   t-<種類> の名前は種類の値から作るので、知らない種類も Fluent の既定（brand）の色にならないよう、ここで決める */
++.fui-Badge.badge { background-color: var(--colorNeutralBackground4); color: var(--colorNeutralForeground3); border-color: transparent; }
++/* 知っている 4 つの種類: パレットの色（独自）。Avatar の色の組と同じ Background2 と Foreground2 */
++.fui-Badge.t-source { background-color: var(--colorPalettePumpkinBackground2); color: var(--colorPalettePumpkinForeground2); border-color: transparent; }
++.fui-Badge.t-entity { background-color: var(--colorPaletteLavenderBackground2); color: var(--colorPaletteLavenderForeground2); border-color: transparent; }
++.fui-Badge.t-concept { background-color: var(--colorPaletteTealBackground2); color: var(--colorPaletteTealForeground2); border-color: transparent; }
++.fui-Badge.t-synthesis { background-color: var(--colorPaletteCornflowerBackground2); color: var(--colorPaletteCornflowerForeground2); border-color: transparent; }
++
++mark { background-color: var(--colorPaletteYellowBackground2); color: var(--colorNeutralForeground1); border-radius: var(--borderRadiusSmall); }
++
++/* --- 注意の帯（MessageBar）と「不完全」の印 --- */
++.fui-MessageBar { margin-bottom: var(--spacingVerticalL); }
++p.notice, p.incomplete {
++  border: var(--strokeWidthThin) solid var(--colorStatusWarningBorder1);
++  background-color: var(--colorStatusWarningBackground1);
++  color: var(--colorNeutralForeground1);
++  padding: var(--spacingVerticalS) var(--spacingHorizontalM);
++  border-radius: var(--borderRadiusMedium);
++}
++
++/* --- 記事のページ（F1: 配置と大きさは今のまま、色をトークンにする） --- */
++#_main a { color: var(--colorBrandForegroundLink); }
++#_main a:hover { color: var(--colorBrandForegroundLinkHover); }
++code, pre { font-family: var(--browse-font-mono); }
++pre { overflow-x: auto; white-space: pre; background-color: var(--colorNeutralBackground3); padding: 0.75em; }
+ code { overflow-wrap: anywhere; }
+-table { border-collapse: collapse; display: block; overflow-x: auto; max-width: 100%; }
+-th, td { border: 1px solid #d0d7de; padding: 0.25rem 0.5rem; vertical-align: top; }
+-.ta-left { text-align: left; }
+-.ta-center { text-align: center; }
+-.ta-right { text-align: right; }
++#_main table { border-collapse: collapse; display: block; overflow-x: auto; max-width: 100%; }
++#_main th, #_main td { border: var(--strokeWidthThin) solid var(--colorNeutralStroke1); padding: 0.25em 0.5em; vertical-align: top; }
++#_main .ta-left { text-align: left; }
++#_main .ta-center { text-align: center; }
++#_main .ta-right { text-align: right; }
+ .meta th { text-align: left; white-space: nowrap; }
+-.wl-unresolved { color: #b00020; text-decoration: underline dotted; }
+-.wl-ambiguous { color: #9a6700; text-decoration: underline wavy; }
++.wl-unresolved { color: var(--colorPaletteRedForeground1); text-decoration: underline dotted; }
++.wl-ambiguous { color: var(--colorPaletteMarigoldForeground2); text-decoration: underline wavy; }
+ .wl-missing-heading { text-decoration: underline dotted; }
+ a.ext::after { content: " ↗"; }
+-.stale, .notice { border: 1px solid #d4a72c; background: #fff8c5; padding: 0.5rem 0.75rem; }
+-.notice-error { border-color: #cf222e; background: #ffebe9; }
+-.state-error { color: #b00020; }
+-.state-empty { color: #57606a; }
+-.nav-group h2 { font-size: 1rem; margin: 0.75rem 0 0.25rem; }
+-.nav-group ul { margin: 0; padding-left: 1.2rem; }
+-.nav-depth-1, .nav-depth-2, .nav-depth-3, .nav-depth-4, .nav-depth-5, .nav-depth-6 { padding-left: 0.5rem; }
+-.nav-home { display: block; font-weight: bold; margin-bottom: 0.5rem; }
+-/* wiki のスコープ。ユーザースコープとプロジェクトを、文字と色の両方で見分けられるようにする。 */
+-.scope { margin: 0 0 0.75rem; padding: 0.25rem 0.5rem; border: 1px solid; border-radius: 0.25rem;
+-  font-size: 0.875rem; font-weight: bold; line-height: 1.5; }
+-.scope-user { color: #0550ae; background: #ddf4ff; border-color: #54aeff; }
+-.scope-project { color: #116329; background: #dafbe1; border-color: #4ac26b; }
++.state-error { color: var(--colorPaletteRedForeground1); }
++.state-empty { color: var(--colorNeutralForeground3); }
+ img { max-width: 100%; }
+-@media (max-width: 40rem) {
+-  body { display: block; }
+-  #_nav { position: static; max-height: none; border-right: none; border-bottom: 1px solid #d0d7de; }
+-  #_main { padding: 1rem; }
+-}
+-@media (prefers-color-scheme: dark) {
+-  :root { color: #e6edf3; background: #0d1117; }
+-  pre { background: #161b22; }
+-  th, td { border-color: #30363d; }
+-  #_nav { border-color: #30363d; }
+-  .stale, .notice { background: #3b2e00; border-color: #9e6a03; }
+-  .notice-error { background: #3d0f12; border-color: #da3633; }
+-  a { color: #58a6ff; }
+-  .scope-user { color: #a5d6ff; background: #0c2d6b; border-color: #1f6feb; }
+-  .scope-project { color: #aff5b4; background: #0f3d1a; border-color: #2ea043; }
++
++/* --- フォーカス（独自の要素） --- */
++.ix-title:focus-visible, #_main a:focus-visible, .tree-filter:focus-visible, summary:focus-visible {
++  outline: var(--strokeWidthThick) solid var(--colorStrokeFocus2);
++  outline-offset: var(--strokeWidthThin);
++  border-radius: var(--borderRadiusSmall);
++}
++
++/* --- 狭い幅 --- */
++@media (max-width: 48rem) {
++  body.fui-FluentProvider { display: block; background-image: none; }
++  #_nav { position: static; height: auto; max-height: none; width: auto; border-inline-end: none; border-bottom: var(--strokeWidthThin) solid var(--colorNeutralStroke2); }
++  #_main { padding: var(--spacingVerticalL) var(--spacingHorizontalL); }
++  .drawer > summary { display: inline-flex; margin: 0 var(--spacingHorizontalM) var(--spacingVerticalS); }
++  .fx-bar { position: static; }
++  .ix-line time { margin-inline-start: 0; }
++}
++
++/* --- 強制カラー: 今のページと絞っているグループを、システムの色で示す --- */
++@media (forced-colors: active) {
++  .fui-NavItem.is-current, .fui-NavSubItem.is-current { outline: var(--strokeWidthThick) solid Highlight; }
++  .fui-Badge.badge {
++    border-color: CanvasText;
++  }
++  .wl-unresolved, .wl-ambiguous { color: LinkText; }
++  p.notice, p.incomplete { border-color: CanvasText; }
+ }
+diff --git a/skills/info-hive/scripts/browse_assets/theme.js b/skills/info-hive/scripts/browse_assets/theme.js
+new file mode 100644
+index 0000000..47c36c5
+--- /dev/null
++++ b/skills/info-hive/scripts/browse_assets/theme.js
+@@ -0,0 +1,50 @@
++/* 閲覧の画面の配色を、描く前に決める。<head> で同期で読む classic なスクリプトである。
++   選んだ値は、http ではポートを区別しない cookie に、file:// では localStorage に置く。
++   サーバーは起動ごとにポートが変わり、localStorage はポートごとに分かれるためである。
++   読めない値や、読み書きの例外は、すべて "auto"（OS の設定に従う）として扱う。
++   このスクリプトが変えるのは <html> の data-theme だけである。 */
++(function () {
++  "use strict";
++  var KEY = "info-hive-browse-theme";
++  var VALUES = { auto: true, light: true, dark: true };
++  var isHttp = location.protocol === "http:" || location.protocol === "https:";
++
++  function readCookie() {
++    try {
++      var parts = document.cookie ? document.cookie.split(";") : [];
++      for (var i = 0; i < parts.length; i++) {
++        var kv = parts[i].replace(/^\s+/, "").split("=");
++        if (kv[0] === KEY) { return kv[1] || ""; }
++      }
++    } catch (e) { /* cookie を読めない */ }
++    return "";
++  }
++
++  function readStorage() {
++    try { return window.localStorage.getItem(KEY) || ""; } catch (e) { return ""; }
++  }
++
++  function read() {
++    var v = isHttp ? readCookie() : readStorage();
++    return Object.prototype.hasOwnProperty.call(VALUES, v) ? v : "auto";
++  }
++
++  function save(value) {
++    if (!Object.prototype.hasOwnProperty.call(VALUES, value)) { value = "auto"; }
++    try {
++      if (isHttp) {
++        document.cookie = KEY + "=" + value + "; Path=/; Max-Age=31536000; SameSite=Strict";
++      } else {
++        window.localStorage.setItem(KEY, value);
++      }
++    } catch (e) { /* 保存できなくても、今のページの配色は変える */ }
++    apply(value);
++  }
++
++  function apply(value) {
++    document.documentElement.setAttribute("data-theme", value);
++  }
++
++  apply(read());
++  window.__browseTheme = { read: read, save: save, values: ["auto", "light", "dark"] };
++})();
+diff --git a/skills/info-hive/scripts/wiki_browse_core.py b/skills/info-hive/scripts/wiki_browse_core.py
+index e0c7f94..0ba7c00 100644
+--- a/skills/info-hive/scripts/wiki_browse_core.py
++++ b/skills/info-hive/scripts/wiki_browse_core.py
+@@ -44,15 +44,16 @@ try:
+ except (ImportError, SystemExit):
+     wiki_graph_extract = None
+ 
+-PROTOCOL_VERSION = 1
+-CORE_VERSION = "browse-core-1"
++PROTOCOL_VERSION = 2   # 探しやすさの設計の 2.3、6（nav.js の形とグループの並びが変わった）
++CORE_VERSION = "browse-core-2"
+ NAME_LIMIT = 200
+ CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+        "base-uri 'none'; form-action 'none'")
+ RAW_MODES = ("text", "link", "basename", "none")
+-ASSETS = ("assets/app.js", "assets/style.css")
++# 画面の部品。fluent2.css は Fluent 2 の再現の CSS の同梱の写し（Fluent 2 の設計の 2）、theme.js は配色を描く前に決める
++ASSETS = ("assets/app.js", "assets/style.css", "assets/fluent2.css", "assets/theme.js")
+ ASSET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "browse_assets")
+-DATA_FILES = ("nav.js", "data/manifest.js", "data/diagnostics.js")
++DATA_FILES = ("nav.js", "data/manifest.js", "data/diagnostics.js", "data/search.js")
+ EXTERNAL_SCHEMES = ("http", "https", "mailto")
+ ONTOLOGY_REL = "graph/ontology.yaml"
+ 
+@@ -492,6 +493,96 @@ def _page_id(rel: str) -> str:
+     return rel[:-3] if rel.lower().endswith(".md") else rel
+ 
+ 
++# MessageBar のアイコン（Fluent UI System Icons の WarningFilled と DiamondDismissFilled、20px。MIT）
++ICON_WARNING = ('<svg class="fui-Icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" '
++                'focusable="false"><path d="M7.37 3.56a3 3 0 0 1 5.26 0l5.5 10A3 3 0 0 1 15.5 18h-11a3 3 0 0 1-2.63-4.44z'
++                'M10 12.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5m0-6.25a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V7a.5.5 0 0 0-.5-.5"/></svg>')
++ICON_ERROR = ('<svg class="fui-Icon" width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" '
++              'focusable="false"><path d="M7.88 1.88a3 3 0 0 1 4.24 0l6 6a3 3 0 0 1 0 4.24l-6 6a3 3 0 '
++              '0 1-4.24 0l-6-6a3 3 0 0 1 0-4.24zM13.1 6.9a.5.5 0 0 0-.7 0L10 9.3 7.6 6.9a.5.5 0 0 0-.7.7L9.3 10l-2.4 2.4a.5.5 0 0 0 .7.7l2.4-2.4 2.4 2.4a.5.5 0 0 0 .7-.7L10.7 10l2.4-2.4a.5.5 0 0 0 0-.7"/></svg>')
++
++# ---------------------------------------------------------------------------
++# ナビゲーションの木の補助（探しやすさの設計の 2）
++# ---------------------------------------------------------------------------
++
++TYPE_LABELS = {"source": "ソース", "entity": "エンティティ", "concept": "コンセプト", "synthesis": "シンセシス"}
++SUMMARY_SEPARATORS = ":：—–-"
++GROUP_ID_RE = re.compile(r"_g[0-9a-z]+\Z")
++TYPE_CLASS_RE = re.compile(r"[a-z][a-z0-9_-]*\Z")
++LEAD_LIMIT = 120
++
++
++class NavInvariantError(Exception):
++    """組み終えた木が、設計の 2.1 の末尾の性質を満たさない。組み立てを失敗にする。"""
++
++
++def type_label(value: str) -> str:
++    """種類の名前（N7）。知っている 4 つの値だけを日本語にし、ほかはそのまま、値がなければ「種類なし」。"""
++    return TYPE_LABELS[value] if value in TYPE_LABELS else (value or "種類なし")
++
++
++def type_class(value: str) -> str:
++    """種類の印のクラス。英小文字の識別子でなければ t-other。"""
++    return "t-" + value if TYPE_CLASS_RE.match(value or "") else "t-other"
++
++
++def _walk(groups):
++    for g in groups:
++        yield g
++        yield from _walk(g["children"])
++
++
++def _page_ids(groups) -> set:
++    return {it["id"] for g in _walk(groups) for it in g["items"] if it["state"] == "resolved"}
++
++
++def _after_first_link(inline_tok) -> str:
++    """段落の最初の wikilink より後ろの表示の文字（4.2 の 2）。先頭の区切りの記号と空白を除く。"""
++    children = inline_tok.children or []
++    for i, child in enumerate(children):
++        if child.type == "text" and "[[" in child.content:
++            m = wiki_pages.WIKILINK_FULL_RE.search(child.content)
++            if not m:
++                continue
++            rest = child.copy()
++            rest.content = child.content[m.end():]
++            text = inline_text([rest] + list(children[i + 1:]))
++            return nfc(text.strip().lstrip(SUMMARY_SEPARATORS).strip())
++    return ""
++
++
++def lead_text(tokens) -> str:
++    """本文の冒頭（4.2 の 3）。見出し、リスト、引用、表の中を除いた最初の段落の、最初の「。」まで（なければ 120 字まで）。"""
++    depth = 0
++    for i, tok in enumerate(tokens or []):
++        if tok.type in ("bullet_list_open", "ordered_list_open", "blockquote_open", "table_open"):
++            depth += 1
++        elif tok.type in ("bullet_list_close", "ordered_list_close", "blockquote_close", "table_close"):
++            depth -= 1
++        elif tok.type == "paragraph_open" and depth == 0 and i + 1 < len(tokens) and tokens[i + 1].type == "inline":
++            text = nfc(inline_text(tokens[i + 1].children or []).strip())
++            if not text:
++                continue
++            end = text.find("。")
++            return text[:end + 1] if end >= 0 else text[:LEAD_LIMIT]
++    return ""
++
++
++def _check_tree(top: list) -> None:
++    """設計の 2.1 の末尾の性質を確かめる。成り立たなければ NavInvariantError。"""
++    ids = [g["id"] for g in _walk(top)]
++    if len(ids) != len(set(ids)):
++        raise NavInvariantError("グループの ID が重なる")
++    if not all(GROUP_ID_RE.match(i) for i in ids):
++        raise NavInvariantError("グループの ID の形が違う")
++    shown = set(ids)
++    titles = {g["id"]: g["title"] for g in _walk(top)}
++    for g in _walk(top):
++        for it in g["items"]:
++            if it["state"] == "group" and (it["group"] not in shown or it["label"] != titles[it["group"]]):
++                raise NavInvariantError("木にないグループを指すか、名前が行き先のグループの名前と違う")
++
++
+ class Core:
+     """1 つの写しから組み立てた中核。描く関数は静的の書き出しとサーバーで同じものを使う。"""
+ 
+@@ -770,7 +861,9 @@ class Core:
+     # --- ナビゲーション（設計の 3.7） ---
+ 
+     def _nav(self) -> None:
++        """ナビゲーションの木。1 つ目の段（N1）で索引のファイルごとのグループを組み、2 つ目の段で畳んで並べる。"""
+         self.nav_groups = []
++        file_groups = []     # (索引のファイル, そのグループ)。解釈できたファイルだけ
+         listed = set()
+         index_files = self.snapshot.by_kind("index")
+         # 索引を先に解釈する。解釈できない索引は、読めない索引と同じに扱う（構造の直しの設計の 7.2）
+@@ -784,12 +877,16 @@ class Core:
+                 parsed[f.disk_rel] = (meta, self.parser.parse(body))
+             except Exception:  # noqa: BLE001  1 つの索引の解釈の失敗で、全体を止めない
+                 self.parse_failures.append(("index", f.rel))
++        # 索引のファイルのグループの ID は、`_gf` と、グループを作る（読めて解釈できた）索引のファイルの並びの番号
++        # （探しやすさの設計の 2.2）。読めないファイルと解釈できないファイルは数えない。数えると、読めない入力のある
++        # Wiki が、その入力を取り除いた Wiki と違う ID になる（構造の直しの設計の 4.1）。ハッシュの先頭の桁は、
++        # 別の名前でも重なるので使わない。
++        file_gid = {disk: f"_gf{k}" for k, disk in enumerate(f.disk_rel for f in index_files if f.disk_rel in parsed)}
+         group_of_file = {}
+         for f in index_files:
+             if f.disk_rel not in parsed:
+                 continue   # 読めない索引のグループは作らないので、そこへのリンクも作らない
+-            gid = "_g" + short_hash(f.disk_rel, 10)   # NFC で同じになる 2 つの名前でも重ならない
+-            group_of_file.setdefault(_page_id(f.rel), gid)
++            group_of_file.setdefault(_page_id(f.rel), file_gid[f.disk_rel])
+         counter = [0]
+ 
+         def new_group(title, gid=None):
+@@ -805,7 +902,7 @@ class Core:
+             meta, tokens = parsed[f.disk_rel]
+             first_heading = next((inline_text(tokens[i + 1].children) for i, t in enumerate(tokens)
+                                   if t.type == "heading_open" and i + 1 < len(tokens)), None)
+-            gid = "_g" + short_hash(f.disk_rel, 10)
++            gid = file_gid[f.disk_rel]
+             if is_top:
+                 top = new_group("", gid)
+             else:
+@@ -833,18 +930,123 @@ class Core:
+                         stack[-1][1]["items"].append(item)
+                         if item.get("id"):
+                             listed.add(item["id"])
+-            self.nav_groups.append(top)
++            file_groups.append((f, top))
+         rest = defaultdict(list)
+         for pid in sorted(self.drawn):
+             if pid not in listed:
+                 rest[str(self.page(pid)["meta"].get("type") or "")].append(pid)
++        rest_groups = []
+         if rest:
+             g = new_group("索引にないページ")
+             for t in sorted(rest):
+-                sub = new_group(t or "種類なし")
++                # N7: 名前だけを日本語にする。ID と並び（type の値の順）は 1 つ目の段のまま
++                sub = new_group(type_label(t))
+                 sub["items"] = [{"state": "resolved", "id": pid, "label": self.title(pid)} for pid in rest[t]]
+                 g["children"].append(sub)
+-            self.nav_groups.append(g)
++            rest_groups.append(g)
++        self.nav_groups = self._nav_stage_two(file_groups, rest_groups)
++        self._page_listing()
++
++    def _nav_stage_two(self, file_groups: list, rest_groups: list) -> list:
++        """木の 2 つ目の段（探しやすさの設計の 2.1 の N2〜N8）。新しい ID は作らない。"""
++        listed_before = _page_ids([g for _f, g in file_groups])
++        by_id = {g["id"]: g for _f, g in file_groups}
++        index_g = next((g for f, g in file_groups if f.rel == "index.md"), None)
++        for _f, g in file_groups:
++            origin = "index" if g is index_g else "indexes"
++            for x in _walk([g]):
++                x["origin"] = origin
++                x.setdefault("summary", "")
++            if g is index_g:
++                g["title"] = "索引"                                  # N2
++            if not g["items"] and len(g["children"]) == 1:           # N3: 1 度だけ畳む
++                child = g["children"][0]
++                g["items"], g["children"] = child["items"], child["children"]
++        for _f, g in file_groups:                                    # N6: 行き先のグループの名前にする
++            for x in _walk([g]):
++                for it in x["items"]:
++                    if it["state"] == "group":
++                        it["label"] = by_id[it["group"]]["title"]
++        top = []
++        if index_g is not None:                                      # N4
++            if index_g["items"]:
++                top.append({**index_g, "title": "索引", "children": []})
++            top.extend(index_g["children"])
++        order, summaries = [], {}                                    # N5: 順と要約はグループの ID で決める
++        if index_g is not None:
++            for x in _walk([index_g]):
++                for it in x["items"]:
++                    if it["state"] == "group" and it["group"] not in summaries:
++                        order.append(it["group"])
++                        summaries[it["group"]] = it.get("after", "")
++        for _f, g in file_groups:
++            if g is not index_g and g["id"] not in summaries:
++                order.append(g["id"])
++        for gid in order:
++            by_id[gid]["summary"] = summaries.get(gid, "")
++            top.append(by_id[gid])
++
++        def only_group_items(g):
++            return all(it["state"] == "group" for x in _walk([g]) for it in x["items"])
++
++        def prune(groups):                                           # N6: index.md から来たグループだけを外せる
++            kept = []
++            for g in groups:
++                if g.get("origin") == "index" and only_group_items(g):
++                    continue
++                g["children"] = prune(g["children"])
++                kept.append(g)
++            return kept
++
++        top = prune(top)
++        if _page_ids(top) != listed_before:
++            raise NavInvariantError("2 つ目の段で、索引に載ったページが変わった")
++        for g in rest_groups:                                        # N7
++            for x in _walk([g]):
++                x["origin"], x["summary"] = "", ""
++            top.append(g)
++
++        def count(g):                                                # N8
++            ids = {it["id"] for it in g["items"] if it["state"] == "resolved"}
++            for ch in g["children"]:
++                ids |= count(ch)
++            g["count"] = len(ids)
++            return ids
++
++        for g in top:
++            count(g)
++        _check_tree(top)
++        return top
++
++    def _page_listing(self) -> None:
++        """索引のページの一覧と検索の索引に使う、ページごとの並び、グループ、階層、索引の行の要約（4.1、4.2）。"""
++        self.page_order = []          # 索引の順（木を深さ優先でたどり、ページが最初に現れた順）
++        self.page_groups = {}         # ページ -> そのページを項目に持つグループと祖先のグループの ID
++        self.page_path = {}           # ページ -> 最初に現れたグループの階層（名前のないグループは飛ばす）
++        self.index_summary = {}       # ページ -> 索引の行の要約（4.2 の 2）
++        self.index_unresolved = []    # (階層, 項目)。ページに決まらない索引の行（4.4）
++        # 本文の冒頭（4.2 の 3）。描くときに本文のトークンを書き換えるので、組み立てのときに取っておく
++        self.lead = {pid: lead_text(self.tokens.get(pid)) for pid in self.drawn}
++
++        def rec(g, trail):
++            trail = trail + [g]
++            for it in g["items"]:
++                if it["state"] == "resolved":
++                    pid = it["id"]
++                    if pid not in self.page_groups:
++                        self.page_order.append(pid)
++                        self.page_path[pid] = [x["title"] for x in trail if x["title"]]
++                        self.page_groups[pid] = set()
++                    self.page_groups[pid].update(x["id"] for x in trail)
++                    if pid not in self.index_summary and it.get("after"):
++                        self.index_summary[pid] = it["after"]
++                elif it["state"] in ("unresolved", "ambiguous"):
++                    self.index_unresolved.append(([x["title"] for x in trail if x["title"]], it))
++            for ch in g["children"]:
++                rec(ch, trail)
++
++        for g in self.nav_groups:
++            rec(g, [])
+ 
+     def _nav_item(self, inline_tok, group_of_file) -> "dict | None":
+         for child in inline_tok.children or []:
+@@ -855,13 +1057,14 @@ class Core:
+                 target = nfc(m.group(1).strip())
+                 label = (m.group(2) or m.group(1)).strip()
+                 clean = wiki_pages.clean_link_target(target)
++                after = _after_first_link(inline_tok)
+                 if clean in group_of_file and clean.startswith("indexes/"):
+-                    return {"state": "group", "group": group_of_file[clean], "label": label}
++                    return {"state": "group", "group": group_of_file[clean], "label": label, "after": after}
+                 r = self.resolve(target)
+                 if r["state"] == "resolved":
+                     return {"state": "resolved", "id": r["id"], "label": self.title(r["id"]),
+-                            "anchor": r.get("anchor")}
+-                return {"state": r["state"], "label": label}
++                            "anchor": r.get("anchor"), "after": after}
++                return {"state": r["state"], "label": label, "after": after}
+         return None
+ 
+     # --- 描画 ---
+@@ -1058,27 +1261,51 @@ class Core:
+         return f'<section id="_diagnostics"><h2>診断</h2><ul>{"".join(lis)}</ul></section>\n'
+ 
+     def _scope_html(self) -> str:
+-        """サイドバーの先頭に置く、スコープの表示。スクリプトなしでも見える。"""
++        """サイドバーの先頭に置く、スコープの表示。スクリプトなしでも見える。
++
++        Fluent の Badge（tint）。ユーザースコープは brand、プロジェクトは中立の色で、文字でも見分ける（Fluent 2 の設計の 4）。
++        """
+         if not self.scope:
+             return ""
+-        return f'<p id="_scope" class="scope scope-{self.scope}">{SCOPE_HEADINGS[self.scope]}</p>'
++        color = "brand" if self.scope == "user" else "informative"
++        return (f'<p id="_scope" class="scope scope-{self.scope}"><span class="fui-Badge" data-appearance="tint" '
++                f'data-color="{color}" data-size="large" data-shape="rounded">{SCOPE_HEADINGS[self.scope]}</span></p>')
++
++    def _message_bar(self, mid: str, intent: str, title: str, body: str, extra_class: str = "") -> str:
++        """Fluent の MessageBar（multiline）。アイコンはインライン SVG（Fluent 2 の設計の 4）。body は文字で渡す。"""
++        cls = f"{extra_class} fui-MessageBar" if extra_class else "fui-MessageBar"
++        return (f'<div id="{mid}" class="{cls}" role="group" aria-labelledby="{mid}_title" data-intent="{intent}" '
++                f'data-layout="multiline"><div class="fui-MessageBar__icon" aria-hidden="true">'
++                f'{ICON_ERROR if intent == "error" else ICON_WARNING}</div>'
++                f'<div class="fui-MessageBarBody"><span class="fui-MessageBarTitle" id="{mid}_title">'
++                f'{html.escape(title)}</span>{html.escape(body)}</div>'
++                f'<div class="fui-MessageBarActions"></div><div class="fui-MessageBar__bottomReflowSpacer"></div></div>\n')
+ 
+     def _head(self, path: str, title: str, stale: "str | None") -> str:
+         prefix = root_prefix(path)
+         banner = ""
+         if stale:
+-            banner = (f'<p id="_stale" class="stale">Wiki の最新の内容を表示できていない。前の内容を表示している'
+-                      f"（{html.escape(stale)}）</p>\n")
++            banner = self._message_bar("_stale", "warning", "前の内容を表示している",
++                                       f"Wiki の最新の内容を表示できていない（{stale}）。", "stale")
+         full_title = f"{title} · {SCOPE_LABELS[self.scope]}" if self.scope else title
+-        return (f'<!doctype html>\n<html lang="ja" data-root="{prefix}" data-generation="{self.generation}">\n'
++        kind = "page-index" if path == "index.html" else "page-article"
++        # data-theme="auto" は OS の配色に従う。theme.js が、選んだ配色を描く前に当てる（Fluent 2 の設計の 3）
++        return (f'<!doctype html>\n<html lang="ja" data-theme="auto" data-root="{prefix}" '
++                f'data-generation="{self.generation}">\n'
+                 f'<head>\n<meta charset="utf-8">\n'
+                 f'<meta http-equiv="Content-Security-Policy" content="{CSP}">\n'
+                 f'<meta name="referrer" content="no-referrer">\n'
+                 f'<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+                 f"<title>{html.escape(full_title)}</title>\n"
+-                f'<link rel="stylesheet" href="{prefix}assets/style.css">\n</head>\n<body>\n'
+-                f'<nav id="_nav">{self._scope_html()}'
+-                f'<noscript><a href="{prefix}index.html">索引へ</a></noscript></nav>\n'
++                f'<link rel="stylesheet" href="{prefix}assets/fluent2.css">\n'
++                f'<link rel="stylesheet" href="{prefix}assets/style.css">\n'
++                f'<script src="{prefix}assets/theme.js"></script>\n</head>\n'
++                f'<body class="fui-FluentProvider {kind}">\n'
++                f'<nav id="_nav" class="fui-NavDrawer" aria-label="wiki のナビゲーション">'
++                f'<div class="fui-NavDrawerHeader nav-head">{self._scope_html()}'
++                f'<a class="fui-NavItem nav-home" href="{prefix}index.html">索引</a></div>'
++                f'<div class="fui-NavDrawerBody" id="_navbody">'
++                f'<noscript><a class="fui-Link" href="{prefix}index.html">索引へ</a></noscript></div></nav>\n'
+                 f'<main id="_main">\n{banner}')
+ 
+     def _tail(self, path: str, extra_data: tuple = ()) -> str:
+@@ -1117,30 +1344,79 @@ class Core:
+         title = self.title(pid)
+         return (self._head(path, title, stale)
+                 + f'<article id="_article" data-page-id="{html.escape(pid)}">\n'
+-                + f'<p class="notice notice-error render-error">このページを描けない（{html.escape(error)}）。'
+-                  "lint で確かめる</p>\n</article>\n"
++                + self._message_bar("_render_error", "error", "このページを描けない",
++                                    f"{error}。lint で確かめる。", "notice notice-error render-error")
++                + "</article>\n"
+                 + self._tail(path))
+ 
+-    def _nav_html(self, groups, path: str) -> str:
+-        parts = []
+-        for g in groups:
+-            items = []
+-            for it in g["items"]:
+-                label = html.escape(it["label"])
+-                if it["state"] == "resolved":
+-                    href = rel_href(path, self.out_name[it["id"]])
+-                    if it.get("anchor"):
+-                        href += "#" + urllib.parse.quote(it["anchor"], safe="")
+-                    items.append(f'<li><a href="{html.escape(href)}">{label}</a></li>')
+-                elif it["state"] == "group":
+-                    items.append(f'<li><a href="#{html.escape(it["group"])}">{label}</a></li>')
+-                else:
+-                    items.append(f'<li><span class="wl wl-{it["state"]}">{label}</span></li>')
+-            title = f"<h2>{html.escape(g['title'])}</h2>" if g["title"] else ""
+-            parts.append(f'<section class="nav-group" id="{html.escape(g["id"])}">{title}'
+-                         f'<ul>{"".join(items)}</ul>{self._nav_html(g["children"], path)}</section>')
++    # --- 索引のページの一覧と検索（探しやすさの設計の 4、5） ---
++
++    def page_summary(self, pid: str) -> tuple:
++        """ページの要約と、その出どころ（4.2）。(文字, "frontmatter" | "index" | "lead" | "none")。"""
++        own = wiki_pages.scalar_value(self.page(pid)["meta"].get("summary"))
++        if own and str(own).strip():
++            return nfc(str(own).strip()), "frontmatter"
++        if self.index_summary.get(pid):
++            return self.index_summary[pid], "index"
++        lead = self.lead.get(pid, "")
++        if lead:
++            return lead, "lead"
++        return "", "none"
++
++    def page_type(self, pid: str) -> str:
++        return str(wiki_pages.type_value(self.page(pid)["meta"].get("type")) or "")
++
++    def page_updated(self, pid: str) -> str:
++        return str(wiki_pages.scalar_value(self.page(pid)["meta"].get("updated")) or "")
++
++    def page_tags(self, pid: str) -> list:
++        return [nfc(t) for t in wiki_pages.ref_values(self.page(pid)["meta"].get("tags"))]
++
++    def _type_badge(self, value: str) -> str:
++        return (f'<span class="badge fui-Badge {type_class(value)}" data-appearance="tint" data-size="small" '
++                f'data-shape="rounded">{html.escape(type_label(value))}</span>')
++
++    def _index_row(self, pid: str, order: int, path: str) -> str:
++        title = self.title(pid)
++        t = self.page_type(pid)
++        updated = self.page_updated(pid)
++        summary, _from = self.page_summary(pid)
++        tags = self.page_tags(pid)
++        gpath = " › ".join(self.page_path.get(pid, []))
++        href = rel_href(path, self.out_name[pid])
++        # data-id は、検索の索引（data/search.js）の行と結ぶためのページの識別子
++        parts = [f'<li class="fx-row" data-id="{html.escape(pid)}" data-type="{html.escape(t)}" '
++                 f'data-updated="{html.escape(updated)}" '
++                 f'data-title="{html.escape(title)}" data-order="{order}" '
++                 f'data-groups="{" ".join(sorted(self.page_groups.get(pid, ())))}">']
++        if gpath:
++            parts.append(f'<div class="fx-path fui-Caption1">{html.escape(gpath)}</div>')
++        parts.append(f'<div class="ix-line"><a class="ix-title" href="{html.escape(href)}">{html.escape(title)}</a>'
++                     f"{self._type_badge(t)}")
++        if updated:
++            parts.append(f'<time class="fui-Caption1" datetime="{html.escape(updated)}">{html.escape(updated)}</time>')
++        parts.append("</div>")
++        if summary:
++            parts.append(f'<p class="ix-summary">{html.escape(summary)}</p>')
++        if tags:
++            parts.append('<div class="ix-tags">' + "".join(
++                f'<span class="tag fui-Tag" data-appearance="outline" data-size="extra-small">'
++                f'<span class="fui-Tag__primaryText">{html.escape(t)}</span></span>' for t in tags) + "</div>")
++        parts.append("</li>")
+         return "".join(parts)
+ 
++    def _index_unresolved_html(self) -> str:
++        if not self.index_unresolved:
++            return ""
++        lis = []
++        for trail, it in self.index_unresolved:
++            title = "ページがない" if it["state"] == "unresolved" else "行き先を 1 つに決められない"
++            where = f'<span class="fui-Caption1 state">（{html.escape(" › ".join(trail))}）</span>' if trail else ""
++            lis.append(f'<li><span class="wl wl-{it["state"]}" title="{title}">{html.escape(it["label"])}</span>'
++                       f"{where}</li>")
++        return ('<section id="_index_unresolved"><h2 class="fui-Subtitle2">ページに決まらない索引の行</h2>'
++                f'<ul>{"".join(lis)}</ul></section>\n')
++
+     def render_index(self, stale: "str | None" = None) -> str:
+         path = "index.html"
+         diags = list(self.diagnostics)
+@@ -1148,15 +1424,39 @@ class Core:
+             diags.insert(0, {"kind": "stale", "reason": stale})
+         nav_note = ""
+         if self.unreadable_indexes:
+-            nav_note = ('<p class="notice incomplete">読めない索引のファイルがあるので、ナビゲーションは不完全である'
+-                        f"（{len(self.unreadable_indexes)} 件）</p>\n")
++            nav_note = (self._message_bar("_nav_incomplete", "warning", "ナビゲーションは不完全",
++                                          f"読めない索引のファイルがある（{len(self.unreadable_indexes)} 件）。",
++                                          "notice incomplete"))
+         diag_note = self._incomplete_html()
++        total = len(self.page_order)
++        rows = "".join(self._index_row(pid, k + 1, path) for k, pid in enumerate(self.page_order))
+         return (self._head(path, "索引", stale)
+-                + f'<h1>索引</h1>\n{nav_note}<div id="_index">{self._nav_html(self.nav_groups, path)}</div>\n'
++                + f'<header id="_ixhead"><h1 class="fui-Title2">索引</h1>'
++                  f'<p class="ix-stats fui-Caption1">{total} ページ</p></header>\n{nav_note}'
++                + '<div id="_filters" class="fx-bar"><noscript><p class="state fui-Caption1">絞り込みと検索には '
++                  'JavaScript が要る。一覧は索引の順に並んでいる。</p></noscript></div>\n'
++                + f'<p id="_count" class="fx-count fui-Caption1" aria-live="polite">{total} 件</p>\n'
++                + f'<ul id="_index" class="fx-list">{rows}</ul>\n'
++                + self._index_unresolved_html()
+                 + (f'<section id="_incomplete">{diag_note}</section>\n' if diag_note else "")
+                 + self._diagnostics_html(diags, path)
+                 + self._tail(path, ("data/diagnostics.js",)))
+ 
++    def search_json(self) -> dict:
++        """data/search.js（5.1）。描かれているページ 1 つに 1 行、識別子の順。"""
++        rows = []
++        for pid in sorted(self.drawn):
++            summary, origin = self.page_summary(pid)
++            headings = [[hid, nfc(text)] for _k, hid, text in self.headings.get(pid, [])]
++            rows.append([self.out_name[pid], pid, nfc(self.title(pid)), summary, origin, self.page_type(pid),
++                         self.page_tags(pid), headings, self.page_updated(pid),
++                         [nfc(x) for x in self.page_path.get(pid, [])]])
++        return {"protocol_version": PROTOCOL_VERSION, "generation": self.generation,
++                "incomplete": bool(self.unreadable_pages),
++                "fields": ["path", "id", "title", "summary", "summary_from", "type", "tags", "headings", "updated",
++                           "group_path"],
++                "rows": rows}
++
+     # --- データのファイル ---
+ 
+     def _nav_json(self) -> dict:
+@@ -1167,13 +1467,15 @@ class Core:
+                 for it in g["items"]:
+                     item = {"state": it["state"], "label": it["label"]}
+                     if it["state"] == "resolved":
++                        item["id"] = it["id"]
+                         item["path"] = self.out_name[it["id"]]
+                         if it.get("anchor"):
+                             item["anchor"] = it["anchor"]
+                     elif it["state"] == "group":
+                         item["group"] = it["group"]
+                     items.append(item)
+-                out.append({"id": g["id"], "title": g["title"], "items": items, "children": conv(g["children"])})
++                out.append({"id": g["id"], "title": g["title"], "summary": g.get("summary", ""),
++                            "count": g.get("count", 0), "items": items, "children": conv(g["children"])})
+             return out
+         nav = {"protocol_version": PROTOCOL_VERSION, "generation": self.generation, "groups": conv(self.nav_groups)}
+         if self.unreadable_indexes:
+@@ -1182,7 +1484,7 @@ class Core:
+ 
+     def manifest(self, generated_at: str = "") -> dict:
+         return {"protocol_version": PROTOCOL_VERSION, "generation": self.generation, "generated_at": generated_at,
+-                "capabilities": {"search": "none", "relations": self.relations_state, "rag": False,
++                "capabilities": {"search": "embedded", "relations": self.relations_state, "rag": False,
+                                  "multi_wiki": False, "live_reload": False},
+                 "pages": len(self.drawn),
+                 "incomplete": {"unreadable_pages": len(self.unreadable_pages),
+@@ -1200,6 +1502,8 @@ class Core:
+             if stale:
+                 m["stale"] = stale
+             return js_data("WIKI_MANIFEST", m)
++        if name == "data/search.js":
++            return js_data("WIKI_SEARCH", self.search_json())
+         if name == "data/diagnostics.js":
+             d = self.diagnostics_json()
+             if stale:

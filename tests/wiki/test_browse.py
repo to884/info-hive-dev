@@ -538,18 +538,30 @@ class RenderTest(TempWiki):
         for name in ("pre", "a", "b", "p", "lone"):
             write(self.wiki, f"{name}.md", page(f"# {name}", type="concept"))
         c = build_core(self.wiki)
-        nav = c._nav_json()["groups"]
-        top = nav[0]
+        nav = c._nav_json()
+        self.assertEqual(nav["protocol_version"], 2)
+        groups = nav["groups"]
+        # N4: index.md のグループは木のいちばん上に置かない。自分の項目は「索引」のグループに、見出しのグループは上に並ぶ
+        top = groups[0]
+        self.assertEqual(top["title"], "索引")
         self.assertEqual(top["items"][0]["path"], "pre.html")
-        concepts = top["children"][0]["children"][0]
+        self.assertEqual(top["items"][0]["id"], "pre")
+        concepts = groups[1]["children"][0]
+        self.assertEqual(groups[1]["title"], "上")
         self.assertEqual(concepts["title"], "概念")
+        # N6: グループへの項目の名前は、行き先のグループの名前
         states = [(i["state"], i["label"]) for i in concepts["items"]]
         self.assertEqual(states, [("resolved", "a"), ("resolved", "b"), ("unresolved", "missing"),
-                                  ("group", "indexes/people")])
-        people = nav[1]
+                                  ("group", "人物")])
+        people = groups[2]
         self.assertEqual(people["title"], "人物")
-        rest = nav[-1]
+        self.assertTrue(people["id"].startswith("_gf"))
+        self.assertEqual(people["count"], 1)
+        self.assertEqual(concepts["count"], 2)
+        rest = groups[-1]
         self.assertEqual(rest["title"], "索引にないページ")
+        # N7: 種類の子のグループの名前は日本語にする
+        self.assertEqual([g["title"] for g in rest["children"]], ["コンセプト"])
         self.assertEqual([i["path"] for g in rest["children"] for i in g["items"]], ["lone.html"])
 
 
@@ -1194,8 +1206,9 @@ class BuildTest(TempWiki):
         home = str(Path.home())
         write(self.wiki, "concepts/h.md", page(f"# H\n\nホームは `{home}` にある。\n"))
         report = self.build(self.base / "site")
-        self.assertEqual(len(report["warnings"]), 1, report["warnings"])
-        self.assertIn("concepts/h.html", report["warnings"][0])
+        # 本文の冒頭は、索引のページの要約と検索の索引にも出る（探しやすさの設計の 4.2）。どれも入力の中身から来た警告
+        self.assertEqual(sorted(w.split("（")[1].split("）")[0] for w in report["warnings"]),
+                         ["concepts/h.html", "data/search.js", "index.html"], report["warnings"])
 
     def test_report_to_stdout_failure_keeps_exit_zero(self):
         # 公開したあとに標準出力へ書けなくても、警告を出そうとし、終了コードは 0（設計の 7、10）
@@ -1397,9 +1410,12 @@ class ScopeTest(TempWiki):
             with self.subTest(scope=scope):
                 c = core.Core(snap, scope=scope)
                 for html in (c.render_page("a"), c.render_index()):
-                    self.assertIn(f'<p id="_scope" class="scope scope-{scope}">{heading}</p>', html)
+                    color = "brand" if scope == "user" else "informative"
+                    self.assertIn(f'<p id="_scope" class="scope scope-{scope}"><span class="fui-Badge" '
+                                  f'data-appearance="tint" data-color="{color}" data-size="large" '
+                                  f'data-shape="rounded">{heading}</span></p>', html)
                     # スコープの表示は、スクリプトが足すナビゲーションより前（サイドバーの先頭）にある。
-                    self.assertLess(html.index('<nav id="_nav">'), html.index('id="_scope"'))
+                    self.assertLess(html.index('<nav id="_nav"'), html.index('id="_scope"'))
                     self.assertLess(html.index('id="_scope"'), html.index("<noscript>"))
                 self.assertIn(f"<title>{title}</title>", c.render_page("a"))
                 self.assertIn(f"<title>索引 · {title.split(' · ')[1]}</title>", c.render_index())
@@ -1420,7 +1436,8 @@ class ScopeTest(TempWiki):
         with redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
             report = wiki_browse.build(self.wiki, None, None, "project")
         index = (Path(report["out"]) / "index.html").read_text(encoding="utf-8")
-        self.assertIn('<p id="_scope" class="scope scope-project">プロジェクトの wiki</p>', index)
+        self.assertIn('<p id="_scope" class="scope scope-project"><span class="fui-Badge" data-appearance="tint" '
+                      'data-color="informative" data-size="large" data-shape="rounded">プロジェクトの wiki</span></p>', index)
         self.assertEqual(report["warnings"], [])
         report = self.build()
         self.assertNotIn('id="_scope"', (Path(report["out"]) / "index.html").read_text(encoding="utf-8"))
@@ -1458,6 +1475,215 @@ class ScopeTest(TempWiki):
                 self.assertIsNone(drawn({"scope": bad}))
         self.assertEqual(drawn({"scope": "user"}), "user")
         self.assertEqual(drawn({"scope": "project"}), "project")
+
+
+# ---------------------------------------------------------------------------
+# 探しやすさ（docs/plans/wiki-browse-findability-2026-11-13.md）と Fluent 2（wiki-browse-fluent2-2026-11-14.md）
+# ---------------------------------------------------------------------------
+
+NAV_MODEL_DIR = ROOT / "tests/wiki/browse_nav"
+
+
+def _nav_dump(groups) -> list:
+    """木を、比べられる入れ子の値にする（ID、名前、要約、件数、項目、子）。"""
+    out = []
+    for g in groups:
+        items = [(it["state"], it.get("id"), it["label"], it.get("anchor"), it.get("group")) for it in g["items"]]
+        out.append((g["id"], g["title"], g.get("summary", ""), g["count"], items, _nav_dump(g["children"])))
+    return out
+
+
+def _js_value(text: str, name: str):
+    prefix = f"window.{name}="
+    assert text.startswith(prefix) and text.endswith(";\n"), text[:40]
+    return json.loads(text[len(prefix):-2])
+
+
+class NavTreeTest(TempWiki):
+    """2.1 の木の規則。参照の実装（書き換える前の中核の上の 2 つ目の段）と同じ木になる（9 節）。"""
+
+    def test_tree_matches_reference_for_all_cases(self):
+        sys.path.insert(0, str(NAV_MODEL_DIR))
+        try:
+            import nav_model
+        finally:
+            sys.path.remove(str(NAV_MODEL_DIR))
+        for name, files, pages in nav_model.CASES:
+            with self.subTest(case=name):
+                wiki = Path(tempfile.mkdtemp(dir=self.base))
+                nav_model.make_wiki(wiki, files, pages)
+                expected = _nav_dump(nav_model.build(wiki))
+                got = _nav_dump(build_core(wiki).nav_groups)
+                self.assertEqual(got, expected)
+
+    def test_data_groups_are_in_the_tree(self):
+        write(self.wiki, "index.md", "# 索引\n- [[a]]\n## 分類\n- [[b]]\n- [[indexes/x]]: 分割\n")
+        write(self.wiki, "indexes/x.md", "# X\n## 子\n- [[c]]\n")
+        for name in ("a", "b", "c", "d"):
+            write(self.wiki, f"concepts/{name}.md", page(f"# {name}", type="concept"))
+        c = build_core(self.wiki)
+        ids = {g["id"] for g in core._walk(c.nav_groups)}
+        index = c.render_index()
+        groups = [m.split('"')[0] for m in index.split('data-groups="')[1:]]
+        self.assertEqual(len(groups), 4)
+        for attr in groups:
+            self.assertTrue(attr and set(attr.split(" ")) <= ids, attr)
+        # 一覧の順は索引の順（a、b、c、索引にない d）
+        order = [m.split('"')[0] for m in index.split('data-id="')[1:]]
+        self.assertEqual(order, ["concepts/a", "concepts/b", "concepts/c", "concepts/d"])
+        self.assertEqual([m.split('"')[0] for m in index.split('data-order="')[1:]], ["1", "2", "3", "4"])
+
+    def test_broken_invariant_fails_the_build(self):
+        with self.assertRaises(core.NavInvariantError):
+            core._check_tree([{"id": "_g1", "title": "A", "items": [], "children": []},
+                              {"id": "_g1", "title": "B", "items": [], "children": []}])
+        with self.assertRaises(core.NavInvariantError):
+            core._check_tree([{"id": "_g 1", "title": "A", "items": [], "children": []}])
+        with self.assertRaises(core.NavInvariantError):
+            core._check_tree([{"id": "_g1", "title": "A", "children": [],
+                               "items": [{"state": "group", "group": "_g9", "label": "X"}]}])
+
+
+class SummaryTest(TempWiki):
+    """4.2 の要約の順: frontmatter、索引の行、本文の冒頭、なし。"""
+
+    def test_summary_order(self):
+        write(self.wiki, "index.md", "- [[own]]: 索引の行\n- [[line]]：　全角の区切りの要約\n- [[dash]] — ダッシュの要約\n"
+                                     "- [[lead]]\n- [[none]]\n")
+        write(self.wiki, "concepts/own.md", page("# Own\n\n本文の冒頭。", type="concept", summary="自分の要約"))
+        write(self.wiki, "concepts/line.md", page("# Line\n\n本文の冒頭。", type="concept"))
+        write(self.wiki, "concepts/dash.md", page("# Dash", type="concept"))
+        write(self.wiki, "concepts/lead.md", page("# Lead\n\n- リストは飛ばす\n\n> 引用も飛ばす\n\n最初の段落。次の文。",
+                                                  type="concept"))
+        write(self.wiki, "concepts/none.md", page("# None\n\n- リストだけ", type="concept"))
+        c = build_core(self.wiki)
+        got = {pid.split("/")[1]: c.page_summary(pid) for pid in c.drawn}
+        self.assertEqual(got["own"], ("自分の要約", "frontmatter"))
+        self.assertEqual(got["line"], ("全角の区切りの要約", "index"))
+        self.assertEqual(got["dash"], ("ダッシュの要約", "index"))
+        self.assertEqual(got["lead"], ("最初の段落。", "lead"))
+        self.assertEqual(got["none"], ("", "none"))
+
+    def test_long_lead_is_cut(self):
+        write(self.wiki, "a.md", page("# A\n\n" + "あ" * 300))
+        c = build_core(self.wiki)
+        self.assertEqual(c.page_summary("a"), ("あ" * core.LEAD_LIMIT, "lead"))
+
+
+class SearchDataTest(TempWiki):
+    """5.1 の data/search.js。"""
+
+    def search(self, c=None):
+        c = c or build_core(self.wiki)
+        return _js_value(c.render_data("data/search.js"), "WIKI_SEARCH")
+
+    def test_rows_are_drawn_pages(self):
+        write(self.wiki, "concepts/a.md", page("# A", type="concept", tags=["検索"], updated="2026-04-18"))
+        write(self.wiki, "concepts/dup.md", page("# Dup"))
+        write(self.wiki, "entities/dup.md", page("# Dup"))
+        (self.wiki / "concepts" / "bad.md").write_bytes(b"\xff\xfe\x00bad")
+        c = build_core(self.wiki)
+        data = self.search(c)
+        self.assertEqual(data["protocol_version"], 2)
+        self.assertEqual(data["generation"], c.generation)
+        at = {f: k for k, f in enumerate(data["fields"])}
+        ids = [r[at["id"]] for r in data["rows"]]
+        self.assertEqual(ids, sorted(c.drawn))
+        self.assertNotIn("concepts/bad", ids)
+        self.assertTrue(data["incomplete"])
+        row = data["rows"][ids.index("concepts/a")]
+        self.assertEqual(row[at["tags"]], ["検索"])
+        self.assertEqual(row[at["updated"]], "2026-04-18")
+        self.assertEqual(row[at["type"]], "concept")
+        self.assertEqual(json.loads(c.render_data("data/manifest.js")[len("window.WIKI_MANIFEST="):-2])
+                         ["capabilities"]["search"], "embedded")
+
+    def test_script_end_is_escaped(self):
+        write(self.wiki, "a.md", page("# A", title="</script><b>x"))
+        text = build_core(self.wiki).render_data("data/search.js")
+        self.assertNotIn("</script>", text)
+        self.assertEqual(self.search()["rows"][0][2], "</script><b>x")
+
+    def test_headings_include_h1_and_are_nfc(self):
+        nfd = unicodedata.normalize("NFD", "カイド")
+        write(self.wiki, "a.md", page(f"# 題名と違う見出し\n\n## {nfd}\n", title=nfd, tags=[nfd]))
+        data = self.search()
+        at = {f: k for k, f in enumerate(data["fields"])}
+        row = data["rows"][0]
+        self.assertEqual([h[1] for h in row[at["headings"]]], ["題名と違う見出し", "カイド"])
+        self.assertEqual(row[at["title"]], "カイド")
+        self.assertEqual(row[at["tags"]], ["カイド"])
+
+
+class IndexPageTest(TempWiki):
+    """4.1 の索引のページ。スクリプトなしで、全ページの題名、種類、更新日、要約、タグ、階層を読める。"""
+
+    def test_rows_and_parts(self):
+        write(self.wiki, "index.md", "# 索引\n## コンセプト\n- [[a]]: 要約 A\n- [[missing]]\n")
+        write(self.wiki, "concepts/a.md", page("# A", title="A", type="concept", tags=["t1", "t2"], updated="2026-04-18"))
+        write(self.wiki, "b.md", page("# B", type="__proto__"))
+        index = build_core(self.wiki).render_index()
+        self.assertIn('<h1 class="fui-Title2">索引</h1>', index)
+        self.assertIn('<a class="ix-title" href="concepts/a.html">A</a>', index)
+        self.assertIn('class="badge fui-Badge t-concept"', index)
+        self.assertIn('class="badge fui-Badge t-other"', index)
+        self.assertIn(">__proto__</span>", index)
+        self.assertIn('<time class="fui-Caption1" datetime="2026-04-18">2026-04-18</time>', index)
+        self.assertIn('<p class="ix-summary">要約 A</p>', index)
+        self.assertIn('<span class="fui-Tag__primaryText">t2</span>', index)
+        self.assertIn('<div class="fx-path fui-Caption1">コンセプト</div>', index)
+        self.assertIn('id="_index_unresolved"', index)
+        self.assertIn('<span class="wl wl-unresolved" title="ページがない">missing</span>', index)
+        self.assertIn('id="_filters"', index)
+        self.assertIn('id="_count"', index)
+
+
+class FluentAssetsTest(TempWiki):
+    """Fluent 2 の設計の 2、3、6。同梱の資産、配色、ライセンスの表示。"""
+
+    ASSET_DIR = SCRIPTS / "browse_assets"
+
+    def test_fluent_css_matches_record(self):
+        data = (self.ASSET_DIR / "fluent2.css").read_bytes()
+        readme = (self.ASSET_DIR / "README.md").read_text(encoding="utf-8")
+        self.assertIn(hashlib.sha256(data).hexdigest(), readme)
+        self.assertIn(f"{len(data):,} バイト", readme)
+        self.assertTrue(data.startswith(b"/*!"))
+        self.assertIn(b"Copyright (c) Microsoft Corporation", data[:20000])
+
+    def test_build_writes_assets_and_notices(self):
+        write(self.wiki, "a.md", page("# A"))
+        out = Path(self.build()["out"])
+        for name in ("app.js", "style.css", "fluent2.css", "theme.js"):
+            self.assertEqual((out / "assets" / name).read_bytes(), (self.ASSET_DIR / name).read_bytes(), name)
+        self.assertFalse((out / "assets" / "licenses").exists())
+        self.assertFalse(any(p.name.endswith((".LICENSE", ".txt")) for p in out.rglob("*")))
+        css = (out / "assets" / "style.css").read_text(encoding="utf-8")
+        style_lines = [line.lstrip(" *").strip() for line in css.splitlines()]
+        license_text = (self.ASSET_DIR / "licenses" / "fluent2-html-replica.LICENSE").read_text(encoding="utf-8")
+        for line in (x.strip() for x in license_text.splitlines()):
+            if line:
+                self.assertIn(line, style_lines)
+
+    def test_html_has_theme_and_asset_order(self):
+        write(self.wiki, "a.md", page("# A"))
+        c = build_core(self.wiki)
+        for html in (c.render_page("a"), c.render_index()):
+            self.assertIn('<html lang="ja" data-theme="auto"', html)
+            head = html[:html.index("</head>")]
+            self.assertLess(head.index("assets/fluent2.css"), head.index("assets/style.css"))
+            self.assertLess(head.index("assets/style.css"), head.index('<script src="assets/theme.js"')
+                            if 'src="assets/theme.js"' in head else head.index('theme.js"></script>'))
+            self.assertIn('<body class="fui-FluentProvider', html)
+            self.assertNotIn("style=", html)
+
+    def test_style_css_uses_tokens(self):
+        import re
+        css = (self.ASSET_DIR / "style.css").read_text(encoding="utf-8")
+        body = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+        self.assertEqual(re.findall(r"#[0-9a-fA-F]{3,8}\b", body), [])
+        self.assertEqual(re.findall(r"\b\d+(?:\.\d+)?px\b", body), [])
+        self.assertEqual(re.findall(r"\b\d+(?:\.\d+)?rem\b", body.split("@media")[0]), [])
 
 
 if __name__ == "__main__":

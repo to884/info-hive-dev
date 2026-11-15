@@ -92,3 +92,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-15] ingest | wiki 0.17.0（browse の構造の直し）のリリースの記録
    ページ: sources/browseの構造の直しとリリース-wiki-0.17.0（concepts/リリースの確かめ方 を更新）
+
+## [2026-11-15] update | browse の探しやすさと Fluent 2 の実装（wiki 0.18.0）
+   ページ: concepts/browseのデザインシステム（実装の段で分かったこと）、concepts/browseの画面の確かめ方（0.18.0 のスコープの色）
