@@ -1,0 +1,61 @@
+## 判定
+
+**条件付きで採用可。確信度：高。** ヘルプ取得が成功する経路では回帰修正を確認した。ただし、取得失敗を「`UV_SYSTEM_CERTS` 対応」と扱うため、今回直すはずの起動不能が残る条件がある。
+
+## 致命的・重大な欠陥
+
+- **重大：対応判定の失敗が、再試行を止める肯定判定になる。**
+  
+  反例は、古い uv、`UV_SYSTEM_CERTS=true`、`UV_NATIVE_TLS` 未設定、最初の sync が TLS エラー、その後の `uv sync --help` が非ゼロ終了・タイムアウト・`OSError` になる状態。
+  
+  `system_certs_env()` はいずれも `UV_SYSTEM_CERTS` を返し、`_user_tls_setting()` が「この uv が読む利用者の設定」と判定する。その結果、`UV_NATIVE_TLS=true` による再試行は行われず、「`UV_SYSTEM_CERTS=true` が設定されているので、そのまま止まる」と誤って案内する。
+  
+  **故障注入で3通りとも再現し、sync は1回だけだった。** 実 uv でヘルプ取得が失敗する頻度は未確認。helper の既存の既定値を、今回追加した呼び出し元が対応確認の結果として使うことで表面化する。
+  
+  根拠：`info-hive-wiki/skills/info-hive/scripts/wiki_mcp_common.py:435–442`、`:466–469`、`:488–490`。README の230行目と CHANGELOG の13行目には、この復旧不能条件の記載がない。
+
+## 崩れる前提
+
+- **「対応を確認できなければ、新しい uv と扱ってよい」**  
+  古い uv でヘルプ取得が失敗すると崩れる。判定不能と対応済みが同じ戻り値になる。
+
+- **「`UV_NATIVE_TLS` があれば、それが実際に効いた設定である」**  
+  両変数があると崩れる。uv 0.12.0 は `UV_SYSTEM_CERTS=true` を先に採用し、現在の main は `UV_SYSTEM_CERTS` が設定されていると `UV_NATIVE_TLS` の解析自体を省略する。[uv 0.12.0 の設定解決](https://github.com/astral-sh/uv/blob/0.12.0/crates/uv/src/settings.rs#L354)、[main の環境変数解析](https://github.com/astral-sh/uv/blob/main/crates/uv-settings/src/lib.rs)
+
+- **「前後の空白を除いて判定することが uv と同じ」**  
+  崩れる。uv の真偽値解析は大小文字を無視するが、空白は除去しない。[uv 0.12.0 の解析実装](https://github.com/astral-sh/uv/blob/0.12.0/crates/uv-static/src/lib.rs#L48)
+
+## 見落としと軽微な問題
+
+- **軽微：両変数がある場合、診断が実際に効いた設定を示さない。**
+  
+  uv 0.12.0 で `UV_SYSTEM_CERTS=true`、`UV_NATIVE_TLS=false` とし、証明書検証が失敗すると、OS ストアを有効にした設定は前者なのに、実装は後者を理由として表示する。再試行しない判断自体は変わらないが、障害原因の説明が誤る。
+  
+  根拠：`wiki_mcp_common.py:457–459`、`:377–378`。追加された両変数の試験は古い uv だけで、新しい uv のこの反例を検査していない（`tests/wiki/test_uv_tls.py:183`）。
+
+- **軽微：試験の「uv と同じ」という説明が、空白付き値では成立しない。**
+  
+  `test_old_uv_ignoring_system_certs_retries_with_native_tls` は `" on "` を真の値としている。しかし、その変数を読む uv は入力エラーにする。古い uv が無視する変数から利用者の意図を推定する試験としては成立するが、uv の受理値との一致を証明してはいない。
+  
+  根拠：`wiki_mcp_common.py:464`、`tests/wiki/test_uv_tls.py:137–140`。なお、新しい uv では入力エラーが先に発生するため、これだけで誤った TLS 再試行が起きるとは確認できなかった。
+
+- **軽微：ヘルプ失敗の試験がない。**
+  
+  `FakeUv` はヘルプを常に終了コード0で返すため、重大項目の反例を検出できない。根拠：`tests/wiki/test_uv_tls.py:55–58`。
+
+## 検証した事実
+
+- **一致：** 作業ツリーの HEAD は、プラグイン `2ce076d`、親 `b018ea4` だった。
+- **一致：** 単体試験15件は現実装で通過。修正前の実装では assertion failure 2件、subtest の error 4件になり、回帰を検出した。
+- **一致：** 真の値6種類と大小文字の扱いは uv の実装と一致。前後の空白の扱いは不一致。
+- **一致：** 古い uv の再試行成功後、次の sync と `uv python find` に `UV_NATIVE_TLS=true` が渡ることを呼び出し記録で確認した。
+- **確かめられず：** 実 uv による結合試験。この環境には実行可能な uv がない。単体試験は書き込み禁止に従い、一時ディレクトリ作成とログ保存・読取をメモリ上の代替処理に置き換えた。
+
+## 崩せなかった点
+
+- ヘルプ取得成功時、古い uv に無視される `UV_SYSTEM_CERTS=true` から `UV_NATIVE_TLS=true` で1回だけ再試行する経路。
+- 新しい uv の有効な `UV_SYSTEM_CERTS=true`、明示的な `UV_NATIVE_TLS`、`UV_SYSTEM_CERTS=false`・`0`・`no` で再試行を止める判断。
+- 再試行も TLS エラーなら、環境の入れ直しに進まず `UvTlsError` で停止する経路。
+
+使用した MCP サーバー: GitHub  
+使用した Agent Skills: なし
