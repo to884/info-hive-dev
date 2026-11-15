@@ -1,0 +1,19 @@
+{
+  "id": "extraction-metrics-string-presence-2026-11-15",
+  "task": "今の取り込みの抽出（pdftotext、pdfminer、rag の PDFium、wiki_fetch、そのまま読む）と MarkItDown 0.1.9 を、正解の分かる 15 の試料で、機械的な指標と Sol の判定で比べる（docs/research/markitdown-benchmark-2026-11-15.md）",
+  "outcome": "failure",
+  "actions": [
+    "最初の指標（run_bench.py の metrics）は、NFKC にそろえたあと空白と Markdown の記号を消してから、正解の文字列が出力にあるかを見ていた。読み順は、見つかった正解の中で順に並ぶ割合にし、表の行は、行のセルが出力の同じ 1 行にあるかで数えた",
+    "Sol の 1 回目の敵対的レビュー（docs/agent-runs/2026-11-15-markitdown-benchmark-review/review-1.md）が、混線した slides.pdf の MarkItDown の出力で読み順が 1.0 になること、列のずれた expenses.pdf の MarkItDown の出力で表の行が PDFium と同じになること、CSV の全行を 1 行につないだ出力が満点になることを示した",
+    "読み順の分母に欠けた文を入れ、表の行を 1 行に 1 つの正解の行だけ数えるように直し、列のそろった表の行の指標を足し、反例を自己試験にした",
+    "Sol の 2 回目のレビュー（review-2.md）が、見出しを残して本体だけ右へ 1 列ずらした表が列のそろった行で満点になること、数値を 10 倍にした出力の網羅率が 1.0 のままであること、区切りの行のない「|」の行を表とみなすこと、貪欲な読み順が前のほうの入れ替わりを重く罰することを示した",
+    "空白を 1 つにまとめて残し、数字で始まる（終わる）正解の前（後ろ）に数字が続く位置を当てないようにした。表は区切りの行のあるものだけを取り出し、正解の見出しの列と照らすようにした。読み順は、正解ごとにどの出現位置を使ってもよい最長の増加部分列で数えるようにした",
+    "保存した出力から指標を計算し直し（run_bench.py --metrics-only）、自己試験の 15 個の assert が通ることを確かめた"
+  ],
+  "verification": "review-1.md と review-2.md の反例の記述。run_bench.py の self_test（15 個の assert）が、直したあとの uv run --script scripts/run_bench.py --metrics-only で「指標の自己試験: 通った」と出た。直したあとの results.json で、expenses.pdf の MarkItDown の列のそろった表の行は 3/7、slides.pdf の MarkItDown の順に読めた割合は 0.909 になった（直す前は、表の行 6/9 と読み順 1.0）",
+  "model": "Claude Opus 5.5（claude-opus-5-5）が計測を作り、GPT-6.1 Sol（gpt-6.1-sol、effort high）がレビューした",
+  "tools": "Claude Code デスクトップアプリ、Codex CLI 0.166.0（ask-codex スキルの review）、Python 3.12.13、uv 0.12.2、markitdown 0.1.9、Windows 11",
+  "scope": "抽出や変換の出力を、正解の文字列と機械的に照らして比べる指標（網羅率、読み順、表の行と列）を作るとき",
+  "hypothesis": "指標を「正解の文字列が出力のどこかにあるか」で作り、比べる前に空白を消したため、数値の境目、表の列、文の混線が指標から消えた。反例を 1 つずつ足すのではなく、照合の単位（境目のある文字列、見出しと照らす列、最長の増加部分列）を変えると、同じ種類の反例をまとめて塞げる",
+  "counterexamples": "指標を直したあとも、文の意味が保たれているかは機械の指標では見ていない（Sol の判定に任せた）。直した指標は 3 回目のレビューを受けていない。短い数値の正解（CSV の 1、2、3 など）は、境目を見ても別の場所の同じ数値に当たりうる"
+}
