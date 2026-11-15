@@ -44,12 +44,14 @@ put("index.md", ["# 索引", "- [[bm25]]: 索引の行の要約", "## 第一", "
   "- [[indexes/x]]: 分割の索引", "- [[ない]]", ""].join("\n"));
 put("indexes/x.md", "# X の索引\n- [[istanbul]]\n- [[abc]]\n");
 put("concepts/bm25.md", pg({ type: "concept", title: "BM25", tags: ["検索", "ランキング"], updated: "2026-04-18" },
-  "# BM25\n\n語の頻度で点数を付ける。\n\n## 語の頻度\n\n本文。"));
-put("concepts/two.md", pg({ type: "concept", title: "ΟΣ", updated: "2026-05-01" }, "# ΟΣ\n\n二つのグループに載る。"));
+  "# BM25\n\n語の頻度で点数を付ける。[[未作成のページ]] はまだない。\n\n## 語の頻度\n\n本文。"));
+put("concepts/two.md", pg({ type: "concept", title: "ΟΣ", updated: "2026-05-01" }, "# ΟΣ\n\n二つのグループに載る。[[bm25]] を見る。"));
 put("concepts/strasse.md", pg({ type: "__proto__", title: "Straße", updated: "2025-01-01" }, "# Straße\n\n通り。"));
 put("concepts/istanbul.md", pg({ type: "entity", title: "İstanbul", tags: ["__proto__", "toString"] }, "# İstanbul\n\n街。"));
 put("concepts/abc.md", pg({ type: "concept", title: "abcdef" }, "# abcdef\n\n文字。"));
 put("concepts/nfd.md", pg({ type: "concept", title: NFD, tags: [NFD] }, `# ${NFD}\n\n## 固有の語ズズズ\n\n本文。`));
+put("sources/src.md", pg({ type: "source", title: "ソースの例" }, "# ソースの例\n\nソース。"));
+put("synthesis/syn.md", pg({ type: "synthesis", title: "シンセシスの例" }, "# シンセシスの例\n\nまとめ。"));
 put("concepts/note.md", pg({ type: "note", title: "ノートの種類" }, "# ノートの種類\n\n知らない種類。"));
 put("concepts/long.md", pg({ type: "W".repeat(120), title: "長い値", tags: ["W".repeat(200)] }, "# 長い値\n\n本文。"));
 
@@ -59,7 +61,7 @@ function python(args) {
 }
 function startServer() {
   return new Promise((ok, fail) => {
-    const child = spawn(PYTHON[0], [...PYTHON.slice(1), "-X", "utf8", SCRIPT, "serve", wiki, "--no-open"],
+    const child = spawn(PYTHON[0], [...PYTHON.slice(1), "-X", "utf8", SCRIPT, "serve", wiki, "--no-open", "--scope", "project"],
       { env: { ...process.env, INFO_HIVE_DATA_DIR: data }, stdio: ["ignore", "pipe", "pipe"] });
     let buf = "", err = "";
     child.stdout.setEncoding("utf8");
@@ -100,6 +102,10 @@ const INIT = `(() => {
   window.__textRatio = (root) => Math.min(...[root, ...root.querySelectorAll("*")]
     .filter((x) => x.offsetParent !== null && [...x.childNodes].some((c) => c.nodeType === 3 && c.textContent.trim()))
     .map(window.__ratio), 99);
+  window.__settled = async () => {
+    await new Promise((ok) => requestAnimationFrame(() => ok()));
+    await Promise.all(document.getAnimations().map((a) => a.finished.catch(() => {})));
+  };
   window.__health = () => {
     const ids = Array.from(document.querySelectorAll("[id]"), (n) => n.id);
     return { style: document.querySelectorAll("[style]").length, dupIds: ids.filter((x, i) => ids.indexOf(x) !== i),
@@ -108,8 +114,8 @@ const INIT = `(() => {
 })();`;
 
 const CONTRAST = ["#_body p", "#_body h2", "#_scope .fui-Badge", ".fui-NavSubItem", ".fui-NavSubItem.is-current",
-  ".fui-NavCategoryItem .tree-name", ".tree-count", "#_meta th", ".fui-MessageBarBody", ".t-concept", ".t-entity",
-  ".t-other", ".fui-Tag__primaryText", ".ix-summary", ".ix-title", ".fx-path", "#_backlinks a", ".sr-title", ".sr-meta",
+  ".fui-NavCategoryItem .tree-name", ".tree-count", "#_meta th", ".t-concept", ".t-entity", ".t-source",
+  ".t-synthesis", ".t-other", ".fui-NavItem.is-current", ".fui-Tag__primaryText", ".ix-summary", ".ix-title", ".fx-path", "#_backlinks a", ".sr-title", ".sr-meta",
   ".chips .fui-ToggleButton", "#_theme", "#_body .wl-unresolved"];
 
 async function contrastOf(page) {
@@ -132,9 +138,9 @@ async function stateContrast(page) {
     const loc = page.locator(sel).nth(i);
     if (!(await loc.isVisible())) continue;
     await loc.hover();
-    const r1 = await loc.evaluate((e) => window.__textRatio(e));
+    const r1 = await loc.evaluate(async (e) => { await window.__settled(); return window.__textRatio(e); });
     await page.mouse.down();
-    const r2 = await loc.evaluate((e) => window.__textRatio(e));
+    const r2 = await loc.evaluate(async (e) => { await window.__settled(); return window.__textRatio(e); });
     await page.mouse.move(0, 0);
     await page.mouse.up();
     const r = Math.min(r1, r2);
@@ -366,11 +372,12 @@ async function layoutChecks(browser, base, tag) {
   await page.goto(url(base, "index.html"));
   const r = await page.evaluate(() => ({ theme: document.documentElement.getAttribute("data-theme"),
     rows: document.querySelectorAll("#_index .fx-row").length, titles: document.querySelectorAll("#_index .ix-title").length }));
-  check(r.theme === "auto" && r.rows === 8 && r.titles === 8, `${tag}: スクリプトなしの索引のページが違う: ${JSON.stringify(r)}`);
+  check(r.theme === "auto" && r.rows === 10 && r.titles === 10, `${tag}: スクリプトなしの索引のページが違う: ${JSON.stringify(r)}`);
   await context.close();
 }
 
 async function colorChecks(browser, base, tag) {
+  const measured = new Set();
   for (const dark of [false, true]) {
     // 記事のページは、木を出した状態と、検索の結果を出した状態（木は隠れる）の両方で測る
     for (const [rel, query] of [["concepts/bm25.html", null], ["concepts/bm25.html", "検索"], ["index.html", null],
@@ -394,10 +401,13 @@ async function colorChecks(browser, base, tag) {
       check(low.length === 0, `${tag}: ${dark ? "暗い" : "明るい"}配色の ${rel} でコントラスト比が 4.5 を割る: ${JSON.stringify(low)}`);
       const s = await stateContrast(page);
       check(s.min >= 4.5, `${tag}: ${dark ? "暗い" : "明るい"}配色の ${rel} で、ポインターか押下の状態のコントラスト比が ${s.min.toFixed(2)}（${s.where}）`);
+      Object.keys(c).forEach((k) => measured.add(k));
       notes.push(`${tag} ${dark ? "dark" : "light"} ${rel}: 最小 ${Math.min(...Object.values(c)).toFixed(2)}、状態 ${s.min.toFixed(2)}`);
       await context.close();
     }
   }
+  const missing = CONTRAST.filter((s) => !measured.has(s));
+  check(missing.length === 0, `${tag}: コントラストを測れなかった部品がある: ${missing}`);
   // 強制カラー: 今のページの項目に輪郭がある
   const { context, page } = await newPage(browser, { forced: true });
   await page.goto(url(base, "concepts/bm25.html"));
@@ -452,7 +462,7 @@ try {
   const bases = {};
   if (MODES.includes("static")) {
     const site = join(work, "site");
-    const built = python(["build", wiki, "--out", site, "--raw", "text"]);
+    const built = python(["build", wiki, "--out", site, "--raw", "text", "--scope", "project"]);
     if (!check(built.status === 0, "静的の書き出しが失敗した: " + built.stderr)) throw new Error(built.stderr);
     bases.static = pathToFileURL(site).href + "/";
   }
