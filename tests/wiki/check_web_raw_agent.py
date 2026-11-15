@@ -11,23 +11,35 @@ Claude Code のセッションの記録から確かめる。
 
 調べるのは、記録に残った事実である（モデルの自己申告は使わない）。合否を決めるのは、確かに読み取れるものだけにする。
 
+前提: 記録は、手順に従って動いたセッションのものとする（わざと隠した書き込みや実行は、見つけることを主張しない）。
+analyze に渡すプロジェクトは、空のフォルダーから始めた取り込みとする（run はそうする）。前の取り込みのページが
+残っているプロジェクトでは、ファイルがあることの確かめは、今回書いたことの証拠にならない。
+
+合否を決めるもの（あったことを示す証拠）:
+
 - 誰が動いたか: エージェントの記録の横にある、Claude Code が書いたメタデータ（`agent-*.meta.json` の `agentType` と
   `launchedWithDefaults`、`agent-*.prefix.json` のモデル）と、記録のすべての応答のモデル（欠けていれば不合格）。
 - メインが Agent ツールで wiki:web-raw を呼び、model の引数を渡していないこと（入力とメタデータの両方）。
-- 構造のある道具の書き込み: Edit、Write、NotebookEdit の対象のファイル（`..` とリンクを解いて比べる）。raw に書こうと
-  したのは wiki:web-raw だけで、wiki:web-raw は wiki のページ、index.md、log.md に書こうとしていないこと（ほかの
-  サブエージェントも含めて調べる。禁止は、失敗した呼び出しも数える）。メインが書いたことは、成功した呼び出し
+- 構造のある道具の書き込み: Edit、Write、NotebookEdit の対象のファイル（`..`、Windows の拡張パスの接頭辞、リンクを解いて比べる）。
+  raw に Edit や Write で書こうとしたのは wiki:web-raw だけで、wiki:web-raw は wiki のページ、index.md、log.md に
+  Edit や Write で書こうとしていないこと（禁止は、失敗した呼び出しも数える）。メインが書いたことは、成功した呼び出し
   （結果が誤りでない）だけで数える。
-- スクリプトの実行: wiki_fetch.py と freeze の出力を受け取ったのは wiki:web-raw だけで、W8 の check --finish が通って
-  作業用の写しを消したこと。どれも、コマンドの文字列ではなく、呼び出しの id で対応させた道具の結果で決める。
+- スクリプトの実行: wiki:web-raw が wiki_fetch.py と freeze の出力を受け取ったこと（呼び出しの id で対応させた道具の
+  結果の形で決める）。W8 は、wiki:web-raw が自分で `wiki_rawcheck.py check … --finish` を実行し、その結果が、通って
+  作業用の写しを消した形であること。警告を受け入れる流れで、メインが `--finish --accept-warnings` で終えたときも
+  通し、どちらが終えたかを `w8_finished_by` に書く。
 - 文章の受け渡し: raw の文がメインに初めて届く（道具の結果か通知に現れる）までのメインの出力（文と道具の入力）と、
   すべての wiki:web-raw の依頼に、raw の本文の 40 文字以上の並びがないこと。エージェントの出力に、要約ページの文の並び
   （raw にもある並びは除く）がないこと。これは受け渡しの一部を見つけるだけで、どのモデルが文を考えたかの証明ではない。
 - 結果: raw の translated_by と補足の表示名、log の「raw:」のサブ行、作業用の写しが消えていること、要約ページがあること。
 
-Bash のコマンドの中の書き込みは、合否を決めない。シェルの文から書き込みを推し量ることは、完全にはできない
-（mv の移動元、cd のあとの相対パス、コードの中で組み立てたパスなど）。担当ごとに、raw か wiki のページに触れうる
-Bash のコマンド（raw や wiki のページのパス、cd、書き込みの呼び出しを含むもの）を一覧に出すので、人が読んで確かめる。
+合否を決めないもの（なかったことは、記録からは示せない）:
+
+- ほかの担当（メインとほかのサブエージェント）が、wiki_fetch.py や freeze を動かさなかったこと、Bash で raw や
+  wiki のページに書かなかったこと。出力を捨てる、変数に入れたパスで呼ぶ、コードの中でパスを組み立てる、などは
+  文字列からも結果からも読み切れない。そこで、メインとほかのサブエージェントの Bash と PowerShell のコマンドを
+  すべて `bash_to_review` に出し（wiki:web-raw のものは、wiki のページに触れうるものだけ）、人が読んで確かめる。
+  結果の形からほかの担当の実行が見えたときは、`other_script_runs` に出す（これも合否を決めない）。
 """
 from __future__ import annotations
 
@@ -138,12 +150,29 @@ def models_of(evs: list[dict]) -> list[str]:
 WRITE_TOOLS = ("Edit", "Write", "NotebookEdit", "MultiEdit")
 
 
-def norm(path: str, base: Path) -> str:
-    """比べるためのパス。相対パスは base から読み、`..` とシンボリックリンクを解く（記録の別名を同じファイルにする）。"""
-    p = Path(str(path).replace("\\", "/"))
+EXTENDED_PREFIX_RE = re.compile(r"^(?:\\\\|//)[?.][\\/](?:UNC[\\/])?", re.I)
+
+
+def norm(path, base: Path) -> str:
+    r"""比べるためのパス。相対パスは base から読み、`..` とシンボリックリンクを解く（記録の別名を同じファイルにする）。
+
+    Windows の拡張パスの接頭辞（`\\?\C:\...`、`\\.\C:\...`、`\\?\UNC\host\share\...`）は外してから解く。
+    `resolve()` は接頭辞を残すことがあり、残ると、同じファイルでも比べる文字列が変わる。
+    """
+    text = str(path)
+    m = EXTENDED_PREFIX_RE.match(text)
+    if m:
+        unc = m.group(0).upper().rstrip("\\/").endswith("UNC")
+        text = ("//" if unc else "") + text[m.end():]
+    p = Path(text.replace("\\", "/"))
     if not p.is_absolute():
         p = base / p
-    return p.resolve().as_posix()
+    resolved = p.resolve().as_posix()
+    m = EXTENDED_PREFIX_RE.match(resolved)
+    if m:
+        unc = m.group(0).upper().rstrip("\\/").endswith("UNC")
+        resolved = ("//" if unc else "") + resolved[m.end():]
+    return resolved
 
 
 def tool_paths(tools: list[dict], base: Path, results: dict[str, dict] | None = None) -> list[str]:
@@ -159,7 +188,6 @@ def bash_commands(tools: list[dict]) -> list[str]:
 
 REDIRECT_RE = re.compile(r"(?<![0-9&])>>?\s*[\"']?([^\s;|&\"'<>]+)")
 WIKI_PAGE_RE = re.compile(r"(?:^|/)(?:index\.md|log\.md|SCHEMA\.md)$|(?:^|/)(?:sources|entities|concepts|synthesis)/[^/]+\.md$")
-RAW_PATH_RE = re.compile(r"(?:^|[\s\"'=(/\\])raw[/\\][^\s\"';|&)]*")
 WIKI_PAGE_IN_TEXT_RE = re.compile(r"(?:index|log|SCHEMA)\.md|(?:sources|entities|concepts|synthesis)[/\\][^\s\"']+\.md")
 
 
@@ -207,18 +235,16 @@ def touches(command: str, patterns: list[re.Pattern]) -> bool:
     return any(p.search(command) for p in patterns)
 
 
-CD_RE = re.compile(r"(?:^|[;&|\n]\s*)(?:cd|pushd|Set-Location)\s")
-
-
-# 誰がスクリプトを実行したかは、コマンドの文字列ではなく、その人に届いた道具の結果（スクリプトの出力の形）で決める。
-# コマンドの文字列からは、引用符、変数、別の呼び出しで組み立てたパスなどを完全には読めず、echo などの表示を実行と
-# 取り違える。スクリプトの名前を含むコマンドは、合否を決めない一覧（bash_to_review）に出す。
-# 作業用の写しの fetch.json は取得の出力と同じ形なので、それを cat で読んだ結果も、取得の実行に数える（厳しい側に倒す）。
+# wiki:web-raw がスクリプトの出力を受け取ったことは、その呼び出しの結果の形で決める（あったことの証拠）。
+# ほかの担当が動かさなかったことは、記録からは示せない（出力を捨てる、変数に入れたパスで呼ぶ、など）ので、合否を
+# 決めず、結果の形から見えたものを other_script_runs に、コマンドをすべて bash_to_review に出す。
 # --json の出力は、"final_url" のすぐあとに "source_sha256" が来る（wiki_fetch.build の結果の並び。0.14.1 までの版も同じ）。
 FETCH_OUT = re.compile(r'"final_url": "[^"]*",\s*"source_sha256": "|^保存した: |ページを取得せずに続ける|'
                        r"内容は前回と同じなので、書き込まなかった|同じスラッグのファイルがあり、内容が違う", re.M)
 FREEZE_OUT = re.compile(r'^freeze: (?:通った|規則に反している)|"stage": "freeze"', re.M)
-SCRIPT_NAME = re.compile(r"wiki_fetch\.py|wiki_rawcheck\.py")
+# W8 のコマンド: wiki_rawcheck.py の check を --finish で動かしたもの。前の出力を cat で表示しただけの呼び出しを、
+# W8 の証拠にしないために、結果の形に加えてコマンドも見る（あったことを示す側なので、読めない形は通さない）。
+FINISH_CMD_RE = re.compile(r"wiki_rawcheck\.py[\"']?\s+[\"']?check\b[^\n]*--finish\b")
 
 
 def check_finished(text: str) -> bool:
@@ -248,7 +274,8 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
                      "prefix_model": (prefix.get("state") or {}).get("model"), "events": evs})
     raw_agents = [s for s in subs if s["type"] == AGENT_TYPE]
     others = [s for s in subs if s["type"] != AGENT_TYPE]
-    wiki, raw = project / "wiki", project / "raw"
+    # wiki と raw そのものがリンクのこともあるので、書き込み先と同じく解いてから比べる
+    wiki, raw = Path(norm(project / "wiki", project)), Path(norm(project / "raw", project))
     checks: list[dict] = []
 
     def check(name: str, ok, detail=None):
@@ -288,17 +315,28 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     # 書いたことを求めるときは、成功した呼び出しだけを数える。
     written = {name: tool_paths(tools, project, results[name]) for name, tools in actors.items()}
 
+    # あったことの証拠: wiki:web-raw が取得と freeze の出力を受け取った（結果の形）。
     fetch_runs = {name: ran(tools, results[name], FETCH_OUT) for name, tools in actors.items()}
     freeze_runs = {name: ran(tools, results[name], FREEZE_OUT) for name, tools in actors.items()}
-    check("wiki_fetch.py と freeze を実行したのは wiki:web-raw だけ（道具の結果の形）",
-          fetch_runs[AGENT_TYPE] and freeze_runs[AGENT_TYPE]
-          and not any(fetch_runs[n] or freeze_runs[n] for n in actors if n != AGENT_TYPE),
-          {n: [c[:160] for c in fetch_runs[n] + freeze_runs[n]] for n in actors
-           if n != AGENT_TYPE and (fetch_runs[n] or freeze_runs[n])})
-    finished = {n: [t for t in tools if t["name"] in ("Bash", "PowerShell") and succeeded(t, results[n])
-                    and check_finished(results[n][t["id"]]["text"])] for n, tools in actors.items()}
-    check("W8 の check --finish が通り、作業用の写しを消した（道具の結果）", any(finished.values()),
-          {n: len(c) for n, c in finished.items() if c})
+    check("wiki:web-raw が wiki_fetch.py と freeze の出力を受け取った（道具の結果の形）",
+          fetch_runs[AGENT_TYPE] and freeze_runs[AGENT_TYPE],
+          {"fetch": len(fetch_runs[AGENT_TYPE]), "freeze": len(freeze_runs[AGENT_TYPE])})
+    # ほかの担当の実行は、記録からは「なかった」と示せないので、見えたものを出すだけにする（合否を決めない）。
+    other_runs = {n: [c[:300] for c in fetch_runs[n] + freeze_runs[n]] for n in actors
+                  if n != AGENT_TYPE and (fetch_runs[n] or freeze_runs[n])}
+
+    def finishers(name: str) -> list[dict]:
+        """name が自分で check --finish を動かし、その結果が、通って作業用の写しを消した形の呼び出し。"""
+        return [t for t in actors[name] if t["name"] in ("Bash", "PowerShell")
+                and FINISH_CMD_RE.search(str(t["input"].get("command", "")))
+                and succeeded(t, results[name]) and check_finished(results[name][t["id"]]["text"])]
+
+    agent_finished = finishers(AGENT_TYPE)
+    # 警告を受け入れる流れ（references/web-raw.md の warnings）では、メインが --accept-warnings を付けて終える。
+    main_finished = [t for t in finishers("main") if "--accept-warnings" in str(t["input"].get("command", ""))]
+    w8_by = ([AGENT_TYPE] if agent_finished else []) + (["main"] if main_finished else [])
+    check("W8 の check --finish を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインの "
+          "--accept-warnings）", w8_by, {"finished_by": w8_by})
 
     raw_writers = {name: [p for p in paths if under(p, raw)] for name, paths in writes.items()}
     check("raw に書いた（Edit、Write）のは wiki:web-raw だけ",
@@ -349,21 +387,15 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     ingest = wiki / ".wiki-cache" / "ingest"
     check("作業用の写しが消えた", not (ingest.exists() and any(ingest.iterdir())))
 
-    # 合否を決めない一覧: raw か wiki のページに触れうる Bash のコマンド（人が読んで確かめる）。
-    raw_like = [RAW_PATH_RE, re.compile(re.escape(str(raw).replace("\\", "/")), re.I)]
-    wiki_like = [WIKI_PAGE_IN_TEXT_RE]
+    # 合否を決めない一覧（人が読んで確かめる）。メインとほかのサブエージェントは、絞り込むと見落とすので、Bash と
+    # PowerShell のコマンドをすべて出す。wiki:web-raw は数が多いので、wiki のページに触れうるものだけを出す。
     review = {}
     for name, cmds in bash.items():
-        if name == AGENT_TYPE:
-            picked = [c for c in cmds if touches(c, wiki_like)]
-        elif name == "main":
-            picked = [c for c in cmds if touches(c, raw_like + [SCRIPT_NAME]) or (CD_RE.search(c) and "raw" in c)]
-        else:
-            picked = [c for c in cmds if touches(c, raw_like + wiki_like + [SCRIPT_NAME])]
+        picked = [c for c in cmds if touches(c, [WIKI_PAGE_IN_TEXT_RE])] if name == AGENT_TYPE else list(cmds)
         if picked:
             review[name] = [c[:300] for c in picked]
     return {"project": str(project), "checks": checks, "ok": all(c["ok"] for c in checks),
-            "bash_to_review": review,
+            "bash_to_review": review, "other_script_runs": other_runs, "w8_finished_by": w8_by,
             "translated_by": translated_by.group(1) if translated_by else None, "caption_names": captions,
             "main_models": sorted(set(main_models)), "agent_models": sorted(set(agent_models)),
             "other_subagents": [{"path": s["path"], "type": s["type"], "models": models_of(s["events"])} for s in others],

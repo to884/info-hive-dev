@@ -169,7 +169,20 @@ class ReferenceTest(unittest.TestCase):
         text = read(REFERENCE)
         step4 = text[text.index("\n4. "):text.index("\n5. ")]
         self.assertIn("`fetch.force` を `false`、`fetch.html_file` と `fetch.page_url` を `null` に戻して", step4)
-        self.assertIn("「本文が短いまま続ける」を消す", step4)
+
+    def test_every_retake_goes_back_to_w3(self):
+        # 取り直したら、どの段からでも W2 の出力の扱いと W3 に戻る（レビュー 7 の重大 1。W5 の取り直しが
+        # 「W4 からやり直す」で W3 を飛ばし、承認を照らし合わせずに新しい本文で進めた）。
+        text = read(REFERENCE)
+        steps = text[text.index("## W1〜W8"):]
+        steps = steps[:steps.index("\n## ", 5)] if "\n## " in steps[5:] else steps
+        self.assertIn("**取り直したら、W2 の出力の扱いと W3 に戻る。**", steps)
+        retakes = [s for s in re.split(r"(?<=。)", steps) if re.search(r"取り直|--force", s)]
+        self.assertTrue(retakes)
+        for sentence in retakes:
+            with self.subTest(sentence=sentence[:80]):
+                # 取り直しの文で、W3 より後の段から続けると書かない
+                self.assertNotRegex(sentence, r"W[4-8][^。]*?から(?:やり直|続け|進)")
 
     def test_old_work_dir_does_not_hide_fetch_errors(self):
         # 終了コード 1 と 2 では、取得や --html-file の誤りを先に返す（old_work_dir の問いで隠さない）
@@ -324,13 +337,12 @@ class SyntheticTranscriptTest(unittest.TestCase):
         report = self.write(main, agents, project=Path("proj"))
         self.assertIn("raw に書いた（Edit、Write）のは wiki:web-raw だけ", self.failed(report))
 
-    def test_script_runs_are_judged_by_their_results(self):
-        """実行者は、コマンドの文字列ではなく受け取った結果の形で決める（PR #103 とレビュー 6 の指摘）。
+    def test_script_runs_by_others_are_listed_not_judged(self):
+        """ほかの担当がスクリプトを動かさなかったことは、記録からは示せないので、合否を決めずに一覧に出す（レビュー 7）。
 
-        パスの引用符、サブコマンドの引用符、変数に入れたパスのどれでも、メインが freeze の出力を受け取れば不合格に
-        する。表示だけの echo は実行に数えず、スクリプトの名前を含むコマンドは見直す一覧に出す。
+        wiki:web-raw が出力を受け取ったこと（あったことの証拠）は、パスの引用符を変えても読む。メインが freeze を
+        動かしたときは、結果の形が見えれば other_script_runs に、出力を捨てた形でも、コマンドは bash_to_review に出る。
         """
-        name = "wiki_fetch.py と freeze を実行したのは wiki:web-raw だけ（道具の結果の形）"
         main, agents = self.good()
         quoted = []
         for rec in agents[0][1]:
@@ -341,16 +353,49 @@ class SyntheticTranscriptTest(unittest.TestCase):
         agents = [(agents[0][0], quoted)]
         report = self.write(main, agents)
         self.assertTrue(report["ok"], self.failed(report))
-        for command in ("python '/plugin/scripts/wiki_rawcheck.py' freeze --slug cqrs",
-                        "& python 'C:/plugin/scripts/wiki_rawcheck.py' 'freeze' --wiki $w --raw-root $r --slug cqrs",
-                        "& python $s freeze --wiki $w --raw-root $r --slug cqrs"):
+        self.assertEqual(report["other_script_runs"], {})
+        for command, output in (("& python $s freeze --wiki $w --raw-root $r --slug cqrs", "freeze: 通った"),
+                                ("& python $s freeze --wiki (Join-Path $PWD wiki) --slug cqrs > $null", "")):
             with self.subTest(command=command):
-                report = self.write(main + [self.use("Bash", {"command": command}), self.got("freeze: 通った")], agents)
-                self.assertIn(name, self.failed(report))
-        echo = "echo 'wiki_rawcheck.py freeze を実行するのはエージェント'"
-        report = self.write(main + [self.use("Bash", {"command": echo}), self.got(echo[6:-1])], agents)
+                report = self.write(main + [self.use("PowerShell", {"command": command}), self.got(output)], agents)
+                self.assertTrue(report["ok"], self.failed(report))
+                self.assertIn(command, report["bash_to_review"]["main"])
+                self.assertEqual(bool(report["other_script_runs"]), bool(output))
+
+    def test_agent_must_receive_fetch_and_freeze_output(self):
+        """wiki:web-raw が取得か freeze の出力を受け取っていなければ不合格にする。"""
+        name = "wiki:web-raw が wiki_fetch.py と freeze の出力を受け取った（道具の結果の形）"
+        main, agents = self.good()
+        records = [r for r in agents[0][1] if "freeze: 通った" not in json.dumps(r, ensure_ascii=False)]
+        report = self.write(main, [(agents[0][0], records)])
+        self.assertIn(name, self.failed(report))
+
+    def test_w8_needs_the_agents_own_finish(self):
+        """W8 は、wiki:web-raw が自分で check --finish を動かして通ったことで決める（レビュー 7）。
+
+        前の出力を cat で表示しただけ、メインが --accept-warnings なしで代わりに終えた、は通さない。
+        警告を受け入れる流れで、メインが --finish --accept-warnings で終えたときは通し、終えた担当を書く。
+        """
+        name = ("W8 の check --finish を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインの "
+                "--accept-warnings）")
+        finish = "python wiki_rawcheck.py check --slug cqrs --finish"
+        main, agents = self.good()
+        sonnet = "claude-sonnet-5-5"
+        without = [r for r in agents[0][1] if "--finish" not in json.dumps(r, ensure_ascii=False)
+                   and "work_dir_removed" not in json.dumps(r, ensure_ascii=False)]
+        cases = {
+            "cat_of_old_output": (main, [(agents[0][0], without + [
+                self.use("Bash", {"command": "cat previous-check-output.json"}, sonnet), self.got(CHECK_OUTPUT)])]),
+            "main_finished_without_accept": (main + [self.use("Bash", {"command": finish}), self.got(CHECK_OUTPUT)],
+                                             [(agents[0][0], without)]),
+        }
+        for case, (m, a) in cases.items():
+            with self.subTest(case=case):
+                self.assertIn(name, self.failed(self.write(m, a)))
+        accepted = main + [self.use("Bash", {"command": finish + " --accept-warnings"}), self.got(CHECK_OUTPUT)]
+        report = self.write(accepted, [(agents[0][0], without)])
         self.assertTrue(report["ok"], self.failed(report))
-        self.assertIn(echo, report["bash_to_review"]["main"])
+        self.assertEqual(report["w8_finished_by"], ["main"])
 
     def test_failed_write_over_an_old_summary_fails(self):
         """前の取り込みの要約ページが残っていても、今回の Write が失敗していれば、書いたと数えない（レビュー 6）。"""
@@ -360,6 +405,14 @@ class SyntheticTranscriptTest(unittest.TestCase):
         main = main[:at + 1] + [self.got("Permission denied", is_error=True)] + main[at + 1:]
         report = self.write(main, agents)
         self.assertIn("メインが要約ページ、index.md、log.md を書いた（要約ページはファイルがある）", self.failed(report))
+
+    def test_extended_prefix_write_into_raw_is_found(self):
+        """Windows の拡張パスの接頭辞が付いた書き込み先も、raw への書き込みとして見つける（レビュー 7）。"""
+        target = "\\\\?\\" + str(self.project / "raw" / "cqrs.md")
+        self.assertEqual(check_web_raw_agent.norm(target, self.project),
+                         check_web_raw_agent.norm(self.project / "raw" / "cqrs.md", self.project))
+        main, agents = self.good(main_extra=[self.use("Write", {"file_path": target, "content": "x"})])
+        self.assertIn("raw に書いた（Edit、Write）のは wiki:web-raw だけ", self.failed(self.write(main, agents)))
 
     def test_dotdot_write_into_raw_is_found(self):
         """`wiki/../raw/` のような書き込み先も、raw への書き込みとして見つける（レビュー 6）。"""
