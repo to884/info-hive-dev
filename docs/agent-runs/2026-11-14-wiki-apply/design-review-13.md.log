@@ -1,0 +1,100 @@
+[ask-codex 09:06:54] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-apply-design）
+## 判定
+
+**却下。確信度：高。** 待機失敗時に承認済みの差分を保存できない仕様の欠落と、過去の raw を保護できない反例が残る。以下は未実装の設計から導いた反例であり、新実装での再現結果ではない。
+
+## 致命的・重大な欠陥
+
+### 1.【重大・仕様の欠落】待機差分の生成に必要な変更前の本文を保持していない
+
+`apply` の手順0がメモリに保持するのは、`plan.json`、`D/new`、`D/edit` である。**`D/base` は含まれない。** 一方、待機失敗時には `diff` と同じ統一差分を保存し、`edit` の差分は `base` から `edit` への差分と定義している。
+
+次の実行が成立する。
+
+1. `D/base` が B0、`D/edit` が A0 の計画を承認する。
+2. 別の通常の適用で、対象ページが B1 に変わる。
+3. Aが手順0で古い計画とA0を読み、ロックを待つ。
+4. 同じDに正規の `rebase` を実行する。`D/base` と `D/edit` がB1に更新される。
+5. Aが待ち切れず、古い承認内容の `plan.diff` を保存しようとする。
+
+必要なのは `diff(B0, A0)` だが、Aが保持しているのはB0のハッシュとA0であり、B0の本文を取得する手順がない。現在の `D/base` を読めば `diff(B1, A0)` となり、別の変更を削除する差分まで混ざる。`abort` でDを削除した場合は、その読み直しもできない。
+
+メモリ上の差分生成でも、変更後のbaseを使うと、承認時にはなかった `-other-change` が追加されることを確認した。
+
+BQが保証する一体配置では、**誤った差分と古い承認ハッシュが、一組として保存される問題**を防げない。「作業フォルダーが消えても承認された変更を確かめられる」という主張は、この手順から導けない。
+
+根拠：[入力の保持・504行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:504)、[待機差分の定義・284行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:284)、[差分の生成元・471行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:471)、[rebase・623行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:623)。
+
+### 2.【重大・保証の不成立】別の raw ルートを指定すると、過去の raw を書き換えられる
+
+12版目で、rawのルートをwikiごとに固定する制約を外した。現在の実体検査が走査するrawは、**その計画の `raw_root` だけ**である。
+
+Linuxで、次の静的な配置を仮定する。実体の識別子は取得でき、必要なディレクトリ権限もあるものとする。
+
+```text
+W  = /srv/wiki
+R1 = /srv/raw-old
+R2 = /srv/raw-new
+
+W/sources は R1 の bind mount
+R1/old.md は過去に取り込んだ raw
+```
+
+1. `begin --wiki W --raw-root R2` で計画を作る。
+2. `edit --path sources/old.md` を登録し、承認する。
+3. `apply` する。
+
+この計画では、次の理由で拒否条件に当たらない。
+
+- bind mountはリンクでも再解析点でもなく、祖先へ戻る輪でもない。
+- R2はWと管理領域の外にある。
+- 行き先の親はR1の実体だが、比較するraw集合にはR2のディレクトリしかない。
+- ページ用の領域検査では、行き先はW配下にある。
+
+その結果、`os.replace` が `W/sources/old.md`、つまり **`R1/old.md` を置き換える**。POSIXでは、ファイルが読み取り専用でも、親ディレクトリに書ければこの置換は可能である。
+
+途中での別名の変更、別wiki、生きた持ち主への `unlock --force` は不要である。対照表868行の「過去の別のrawを書き換えることは生じない」は、現在のR配下だけを走査する604行と一致しない。取り込み設計も、この穴を本設計で扱うとしている。
+
+根拠：[raw固定制約の撤去・42行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:42)、[走査する集合・604行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:604)、[ルートの役割検査・609行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:609)、[成立しない対照表の主張・868行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:868)、[取り込み設計の保証外12・278行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-session-ingest-2026-11-14.md:278)。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| 計画と変更後の本文を保持すれば、後から承認済み差分を作れる | 待機中に `rebase` が変更前の本文を更新する、または `abort` がDを消す |
+| 差分と記録を原子的に一組として置けば、承認内容との対応も守られる | 差分生成に使う変更前の本文自体が保持されていない |
+| 今回指定されたrawルートの全走査で、過去のrawも保護できる | 同じwikiが別のrawルートを使用し、過去のルートへの静的な別名がある |
+
+## 見落としと軽微な問題
+
+- **【軽微】ロック内の走査を時間の説明から落としている。** 593行はディレクトリ走査をロック前の0で行うと説明する。しかし535行は、ロック内の復旧処理で、日誌ごとにディレクトリ集合と `Writer` を作り直す。復旧対象のrawが大きければ、ロック時間は今回書くファイルの数と大きさだけでは決まらない。[復旧処理・535行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:535)、[時間の説明・593行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:593)。
+
+- **【軽微】`stuck` の条件を「二つだけ」とする説明が自身の手順と食い違う。** 535行は、前後ハッシュが同じ壊れた日誌、wikiの未初期化、rawルートの検査失敗でも `stuck` にする。これらは574行と保証外9が列挙する二条件に含まれない。[条件の限定・574行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:574)、[保証外9・792行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:792)。
+
+## 検証した事実
+
+| 確かめた事項 | 結果 |
+| --- | --- |
+| サブモジュールの版 | **一致。** `83dbb30abcce7d4ed56babee134cd6247ad7803d` |
+| 新実装の有無 | **未実装。** `wiki_apply.py`、`wiki_fsguard.py` は存在しない |
+| 変更後のbaseと保持済みdraftからの差分 | **不一致を確認。** 承認時にはない削除行が生じた |
+| 親wikiの索引への通常追記 | 同梱パーサーで、項目一つ分の5トークンが増えた |
+| 親wikiのログへの通常のサブ行追記 | ブロックの構造が維持された |
+| 初期化判定 | **ADR-0019と一致。** 直下の `SCHEMA.md` の種類を確認し、本文は読まない |
+| 指定された既存の書き込み経路と移行表 | 上記以外に、確実な経路漏れは確認できなかった |
+| 電源断、実際のbind mount、新実装の並行実行 | **確かめられず。** 本レビューでは実施していない |
+
+リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- BHによる完了印のwiki側への移動では、別環境のDへ印を書けない旧反例は成立しなくなった。
+- BP・BR・BSの条文では、正常な `.wiki-cache` 自身の拒否、pending削除時のrawルート欠落、`LOG.md` による制限回避という元の反例は止まる。
+- 正しい差分本体を用意でき、保存先名の衝突がない条件では、BQから旧来の「独立した二つの置換が交錯する」反例は導けなかった。
+- POSIXで各ディレクトリ同期が成功する条件では、BOの順序から旧来の完了印だけが先に永続化される反例は導けなかった。Windowsの永続化順序は未確認である。
+- 全体ハッシュによる `edit`、同一ファイルの `ops` の順次合成、完了印のロック内再確認は、過去の変更消失・二重適用の反例では崩せなかった。
+- 明記された保証外13を除き、BUから新しい二重書き込みの反例は得られなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: research
+[ask-codex 09:20:52] 完了。session 01a1dc87-486c-7df0-ab9a-05e00808a145  usage {"input_tokens": 5056973, "cached_input_tokens": 4876416, "cache_write_input_tokens": 0, "output_tokens": 24284, "reasoning_output_tokens": 15209}

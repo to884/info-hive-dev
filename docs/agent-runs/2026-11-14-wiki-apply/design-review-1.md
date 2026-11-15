@@ -1,0 +1,235 @@
+反例を整理しています。同じ内容の別の計画が過去の日誌に吸収される点、停止後に残るハードリンクが次の編集を拒ませる点、行き先の親子関係によって回復できない計画を作れる点が残りました。最終結果では、設計から導いた反例と、メモリ上で確認した結果を分けて示します。
+## 判定
+
+**却下。確信度：高。** 日誌の管理領域を経由して raw に書く経路と、ロックに参加する書き手だけでログの追記先を取り違える経路が残る。停止後の回復と、承認ハッシュが縛る範囲にも欠落がある。
+
+未実装の設計へのレビューである。以下の反例は設計の規則から導いたもので、既存パーサーを使った検証と、名前・ハッシュのメモリ上の計算以外に、実ファイルの破壊試験は行っていない。
+
+## 致命的・重大な欠陥
+
+### 1.【重大】日誌ディレクトリがリンクなら、検査を通って raw に書く
+
+開始前から次の配置があるとする。途中の差し替えも、外部の書き手も要らない。
+
+```text
+W/.wiki-cache/               通常のディレクトリ
+W/.wiki-cache/apply/         通常のディレクトリ
+W/.wiki-cache/apply/work/    通常のディレクトリ
+W/.wiki-cache/apply/journal -> R
+R/                          W と包含関係のない raw ルート
+```
+
+1節が検査するのは `.wiki-cache`、`apply`、`work` と `D` であり、`journal` は含まれない。`D` の祖先にも R は現れない。通常のページを作る計画なら、ページの行き先に対する7節の検査も通る。
+
+しかし、6節の手順6は次を作る。
+
+```text
+R/<plan_sha256>/after/0
+R/<plan_sha256>/manifest.json
+```
+
+**ページの行き先が安全でも、道具自身の日誌の書き込みが raw の中身を変える。** 日誌の作成・更新・掃除について、7節の検査を行う契約がない。
+
+根拠：[対象設計・1節、78〜79行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:78)、[6節、203・219行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:203)、[7節、256行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:256)。
+
+したがって、425行の「この道具は raw を書かない」は成立しない。
+
+### 2.【重大】親のリンク経由なら `log.md` を `edit` でき、`nth` が別の項目を指す
+
+次のリンクを開始前から置く。
+
+```text
+W/indexes -> W
+```
+
+A が `log-entry` を適用し、見出し H と `nth=1` を受け取ったあと、B が次を登録する。
+
+```text
+edit --path indexes/log.md
+```
+
+このパスは字面の規則を満たす。行き先そのものは通常ファイルで、リンク数も1である。Bの計画に項目が一つしかなければ、実体による重複判定にも当たらない。`log.md` の frontmatter 検査が必要なら、それも通る内容のログを初期状態にすればよい。
+
+Bは写しの先頭側へ同じ見出し H を追加し、承認を得て `apply` する。その後、Aが指定どおり `log-sub --entry H --nth 1` を実行すると、サブ行はBが挿入した項目へ付く。
+
+**すべて `wiki_apply.py` を通る書き込みである。** 「参加する書き手は同じ見出しを前に差し込めない」という158行の前提が崩れる。特殊ファイルの操作制限は字面だけで、実体に結び付いていない。
+
+根拠：[対象設計・3節、125〜130行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:125)、[4節、156〜158行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:156)、[6節、205行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:205)。
+
+対照表419行の「生じない（書く段に加わる書き手の間）」への反例である。
+
+### 3.【重大・仕様の欠落】適用時の `--raw-root` が、承認した計画の値と一致する保証がない
+
+ハッシュには計画内の `raw_root` が入る。一方、`apply` は別途 `--raw-root` を受け取り、7節はその引数から検査対象の集合を作る。両者の一致を調べる手順がない。
+
+記述どおり引数を検査に使う場合、次の反例になる。
+
+1. `W/indexes -> R1` を開始前から置く。R1とW自体には包含関係がない。
+2. `begin --raw-root R1` で、未作成の `indexes/x.md` を `new` にする。
+3. `diff` の raw 検査は「すでにある行き先」だけなので、この行き先は検査されない。計画内の `raw_root=R1` を含むハッシュ H を承認する。
+4. `apply --raw-root R2 --expect-sha256 H` とする。R2は別の通常ディレクトリとする。
+5. 計画と作業ファイルは変わっていないのでハッシュは一致する。R2の集合にはR1の実体がなく、行き先の親は検査を通る。
+6. `R1/x.md` が作られる。
+
+これは、未承認の実効設定で raw 検査を変える経路である。実装がどちらの値を使うかは未確認だが、**現在の設計には、二つの入力を結ぶ契約がない。**
+
+根拠：[対象設計・5節、168・179行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:168)、[6節、194〜198行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:194)、[7節、255行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:255)。
+
+### 4.【重大】内容が同じ別の計画を、過去の計画の再実行と取り違える
+
+`plan_sha256` に作業フォルダーの識別子は入らない。したがって、別々の `begin` から作った次の二つの計画は同じハッシュになる。
+
+```text
+D1: log-entry --op lint --date 2026-11-14 --title "定期検査"
+D2: log-entry --op lint --date 2026-11-14 --title "定期検査"
+```
+
+午前と午後に別々の検査を行い、それぞれ記録する場合を考える。
+
+1. D1を適用すると日誌Hが `done` になる。
+2. 別途作ったD2を承認して適用する。
+3. 手順3は日誌Hだけを見て `already_applied` を返す。
+4. 二回目の検査のログは追加されない。
+
+これは同じ要求の再送ではない。**異なる作業フォルダーで開始した別の操作を、内容の一致だけで同一操作にしている。** 同じ内容の計画が同じハッシュになることはメモリ上で確認した。
+
+根拠：[対象設計・5節、173〜188行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:173)、[6節、204・243行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:204)。`lint` は[既存ログテンプレートの正規の操作名](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/assets/log.md.template:8)である。
+
+### 5.【重大】POSIX の非置換配置が途中で止まると、正しく作ったページを編集できなくなる
+
+停止位置は6節の手順7の内部である。
+
+```text
+一時ファイルを fsync
+os.link(一時ファイル, 行き先)   ← 成功
+プロセス停止                  ← 一時ファイルの削除前
+```
+
+この時点で、行き先の内容は正しいが、一時名と行き先の二つのハードリンクが残る。
+
+次の書き手による回復では、行き先が `after_sha256` と同じなので「何もしない」になり、日誌は `done` になる。一時名を消す処理も、その名前を日誌に残す規則もない。
+
+その後、このページを正規の `edit` で更新すると、リンク数が2なので `target_has_other_names` になる。**自分が停止時に残した一時名を他人の別名と取り違え、適用済みのページを更新不能にする。**
+
+根拠：[対象設計・6節、205・220行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:205)、[回復の表、228〜229行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:228)。
+
+POSIXの配置手順から導いた反例であり、今回ハードリンクの作成・プロセス停止は実行していない。
+
+### 6.【重大】行き先が実体上で親子になる二つの `new` を受け付け、完了不能の日誌を作れる
+
+次の配置と計画を考える。
+
+```text
+W/indexes -> W
+
+new a.md
+new indexes/a.md/child.md
+```
+
+どちらもパスの規則を満たし、最初は存在しない。作業側の名前は次のとおりで、互いに親子にならないため、両方の内容を用意できる。
+
+```text
+D/new/a.md
+D/new/indexes/a.md/child.md
+```
+
+しかし実際の行き先は次になる。
+
+```text
+W/a.md
+W/a.md/child.md
+```
+
+二つは同じファイルではないため、3節の同一性判定では拒まれない。手順5でも、それぞれ「ない」として通る。
+
+`a.md` を先に書くと、二つ目の親はファイルなので配置できない。逆順でも、`a.md` がディレクトリになり、一つ目を配置できない。**どの順序でも完成できない計画を、日誌の永続化と部分書き込みのあとまで受け入れる。**
+
+次の `apply` も先にこの日誌を進めるため、同じ障害が再発する。`recover --discard` の対象として説明されているのは `stuck` だが、この種類の配置失敗を `stuck` に移す規則はない。
+
+根拠：[対象設計・3節、118〜130行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:118)、[6節、203・210・219〜245行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:203)。
+
+行き先側だけが親子になることはメモリ上で確認した。
+
+### 7.【重大】受理されるサブ行が、後続のログ項目をコードフェンス内へ取り込む
+
+次は登録条件を満たす1行である。
+
+```text
+log-sub --entry "<Aの見出し>" --nth 1 --line "~~~"
+```
+
+3文字の空白を付けるため、結果は次になる。
+
+```markdown
+## [2026-11-14] ingest | A
+   ~~~
+
+## [2026-11-14] ingest | B
+```
+
+既存の `wiki_pages.new_parser()` で解析すると、**見出しはAだけで、Bはフェンスの内容になる**。これをメモリ上で確認した。
+
+4節のフェンス認識がこの字下げも扱うなら、Bを追加したあとの「見出しの出現番号」を通常の正整数として返せない。扱わないなら、既存の閲覧・解析ではコードである行を、新しい操作だけが見出しとして扱う。
+
+改行や制御文字を禁止するだけでは、後続操作の構造を壊す入力を排除できない。
+
+根拠：[対象設計・4節、136〜158行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:136)、[既存パーサー、391〜397行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:391)。
+
+### 8.【重大】10節の書き換え範囲では、直接書き込む既存の手順が残る
+
+これは「まだ実装していない」ことへの指摘ではない。**計画が指定する文面変更だけでは、移行完了条件を満たせない。**
+
+- `ingest-workflow.md` について指定する変更は「索引とログを書く箇所」だが、既存の手順5は `wiki/sources/...` の作成を、手順6は既存ページへの `str_replace` を命じている。
+- `query-workflow.md` は10節と実装対象表のどちらにもない。既存の手順6には、`wiki/synthesis/...` の作成と索引・ログへの追記が残る。コマンドを介さずスキルの参照文書から保存すると、この手順に入る。
+- `graph-workflow.md` も変更対象にない。既存文書は承認されたページ修正とログへの追記を指示し、取り込み手順はこの文書を正本として参照する。
+
+セッション側も、S7〜S9の差し替えだけではS10のログ追記が自動的に `log-sub` になるわけではない。10節の一般の手順7をS10にも適用する関係を、実際の参照文書まで一貫させる記述が不足している。
+
+根拠：[対象設計・10節、320〜332行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:320)、[実装対象表、393〜394行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:393)、[取り込み手順5〜6](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/references/ingest-workflow.md:198)、[クエリの保存手順](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/references/query-workflow.md:69)、[グラフの修正・追記手順](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/info-hive-wiki/skills/info-hive/references/graph-workflow.md:117)、[セッションのS10](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-session-ingest-2026-11-14.md:263)。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| 作業フォルダーを検査すれば、道具自身の書き込み先も安全である | 別の管理用ディレクトリである `journal` がリンクになっている |
+| 特殊ファイルへの制限は、その相対パスを検査すれば守れる | 親のリンクを経由して `log.md` へ別の名前で到達する |
+| 同じハッシュなら、同じ操作の再実行である | 独立して開始した操作が同じ内容になる |
+| ハッシュ内の `raw_root` が、適用時の検査対象を決める | CLIにも同名の入力があり、一致検査がない |
+| 内容が後像と一致すれば、回復時には何もしなくてよい | 非置換配置の一時ハードリンクが残っている |
+| 各行き先が別ファイルなら、全項目を配置できる | 別名を解くと、一方のファイルが他方の親になる |
+| 1行のサブ行なら、ログの構造を壊さない | Markdownのブロックを開く行を含む |
+| コマンドの保存手順を変えれば、スキル全体が移行する | 参照文書に独立した直接編集の指示が残る |
+
+## 見落としと軽微な問題
+
+- **【軽微・状態遷移の欠落】既存の `stuck` の扱いが不明確。** 手順2が対象にするのは `pending` だけで、すでに `stuck` の日誌を発見した場合の分岐がない。別の計画はそれを飛ばして進められる読み方になる一方、終了コード5の説明は「前に進められない日誌がある」である。同じ計画を再実行した場合も、手順3は `done` しか処理しない。[対象設計・203〜204行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:203)、[終了コード表](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:304)。
+
+- **【軽微・字句規則の不足】フェンスの閉じ行の条件が足りない。** 138行には閉じ記号の後ろに文字がある場合の扱いがない。既存パーサーでは、開いた `~~~text` に対する `~~~still-data` は閉じ行にならない。「同じ記号で同じか長い並び」という条件だけで閉じる実装では、その後のコード内の見出しを追記先にできる。この解析結果もメモリ上で確認した。[対象設計・138行](/C:/Works/info-hive-dev/.claude/worktrees/wiki-apply-design/docs/plans/wiki-apply-2026-11-14.md:138)。
+
+## 検証した事実
+
+| 確かめた主張 | 結果 |
+| --- | --- |
+| 既存コードの参照版 | 作業ツリーの `info-hive-wiki` は `83dbb30abcce7d4ed56babee134cd6247ad7803d` と一致 |
+| 初期化判定が保存領域の安全性も保証する | **保証しない。** `wiki_initialized.py` はルートと `SCHEMA.md` の種類を検査する。ADR-0019と一致 |
+| `indexes` のリンクが既存の運用から排除されている | **排除されていない。** `walk_index_files()` はリンクでも起点として降りる |
+| 作業フォルダーが異なる同内容の計画のハッシュ | **一致。** 定義されたハッシュ入力には作業フォルダーの識別子がない |
+| 別名経由の二つの `new` の親子関係 | **メモリ上で確認。** 作業側では独立し、行き先側では親子になる |
+| `   ~~~` の後のログ見出し | **既存パーサーで確認。** 後続項目はコードフェンスの内容になる |
+| 索引分割の件数規則 | **既存文書との変更点を確認。** 現行 `scaling-playbook.md` は件数を要求する |
+| セッションの `scan` | **助言という扱いは一致。** 適用を機械的に強制しない限界は、今回の欠陥に数えていない |
+| `concurrency-check.md` の消失数 | 記録を読んだ。今回、Claude Codeの並行試験を再実行して数値を検証してはいない |
+
+リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 同じ実体を指す項目を排除でき、管理領域と行き先に上記の問題がない場合、参加する書き手が先に残った `pending` を完了する順序から、通常の再実行による二重追記の反例は得られなかった。
+- `edit` をファイル全体の前像で照合する規則では、旧版の「別の節の完成形を当て済みの証拠にする」反例は成立しなかった。
+- 一つの `ops` 項目で前の結果を次の入力にする規則では、同じ索引の二つの節への追加が互いを消す旧版の反例は成立しなかった。
+- 見出し、`nth`、日付、足す行を `ops` に含める規則では、旧版の `append.section` のハッシュ漏れは再現できなかった。
+- 直接 `.wiki-cache/apply/apply.lock` を変更対象にする旧版の反例は、現在の字面の規則で拒まれる。
+- 正しいrawルートの集合を使って通常のページの親を検査する場合、既存の浅いリンクによってrawへ到達する反例は検査に当たる。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
