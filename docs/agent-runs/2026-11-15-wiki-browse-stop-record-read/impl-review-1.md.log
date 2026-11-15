@@ -1,0 +1,54 @@
+[ask-codex 15:50:52] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-session-ingest-a98aa3）
+## 判定
+
+**条件付きで採用可。** 追加試験に、正常な停止でもスケジュール順によって落ちる反例がある。また、再試行後の警告について、設計の 7.1 と 9.2 が食い違っている。確信度は**高**。ただし、Windows・Python 3.12 での実機試験は再実行できていない。
+
+## 致命的・重大な欠陥
+
+### 重大（試験）：正常な停止でも追加試験が失敗する
+
+対象は [test_browse_server.py の `test_stop_waits_while_the_finishing_server_removes_the_record`](/C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/tests/wiki/test_browse_server.py:445)。
+
+次の順序で、製品コードが正常に停止しても試験が落ちる。
+
+1. 停止要求によって `_stopping` が立つ。
+2. `stop` の呼び出し元が、次の `probe_server` より前で実行を中断される。
+3. 補助スレッドが 0.6 秒待ち、記録を削除してロックを離す。
+4. 呼び出し元が再開し、`not-running` を確認して成功する。
+5. 読み取り拒否を一度も踏んでいないため、460 行目の `assertGreater(reads.denied, 0)` が失敗する。
+
+当該テストメソッドを、ファイル操作を行わない代替処理で実行し、HTTP 呼び出しの復帰をロック解放後に遅らせると、**`0 not greater than 0` を再現できた**。失敗や不正な OS 状態を入れなくても成立する順序であり、「決まった順に作る」という説明と食い違う。実際の CI でこの順序が発生する頻度は未測定。
+
+## 崩れる前提
+
+- **停止要求後、0.6 秒以内に呼び出し元が記録を確認する。** スケジューラーが補助スレッドを先に進めれば崩れる。上記の試験失敗につながる。
+- **再試行で使わなかった `Unknown` は、9.2 の警告要件の対象外になる。** 現在の 9.2 に、その例外は書かれていない。
+- **削除待ちの試験では、`stop` 自身も削除待ちを観測する。** [522 行目の試験](/C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/tests/wiki/test_browse_server.py:522)は、先行する `probe_server` の観測だけは保証する。その後、補助スレッドが記録を作り直してから `stop` が走る順序も許す。
+
+## 見落としと軽微な問題
+
+**軽微：7.1 と 9.2 の警告規則が矛盾している。**
+
+[7.1 の 440 行目](/C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/docs/plans/wiki-browse-structure-2026-11-11.md:440)は、待つ間に読めた記録で続ける場合は警告不要としている。一方、[9.2 の 490 行目](/C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/docs/plans/wiki-browse-structure-2026-11-11.md:490)は、`Unknown` を入れて終了コード 0 なら新しい警告を要求し、例外を `close` とロック解放に限っている。
+
+メモリ内での再現結果は、`stop`、使い回す `serve` ともに、**`Unknown` → 読み取り成功 → 終了コード 0、標準エラー空、警告空**だった。実装は 7.1 と一致し、9.2 の文言とは食い違う。後で確認できた記録を使っているので、これだけを P1 違反とは判定しない。
+
+## 検証した事実
+
+- **一致：** `Unknown` は `_record_while_locked` から `unreadable` として返り、記録なしには変換されない。
+- **一致：** 読めない記録の後に別の `owner` が現れるケースは `Stop`、`instance` が不一致のケースは `Failed` となり、どちらも停止の POST は送られなかった。
+- **一致：** Windows の実ファイルを新しい読み取り口で読めた。記述子は継承不可だった。`open_osfhandle` に失敗を入れた後、取得済みハンドルは閉じられていた。
+- **一致：** 構文木検査 2 件と失敗分類の試験 1 件は通過した。
+- **確かめられず：** 一時ディレクトリを作る試験は読み取り専用環境で実行できなかった。`FileDispositionInfo` の実機再現、Python 3.12、旧コードでの失敗件数は、提供された記録との照合まで。
+- リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- `unreadable` の値や、前の反復の記録を停止先として使う経路は見つからなかった。
+- `serve_start` の戻り値変更による、確認した呼び出し元の破綻は見つからなかった。
+- 共有指定を共通化し、読めない記録を状態として返す部分について、反例ごとの場当たり的な分岐が必要になる欠陥は示せなかった。
+- `os.replace` の既存制限を今回悪化させた根拠は得られなかった。リンク、ジャンクション、長いパスについても、新たな回帰を示す反例は得られていないが、実機確認は未実施。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 16:03:00] 完了。session 01a1ddf9-1e73-7b13-b644-6ae1d9467efd  usage {"input_tokens": 2900312, "cached_input_tokens": 2756224, "cache_write_input_tokens": 0, "output_tokens": 19184, "reasoning_output_tokens": 10243}
