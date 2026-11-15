@@ -4,7 +4,7 @@ wiki のページ、索引、ログへの書き込みを、モデルの Edit と
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 17 版目。**作者の判断で、Sol の敵対的レビューを 15 回で止めた（2026年11月15日）。** 15 回とも却下だった。17 版目（15 回目の指摘の直し、CB〜CF）は、レビューを受けていない。設計の承認と ADR は、作者の判断を待つ。実装はまだ始めていない |
+| 状態 | **承認（2026年11月15日、作者）。** 17 版目。作者の判断で、Sol の敵対的レビューを 15 回で止め（15 回とも却下）、この版を承認した（「レビューを止めた判断」）。17 版目の直し（CB〜CF）はレビューを受けていないので、実装のときの試験とレビューで確かめる。決定は [ADR-0023](../adr/0023-wiki-apply-uses-journal-and-per-wiki-lock.md) に残した。実装はまだ始めていない |
 | きっかけ | [セッションの取り込みの設計](wiki-session-ingest-2026-11-14.md)の 4 版目で、書く段（`wiki_apply.py`）を足した。取り込みの設計の 4 回目のレビュー（[design-review-4.md](../agent-runs/2026-11-14-wiki-session-ingest/design-review-4.md)）の重大の 7 件のうち 6 件が書く段に出たので、作者の判断で、別の設計書に分けた |
 | 4 版目の案 | [design-v4.md](../agent-runs/2026-11-14-wiki-session-ingest/design-v4.md) の 9 節と 10 節 |
 | 関連 | [concurrency-check.md](../agent-runs/2026-11-14-wiki-session-ingest/concurrency-check.md)（Claude Code の Edit と Write を並べた試験）、`wiki_graph_common.py` のファイルのロック、`wiki_browse_fs.py` の実体の検査（`Guard`）、`wiki_pages.new_parser()`、`commands/ingest.md` の手順 6〜7、`references/ingest-workflow.md`、`graph-workflow.md`、`query-workflow.md`、`commands/query.md`、`commands/learn.md`、`commands/lint.md`、ADR-0008（作業領域の構成）、ADR-0019（wiki の根は `SCHEMA.md` で決まる） |
@@ -909,7 +909,7 @@ python wiki_apply.py pending   --wiki <W> [--show | --discard <差分の名前>]
 | 4 | `new` で同じ名前のページがあったとき | 競合にして、モデルとユーザーが決める | 番号を付けた別名で自動で作る | 推奨 |
 | 5 | `done` の日誌を残す日数 | 30 日 | 消さない。すぐ消す（`already_applied` を返せなくなる） | **14 日** |
 | 6 | `stuck` の間 | その wiki のどの計画も書かない | `stuck` の日誌の項目と同じファイルに触れない計画だけを書く（`stuck` の項目のファイルを、ほかの計画が直す前に人が見られなくなりうる） | 推奨 |
-| 7 | ADR に残すか | レビューを通り、作者が決めたあとに残す | この計画だけにする | 推奨 |
+| 7 | ADR に残すか | レビューを通り、作者が決めたあとに残す | この計画だけにする | 推奨（[ADR-0023](../adr/0023-wiki-apply-uses-journal-and-per-wiki-lock.md) に残した。2026年11月15日） |
 | 8 | 印の名前 `schema.md` を、どの階層でも予約するか（8 版目、AT） | 予約する。最後の要素を `casefold()` して `schema.md` になるパスは、ルートの `SCHEMA.md` の `edit` のほかは受けない | 予約しない（大文字と小文字を区別しないファイルシステムで、ページの名前でディレクトリを子の wiki に変えうる） | 推奨（予約する。2026年11月15日） |
 | 9 | ディレクトリの走査が完全でなければ書かないか（11 版目、BE） | 書かない。raw か wiki の下に読めないディレクトリがあれば、その wiki に書けなくなる | 読めない枝を飛ばして書く（その枝の下の bind mount を経由して raw に書きうる） | 推奨（書かない。2026年11月15日）。16 版目で走査をやめて mount point の列挙に当てたが、17 版目で木の重なりの検査のために走査を戻したので、走査と mount point の列挙の両方に当てる（どちらも完全でなければ書かない。7 節） |
 | 10 | `unlock --force` を許すか（12 版目） | 許す（POSIX だけ。生きている持ち主のロックを外すと並びうるので、利用者が持ち主の止まったことを確かめたときだけ使う） | 許さない（持ち主が止まったのに OS が生きていると見せる場合、たとえばプロセスが止まったまま残る場合に、外す手段がない） | 推奨（許す。2026年11月15日） |
