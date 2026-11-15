@@ -538,7 +538,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
         #    W8 の証拠にもしない
         accepted = [self.got(ACCEPTED_OUTPUT) if self._is_check(r) else r for r in agents[0][1]]
         failed = self.failed(self.write(main, [(agents[0][0], accepted)]))
-        self.assertIn("wiki:web-raw は警告を受け入れて終えていない（check --finish の出力）", failed)
+        self.assertIn("wiki:web-raw は警告を受け入れて終えていない（check --finish の出力。どの回も）", failed)
 
     def test_review10_counterexamples(self):
         """10 回目のレビューの反例（1、2、3、5）。"""
@@ -579,6 +579,46 @@ class SyntheticTranscriptTest(unittest.TestCase):
         self.assertTrue(any("rg -n" in json.dumps(r, ensure_ascii=False) for r in combined))
         report = self.write(main, [(agents[0][0], combined)])
         self.assertTrue(report["ok"], self.failed(report))
+
+    def test_review11_counterexamples(self):
+        """11 回目のレビューの反例。1 つの呼び出しで check --finish を何度か動かしたとき。"""
+        main, agents = self.good()
+        kept = "check: 通った\n警告: 文体が混ざっている\n警告があるので、作業用の写しを残した。直したら --finish を付けて再検査する。"
+        removed = "check: 通った\n作業用の写しを消した"
+        accepted_text = "check: 通った\n警告: 文体が混ざっている\n作業用の写しを消した"
+        opus = CHECK_OUTPUT.replace('"Claude Sonnet 5.5"', '"Claude Opus 5.5"')
+
+        def agent_with(output):
+            return [(agents[0][0], [self.got(output) if self._is_check(r) else r for r in agents[0][1]])]
+
+        w8 = ("W8 の check --finish を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが警告の"
+              "残ったまま終える）")
+        accept = "wiki:web-raw は警告を受け入れて終えていない（check --finish の出力。どの回も）"
+        # 1. 文字の出力で、警告で写しを残し、直して警告なしで消したなら通す
+        report = self.write(main, agent_with(kept + "\n" + removed))
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertFalse(report["display_names_verified"])
+        # 1. メインが同じ形で、警告なしで代わりに終えたら通さない（警告の受け入れの流れではない）
+        without = [r for r in agents[0][1] if not self._is_check(r)
+                   and "--finish" not in json.dumps(r, ensure_ascii=False)]
+        finish = "python wiki_rawcheck.py check --slug cqrs --finish"
+        report = self.write(main + [self.use("Bash", {"command": finish}), self.got(kept + "\n" + removed)],
+                            [(agents[0][0], without)])
+        self.assertIn(w8, self.failed(report))
+        # 2. 前の回で警告を受け入れて消し、取り直して正しく終えても、前の回の違反は消えない
+        report = self.write(main, agent_with(ACCEPTED_OUTPUT + "\n" + CHECK_OUTPUT))
+        self.assertIn(accept, self.failed(report))
+        # 3. 前の回が JSON で、最後の回が文字の出力なら、最後の回で決める（警告を受け入れていれば違反、
+        #    表示名は判定しない）
+        report = self.write(main, agent_with(CHECK_OUTPUT + "\n" + accepted_text))
+        self.assertIn(accept, self.failed(report))
+        report = self.write(main, agent_with(opus + "\n" + removed))
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertFalse(report["display_names_verified"])
+        # 同じ時刻（ここでは時刻のない記録）の 2 回の W8 は、記録の順で後の回を最後とする
+        report = self.write(main, agent_with(opus + "\n" + CHECK_OUTPUT))
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertEqual(report["translated_by"], "Claude Sonnet 5.5")
 
     @staticmethod
     def _is_check(record) -> bool:
@@ -653,11 +693,17 @@ class TranscriptCheckTest(unittest.TestCase):
         self.assertEqual(jsons("check: 通った"), [])
         two = '{"stage": "check", "ok": false}\n{"stage": "check", "ok": true, "work_dir_removed": true, "warnings": []}'
         self.assertEqual(len(jsons(two)), 2)
-        finish = check_web_raw_agent.finish_result
-        self.assertEqual(finish(two)["json"]["ok"], True)
-        self.assertFalse(finish(two)["warnings"])
-        self.assertIsNone(finish('{"stage": "check", "ok": true, "work_dir_kept": "warnings"}'))
-        self.assertTrue(finish("check: 通った\n警告: 文体\n作業用の写しを消した")["warnings"])
+        runs = check_web_raw_agent.check_runs
+        self.assertEqual([(r["removed"], r["accepted"]) for r in runs(two)], [(False, False), (True, False)])
+        self.assertFalse(runs('{"stage": "check", "ok": true, "work_dir_kept": "warnings"}')[0]["removed"])
+        self.assertTrue(runs("check: 通った\n警告: 文体\n作業用の写しを消した")[0]["accepted"])
+        # 文字の出力で、警告で写しを残した回と、直して警告なしで消した回を、別の回に分ける（11 回目の 1）
+        text = ("check: 通った\n警告: 文体が混ざっている\n警告があるので、作業用の写しを残した。\n"
+                "check: 通った\n作業用の写しを消した")
+        self.assertEqual([(r["removed"], r["warnings"]) for r in runs(text)], [(False, True), (True, False)])
+        # JSON の回と文字の出力の回を、出た順に並べる（11 回目の 3）
+        mixed = '{"stage": "check", "ok": true, "work_dir_removed": true, "warnings": []}\ncheck: 通った\n作業用の写しを消した'
+        self.assertEqual([r["json"] is not None for r in runs(mixed)], [True, False])
 
     def test_shared_text_ignores_source_phrases(self):
         summary = "CQRS は Command Query Responsibility Segregation の略で、読み書きのモデルを分ける考え方である。" * 2

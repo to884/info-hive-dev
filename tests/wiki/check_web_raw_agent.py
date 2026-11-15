@@ -31,10 +31,12 @@ Claude Code のセッションの記録から確かめる。
   （結果が誤りでない）だけで数える。
 - スクリプトの実行: wiki:web-raw が wiki_fetch.py と freeze の出力を受け取ったこと（呼び出しの id で対応させた道具の
   結果の形で決める）。W8 は、wiki:web-raw の呼び出しのコマンドに `wiki_rawcheck`、`check`、`--finish` が書かれ、その
-  結果に、検査が通って作業用の写しを消した check の出力があること（シェルの区切りや引用符は読まない。1 つの呼び出しで
-  check を何度か動かしたときは、写しを消した最後の出力を使う）。警告が残ったまま写しを消した出力は、check に
-  `--accept-warnings` を付けたときだけ出る。wiki:web-raw のその出力は不合格（エージェントは警告を受け入れない）。
-  警告を受け入れる流れで、メインがその形で終えたときは通し、どちらが終えたかを `w8_finished_by` に書く。
+  結果に、検査が通って作業用の写しを消した check の出力があること（シェルの区切りや引用符は読まない）。1 つの
+  結果の中の check の出力は、出た順の 1 回ずつに分ける（JSON の回と、`check: ` で始まる文字の出力の回）。W8 の
+  終わりは、写しを消した回のうち、時刻と記録の順で最後の回である。警告が残ったまま写しを消した回は、check に
+  `--accept-warnings` を付けたときだけ出る。wiki:web-raw のその回は、どの回でも不合格（あとで取り直して正しく
+  終えても消えない。エージェントは警告を受け入れない）。最後の回を、警告を受け入れる流れでメインがその形で
+  終えたときは通し、どちらが終えたかを `w8_finished_by` に書く。
 - 文章の受け渡し: raw の文がメインに初めて届く（道具の結果か通知に現れる）までのメインの出力（文と道具の入力）と、
   すべての wiki:web-raw の依頼に、raw の本文の 40 文字以上の並びがないこと。エージェントの出力に、要約ページの文の並び
   （raw にもある並びは除く）がないこと。これは受け渡しの一部を見つけるだけで、どのモデルが文を考えたかの証明ではない。
@@ -42,9 +44,9 @@ Claude Code のセッションの記録から確かめる。
   その要約ページのすべてへのリンクがあること（プラグインの wiki_pages.extract_wikilinks と resolve_link で読む。コードの
   中のリンクは数えないので、初期の index.md の説明文の記入例は数えない。`[[sources/スラッグ]]` の形も読む）。log.md の
   取り込みの項目（`## [日付] ingest |` の見出しの項目）の中に「raw:」のサブ行があること。索引とログは Bash で書くことも
-  あるので、コマンドからは決めない。訳と補足の表示名は、時刻で最後に終えた W8 の `check --json` の結果
-  （wiki_rawcheck.py が画像と Markdown の木から補足を見分けた名前）から取る。W8 を文字の出力で動かしたときは、
-  表示名を判定せず、`display_names_verified` を false にする。作業用の写しが消えていること。
+  あるので、コマンドからは決めない。訳と補足の表示名は、W8 の最後の回が `check --json` の出力
+  なら、その値（wiki_rawcheck.py が画像と Markdown の木から補足を見分けた名前）から取る。最後の回が文字の出力なら、
+  表示名を判定せず（前の回の JSON は使わない）、`display_names_verified` を false にする。作業用の写しが消えていること。
 
 合否を決めないもの（なかったことは、記録からは示せない）:
 
@@ -268,8 +270,8 @@ def names_finish(command: str) -> bool:
         and "--finish" in command
 
 
-def check_jsons(text: str) -> list[dict]:
-    """結果の文の中の、wiki_rawcheck.py check --json の出力の JSON を、出た順にすべて返す（ほかの出力が前後にあってもよい）。"""
+def check_json_spans(text: str) -> list[tuple[int, int, dict]]:
+    """結果の文の中の、wiki_rawcheck.py check --json の出力の JSON を、(始まり, 終わり, 値) で出た順にすべて返す。"""
     out, pos = [], 0
     decoder = json.JSONDecoder()
     while True:
@@ -285,23 +287,42 @@ def check_jsons(text: str) -> list[dict]:
         except json.JSONDecodeError:
             continue
         if isinstance(value, dict) and value.get("stage") == "check":
-            out.append(value)
+            out.append((start, start + end, value))
             pos = start + end
 
 
-def finish_result(text: str) -> dict | None:
-    """結果の中の、check --finish で検査が通り、作業用の写しを消した出力。なければ None。
+def check_jsons(text: str) -> list[dict]:
+    """結果の文の中の check の JSON を、出た順にすべて返す。"""
+    return [value for _, _, value in check_json_spans(text)]
 
-    1 つの呼び出しで check を何度か動かしたときは、写しを消した最後のものを使う（終わる前の check の表示名や警告を
-    使わない）。返す値の json は check の JSON（文字の出力なら None）、warnings は警告が残ったまま消したか（それは
-    --accept-warnings を付けたときだけ起きる。wiki_rawcheck.main）。
+
+CHECK_TEXT_START = re.compile(r"^check: (?:通った|規則に反している)", re.M)
+
+
+def check_runs(text: str) -> list[dict]:
+    """1 つの結果の中の check の出力を、出た順の 1 回ずつに分ける。
+
+    1 つの呼び出しで、check を何度か動かすことがある（検査、直す、再検査。取り直してもう一度）。回ごとに、
+    写しを消したか（removed）、警告が残ったまま消したか（accepted。--accept-warnings を付けたときだけ起きる。
+    wiki_rawcheck.main）、JSON（文字の出力なら None）を返す。JSON の回は、その JSON の値で決める。文字の出力の回は、
+    `check: ` で始まる行から、次の回の始まり（次の `check: ` の行か、次の JSON）までを 1 回とする（wiki_rawcheck.render
+    の形）。
     """
-    done = [j for j in check_jsons(text) if j.get("ok") is True and j.get("work_dir_removed") is True]
-    if done:
-        return {"json": done[-1], "warnings": bool(done[-1].get("warnings"))}
-    if re.search(r"^check: 通った", text, re.M) and "作業用の写しを消した" in text:
-        return {"json": None, "warnings": re.search(r"^警告: ", text, re.M) is not None}
-    return None
+    spans = check_json_spans(text)
+    runs = [{"pos": start, "json": value, "removed": value.get("ok") is True and value.get("work_dir_removed") is True,
+             "warnings": bool(value.get("warnings"))} for start, _, value in spans]
+    inside = lambda i: any(s <= i < e for s, e, _ in spans)  # noqa: E731
+    starts = [m.start() for m in CHECK_TEXT_START.finditer(text) if not inside(m.start())]
+    bounds = sorted([s for s, _, _ in spans] + starts)
+    for start in starts:
+        end = next((b for b in bounds if b > start), len(text))
+        block = text[start:end]
+        runs.append({"pos": start, "json": None,
+                     "removed": block.startswith("check: 通った") and "作業用の写しを消した" in block,
+                     "warnings": re.search(r"^警告: ", block, re.M) is not None})
+    for run in runs:
+        run["accepted"] = run["removed"] and run["warnings"]
+    return sorted(runs, key=lambda r: r["pos"])
 
 
 def ran(tools: list[dict], results: dict[str, dict], out_re: re.Pattern) -> list[str]:
@@ -378,29 +399,34 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     other_runs = {n: fetch_runs[n] + freeze_runs[n] for n in actors
                   if n != AGENT_TYPE and (fetch_runs[n] or freeze_runs[n])}
 
-    def finishers(name: str) -> list[tuple[dict, dict]]:
-        """name が自分で check --finish を動かし、検査が通って写しを消した呼び出しと、その出力。"""
+    # check --finish の回を、担当ごとに、時刻と記録の順で並べる。1 つの呼び出しの中の何回もの check は、出た順に分ける。
+    def finish_runs(name: str, order: int) -> list[dict]:
         out = []
-        for t in actors[name]:
+        for n, t in enumerate(actors[name]):
             if t["name"] in ("Bash", "PowerShell") and names_finish(str(t["input"].get("command", ""))) \
                     and succeeded(t, results[name]):
-                found = finish_result(results[name][t["id"]]["text"])
-                if found is not None:
-                    out.append((t, found))
+                for run in check_runs(results[name][t["id"]]["text"]):
+                    out.append({**run, "actor": name, "command": str(t["input"].get("command", "")),
+                                "key": (t.get("ts") or "", order, n, run["pos"])})
         return out
 
+    agent_runs = finish_runs(AGENT_TYPE, 1)
+    main_runs = finish_runs("main", 0)
     # 警告が残ったまま写しを消せるのは、check に --accept-warnings を付けたときだけである（wiki_rawcheck.main）。
-    # エージェントは付けない（agents/web-raw.md）。コマンドの文字列ではなく、この出力で決める（検索や引用の文字を
-    # オプションと取り違えない）。
-    agent_runs = finishers(AGENT_TYPE)
-    agent_accepted = [str(t["input"].get("command", "")) for t, found in agent_runs if found["warnings"]]
-    check("wiki:web-raw は警告を受け入れて終えていない（check --finish の出力）", not agent_accepted, agent_accepted)
-    agent_finished = [(t, found) for t, found in agent_runs if not found["warnings"]]
-    # 警告を受け入れる流れ（references/web-raw.md の warnings）では、メインが警告の残ったまま終える。
-    main_finished = [(t, found) for t, found in finishers("main") if found["warnings"]]
-    w8_by = ([AGENT_TYPE] if agent_finished else []) + (["main"] if main_finished else [])
+    # エージェントは付けない（agents/web-raw.md）。どの回でも、その出力があれば違反とする（あとで取り直して正しく
+    # 終えても、違反は消えない）。コマンドの文字列ではなく、出力で決める。
+    agent_accepted = [r["command"] for r in agent_runs if r["accepted"]]
+    check("wiki:web-raw は警告を受け入れて終えていない（check --finish の出力。どの回も）", not agent_accepted, agent_accepted)
+    # W8 の終わりは、写しを消した回のうち、時刻と記録の順で最後のもので決める。エージェントが警告なしで終えたか、
+    # 警告を受け入れる流れ（references/web-raw.md の warnings）でメインが警告の残ったまま終えたなら通す。
+    final = max([r for r in agent_runs + main_runs if r["removed"]], key=lambda r: r["key"], default=None)
+    w8_by = []
+    if final is not None and final["actor"] == AGENT_TYPE and not final["warnings"]:
+        w8_by = [AGENT_TYPE]
+    elif final is not None and final["actor"] == "main" and final["warnings"]:
+        w8_by = ["main"]
     check("W8 の check --finish を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが警告の"
-          "残ったまま終える）", w8_by, {"finished_by": w8_by})
+          "残ったまま終える）", w8_by, {"finished_by": w8_by, "final_actor": final["actor"] if final else None})
 
     raw_writers = {name: [p for p in paths if under(p, raw)] for name, paths in writes.items()}
     check("raw に書いた（Edit、Write）のは wiki:web-raw だけ",
@@ -452,8 +478,7 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     # ときは、表示名を判定しない（display_names_verified を false にする）。訳したなら Sonnet の名前であること
     # （訳さないページの空の translated_by と、画像がないときの補足のなさはよい。references/web-raw.md の呼び出す側の
     # 手順 6）。
-    last = max(agent_finished + main_finished, key=lambda pair: pair[0].get("ts") or "", default=None)
-    display = last[1]["json"] if last is not None else None
+    display = final["json"] if final is not None and w8_by else None
     if display is not None:
         names = ([display.get("translated_by")] if display.get("translated_by") else []) + list(display.get("caption_names") or [])
         check("W8 の check の結果の、訳と補足の表示名が Sonnet（空はよい）",
