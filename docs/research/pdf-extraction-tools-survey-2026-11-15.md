@@ -18,8 +18,8 @@ info-hive の wiki と rag で PDF の本文を取り出す方式を選ぶため
 | pdfminer.six | 文字の層 | MIT | ○ | 不要 | ○ / `detect_vertical` | 20260107（2026-01） | 比べた |
 | Docling | レイアウトのモデル | MIT / 未確認 | ○ | 必要（今回の環境で入った） | ○ / 未確認 | 2.150.1（2026-11） | 比べた |
 | NDLOCR-Lite | OCR | CC BY 4.0 / DINOv3 の条件つき | ○（1.4.0.dev0） | 不要 | ○ / ○ | 1.4.0.dev0（2026-11） | 使用中（rag の OCR） |
-| pdf_oxide | 文字の層（Rust） | MIT または Apache-2.0 | ○ | 不要 | ○ / 縦書きを自動で並べ替える（ソースで確認） | 0.3.78（2026-09） | 候補（未計測） |
-| pdfplumber | 文字の層（pdfminer の上） | MIT | ○ | 不要 | ○ / 方向を指定できる | 0.11.10（2026-06） | 候補（未計測） |
+| pdf_oxide | 文字の層（Rust） | MIT または Apache-2.0 | ○ | 不要 | ○ / 縦書きを自動で並べ替える（ソースで確認） | 0.3.78（2026-09） | 比べた（読み順が低く、文の一部が抜けた） |
+| pdfplumber | 文字の層（pdfminer の上） | MIT | ○ | 不要 | ○ / 方向を指定できる | 0.11.10（2026-06） | 比べた（2 段組みで左右の段を混ぜた） |
 | MinerU | レイアウトのモデル、OCR | 独自（Apache-2.0 に条件を足したもの） | ○ | 任意 | 未確認 / 未確認 | 4.2.2（2026-11） | 候補（未計測、ライセンスの確認が要る） |
 | Kreuzberg 4 | Rust とモデル | MIT / モデルは未確認 | ○ | 不要 | 未確認 / 未確認 | 4.10.4（2026-09） | 候補（未計測） |
 | Marker | レイアウトのモデル、OCR | Apache-2.0 / 制限つきの OpenRAIL-M | ○ | 必要 | 日本語と縦書きに対応と主張 | 2.2.0（2026-11） | 条件付き |
@@ -44,7 +44,7 @@ Rust で書いた PDF の取り出しのライブラリで、Python の wheel �
 
 ### pdfplumber
 
-pdfminer.six の上に、表の取り出し（`extract_tables`）と、文字と行の方向の指定（`line_dir`、`char_dir`、回転した文字の扱い）を足したもの。依存は pdfminer.six、Pillow、pypdfium2 で、torch は要らない。`extract_text` で縦書きを読ませる設定が、`detect_vertical` と組み合わせて働くかは未確認。
+pdfminer.six で PDF を解析し、その上に、表の取り出し（`extract_tables`）と、文字と行の方向の指定（`line_dir`、`char_dir`、回転した文字の扱い）を足したもの。`extract_text` は、pdfminer の版面の解析（`LAParams`）ではなく、文字の位置から自分で語と行を組み立てる（[公式の説明](https://github.com/jsvine/pdfplumber#extracting-text)）。そのため、読み順は pdfminer と同じにはならない。手元の比較では、2 段組みの論文で左右の段を行ごとに混ぜた。依存は pdfminer.six、Pillow、pypdfium2 で、torch は要らない。
 
 ### NDLOCR-Lite
 
@@ -66,12 +66,14 @@ rag が OCR に使っている。rag が固定しているコミット e57f7c6�
 
 ## 比べる価値のある候補
 
-手元でまだ比べていないもののうち、次の 4 つを比べる価値がある。
+調査の時点で比べる価値があるとしたのは、次の 4 つだった。
 
-1. **pdf_oxide:** pip だけで入り、ライセンスも寛容で、縦書きを自動で並べ替える。組版のソフトで作った日本語の PDF で、文字の順の問題を避けられるかを確かめる。
-2. **pdfplumber:** pdfminer の読み順を保ったまま、表と方向の指定が加わる。
-3. **MinerU（basic、ONNX、CPU）:** torch なしで動き、表とページの位置を出す。ライセンスの条件を確かめる必要がある。
-4. **Kreuzberg 4.10.4:** MIT で Windows の wheel があり、ページの目印を出せる。
+1. **pdf_oxide:** pip だけで入り、ライセンスも寛容で、縦書きを自動で並べ替える。→ 比べた。白書で文の一部が抜け、読み順が低かった。
+2. **pdfplumber:** 表と方向の指定が加わる。→ 比べた。2 段組みの論文で左右の段を混ぜた。
+3. **MinerU（basic、ONNX、CPU）:** torch なしで動き、表とページの位置を出す。ライセンスの条件を確かめる必要がある。→ 比べていない。
+4. **Kreuzberg 4.10.4:** MIT で Windows の wheel があり、ページの目印を出せる。→ 比べていない。
+
+比べた結果は、[ADR-0024 の承認の条件の検証](adr-0024-verification-2026-11-15.md)の「書き直しの案のための比較」にある。
 
 ## 主な出典
 

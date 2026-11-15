@@ -25,6 +25,8 @@ BENCH = Path(__file__).resolve().parent.parent
 SETS = {
     "1": ("judge", ["wikipdf", "poppler", "xpdf", "pdfminer"]),
     "2": ("judge2", ["wikipdf", "xpdf", "pdfminer", "pdfminer-vertical", "docling", "ndlocr"]),
+    # 3 は、調査で挙がった pdf_oxide と pdfplumber を、2 の上位の方式と比べる
+    "3": ("judge3", ["wikipdf", "pdfminer-vertical", "docling", "pdfoxide", "pdfplumber"]),
 }
 SET = sys.argv[sys.argv.index("--set") + 1] if "--set" in sys.argv else "1"
 JUDGE_DIR, METHODS = SETS[SET]

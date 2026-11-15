@@ -23,7 +23,8 @@ JUDGE = BENCH / JUDGE_DIR
 SUFFIX = "" if SET == "1" else SET
 AXES = ["coverage", "order", "table", "legibility", "usability"]
 LABEL = {"wikipdf": "wiki_pdf（試作）", "poppler": "Poppler 26.09.0", "xpdf": "Xpdf 4.00", "pdfminer": "pdfminer",
-         "pdfminer-vertical": "pdfminer（縦書きの検出）", "docling": "Docling", "ndlocr": "NDLOCR-Lite"}
+         "pdfminer-vertical": "pdfminer（縦書きの検出）", "docling": "Docling", "ndlocr": "NDLOCR-Lite",
+         "pdfoxide": "pdf_oxide", "pdfplumber": "pdfplumber"}
 
 
 def check(sol: dict, mapping_bytes: bytes) -> dict:
