@@ -1,0 +1,332 @@
+diff --git a/tests/wiki/check_web_raw_agent.py b/tests/wiki/check_web_raw_agent.py
+index 8bbe1c2..ef403d7 100644
+--- a/tests/wiki/check_web_raw_agent.py
++++ b/tests/wiki/check_web_raw_agent.py
+@@ -25,14 +25,19 @@ analyze に渡すプロジェクトは、空のフォルダーから始めた取
+   Edit や Write で書こうとしていないこと（禁止は、失敗した呼び出しも数える）。メインが書いたことは、成功した呼び出し
+   （結果が誤りでない）だけで数える。
+ - スクリプトの実行: wiki:web-raw が wiki_fetch.py と freeze の出力を受け取ったこと（呼び出しの id で対応させた道具の
+-  結果の形で決める）。W8 は、wiki:web-raw が自分で `wiki_rawcheck.py check … --finish` を実行し、その結果が、通って
+-  作業用の写しを消した形であること。警告を受け入れる流れで、メインが `--finish --accept-warnings` で終えたときも
+-  通し、どちらが終えたかを `w8_finished_by` に書く。wiki:web-raw のコマンドに `--accept-warnings` が見えれば不合格
+-  （エージェントは警告を受け入れない）。
++  結果の形で決める）。W8 は、wiki:web-raw の呼び出しのコマンドに `wiki_rawcheck`、`check`、`--finish` が書かれ、その
++  結果が、通って作業用の写しを消した形であること（シェルの区切りや引用符は読まない）。警告を受け入れる流れで、メインが
++  `--finish --accept-warnings` で終えたときも通し、どちらが終えたかを `w8_finished_by` に書く。wiki:web-raw が
++  `--accept-warnings` を付けて check を動かし、check の出力を受け取っていれば不合格（エージェントは警告を受け入れない）。
+ - 文章の受け渡し: raw の文がメインに初めて届く（道具の結果か通知に現れる）までのメインの出力（文と道具の入力）と、
+   すべての wiki:web-raw の依頼に、raw の本文の 40 文字以上の並びがないこと。エージェントの出力に、要約ページの文の並び
+   （raw にもある並びは除く）がないこと。これは受け渡しの一部を見つけるだけで、どのモデルが文を考えたかの証明ではない。
+-- 結果: raw の translated_by と補足の表示名、log の「raw:」のサブ行、作業用の写しが消えていること、要約ページがあること。
++- 結果（ファイルの中身と、プラグインの出力）: 要約ページを、メインが成功した Edit か Write で書いたこと。index.md に
++  その要約ページへのリンクがあり、log.md に取り込みの行と「raw:」のサブ行があること（索引とログは Bash で書くことも
++  あるので、コマンドからは決めない。プロジェクトは空から始めた前提なので、中身は今回の取り込みが書いたものである）。
++  訳と補足の表示名は、W8 の `check --json` の結果（wiki_rawcheck.py が画像と Markdown の木から補足を見分けた名前）から
++  取る。W8 を文字の出力で動かしたときは、表示名を判定せず、`display_names_verified` を false にする。作業用の写しが
++  消えていること。
+ 
+ 合否を決めないもの（なかったことは、記録からは示せない）:
+ 
+@@ -195,17 +200,9 @@ def bash_commands(tools: list[dict]) -> list[str]:
+     return [str(t["input"].get("command", "")) for t in tools if t["name"] in ("Bash", "PowerShell")]
+ 
+ 
+-REDIRECT_RE = re.compile(r"(?<![0-9&])>>?\s*[\"']?([^\s;|&\"'<>]+)")
+-WIKI_PAGE_RE = re.compile(r"(?:^|/)(?:index\.md|log\.md|SCHEMA\.md)$|(?:^|/)(?:sources|entities|concepts|synthesis)/[^/]+\.md$")
+ WIKI_PAGE_IN_TEXT_RE = re.compile(r"(?:index|log|SCHEMA)\.md|(?:sources|entities|concepts|synthesis)[/\\][^\s\"']+\.md")
+ 
+ 
+-def bash_write_targets(commands: list[str]) -> list[str]:
+-    """Bash のリダイレクト（`>`、`>>`）の書き込み先。`2>` や `&>` の行き先は数えない。"""
+-    return [m.group(1).replace("\\", "/") for c in commands for m in REDIRECT_RE.finditer(c)
+-            if m.group(1) not in ("/dev/null", "nul", "NUL")]
+-
+-
+ def under(path: str, root: Path) -> bool:
+     """path（norm を通したもの）が root（resolve したもの）の下か。Windows の大文字小文字の違いは同じとみなす。"""
+     p = path.replace("\\", "/").lower()
+@@ -251,13 +248,36 @@ def touches(command: str, patterns: list[re.Pattern]) -> bool:
+ FETCH_OUT = re.compile(r'"final_url": "[^"]*",\s*"source_sha256": "|^保存した: |ページを取得せずに続ける|'
+                        r"内容は前回と同じなので、書き込まなかった|同じスラッグのファイルがあり、内容が違う", re.M)
+ FREEZE_OUT = re.compile(r'^freeze: (?:通った|規則に反している)|"stage": "freeze"', re.M)
+-# W8 のコマンド: wiki_rawcheck.py の check を --finish で動かしたもの。前の出力を cat で表示しただけの呼び出しを、
+-# W8 の証拠にしないために、結果の形に加えてコマンドも見る（あったことを示す側なので、読めない形は通さない）。
+-# check と --finish の間は、同じ 1 つのコマンドの中（行の継続 `\` と PowerShell の `` ` `` は越え、`;`、`&`、`|`、
+-# ふつうの改行は越えない）とする。
+-FINISH_CMD_RE = re.compile(r"wiki_rawcheck\.py[\"']?\s+[\"']?check\b(?:[^\n;&|]|\\\r?\n|`\r?\n)*?--finish\b")
++# check の出力の形（通ったか、規則に反しているか）。--accept-warnings の違反を、オプションを付けて check を動かした
++# 呼び出しに限るために使う（オプションの名前を検索しただけの呼び出しは、check の出力を受け取らない）。
++CHECK_OUT = re.compile(r'"stage": "check"|^check: (?:通った|規則に反している)', re.M)
+ 
+ 
++def names_finish(command: str) -> bool:
++    """コマンドが wiki_rawcheck.py の check を --finish で動かしたものに見えるか。
++
++    シェルの区切りや引用符は読まない（引用符の中の `;` や、行の継続の場所で取り違えるため）。前の出力を cat で表示した
++    だけの呼び出しを W8 の証拠にしないために、スクリプトの名前とサブコマンドとオプションが書かれていることだけを見る。
++    """
++    return "wiki_rawcheck" in command and re.search(r"(?<![\w-])check(?![\w-])", command) is not None \
++        and "--finish" in command
++
++
++def check_json(text: str) -> dict | None:
++    """結果の文から、wiki_rawcheck.py check --json の出力の JSON を取り出す（ほかの出力が前後にあってもよい）。"""
++    at = text.find('"stage": "check"')
++    while at >= 0:
++        start = text.rfind("{", 0, at)
++        if start < 0:
++            return None
++        try:
++            value, _ = json.JSONDecoder().raw_decode(text[start:])
++        except json.JSONDecodeError:
++            at = text.find('"stage": "check"', at + 1)
++            continue
++        return value if isinstance(value, dict) and value.get("stage") == "check" else None
++    return None
++
+ def check_finished(text: str) -> bool:
+     """check の出力で、検査が通り、作業用の写しを消したもの（--finish を付けて通ったときだけ消す）。"""
+     as_json = '"stage": "check"' in text and '"work_dir_removed": true' in text and '"ok": true' in text
+@@ -339,13 +359,15 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
+     def finishers(name: str) -> list[dict]:
+         """name が自分で check --finish を動かし、その結果が、通って作業用の写しを消した形の呼び出し。"""
+         return [t for t in actors[name] if t["name"] in ("Bash", "PowerShell")
+-                and FINISH_CMD_RE.search(str(t["input"].get("command", "")))
++                and names_finish(str(t["input"].get("command", "")))
+                 and succeeded(t, results[name]) and check_finished(results[name][t["id"]]["text"])]
+ 
+-    # エージェントは --accept-warnings を付けない（agents/web-raw.md）。付けた終わり方は W8 の証拠にせず、違反とする。
++    # エージェントは check に --accept-warnings を付けない（agents/web-raw.md）。オプションを付けて check を動かし、
++    # check の出力を受け取った呼び出しを違反とする（オプションの名前を検索しただけの呼び出しは数えない）。
+     agent_accepted = [str(t["input"].get("command", "")) for t in actors[AGENT_TYPE]
+-                      if t["name"] in ("Bash", "PowerShell") and "--accept-warnings" in str(t["input"].get("command", ""))]
+-    check("wiki:web-raw は --accept-warnings を付けていない", not agent_accepted, agent_accepted)
++                      if t["name"] in ("Bash", "PowerShell") and "--accept-warnings" in str(t["input"].get("command", ""))
++                      and t.get("id") in results[AGENT_TYPE] and CHECK_OUT.search(results[AGENT_TYPE][t["id"]]["text"])]
++    check("wiki:web-raw は check に --accept-warnings を付けていない", not agent_accepted, agent_accepted)
+     agent_finished = [t for t in finishers(AGENT_TYPE) if "--accept-warnings" not in str(t["input"].get("command", ""))]
+     # 警告を受け入れる流れ（references/web-raw.md の warnings）では、メインが --accept-warnings を付けて終える。
+     main_finished = [t for t in finishers("main") if "--accept-warnings" in str(t["input"].get("command", ""))]
+@@ -359,21 +381,16 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
+           {name: paths for name, paths in raw_writers.items() if name != AGENT_TYPE and paths})
+     agent_wiki = [p for p in writes[AGENT_TYPE] if under(p, wiki) and "/.wiki-cache/" not in p]
+     check("wiki:web-raw は wiki のページ、index.md、log.md に書いていない（Edit、Write）", not agent_wiki, agent_wiki)
+-    ok_bash = [str(t["input"].get("command", "")) for t in actors["main"]
+-               if t["name"] in ("Bash", "PowerShell") and succeeded(t, results["main"])]
+-    # Edit と Write は、書き込み先のパスがそのまま分かるので、wiki の index.md と log.md そのものと比べる。Bash の
+-    # リダイレクトは、cd のあとの相対パスでも書くので、ファイルの名前が同じかで見る（`notindex.md` は数えない）。
+-    def wrote(name: str) -> bool:
+-        target = norm(wiki / name, project).lower()
+-        return (any(p.lower() == target for p in written["main"])
+-                or any(Path(p).name.lower() == name for p in bash_write_targets(ok_bash)))
+-
+     # Write の入力だけでは、書けたかは分からない（権限の誤りなど）。成功した書き込みで、ファイルがあることを求める
+     # （前の取り込みの要約ページが残っていても、今回の書き込みが失敗していれば通さない）。
+-    main_sources = [p for p in written["main"] if under(p, wiki / "sources")]
+-    check("メインが要約ページ、index.md、log.md を書いた（要約ページはファイルがある）",
+-          any(Path(p).is_file() for p in main_sources) and wrote("index.md") and wrote("log.md"),
+-          sorted(set(written["main"] + bash_write_targets(ok_bash))))
++    main_sources = [p for p in written["main"] if under(p, wiki / "sources") and Path(p).is_file()]
++    check("メインが要約ページを Edit か Write で書いた（成功した呼び出しで、ファイルがある）", main_sources, main_sources)
++    # 索引とログは、Bash で書くこともあり、コマンドから書き込み先は読み切れないので、ファイルの中身で決める。
++    # プロジェクトは空のフォルダーから始めた取り込みなので（前提）、中身は今回の取り込みが書いたものである。
++    index = (wiki / "index.md").read_bytes().decode("utf-8") if (wiki / "index.md").exists() else ""
++    linked = [Path(p).stem for p in main_sources
++              if f"[[{Path(p).stem}]]" in index or f"[[{Path(p).stem}|" in index]
++    check("index.md に、メインが書いた要約ページへのリンクがある（ファイルの中身）", linked, linked)
+ 
+     # 文章の受け渡し
+     raws = sorted(raw.glob("*.md"))
+@@ -397,17 +414,24 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
+           shares_text(summary, agent_texts, raw_text))
+ 
+     # 結果
+-    fm = raws[0].read_bytes().decode("utf-8") if raws else ""
+-    translated_by = re.search(r'^translated_by: "(.*)"$', fm, re.M)
+-    captions = sorted(set(re.findall(r"^> ?(?:> )*(.{1,60}?) 補足: ", body_of(fm), re.M)))
+     check("raw がある", raws, [str(p) for p in raws])
+-    # 表示名は、訳したなら Sonnet の名前（訳さないページの空の translated_by と、画像がないときの補足のなさはよい。
+-    # references/web-raw.md の呼び出す側の手順 6）。
+-    names = ([translated_by.group(1)] if translated_by and translated_by.group(1) else []) + captions
+-    check("raw の translated_by と補足の表示名が Sonnet（空はよい）", all("sonnet" in n.lower() for n in names),
+-          {"translated_by": translated_by.group(1) if translated_by else None, "caption_names": captions})
++    # 表示名は、W8 の check --json の結果から取る（wiki_rawcheck.py が、画像と Markdown の木から補足を見分けた名前）。
++    # 自前で raw を読み直すと、リストの中の補足を見落とし、原文の引用を補足と取り違える。W8 を文字の出力で動かした
++    # ときは、表示名を判定しない（display_names_verified を false にする）。訳したなら Sonnet の名前であること
++    # （訳さないページの空の translated_by と、画像がないときの補足のなさはよい。references/web-raw.md の呼び出す側の
++    # 手順 6）。
++    finished_json = [check_json(results[n][t["id"]]["text"]) for n in w8_by
++                     for t in (agent_finished if n == AGENT_TYPE else main_finished)]
++    finished_json = [j for j in finished_json if j is not None]
++    display = finished_json[-1] if finished_json else None
++    if display is not None:
++        names = ([display.get("translated_by")] if display.get("translated_by") else []) + list(display.get("caption_names") or [])
++        check("W8 の check の結果の、訳と補足の表示名が Sonnet（空はよい）",
++              all(isinstance(n, str) and "sonnet" in n.lower() for n in names),
++              {"translated_by": display.get("translated_by"), "caption_names": display.get("caption_names")})
+     log = (wiki / "log.md").read_bytes().decode("utf-8") if (wiki / "log.md").exists() else ""
+-    check("log に raw の段の分担のサブ行がある", re.search(r"raw:.*web-raw", log) is not None)
++    check("log に取り込みの行と、raw の段の分担のサブ行がある（ファイルの中身）",
++          "] ingest |" in log and re.search(r"raw:.*web-raw", log) is not None)
+     ingest = wiki / ".wiki-cache" / "ingest"
+     check("作業用の写しが消えた", not (ingest.exists() and any(ingest.iterdir())))
+ 
+@@ -421,7 +445,9 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
+             review[name] = picked
+     return {"project": str(project), "checks": checks, "ok": all(c["ok"] for c in checks),
+             "bash_to_review": review, "other_script_runs": other_runs, "w8_finished_by": w8_by,
+-            "translated_by": translated_by.group(1) if translated_by else None, "caption_names": captions,
++            "display_names_verified": display is not None,
++            "translated_by": display.get("translated_by") if display else None,
++            "caption_names": display.get("caption_names") if display else None,
+             "main_models": sorted(set(main_models)), "agent_models": sorted(set(agent_models)),
+             "other_subagents": [{"path": s["path"], "type": s["type"], "models": models_of(s["events"])} for s in others],
+             "agent_transcripts": [s["path"] for s in raw_agents]}
+diff --git a/tests/wiki/test_web_raw_agent.py b/tests/wiki/test_web_raw_agent.py
+index f2e17bf..bff7dc9 100644
+--- a/tests/wiki/test_web_raw_agent.py
++++ b/tests/wiki/test_web_raw_agent.py
+@@ -223,7 +223,8 @@ FETCH_OUTPUT = json.dumps({"path": "raw/cqrs.md", "url": "https://martinfowler.c
+                            "final_url": "https://martinfowler.com/bliki/CQRS.html", "source_sha256": "a" * 64, "source_sha256_of": "html", "unchanged": False,
+                            "fetched_sha256": "b" * 64}, indent=2)
+ # wiki_rawcheck.py check --finish --json が通ったときの出力（の一部）
+-CHECK_OUTPUT = json.dumps({"stage": "check", "ok": True, "errors": [], "warnings": [], "work_dir_removed": True},
++CHECK_OUTPUT = json.dumps({"stage": "check", "ok": True, "translated_by": "Claude Sonnet 5.5",
++                           "caption_names": ["Claude Sonnet 5.5"], "errors": [], "warnings": [], "work_dir_removed": True},
+                           indent=2)
+ 
+ 
+@@ -237,7 +238,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
+         base = Path(tmp.name)
+         self.project = base / "proj"
+         for rel, text in (("wiki/sources/cqrs.md", "---\ntitle: \"CQRS\"\n---\n" + SUMMARY_BODY + "\n"),
+-                          ("wiki/index.md", "# 索引\n"), ("wiki/log.md", "## [2026-11-14] ingest | CQRS\n   raw: `wiki:web-raw` に任せた\n"),
++                          ("wiki/index.md", "# 索引\n\n- [[cqrs]]: CQRS の要約\n"), ("wiki/log.md", "## [2026-11-14] ingest | CQRS\n   raw: `wiki:web-raw` に任せた\n"),
+                           ("raw/cqrs.md", "---\ntranslated_by: \"Claude Sonnet 5.5\"\n---\n" + RAW_BODY + "\n")):
+             path = self.project / rel
+             path.parent.mkdir(parents=True, exist_ok=True)
+@@ -410,7 +411,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
+                   if isinstance(r["message"]["content"], list) and r["message"]["content"][0].get("name") == "Write")
+         main = main[:at + 1] + [self.got("Permission denied", is_error=True)] + main[at + 1:]
+         report = self.write(main, agents)
+-        self.assertIn("メインが要約ページ、index.md、log.md を書いた（要約ページはファイルがある）", self.failed(report))
++        self.assertIn("メインが要約ページを Edit か Write で書いた（成功した呼び出しで、ファイルがある）", self.failed(report))
+ 
+     def test_extended_prefix_write_into_raw_is_found(self):
+         """Windows の拡張パスの接頭辞が付いた書き込み先も、raw への書き込みとして見つける（レビュー 7）。"""
+@@ -433,7 +434,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
+         report = self.write(*self.good())
+         failed = self.failed(report)
+         self.assertIn("要約ページがある", failed)
+-        self.assertIn("メインが要約ページ、index.md、log.md を書いた（要約ページはファイルがある）", failed)
++        self.assertIn("メインが要約ページを Edit か Write で書いた（成功した呼び出しで、ファイルがある）", failed)
+ 
+     def test_unrelated_subagent_is_listed_not_judged(self):
+         main, agents = self.good()
+@@ -510,24 +511,68 @@ class SyntheticTranscriptTest(unittest.TestCase):
+             {"type": "text", "text": "前の応答の写し"}]}}
+         report = self.write(main, [(agents[0][0], agents[0][1] + [blob])])
+         self.assertTrue(report["ok"], self.failed(report))
+-        # 3. index.md で終わる別のファイルは、索引の更新に数えない
+-        swapped = [self.use("Write", {"file_path": str(self.project / "wiki/notindex.md"), "content": "x"})
+-                   if isinstance(r["message"]["content"], list) and r["message"]["content"][0].get("name") == "Edit"
+-                   else r for r in main]
+-        self.assertIn("メインが要約ページ、index.md、log.md を書いた（要約ページはファイルがある）",
+-                      self.failed(self.write(swapped, agents)))
+-        # 5. 訳の表示名が Sonnet でなければ不合格
+-        raw = self.project / "raw/cqrs.md"
+-        original = raw.read_bytes()
+-        raw.write_bytes(original.replace(b"Claude Sonnet 5.5", b"Claude Opus 5.5"))
+-        self.addCleanup(raw.write_bytes, original)
+-        self.assertIn("raw の translated_by と補足の表示名が Sonnet（空はよい）", self.failed(self.write(main, agents)))
+-        raw.write_bytes(original)
+-        # 6. エージェントが --accept-warnings を付けたら不合格（W8 の証拠にもしない）
++        # 3. 索引の更新は、ファイルの中身で決める（9 回目: 別のフォルダーの index.md に書いても、索引にリンクがなければ通さない）
++        index = self.project / "wiki/index.md"
++        original_index = index.read_bytes()
++        index.write_bytes("# 索引\n".encode("utf-8"))
++        self.addCleanup(index.write_bytes, original_index)
++        moved = main + [self.use("Bash", {"command": "mkdir -p notes && printf 'topic' >> notes/index.md"})]
++        self.assertIn("index.md に、メインが書いた要約ページへのリンクがある（ファイルの中身）",
++                      self.failed(self.write(moved, agents)))
++        index.write_bytes(original_index)
++        # 5. 表示名は W8 の check --json の結果から取り、Sonnet でなければ不合格（9 回目: リストの中の補足も、
++        #    プラグインが見分けた名前なら落とさない）
++        opus = CHECK_OUTPUT.replace('"caption_names": [\n    "Claude Sonnet 5.5"\n  ]',
++                                    '"caption_names": [\n    "Claude Opus 5.5"\n  ]')
++        self.assertNotEqual(opus, CHECK_OUTPUT)
++        swapped = [self.got(opus) if CHECK_OUTPUT in json.dumps(r, ensure_ascii=False) or self._is_check(r) else r
++                   for r in agents[0][1]]
++        self.assertIn("W8 の check の結果の、訳と補足の表示名が Sonnet（空はよい）",
++                      self.failed(self.write(main, [(agents[0][0], swapped)])))
++        # 6. エージェントが --accept-warnings を付けて check を動かしたら不合格（W8 の証拠にもしない）
+         accepted = [json.loads(json.dumps(r, ensure_ascii=False).replace("--finish", "--finish --accept-warnings"))
+                     for r in agents[0][1]]
+         failed = self.failed(self.write(main, [(agents[0][0], accepted)]))
+-        self.assertIn("wiki:web-raw は --accept-warnings を付けていない", failed)
++        self.assertIn("wiki:web-raw は check に --accept-warnings を付けていない", failed)
++
++    @staticmethod
++    def _is_check(record) -> bool:
++        """CHECK_OUTPUT を返した結果の記録か。"""
++        content = record["message"].get("content")
++        return isinstance(content, list) and content[0].get("type") == "tool_result" \
++            and content[0].get("content") == CHECK_OUTPUT
++
++    def test_review9_correct_runs_pass(self):
++        """9 回目のレビューの反例のうち、手順に従った取り込みを落とさないもの。"""
++        main, agents = self.good()
++
++        def with_finish(command):
++            records = json.loads(json.dumps(agents[0][1], ensure_ascii=False))
++            for rec in records:
++                for part in rec["message"]["content"] if isinstance(rec["message"]["content"], list) else []:
++                    if part.get("type") == "tool_use" and "--finish" in str(part["input"].get("command", "")):
++                        part["input"]["command"] = command
++            return records
++
++        for command in ('python wiki_rawcheck.py check --slug cqrs --language-override translate '
++                        '--reason "lang=en; 本文は英語" --finish',
++                        'python wiki_rawcheck.py check --wiki "C:/Research & Development/wiki" --slug cqrs --finish',
++                        "python wiki_rawcheck.py \\\n  check --slug cqrs --finish"):
++            with self.subTest(command=command):
++                report = self.write(main, [(agents[0][0], with_finish(command))])
++                self.assertTrue(report["ok"], self.failed(report))
++                self.assertEqual(report["w8_finished_by"], ["wiki:web-raw"])
++        # オプションの名前を検索しただけでは、--accept-warnings の違反にしない
++        search = "rg -n -- '--accept-warnings' info-hive-wiki/skills/info-hive/references/web-raw.md"
++        report = self.write(main, [(agents[0][0], agents[0][1] + [
++            self.use("Bash", {"command": search}, "claude-sonnet-5-5"), self.got("28:- `--accept-warnings` を付けない。")])])
++        self.assertTrue(report["ok"], self.failed(report))
++        # W8 を文字の出力で動かしたときは、表示名を判定しない（確かめていないことを出す）
++        text_output = "check: 通った\n作業用の写しを消した"
++        records = [self.got(text_output) if self._is_check(r) else r for r in agents[0][1]]
++        report = self.write(main, [(agents[0][0], records)])
++        self.assertTrue(report["ok"], self.failed(report))
++        self.assertFalse(report["display_names_verified"])
+ 
+     def test_review8_correct_runs_pass_and_long_commands_are_kept(self):
+         """行の継続で分けた W8 は通し（4）、長いコマンドは切り詰めずに見直しの一覧に出す（2）。"""
+@@ -551,13 +596,15 @@ class SyntheticTranscriptTest(unittest.TestCase):
+ class TranscriptCheckTest(unittest.TestCase):
+     """実地の確かめのスクリプトの判定（記録を読まない部分）。"""
+ 
+-    def test_bash_write_targets(self):
+-        targets = check_web_raw_agent.bash_write_targets(
+-            ["cd wiki && cat >> log.md <<'EOF'\nx\nEOF", "ls raw 2>&1; echo a > 'index.md'", "cmd 2>/dev/null",
+-             "python x.py &> out.txt"])
+-        self.assertEqual(targets, ["log.md", "index.md"])
+-        self.assertTrue(check_web_raw_agent.WIKI_PAGE_RE.search("wiki/sources/ブルームフィルタ.md"))
+-        self.assertFalse(check_web_raw_agent.WIKI_PAGE_RE.search("wiki/.wiki-cache/ingest/a/fetched.md"))
++    def test_names_finish_and_check_json(self):
++        names = check_web_raw_agent.names_finish
++        self.assertTrue(names('python "C:/p/wiki_rawcheck.py" check --slug a --finish --json'))
++        self.assertFalse(names("cat previous-check-output.json"))
++        self.assertFalse(names("python wiki_rawcheck.py freeze --slug a"))
++        self.assertFalse(names("python wiki_rawcheck.py check --slug a"))
++        found = check_web_raw_agent.check_json('ls\r\n{\r\n  "stage": "check",\r\n  "ok": true\r\n}\r\nafter')
++        self.assertEqual(found, {"stage": "check", "ok": True})
++        self.assertIsNone(check_web_raw_agent.check_json("check: 通った"))
+ 
+     def test_shared_text_ignores_source_phrases(self):
+         summary = "CQRS は Command Query Responsibility Segregation の略で、読み書きのモデルを分ける考え方である。" * 2

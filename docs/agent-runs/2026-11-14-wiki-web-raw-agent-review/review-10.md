@@ -1,0 +1,167 @@
+## 判定
+
+**却下。確信度：高。** 検証スクリプトに、初期化時の記入例を取り込みの証拠にする、別の check の表示名を採用する、正常な取り込みを不合格にする重大な欠陥を再現した。以下は、空のプロジェクトから始める前提で成立し、実行や書き込みの隠蔽を必要としない。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】初期テンプレートの記入例だけで、索引更新と取り込みログを偽陽性にできる
+
+**反例：**
+
+1. 空のフォルダーを初期化する。
+2. メインが `wiki/sources/消費税.md` を正常に書く。
+3. `index.md` は更新しない。
+4. `log.md` には取り込みの見出しを作らず、`   raw: wiki:web-raw に任せた` だけを追記する。
+
+ほかの証拠を正常にすると、**18/18、`ok: true`** になった。
+
+初期索引の説明文には、インラインコードの記入例 `[[消費税]]` がある。ログの説明文にも、記入例の `] ingest |` がある。判定はファイル全体から部分文字列を探すため、どちらも実際の項目として数える。
+
+初期テンプレートを**両方とも完全に無変更**にした場合は、ログに `raw:` がなく不合格になる。しかし、索引側はすでに通っている。
+
+根拠：
+
+- [check_web_raw_agent.py:390](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:390)：391〜393行で、説明文やコードを除外せずリンクを検索。
+- 同ファイル432〜434行：取り込み見出しとサブ行の所属を調べず、二つの部分文字列の存在だけを判定。
+- [init_wiki.py:239](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/init_wiki.py:239)：両テンプレートを初期ファイルとしてコピー。
+- [index.md.template:3](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/assets/index.md.template:3)、[log.md.template:3](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/assets/log.md.template:3)：誤採用される記入例。
+
+### 2. 【重大】規約上正しいパス付きリンクを不合格にする
+
+正常な索引のリンクを、次のいずれかに変えるだけで、**17/18、索引の項目だけ不合格**になった。
+
+```markdown
+- [[sources/cqrs]]: 要約
+- [[sources/cqrs|別名]]: 要約
+```
+
+`[[sources/ブルームフィルタ]]` と、その別名付きでも同じ結果だった。一方、パスのない `[[cqrs]]`、`[[cqrs|別名]]`、日本語スラッグの対応する形式は通った。
+
+これは許容されていない表記を試したものではない。ページ規約は、同名スラッグの区別にディレクトリを付ける形式を明示的に認めている。
+
+根拠：
+
+- [check_web_raw_agent.py:391](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:391)：ファイルの `stem` だけで文字列を組み立てるため、`sources/` が付くと一致しない。
+- [page-conventions.md:56](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references/page-conventions.md:56)：パス付きリンクを認め、そのパスにページがある場合に解決すると規定。
+
+### 3. 【重大】同じ呼び出しに check の JSON が二つあると、完了していない最初の結果から表示名を取る
+
+**反例：** 一つの Bash 呼び出しで、通常の `check --json`、raw の修正、`check --finish --json` を順に実行する。
+
+出力には、次の二つの JSON が並ぶ。
+
+| 出力順 | `translated_by` | `work_dir_removed` |
+|---|---|---|
+| 最初の check | Claude Opus 5.5 | なし |
+| 最後の finish | Claude Sonnet 5.5 | `true` |
+
+この入力は、**17/18、表示名だけ不合格**になった。最終状態が正しくても、修正前の名前で落とす。
+
+名前を逆にし、最終 raw の `translated_by` も Opus にすると、**18/18、`display_names_verified: true`、報告上の名前は Sonnet**になった。
+
+完了判定は出力全体から成功と削除の文字列を探す一方、`check_json()` は最初に復号できた check を即座に返す。同じ結果オブジェクトを使う保証がない。
+
+根拠：
+
+- [check_web_raw_agent.py:266](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:266)：268〜278行で最初の check を返し、`ok` や `work_dir_removed` を確認しない。
+- 同ファイル281〜285行：完了の印を出力全体から検索。
+- 同ファイル423〜431行：抽出された別の check の表示名を判定に使用。
+- [wiki_rawcheck.py:1048](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:1048)、同ファイル1124〜1137行：通常の check も finish も同じ `stage: check` を出し、削除成功時にだけ `work_dir_removed` を追加する。
+
+### 4. 【重大】複数回の W8・複数ページを、最後の一件とリンク一件で代表させる
+
+**表示名の見逃し：** 二つの URL を扱う記録を作り、それぞれのエージェントに取得、freeze、finish の証拠を持たせた。最初の raw と check の表示名を Opus、二つ目を Sonnet にし、索引には両ページを登録した。それでも、**18/18、`display_names_verified: true`**になった。最初の raw は表示名の判定対象から消える。
+
+**順序の取り違え：** 同じ URL を取り直し、古いエージェントの結果が Opus、新しいエージェントの結果と最終 raw が Sonnet でも、新しい記録のファイル名が先に並ぶと、**17/18、古い Opus の名前で不合格**になった。呼び出し ID をエージェント間で一意にしても再現した。
+
+**索引漏れ：** メインが要約ページを二つ正常に書いても、索引に片方だけあれば合格する。両方の表示名を Sonnet にした記録でも、**18/18**だった。
+
+根拠：
+
+- [check_web_raw_agent.py:96](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:96)：サブエージェントの記録をファイル名順に並べる。
+- 同ファイル338行：その順でイベントを連結する。
+- [check_web_raw_agent.py:423](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:423)：担当別に結果を並べ、426行で最後の JSON 一つだけを採用。実行時刻や raw との対応は使わない。
+- 同ファイル391〜393行：リンクされたページのリストが一件でもあれば合格。
+- [web-raw.md:30](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references/web-raw.md:30)、同ファイル32行：複数 URL の同時取り込みを想定している。
+
+### 5. 【重大】検索と check を同じ Bash 呼び出しにまとめると、禁止オプションの誤検出が復活する
+
+次の正常な呼び出しで再現した。
+
+```bash
+rg -n -- '--accept-warnings' info-hive-wiki/skills/info-hive/references/web-raw.md
+python wiki_rawcheck.py check --slug cqrs --finish --json
+```
+
+check 自体に `--accept-warnings` は渡していない。それでも、**15/17**となり、「禁止オプションを付けていない」と W8 の二項目が不合格になった。
+
+`--reason "--accept-warnings は付けない"` とした場合も同じだった。結果に check の出力があることを追加条件にしても、コマンド全体に含まれる文字列をオプションの使用と扱う問題は残る。
+
+根拠：
+
+- [check_web_raw_agent.py:367](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:367)：367〜369行は、コマンド全体の部分文字列と結果全体の check の印を照合するだけ。
+- 同ファイル371行：同じ部分文字列を含む正常な finish まで W8 の証拠から除外。
+- [agents/web-raw.md:28](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/agents/web-raw.md:28)：実際の禁止対象は、check にそのオプションを付けること。
+
+### 6. 【重大】`names_finish` は、明示的な cat を「自分で W8 を実行した」証拠にする
+
+次の呼び出しは `names_finish()` を通る。
+
+```bash
+cat wiki_rawcheck.check.--finish.json
+```
+
+`wiki_rawcheck`、独立した `check`、`--finish` がファイル名に含まれるためである。
+
+**再現：**
+
+1. メインが `--accept-warnings` なしで finish を実行し、結果を上記の名前で保存する。
+2. エージェントはそのファイルを cat するだけにする。
+3. ほかの証拠を正常にする。
+
+結果は **18/18、`w8_finished_by: ["wiki:web-raw"]`**だった。メインによる代行を、エージェント自身の実行と取り違える。
+
+これは実行を隠したケースではない。記録にはメインの実行とエージェントの cat がそのまま見えている。なお、ファイル名は反例用に仮定したものである。
+
+根拠：
+
+- [check_web_raw_agent.py:256](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/check_web_raw_agent.py:256)：262〜263行は三つの文字列の存在だけを判定。
+- 同ファイル359〜363行：それを自身の finish の証拠にする。
+- [test_web_raw_agent.py:394](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/test_web_raw_agent.py:394)：既存試験が拒否を確かめるのは、必要な文字列を含まない `cat previous-check-output.json` だけ。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| 空から始めたファイルにあるリンク・取り込み表記は、今回追加した項目である | 初期テンプレートの説明文に同じ表記がある |
+| 索引のリンク先は常にパスなしである | 規約どおりパス付きリンクを使う |
+| 一つの道具の結果には、判定対象の check が一つだけある | 事前検査と finish をまとめて実行する |
+| 最後に列挙した JSON が、最終状態または全 raw を代表する | 複数 URL、取り直し、記録ファイル名順と実行順の逆転 |
+| 要約ページへのリンクが一件あれば索引更新は完了している | 要約ページを複数作り、一部を登録し忘れる |
+| check の出力を受け取る呼び出し内の禁止文字列は、check のオプションである | 検索、引用、理由の値にその文字列がある |
+| 三つの名前がコマンド中にあれば、スクリプトを実行した | cat の対象ファイル名に三つとも含まれる |
+
+## 見落としと軽微な問題
+
+- **【軽微・試験の欠落】** [test_web_raw_agent.py:599](/C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/test_web_raw_agent.py:599) の JSON 抽出試験は、一つの平坦な check と文字出力だけ。二つの check、修正前後の結果、複数エージェントの順序を調べていない。
+- 同ファイル240〜242行の作り物のファイルは、初めから正常な索引とログを持つ。実際の初期テンプレートを使わないため、記入例の誤採用を検出しない。
+- 同ファイル565〜569行は、検索だけの呼び出しを試す。検索と check を一つの呼び出しにまとめた反例は含まれない。
+- 同ファイル514〜531行の追加試験は、索引を空にする場合と単一 check の名前変更を扱う。パス付きリンク、複数ページの登録漏れ、複数結果の取り違えは含まれない。
+
+## 検証した事実
+
+- 指定された差分、前回レビュー、原因分析、現行コード、手順、保存結果を照合した。
+- 実記録三件を現行コードで再解析した。**18/18、18/18、17/17**で、保存された `checks` とすべて一致した。
+- ファイルを生成しない既存試験16件を実行し、すべて成功した。
+- 上記の反例は、会話記録とファイル読み取りをメモリ上で差し替え、実際の `analyze_paths()` に通して確認した。反例のシェルコマンド自体は実行していない。
+- 新しいモデルによる取り込み、リポジトリや実プロジェクトのファイル変更は行っていない。
+
+## 崩せなかった点
+
+- 通常の fetch JSON 単体には `stage: check` がなく、今回の表示名抽出には採用されない。独立したエージェントの文章出力も、W8 の JSON を読む経路には入らない。
+- パスなしの `[[スラッグ]]` と `[[スラッグ|別名]]` は、日本語スラッグを含めて通った。
+- 初期テンプレートを両方とも完全に無変更にしただけでは、ログの `raw:` 条件が不合格になる。
+- 文字出力で終えた実記録は、表示名を判定せず `display_names_verified: false` となった。この説明は実装と一致した。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
