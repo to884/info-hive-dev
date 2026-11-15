@@ -4,7 +4,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 8 版目を、作者が**承認した**（2026年11月14日）。7 版目の承認のあと、作者の決定で Fluent 2 化を組み込んだ（[Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)）。改訂した所は、作者が決めたこと、1 節の画面の契約、3〜5 節の部品の注、7 節、9 節、10 節、範囲の外である。木の規則、データ、検索の規則は変えていない。改訂は Fluent 2 の設計と一緒に Sol のレビューにかけ、3 回目で分類 A が 0 件になった。7 版目は、作者が**承認した**（2026年11月14日）。7 回目のレビュー（[design-review-7.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-7.md)）で「条件付きで採用可」、分類 A は 0 件だった。止める条件（「作者が決めたこと」）に従い、残りを直すか「7 回目のレビューのあとに残したもの」に書いた。実装は、構造の直しが main に入ってから始める。1〜6 版目は、Sol の設計のレビューで却下された（[design-review-1.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-1.md) は重大 4 件、[design-review-2.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-2.md) と [design-review-3.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-3.md) は重大 1 件ずつ、[design-review-4.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-4.md) と [design-review-5.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-5.md) は重大 2 件ずつ、止める条件を付けた [design-review-6.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-6.md) は分類 A が 1 件） |
+| 状態 | 8 版目を、作者が**承認した**（2026年11月14日）。info-hive-wiki 0.18.0 で実装した（2026年11月15日。実装のレビューは 4 回で、4 回目に分類 A が 0 件。記録は [impl-responses.md](../agent-runs/2026-11-14-wiki-browse-fluent2/impl-responses.md)）。7 版目の承認のあと、作者の決定で Fluent 2 化を組み込んだ（[Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)）。改訂した所は、作者が決めたこと、1 節の画面の契約、3〜5 節の部品の注、7 節、9 節、10 節、範囲の外である。木の規則、データ、検索の規則は変えていない。改訂は Fluent 2 の設計と一緒に Sol のレビューにかけ、3 回目で分類 A が 0 件になった。7 版目は、作者が**承認した**（2026年11月14日）。7 回目のレビュー（[design-review-7.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-7.md)）で「条件付きで採用可」、分類 A は 0 件だった。止める条件（「作者が決めたこと」）に従い、残りを直すか「7 回目のレビューのあとに残したもの」に書いた。実装は、構造の直しが main に入ってから始める。1〜6 版目は、Sol の設計のレビューで却下された（[design-review-1.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-1.md) は重大 4 件、[design-review-2.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-2.md) と [design-review-3.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-3.md) は重大 1 件ずつ、[design-review-4.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-4.md) と [design-review-5.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-5.md) は重大 2 件ずつ、止める条件を付けた [design-review-6.md](../agent-runs/2026-11-13-wiki-browse-findability/design-review-6.md) は分類 A が 1 件） |
 | 対象 | `info-hive-wiki` の `wiki_browse_core.py`、`wiki_browse.py`、`browse_assets/app.js`、`browse_assets/style.css`、`browse_assets/theme.js`（新しい資産）、`browse_assets/fluent2.css`（同梱する資産）、`commands/browse.md` と、開発リポジトリの `tests/wiki/` |
 | 前提 | [browse の構造の直し](wiki-browse-structure-2026-11-11.md)が `info-hive-wiki` の main に入ってから実装する。この設計は、描く側が機械の情報を持たず（構造の直しの P7）、読めない入力に「不完全」の印が付く（同 4.1）形を前提に書く |
 | 元の設計 | [browse の第 1 段階の設計](wiki-browse-stage1-2026-11-09.md)。3.7（ナビゲーション）、4（画面の契約）、「範囲の外」の検索を書き換える |
@@ -156,10 +156,12 @@
 
 | グループ | ID | 今 |
 | --- | --- | --- |
-| 索引のファイルのグループ | `_gf` と、索引のファイルの並び（写しの `by_kind("index")` の並び。読めないファイルも数える）の 0 から始まる番号 | `_g` と、ディスク上の綴りの SHA-256 の先頭 10 桁 |
+| 索引のファイルのグループ | `_gf` と、グループを作る索引のファイル（写しの `by_kind("index")` の並びのうち、読めて解釈できたもの）の並びの 0 から始まる番号。読めないファイルと解釈できないファイルは数えない（実装の段で直した。下の注） | `_g` と、ディスク上の綴りの SHA-256 の先頭 10 桁 |
 | 見出しのグループ、「索引にないページ」のグループ | `_g` と、1 から始まる通し番号 | 同じ |
 
 索引のファイルのグループの ID は、今のハッシュをやめて番号にする。ハッシュの先頭 10 桁は、別の名前でも重なる。`indexes/probe-910039.md` と `indexes/probe-1542287.md` は、どちらも `81823b0577` になり、2 つのファイルが同じ ID のグループになる（6 回目のレビューの A。手元で確かめた）。番号は、ファイルの並びの中で 1 つずつ違い、`f` で始まるので通し番号とも重ならない。NFC で同じになる 2 つの名前のファイルも、並びの中では別の位置にあるので、別の ID になる。N4 の「索引」のグループは、`index.md` のグループの ID を引き継ぐ（`index.md` のグループは木に出ないので、重ならない）。ID は、木（`nav.js`）、索引のページの一覧の `data-groups`、URL の `#group=<ID>` で同じものを使う。
+
+実装の段で直したこと（2026年11月15日）: 7 版目は「読めないファイルも数える」としていた。そうすると、読めない `index.md` のある Wiki と、`index.md` を取り除いた Wiki で、ほかの索引のファイルのグループの ID がずれ、構造の直しの約束（読めない入力は、その入力がない Wiki と同じに描き、読み取りの印を足す。構造の直しの設計の 4.1）を破る。試験の `browse_fs` の読む側の探索が見つけた。番号は、グループを作るファイルだけで数える。グループを作るファイルの並びの中では位置が 1 つずつ違うので、重ならないことは変わらない。参照の実装（`tests/wiki/browse_nav/nav_model.py`）も同じに直した。
 
 ID は、どれも `_g` と英小文字か数字だけからなる。空白を含まないので、`data-groups` で空白で区切っても読み戻せる。5 版目までの参照の実装は、`type` の値を ID に入れ、`research note` のような種類で、区切りと取り違えた（5 回目のレビューの重大 2）。
 

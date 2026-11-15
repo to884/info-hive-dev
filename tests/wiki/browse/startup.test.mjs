@@ -37,10 +37,11 @@ for (let i = 0; i < PAGES; i++) {
 writeFileSync(join(wiki, "SCHEMA.md"), "# スキーマ\n", "utf8");
 writeFileSync(join(wiki, "index.md"), ["# 索引", "", ...Array.from({ length: PAGES }, (_, i) => `- [[ページ${i}]]`), ""].join("\n"), "utf8");
 
-function serveOnce(browser) {
+function serveOnce(browser, slug = "ページ0") {
   return new Promise((ok, fail) => {
     const started = Date.now();
-    const child = spawn("uv", ["run", "--script", SCRIPT, "serve", wiki, "--no-open", "--page", "ページ0"],
+    const args = ["run", "--script", SCRIPT, "serve", wiki, "--no-open", ...(slug ? ["--page", slug] : [])];
+    const child = spawn("uv", args,
       { env, stdio: ["ignore", "pipe", "pipe"] });
     let buf = "";
     let err = "";
@@ -58,9 +59,21 @@ function serveOnce(browser) {
         const page = await browser.newPage();
         await page.goto(url, { waitUntil: "load" });
         await page.waitForFunction(() => window.__browse && window.__browse.navLoaded, null, { timeout: 30000 });
+        if (!slug) {
+          // 索引のページ（探しやすさの設計の 9）: 一覧の行がすべて描かれていること
+          const rows = await page.locator("#_index .fx-row").count();
+          if (rows !== PAGES) { throw new Error(`索引の一覧の行が ${rows}`); }
+        }
         const ms = Date.now() - started;
+        // ページの CSP は fetch を止めるので、Playwright の要求で大きさを測る
+        const root = await page.evaluate(() => document.documentElement.getAttribute("data-root") || "");
+        const base = new URL(root || "./", page.url()).href;
+        const sizes = {};
+        for (const name of ["nav.js", "data/search.js", "index.html", "assets/fluent2.css"]) {
+          sizes[name] = (await (await page.request.get(base + name)).body()).length;
+        }
         await page.close();
-        ok({ ms, child });
+        ok({ ms, child, sizes });
       } catch (e) { child.kill(); fail(e); }
     });
     child.once("exit", (code) => fail(new Error(`serve が終わった（${code}）: ${err}`)));
@@ -88,7 +101,18 @@ try {
   }
   result.runsMs = times;
   result.medianMs = times.sort((a, b) => a - b)[1];
-  failed = result.medianMs > LIMIT_MS;
+  // 索引のページ（1,000 行の一覧）も同じ目安で測る
+  const indexTimes = [];
+  for (let i = 0; i < 3; i++) {
+    const run = await serveOnce(browser, null);
+    indexTimes.push(run.ms);
+    result.sizes = run.sizes;
+    stop();
+    await new Promise((r) => run.child.once("exit", r));
+  }
+  result.indexRunsMs = indexTimes;
+  result.indexMedianMs = indexTimes.sort((a, b) => a - b)[1];
+  failed = result.medianMs > LIMIT_MS || result.indexMedianMs > LIMIT_MS;
 } catch (e) {
   result.error = String(e).slice(0, 500);
   failed = true;
