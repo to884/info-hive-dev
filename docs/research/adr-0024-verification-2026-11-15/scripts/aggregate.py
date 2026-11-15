@@ -1,4 +1,5 @@
 """Sol の判定（judge/sol-result.md、judge/mapping.json）を、方式ごとの表にまとめる。summary.md と summary.json を書く。
+--set 2 では、judge2/ を集計して summary2.md と summary2.json を書く。
 
 使い方: python -I aggregate.py
 集計の前に、判定の judge_digest、manifest.json、写し、対応表が一致することを確かめ、違えば止まる。
@@ -16,10 +17,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from prepare_judge import SELECTED, digest_of, page_text, sha256  # noqa: E402
 
 BENCH = Path(__file__).resolve().parent.parent
-JUDGE = BENCH / "judge"
+from prepare_judge import JUDGE_DIR, METHODS, SET  # noqa: E402  --set 2 で 2 回目の組を集計する
+
+JUDGE = BENCH / JUDGE_DIR
+SUFFIX = "" if SET == "1" else SET
 AXES = ["coverage", "order", "table", "legibility", "usability"]
-METHODS = ["wikipdf", "poppler", "xpdf", "pdfminer"]
-LABEL = {"wikipdf": "wiki_pdf（試作）", "poppler": "Poppler 26.09.0", "xpdf": "Xpdf 4.00", "pdfminer": "pdfminer"}
+LABEL = {"wikipdf": "wiki_pdf（試作）", "poppler": "Poppler 26.09.0", "xpdf": "Xpdf 4.00", "pdfminer": "pdfminer",
+         "pdfminer-vertical": "pdfminer（縦書きの検出）", "docling": "Docling", "ndlocr": "NDLOCR-Lite"}
 
 
 def check(sol: dict, mapping_bytes: bytes) -> dict:
@@ -55,7 +59,7 @@ def main() -> None:
             score = sol[key][letter]
             rows.append({"page": key, "method": method, **{a: score.get(a) for a in AXES},
                          "fatal": len(score.get("fatal", []))})
-    (BENCH / "summary.json").write_bytes(json.dumps(rows, ensure_ascii=False, indent=2).encode("utf-8"))
+    (BENCH / f"summary{SUFFIX}.json").write_bytes(json.dumps(rows, ensure_ascii=False, indent=2).encode("utf-8"))
 
     def cell(v) -> str:
         return "－" if v is None else str(v)
@@ -73,7 +77,7 @@ def main() -> None:
         mine = [r for r in rows if r["method"] == m]
         avg = [statistics.mean([r[a] for r in mine if r[a] is not None]) for a in AXES]
         lines.append(f"| {LABEL[m]} | " + " | ".join(f"{v:.2f}" for v in avg) + f" | {sum(r['fatal'] for r in mine)} |")
-    (BENCH / "summary.md").write_bytes(("\n".join(lines) + "\n").encode("utf-8"))
+    (BENCH / f"summary{SUFFIX}.md").write_bytes(("\n".join(lines) + "\n").encode("utf-8"))
     print("\n".join(lines))
 
 

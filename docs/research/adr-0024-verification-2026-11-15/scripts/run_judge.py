@@ -14,11 +14,11 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from prepare_judge import SELECTED  # noqa: E402
+from prepare_judge import JUDGE_DIR, SELECTED  # noqa: E402  --set 2 で 2 回目の組を判定する
 
 BENCH = Path(__file__).resolve().parent.parent
 REPO = BENCH.parents[2]
-JUDGE = BENCH / "judge"
+JUDGE = BENCH / JUDGE_DIR
 
 
 def main() -> None:

@@ -1,6 +1,9 @@
 """Sol の判定のために、選んだページの出力を方式の名前を伏せて judge/<ページ>/<記号>.txt に写し、ページの画像を添える。
 
-使い方: python -I prepare_judge.py <対応表の書き出し先> [--discard-judgement]
+使い方: python -I prepare_judge.py <対応表の書き出し先> [--discard-judgement] [--set 2]
+
+- 判定の組は 2 つある。1 は ADR-0024 の承認の条件の検証（judge/、4 方式）。2 は書き直しの案の比較
+  （judge2/、6 方式。pdfminer の縦書きの検出、Docling、NDLOCR-Lite を足した）。--set 2 で 2 を選ぶ。
 
 - 対応表（記号と方式の対応）は、判定が終わるまで judge/ の外に置く。判定のあとで judge/mapping.json に写す。
 - judge/manifest.json に、写したファイルごとの SHA-256、対応表の SHA-256、それらのダイジェストを書く。
@@ -19,7 +22,13 @@ import sys
 from pathlib import Path
 
 BENCH = Path(__file__).resolve().parent.parent
-METHODS = ["wikipdf", "poppler", "xpdf", "pdfminer"]
+SETS = {
+    "1": ("judge", ["wikipdf", "poppler", "xpdf", "pdfminer"]),
+    "2": ("judge2", ["wikipdf", "xpdf", "pdfminer", "pdfminer-vertical", "docling", "ndlocr"]),
+}
+SET = sys.argv[sys.argv.index("--set") + 1] if "--set" in sys.argv else "1"
+JUDGE_DIR, METHODS = SETS[SET]
+LETTERS = "ABCDEF"
 # 判定するページ: 2 段組み、表、日本語の組版、図と表の多いスライド、縦書き
 SELECTED = [("bert", 1), ("bert", 6), ("bert", 7), ("whitepaper-point", 1), ("whitepaper-summary", 2),
             ("whitepaper-summary", 4), ("whitepaper-summary", 7), ("whitepaper-summary", 11),
@@ -46,7 +55,7 @@ def page_text(stem: str, method: str, page: int) -> str:
 
 
 def main() -> None:
-    judge = BENCH / "judge"
+    judge = BENCH / JUDGE_DIR
     old = sorted(judge.glob("sol-result.md*")) + sorted(judge.glob("mapping.json"))
     if old:
         if "--discard-judgement" not in sys.argv[2:]:
@@ -68,7 +77,7 @@ def main() -> None:
         methods = METHODS[:]
         rng.shuffle(methods)
         mapping[key] = {}
-        for letter, method in zip("ABCD", methods):
+        for letter, method in zip(LETTERS, methods):
             data = page_text(stem, method, page).encode("utf-8")
             (folder / f"{letter}.txt").write_bytes(data)
             mapping[key][letter] = method
