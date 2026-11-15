@@ -2,14 +2,18 @@
 type: "concept"
 title: "/wiki:ingest に使うモデル"
 tags: ["取り込み"]
-sources: ["ingestのモデルの比較-2026-11-13"]
+sources: ["ingestのモデルの比較-2026-11-13", "rawの段を任せるエージェントの確かめ-2026-11-14"]
 created: 2026-11-13
-updated: 2026-11-13
+updated: 2026-11-14
 ---
 
 # /wiki:ingest に使うモデル
 
-`/wiki:ingest` で Web ページを取り込むときは、Claude Sonnet 5.5 を使う。グローバルの指示（`C:\Users\toshiki\.claude\CLAUDE.md`）にもそう書いてある。2026-11-13 に Haiku 5.5 と Opus 5.5 とで比べ、Sonnet のまま使うことに決めた（[[ingestのモデルの比較-2026-11-13]]）。
+`/wiki:ingest` で Web ページを取り込むときは、raw を作る段（取得、雑音の削除、訳、画像の補足、検査）を Claude Sonnet 5.5 で行う。2026-11-13 に Haiku 5.5 と Opus 5.5 とで比べ、Sonnet のまま使うことに決めた（[[ingestのモデルの比較-2026-11-13]]）。比べたのは raw だけなので、要約ページから後は、取り込みを進めているモデル（ユーザーが使っているモデル）で行う。
+
+wiki プラグイン 0.15.0 からは、raw の段をプラグインのエージェント `wiki:web-raw`（`model: sonnet`）が行う。それまでは、グローバルの指示（`C:\Users\toshiki\.claude\CLAUDE.md`）で取り込み全体を Sonnet にしていたが、2026-11-14 にその指示を消した（設計は `docs/plans/wiki-web-raw-agent-2026-11-14.md`）。0.15.0 より前のプラグインでは、raw の段も、取り込みを進めているモデルで行われる。
+
+メインを Opus 5.5 にして分けた取り込みを実際に動かすと、分担は記録の上で確かめられ、費用の大半は後段の Opus で、Sonnet の raw の段は 1 割ほどだった（[[rawの段を任せるエージェントの確かめ-2026-11-14]]）。モデルごとの比較の数値は [[ingestのモデルの比較-2026-11-13]] にある。
 
 ## モデルが raw に与える影響
 

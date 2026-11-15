@@ -270,6 +270,14 @@ class ReaderEntryTests(EntryCase):
                                 "--slug", "記事", "--json"],
             "rawcheck-check": [SCRIPTS / "wiki_rawcheck.py", "check", "--wiki", w, "--raw-root", self.raw,
                                "--slug", "記事", "--finish"],
+            # セッションの取り込み（wiki 0.16.0）。記録がなくても、記録を読む前に判定で止まる。
+            "session-inspect": [SCRIPTS / "wiki_session.py", "inspect", "--transcript", self.outside / "s.jsonl",
+                                "--wiki", w, "--raw-root", self.raw, "--slug", "記事", "--json"],
+            "session-decide-init": [SCRIPTS / "wiki_session.py", "decide", "init", "--transcript",
+                                    self.outside / "s.jsonl", "--wiki", w, "--slug", "記事"],
+            "session-write": [SCRIPTS / "wiki_session.py", "write", "--transcript", self.outside / "s.jsonl",
+                              "--title", "題名", "--decisions", self.outside / "d.json", "--wiki", w, "--raw-root",
+                              self.raw, "--slug", "記事", "--expect-sha256", "0" * 64, "--json"],
         }
 
     def test_path_through_missing_directory_is_refused(self):
@@ -474,6 +482,7 @@ class EntranceInventoryTests(unittest.TestCase):
         "wiki_mcp_server.py": "tests/wiki/test_mcp_server.py の UninitializedWikiTests",
         "wiki_rawcheck.py": "tests/wiki/test_wiki_web_check.py の MainAndWorkDirTest.test_uninitialized_wiki_is_refused",
         "wiki_search.py": "ReaderEntryTests の search、search-cache、backlinks",
+        "wiki_session.py": "ReaderEntryTests の session-*、tests/wiki/test_wiki_session.py",
         "wiki_stats.py": "ReaderEntryTests の stats",
     }
     RUNNERS = {

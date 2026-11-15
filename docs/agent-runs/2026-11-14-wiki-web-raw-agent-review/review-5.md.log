@@ -1,0 +1,97 @@
+[ask-codex 14:42:26] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\web-ingest-check）
+## 判定
+
+**却下。確信度：高。** 「取り直さずに今の本文で続ける」という回答が、実際には再取得・再保存になる経路がある。#57 の再開手順は移されているが、再呼び出し時の `fetch` の引き継ぎと整合していない。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】短い本文の続行を選んでも、残った取得指定が raw と写しを作り直す
+
+**主張：** `needs_browser` の表は、続行時に「`fetch` は変えず」に条件だけを追加する。しかし、直前の取り直しで設定した `fetch.force: true` と `fetch.html_file` が残るため、次の W2 は既存の raw を再開しない。
+
+**反例：**
+
+1. URL の取得で本文が短く、`needs_browser` が返る。
+2. 表に従い、保存した HTML を指定し、`fetch.force: true` で呼び直す。
+3. DOM 由来の本文も短く、再び `needs_browser` が返る。
+4. ユーザーが「取り直さず、今の本文で続ける」と答える。
+5. 表に従って `conditions` だけを追加すると、W2 は再び `--html-file … --force` を実行する。
+
+このとき、保存 HTML が変更されていれば別の本文に置き換わり、削除されていれば、再開可能な写しがあってもファイルの読込で失敗する。URL 取得で `force: true` が残る場合も、再取得時の通信失敗で続行できない。
+
+**実行確認：** 書き込みをモックに置き換え、同じ取得指定で実際の `build()` を2回実行した。2回とも `unchanged: false` となり、raw の保存と作業用フォルダーの削除がそれぞれ2回呼ばれた。2回目の HTML を本文なしにすると `chars: 0` になった。その内容に対する実際の `freeze()` と `check(..., override="keep")` は、どちらも警告・誤りなしで通った。
+
+したがって、条件の「本文が短いまま続ける」は、ユーザーが承認した本文とは別の、空になった本文にも適用されうる。実モデルがこの経路を選ぶかは未確認だが、**文書どおりに再呼び出した際のスクリプト分岐は確認済み**である。
+
+**根拠：**
+
+- [references/web-raw.md:44](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references/web-raw.md:44)：続行時に `fetch` を維持する指定。
+- 同ファイル106行：W2 は依頼の `fetch` に従って取得オプションを付ける。
+- 同ファイル113行：続行条件を確認するのは W2 のあと。
+- [wiki_fetch.py:1297](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:1297)：取得前の再開は `not html_file and not args.force` が条件。
+- 同ファイル1310〜1322行：HTML の再読込または通信を行う。
+- 同ファイル1335行、1502〜1513行：`--force` は既存内容の比較を飛ばし、写しと raw を再作成する。
+- [wiki_rawcheck.py:980](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py:980)：`check` に本文の絶対的な最低文字数を検査する処理はない。973行の `short` は、原文に対して訳文が短い場合の警告である。
+
+## 崩れる前提
+
+- **`fetch` を維持すれば、今ある raw を続行できる。**  
+  `force: true` または `html_file` が残ると崩れる。どちらも取得前の再開を無効にする。
+
+- **「本文が短いまま続ける」という承認は、同じ本文に適用され続ける。**  
+  条件には承認対象のハッシュがなく、取得指定を変えたり、保存 HTML が変わったりしても残る。W3 は空の本文も同じ条件で続行させる。
+
+- **W8 が、取得時に本文を失ったことを最後に検出する。**  
+  新しく空の内容を取得・固定した場合、W8 の比較基準もその内容になる。前の本文との差や、取得時の「本文が空」という警告は検査しない。
+
+- **`old_work_dir` があれば、取り直しの承認を得ることが次の有効な操作である。**  
+  HTML ファイルの欠落・文字コード誤り・HTTP エラーが同時にあると、`--force` だけでは解消しない。
+
+## 見落としと軽微な問題
+
+### 【軽微】`old_work_dir` の優先処理が、実際の失敗原因を報告から落とせる
+
+旧版の写しと raw が対応している状態で、`force: false` のまま存在しない `html_file` を渡すと、終了コード1の標準エラーには、ファイルの誤りと旧版の案内が両方出る。HTTP エラーなら、終了コード2の JSON に `error: "fetch_failed"` と `old_work_dir: true` が共存する。
+
+ところが W2 は、旧版の案内を終了コード別の扱いより優先し、`old_work_dir` の問いを返す。報告仕様には、同時に起きたエラーを保持する要求がない。ユーザーが取り直しを承認しても、表が変えるのは `force` だけなので、欠落した HTML や文字コードの誤りは残る。
+
+実際の `report_failure()` で、取得失敗・ファイル欠落・`ValueError` の出力を確認した。`force: true` にすると旧版の案内は出なくなるため、この例は無限ループではなく、**原因を修正しない再実行を一度挟んで失敗する経路**である。
+
+根拠：[references/web-raw.md:111](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/references/web-raw.md:111)、同43・80行、[wiki_fetch.py:1626](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:1626)、同1273〜1274行。
+
+### 【軽微】追加テストは、続行条件の文字列が存在することしか検証していない
+
+`test_needs_browser_can_continue_with_the_short_body` は、表と W3 に決まった文があることだけを調べる。再呼び出し後の `force`・`html_file`、再取得の有無、raw の維持を検証しないため、上記の反例を通してしまう。
+
+`old_work_dir` についても、この試験ファイルでは問いの一覧への登録を確認するだけで、取得失敗との同時発生を扱っていない。合成記録テストにも、この往復の遷移例はない。
+
+根拠：[test_web_raw_agent.py:139](C:/Works/info-hive-dev/.claude/worktrees/web-ingest-check/tests/wiki/test_web_raw_agent.py:139)、同130〜137・215〜232行。
+
+## 検証した事実
+
+表の指示とスクリプトを突き合わせた結果は次のとおり。取得成功と、別版のスラッグが未使用であることを仮定する。
+
+| `question.kind` | 取り直す・上書きする | 別版にする | 今のまま続ける | やめる |
+| --- | --- | --- | --- | --- |
+| `existing_differs` | `force: true` で再作成 | 指定スラッグで新規取得 | 依頼を変えなければ同じ問い | 停止 |
+| `already_ingested` | `force: true` で再作成 | 表に指定なし | 依頼を変えなければ同じ問い | 停止 |
+| `old_work_dir` | `force: true` で再作成。元の取得・入力エラーは残る | 表に指定なし | 旧版の写しは再開不可 | 停止 |
+| `needs_browser` | HTML と `force: true` で再取得。短ければ再び問い | 表に指定なし | 残った取得指定により重大欠陥1が発生 | 停止 |
+
+その他の確認結果：
+
+- **一致：** #57 の `fetched → W3`、`frozen → freeze の報告確認 → W6／W8` は移されている。
+- **一致：** 正常な写しを用意したメモリ上の検証では、URL のみ・`force: false` の呼出しは、`fetched` と `frozen` の両方で通信せず、`fetch_skipped: true` と `source_sha256_of: "dom"` を返した。
+- **一致：** `old_work_dir` の問いは一覧と報告仕様の両方に追加されている。
+- **試験結果：** ファイルを書かない定義・参照文書・入口・判定関数の12テストは成功した。ファイルを作る合成記録テストと実モデルの呼出しは実行していない。
+- リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 正常な写しを URL のみで再開する経路では、DOM とネット取得のハッシュ差による衝突を再現できなかった。
+- `frozen` の再開時に削除内容の確認を飛ばすという、移植上の欠落は見つからなかった。`freeze` の報告は写しから再構成される。
+- 「本文が短いまま続ける」という条件自体が、W8 の翻訳警告を受け入れる仕組みにはなっていない。`--accept-warnings` をエージェントに付けさせない規則は残っている。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 14:49:41] 完了。session 01a1d894-193c-70d2-9dca-97184b9e444b  usage {"input_tokens": 1237728, "cached_input_tokens": 1134464, "cache_write_input_tokens": 0, "output_tokens": 11415, "reasoning_output_tokens": 5029}

@@ -1,0 +1,85 @@
+[ask-codex 20:32:37] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-session-ingest-a98aa3）
+## 判定
+
+**却下。確信度：高。** ツール要約の先行処理によって、秘密鍵の本体がrawと`scan`の両方を通過する反例と、伏せた鍵の本体を`scan`が見逃す反例を再現した。「つないだ本文全体への伏せ字」だけでは、先行処理で失った情報を回復できない。
+
+## 致命的・重大な欠陥
+
+1. **重大：ツール要約がPEMヘッダーを先に消すため、後続の鍵本体がrawに残る。**
+
+   人の発言に続き、同じ宛先へのアシスタントの記録に、次のブロックを順に置く。
+
+   ```json
+   {"type":"tool_use","name":"Grep","input":{"pattern":"-----BEGIN PRIVATE KEY-----"}}
+   {"type":"text","text":"QUFBQUFBQUFBQUFB\nQkJCQkJCQkJCQkJC\n-----END PRIVATE KEY-----"}
+   ```
+
+   抽出されたアシスタント本文は次のとおりだった。
+
+   ```text
+   [ツール] Grep ［伏せ字］
+
+   QUFBQUFBQUFBQUFB
+   QkJCQkJCQkJCQkJC
+   -----END PRIVATE KEY-----
+   ```
+
+   `tool_summary()`が開始ヘッダーだけを伏せ、その後の本文全体への`redact()`にはヘッダーが届かない。保持される検索文字列もヘッダーだけで、上記の本体を検査すると、`scan --path`の処理は**終了コード0、`findings: []`**になった。
+
+   `render()`の自己検査も通った。ファイル操作をモックした`cmd_write()`では、正しい承認ハッシュを渡すと、この本体を含むバイト列が書き込み関数へ渡され、終了コード0になった。実ファイルへの書き込みは行っていない。
+
+   根拠：[wiki_session.py:437](/C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:437)の要約内の伏せ字、同663行の先行処理、同753行の連結後の伏せ字。先行処理前の文字列を連結して`redact()`すると、本体まで伏せられることも確認した。
+
+2. **重大：PEM全体がツールの値に入っていても、本体の各行が検索対象に登録されない。**
+
+   `Grep.input.pattern`を次の文字列にする。
+
+   ```text
+   -----BEGIN PRIVATE KEY-----
+   QUFBQUFBQUFBQUFB
+   QkJCQkJCQkJCQkJC
+   -----END PRIVATE KEY-----
+   ```
+
+   この場合、rawのツール要約では鍵全体が伏せられる。しかし、先に改行を空白へ変えるため、PEMを処理する時点では全体が1行になっている。`pem()`は`"-----"`を含む行を本体の候補から除くので、**本体の検索文字列が一つも登録されない**。
+
+   上記のBase64の2行をそのままページの内容として渡すと、`scan_text()`も、読み取りをモックした`scan --path`も検出しなかった。各行は16文字あり、短い文字列の除外には該当しない。同じ結果を`cwd`、`git_branch`への入力でも確認した。
+
+   根拠：[wiki_session.py:341](/C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:341)の本体行の選別、同445〜446行の整形順序、同771〜772行のメタデータの整形順序。
+
+## 崩れる前提
+
+- **連結後に全文を検査すれば、先行する部分単位の変換の影響を除ける。** ツール要約がPEMヘッダーを消した場合、全文の検査に必要な文脈がすでに失われている。
+- **改行を空白へ変えても、伏せ字の検索用情報は変わらない。** PEMの本体行を取り出す処理は改行に依存している。
+- **S9の照合対象が、そのまま最終的なファイルになる。** S9の照合後にも、ログのサブ行とS10のグラフ更新が書かれる。
+
+## 見落としと軽微な問題
+
+- **軽微：結合文字の列番号は、前回と同じ入力でも実際の位置を示さない。**  
+  U+0300を手動で伏せ、`b\u0315\u0300`を検査すると、結果は`line: 1, column: 1`だった。該当文字は3文字目にある。塊ごとの正規化を連結した結果が全文と一致していても、塊の内部の位置は復元していない。  
+  根拠：[wiki_session.py:1588](/C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1588)、同1643〜1644行。
+
+- **軽微：書き込み後の照合が、最後の書き込みより前に終わる経路が残る。**  
+  S9は`scan --path`の後にセッションのログのサブ行を書く。さらにS10が呼ぶ手順7には、引用などの文字列を含む型付きエッジの追加がある。その後の`verify`はrawだけを見るため、そこで更新されたwikiファイルの最終版を照合する指定がない。これは手順上確認できた検査範囲の欠落であり、この経路による独立した漏洩反例までは再現していない。  
+  根拠：[ingest.md:43](/C:/Works/info-hive-dev/.claude/worktrees/wiki-session-ingest-a98aa3/info-hive-wiki/commands/ingest.md:43)、同44行と21行。
+
+## 検証した事実
+
+- **食い違い：** ツール要約を含む本文への伏せ字と、PEM本体の各行を探すという説明。上記2件を実装関数で再現した。
+- **一致：** 前回の「PEMヘッダーと本体が別の`text`ブロック」という反例は、今回は本体まで伏せられ、`scan`でも検出された。
+- **一致：** 隣接した手動指定、半角カナと濁点、CRLFを含む文字列、複数許可の和集合について、前回の見逃しは再現しなかった。
+- **一致：** 書き込み後の全文が`顧客Aについて。`になった反例は、`scan --path`の処理が終了コード1で検出した。
+- **一致：** 読み取りだけで動く既存の3試験が合格。生成器30例で、思考等の目印の除外、参照実装との宛先一致、見出しとフェンスの構造を確認した。
+- **一致：** 13回に分割した`show`の出力を連結するとrawと同じバイト列になった。承認ハッシュの不一致は、書き込み関数を呼ぶ前に拒否された。
+- **一致・静的確認：** 読み取り専用の確認コードは、両経路のRead成功と、4組のWrite・Editの権限による失敗を合否に使っている。
+- **確かめられず：** 実ファイルを作る試験一式、2プロセスの排他試験、Claude Codeによる読み取り専用の再試験。読み取り専用の制約に従い実行していない。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 指定ごとの手動文字列の保持と、許可1件による検出範囲全体の包含判定。
+- 生成器30例における、本文の許可リストと返答先の決定。
+- 本文より長いフェンスによる構造の保護と、raw全体の承認ハッシュとの照合。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 20:44:27] 完了。session 01a1d9d4-b396-7392-bae4-59298efd7578  usage {"input_tokens": 3178081, "cached_input_tokens": 3016576, "cache_write_input_tokens": 0, "output_tokens": 19462, "reasoning_output_tokens": 9438}

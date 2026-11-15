@@ -31,7 +31,8 @@ PLUGIN = ROOT / "info-hive-wiki"
 CORPUS = PLUGIN / "eval/retrieval/ja/corpus/wiki"
 OUT = ROOT / "docs/research/wiki-mcp-server-2026-11-06/commands-mcp.json"
 TOOL_PREFIX = "mcp__plugin_wiki_wiki__"
-CLI_NAMES = ("wiki_search.py", "wiki_lint.py", "wiki_stats.py", "wiki_graph_query.py", "wiki_graph_lint.py")
+CLI_NAMES = ("wiki_search.py", "wiki_lint.py", "wiki_stats.py", "wiki_graph_query.py", "wiki_graph_lint.py",
+             "wiki_session.py")
 # wiki のパスは必ず明示する。コマンドは「明示したパス → プロジェクトの指示 → グローバルの指示 → ./wiki」の順に
 # wiki を選ぶので、省くと、実行した人のグローバルの指示にある wiki が対象になる。{wiki} は実行時に埋める。
 COMMANDS = [
@@ -134,9 +135,69 @@ def run_command(claude: str, plugin: Path, project: Path, prompt: str, env: dict
             "stderr_tail": out.stderr.decode("utf-8", "replace")[-400:]}
 
 
+SESSION_ID_RE = re.compile(r"--session-id[ =]\"?([0-9a-f-]{36})")
+
+
+def run_session_ingest(claude: str, plugin: Path, project: Path, env: dict) -> dict:
+    """`/wiki:ingest session` を `claude -p` で流す（セッションの取り込みの設計の「試験」の最後の項目）。
+
+    `${CLAUDE_SESSION_ID}` が置き換わって `wiki_session.py locate` に渡り、`claude -p` のセッションには人の発言が
+    ないので、`inspect` が終了コード 2 で止まり、raw も wiki も書かないことを確かめる。"""
+    started = time.perf_counter()
+    out = subprocess.run([claude, "-p", "/wiki:ingest session", "--plugin-dir", str(plugin), "--model",
+                          "claude-haiku-5-5", "--allowedTools", "Bash,Read,Glob,Grep", "--output-format",
+                          "stream-json", "--verbose"], cwd=project, capture_output=True, timeout=1800,
+                         env={**os.environ, "PYTHONUTF8": "1", **env})
+    session_id, commands, results = None, {}, {}
+    for line in out.stdout.decode("utf-8", "replace").splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if event.get("type") == "system" and event.get("subtype") == "init":
+            session_id = event.get("session_id")
+        for block in (event.get("message") or {}).get("content") or []:
+            if not isinstance(block, dict):
+                continue
+            if block.get("type") == "tool_use" and block.get("name") == "Bash":
+                commands[block.get("id")] = block.get("input", {}).get("command", "")
+            if block.get("type") == "tool_result":
+                content = block.get("content")
+                text = content if isinstance(content, str) else json.dumps(content, ensure_ascii=False)
+                results[block.get("tool_use_id")] = text
+    session_cmds = [(c, results.get(i, "")) for i, c in commands.items() if "wiki_session.py" in c]
+    located = [SESSION_ID_RE.search(c).group(1) for c, _r in session_cmds
+               if " locate" in c and SESSION_ID_RE.search(c)]
+    inspected = [r for c, r in session_cmds if " inspect" in c]
+    written = sorted(str(p.relative_to(project)) for p in project.rglob("*") if p.is_file()
+                     and ("raw" in p.parts or ".wiki-cache" in p.parts or p.parent.name == "sources")
+                     and p.stat().st_mtime > time.time() - (time.perf_counter() - started))
+    return {"prompt": "/wiki:ingest session", "returncode": out.returncode,
+            "seconds": round(time.perf_counter() - started, 1), "session_id": session_id,
+            "session_commands": [c for c, _r in session_cmds],
+            "located_with_session_id": bool(located) and all(v == session_id for v in located),
+            "inspect_refused": any("Exit code 2" in r or "not_session" in r for r in inspected),
+            "written": written}
+
+
 def main() -> None:
     claude = find_claude()
     only = set(sys.argv[1:])  # 例: query。省くとすべてのコマンドと、MCP なしの確認を行う。
+    if only == {"ingest-session"}:
+        # セッションの取り込みは、名前を指定したときだけ流す。合否の基準が MCP の確かめと違う。
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as temp:
+            project = Path(temp) / "project"
+            shutil.copytree(CORPUS, project / "wiki")
+            result = run_session_ingest(claude, PLUGIN, project, {"INFO_HIVE_DATA_DIR": str(Path(temp) / "data"),
+                                                                   "INFO_HIVE_TEST_EMBEDDER": "hash"})
+        out = OUT.with_name("ingest-session.json")
+        out.write_text(json.dumps({"purpose": "/wiki:ingest session の ${CLAUDE_SESSION_ID} と、claude -p で止まること",
+                                   "platform": platform.platform(), **result}, ensure_ascii=False, indent=2) + "\n",
+                       encoding="utf-8", newline="\n")
+        ok = result["located_with_session_id"] and result["inspect_refused"] and not result["written"]
+        print("合格" if ok else "不合格", json.dumps({k: result[k] for k in ("located_with_session_id",
+                                                                         "inspect_refused", "written")}), f"→ {out}")
+        sys.exit(0 if ok else 1)
     report = {"purpose": "コマンドがまず wiki の MCP のツールを使い、ツールがないときは CLI に戻るか",
               "platform": platform.platform(),
               "claude_version": subprocess.run([claude, "--version"], capture_output=True, text=True,
