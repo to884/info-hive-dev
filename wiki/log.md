@@ -113,3 +113,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-15] ingest | browse の stop の記録の読み取りの直し（wiki 0.19.1）
    ページ: sources/stopの記録の読み取りの直し-wiki-0.19.1、concepts/windowsのファイルの共有と削除待ち（新規）
+
+## [2026-11-15] ingest | capture の記録の改行と sha256 の直し（wiki 0.19.2）と、0.19.1 と 0.19.2 のリリース
+   ページ: sources/captureの記録の改行の直しとリリース-wiki-0.19.2（concepts/リリースの確かめ方、sources/stopの記録の読み取りの直し-wiki-0.19.1 を更新）
