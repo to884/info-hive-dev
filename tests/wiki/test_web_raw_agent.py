@@ -241,7 +241,8 @@ ACCEPTED_OUTPUT = json.dumps({"stage": "check", "ok": True, "translated_by": "Cl
 W8 = ("W8 の check --finish --json を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが警告の"
       "残ったまま終える）")
 SHAPES = "raw に、確かめが読むスクリプトの出力の形の文字列がない（あれば、記録の中で本物の出力と見分けられず、判定できない）"
-UNREADABLE = "セッションの記録のすべての行を JSON として読めた（読めない行の証拠は判定できない）"
+UNREADABLE = "セッションの記録のすべての行と、エージェントのメタデータを読めた（読めないものの証拠は判定できない）"
+GAPS = "check --finish の呼び出しの結果と、check の JSON をすべて読めた（読めない回があれば、違反がないとは言えない）"
 
 
 class SyntheticTranscriptTest(unittest.TestCase):
@@ -274,17 +275,32 @@ class SyntheticTranscriptTest(unittest.TestCase):
         return {"message": {"role": "assistant", "model": model, "content": [{"type": "text", "text": text}]}}
 
     @staticmethod
-    def got(text, is_error=False):
-        """直前の呼び出しの結果（write で、直前の tool_use の id に結ぶ）。"""
+    def got(text, is_error=False, used=None):
+        """直前の呼び出しの結果（write で、直前の tool_use の id に結ぶ）。
+
+        used は、記録の toolUseResult（Claude Code が書く。Agent なら、起動したサブエージェントの agentId）。
+        """
         part = {"type": "tool_result", "tool_use_id": "x", "content": text}
         if is_error:
             part["is_error"] = True
-        return {"message": {"role": "user", "content": [part]}}
+        record = {"message": {"role": "user", "content": [part]}}
+        if used is not None:
+            record["toolUseResult"] = used
+        return record
 
     @staticmethod
-    def paired(records):
-        """got の結果を直前の呼び出しの id に結び、結果のない呼び出しには成功の結果を足す（実際の記録の形）。"""
-        out, last, answered = [], None, set()
+    def launched(agent_id="0"):
+        """Agent の起動の結果。記録のファイル agent-<agent_id>.jsonl と結ぶ（write は agent-<番号>.jsonl に書く）。"""
+        return SyntheticTranscriptTest.got("Async agent launched",
+                                           used={"agentId": agent_id, "status": "async_launched"})
+
+    @staticmethod
+    def paired(records, unanswered=()):
+        """got の結果を直前の呼び出しの id に結び、結果のない呼び出しには成功の結果を足す（実際の記録の形）。
+
+        unanswered の id の呼び出しには足さない（結果の欠けた記録を試すため。足すと、欠けたことが消える）。
+        """
+        out, last, answered = [], None, set(unanswered)
         for rec in records:
             parts = rec["message"]["content"] if isinstance(rec["message"].get("content"), list) else []
             for part in parts:
@@ -304,12 +320,12 @@ class SyntheticTranscriptTest(unittest.TestCase):
                 {"type": "tool_result", "tool_use_id": last, "content": "ok"}]}})
         return out
 
-    def write(self, main_records, agents, project=None):
-        main_records = self.paired(main_records)
+    def write(self, main_records, agents, project=None, unanswered=()):
+        main_records = self.paired(main_records, unanswered)
         self.main_path.write_bytes("\n".join(json.dumps(r, ensure_ascii=False) for r in main_records).encode("utf-8"))
         paths = []
         for i, (meta, records) in enumerate(agents):
-            records = self.paired(records)
+            records = self.paired(records, unanswered)
             path = self.session / "subagents" / f"agent-{i}.jsonl"
             path.write_bytes("\n".join(json.dumps(r, ensure_ascii=False) for r in records).encode("utf-8"))
             path.with_suffix(".meta.json").write_bytes(json.dumps(meta).encode("utf-8"))
@@ -321,7 +337,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
     def good(self, main_extra=(), agent_extra=(), call_input=None):
         call = {"subagent_type": "wiki:web-raw", "prompt": "この依頼の raw を作る。\n```json\n{\"web_raw_request\": 1}\n```"}
         call.update(call_input or {})
-        main = [self.use("Agent", call), self.got("Async agent launched"),
+        main = [self.use("Agent", call), self.launched(),
                 {"message": {"role": "user", "content": "<task-notification>done</task-notification>"}},
                 self.use("Read", {"file_path": str(self.project / "raw/cqrs.md")}), self.got(RAW_BODY),
                 self.use("Write", {"file_path": str(self.project / "wiki/sources/cqrs.md"), "content": SUMMARY_BODY}),
@@ -750,6 +766,137 @@ class SyntheticTranscriptTest(unittest.TestCase):
         path.write_bytes(path.read_bytes() + b'\n{"message": {"role": "user", "content": [')
         report = check_web_raw_agent.analyze_paths(self.main_path, [path], self.project, "opus")
         self.assertEqual(self.failed(report), [UNREADABLE])
+
+    def test_unreadable_evidence_is_not_a_pass(self):
+        """読めた回に違反がないことと、要る回をすべて読めたことを分ける（14 回目の総括。Sol の修正案）。
+
+        読めないものは、違反があったとは決めず、違反がないとは言えないとして不合格にする。
+        """
+        main, agents = self.good()
+        sonnet = "claude-sonnet-5-5"
+        fix = self.use("Bash", {"command": "python wiki_rawcheck.py check --slug cqrs --finish --json"}, sonnet)
+        without = [r for r in agents[0][1] if not self._is_check(r)
+                   and "--finish" not in json.dumps(r, ensure_ascii=False)]
+        # 1. 結果のない check --finish の呼び出し（途中で止めたセッションなど）は、あとの回が正しく終えても通さない
+        lost = self.use("Bash", {"command": "python wiki_rawcheck.py check --slug cqrs --finish --accept-warnings --json"},
+                        sonnet, uid="u-lost")
+        report = self.write(main, [(agents[0][0], without + [lost, fix, self.got(CHECK_OUTPUT)])], unanswered={"u-lost"})
+        self.assertEqual(self.failed(report), [GAPS])
+        # 2. 途中で切れた check の JSON（警告の受け入れの回かもしれない）は、あとの回が正しく終えても通さない
+        cut = ACCEPTED_OUTPUT[: len(ACCEPTED_OUTPUT) // 2] + "\n…（出力を切り詰めた）"
+        records = [self.got(cut) if self._is_check(r) else r for r in agents[0][1]]
+        report = self.write(main, [(agents[0][0], records + [fix, self.got(CHECK_OUTPUT)])])
+        self.assertEqual(self.failed(report), [GAPS])
+        # 3. エージェントのメタデータがないか読めないときは、担当をほかのサブエージェントと取り違えたまま決めない
+        agent_path = self.session / "subagents" / "agent-0.jsonl"
+        for name, content in (("meta", None), ("meta", b"{broken"), ("prefix", b"[1]")):
+            with self.subTest(file=name, content=content):
+                self.write(main, agents)
+                path = self.session / "subagents" / f"agent-0.{name}.json"
+                if content is None:
+                    path.unlink()
+                else:
+                    path.write_bytes(content)
+                report = check_web_raw_agent.analyze_paths(self.main_path, [agent_path], self.project, "opus")
+                self.assertIn(UNREADABLE, self.failed(report))
+        # 4. 記録の中の、UTF-8 として読めない行と、オブジェクトでない行は、落ちずに判定できないとする
+        for bad in (b"\xff\xfe{}", b"[1, 2]", b'"text"'):
+            with self.subTest(line=bad):
+                self.write(main, agents)
+                agent_path.write_bytes(agent_path.read_bytes() + b"\n" + bad)
+                report = check_web_raw_agent.analyze_paths(self.main_path, [agent_path], self.project, "opus")
+                self.assertEqual(self.failed(report), [UNREADABLE])
+
+    def test_real_rawcheck_output_through_jsonl(self):
+        """実際の wiki_rawcheck.main() の freeze と check --finish --json の出力を、記録の JSONL に通して読む。
+
+        14 回目の総括（Sol の修正案）: 試験の結果を、手で作った文字列でなく、出す側から作る。コマンドと出力は
+        同じ引数から作り、--reason に行の区切りの文字（U+2028）を入れる。
+        """
+        import contextlib
+        import io
+        import shlex
+        rawcheck = check_web_raw_agent.wiki_rawcheck
+        base = self.project.parent / "real"
+        wiki, raw = base / "wiki", base / "raw"
+        work = rawcheck.work_dir(wiki, "cqrs")
+        work.mkdir(parents=True)
+        raw.mkdir()
+        (wiki / "SCHEMA.md").write_bytes(b"# s\n")
+        text = ('---\nurl: "https://martinfowler.com/bliki/CQRS.html"\ntitle: "CQRS"\nsource_sha256: "x"\n'
+                'translated_by: ""\n---\n\n# CQRS\n\n' + RAW_BODY + "\n")
+        (work / "fetched.md").write_bytes(text.encode("utf-8"))
+        (raw / "cqrs.md").write_bytes(text.encode("utf-8"))
+        (work / "fetch.json").write_bytes(
+            json.dumps({"needs_translation": False, "images": [], "removed_by_rule": []}).encode("utf-8"))
+
+        def run(argv):
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                code = rawcheck.main(argv)
+            self.assertEqual(code, 0, out.getvalue())
+            return "python wiki_rawcheck.py " + shlex.join(argv), out.getvalue()
+
+        common = ["--wiki", str(wiki), "--raw-root", str(raw), "--slug", "cqrs"]
+        freeze = run(["freeze", *common])
+        finish = run(["check", *common, "--language-override", "keep",
+                      "--reason", "英語のページ" + chr(0x2028) + "訳さない", "--finish", "--json"])
+        self.assertIn(chr(0x2028), finish[1])  # JSON の中に、エスケープされずに出る
+        self.assertFalse(work.exists())  # --finish が写しを消した
+        main, agents = self.good()
+        sonnet = "claude-sonnet-5-5"
+        records = [r for r in agents[0][1] if not self._is_check(r)
+                   and "--finish" not in json.dumps(r, ensure_ascii=False)
+                   and "freeze" not in json.dumps(r, ensure_ascii=False)]
+        records += [self.use("Bash", {"command": freeze[0]}, sonnet), self.got(freeze[1]),
+                    self.use("Bash", {"command": finish[0]}, sonnet), self.got(finish[1])]
+        report = self.write(main, [(agents[0][0], records)])
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertTrue(report["display_names_verified"])
+        self.assertEqual(report["w8_finished_by"], ["wiki:web-raw"])
+
+    def test_review15_counterexamples(self):
+        """15 回目のレビューの反例。行の途中から始まる check の JSON と、起動したエージェントの記録の欠け。"""
+        main, agents = self.good()
+        sonnet = "claude-sonnet-5-5"
+        accept = "wiki:web-raw は警告を受け入れて終えていない（check --finish の出力。どの回も）"
+        fix = self.use("Bash", {"command": "python wiki_rawcheck.py check --slug cqrs --finish --json"}, sonnet)
+
+        def agent_with(result, extra=()):
+            return [(agents[0][0], [result if self._is_check(r) else r for r in agents[0][1]] + list(extra))]
+
+        # 1. 前のコマンドの改行のない出力（printf）のあとの JSON も読む。警告の受け入れの違反を見逃さない
+        report = self.write(main, agent_with(self.got("check result: " + ACCEPTED_OUTPUT), [fix, self.got(CHECK_OUTPUT)]))
+        self.assertIn(accept, self.failed(report))
+        # 1. 正しく終えた最後の W8 に、改行のない前置きがあっても、W8 の終わりを読む
+        report = self.write(main, agent_with(self.got("check result: " + CHECK_OUTPUT)))
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertTrue(report["display_names_verified"])
+        # 1. 同じ呼び出しの freeze の「消した行」の値（雑音として消した、ページの 1 行の JSON）は、回に数えない
+        render = check_web_raw_agent.wiki_rawcheck.render
+        one_line = '{"stage": "check", "ok": true, "work_dir_removed": true, "warnings": [1]}'
+        freeze = render({"stage": "freeze", "ok": True, "errors": [], "warnings": [], "removed_lines": [one_line]})
+        report = self.write(main, agent_with(self.got(freeze + "\n" + CHECK_OUTPUT)))
+        self.assertTrue(report["ok"], self.failed(report))
+        # 1. 出力でも値でもない印（ソースを検索した結果など）は説明できないので、判定できないとする
+        grep = 'wiki_rawcheck.py:1048:    result = {"stage": "check", "ok": not errors, "needs_translation": translate,'
+        report = self.write(main, agent_with(self.got(grep + "\n" + CHECK_OUTPUT)))
+        self.assertEqual(self.failed(report), [GAPS])
+        # 2. 起動したエージェントの記録のファイルがない。正しい記録がほかにあっても通さない
+        links = "wiki:web-raw のすべての呼び出しに、応答のある記録がある（Agent の結果の agentId で、記録のファイルと結ぶ）"
+        again = self.use("Agent", {"subagent_type": "wiki:web-raw", "prompt": "この依頼の raw を作る（取り直す）"})
+        report = self.write(main + [again, self.launched("1")], agents)
+        self.assertEqual(self.failed(report), [links])
+        # 2. 記録のファイルはあるが、応答がない（空の記録）。ほかのエージェントの応答で補わない
+        empty = ({"agentType": "wiki:web-raw", "launchedWithDefaults": True}, [])
+        report = self.write(main + [again, self.launched("1")], agents + [empty])
+        self.assertEqual(self.failed(report), [links])
+        # 2. 起動に失敗した呼び出し（結果が誤り）には、記録がないのが正しい
+        report = self.write(main + [again, self.got("起動できなかった", is_error=True)], agents)
+        self.assertTrue(report["ok"], self.failed(report))
+        # 2. 結果に agentId がない呼び出しは、記録と結べないので通さない
+        report = self.write(main + [again, self.got("Async agent launched")], agents)
+        self.assertEqual(self.failed(report), [links])
 
     @staticmethod
     def _is_check(record) -> bool:
