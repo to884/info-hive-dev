@@ -292,6 +292,13 @@ async function indexChecks(browser, base, tag) {
   await page.waitForTimeout(100);
   check((await page.textContent("#_count")).startsWith(`${total} 件中 1 件`), `${tag}: 検索で絞った件数が違う`);
   await imeChecks(page, tag + " 索引");
+  // 空白だけの欄は、絞っていない（3 回目の実装のレビューの A）
+  for (const blank of [" ", "　"]) {
+    await page.fill("#_q", blank);
+    await page.waitForTimeout(50);
+    check((await page.textContent("#_count")) === `${total} 件`, `${tag}: 空白だけの欄で件数が「件中」になる`);
+  }
+  await page.fill("#_q", "");
   const health = await page.evaluate(() => window.__health());
   check(health.style === 0 && health.dupIds.length === 0 && health.csp.length === 0 && health.errors.length === 0,
     `${tag}: 索引のページの [style]、ID の重複、CSP、画面のエラー: ${JSON.stringify(health)}`);
@@ -366,10 +373,15 @@ async function layoutChecks(browser, base, tag) {
 async function colorChecks(browser, base, tag) {
   for (const dark of [false, true]) {
     // 記事のページは、木を出した状態と、検索の結果を出した状態（木は隠れる）の両方で測る
-    for (const [rel, query] of [["concepts/bm25.html", null], ["concepts/bm25.html", "検索"], ["index.html", null]]) {
+    for (const [rel, query] of [["concepts/bm25.html", null], ["concepts/bm25.html", "検索"], ["index.html", null],
+                                ["index.html", "#group"]]) {
       const { context, page } = await newPage(browser, { dark });
       await page.goto(url(base, rel));
-      if (query) {
+      if (query === "#group") {
+        // 索引のページでグループを絞った状態（左の木の is-current）も測る
+        await page.evaluate(() => { location.hash = "#group=" + window.WIKI_NAV.groups[0].id; });
+        await page.waitForTimeout(100);
+      } else if (query) {
         await page.focus("#_q");
         await page.fill("#_q", query);
         await page.waitForFunction(() => window.__browse.searchLoaded);
@@ -391,6 +403,11 @@ async function colorChecks(browser, base, tag) {
   await page.goto(url(base, "concepts/bm25.html"));
   const outline = await page.evaluate(() => getComputedStyle(document.querySelector(".fui-NavSubItem.is-current")).outlineStyle);
   check(outline !== "none", `${tag}: 強制カラーで今のページの印がない`);
+  await page.goto(url(base, "index.html"));
+  await page.evaluate(() => { location.hash = "#group=" + window.WIKI_NAV.groups[0].id; });
+  await page.waitForTimeout(100);
+  const groupOutline = await page.evaluate(() => getComputedStyle(document.querySelector(".fui-NavItem.is-current")).outlineStyle);
+  check(groupOutline !== "none", `${tag}: 強制カラーで絞っているグループの印がない`);
   await context.close();
 }
 

@@ -82,7 +82,8 @@ def after_first_link(inline_tok) -> str:
             rest = child.copy()
             rest.content = child.content[m.end():]
             text = core.inline_text([rest] + list(children[i + 1:]))
-            return text.strip().lstrip(SEPARATORS).strip()
+            # 表示の文字は NFC で書く（設計の 5.1）。実装と同じにそろえる
+            return unicodedata.normalize("NFC", text.strip().lstrip(SEPARATORS).strip())
     return ""
 
 
