@@ -1,0 +1,53 @@
+[ask-codex 14:38:12] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\affectionate-vaughan-42c8af）
+差分に記録された変更後の内容は、現ファイルとすべて一致しました。メモリ上で生成した HTML の構造、禁止属性、wikilink 数、CSS の直書きも確認できています。残る指摘は試験側の B/C で、実装の分類 A として断定できる欠陥は見つかっていません。
+## 判定
+
+**条件付きで採用可。** 分類 A の反例は確認できず、残った指摘は試験側の B/C が 3 件です。ブラウザでの再測定は環境制約で実行できていないため、確信度は **中** です。
+
+## 致命的・重大な欠陥
+
+なし。分類 A に当たる実装上の欠陥は崩せませんでした。
+
+## 崩れる前提
+
+- **片方の配色で測れれば、両方で測れている。** dark だけで要素が消えると、現在の測定済み集合では欠落を検出できません。
+- **コントラストが合格なら、読むだけの行の地も変わっていない。** 地を変えても 4.5:1 を保つ組み合わせがあります。
+- **長いタグと証拠を試せば、利用者の長い文字を一通り試せる。** 要約、出典の題名、被リンクの題名、診断には別の表示経路があります。
+
+## 見落としと軽微な問題
+
+1. **［B・軽微］配色ごとの測定漏れを見逃す。**
+
+   `measured` を light と dark のループの外で作り、両方の測定結果を合算しています。検出されない変更の例は、dark だけで `#_body h3` を `display: none` にする CSS です。light で測定済みになり、dark では `contrastOf()` が要素を除外しますが、最後の欠落判定は通ります。現在の実装が見出しを隠しているという指摘ではありません。
+
+   根拠：[findability.test.mjs:509](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/tests/wiki/browse/findability.test.mjs:509)、[欠落判定:538](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/tests/wiki/browse/findability.test.mjs:538)。この集合の持ち方は既存で、F2 の追加要素にも引き継がれています。
+
+2. **［C・軽微］「読むだけの行は地を変えない」を全状態では検査していない。**
+
+   背景色を直接検査するのは、メタ欄と関係表の**先頭行のホバーだけ**です。全行を巡回する `stateContrast()` は比率しか判定しません。
+
+   見逃す変更の例は、メタ欄の最終行のホバー背景を `colorNeutralBackground2` にするものです。先頭行の検査には当たらず、出典リンクの比率もトークン値から light 約 6.38、dark 約 5.87 となり、4.2 の背景不変の約束に反していても比率検査は通ります。これは試験の反例で、現 CSS の不具合ではありません。
+
+   根拠：[背景色の検査:495](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/tests/wiki/browse/findability.test.mjs:495)、[状態の検査:153](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/tests/wiki/browse/findability.test.mjs:153)。
+
+3. **［C・軽微］長い値の試験が、説明された対象を覆っていない。**
+
+   ブラウザ用 fixture は長い種類、タグ、関係の証拠を持ちますが、題名や出典の題名は短く、長い `summary` もありません。したがって、幅 320〜1000 で試験が通っても、長い要約、出典、被リンクの題名、診断の折り返しまで確認したことにはなりません。実際にはみ出す反例は確認できていません。
+
+   根拠：[fixture:56](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/tests/wiki/browse/findability.test.mjs:56)、[幅の検査:373](/C:/Works/info-hive-dev/.claude/worktrees/affectionate-vaughan-42c8af/tests/wiki/browse/findability.test.mjs:373)。
+
+## 検証した事実
+
+- **一致**：提示された両 diff の変更後ハッシュは、対象の現ファイル 5 件と一致しました。
+- **一致**：メモリ上で生成した記事 HTML は、メタ欄の Fluent の class、`scope="row"`、被リンクの List、診断の class を出力しました。確認した入力では wikilink 4 件に対して `class="wl` も 4 件で、重複 ID、`style` 属性、インラインスクリプト、イベント属性はありませんでした。
+- **一致**：`style.css` はコメントを除いて hex・px の直書きがなく、`fluent2.css` の SHA-256 は README の記録と一致しました。
+- **一致**：暗い配色の `LinkPressed` と通常背景の比率は約 **3.85:1**。依頼元の説明と一致します。
+- **確かめられず**：申告された試験一式の合格結果。Playwright は一時ディレクトリ作成を `EPERM` で拒否されました。また、利用できた Python には PyYAML がなく、正常な関係抽出は再実行していません。
+
+## 崩せなかった点
+
+静的な照合では、`ta-*` の詳細度、見出しのトークン、wikilink の下線形状、外部リンクの印、関係表のスクロール用の入れ物、表の行の背景を透明に戻す規則を崩せませんでした。本文や各節を HTML の生成時に出す構造にも、今回の差分による欠落は確認できませんでした。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 14:49:20] 完了。session 01a1ddb6-9428-7962-bbfb-98756c9faba7  usage {"input_tokens": 1917388, "cached_input_tokens": 1789440, "cache_write_input_tokens": 0, "output_tokens": 16198, "reasoning_output_tokens": 8638}

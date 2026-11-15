@@ -4,7 +4,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 4 版目を、作者が**承認した**（2026年11月14日）。F1（記事のページの色をトークンに替える 4.1 を含む）を、探しやすさと一緒に info-hive-wiki 0.18.0 で実装した（2026年11月15日。実装のレビューの記録は [impl-responses.md](../agent-runs/2026-11-14-wiki-browse-fluent2/impl-responses.md)）。F2 の記事のページの部品（5 節）は、まだ実装していない。3 版目は 3 回目のレビュー（[design-review-3.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-3.md)）で「条件付きで採用可」、分類 A は 0 件だった。止める条件に従い、残りを直すか限界に書いた。試作の見た目は作者が承認した（2026年11月14日）。1 版目と 2 版目は、Sol の設計のレビュー（[design-review-1.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-1.md) は分類 A が 3 件、[design-review-2.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-2.md) は 1 件）で却下された |
+| 状態 | 4 版目を、作者が**承認した**（2026年11月14日）。F1（記事のページの色をトークンに替える 4.1 を含む）を、探しやすさと一緒に info-hive-wiki 0.18.0 で実装した（2026年11月15日。実装のレビューの記録は [impl-responses.md](../agent-runs/2026-11-14-wiki-browse-fluent2/impl-responses.md)）。F2 の記事のページの部品（5 節）を、info-hive-wiki 0.19.0 で実装した（2026年11月15日。実装のレビューの記録は [F2 の impl-responses.md](../agent-runs/2026-11-15-wiki-browse-fluent2-f2/impl-responses.md)）。3 版目は 3 回目のレビュー（[design-review-3.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-3.md)）で「条件付きで採用可」、分類 A は 0 件だった。止める条件に従い、残りを直すか限界に書いた。試作の見た目は作者が承認した（2026年11月14日）。1 版目と 2 版目は、Sol の設計のレビュー（[design-review-1.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-1.md) は分類 A が 3 件、[design-review-2.md](../agent-runs/2026-11-14-wiki-browse-fluent2/design-review-2.md) は 1 件）で却下された |
 | 対象 | `info-hive-wiki` の `browse_assets/`（`fluent2.css`、`style.css`、`app.js`、新しい `theme.js`）、`wiki_browse_core.py` の HTML の骨組み、開発リポジトリの `tests/wiki/` |
 | 前提 | [browse の構造の直し](wiki-browse-structure-2026-11-11.md)が `info-hive-wiki` の main に入ってから実装する。F1 は[探しやすさの設計](wiki-browse-findability-2026-11-13.md)の実装と一緒に行う |
 | 決定 | [ADR-0021](../adr/0021-wiki-browse-uses-fluent2-replica.md) |
@@ -213,6 +213,12 @@ F1 の上に、記事のページの部品を当てる。試作の記事のペ�
   - `#_diagnostics`: 見出しは `fui-Subtitle2`、一覧の印は `colorStatusWarningForeground3`。`li` の数え方は変えない。
 - 見出し（被リンク、関係、診断）は `h2.fui-Subtitle2`。
 - サーバーの 404 のページは範囲の外とする（探しやすさと同じ）。
+
+実装の段で、次を決めた。
+
+- リンクの押下の色（`colorBrandForegroundLinkPressed`）は使わない。暗い配色で地との比が 3.85:1 になる。押している間もホバーの色のままにする（4.2）。
+- 関係表のセルは、試作と同じく `overflow-wrap: normal` と `word-break: keep-all` にする。日本語も文字の間では折らず、空白と句読点で折り返す。`word-break: normal` を試したが、48em に収めるときに「ソース/の例」のように語の途中で折れた。句読点のない長い値は、表の入れ物の中で横に送る。決まった文字の見出しのセルは `nowrap` にする。
+- 関係表の入れ物 `div.table-scroll` は、キーボードでも送れるように、`role="region"`、`aria-label`、`tabindex="0"` を付け、フォーカスの輪を描く。
 
 ## 6. 試験
 
