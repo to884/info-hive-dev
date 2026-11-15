@@ -137,3 +137,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-15] ingest | 古い uv の UV_SYSTEM_CERTS の直しと wiki 0.19.4 のリリース
    ページ: sources/古いuvのUV_SYSTEM_CERTSの直しとリリース-wiki-0.19.4（新規）
+
+## [2026-11-15] ingest | ADR-0025 の承認の条件の測定と、pdfminer の本文の並びの揺れ
+   ページ: sources/adr-0025の承認の条件の測定-2026-11-15、concepts/pdfminerの本文の並びの揺れ（新規）

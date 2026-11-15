@@ -41,6 +41,7 @@
 - [[blind-judge-binding-and-form-feed-2026-11-15]]: 経験（failure）。伏せた判定が採点した中身に結び付かず、Sol が改ページの文字を読み飛ばした
 - [[office-com-word-export-2026-11-15]]: 経験（failure）。Word の COM の `Documents.Open` が、読み取り専用の引数で止まり、Windows PowerShell 5.1 で null を返した
 - [[powershell-select-first-stops-writer-2026-11-15]]: 経験（failure）。`Select-Object -First` が、`results.json` を書く前のスクリプトを止めた
+- [[adr-0025の承認の条件の測定-2026-11-15]]: ADR-0025 の承認の条件 1〜3 を防衛白書（546 ページ）と合成の PDF で測った記録と、pdfminer の本文の揺れ、OCR の確信度の追加
 - [[evolve-capture-writes-crlf-2026-11-15]]: 経験（failure）。`wiki_evolve.py capture` が Windows で raw を CRLF で書き、返す SHA-256 とファイルが食い違った（0.11.0 で観測。0.19.2 で直った）
 
 ## エンティティ
@@ -69,6 +70,7 @@
 - [[セッションの記録の構造]]: Claude Code のセッションの記録（JSONL）から会話を抜き出すときに頼れる性質と頼れない性質
 - [[editとwriteの書き込みの競合]]: Claude Code の Edit と Write を同時の書き込みと並べた結果と、読み取り専用のファイルの守り
 - [[抽出の品質の測り方]]: 抽出の方式を比べるときに、数値の境目、表の列、読み順を見誤らない指標の作り方と、判定を採点した中身に結び付ける方法
+- [[pdfminerの本文の並びの揺れ]]: pdfminer.six が距離の同じテキストボックスの組の順を `id()` で決め、プロセスごとに行の並びが変わることと、決まった順にする直し方
 - [[windowsのファイルの共有と削除待ち]]: Windows で置き換えと削除の途中のファイルを開くと失敗する 3 つの原因（共有の指定、削除待ち）と、試験で途中の状態を作る方法
 - [[敵対的レビューで設計を直す進め方]]: 状態を推さない、直しの仕組みから次の指摘が出る、重大を発生の度合いで分けて止める、という 2 つの設計で確かめたこと
 
