@@ -2,7 +2,7 @@
 name: fluent2-html-replica
 description: Microsoft の Fluent 2 の Web 版のデザイン言語を、React を使わない HTML と CSS で忠実に再現する非公式のスキル（公式の Fluent UI のライブラリではない）。トークン（色、書体、間隔、角丸、影、動き）の CSS 変数、FluentProvider に当たる土台、47 種類のコンポーネントの CSS と小さな JS、日本語の設計書を同梱する。「Fluent 2 の見た目にして」「Microsoft / Office / Teams 風のデザインで HTML を作って」「既存の HTML ページを Fluent 2 にして」「Fluent 2 のデザインシステムを作って」「Fluent のトークンで CSS を書いて」のような依頼で使う。React の @fluentui/react-components で実装するときは、このスキルではなく React 向けのスキルか公式の文書を使う。
 metadata:
-  version: "0.1.2"
+  version: "0.1.3"
 ---
 
 # Fluent 2 Web（React を使わない HTML と CSS 版）

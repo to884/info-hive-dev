@@ -1,0 +1,107 @@
+現行プラグインに対するヘルプ関連の読み取り専用テスト 8 件は通りました。残る指摘は、成功の目印の再現性、3 回の試行で状態を戻す手順の欠落、変更したサブモジュールとは別の実体をテストできてしまう点、公開 URL の動作を確認しないまま完了できる点です。## 判定
+
+**条件付きで採用可。確信度：高。**  
+成功の目印に実装と食い違うものがあり、段階 2 と公開時の検証には、目的を確かめないまま合格できる経路が残っています。致命的な欠陥は確認できませんでしたが、以下の重大な欠陥は採用条件に関わります。
+
+## 致命的・重大な欠陥
+
+1. **重大：取り込み成功の「index.md に 1 行増える」は、正常な取り込みでも成立しません。**
+
+   仕様上の反例は、「味噌」の取り込みでソースの要約と「麹」のコンセプトページを作る場合です。索引には新しいページをそれぞれ追加するため、増分は少なくとも 2 項目です。正しく処理した読者が、目印との不一致を失敗と判断します。
+
+   根拠：[計画:128](C:/Works/info-hive-dev/.claude/worktrees/usage-docs-plan/docs/plans/usage-docs-2026-11-15.md:128)、[ingest-workflow.md:269](C:/Works/info-hive-dev/.claude/worktrees/usage-docs-plan/info-hive-wiki/skills/info-hive/references/ingest-workflow.md:269)、同ファイル 319〜321 行。新しい概念ページの作成と、新規ページごとの索引追加が定義されています。
+
+2. **重大：W2 の共通リンクと「2 本の出典」は、3 回成功しても固定の目印にはなりません。**
+
+   仕様上、モデルは大豆や麹を独立したページにせず、ソースの要約に残せます。その場合、味噌と醤油の要約が同じページへリンクするという目印は現れません。また、両方の情報を統合した概念ページだけを読んで回答すれば、その概念への出典 1 本でもクエリの規則に従えます。
+
+   計画自身がこの不確実性を認めていますが、「3 回通して毎回現れたものを残す」という判定では、モデルの裁量が消えたことを確認できません。
+
+   根拠：[計画:130](C:/Works/info-hive-dev/.claude/worktrees/usage-docs-plan/docs/plans/usage-docs-2026-11-15.md:130)、同 132・136〜137・226 行。[ingest-workflow.md:269](C:/Works/info-hive-dev/.claude/worktrees/usage-docs-plan/info-hive-wiki/skills/info-hive/references/ingest-workflow.md:269)、同 303〜311 行は `source_only` を認め、表のためにページを作ることを禁じています。`references/query-workflow.md:63` が要求する出典は、実際に使ったページです。
+
+3. **重大：`/wiki:init` の JSON が読者に毎回表示される保証がありません。**
+
+   `setup_wiki.py` が `"status": "ready"` を出すことは確認できました。しかし、`commands/init.md` が要求するのは、その値を確認してから完了を報告することです。JSON を応答本文に掲載する命令はありません。
+
+   したがって、スクリプトは成功し、モデルは結果を要約して返す、というコマンド定義に反しない応答で、読者が探す JSON が本文に現れなくなります。これは定義上の反例であり、デスクトップアプリでの実際の表示は未確認です。
+
+   根拠：[計画:127](C:/Works/info-hive-dev/.claude/worktrees/usage-docs-plan/docs/plans/usage-docs-2026-11-15.md:127)、[commands/init.md:15](C:/Works/info-hive-dev/.claude/worktrees/usage-docs-plan/info-hive-wiki/commands/init.md:15)。`commands/help.md:16` には出力をそのまま掲載する命令がありますが、init にはありません。
+
+4. **重大：段階 2 の反復試行と初回計測に、状態を戻す条件がありません。**
+
+   固定の練習用フォルダーで W1・W2 を続けて 3 回実行すると、2 回目以降には wiki、ソース、索引、`CLAUDE.md`、会話の文脈が残ります。初期化は既存ファイルを飛ばし、取り込みも既存ページを更新するため、「空のフォルダーから初めて取り込む」試行ではなくなります。
+
+   また、取得量の計測より先にプラグインを導入します。導入後に MCP の起動が始まった場合、`.mcp.json` の `uv run` による取得が先行し、後の計測から初回取得の一部が抜けます。新しい VM を一度作ることだけでは、この順序による混入を防げません。
+
+   根拠：[計画:222](C:/Works/info-hive-dev/.claude/worktrees/usage-docs-plan/docs/plans/usage-docs-2026-11-15.md:222)〜226 行、`scripts/init_wiki.py:253`〜273 行、[.mcp.json:4](C:/Works/info-hive-dev/.claude/worktrees/usage-docs-plan/info-hive-wiki/.mcp.json:4)。
+
+5. **重大：「最新の main でテストする」では、変更したプラグインを検証しないまま合格できます。**
+
+   文書変更をこの worktree に残したまま、指定どおり main の作業ツリーでテストすると、テストは main 側の `info-hive-wiki` を読みます。変更した `commands.md` やリンク変換に欠陥があっても、その実体は検査されません。
+
+   テストの対象は実行時の作業ディレクトリではなく、テストファイル自身の配置から固定されます。なお、「手元の作業ツリーには、まだこのファイルがない」という記述も、現在の checkout とは食い違います。実際には存在しました。
+
+   根拠：[計画:254](C:/Works/info-hive-dev/.claude/worktrees/usage-docs-plan/docs/plans/usage-docs-2026-11-15.md:254)、[test_help_command.py:31](C:/Works/info-hive-dev/.claude/worktrees/usage-docs-plan/tests/wiki/test_help_command.py:31)〜34 行、同 435〜436 行。
+
+6. **重大：公開先を決めた後、公開とリンクの版対応を確かめずに完了できます。**
+
+   段階 3 では公開先と書き換え規則を決めますが、段階 4 の完了条件には、公開処理や公開 URL の表示確認がありません。リンクの合格条件も、主にローカルファイルの存在確認です。
+
+   現行の `link_url()` に `./tutorial-first-wiki.html#first-source` を渡すと、実際に次へ変換されました。
+
+   ```text
+   https://github.com/to884/info-hive-wiki/blob/v0.16.0/docs/tutorial-first-wiki.html#first-source
+   ```
+
+   この規則を残せば、計画自身が認める HTML ソース表示になります。公開サイトへ書き換える場合は、既存テストが期待する GitHub タグ URL と衝突します。さらに、公開先が最新版だけを配る場合、旧版プラグインのヘルプから新版の説明を開けてしまい、ADR の「版がそろう」という理由が成立しません。
+
+   根拠：[計画:239](C:/Works/info-hive-dev/.claude/worktrees/usage-docs-plan/docs/plans/usage-docs-2026-11-15.md:239)、同 242〜257 行。[ADR-0022:39](C:/Works/info-hive-dev/.claude/worktrees/usage-docs-plan/docs/adr/0022-usage-docs-are-html-in-plugin-docs.md:39)、同 61 行。`wiki_help.py:314`〜337 行、`test_help_command.py:441`〜480 行。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| 素材と返答例を固定すれば、生成ページとリンクも固定できる | モデルが概念を独立させず、`source_only` にする |
+| スクリプトの出力は、そのまま読者の目印になる | コマンドが出力の転載を要求せず、モデルが要約する |
+| 新しい Windows で試せば、試行は毎回初回状態になる | 同じフォルダー・会話・キャッシュを再利用する |
+| 最新のテストを通せば、作業中の変更を検証できる | テストファイルと対象サブモジュールが別の作業ツリーにある |
+| プラグインに文書を同梱すれば、公開文書とも版がそろう | 公開サイトが最新版だけを配信する |
+
+## 見落としと軽微な問題
+
+- **軽微：取得量の合計と引用根拠が一致しません。**  
+  表の値は `1 GB + 530 MB + 0.25 GB = 1.78 GB` です。引用する `tests/wiki/check_first_run_mcp.py:11` の「約 1.5 GB」はコメントであり、スクリプトは転送量を測りません。実行対象も MCP の cold/warm セッションで、`/wiki:init` の FastEmbed セットアップを含みません。
+
+- **軽微：認証確認と前提ソフトウェア確認の順序が交絡します。**  
+  デスクトップアプリに git が同梱されず、PATH にもない環境を仮定すると、段階 2 の最初の導入試験は、SSH 認証以前の理由で失敗します。計画は git の有無を次の手順で調べるため、この失敗だけでは SSH 鍵なしの導入可否を判定できません。根拠は計画 81・224〜225 行です。
+
+- **軽微：残す文書にも削除対象への参照があります。**  
+  `docs/search.md:7` は、削除予定の `./workflows.md#wiki-にクエリする` を参照しています。移行対象は README などだけではありません。また、計画 255 行の「実在するファイル」確認だけでは、新しい HTML に移した後のアンカー欠落を検出できません。
+
+- **軽微：`commands.md` の文体変更だけでは、ヘルプ全体はです・ます体になりません。**  
+  一覧と個別ヘルプ冒頭の説明・引数説明は `commands/*.md` の frontmatter 由来です。例えば `commands/query.md:2` の「答える。」は、`commands.md` を書き直しても残ります。根拠は `wiki_help.py:120`〜190 行、520〜528 行です。
+
+## 検証した事実
+
+| 主張 | 結果 |
+| --- | --- |
+| checkout は v0.16.0 の `8c400d7` | **一致**。HEAD は `8c400d72a6b4ba7b60d974ea5ac7b551e3e1549f` |
+| 指摘された 8 コマンドの定義が `python` を直接呼ぶ | **一致**。query、lint、stats、graph などは条件付きの経路を含む |
+| init の質問は範囲・パス・キャッシュ・グラフ・メモリ連携 | **一致**。さらに実行後のスキーマ確認と連携内容の承認がある |
+| セットアップの正常結果は `"status": "ready"` | **一致**。`setup_wiki.py:44`〜58 行 |
+| 初期化で `SCHEMA.md`、`index.md`、`log.md` を作る | **一致**。ただし実行環境のセットアップより先に作るため、存在だけでは成功を証明しない |
+| `/wiki:help` と `commands.md` の関係 | **一致**。引数なしの一覧は frontmatter、個別ヘルプの詳細は `commands.md` |
+| 現行の個別ヘルプ 11 本 | **一致**。すべて終了コード 0、警告なし、詳細あり |
+| 現行ヘルプの読み取り専用テスト | **合格**。`RealPluginTests` と `HelpCommandTextTests` の計 8 件 |
+| Ruri 約 530 MB、E5 約 0.25 GB | **コードの設定値とは一致**。実際の転送量・使用容量は未測定 |
+| Windows の新規導入、SSH 鍵なし導入、Code タブ、Cowork | **実機では確かめられず** |
+
+## 崩せなかった点
+
+- `commands.md` を Markdown の正本として残す判断は、現行ヘルプの実装と整合しています。
+- ADR-0021 と ADR-0022 の間で、CSS の無改変同梱、版合わせ、`fluent2.js` 不使用に直接の矛盾は確認できませんでした。CSS を 2 か所に持つ点も、計画は SHA-256 の一致試験を明記しています。
+- PDF やリンク検査の道具を親リポジトリに置く判断は、AGENTS.md の配置規則と整合しています。
+- `UPSTREAM.md` の記録を更新し、取り込み時点の `translation-hashes.txt` を残す扱いに、具体的な破綻は確認できませんでした。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: research、japanese-tech-writing
