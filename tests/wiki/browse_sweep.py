@@ -615,7 +615,8 @@ def sweep_server(modes, data_link=False):
 
 def probe(sb, owner=None):
     state, _rec = fs.probe_server(sb.wiki, sb.browse_root, sb.state_dir, owner or sb.owner)
-    return "stop-sent" if state == "running" else "not-running"
+    # 'unreadable' は、動いているが記録を読めない（stop は待つ。設計の 7.1）。止める要求は送らない
+    return {"running": "stop-sent", "unreadable": "unknown"}.get(state, "not-running")
 
 
 def sweep_server_root(modes):
