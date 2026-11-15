@@ -53,7 +53,12 @@ put("concepts/nfd.md", pg({ type: "concept", title: NFD, tags: [NFD] }, `# ${NFD
 put("sources/src.md", pg({ type: "source", title: "ソースの例" }, "# ソースの例\n\nソース。"));
 put("synthesis/syn.md", pg({ type: "synthesis", title: "シンセシスの例" }, "# シンセシスの例\n\nまとめ。"));
 put("concepts/note.md", pg({ type: "note", title: "ノートの種類" }, "# ノートの種類\n\n知らない種類。"));
-put("concepts/long.md", pg({ type: "W".repeat(120), title: "長い値", tags: ["W".repeat(200)] }, "# 長い値\n\n本文。"));
+// 長い値: 種類、タグ、題名、要約、出典の題名。本文から関係のページへ（被リンクの題名）と、長い未解決のリンク（診断）
+const LONG_TITLE = "長い値" + "L".repeat(150);
+put("concepts/long.md", pg({ type: "W".repeat(120), title: LONG_TITLE, tags: ["W".repeat(200)],
+  summary: "要約の長い文。" + "S".repeat(200), sources: ["sources/longsrc"] },
+  `# ${LONG_TITLE}\n\n本文。[[rel]] を見る。[[${"D".repeat(150)}]] はない。`));
+put("sources/longsrc.md", pg({ type: "source", title: "出典" + "T".repeat(150) }, "# 長い出典\n\n出典。"));
 // 記事のページの部品（Fluent 2 の設計の 5）: メタ欄の出典のリンク、関係表（長い値を含む 9 列）、本文の見出し、表、引用、
 // コード、区切り、見出しのない行き先と曖昧なリンク。関係表は graph/ontology.yaml があるときだけ描かれる
 put("graph/ontology.yaml", "node_types:\n  concept: {}\n  source: {}\npredicates:\n  uses: {}\n");
@@ -68,7 +73,7 @@ put("concepts/rel.md", ["---", 'type: "concept"', 'title: "関係の例"', 'sour
   "### 三段目", "", "本文。", "", "#### 四段目", "", "本文。", ""].join("\n"));
 put("a/dup.md", "# 同名 A\n");
 put("b/dup.md", "# 同名 B\n");
-const PAGES = 13;
+const PAGES = 14;
 
 function python(args) {
   return spawnSync(PYTHON[0], [...PYTHON.slice(1), "-X", "utf8", SCRIPT, ...args],
@@ -149,24 +154,32 @@ async function contrastOf(page) {
   }, CONTRAST);
 }
 
-// 地が状態で変わりうる入れ物のすべてにポインターを置き、押したままでも測る（Fluent 2 の設計の 4.2、6）
+// 地が状態で変わりうる入れ物のすべてにポインターを置き、押したままでも測る（Fluent 2 の設計の 4.2、6）。
+// 読むだけの入れ物（#_main の表の行と一覧の行）は、ポインターと押下の前後で地が変わらないことも、すべてで比べる
+// （比が 4.5 を保っても、地を変えれば 4.2 の 1 つ目の規則に外れる。実装の 1 回目のレビューの C）
 async function stateContrast(page) {
   const sel = "#_main tr, #_main li, #_nav li, a, summary, button, .fui-NavItem, .fui-NavSubItem, .fui-Select";
   const n = await page.locator(sel).count();
   let min = 99, where = "";
+  const changed = [];
+  const name = (e) => e.tagName + "." + (typeof e.className === "string" ? e.className : "");
   for (let i = 0; i < n; i++) {
     const loc = page.locator(sel).nth(i);
     if (!(await loc.isVisible())) continue;
+    const readOnly = await loc.evaluate((e) => e.matches("#_main tr, #_main li"));
+    const bg = (e) => getComputedStyle(e).backgroundColor;
+    const bg0 = readOnly ? await loc.evaluate(bg) : null;
     await loc.hover();
-    const r1 = await loc.evaluate(async (e) => { await window.__settled(); return window.__textRatio(e); });
+    const [r1, bg1] = await loc.evaluate(async (e) => { await window.__settled(); return [window.__textRatio(e), getComputedStyle(e).backgroundColor]; });
     await page.mouse.down();
-    const r2 = await loc.evaluate(async (e) => { await window.__settled(); return window.__textRatio(e); });
+    const [r2, bg2] = await loc.evaluate(async (e) => { await window.__settled(); return [window.__textRatio(e), getComputedStyle(e).backgroundColor]; });
     await page.mouse.move(0, 0);
     await page.mouse.up();
+    if (readOnly && (bg1 !== bg0 || bg2 !== bg0)) changed.push(`${await loc.evaluate(name)} ${bg0}→${bg1}/${bg2}`);
     const r = Math.min(r1, r2);
-    if (r < min) { min = r; where = await loc.evaluate((e) => e.tagName + "." + (typeof e.className === "string" ? e.className : "")); }
+    if (r < min) { min = r; where = await loc.evaluate(name); }
   }
-  return { min, where };
+  return { min, where, changed };
 }
 
 function url(base, rel) { return base + rel.split("/").map(encodeURIComponent).join("/"); }
@@ -491,13 +504,7 @@ async function articlePartsChecks(browser, base, tag) {
   check(r.rel.display === "table" && r.rel.min && r.rel.wrap === "normal" && r.rel.inScroll, `${tag}: 関係表の形が違う: ${JSON.stringify(r.rel)}`);
   check(r.backlinks === "none", `${tag}: 被リンクが Fluent の List でない: ${r.backlinks}`);
   check(r.marker, `${tag}: 診断の一覧の印が警告の色でない`);
-  // 読むだけの表の行は、ポインターを置いても地を変えない（4.2）
-  for (const sel of ["#_meta tr", "#_relations tbody tr"]) {
-    await page.locator(sel).first().hover();
-    const bg = await page.locator(sel).first().evaluate(async (e) => { await window.__settled(); return getComputedStyle(e).backgroundColor; });
-    check(bg === "rgba(0, 0, 0, 0)", `${tag}: ${sel} にポインターを置くと地が変わる: ${bg}`);
-  }
-  await page.mouse.move(0, 0);
+  // 読むだけの行の地がポインターと押下で変わらないことは、colorChecks の stateContrast がすべての行で比べる
   const health = await page.evaluate(() => window.__health());
   check(health.style === 0 && health.dupIds.length === 0 && health.csp.length === 0 && health.errors.length === 0,
     `${tag}: 関係のページの [style]、ID の重複、CSP、画面のエラー: ${JSON.stringify(health)}`);
@@ -506,8 +513,9 @@ async function articlePartsChecks(browser, base, tag) {
 }
 
 async function colorChecks(browser, base, tag) {
-  const measured = new Set();
   for (const dark of [false, true]) {
+    // 測れた部品は配色ごとに数える。片方の配色だけで消えた部品を、もう片方で測れたことにしない（実装の 1 回目のレビューの B）
+    const measured = new Set();
     // 記事のページは、木を出した状態と、検索の結果を出した状態（木は隠れる）の両方で測る
     for (const [rel, query] of [["concepts/bm25.html", null], ["concepts/bm25.html", "検索"], ["concepts/rel.html", null],
                                 ["index.html", null], ["index.html", "#group"]]) {
@@ -530,13 +538,14 @@ async function colorChecks(browser, base, tag) {
       check(low.length === 0, `${tag}: ${dark ? "暗い" : "明るい"}配色の ${rel} でコントラスト比が 4.5 を割る: ${JSON.stringify(low)}`);
       const s = await stateContrast(page);
       check(s.min >= 4.5, `${tag}: ${dark ? "暗い" : "明るい"}配色の ${rel} で、ポインターか押下の状態のコントラスト比が ${s.min.toFixed(2)}（${s.where}）`);
+      check(s.changed.length === 0, `${tag}: ${dark ? "暗い" : "明るい"}配色の ${rel} で、読むだけの行の地がポインターか押下で変わる: ${s.changed.slice(0, 3)}`);
       Object.keys(c).forEach((k) => measured.add(k));
       notes.push(`${tag} ${dark ? "dark" : "light"} ${rel}: 最小 ${Math.min(...Object.values(c)).toFixed(2)}、状態 ${s.min.toFixed(2)}`);
       await context.close();
     }
+    const missing = CONTRAST.filter((s) => !measured.has(s));
+    check(missing.length === 0, `${tag}: ${dark ? "暗い" : "明るい"}配色でコントラストを測れなかった部品がある: ${missing}`);
   }
-  const missing = CONTRAST.filter((s) => !measured.has(s));
-  check(missing.length === 0, `${tag}: コントラストを測れなかった部品がある: ${missing}`);
   // 強制カラー: 今のページの項目に輪郭がある
   const { context, page } = await newPage(browser, { forced: true });
   await page.goto(url(base, "concepts/bm25.html"));
