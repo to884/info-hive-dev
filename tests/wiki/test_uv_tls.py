@@ -133,6 +133,65 @@ class UvSyncTest(unittest.TestCase):
                 self.assertIn(f"{name}={value}", str(caught.exception))
                 self.assertEqual(os.environ[name], value)
 
+    def test_old_uv_ignoring_system_certs_retries_with_native_tls(self):
+        # 古い uv は UV_SYSTEM_CERTS を黙って無視する。設定があっても利用者の意図は uv に届いていないので、
+        # 決定とみなさず、UV_NATIVE_TLS でやり直す。真の値の書き方は uv と同じに読む。
+        for value in ("true", "1", "YES", " on "):
+            with self.subTest(value=value):
+                self.clear_tls_env()
+                self.logs.clear()
+                os.environ["UV_SYSTEM_CERTS"] = value
+                fake = FakeUv([(2, TLS_OUTPUT), (0, b"")], help_text=OLD_HELP)
+                self.assertEqual(self.sync(fake), 0)
+                self.assertEqual(len(fake.calls), 2)
+                self.assertEqual(fake.help_calls, 1)
+                self.assertNotIn("UV_NATIVE_TLS", fake.calls[0][1])
+                self.assertEqual(fake.calls[1][1].get("UV_NATIVE_TLS"), "true")
+                self.assertEqual(os.environ.get("UV_NATIVE_TLS"), "true")
+                self.assertEqual(os.environ["UV_SYSTEM_CERTS"], value)
+                self.assertTrue(any("UV_NATIVE_TLS=true" in line and "読まない" in line for line in self.logs))
+
+    def test_old_uv_ignoring_system_certs_explains_when_retry_fails(self):
+        os.environ["UV_SYSTEM_CERTS"] = "true"
+        fake = FakeUv([(2, TLS_OUTPUT), (2, TLS_OUTPUT)], help_text=OLD_HELP)
+        with self.assertRaises(common.UvTlsError) as caught:
+            self.sync(fake)
+        message = str(caught.exception)
+        self.assertIn("UV_SYSTEM_CERTS=true が設定されているが", message)
+        self.assertIn("uv self update", message)
+        self.assertNotIn("そのまま止まる", message)
+        self.assertNotIn("UV_NATIVE_TLS", os.environ)
+
+    def test_new_uv_reading_system_certs_respects_it(self):
+        # 新しい uv が UV_SYSTEM_CERTS=true を読んでも失敗したなら、同じ設定でやり直しても直らない。
+        os.environ["UV_SYSTEM_CERTS"] = "true"
+        fake = FakeUv([(2, TLS_OUTPUT)], help_text=NEW_HELP)
+        with self.assertRaises(common.UvTlsError) as caught:
+            self.sync(fake)
+        self.assertEqual(len(fake.calls), 1)
+        self.assertIn("UV_SYSTEM_CERTS=true が設定されているので", str(caught.exception))
+
+    def test_false_system_certs_is_respected_without_asking_uv(self):
+        # 偽の値は uv の既定と同じなので、uv が読むかに関わらず利用者の決定である。uv の版も確かめない。
+        os.environ["UV_SYSTEM_CERTS"] = "false"
+        fake = FakeUv([(2, TLS_OUTPUT)], help_text=OLD_HELP)
+        with self.assertRaises(common.UvTlsError):
+            self.sync(fake)
+        self.assertEqual(len(fake.calls), 1)
+        self.assertEqual(fake.help_calls, 0)
+        self.assertNotIn("UV_NATIVE_TLS", os.environ)
+
+    def test_native_tls_wins_over_ignored_system_certs(self):
+        # UV_NATIVE_TLS はどの uv も読むので、UV_SYSTEM_CERTS が一緒にあっても、こちらを決定とみなす。
+        os.environ["UV_SYSTEM_CERTS"] = "true"
+        os.environ["UV_NATIVE_TLS"] = "false"
+        fake = FakeUv([(2, TLS_OUTPUT)], help_text=OLD_HELP)
+        with self.assertRaises(common.UvTlsError) as caught:
+            self.sync(fake)
+        self.assertEqual(len(fake.calls), 1)
+        self.assertEqual(fake.help_calls, 0)
+        self.assertIn("UV_NATIVE_TLS=false", str(caught.exception))
+
     def test_other_failures_are_not_retried(self):
         fake = FakeUv([(2, b"error: Failed to read metadata from installed package\n")])
         self.assertEqual(self.sync(fake), 2)
