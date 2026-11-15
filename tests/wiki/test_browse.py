@@ -1638,6 +1638,145 @@ class IndexPageTest(TempWiki):
         self.assertIn('id="_count"', index)
 
 
+def parts_of(markup: str, section_id: str) -> list:
+    """id が section_id の要素の中の要素を (タグ, 属性, 祖先のタグの並び) で返す。void 要素は祖先に積まない。"""
+    from html.parser import HTMLParser
+    void = {"br", "img", "hr", "meta", "link", "input", "wbr"}
+
+    class P(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.stack, self.found, self.depth, self.done = [], [], None, False
+
+        def handle_starttag(self, tag, attrs):
+            a = dict(attrs)
+            if self.depth is not None and not self.done:
+                self.found.append((tag, a, [t for t, _ in self.stack[self.depth:]]))
+            if tag in void:
+                return
+            self.stack.append((tag, a))
+            if self.depth is None and a.get("id") == section_id:
+                self.depth = len(self.stack)
+
+        def handle_endtag(self, tag):
+            if tag in void:
+                return
+            while self.stack:
+                t, _a = self.stack.pop()
+                if self.depth is not None and len(self.stack) < self.depth:
+                    self.done = True   # 節を出たら、それより後ろは集めない
+                if t == tag:
+                    break
+    p = P()
+    p.feed(markup)
+    return p.found
+
+
+def classes(attrs: dict) -> set:
+    return set((attrs.get("class") or "").split())
+
+
+class ArticlePartsTest(TempWiki):
+    """Fluent 2 の設計の 5（段 F2）。中核が描く記事のページの部品の class。本文（Markdown の出力）には class を足さない。"""
+
+    def setUp(self):
+        super().setUp()
+        write(self.wiki, "sources/paper.md", page("# P", type="source", title="論文"))
+        write(self.wiki, "a.md", page("# A\n\n## 節\n\n[[b]] と [[ない]] と [[b#ない見出し]]。\n\n| l | c | r |\n| :--- | :---: | ---: |\n"
+                                      "| 1 | 2 | 3 |\n\n> 引用\n\n---\n\n`code`\n",
+                                      type="concept", tags=["t1"], summary="要約", updated="2026-04-18",
+                                      sources=["sources/paper"], raw="raw/a.md"))
+        write(self.wiki, "b.md", page("# B\n\n[[a]] を見る。", type="concept"))
+
+    def assert_table(self, found, row_scope):
+        rows = [x for x in found if x[0] == "tr"]
+        self.assertTrue(rows)
+        for tag, attrs, _anc in found:
+            if tag == "tr":
+                self.assertIn("fui-TableRow", classes(attrs))
+            elif tag == "th":
+                self.assertIn("fui-TableHeaderCell", classes(attrs))
+                self.assertEqual(attrs.get("scope"), row_scope)
+            elif tag == "td":
+                self.assertIn("fui-TableCell", classes(attrs))
+            elif tag == "tbody":
+                self.assertIn("fui-TableBody", classes(attrs))
+            elif tag == "thead":
+                self.assertIn("fui-TableHeader", classes(attrs))
+
+    def test_meta_is_small_fluent_table(self):
+        markup = build_core(self.wiki).render_page("a")
+        self.assertIn('<table id="_meta" class="meta fui-Table" data-size="small"', markup)
+        found = parts_of(markup, "_meta")
+        self.assert_table(found, "row")
+        labels = [x for x in found if x[0] == "th"]
+        self.assertEqual([x[2] for x in labels][0][-1], "tr")
+        self.assertEqual(len(labels), 6)   # 種類、タグ、要約、更新、出典、原本
+        self.assertIn('href="sources/paper.html">論文</a>', markup)
+
+    def test_backlinks_are_fluent_list(self):
+        markup = build_core(self.wiki).render_page("b")
+        found = parts_of(markup, "_backlinks")
+        self.assertEqual(found[0][0], "h2")
+        self.assertEqual(classes(found[0][1]), {"fui-Subtitle2"})
+        lists = [x for x in found if x[0] == "ul"]
+        self.assertEqual(len(lists), 1)
+        self.assertEqual(classes(lists[0][1]), {"fui-List"})
+        items = [x for x in found if x[0] == "li"]
+        self.assertTrue(items)
+        self.assertTrue(all(classes(a) == {"fui-ListItem"} for _t, a, _anc in items))
+        links = [x for x in found if x[0] == "a"]
+        self.assertEqual([a.get("href") for _t, a, _anc in links], ["a.html"])
+
+    def test_diagnostics_heading_and_list(self):
+        c = build_core(self.wiki)
+        for markup in (c.render_page("a"), c.render_index()):
+            found = parts_of(markup, "_diagnostics")
+            self.assertTrue(found, "診断の節がない")
+            self.assertEqual((found[0][0], classes(found[0][1])), ("h2", {"fui-Subtitle2"}))
+            self.assertEqual([classes(a) for t, a, _anc in found if t == "ul"], [{"diag-list"}])
+            self.assertTrue(any(t == "li" for t, _a, _anc in found))
+
+    def test_core_sections_have_no_bare_h2_and_body_has_no_fluent_class(self):
+        markup = build_core(self.wiki).render_page("a")
+        body = markup[markup.index('<div id="_body">'):markup.index("</article>")]
+        outside = markup.replace(body, "")
+        self.assertNotIn("<h2>", outside)
+        self.assertNotIn("fui-", body)
+        self.assertIn('<h2 id="節">', body)
+        self.assertIn('class="ta-center"', body)
+        self.assertIn('class="ta-right"', body)
+
+    @unittest.skipUnless(HAS_YAML, "PyYAML が要る")
+    def test_relations_table_states(self):
+        write(self.wiki, "graph/ontology.yaml", RelationsTest.ONTOLOGY)
+        write(self.wiki, "c.md", "---\ntype: concept\ngraph:\n  relationships:\n"
+                                 "    - {predicate: uses, object: 'concept:b', source: sources/paper, evidence: 本文の 2 節}\n"
+                                 "---\n# C\n")
+        c = build_core(self.wiki)
+        markup = c.render_page("c")
+        found = parts_of(markup, "_relations")
+        self.assertEqual((found[0][0], classes(found[0][1])), ("h2", {"fui-Subtitle2"}))
+        scroll = [x for x in found if x[0] == "div"]
+        self.assertEqual(len(scroll), 1)
+        self.assertEqual(classes(scroll[0][1]), {"table-scroll"})
+        self.assertEqual((scroll[0][1].get("role"), scroll[0][1].get("tabindex")), ("region", "0"))
+        tables = [x for x in found if x[0] == "table"]
+        self.assertEqual(len(tables), 1)
+        self.assertEqual(classes(tables[0][1]), {"relations", "fui-Table"})
+        self.assertEqual(tables[0][1].get("data-size"), "small")
+        self.assertIn("div", tables[0][2])   # 表は横に送る入れ物の中にある
+        self.assert_table(found, "col")
+        self.assertEqual(len([x for x in found if x[0] == "th"]), 9)
+        self.assertIn('<td class="fui-TableCell"><a href="b.html">b</a></td>', markup)
+        self.assertIn('<td class="fui-TableCell"><a href="sources/paper.html">論文</a></td>', markup)
+        # 関係のないページと、オントロジーを読めないときも、見出しは Subtitle2
+        self.assertIn('<section id="_relations"><h2 class="fui-Subtitle2">関係</h2>', c.render_page("a"))
+        write(self.wiki, "graph/ontology.yaml", "- not a mapping\n")
+        self.assertIn('<section id="_relations"><h2 class="fui-Subtitle2">関係</h2><p class="state-error">',
+                      build_core(self.wiki).render_page("a"))
+
+
 class FluentAssetsTest(TempWiki):
     """Fluent 2 の設計の 2、3、6。同梱の資産、配色、ライセンスの表示。"""
 
