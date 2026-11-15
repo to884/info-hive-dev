@@ -200,7 +200,7 @@ class UvSyncTest(unittest.TestCase):
                 self.assertEqual(fake.help_calls, 0)
                 message = str(caught.exception)
                 self.assertIn("UV_SYSTEM_CERTS=true と UV_NATIVE_TLS=false", message)
-                self.assertIn("新しい uv は UV_SYSTEM_CERTS を", message)
+                self.assertIn("古い uv は UV_NATIVE_TLS だけを使い", message)
 
     def test_padded_true_is_not_read_as_true(self):
         # uv は前後の空白を除かないので、" true " は真ではない。偽と同じく、利用者の決定として止まる。
@@ -213,6 +213,7 @@ class UvSyncTest(unittest.TestCase):
 
     def help_failures(self):
         return (("終了コードが 0 でない", {"help_code": 2}),
+                ("どちらの名前も挙げない", {"help_text": b"Usage: uv sync [OPTIONS]\n"}),
                 ("OSError", {"help_error": OSError("uv がない")}),
                 ("待ちきれない", {"help_error": subprocess.TimeoutExpired(["uv"], 60)}))
 
@@ -224,7 +225,7 @@ class UvSyncTest(unittest.TestCase):
                 self.clear_tls_env()
                 self.logs.clear()
                 os.environ["UV_SYSTEM_CERTS"] = "true"
-                fake = FakeUv([(2, TLS_OUTPUT), (0, b"")], help_text=OLD_HELP, **kwargs)
+                fake = FakeUv([(2, TLS_OUTPUT), (0, b"")], **{"help_text": OLD_HELP, **kwargs})
                 self.assertEqual(self.sync(fake), 0)
                 self.assertEqual(len(fake.calls), 2)
                 self.assertEqual(fake.calls[1][1].get("UV_SYSTEM_CERTS"), "true")

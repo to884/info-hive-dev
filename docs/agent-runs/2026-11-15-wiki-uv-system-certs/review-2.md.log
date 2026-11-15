@@ -1,0 +1,54 @@
+[ask-codex 20:00:23] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-uv-tls）
+## 判定
+
+**採用可。確信度：中。** 三状態への変更による致命的・重大な反例は見つからなかった。両変数の優先順位について、uv 0.11・0.12 に当てはまらない説明が残る。実 uv による結合試験は未実施。
+
+## 致命的・重大な欠陥
+
+なし。
+
+## 崩れる前提
+
+**「`UV_SYSTEM_CERTS` 対応の uv は、それがあれば `UV_NATIVE_TLS` を見ない」という二分は成立しない。**
+
+uv 0.11.0・0.12.0 は、`UV_SYSTEM_CERTS` が真なら有効化し、それ以外では `UV_NATIVE_TLS` が真かも確認する。現在の main の優先順位とは異なる。[uv 0.11.0](https://github.com/astral-sh/uv/blob/0.11.0/crates/uv/src/settings.rs#L295)、[uv 0.12.0](https://github.com/astral-sh/uv/blob/0.12.0/crates/uv/src/settings.rs#L354)
+
+両方を真にする今回の再試行は、この違いでは崩れなかった。
+
+## 見落としと軽微な問題
+
+- **軽微：両変数がある場合の案内が、一部の対応版で誤る。**
+
+  uv 0.12.0 で `UV_SYSTEM_CERTS=false`、`UV_NATIVE_TLS=true` を設定し、OS ストアでも検証できない証明書に接続すると、実際には OS ストアが有効なのに、案内は「新しい uv は `UV_SYSTEM_CERTS` を使う」と説明する。
+
+  根拠：`info-hive-wiki/skills/info-hive/scripts/wiki_mcp_common.py:479`、`:495`、`info-hive-wiki/CHANGELOG.md:15`。再試行しない判断は変わらず、影響は診断の正確さに限られる。
+
+  `tests/wiki/test_uv_tls.py:188` の両変数の試験は、逆の組み合わせである `true/false` だけなので、この反例を検出しない。
+
+- **軽微：判定不能の理由を、ヘルプの実行失敗と断定している。**
+
+  ヘルプが終了コード0でも、出力にどちらの変数名もなければ `None` になる。しかし、再試行後の案内は「`uv sync --help` が動かなかった」となる。
+
+  終了コード0・空出力を与えて確認した。両変数で再試行する動作は成立するが、失敗理由の説明は実際と異なる。
+
+  根拠：`wiki_mcp_common.py:452–457`、`:387`。
+
+## 検証した事実
+
+- **一致：** 対象 HEAD はプラグイン `b9d9625`、親 `f2bb16a`。
+- **一致：** 単体試験19件は通過。同じ試験を前回の `2ce076d` に当てると複数失敗し、今回の変更を検出した。
+- **一致：** 非ゼロ終了・`OSError`・タイムアウトに加え、正常終了して変数名を含まないヘルプでも、両変数による再試行に進む。
+- **一致：** 再試行が TLS エラーで失敗した場合、追加した環境変数を `os.environ` に残さない。
+- **一致：** README・CHANGELOG の判定不能時の再試行方針は実装と一致。
+- **確かめられず：** 実 uv による結合試験。uv が利用できないため、Python 3.14 で単体試験を実行した。書き込み禁止に従い、一時ディレクトリとログ入出力はメモリ上の代替処理に置き換えた。
+
+## 崩せなかった点
+
+- `None` と `_UNCHECKED` の区別による分岐。ヘルプの重複取得や再試行の脱落は確認できなかった。
+- **両変数を真にすることで uv が失敗するという反例。** uv 0.12.0 は両方を解析でき、非推奨通知は警告出力である。現在の main は `UV_SYSTEM_CERTS` 設定時に旧変数の解析を省略する。[0.12.0 の警告実装](https://github.com/astral-sh/uv/blob/0.12.0/crates/uv-warnings/src/lib.rs#L66)、[main の環境変数解析](https://github.com/astral-sh/uv/blob/main/crates/uv-settings/src/lib.rs)
+- 非推奨警告を TLS エラーと誤認する経路。実際の警告文は `is_tls_error()` に一致しなかった。
+- 成功後の両変数の保持と、再試行も TLS エラーだった場合に入れ直しへ進まない経路。
+
+使用した MCP サーバー: GitHub  
+使用した Agent Skills: なし
+[ask-codex 20:03:39] 完了。session 01a1ded5-8918-79f2-88fd-f41363ae7d5e  usage {"input_tokens": 2689276, "cached_input_tokens": 2540672, "cache_write_input_tokens": 0, "output_tokens": 16209, "reasoning_output_tokens": 5682}
