@@ -4,8 +4,10 @@
 # ///
 """ADR-0025 の承認の条件 1: 長い PDF で、ページごとの取り出しの時間とメモリを測る。
 
-使い方: uv run --script measure_time.py <PDF> [結果の名前に付ける接尾辞]
+使い方: uv run --script measure_time.py <PDF> [結果の名前に付ける接尾辞] [--stable]
 結果を results/time-<PDF の名前><接尾辞>.json に書く。ほかの処理と CPU を取り合わないよう、1 つだけで走らせる。
+--stable を付けると、stable_text.py の直し（距離の同じ組の順を決まった順にする）を入れて測る。
+直しは、判定のあとの pdfminer の取り出しと、文書全体の取り出しの両方に効く。
 
 測るもの:
 - judge: rag 0.5.3 の rag_pdf.inspect_page（PDFium でページを判定する。ADR-0025 の判定）の 1 ページあたりの時間
@@ -20,6 +22,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import platform
@@ -122,7 +125,14 @@ def naive_calls(path: Path, count: int, sample: int = 12) -> list[dict]:
 
 
 def main() -> None:
-    path = Path(sys.argv[1]).resolve()
+    args = [a for a in sys.argv[1:] if a != "--stable"]
+    stable = "--stable" in sys.argv[1:]
+    path = Path(args[0]).resolve()
+    suffix = args[1] if len(args) > 1 else ""
+    if stable:
+        import pdfminer.layout as layout
+        import stable_text  # 同じディレクトリにある
+        layout.LTLayoutContainer.group_textboxes = stable_text._stable_group
     from pdfminer.high_level import extract_text
     from pdfminer.layout import LAParams
     import importlib.metadata as md
@@ -132,7 +142,7 @@ def main() -> None:
               "ram_gb": round(psutil.virtual_memory().total / 2**30, 1),
               "python": platform.python_version(),
               "versions": {name: md.version(name) for name in ("pdfminer.six", "pypdfium2", "psutil")},
-              "laparams": LAPARAMS_KW}
+              "laparams": LAPARAMS_KW, "stable_order": stable}
     with PeakMemory() as memory:
         t0 = time.perf_counter()
         judge_times, pages = judge_pages(path)
@@ -158,8 +168,15 @@ def main() -> None:
     whole = extract_text(str(path), laparams=LAParams(**LAPARAMS_KW)).split(chr(12))
     pass_pages = [t.rstrip(chr(12)) for t in texts]
     result["same_text_pages"] = sum(1 for a, b in zip(whole, pass_pages) if a == b)
+    # 直した版の本文が、stable_text.py の 3 回の結果と同じかを数える（本文は書かず、SHA-256 だけを比べる）
+    shas = [hashlib.sha256(t.encode("utf-8")).hexdigest() for t in pass_pages]
+    for run in ("a", "b", "c"):
+        ref = BENCH / "results" / f"stable-{path.stem}-{run}.json"
+        if ref.exists():
+            known = json.loads(ref.read_bytes().decode("utf-8"))["pass_sha256"]
+            result[f"same_as_stable_{run}"] = sum(1 for a, b in zip(shas, known) if a == b)
     result["naive_calls"] = naive_calls(path, pages)
-    out = BENCH / "results" / f"time-{path.stem}{sys.argv[2] if len(sys.argv) > 2 else ''}.json"
+    out = BENCH / "results" / f"time-{path.stem}{suffix}.json"
     out.parent.mkdir(exist_ok=True)
     out.write_bytes(json.dumps(result, ensure_ascii=False, indent=2).encode("utf-8"))
     print(json.dumps({k: v for k, v in result.items()
