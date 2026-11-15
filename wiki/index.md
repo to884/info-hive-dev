@@ -32,6 +32,7 @@
 - [[セッションの取り込みの設計-2026-11-14]]: Claude Code のセッションを `/wiki:ingest` で取り込む設計、7 回の敵対的レビューと 4 体の再設計、ADR-0020
 - [[stopの記録の読み取りの直し-wiki-0.19.1]]: browse の stop が Windows で記録を読めずに止まる件の原因の実測、読む口の共有と 7.1 の待ちの直し、2 回の敵対的レビュー
 - [[captureの記録の改行の直しとリリース-wiki-0.19.2]]: capture が Windows で raw を CRLF で書き、返す sha256 がファイルと食い違う件の直し、CRLF の記録の扱い、0.19.1 と 0.19.2 のリリースの確かめ
+- [[browseを5つのブラウザで確かめた記録とリリース-wiki-0.19.3]]: browse を Firefox、WebKit、Edge、Chrome で確かめた結果、製品の Chrome と Edge の favicon.ico の 404 の直し（wiki 0.19.3）、競合で始まらなかった親の CI
 - [[wikiの書く段の設計-2026-11-15]]: wiki の書き込みを `wiki_apply.py` に移す設計、15 回の敵対的レビュー、作者の判断（wiki ごとの残るロック）、ADR-0023
 - [[抽出の方式の比較-markitdown-2026-11-15]]: 今の抽出（pdftotext、pdfminer、PDFium、wiki_fetch）と MarkItDown 0.1.9 を、Office で作った 15 の試料で、速度、指標、Sol の判定で比べた調査
 - [[extraction-metrics-string-presence-2026-11-15]]: 経験（failure）。抽出の指標が文字列の有無だけを見て、数値の境目、表の列、混線を見逃した
