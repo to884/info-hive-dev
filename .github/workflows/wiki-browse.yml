@@ -1,7 +1,7 @@
 name: Wiki browse
 
 # wiki の閲覧（browse、info-hive-wiki の wiki_browse*.py）を、Windows と Linux の両方で確かめる。
-# - tests/wiki/test_browse_fs.py: 書き込みの守り（標準ライブラリだけ）
+# - tests/wiki/test_browse_fs.py: 入出力の層、書き込みの口、手早い探索と対照（標準ライブラリだけ）
 # - tests/wiki/test_browse.py: 中核と静的の書き出し（関係表は PyYAML が要る）
 # - tests/wiki/test_browse_server.py: サーバーの要求の扱い、作り直し、起動、使い回し、停止
 # - tests/wiki/browse/browse.test.mjs: 静的版とサーバーを Chromium で開いて比べる（ADR-0016 の合格の条件）
@@ -31,6 +31,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        # 標準ライブラリの失敗の読み替えは版で違う（構造の直しの設計の 3.1、12）。下限の 3.12 と 3.14 で流す
+        python: ['3.12', '3.14']
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     defaults:
@@ -38,7 +40,7 @@ jobs:
         shell: bash
     env:
       PYTHONUTF8: '1'
-      BROWSE_PYTHON: uv run --python 3.12 --with pyyaml==6.0.3 python
+      BROWSE_PYTHON: uv run --python ${{ matrix.python }} --with pyyaml==6.0.3 python
     steps:
       - uses: actions/checkout@v4
       - name: info-hive-wiki の参照を調べる
@@ -67,17 +69,17 @@ jobs:
           uname -a
           uv --version
           node --version
-          uv run --python 3.12 python -c "import platform, sys; print(platform.platform(), platform.machine(), sys.version)"
+          uv run --python ${{ matrix.python }} python -c "import platform, sys; print(platform.platform(), platform.machine(), sys.version)"
       # 前の試験が失敗しても続けて動かす。wiki を取得できなかったときは動かさない。
       - name: 書き込みの守りの試験（標準ライブラリだけ）
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
-        run: uv run --python 3.12 python -X utf8 -B -m unittest tests/wiki/test_browse_fs.py -v
+        run: uv run --python ${{ matrix.python }} python -X utf8 -B -m unittest tests/wiki/test_browse_fs.py -v
       - name: 中核と静的の書き出しの試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
-        run: uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_browse.py -v
+        run: uv run --python ${{ matrix.python }} --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_browse.py -v
       - name: サーバーの試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
-        run: uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_browse_server.py -v
+        run: uv run --python ${{ matrix.python }} --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_browse_server.py -v
       - name: Playwright を入れる
         id: playwright
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
@@ -99,6 +101,6 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: browse-results-${{ matrix.os }}
+          name: browse-results-${{ matrix.os }}-${{ matrix.python }}
           path: ${{ runner.temp }}/browse-results.json
           if-no-files-found: ignore
