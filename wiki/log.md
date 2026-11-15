@@ -95,3 +95,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-15] update | browse の探しやすさと Fluent 2 の実装（wiki 0.18.0）
    ページ: concepts/browseのデザインシステム（実装の段で分かったこと）、concepts/browseの画面の確かめ方（0.18.0 のスコープの色）
+
+## [2026-11-15] ingest | browse の探しやすさと Fluent 2 と wiki 0.18.0 のリリースの記録
+   ページ: sources/browseの探しやすさとFluent2のリリース-wiki-0.18.0（concepts/リリースの確かめ方 を更新）
