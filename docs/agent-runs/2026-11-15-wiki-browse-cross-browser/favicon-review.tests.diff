@@ -1,0 +1,29 @@
+diff --git a/tests/wiki/test_browse.py b/tests/wiki/test_browse.py
+index 5309fde..83e6207 100644
+--- a/tests/wiki/test_browse.py
++++ b/tests/wiki/test_browse.py
+@@ -486,6 +486,11 @@ class RenderTest(TempWiki):
+         self.assertNotIn("style=", html)
+         self.assertIn('class="ta-right"', html)
+         self.assertIn('<meta name="referrer" content="no-referrer">', html)
++        # アイコンがないことを <head> で宣言する（製品の Chrome と Edge が /favicon.ico を要求して 404 になるのを防ぐ）。
++        # data: は CSP の img-src が許す値でなければならない
++        head = html[:html.index("</head>")]
++        self.assertIn('<link rel="icon" href="data:,">', head)
++        self.assertIn("img-src 'self' data:", core.CSP)
+         # 未解決の wikilink が外側のリンクでクリックできるようにならない
+         start = html.index("wl-unresolved")
+         self.assertGreater(html.rfind("</a>", 0, start), html.rfind("<a ", 0, start))
+diff --git a/tests/wiki/test_browse_server.py b/tests/wiki/test_browse_server.py
+index b7eda32..742ec5e 100644
+--- a/tests/wiki/test_browse_server.py
++++ b/tests/wiki/test_browse_server.py
+@@ -145,6 +145,8 @@ class RequestTest(InProcess):
+         self.assertEqual(code, 404)
+         self.assertIn('href="../index.html"', body)
+         self.assertNotIn(str(self.wiki), body)
++        # 見つからないページも、アイコンがないことを宣言し、製品の Chrome と Edge に /favicon.ico を要求させない
++        self.assertIn(core.ICON_LINK, body)
+ 
+     def test_other_methods_and_bad_request_line(self):
+         for method in ("PATCH", "OPTIONS", "DELETE"):
