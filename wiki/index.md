@@ -31,13 +31,14 @@
 - [[browseの記事のページのFluent2のリリース-wiki-0.19.0]]: browse の記事のページの部品を Fluent 2 にした wiki 0.19.0（段 F2）、試作との見比べ、3 つのブラウザの結果、CI を待たずに入った自動マージ
 - [[セッションの取り込みの設計-2026-11-14]]: Claude Code のセッションを `/wiki:ingest` で取り込む設計、7 回の敵対的レビューと 4 体の再設計、ADR-0020
 - [[stopの記録の読み取りの直し-wiki-0.19.1]]: browse の stop が Windows で記録を読めずに止まる件の原因の実測、読む口の共有と 7.1 の待ちの直し、2 回の敵対的レビュー
+- [[captureの記録の改行の直しとリリース-wiki-0.19.2]]: capture が Windows で raw を CRLF で書き、返す sha256 がファイルと食い違う件の直し、CRLF の記録の扱い、0.19.1 と 0.19.2 のリリースの確かめ
 - [[wikiの書く段の設計-2026-11-15]]: wiki の書き込みを `wiki_apply.py` に移す設計、15 回の敵対的レビュー、作者の判断（wiki ごとの残るロック）、ADR-0023
 - [[抽出の方式の比較-markitdown-2026-11-15]]: 今の抽出（pdftotext、pdfminer、PDFium、wiki_fetch）と MarkItDown 0.1.9 を、Office で作った 15 の試料で、速度、指標、Sol の判定で比べた調査
 - [[extraction-metrics-string-presence-2026-11-15]]: 経験（failure）。抽出の指標が文字列の有無だけを見て、数値の境目、表の列、混線を見逃した
 - [[blind-judge-binding-and-form-feed-2026-11-15]]: 経験（failure）。伏せた判定が採点した中身に結び付かず、Sol が改ページの文字を読み飛ばした
 - [[office-com-word-export-2026-11-15]]: 経験（failure）。Word の COM の `Documents.Open` が、読み取り専用の引数で止まり、Windows PowerShell 5.1 で null を返した
 - [[powershell-select-first-stops-writer-2026-11-15]]: 経験（failure）。`Select-Object -First` が、`results.json` を書く前のスクリプトを止めた
-- [[evolve-capture-writes-crlf-2026-11-15]]: 経験（failure）。`wiki_evolve.py capture` が Windows で raw を CRLF で書き、返す SHA-256 とファイルが食い違った
+- [[evolve-capture-writes-crlf-2026-11-15]]: 経験（failure）。`wiki_evolve.py capture` が Windows で raw を CRLF で書き、返す SHA-256 とファイルが食い違った（0.11.0 で観測。0.19.2 で直った）
 
 ## エンティティ
 

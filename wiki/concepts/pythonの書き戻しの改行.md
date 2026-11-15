@@ -54,4 +54,4 @@ wiki の記録（to884/info-hive-dev#82）を作るとき、`SCHEMA.md`、`index
 
 wiki v0.12.2 のリリースの確かめでは、CHANGELOG の節を Python の標準出力でファイルに取り出した。そのファイルが CRLF になり、GitHub リリースの本文（LF）と比べて「違う」と出た。先頭のバイトを比べて気づいた（[[titleが値なしや配列のときの修正-wiki-0.12.2]]）。
 
-2026-11-15 の `/wiki:learn` では、wiki 0.11.0 の `wiki_evolve.py capture` が、`path.open('x', encoding='utf-8')` で raw/experiences/ の JSON を書いた。ファイルは CRLF になり、capture が返す sha256（変える前の文字列の値）と、ファイルのバイト列の SHA-256 が食い違った。返された値とファイルの値を比べて気づいた。info-hive-wiki 0.18.1 も同じ書き方をしている（コードを読んで確かめた。[[evolve-capture-writes-crlf-2026-11-15]]）。
+2026-11-15 の `/wiki:learn` では、wiki 0.11.0 の `wiki_evolve.py capture` が、`path.open('x', encoding='utf-8')` で raw/experiences/ の JSON を書いた。ファイルは CRLF になり、capture が返す sha256（変える前の文字列の値）と、ファイルのバイト列の SHA-256 が食い違った。返された値とファイルの値を比べて気づいた。info-hive-wiki 0.18.1 も同じ書き方をしていた（コードを読んで確かめた。[[evolve-capture-writes-crlf-2026-11-15]]）。wiki 0.19.2 で、LF で書き、返す sha256 をファイルの値にそろえた（[[captureの記録の改行の直しとリリース-wiki-0.19.2]]）。
