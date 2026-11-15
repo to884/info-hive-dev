@@ -39,6 +39,14 @@ TLS_OUTPUT = (b"error: Failed to fetch: https://pypi.org/simple/mcp/\n"
               b"  cause: invalid peer certificate: UnknownIssuer\n\n"
               b"hint: Consider enabling use of system TLS certificates with the `--system-certs` command-line flag\n")
 TLS_ENVS = ("UV_SYSTEM_CERTS", "UV_NATIVE_TLS")
+# idna==1 と idna==2 を同時に求めて、依存を解決できなかったときの、本物の uv の出力。
+# uv 0.7.22 と 0.12.2 は木の形（同じ出力）、0.13.8 は error: と cause: の形である。
+RESOLVE_OUTPUT_TREE = ("  × No solution found when resolving dependencies:\n"
+                       "  ╰─▶ Because you require idna==1 and idna==2, we can conclude that your\n"
+                       "      requirements are unsatisfiable.\n").encode("utf-8")
+RESOLVE_OUTPUT_ERROR = (b"error: No solution found when resolving dependencies\n"
+                        b"  cause: Because you require idna==1 and idna==2, we can conclude that your requirements"
+                        b" are unsatisfiable.\n")
 # uv 0.13.8 が依存を解決できなかったときの出力（Python のない Windows 11 で、wiki 0.19.4 の段階 2 の確認から）。
 RESOLVE_OUTPUT = (b"error: No solution found when resolving dependencies\n"
                   b"  cause: Because onnxruntime==1.31.1 has no wheels with a matching Python ABI tag (e.g., `cp315`)"
@@ -330,6 +338,20 @@ class UvSyncTest(unittest.TestCase):
         self.assertFalse(common.is_resolve_error(output.decode()))
         fake = FakeUv([(2, output)])
         self.assertEqual(self.sync(fake), 2)
+
+    def test_resolve_error_in_every_uv_format(self):
+        # uv の誤りの書き方は版で違う。0.12 までは木の形（× と ╰─▶）、0.13 からは error: と cause: である。
+        # どちらも、入れ直さずに UvResolveError で止まり、理由の文（折り返しの続きも）を launch.log に残す。
+        for label, output in (("uv 0.7.22 と 0.12.2（木の形）", RESOLVE_OUTPUT_TREE),
+                              ("uv 0.13.8", RESOLVE_OUTPUT_ERROR)):
+            with self.subTest(label):
+                fake = FakeUv([(1, output)])
+                with mock.patch.object(common.subprocess, "run", fake), \
+                        mock.patch.object(common, "env_lock_path", side_effect=AssertionError("ロックを取った")):
+                    with self.assertRaises(common.UvResolveError) as caught:
+                        common.prepare_script(RELAY, output=io.StringIO(), timeout=10, log=self.logs.append)
+                self.assertEqual(len(fake.calls), 1)
+                self.assertIn("we can conclude that your requirements are unsatisfiable", str(caught.exception))
 
     def test_colored_resolve_error_is_recognized(self):
         # uv は FORCE_COLOR などで、パイプにも色を付けることがある。色の指定を除いてから見分ける。
