@@ -39,6 +39,20 @@ TLS_OUTPUT = (b"error: Failed to fetch: https://pypi.org/simple/mcp/\n"
               b"  cause: invalid peer certificate: UnknownIssuer\n\n"
               b"hint: Consider enabling use of system TLS certificates with the `--system-certs` command-line flag\n")
 TLS_ENVS = ("UV_SYSTEM_CERTS", "UV_NATIVE_TLS")
+# idna==1 と idna==2 を同時に求めて、依存を解決できなかったときの、本物の uv の出力。
+# uv 0.7.22 と 0.12.2 は木の形（同じ出力）、0.13.8 は error: と cause: の形である。
+RESOLVE_OUTPUT_TREE = ("  × No solution found when resolving dependencies:\n"
+                       "  ╰─▶ Because you require idna==1 and idna==2, we can conclude that your\n"
+                       "      requirements are unsatisfiable.\n").encode("utf-8")
+RESOLVE_OUTPUT_ERROR = (b"error: No solution found when resolving dependencies\n"
+                        b"  cause: Because you require idna==1 and idna==2, we can conclude that your requirements"
+                        b" are unsatisfiable.\n")
+# uv 0.13.8 が依存を解決できなかったときの出力（Python のない Windows 11 で、wiki 0.19.4 の段階 2 の確認から）。
+RESOLVE_OUTPUT = (b"error: No solution found when resolving dependencies\n"
+                  b"  cause: Because onnxruntime==1.31.1 has no wheels with a matching Python ABI tag (e.g., `cp315`)"
+                  b" and you require onnxruntime==1.31.1, we can conclude that your requirements are unsatisfiable.\n\n"
+                  b"hint: You require CPython 3.15 (`cp315`), but we only found wheels for `onnxruntime` (v1.31.1)"
+                  b" with the following Python ABI tags: `cp311`, `cp312`, `cp313`, `cp313t`, `cp314`, `cp314t`\n")
 
 
 NEW_HELP = b"      --system-certs\n          Whether to load TLS certificates [env: UV_SYSTEM_CERTS=]\n"
@@ -298,6 +312,93 @@ class UvSyncTest(unittest.TestCase):
                 common.prepare_script(RELAY, output=io.StringIO(), timeout=10, log=self.logs.append)
         self.assertFalse(any("--reinstall" in command for command, _ in fake.calls))
         self.assertFalse(any("入れ直す" in line for line in self.logs))
+
+    def test_unresolvable_dependencies_stop_without_reinstall(self):
+        # 新しい Windows で uv が CPython 3.15 を取り、onnxruntime に 3.15 の wheel がなかったときの出力（0.19.4）。
+        # 環境は作られていないので、壊れた環境とみなして入れ直しても直らない。入れ直さずに止まり、理由を残す。
+        fake = FakeUv([(1, RESOLVE_OUTPUT)])
+        with mock.patch.object(common.subprocess, "run", fake), \
+                mock.patch.object(common, "env_lock_path", side_effect=AssertionError("ロックを取った")):
+            with self.assertRaises(common.UvResolveError) as caught:
+                common.prepare_script(RELAY, output=io.StringIO(), timeout=10, log=self.logs.append)
+        self.assertIsInstance(caught.exception, common.UvSetupError)
+        self.assertEqual(len(fake.calls), 1)
+        self.assertFalse(any("入れ直す" in line for line in self.logs))
+        message = str(caught.exception)
+        self.assertIn("依存を解決できなかった", message)
+        self.assertIn("hint: You require CPython 3.15", message)
+        log = (self.data / "logs" / "launch.log").read_text(encoding="utf-8")
+        self.assertEqual(log.count("UvResolveError"), 1)
+
+    def test_resolve_phrase_inside_a_path_is_not_a_resolve_error(self):
+        # 同じ句がパスに含まれていても、行の頭の誤りでなければ、依存を解決できない失敗とはみなさない。
+        # 壊れた環境の失敗なので、入れ直しに任せる（UvResolveError で止めない）。
+        output = (b"error: Failed to read metadata from installed package at "
+                  b"C:/cache/no solution found when resolving/pkg.dist-info/METADATA\n")
+        self.assertFalse(common.is_resolve_error(output.decode()))
+        fake = FakeUv([(2, output)])
+        self.assertEqual(self.sync(fake), 2)
+
+    def test_resolve_error_in_every_uv_format(self):
+        # uv の誤りの書き方は版で違う。0.12 までは木の形（× と ╰─▶）、0.13 からは error: と cause: である。
+        # どちらも、入れ直さずに UvResolveError で止まり、理由の文（折り返しの続きも）を launch.log に残す。
+        for label, output in (("uv 0.7.22 と 0.12.2（木の形）", RESOLVE_OUTPUT_TREE),
+                              ("uv 0.13.8", RESOLVE_OUTPUT_ERROR)):
+            with self.subTest(label):
+                fake = FakeUv([(1, output)])
+                with mock.patch.object(common.subprocess, "run", fake), \
+                        mock.patch.object(common, "env_lock_path", side_effect=AssertionError("ロックを取った")):
+                    with self.assertRaises(common.UvResolveError) as caught:
+                        common.prepare_script(RELAY, output=io.StringIO(), timeout=10, log=self.logs.append)
+                self.assertEqual(len(fake.calls), 1)
+                self.assertIn("we can conclude that your requirements are unsatisfiable", str(caught.exception))
+
+    def test_colored_resolve_error_is_recognized(self):
+        # uv は FORCE_COLOR などで、パイプにも色を付けることがある。色の指定を除いてから見分ける。
+        output = b"\x1b[1;31merror\x1b[0m: No solution found when resolving dependencies\n" + RESOLVE_OUTPUT[53:]
+        fake = FakeUv([(1, output)])
+        with self.assertRaises(common.UvResolveError) as caught:
+            self.sync(fake)
+        self.assertEqual(len(fake.calls), 1)
+        self.assertNotIn("\x1b", str(caught.exception))
+
+    def test_timeout_records_uv_output_in_launch_log(self):
+        # 待ちきれずに止まったときも、それまでの uv の出力の理由の行を launch.log に残す。
+        def slow(command, **kwargs):
+            if "--help" in command:
+                return subprocess.CompletedProcess(command, 0, stdout=NEW_HELP, stderr=b"")
+            raise subprocess.TimeoutExpired(command, 1, output=b"error: Failed to download Python\n"
+                                                              b"  cause: proxy connection refused\n")
+        with mock.patch.object(common.subprocess, "run", slow), self.assertRaises(subprocess.TimeoutExpired):
+            common.prepare_script(RELAY, output=io.StringIO(), timeout=1, log=self.logs.append)
+        log = (self.data / "logs" / "launch.log").read_text(encoding="utf-8")
+        self.assertIn("TimeoutExpired", log)
+        self.assertIn("uv の出力: error: Failed to download Python / cause: proxy connection refused", log)
+
+    def test_unresolvable_after_tls_retry_is_reported_as_resolve_error(self):
+        # 証明書の問題は OS の証明書ストアで直ったが、依存を解決できなかった。
+        fake = FakeUv([(2, TLS_OUTPUT), (1, RESOLVE_OUTPUT)])
+        with self.assertRaises(common.UvResolveError):
+            self.sync(fake)
+        self.assertEqual(os.environ.get("UV_SYSTEM_CERTS"), "true")
+
+    def test_other_prepare_failures_are_recorded_once(self):
+        # 入れ直しても直らなかったなど、UvSetupError でない失敗も launch.log に残す。中継がサーバーの環境を
+        # 用意するときは、ここで残さないと、利用者が読む場所に理由が残らない。終了コードだけでなく、uv の
+        # 出力の理由の行も残す（Python を取れない、プロキシに断られた、など）。
+        output = b"error: Failed to download Python\n  cause: connection refused by proxy 127.0.0.1:9\n"
+        fake = FakeUv([(2, output)] * 3)
+        lock = Path(tempfile.mkdtemp(prefix="wiki-tls-lock-"))
+        self.addCleanup(shutil.rmtree, lock, ignore_errors=True)
+        with mock.patch.object(common.subprocess, "run", fake), \
+                mock.patch.object(common, "env_lock_path", return_value=lock / "env.lock"):
+            with self.assertRaises(RuntimeError) as caught:
+                common.prepare_script(RELAY, output=io.StringIO(), timeout=10, log=self.logs.append)
+        self.assertNotIsInstance(caught.exception, common.UvSetupError)
+        log = (self.data / "logs" / "launch.log").read_text(encoding="utf-8")
+        self.assertEqual(log.count("の環境を用意できなかった"), 1)
+        self.assertIn("--reinstall", log)
+        self.assertIn("error: Failed to download Python / cause: connection refused by proxy", log)
 
 
 def make_self_signed(directory: Path) -> tuple[Path, Path] | None:

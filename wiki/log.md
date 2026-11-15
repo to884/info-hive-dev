@@ -138,5 +138,11 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 ## [2026-11-15] ingest | 古い uv の UV_SYSTEM_CERTS の直しと wiki 0.19.4 のリリース
    ページ: sources/古いuvのUV_SYSTEM_CERTSの直しとリリース-wiki-0.19.4（新規）
 
+## [2026-11-15] ingest | YouTube の動画の字幕を wiki に取り込む方法の選択肢
+   ページ: sources/youtubeの字幕の取り込みの選択肢-2026-11-15（新規。sources/抽出の方式の比較-markitdown-2026-11-15 にリンクを追加）
+
+## [2026-11-15] ingest | Python の上限と依存の解決の失敗の直しと wiki 0.19.5 のリリース
+   ページ: sources/Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5（新規）
+
 ## [2026-11-15] ingest | ADR-0025 の承認の条件の測定と、pdfminer の本文の並びの揺れ
    ページ: sources/adr-0025の承認の条件の測定-2026-11-15、concepts/pdfminerの本文の並びの揺れ（新規）
