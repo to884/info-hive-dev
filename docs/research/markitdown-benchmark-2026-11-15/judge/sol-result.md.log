@@ -1,0 +1,390 @@
+[ask-codex 16:25:43] gpt-6.1-sol に依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\bench-markitdown）
+32 出力すべてが manifest のハッシュと一致しました。Excel 原本の出力では合計値と日付が保持され、経費 PDF の一部では電気代が別の列に入り込む誤った表が確認できました。日付の「########」は、依頼の条件どおり減点しません。
+```json
+{
+  "judge_digest": "7a2de558fbc00cdd66716f5d2fcd498cc127f4f075889859ac326909026cca4c",
+  "handbook_docx": {
+    "A": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 4,
+      "noise": 5,
+      "location": 1,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/handbook_docx/A.md:1–61 は本文・数値・順序を保持し、見出しと手順も明確だが、33–35行に余分な空の表見出しがある。ページの区切りや番号は残っていない。"
+    }
+  },
+  "handbook_pdf": {
+    "A": {
+      "coverage": 5,
+      "order": 4,
+      "structure": 2,
+      "noise": 3,
+      "location": 5,
+      "usability": 4,
+      "fatal": [],
+      "comment": "judge/handbook_pdf/A.md:23–33 は表が途中から別々のMarkdown表になり、「購入から3か月以内」の「内」もセル外へ分断される。本文と金額は残り、26・35・52行のページ番号で位置を特定できるが、各ページのヘッダーも混入する。"
+    },
+    "B": {
+      "coverage": 5,
+      "order": 2,
+      "structure": 2,
+      "noise": 3,
+      "location": 5,
+      "usability": 3,
+      "fatal": [],
+      "comment": "judge/handbook_pdf/B.md:42–64 では表の見出しと値が散在し、76行の「購入から3か月以」の末尾「内」は86行へ離れるため、セル対応の復元が必要である。本文・金額は残り、68・91・121行のU+000Cとページ番号で3ページを識別できる。"
+    },
+    "C": {
+      "coverage": 5,
+      "order": 3,
+      "structure": 2,
+      "noise": 3,
+      "location": 5,
+      "usability": 3,
+      "fatal": [],
+      "comment": "judge/handbook_pdf/C.md:26–42 は表を列ごとの文字列へ展開しており、行ごとの対応を読み直す必要がある。11・19・48・50行では複数の項目や段落が一行に連結されるが、本文は残り、36・46・53行のU+000Cでページも区切れる。"
+    },
+    "D": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 3,
+      "noise": 3,
+      "location": 5,
+      "usability": 4,
+      "fatal": [],
+      "comment": "judge/handbook_pdf/D.md:26–36 は改行によるセル内の分断があるものの、項目・金額・条件を行順に読める。1・30・38行のページ見出しは明確だが、各ページのヘッダーとフッターも本文に混ざる。"
+    }
+  },
+  "handbook-2col_pdf": {
+    "A": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 3,
+      "noise": 3,
+      "location": 5,
+      "usability": 4,
+      "fatal": [],
+      "comment": "judge/handbook-2col_pdf/A.md:7–67 は目的、勤務時間、手順、費用、安全の順を保持し、段の混線がない。40–60行の表は細かく改行されるが対応を追え、1・69行にページ見出しも残る。"
+    },
+    "B": {
+      "coverage": 5,
+      "order": 2,
+      "structure": 2,
+      "noise": 3,
+      "location": 5,
+      "usability": 3,
+      "fatal": [],
+      "comment": "judge/handbook-2col_pdf/B.md:8–22 では勤務手順と費用の説明が先に現れ、対象条件の続きと勤務時間の説明が後へ回る。24–38行の表も列単位に分かれるが、本文自体は残り、49・54行のU+000Cで2ページを識別できる。"
+    },
+    "C": {
+      "coverage": 4,
+      "order": 1,
+      "structure": 1,
+      "noise": 3,
+      "location": 5,
+      "usability": 1,
+      "fatal": [
+        "judge/handbook-2col_pdf/C.md:5・11・17–20行：題名や対象者の説明と、反対側の段にある手順・費用説明・表見出しを同じMarkdown表のセルにしている。原本にはない対応関係が作られている。",
+        "judge/handbook-2col_pdf/C.md:43–53行：資料の取扱い、Teamsへの連絡、VPN接続、離席連絡の各文が交互に挿入される。例えば47行のVPNの文と49行の続きの間に、48行の離席連絡が入り、通常の読み順では別の文として混線する。"
+      ],
+      "comment": "judge/handbook-2col_pdf/C.md:2–53 は左右の段を混ぜ、文の途中に別の文や偽の表構造を挿入するため、正しい意味の復元が難しい。54・75行のページ番号は残り、61–74行の質問部分は比較的正常である。"
+    },
+    "D": {
+      "coverage": 4,
+      "order": 1,
+      "structure": 2,
+      "noise": 3,
+      "location": 5,
+      "usability": 2,
+      "fatal": [
+        "judge/handbook-2col_pdf/D.md:13–36行：対象者の説明を13・30・34行へ分断し、その間に勤務手順や費用説明を挿入している。32行の領収書提出の文も34行の派遣社員の規程に遮られ、対象条件と提出条件が混線する。",
+        "judge/handbook-2col_pdf/D.md:62–95・130行：「緊急の在宅勤務は…9時30分までに上長へ連絡する」の間に電気代のセルが入り、「週2日以上」の「以上」は91行へ離れる。離席連絡の末尾「く。」も130行へ移動しており、文と条件を正しくつなげられない。"
+      ],
+      "comment": "judge/handbook-2col_pdf/D.md:13–134 は文や表のセルを段の間で交錯させ、文字が残っていても意味のまとまりが壊れている。138・177行のU+000Cとページ番号は保持され、2ページ目の質問部分は読める。"
+    }
+  },
+  "slides_pptx": {
+    "A": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 4,
+      "noise": 5,
+      "location": 5,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/slides_pptx/A.md:1–31 は5枚のスライド番号、本文、表、連絡の左右の順序を保持し、11–12行には発表者ノートも明示される。7–9・30–31行の箇条書き記号はないが、項目は行ごとに区切られている。"
+    }
+  },
+  "slides_pdf": {
+    "A": {
+      "coverage": 5,
+      "order": 3,
+      "structure": 2,
+      "noise": 5,
+      "location": 5,
+      "usability": 3,
+      "fatal": [],
+      "comment": "judge/slides_pdf/A.md:16–54 は表の項目・金額・条件を別々の塊に展開するため、行対応の復元が必要である。58–63行の左右の本文は順序を保ち、5・14・56・65・70行のU+000Cで5枚を識別できる。"
+    },
+    "B": {
+      "coverage": 5,
+      "order": 3,
+      "structure": 2,
+      "noise": 5,
+      "location": 5,
+      "usability": 3,
+      "fatal": [],
+      "comment": "judge/slides_pdf/B.md:8–16 は表を列ごとに並べ、表題も項目列より後に現れるが、値は保持される。20・22行の連絡手順は混線せず、4・8・18・24・27行のU+000Cで5枚を識別できる。"
+    },
+    "C": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 4,
+      "noise": 5,
+      "location": 5,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/slides_pdf/C.md:17–21 は各費目・上限・条件を正しい行対応で保持し、26–30行の左右の本文も順に読める。1・6・14・23・32行に5枚分のページ見出しがある。"
+    },
+    "D": {
+      "coverage": 4,
+      "order": 2,
+      "structure": 3,
+      "noise": 5,
+      "location": 3,
+      "usability": 2,
+      "fatal": [
+        "judge/slides_pdf/D.md:20–22行：左の「始業時に勤怠チャンネルへ『開始』と書く」と右の「終業時にその日の作業を3行で報告する」を横方向に混ぜている。21行は「ネルへ『開始』と書 業を3行で報告する」となり、二つの手順の文が壊れている。"
+      ],
+      "comment": "judge/slides_pdf/D.md:12–17 の表は正確だが、2–3行では年度の順序が逆転し、20–22行では連絡手順が混線する。5つの題名から区切りを推定できるものの、ページ番号やU+000Cはない。"
+    }
+  },
+  "expenses_xlsx": {
+    "A": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 5,
+      "noise": 5,
+      "location": 5,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/expenses_xlsx/A.md:2–14 は両シートの行列、氏名、日付、人数を正確に保持し、4–7行の合計は24500・4500・21500・4500で正解と一致する。1・9行にシート名も残る。"
+    }
+  },
+  "expenses_xls": {
+    "A": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 5,
+      "noise": 5,
+      "location": 5,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/expenses_xls/A.md:2–14 は両シートの行列、氏名、日付、人数を正確に保持し、4–7行の合計は24500・4500・21500・4500で正解と一致する。1・9行にシート名も残る。"
+    }
+  },
+  "expenses_pdf": {
+    "A": {
+      "coverage": 5,
+      "order": 2,
+      "structure": 2,
+      "noise": 5,
+      "location": 5,
+      "usability": 2,
+      "fatal": [
+        "judge/expenses_pdf/A.md:9–23行：見出しは通信費→電気代→机と椅子の順だが、値の塊は電気代の1500・1500・0・1500、机と椅子の20000・0・18500・0、通信費の3000・3000・3000・3000の順になる。見出し順に対応させると費目と金額を取り違える。"
+      ],
+      "comment": "judge/expenses_pdf/A.md:4–28 は氏名と数値を保持するが、費目の列順が崩れ、列と行の再構成を要する。30・42行のU+000Cで2ページを識別でき、33–35行の「########」は依頼条件に従い減点しない。"
+    },
+    "B": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 4,
+      "noise": 5,
+      "location": 5,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/expenses_pdf/B.md:3–7 は費目・各人の金額・合計を正しい行対応で保持し、11–18行も曜日と人数を追える。1・9行にページ見出しがあり、「########」による日付不明は依頼条件に従い減点しない。"
+    },
+    "C": {
+      "coverage": 3,
+      "order": 2,
+      "structure": 1,
+      "noise": 5,
+      "location": 2,
+      "usability": 1,
+      "fatal": [
+        "judge/expenses_pdf/C.md:3・5行：電気代のセルが空欄になり、青木の1500と20000、上野の0と18500をそれぞれ「机と椅子」の一つのセルへ結合している。正解の費目と金額の対応を表そのものが誤って示す。",
+        "judge/expenses_pdf/C.md:4・6行：石田・遠藤の電気代1500を「机と椅子」列へ入れ、机と椅子の0と合計4500を「合計」セルの「0 4500」へ結合している。"
+      ],
+      "comment": "judge/expenses_pdf/C.md:1–6 は数値の文字列こそ残るが、列を誤って結合したMarkdown表が金額の意味を壊している。8–12行の日別表は正常だが、ページ番号・シート名・U+000Cはない。"
+    },
+    "D": {
+      "coverage": 5,
+      "order": 3,
+      "structure": 2,
+      "noise": 5,
+      "location": 5,
+      "usability": 3,
+      "fatal": [],
+      "comment": "judge/expenses_pdf/D.md:5–37 は氏名の塊と数値の塊が分かれるが、数値は各人の通信費・電気代・机と椅子・合計の順を保つ。39・51行のU+000Cで2ページを識別でき、43–49行の日付表示は減点しないが曜日と人数の対応には再構成が必要である。"
+    }
+  },
+  "article_html": {
+    "A": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 5,
+      "noise": 2,
+      "location": null,
+      "usability": 4,
+      "fatal": [],
+      "comment": "judge/article_html/A.md:3–50 は本文と見出し・手順・表を正確に保持する。1・52・54・56行にはナビゲーション、広告、Cookie設定、フッターが混入するが、スクリプト本文は見当たらない。"
+    },
+    "B": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 5,
+      "noise": 5,
+      "location": null,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/article_html/B.md:2–49 は本文の見出し・箇条書き・手順・表を正確に保持する。ナビゲーション、広告、フッター、スクリプトの混入は見当たらない。"
+    }
+  },
+  "staff-utf8_csv": {
+    "A": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 5,
+      "noise": 5,
+      "location": null,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/staff-utf8_csv/A.md:1–6 は列見出しと4人分の値を正しいMarkdown表に保持し、氏名や部署に文字化けがない。"
+    },
+    "B": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 5,
+      "noise": 5,
+      "location": null,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/staff-utf8_csv/B.md:1–5 は列見出しと4人分の値をCSVの行列として正確に保持し、氏名や部署に文字化けがない。"
+    }
+  },
+  "staff-cp932_csv": {
+    "A": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 5,
+      "noise": 5,
+      "location": null,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/staff-cp932_csv/A.md:1–6 はCP932原本の氏名・部署・数値を文字化けなく保持し、列対応も正しい。"
+    },
+    "B": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 5,
+      "noise": 5,
+      "location": null,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/staff-cp932_csv/B.md:1–5 はCP932原本の氏名・部署・数値を文字化けなく保持し、CSVの行列も正しい。"
+    }
+  },
+  "policy_json": {
+    "A": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 5,
+      "noise": 5,
+      "location": null,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/policy_json/A.md:1–24 はpolicy、version、limits、allowances、contactsの階層・配列・値を保持し、週3日、3000、1500、内線4021も正しい。"
+    },
+    "B": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 5,
+      "noise": 5,
+      "location": null,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/policy_json/B.md:1–24 はpolicy、version、limits、allowances、contactsの階層・配列・値を保持し、週3日、3000、1500、内線4021も正しい。"
+    }
+  },
+  "policy_xml": {
+    "A": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 5,
+      "noise": 5,
+      "location": null,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/policy_xml/A.md:1–8 は要素、本文、属性を保持し、規則ID、補助金額、部署名、内線4021の対応も正しい。"
+    },
+    "B": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 5,
+      "noise": 5,
+      "location": null,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/policy_xml/B.md:1–8 は要素、本文、属性を保持し、規則ID、補助金額、部署名、内線4021の対応も正しい。"
+    }
+  },
+  "story_epub": {
+    "A": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 5,
+      "noise": 5,
+      "location": 5,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/story_epub/A.md:1・6–16 は題名と2章の全本文を正しい順序で保持し、章見出しから位置を特定できる。2–4行の書誌情報も本文と明示的に区別されている。"
+    }
+  },
+  "bundle_zip": {
+    "A": {
+      "coverage": 5,
+      "order": 5,
+      "structure": 4,
+      "noise": 4,
+      "location": 4,
+      "usability": 5,
+      "fatal": [],
+      "comment": "judge/bundle_zip/A.md:3・67・76 は内包する3ファイルの境界を明示し、本文・CSV・JSONの内容も保持するが、37–39行の表には余分な空見出しがある。1行には変換元の絶対パスが混入し、内包DOCXのページ位置は残らない。"
+    }
+  }
+}
+```
+
+## 総評
+
+参照パスは `docs/research/markitdown-benchmark-2026-11-15/` を基準とする。行番号はLFで数え、U+000Cは改行に置き換えていない。`judge/manifest.json` に記載された32ファイルのSHA-256を照合し、不一致は0件だった。
+
+採点上、明示された章をEPUBの位置単位、内包ファイルをZIPの位置単位として扱った。文字の残存と意味の保持を分け、誤ったセル対応や文の混線は読み順・構造・総合に加え、内容の取り違えとして網羅にも反映した。
+
+- **DOCX**：本文と構造の保持は良好だが、ページ位置は失われる。余分な空の表見出しは軽微な構造上の欠点である（`judge/handbook_docx/A.md:33–39`）。
+- **1段組みPDF**：本文の欠落よりも表の再構成に差が出る。Dは行対応を保つ一方、B・Cは列やセルを散在させる（`judge/handbook_pdf/D.md:26–36`、`B.md:42–86`、`C.md:26–42`）。
+- **2段組みPDF**：Aは論理順を保つが、C・Dは文の途中へ反対の段の内容を挿入する。Cの偽のMarkdown表は、構造が乏しいだけの出力より誤解を招く（`judge/handbook-2col_pdf/A.md:7–67`、`C.md:5–53`、`D.md:13–134`）。
+- **スライド**：PPTXのAはノートとスライド番号まで保持する。PDFのCも良好だが、Dは正確な表と壊れた左右本文が併存し、表だけでは品質を判断できない（`judge/slides_pptx/A.md:1–31`、`judge/slides_pdf/C.md:14–30`、`D.md:12–22`）。
+- **Excel・経費PDF**：XLSX・XLSは合計値と日付を保持する。PDFのCは電気代を別の列へ入れる誤った表であり、元の数値が残っていても利用に適さない（`scripts/content.py:87–102`、`judge/expenses_xlsx/A.md:2–14`、`judge/expenses_xls/A.md:2–14`、`judge/expenses_pdf/C.md:1–6`）。PDFの日付表示「########」は減点していない。
+- **HTML**：A・Bとも本文は正確だが、Aには広告などが残り、Bは本文だけを保持する（`judge/article_html/A.md:1・52–56`、`B.md:2–49`）。
+- **CSV・JSON・XML**：両文字コードのCSVに文字化けはなく、CSV形式のままでも行列は明確である。JSON・XMLも属性や階層を保持する（`judge/staff-utf8_csv/A.md:1–6`・`B.md:1–5`、`judge/staff-cp932_csv/A.md:1–6`・`B.md:1–5`、`judge/policy_json/A.md:1–24`・`B.md:1–24`、`judge/policy_xml/A.md:1–8`・`B.md:1–8`）。
+- **EPUB・ZIP**：EPUBは章単位、ZIPは内包ファイル単位で出典を追える。ただしZIP内のDOCXにはページ情報がない（`judge/story_epub/A.md:6–16`、`judge/bundle_zip/A.md:3–76`）。
+- **改ページ**：末尾のU+000Cは空の追加ページとは数えず、本文を持つ区間を数えた。例えばスライドPDFのA・BはそれぞれU+000Cが5個あり、5枚を識別できる（`judge/slides_pdf/A.md:5・14・56・65・70`、`B.md:4・8・18・24・27`）。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 16:30:17] 完了。session 01a1de19-04bc-7211-8a89-0999025bcd69  usage {"input_tokens": 395678, "cached_input_tokens": 341888, "cache_write_input_tokens": 0, "output_tokens": 9573, "reasoning_output_tokens": 2060}
