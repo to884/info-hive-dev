@@ -110,3 +110,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-15] ingest | 今の取り込みと MarkItDown の抽出の比較（2026-11-15）
    ページ: sources/抽出の方式の比較-markitdown-2026-11-15、concepts/抽出の品質の測り方（新規）
+
+## [2026-11-15] ingest | /wiki:learn で、ベンチマークの作業の経験 5 つを記録した
+   ページ: sources/extraction-metrics-string-presence-2026-11-15、sources/blind-judge-binding-and-form-feed-2026-11-15、sources/office-com-word-export-2026-11-15、sources/powershell-select-first-stops-writer-2026-11-15、sources/evolve-capture-writes-crlf-2026-11-15（新規）、concepts/officeのcomでの書き出し、concepts/powershellのパイプの打ち切り（新規）、concepts/抽出の品質の測り方、concepts/pythonの書き戻しの改行（更新）

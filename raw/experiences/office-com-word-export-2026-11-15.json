@@ -1,0 +1,18 @@
+{
+  "id": "office-com-word-export-2026-11-15",
+  "task": "python-docx で作った DOCX を、Word の COM で PDF に書き出す（docs/research/markitdown-benchmark-2026-11-15/scripts/export_office.ps1）",
+  "outcome": "failure",
+  "actions": [
+    "export_office.ps1 で Word.Application を作り、Documents.Open(パス, $false, $true)（変換の確認なし、読み取り専用）で開いて ExportAsFixedFormat で PDF にしようとした",
+    "Windows PowerShell 5.1 から powershell -File で実行すると、300 秒のタイムアウトまで終わらず、PDF はできなかった。WINWORD.EXE（コマンドラインは /Automation -Embedding、画面のタイトルなし）が残っていたので、止めた",
+    "pwsh 7 の Start-Job の中で、DisplayAlerts を 0 にし、Documents.Open にパスだけを渡すと、開いて書き出せた",
+    "引数をパスだけにした export_office.ps1 を powershell -File（5.1）で実行すると、Documents.Open が null を返して止まった。PowerPoint、Excel、ZIP の書き出しは同じ実行で成功した",
+    "Word の 2 つの PDF は、pwsh 7 の Start-Job の中で、パスだけを渡す呼び出しで書き出した"
+  ],
+  "verification": "corpus/ に handbook.pdf と handbook-2col.pdf ができ、run_bench.py が 2 ページと 3 ページの PDF として読んだ（rag の出力の ## p. N が 3 個と 2 個）。止まった実行のあと、Get-Process WINWORD で /Automation -Embedding の WINWORD.EXE が残っていることを確かめた",
+  "model": "Claude Opus 5.5（claude-opus-5-5）",
+  "tools": "Microsoft Office 16.0（Word、PowerPoint、Excel の COM）、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11",
+  "scope": "スクリプトから Office の COM で文書を開き、PDF などに書き出すとき",
+  "hypothesis": "読み取り専用で開く引数を渡すと、自動化の Word が画面に出ない確認を待ったまま止まったと考えられる（確かめていない）。Windows PowerShell 5.1 で null が返った原因は分かっていない。直前の試しで開いた Word のプロセスが、そのとき終わらずに残っていたので、その影響の可能性もある",
+  "counterexamples": "pwsh -File で export_office.ps1 を最後まで通せるかは確かめていない。ほかの PC と Office の版では確かめていない。PowerPoint と Excel は同じスクリプトで問題なく書き出せた"
+}

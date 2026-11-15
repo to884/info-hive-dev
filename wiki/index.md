@@ -31,6 +31,11 @@
 - [[セッションの取り込みの設計-2026-11-14]]: Claude Code のセッションを `/wiki:ingest` で取り込む設計、7 回の敵対的レビューと 4 体の再設計、ADR-0020
 - [[wikiの書く段の設計-2026-11-15]]: wiki の書き込みを `wiki_apply.py` に移す設計、15 回の敵対的レビュー、作者の判断（wiki ごとの残るロック）、ADR-0023
 - [[抽出の方式の比較-markitdown-2026-11-15]]: 今の抽出（pdftotext、pdfminer、PDFium、wiki_fetch）と MarkItDown 0.1.9 を、Office で作った 15 の試料で、速度、指標、Sol の判定で比べた調査
+- [[extraction-metrics-string-presence-2026-11-15]]: 経験（failure）。抽出の指標が文字列の有無だけを見て、数値の境目、表の列、混線を見逃した
+- [[blind-judge-binding-and-form-feed-2026-11-15]]: 経験（failure）。伏せた判定が採点した中身に結び付かず、Sol が改ページの文字を読み飛ばした
+- [[office-com-word-export-2026-11-15]]: 経験（failure）。Word の COM の `Documents.Open` が、読み取り専用の引数で止まり、Windows PowerShell 5.1 で null を返した
+- [[powershell-select-first-stops-writer-2026-11-15]]: 経験（failure）。`Select-Object -First` が、`results.json` を書く前のスクリプトを止めた
+- [[evolve-capture-writes-crlf-2026-11-15]]: 経験（failure）。`wiki_evolve.py capture` が Windows で raw を CRLF で書き、返す SHA-256 とファイルが食い違った
 
 ## エンティティ
 
@@ -44,6 +49,8 @@
 - [[pdfのヘッダーの条件]]: rag が PDF を確かめる 2 つの段階、ヘッダーの境界と書き方、rag の版による違い
 - [[リリースの確かめ方]]: リリースの完了の条件、タグとリリースの形、使い捨ての設定での導入の確かめ方、マージの順番
 - [[git-bashのパス変換]]: Git Bash が `git show <リビジョン>:<パス>` の引数を書き換える形と、`MSYS_NO_PATHCONV=1` での避け方
+- [[officeのcomでの書き出し]]: Word の COM で文書を開いて PDF に書き出すときの引数、PowerShell の版、時間の上限（仮説の段階）
+- [[powershellのパイプの打ち切り]]: `Select-Object -First` が上流のスクリプトを止め、最後のファイルの書き込みが起きないこと（仮説の段階）
 - [[pythonの書き戻しの改行]]: Windows の Python の `write_text` と標準出力が LF を CRLF に変えることと、避け方と気づき方
 - [[browseの画面の確かめ方]]: browse の画面を、作者のサーバーを使い回さずに、2 つの配色で実際のブラウザで確かめる手順
 - [[browseのデザインシステム]]: browse の画面を Fluent 2 の再現の CSS で描く決まりと、レビューで崩れた配色と折り返しの前提
