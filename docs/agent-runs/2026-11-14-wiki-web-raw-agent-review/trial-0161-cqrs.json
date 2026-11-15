@@ -58,13 +58,12 @@
       "detail": []
     },
     {
-      "check": "W8 の check --finish を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが警告の残ったまま終える）",
-      "ok": true,
+      "check": "W8 の check --finish --json を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが警告の残ったまま終える）",
+      "ok": false,
       "detail": {
-        "finished_by": [
-          "wiki:web-raw"
-        ],
-        "final_actor": "wiki:web-raw"
+        "finished_by": [],
+        "final_actor": "wiki:web-raw",
+        "final_is_json": false
       }
     },
     {
@@ -127,6 +126,11 @@
       ]
     },
     {
+      "check": "raw に、確かめが読むスクリプトの出力の形の文字列がない（あれば、記録の中で本物の出力と見分けられず、判定できない）",
+      "ok": true,
+      "detail": []
+    },
+    {
       "check": "log の取り込みの項目に、raw の段の分担のサブ行がある（ファイルの中身）",
       "ok": true,
       "detail": [
@@ -139,7 +143,7 @@
       "detail": null
     }
   ],
-  "ok": true,
+  "ok": false,
   "bash_to_review": {
     "main": [
       "cd \"C:/UserData/toshiki/Temp/claude/870eed15d1242065/50a39d3c-95c9-49f9-ad35-626aae661353/scratchpad/agent-trial-0161/cqrs\" && ls -la && ls wiki raw 2>&1 | head -50; ls CLAUDE.md AGENTS.md .claude 2>&1",
@@ -158,9 +162,7 @@
     ]
   },
   "other_script_runs": {},
-  "w8_finished_by": [
-    "wiki:web-raw"
-  ],
+  "w8_finished_by": [],
   "display_names_verified": false,
   "translated_by": null,
   "caption_names": null,
@@ -230,5 +232,5 @@
       }
     }
   },
-  "reanalyzed": "2026-11-15: 12 回目のレビューの指摘を直した確かめのスクリプトで確かめ直した（費用と時間は、取り込んだときの値）"
+  "reanalyzed": "2026-11-15: 13 回目のレビューの指摘を直した確かめのスクリプトで確かめ直した（費用と時間は、取り込んだときの値）"
 }

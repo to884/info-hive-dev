@@ -33,12 +33,16 @@ Claude Code のセッションの記録から確かめる。
   結果の形で決める）。W8 は、wiki:web-raw の呼び出しのコマンドに `wiki_rawcheck`、`check`、`--finish` が書かれ、その
   結果に、検査が通って作業用の写しを消した check の出力があること（シェルの区切りや引用符は読まない）。結果が
   誤り（あとのコマンドが失敗して、呼び出し全体が誤りになる）でも、その中の出力は読む。1 つの結果の中の check の
-  出力は、出た順の 1 回ずつに分ける。JSON の回と、文字の出力の回である。文字の出力の回は、wiki_rawcheck.render が
-  書く行の形（render から作る）に合う行だけで、freeze の出力などのほかの行が来たら終わる。W8 の
-  終わりは、写しを消した回のうち、時刻と記録の順で最後の回である。警告が残ったまま写しを消した回は、check に
-  `--accept-warnings` を付けたときだけ出る。wiki:web-raw のその回は、どの回でも不合格（あとで取り直して正しく
-  終えても消えない。エージェントは警告を受け入れない）。最後の回を、警告を受け入れる流れでメインがその形で
-  終えたときは通し、どちらが終えたかを `w8_finished_by` に書く。
+  出力は、出た順の 1 回ずつに分ける。JSON の回（行の頭の `{` から始まるもの）と、文字の出力の回である。文字の
+  出力の回は、wiki_rawcheck.render が書く行の形（render から作る）に合う行だけで、freeze の出力などのほかの行が
+  来たら終わる。W8 の終わりは、写しを消した回のうち、時刻と記録の順で最後の回で、JSON の回でなければならない
+  （W8 は `--json` で動かす。0.18.1 の手順）。警告が残ったまま写しを消した回は、check に
+  `--accept-warnings` を付けたときだけ出る。wiki:web-raw のその回は、JSON でも文字の出力でも、どの回でも不合格
+  （あとで取り直して正しく終えても消えない。エージェントは警告を受け入れない）。最後の回を、警告を受け入れる
+  流れでメインがその形で終えたときは通し、どちらが終えたかを `w8_finished_by` に書く。
+- 結果の形で読めること: raw のファイルに、確かめが読むスクリプトの出力の形の文字列（check と freeze の見出しと
+  最後の行、`"stage": "check"`、wiki_fetch.py の出力の文言など）がないこと。あれば、本文を表示した結果の中で
+  本物の出力と見分けられないので、判定できないとして不合格にする。
 - 文章の受け渡し: raw の文がメインに初めて届く（道具の結果か通知に現れる）までのメインの出力（文と道具の入力）と、
   すべての wiki:web-raw の依頼に、raw の本文の 40 文字以上の並びがないこと。エージェントの出力に、要約ページの文の並び
   （raw にもある並びは除く）がないこと。これは受け渡しの一部を見つけるだけで、どのモデルが文を考えたかの証明ではない。
@@ -46,9 +50,9 @@ Claude Code のセッションの記録から確かめる。
   その要約ページのすべてへのリンクがあること（プラグインの wiki_pages.extract_wikilinks と resolve_link で読む。コードの
   中のリンクは数えないので、初期の index.md の説明文の記入例は数えない。`[[sources/スラッグ]]` の形も読む）。log.md の
   取り込みの項目（`## [日付] ingest |` の見出しの項目）の中に「raw:」のサブ行があること。索引とログは Bash で書くことも
-  あるので、コマンドからは決めない。訳と補足の表示名は、W8 の最後の回が `check --json` の出力
-  なら、その値（wiki_rawcheck.py が画像と Markdown の木から補足を見分けた名前）から取る。最後の回が文字の出力なら、
-  表示名を判定せず（前の回の JSON は使わない）、`display_names_verified` を false にする。作業用の写しが消えていること。
+  あるので、コマンドからは決めない。訳と補足の表示名は、W8 の最後の回（`check --json` の出力）の値
+  （wiki_rawcheck.py が画像と Markdown の木から補足を見分けた名前）から取る（W8 が通らなければ判定せず、
+  `display_names_verified` を false にする）。作業用の写しが消えていること。
 
 合否を決めないもの（なかったことは、記録からは示せない）:
 
@@ -274,7 +278,12 @@ def names_finish(command: str) -> bool:
 
 
 def check_json_spans(text: str) -> list[tuple[int, int, dict]]:
-    """結果の文の中の、wiki_rawcheck.py check --json の出力の JSON を、(始まり, 終わり, 値) で出た順にすべて返す。"""
+    """結果の文の中の、wiki_rawcheck.py check --json の出力の JSON を、(始まり, 終わり, 値) で出た順にすべて返す。
+
+    --json の出力は、行の頭の `{` から始まる（json.dumps の indent=2 を print したもの。`"stage"` が最初のキー）。
+    行の途中から始まる JSON は数えない。文字の出力の誤りの詳細（`    取得: {…}`）に、ページの中の 1 行の JSON が
+    出ることがあるからである。
+    """
     out, pos = [], 0
     decoder = json.JSONDecoder()
     while True:
@@ -283,7 +292,7 @@ def check_json_spans(text: str) -> list[tuple[int, int, dict]]:
             return out
         start = text.rfind("{", 0, at)
         pos = at + 1
-        if start < 0:
+        if start < 0 or (start > 0 and text[start - 1] != "\n"):
             continue
         try:
             value, end = decoder.raw_decode(text[start:])
@@ -303,7 +312,9 @@ def check_text_forms() -> dict:
     """wiki_rawcheck.render が check の文字の出力に書く行の形。render そのものから作る（文言が変わってもずれない）。
 
     1 回の出力は、見出しの行（通ったか）、誤りと警告の行（誤りには、取得と raw の行が続く）、最後の 1 行（写しを
-    消した、警告や誤りで残した。--finish のないときはない）の順に並ぶ。render は 1 回の print で書く。
+    消した、警告や誤りで残した。--finish のないときはない）の順に並ぶ。render は 1 回の print で書く。項目の値の中の
+    改行のあとの行は、0.18.1 から字下げされる（wiki_rawcheck.CONTINUATION）ので、ページの本文が見出しや最後の行の
+    形で出ることはない。
     """
     base = {"stage": "check", "ok": True, "errors": [], "warnings": []}
 
@@ -313,13 +324,28 @@ def check_text_forms() -> dict:
     passed, removed = lines(work_dir_removed=True)
     failed = lines(ok=False, errors=[{"message": "\0", "source": "\0", "raw": "\0"}], work_dir_kept="errors")
     warned = lines(warnings=[{"message": "\0"}], work_dir_kept="warnings")
+    continued = lines(warnings=[{"message": "\0\n\0"}])[2].split("\0")[0]
     warning = warned[1].split("\0")[0]
     return {"passed": passed, "heads": {passed, failed[0]}, "removed": removed,
             "endings": {removed, failed[-1], warned[-1]}, "warning": warning,
-            "items": tuple(line.split("\0")[0] for line in failed[1:-1]) + (warning,)}
+            "items": tuple(line.split("\0")[0] for line in failed[1:-1]) + (warning, continued)}
 
 
 CHECK_TEXT = check_text_forms()
+
+
+def output_shapes(text: str) -> list[str]:
+    """ページの本文の中の、確かめが読むスクリプトの出力の形の文字列。
+
+    確かめは、道具の結果の文から、wiki_fetch.py、freeze、check の出力を形で読む。ページの本文に同じ形の文字列が
+    あると、本文を表示した結果（0.18.0 までの check の誤りの詳細、cat など）の中で、本物の出力と見分けられない。
+    行の頭かどうか、字下げや引用の記号の有無は問わずに、文字列として探す（本文の表示のされ方で、行の頭が変わる）。
+    """
+    freeze = {wiki_rawcheck.render({"stage": "freeze", "ok": ok, "errors": [], "warnings": []}) for ok in (True, False)}
+    shapes = sorted(CHECK_TEXT["heads"] | CHECK_TEXT["endings"] | freeze) + [
+        '"stage": "check"', '"stage": "freeze"', '"final_url": ', "保存した: ", "ページを取得せずに続ける",
+        "内容は前回と同じなので、書き込まなかった", "同じスラッグのファイルがあり、内容が違う"]
+    return [s for s in shapes if s in text]
 
 
 def check_runs(text: str) -> list[dict]:
@@ -455,15 +481,20 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     agent_accepted = [r["command"] for r in agent_runs if r["accepted"]]
     check("wiki:web-raw は警告を受け入れて終えていない（check --finish の出力。どの回も）", not agent_accepted, agent_accepted)
     # W8 の終わりは、写しを消した回のうち、時刻と記録の順で最後のもので決める。エージェントが警告なしで終えたか、
-    # 警告を受け入れる流れ（references/web-raw.md の warnings）でメインが警告の残ったまま終えたなら通す。
+    # 警告を受け入れる流れ（references/web-raw.md の warnings）でメインが警告の残ったまま終えたなら通す。W8 は
+    # --json で動かす（0.18.1 の手順）ので、最後の回は JSON でなければならない。文字の出力の回は、上の違反を
+    # 見つけるためだけに読む。
     final = max([r for r in agent_runs + main_runs if r["removed"]], key=lambda r: r["key"], default=None)
     w8_by = []
-    if final is not None and final["actor"] == AGENT_TYPE and not final["warnings"]:
-        w8_by = [AGENT_TYPE]
-    elif final is not None and final["actor"] == "main" and final["warnings"]:
-        w8_by = ["main"]
-    check("W8 の check --finish を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが警告の"
-          "残ったまま終える）", w8_by, {"finished_by": w8_by, "final_actor": final["actor"] if final else None})
+    if final is not None and final["json"] is not None:
+        if final["actor"] == AGENT_TYPE and not final["warnings"]:
+            w8_by = [AGENT_TYPE]
+        elif final["actor"] == "main" and final["warnings"]:
+            w8_by = ["main"]
+    check("W8 の check --finish --json を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが"
+          "警告の残ったまま終える）", w8_by,
+          {"finished_by": w8_by, "final_actor": final["actor"] if final else None,
+           "final_is_json": final["json"] is not None if final else None})
 
     raw_writers = {name: [p for p in paths if under(p, raw)] for name, paths in writes.items()}
     check("raw に書いた（Edit、Write）のは wiki:web-raw だけ",
@@ -510,9 +541,15 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
 
     # 結果
     check("raw がある", raws, [str(p) for p in raws])
+    # スクリプトの実行は結果の文の形で読むので、ページの本文に同じ形の文字列があれば、記録から判定できない
+    # （判定できないことを、通したことにしない）。
+    raw_full = "\n".join(p.read_bytes().decode("utf-8") for p in raws)
+    shapes = output_shapes(raw_full)
+    check("raw に、確かめが読むスクリプトの出力の形の文字列がない（あれば、記録の中で本物の出力と見分けられず、"
+          "判定できない）", not shapes, shapes)
     # 表示名は、W8 の check --json の結果から取る（wiki_rawcheck.py が、画像と Markdown の木から補足を見分けた名前）。
-    # 自前で raw を読み直すと、リストの中の補足を見落とし、原文の引用を補足と取り違える。W8 を文字の出力で動かした
-    # ときは、表示名を判定しない（display_names_verified を false にする）。訳したなら Sonnet の名前であること
+    # 自前で raw を読み直すと、リストの中の補足を見落とし、原文の引用を補足と取り違える。W8 が通ったなら、最後の
+    # 回は JSON なので、いつも判定する。訳したなら Sonnet の名前であること
     # （訳さないページの空の translated_by と、画像がないときの補足のなさはよい。references/web-raw.md の呼び出す側の
     # 手順 6）。
     display = final["json"] if final is not None and w8_by else None

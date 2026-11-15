@@ -58,13 +58,14 @@
       "detail": []
     },
     {
-      "check": "W8 の check --finish を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが警告の残ったまま終える）",
+      "check": "W8 の check --finish --json を wiki:web-raw が自分で動かして通った（警告を受け入れる流れでは、メインが警告の残ったまま終える）",
       "ok": true,
       "detail": {
         "finished_by": [
           "wiki:web-raw"
         ],
-        "final_actor": "wiki:web-raw"
+        "final_actor": "wiki:web-raw",
+        "final_is_json": true
       }
     },
     {
@@ -122,6 +123,11 @@
       "detail": [
         "C:\\UserData\\toshiki\\Temp\\claude\\870eed15d1242065\\50a39d3c-95c9-49f9-ad35-626aae661353\\scratchpad\\agent-trial\\cqrs\\raw\\cqrs.md"
       ]
+    },
+    {
+      "check": "raw に、確かめが読むスクリプトの出力の形の文字列がない（あれば、記録の中で本物の出力と見分けられず、判定できない）",
+      "ok": true,
+      "detail": []
     },
     {
       "check": "W8 の check の結果の、訳と補足の表示名が Sonnet（空はよい）",
@@ -233,5 +239,5 @@
       }
     }
   },
-  "reanalyzed": "2026-11-15: 12 回目のレビューの指摘を直した確かめのスクリプトで確かめ直した（費用と時間は、取り込んだときの値）"
+  "reanalyzed": "2026-11-15: 13 回目のレビューの指摘を直した確かめのスクリプトで確かめ直した（費用と時間は、取り込んだときの値）"
 }

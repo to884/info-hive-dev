@@ -16,8 +16,13 @@ claude -p "/wiki:ingest <URL> 人と話し合わないまとめての取り込�
 | CQRS（英語） | 14 / 14 | `claude-opus-5-5` | `claude-sonnet-5-5` | 訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5 | 248 秒 | 1.92 USD（Opus 1.73、Sonnet 0.19） |
 | ブルームフィルタ（日本語の Wikipedia） | 14 / 14 | `claude-opus-5-5` | `claude-sonnet-5-5` | 訳: なし、補足: Claude Sonnet 5.5 | 197 秒 | 1.61 USD（Opus 1.46、Sonnet 0.15） |
 | CQRS（英語、0.16.1 の版。2026年11月15日） | 15 / 15 | `claude-opus-5-5` | `claude-sonnet-5-5` | 訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5 | 350 秒 | 1.85 USD（Opus 1.65、Sonnet 0.20） |
+| CQRS（英語、0.18.1 の版。2026年11月15日） | 19 / 19 | `claude-opus-5-5` | `claude-sonnet-5-5` | 訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5 | 203 秒 | 1.48 USD（Opus 1.29、Sonnet 0.20） |
 
-3 行目は、main の 0.14.1 と #57（`wiki_fetch.py` の取得の前の再開）を取り込み、取り直したら W3 に戻る決まりを足した版（`info-hive-wiki` の `fix/web-raw-w3-after-fetch`）で動かした。結果は `trial-0161-cqrs.json` にある。この修正の版の番号は、main が先に進んだので、0.17.1、0.18.1 と付け直した（手順の中身は同じ）。そのあと、8 回目から 12 回目のレビューで確かめのスクリプトを直し、3 件とも確かめ直した（2026年11月15日。結果の JSON は確かめ直した結果に差し替え、費用と時間は取り込んだときの値を残した）。1 行目と 2 行目は 18 / 18、3 行目は 17 / 17 で通った。3 行目は、エージェントが W8 の `check` を `--json` なしで動かしたので、訳と補足の表示名を `check` の結果から確かめられず、その項目は判定していない（`display_names_verified` が false）。raw の frontmatter の `translated_by` は Claude Sonnet 5.5 だった。
+3 行目は、main の 0.14.1 と #57（`wiki_fetch.py` の取得の前の再開）を取り込み、取り直したら W3 に戻る決まりを足した版（`info-hive-wiki` の `fix/web-raw-w3-after-fetch`）で動かした。結果は `trial-0161-cqrs.json` にある。この修正の版の番号は、main が先に進んだので、0.17.1、0.18.1 と付け直した。そのあと、8 回目から 13 回目のレビューで確かめのスクリプトを直し、3 件とも確かめ直した（2026年11月15日。結果の JSON は確かめ直した結果に差し替え、費用と時間は取り込んだときの値を残した）。
+
+13 回目のレビューのあと、確かめのスクリプトは、W8 の終わりを `check --finish --json` の出力だけで決めるようにした。文字の出力には、ページの本文（誤りの詳細）がそのまま出て、検査の結果の行と見分けられないからである。合わせて、プラグインの手順の W8 に `--json` を足し、文字の出力の値の中の改行のあとを字下げした（0.18.1）。確かめ直すと、1 行目と 2 行目は 19 / 19 で通った（W8 を `--json` で動かしていた）。3 行目は 17 / 18 で、W8 の項目だけが通らない（その版の手順には `--json` がなく、エージェントは W8 を文字の出力で終えた。raw の frontmatter の `translated_by` は Claude Sonnet 5.5 だった）。
+
+4 行目は、W8 に `--json` を足した 0.18.1 の手順で、取り込み直したものである。結果は `trial-0181-cqrs.json` にある。19 項目がすべて通り、エージェントが W8 を `--json` で終え、訳と補足の表示名を `check` の結果から確かめられた。
 
 時間は `claude -p` の `duration_ms` である。
 
