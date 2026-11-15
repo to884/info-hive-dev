@@ -137,3 +137,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-15] ingest | 古い uv の UV_SYSTEM_CERTS の直しと wiki 0.19.4 のリリース
    ページ: sources/古いuvのUV_SYSTEM_CERTSの直しとリリース-wiki-0.19.4（新規）
+
+## [2026-11-15] ingest | YouTube の動画の字幕を wiki に取り込む方法の選択肢
+   ページ: sources/youtubeの字幕の取り込みの選択肢-2026-11-15（新規。sources/抽出の方式の比較-markitdown-2026-11-15 にリンクを追加）

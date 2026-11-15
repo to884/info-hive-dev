@@ -37,6 +37,7 @@
 - [[古いuvのUV_SYSTEM_CERTSの直しとリリース-wiki-0.19.4]]: 古い uv が読まない UV_SYSTEM_CERTS を利用者の決定とみなしてやり直さなかった不具合と、uv の版の判定を 3 つの状態にした直し（wiki 0.19.4）
 - [[wikiの書く段の設計-2026-11-15]]: wiki の書き込みを `wiki_apply.py` に移す設計、15 回の敵対的レビュー、作者の判断（wiki ごとの残るロック）、ADR-0023
 - [[抽出の方式の比較-markitdown-2026-11-15]]: 今の抽出（pdftotext、pdfminer、PDFium、wiki_fetch）と MarkItDown 0.1.9 を、Office で作った 15 の試料で、速度、指標、Sol の判定で比べた調査
+- [[youtubeの字幕の取り込みの選択肢-2026-11-15]]: YouTube の字幕を wiki に取り込む取り方（yt-dlp、youtube-transcript-api、Gemini、文字起こし、公式 API など）と組み込み方の選択肢、手元での確かめ
 - [[extraction-metrics-string-presence-2026-11-15]]: 経験（failure）。抽出の指標が文字列の有無だけを見て、数値の境目、表の列、混線を見逃した
 - [[blind-judge-binding-and-form-feed-2026-11-15]]: 経験（failure）。伏せた判定が採点した中身に結び付かず、Sol が改ページの文字を読み飛ばした
 - [[office-com-word-export-2026-11-15]]: 経験（failure）。Word の COM の `Documents.Open` が、読み取り専用の引数で止まり、Windows PowerShell 5.1 で null を返した
