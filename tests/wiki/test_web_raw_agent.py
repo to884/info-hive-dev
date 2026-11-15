@@ -615,10 +615,51 @@ class SyntheticTranscriptTest(unittest.TestCase):
         report = self.write(main, agent_with(opus + "\n" + removed))
         self.assertTrue(report["ok"], self.failed(report))
         self.assertFalse(report["display_names_verified"])
-        # 同じ時刻（ここでは時刻のない記録）の 2 回の W8 は、記録の順で後の回を最後とする
+        # 1 つの結果の中の 2 回の W8 は、結果の中で後に出た回を最後とする
         report = self.write(main, agent_with(opus + "\n" + CHECK_OUTPUT))
         self.assertTrue(report["ok"], self.failed(report))
         self.assertEqual(report["translated_by"], "Claude Sonnet 5.5")
+        # 時刻の同じ（ここでは時刻のない）別の呼び出しの 2 回の W8 は、担当の中の呼び出しの順で後の回を最後とする
+        again = self.use("Bash", {"command": "python wiki_rawcheck.py check --slug cqrs --finish --json"},
+                         "claude-sonnet-5-5")
+        records = [self.got(opus) if self._is_check(r) else r for r in agents[0][1]] + [again, self.got(CHECK_OUTPUT)]
+        report = self.write(main, [(agents[0][0], records)])
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertEqual(report["translated_by"], "Claude Sonnet 5.5")
+
+    def test_review12_counterexamples(self):
+        """12 回目のレビューの反例。check のあとの freeze の警告と、呼び出し全体が誤りになった結果。"""
+        main, agents = self.good()
+        render = check_web_raw_agent.wiki_rawcheck.render
+        finished = render({"stage": "check", "ok": True, "errors": [], "warnings": [], "work_dir_removed": True})
+        freeze = render({"stage": "freeze", "ok": True, "errors": [], "removed_lines": ["Subscribe"],
+                         "warnings": [{"kind": "removed_much",
+                                       "message": "消した文字が本文の 2 割を超える（900 / 3000 文字）。本文を消していないかを確かめる"}]})
+        accept = "wiki:web-raw は警告を受け入れて終えていない（check --finish の出力。どの回も）"
+
+        def agent_with(result, extra=()):
+            return [(agents[0][0], [result if self._is_check(r) else r for r in agents[0][1]] + list(extra))]
+
+        # 1. 警告なしで終えたあと、同じ呼び出しで取り直して freeze が警告を出し、もう一度警告なしで終えたなら通す
+        #    （freeze の警告を、前の check の回に数えない）
+        report = self.write(main, agent_with(self.got(finished + "\n" + freeze + "\n" + CHECK_OUTPUT)))
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertTrue(report["display_names_verified"])
+        report = self.write(main, agent_with(self.got(finished + "\n" + freeze + "\n" + finished)))
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertFalse(report["display_names_verified"])
+        # 2. 警告を受け入れて消したあと、同じ呼び出しの再検査が失敗して呼び出し全体が誤りになっても、違反は消えない
+        missing = "作業用の写しがそろっていない: wiki/.wiki-cache/ingest/cqrs（wiki_fetch.py に --force を付けて取り直す）"
+        again = self.use("Bash", {"command": "python wiki_rawcheck.py check --slug cqrs --finish --json"},
+                         "claude-sonnet-5-5")
+        report = self.write(main, agent_with(self.got(ACCEPTED_OUTPUT + "\n" + missing, is_error=True),
+                                             [again, self.got(CHECK_OUTPUT)]))
+        self.assertIn(accept, self.failed(report))
+        # 2. 正しく終えたあと、同じ呼び出しの確かめのコマンドが失敗しても、W8 の終わりは残る
+        gone = "ls: cannot access 'wiki/.wiki-cache/ingest/cqrs': No such file or directory"
+        report = self.write(main, agent_with(self.got(CHECK_OUTPUT + "\n" + gone, is_error=True)))
+        self.assertTrue(report["ok"], self.failed(report))
+        self.assertEqual(report["w8_finished_by"], ["wiki:web-raw"])
 
     @staticmethod
     def _is_check(record) -> bool:
@@ -704,6 +745,16 @@ class TranscriptCheckTest(unittest.TestCase):
         # JSON の回と文字の出力の回を、出た順に並べる（11 回目の 3）
         mixed = '{"stage": "check", "ok": true, "work_dir_removed": true, "warnings": []}\ncheck: 通った\n作業用の写しを消した'
         self.assertEqual([r["json"] is not None for r in runs(mixed)], [True, False])
+        # 文字の出力の回は、render の形の行だけを読む。freeze の行が来たら終わる（12 回目の 1）
+        after = "check: 通った\n作業用の写しを消した\nfreeze: 通った\n警告: 消した文字が本文の 2 割を超える"
+        self.assertEqual([(r["removed"], r["warnings"]) for r in runs(after)], [(True, False)])
+        before = "check: 通った\nfreeze: 通った\n警告: 消した文字が本文の 2 割を超える\n作業用の写しを消した"
+        self.assertEqual([(r["removed"], r["warnings"]) for r in runs(before)], [(False, False)])
+        # Windows の print の CRLF でも読む
+        self.assertTrue(runs("check: 通った\r\n警告: 文体\r\n作業用の写しを消した\r\n")[0]["accepted"])
+        # 誤りの回の、取得と raw の行も回の中に読む
+        failed = "check: 規則に反している\n誤り: 本文が変わった\n    取得: a\n    raw : b\n警告: 文体\n作業用の写しを消した"
+        self.assertEqual([(r["removed"], r["warnings"]) for r in runs(failed)], [(False, True)])
 
     def test_shared_text_ignores_source_phrases(self):
         summary = "CQRS は Command Query Responsibility Segregation の略で、読み書きのモデルを分ける考え方である。" * 2

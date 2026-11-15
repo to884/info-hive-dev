@@ -31,8 +31,10 @@ Claude Code のセッションの記録から確かめる。
   （結果が誤りでない）だけで数える。
 - スクリプトの実行: wiki:web-raw が wiki_fetch.py と freeze の出力を受け取ったこと（呼び出しの id で対応させた道具の
   結果の形で決める）。W8 は、wiki:web-raw の呼び出しのコマンドに `wiki_rawcheck`、`check`、`--finish` が書かれ、その
-  結果に、検査が通って作業用の写しを消した check の出力があること（シェルの区切りや引用符は読まない）。1 つの
-  結果の中の check の出力は、出た順の 1 回ずつに分ける（JSON の回と、`check: ` で始まる文字の出力の回）。W8 の
+  結果に、検査が通って作業用の写しを消した check の出力があること（シェルの区切りや引用符は読まない）。結果が
+  誤り（あとのコマンドが失敗して、呼び出し全体が誤りになる）でも、その中の出力は読む。1 つの結果の中の check の
+  出力は、出た順の 1 回ずつに分ける。JSON の回と、文字の出力の回である。文字の出力の回は、wiki_rawcheck.render が
+  書く行の形（render から作る）に合う行だけで、freeze の出力などのほかの行が来たら終わる。W8 の
   終わりは、写しを消した回のうち、時刻と記録の順で最後の回である。警告が残ったまま写しを消した回は、check に
   `--accept-warnings` を付けたときだけ出る。wiki:web-raw のその回は、どの回でも不合格（あとで取り直して正しく
   終えても消えない。エージェントは警告を受け入れない）。最後の回を、警告を受け入れる流れでメインがその形で
@@ -74,6 +76,7 @@ ROOT = HERE.parents[1]
 PLUGIN = ROOT / "info-hive-wiki"
 sys.path.insert(0, str(PLUGIN / "skills" / "info-hive" / "scripts"))
 import wiki_pages  # noqa: E402  プラグインの wikilink の読み方（コードの中のリンクを除き、パス付きの形も読む）
+import wiki_rawcheck  # noqa: E402  check の文字の出力の形（render）
 WINDOW = 40
 AGENT_TYPE = "wiki:web-raw"
 
@@ -296,7 +299,27 @@ def check_jsons(text: str) -> list[dict]:
     return [value for _, _, value in check_json_spans(text)]
 
 
-CHECK_TEXT_START = re.compile(r"^check: (?:通った|規則に反している)", re.M)
+def check_text_forms() -> dict:
+    """wiki_rawcheck.render が check の文字の出力に書く行の形。render そのものから作る（文言が変わってもずれない）。
+
+    1 回の出力は、見出しの行（通ったか）、誤りと警告の行（誤りには、取得と raw の行が続く）、最後の 1 行（写しを
+    消した、警告や誤りで残した。--finish のないときはない）の順に並ぶ。render は 1 回の print で書く。
+    """
+    base = {"stage": "check", "ok": True, "errors": [], "warnings": []}
+
+    def lines(**changes) -> list[str]:
+        return wiki_rawcheck.render({**base, **changes}).split("\n")
+
+    passed, removed = lines(work_dir_removed=True)
+    failed = lines(ok=False, errors=[{"message": "\0", "source": "\0", "raw": "\0"}], work_dir_kept="errors")
+    warned = lines(warnings=[{"message": "\0"}], work_dir_kept="warnings")
+    warning = warned[1].split("\0")[0]
+    return {"passed": passed, "heads": {passed, failed[0]}, "removed": removed,
+            "endings": {removed, failed[-1], warned[-1]}, "warning": warning,
+            "items": tuple(line.split("\0")[0] for line in failed[1:-1]) + (warning,)}
+
+
+CHECK_TEXT = check_text_forms()
 
 
 def check_runs(text: str) -> list[dict]:
@@ -305,21 +328,31 @@ def check_runs(text: str) -> list[dict]:
     1 つの呼び出しで、check を何度か動かすことがある（検査、直す、再検査。取り直してもう一度）。回ごとに、
     写しを消したか（removed）、警告が残ったまま消したか（accepted。--accept-warnings を付けたときだけ起きる。
     wiki_rawcheck.main）、JSON（文字の出力なら None）を返す。JSON の回は、その JSON の値で決める。文字の出力の回は、
-    `check: ` で始まる行から、次の回の始まり（次の `check: ` の行か、次の JSON）までを 1 回とする（wiki_rawcheck.render
-    の形）。
+    見出しの行から、render が書く形（check_text_forms）の行だけを読む。最後の行で終わり、形に合わない行（freeze の
+    出力、ほかのコマンドの出力、JSON）が来たら、そこで終わる。ほかの段の警告を、check の回に数えないためである。
     """
     spans = check_json_spans(text)
     runs = [{"pos": start, "json": value, "removed": value.get("ok") is True and value.get("work_dir_removed") is True,
              "warnings": bool(value.get("warnings"))} for start, _, value in spans]
     inside = lambda i: any(s <= i < e for s, e, _ in spans)  # noqa: E731
-    starts = [m.start() for m in CHECK_TEXT_START.finditer(text) if not inside(m.start())]
-    bounds = sorted([s for s, _, _ in spans] + starts)
-    for start in starts:
-        end = next((b for b in bounds if b > start), len(text))
-        block = text[start:end]
-        runs.append({"pos": start, "json": None,
-                     "removed": block.startswith("check: 通った") and "作業用の写しを消した" in block,
-                     "warnings": re.search(r"^警告: ", block, re.M) is not None})
+    lines, offsets, at = [], [], 0
+    for line in text.split("\n"):
+        lines.append(line.rstrip("\r"))  # Windows の print は CRLF で書く
+        offsets.append(at)
+        at += len(line) + 1
+    for i, head in enumerate(lines):
+        if head not in CHECK_TEXT["heads"] or inside(offsets[i]):
+            continue
+        warnings = removed = False
+        for line in lines[i + 1:]:
+            if line in CHECK_TEXT["endings"]:
+                removed = line == CHECK_TEXT["removed"]
+                break
+            if not line.startswith(CHECK_TEXT["items"]):
+                break
+            warnings = warnings or line.startswith(CHECK_TEXT["warning"])
+        runs.append({"pos": offsets[i], "json": None, "removed": head == CHECK_TEXT["passed"] and removed,
+                     "warnings": warnings})
     for run in runs:
         run["accepted"] = run["removed"] and run["warnings"]
     return sorted(runs, key=lambda r: r["pos"])
@@ -400,11 +433,15 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
                   if n != AGENT_TYPE and (fetch_runs[n] or freeze_runs[n])}
 
     # check --finish の回を、担当ごとに、時刻と記録の順で並べる。1 つの呼び出しの中の何回もの check は、出た順に分ける。
+    # 結果が誤りでも読む。呼び出しの誤りは、その中の最後のコマンドの終了コードで決まり、先に終えた check の出力は
+    # 残るからである（finish のあとの確かめのコマンドが失敗したときなど）。回が通ったかは、回の出力で決める。
+    # 並べる鍵は（時刻、担当、担当の中の呼び出しの順、結果の中の位置）。担当をまたぐ前後は時刻でしか決まらないので、
+    # 時刻が同じか欠けたときは、エージェントの回をあとにする。
     def finish_runs(name: str, order: int) -> list[dict]:
         out = []
         for n, t in enumerate(actors[name]):
             if t["name"] in ("Bash", "PowerShell") and names_finish(str(t["input"].get("command", ""))) \
-                    and succeeded(t, results[name]):
+                    and t.get("id") in results[name]:
                 for run in check_runs(results[name][t["id"]]["text"]):
                     out.append({**run, "actor": name, "command": str(t["input"].get("command", "")),
                                 "key": (t.get("ts") or "", order, n, run["pos"])})
