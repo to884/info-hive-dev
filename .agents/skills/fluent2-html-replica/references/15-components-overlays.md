@@ -666,7 +666,7 @@ hover と focus で出る Tooltip（`overlays.js` が必要）。
 - 対象が画面から見えなくなったとき（v9 の `referenceHidden`）の `visibility: hidden` は、`data-hidden` 属性で写した。`overlays.js` はこの判定をしない。
 - 位置と矢印は Popover と同じ近似である。
 - 位置のために、`overlays.js` は開いている間だけトリガーの `anchor-name` に名前を足す。初めて足すときの計算値（利用者の CSS と style の名前）に自分の名前を連結し、利用者の `!important` にも負けないよう important で書く。閉じたら、足す前の style の宣言（値と優先度）に戻す。開いている間に利用者が style の `anchor-name` を書いたら、その宣言には触らない（そこに Tooltip の名前が残ることがある）。名前は開くたびに新しく作る（`--fui-tooltip-<id>-<連番>`）ので、残った古い名前を参照することはない。
-- 1 つの Tooltip を複数のトリガーで使い、開いたままポインターを別のトリガーへ直接移すと、Tooltip は前のトリガーに付いたままになる（一度閉じてから開けば、開いたトリガーに付く）。
+- 1 つの Tooltip を複数のトリガーで使い、開いたままポインターを別のトリガーへ移すと、閉じずに移った先のトリガーへ付け替える（前のトリガーの名前は外す）。v9 の Tooltip は 1 つのトリガーに 1 つなので、共有は React を使わない HTML の形である。
 - Esc で消す処理は、IME の変換を取り消す Esc では動かない（入力欄に付けた Tooltip のため。v9 との意図した差）。
 - Web Components v3 は padding が `4px 10px 6px` で、横が v9 より 1px 狭い。v9 の値を採った。
 
