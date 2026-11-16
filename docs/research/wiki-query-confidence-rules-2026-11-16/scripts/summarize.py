@@ -10,7 +10,9 @@ from pathlib import Path
 
 FINAL = re.compile(r"\*\*(?:確信度|確からしさ)（confidence）: (高|中|低)\*\*")
 INLINE = re.compile(r"（(?:確信度|確からしさ)[:：]\s*(高|中|低)）")
-ANY = re.compile(r"(?:確信度|確からしさ)[^\n]{0,20}?[:：]\s*\**\s*(高|中|低)")
+ANY = re.compile(r"(?:確からしさ|回答の確信度|確信度(?=（confidence）)|(?<=（)確信度)[^\n]{0,20}?[:：]\s*\**\s*(高|中|低)")
+# 決まった 1 行と結論のそばの印に使った名前（新しい名前が守られたかを数えるため）
+NAME_MARKS = re.compile(r"\*\*(確信度|確からしさ)（confidence）: (?:高|中|低)\*\*|（(確信度|確からしさ)[:：]\s*(?:高|中|低)）")
 
 
 def load(path: Path):
@@ -66,6 +68,7 @@ def summarize(path: Path) -> dict:
     out["final_marks"] = FINAL.findall(text)
     out["inline_marks"] = INLINE.findall(text)
     out["any_marks"] = ANY.findall(text)
+    out["mark_names"] = [a or b for a, b in NAME_MARKS.findall(text)]
     dumps = [json.dumps(x.get("input"), ensure_ascii=False) for x in out["tools"]]
     out["opened_confidence"] = any("query-confidence.md" in d for d in dumps)
     out["opened_workflow"] = any("query-workflow.md" in d for d in dumps)
