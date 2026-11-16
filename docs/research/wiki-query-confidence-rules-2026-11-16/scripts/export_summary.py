@@ -10,6 +10,12 @@
 #   violation: 規則の外れ）
 #
 # 書き出す前に、セッションの一時の場所（利用者名とセッションの ID を含む）を <SCRATCH> に置き換える
+#
+# 手で付けた判定（J）は、判定したときのログにだけ当てはまる。ログの SHA-256 を judged-logs.json に残し、
+# ハッシュの合わないログ（測り直したログなど）や、判定のないログがあれば、書き出さずに止まる。
+# 判定を付け直したら、--bind でハッシュを記録し直す。
+# 使い方: python export_summary.py [--bind]
+import hashlib
 import json
 import re
 import sys
@@ -89,12 +95,36 @@ def scrub(v):
     return v
 
 
+JUDGED = OUT.with_name("judged-logs.json")
+
+
+def log_hashes() -> dict:
+    return {log.stem: hashlib.sha256(log.read_bytes()).hexdigest() for log in sorted(RUNS.glob("R*-r[0-9].jsonl"))}
+
+
+current = log_hashes()
+if "--bind" in sys.argv[1:]:
+    missing = sorted(k for k in current if tuple(k.split("-r")) not in J)
+    if missing:
+        sys.exit(f"判定のないログがある: {', '.join(missing)}（J に判定を足してから --bind する）")
+    JUDGED.write_bytes((json.dumps(current, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
+    print(f"{len(current)} 件のログのハッシュを {JUDGED.name} に記録した")
+judged = json.loads(JUDGED.read_text(encoding="utf-8")) if JUDGED.is_file() else {}
+stale = sorted(k for k in current if judged.get(k) != current[k])
+gone = sorted(k for k in judged if k not in current)
+if stale or gone:
+    sys.exit("判定を付けたときのログと合わない。回答を読んで J を付け直し、--bind で記録し直す\n"
+             + (f"  ハッシュが違うか未判定: {', '.join(stale)}\n" if stale else "")
+             + (f"  判定したのに見当たらない: {', '.join(gone)}\n" if gone else ""))
+
 qs = {q["id"]: q for q in json.loads(QUESTIONS.read_text(encoding="utf-8"))}
 rows = []
 for meta in sorted(RUNS.glob("R*-r[0-9].meta.json")):
     m = json.loads(meta.read_text(encoding="utf-8"))
     s = summarize(meta.with_name(meta.name.replace(".meta.json", ".jsonl")))
     j = J[(m["qid"], m["rep"])]
+    if j["got"] in ("高", "中", "低") and s["final_marks"] != [j["got"]]:
+        sys.exit(f"{m['qid']} r{m['rep']}: 判定 {j['got']} が回答の決まった 1 行 {s['final_marks']} と合わない")
     rows.append({
         "qid": m["qid"], "rep": int(m["rep"]), "trial": m["rep"] == "0", "condition": m["condition"],
         "expect": qs[m["qid"]]["expect"], **j,

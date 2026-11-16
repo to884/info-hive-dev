@@ -3,6 +3,7 @@
 # - 作業ディレクトリを試験用の wiki の置き場所（QC_WIKI_BASE）にした
 # - 問いの条件（ready、broken、preparing）ごとに、MCP のデータの置き場所を分けた
 # - wiki の変更の有無を、git status ではなく実行の前後のハッシュで見る
+# - claude が失敗した回（終了コードが 0 でないか、結果の行がない）は完了にせず、ログを退避して 0 でない値を返す
 import json
 import subprocess
 import sys
@@ -47,11 +48,23 @@ def main() -> int:
                            stdin=subprocess.DEVNULL, env=child_env(condition), timeout=1200)
     dt = time.time() - t0
     after = wiki_digest()
+    has_result = any('"type":"result"' in line.replace(" ", "")
+                     for line in log.read_bytes().decode("utf-8", "replace").splitlines())
     meta = {"qid": qid, "rep": rep, "condition": condition, "rc": p.returncode, "seconds": round(dt, 1),
-            "stderr": p.stderr.decode("utf-8", "replace")[-2000:],
+            "stderr": p.stderr.decode("utf-8", "replace")[-2000:], "has_result": has_result,
             "wiki_changed": before != after, "digest_before": before, "digest_after": after}
-    (OUT / f"{qid}-r{rep}.meta.json").write_bytes(
-        json.dumps(meta, ensure_ascii=False, indent=1).encode("utf-8"))
+    meta_bytes = json.dumps(meta, ensure_ascii=False, indent=1).encode("utf-8")
+    if p.returncode != 0 or not has_result:
+        # 失敗した回は、完了の印（<qid>-r<rep>.meta.json）を作らず、ログを別の名前に退避する。
+        # run_all.py はこの回を済んだものとして飛ばさず、退避したログの費用は上限の計算に入れる
+        stamp = time.strftime("%Y%m%d-%H%M%S")
+        log.replace(OUT / f"{qid}-r{rep}.failed-{stamp}.jsonl")
+        (OUT / f"{qid}-r{rep}.failed-{stamp}.meta.json").write_bytes(meta_bytes)
+        print(json.dumps({k: meta[k] for k in ("qid", "rep", "condition", "rc", "has_result")}, ensure_ascii=False),
+              flush=True)
+        print("claude が失敗したか、結果の行がない。この回は完了にしない", flush=True)
+        return p.returncode or 4
+    (OUT / f"{qid}-r{rep}.meta.json").write_bytes(meta_bytes)
     print(json.dumps({k: meta[k] for k in ("qid", "rep", "condition", "rc", "seconds", "wiki_changed")},
                      ensure_ascii=False), flush=True)
     if before != after:
