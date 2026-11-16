@@ -671,6 +671,19 @@ class ReviewRegressionTests(Base):
         self.assertIn("job", kinds)
         self.assertLessEqual(kinds.index("job"), SEARCH_STREAK_LIMIT)
 
+    def test_rerun_goes_to_the_back_of_the_queue(self):
+        """rerun で待ちに戻った作り直しは、列の最後に並ぶ。ほかの文書の作り直しを追い越し続けない。"""
+        jobs = Jobs(self.config.data_dir)
+        self.ingest_job(self.engine())
+        first = jobs.register_rebuild(self.config, str(self.wiki), "a" * 64, 1)
+        second = jobs.register_rebuild(self.config, str(self.wiki), "b" * 64, 1)
+        job = jobs.claim("試験")
+        self.assertEqual(job["id"], first["job_id"])
+        jobs.register_rebuild(self.config, str(self.wiki), "a" * 64, 2)  # 処理中に次の確認（rerun）
+        jobs.finish(job["id"], "試験", result={"status": "indexed", "review": {"published_version": 1}})
+        self.assertEqual(jobs.status(str(self.wiki), first["job_id"])["status"], "queued")
+        self.assertEqual(jobs.claim("試験")["id"], second["job_id"])  # 待っていたほかの文書が先
+
     def test_rebuild_runs_with_the_current_settings(self):
         """作り直しのジョブは、登録したときの設定ではなく、今の設定で動く。"""
         from rag_worker import engine_config
