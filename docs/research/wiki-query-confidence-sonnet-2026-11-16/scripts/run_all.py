@@ -1,4 +1,4 @@
-# 11 問 × 3 回を直列で流す。各回の費用を足し、上限を超えそうなら止める
+# 11 問（または引数の問い）× 3 回を直列で流す。各回の費用を足し、上限を超えそうなら止める
 # 記録の場所とプラグインは paths.py（環境変数 QC_RUNS_DIR、QC_PLUGIN_DIR）で決め、run_one.py と共有する
 import json
 import subprocess
@@ -26,7 +26,8 @@ def cost_of(qid, rep):
 
 plugin_dir()  # 子を起動する前に、プラグインの指定を確かめる
 spent = cost_of("Q01", 0)  # 試しの 1 回（あれば）
-qids = [f"Q{i:02d}" for i in range(1, 12)]
+# 引数に問いの ID を並べると、その問いだけを流す（省くと Q01〜Q11）
+qids = sys.argv[1:] or [f"Q{i:02d}" for i in range(1, 12)]
 for rep in (1, 2, 3):
     for qid in qids:
         if (RUNS / f"{qid}-r{rep}.meta.json").exists():
