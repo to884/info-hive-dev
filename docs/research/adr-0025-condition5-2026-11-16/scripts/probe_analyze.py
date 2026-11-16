@@ -14,7 +14,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from score import CORPUS, RESULTS, load_truths, normalize, page_records  # noqa: E402
+from score import CORPUS, RESULTS, joined, load_truths, normalize, page_records, reading_order  # noqa: E402
+
+import score  # noqa: E402
+
+# 後から見つけた正規化の漏れ: 白丸（U+25CB）と漢数字のゼロ（U+3007）は同じ字形なので、そろえる
+score.SAME["○"] = "〇"
+OTHER_DPI = 200
 
 THRESHOLDS = [0.0, 0.2, 0.3, 0.4, 0.5]
 
@@ -22,6 +28,11 @@ THRESHOLDS = [0.0, 0.2, 0.3, 0.4, 0.5]
 def differs(line: dict, key: str) -> bool:
     read = (line.get("reads") or {}).get(key)
     return read is not None and normalize(read["text"]) != normalize(line["text"])
+
+
+def other_dpi(line: dict) -> bool:
+    """200 dpi で検出からやり直した読みと食い違うか（つながる行がなければ食い違いとする）。"""
+    return line.get("dpi_text") is not None and normalize(line["dpi_text"]) != normalize(line["text"])
 
 
 SIGNALS = {
@@ -33,7 +44,27 @@ SIGNALS = {
     "models": lambda line: differs(line, "r100") or (len(line["text"]) < 45 and differs(line, "r50")),
     "any": lambda line: (differs(line, "r100") or (len(line["text"]) < 45 and differs(line, "r50"))
                          or differs(line, "pad100") or differs(line, "blur100")),
+    "dpi": other_dpi,
+    "blur+dpi": lambda line: differs(line, "blur100") or other_dpi(line),
+    "any+dpi": lambda line: (differs(line, "r100") or (len(line["text"]) < 45 and differs(line, "r50"))
+                             or differs(line, "pad100") or differs(line, "blur100") or other_dpi(line)),
 }
+
+
+def attach_other_dpi(ocr_lines: list[dict], name: str) -> None:
+    """ほかの dpi の読みの行を、箱を 150 dpi に縮めて対応させ、読む順につないだ本文を dpi_text に置く。"""
+    path = CORPUS / "probe" / f"reads-png{OTHER_DPI}" / f"{name}.json"
+    if not path.exists():
+        return
+    scale = 150 / OTHER_DPI
+    others = []
+    for line in json.loads(path.read_bytes().decode("utf-8"))["lines"]:
+        x, y, w, h = line["box"]
+        others.append({**line, "box": [x * scale, y * scale, (x + w) * scale, (y + h) * scale]})
+    for line in ocr_lines:
+        matched = [o for o in others if joined(o["box"], line["box"])]
+        vertical = bool(line.get("vertical"))
+        line["dpi_text"] = "".join(o["text"] for o in reading_order(matched, vertical))
 
 
 def collect() -> dict:
@@ -47,6 +78,7 @@ def collect() -> dict:
                                .read_bytes().decode("utf-8"))["lines"]
             ocr_lines = [{**line, "box": [line["box"][0], line["box"][1], line["box"][0] + line["box"][2],
                                           line["box"][1] + line["box"][3]]} for line in reads]
+            attach_other_dpi(ocr_lines, f"{truth['name']}-p{page['page']:04d}")
             records, missed = page_records(page["lines"], ocr_lines, stratum)
             for r in records:
                 r["line"] = ocr_lines[r["line_index"]]

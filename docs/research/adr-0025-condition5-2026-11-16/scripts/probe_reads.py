@@ -9,6 +9,7 @@ corpus/probe/reads/<名前>.json に書く。あれば飛ばす。
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -25,6 +26,7 @@ import ocr  # noqa: E402  NDLOCR-Lite
 from rag_ocr_confidence import ConfidentRecognizer, line_records  # noqa: E402
 
 OUT = BENCH / "corpus" / "probe" / "reads"
+PLAIN = os.environ.get("PROBE_PLAIN") == "1"  # 製品の読みだけを記録する（ほかの dpi で読み直すとき）
 
 
 def summary(text) -> dict:
@@ -50,6 +52,8 @@ def main() -> None:
     def cascade(alllineobj, recognizer30, recognizer50, recognizer100, is_cascade=True):
         results = original(alllineobj, recognizer30, recognizer50, recognizer100, is_cascade=is_cascade)
         extra.clear()
+        if PLAIN:
+            return results
         for line in alllineobj:
             image = line.npimg
             padded = cv2.copyMakeBorder(image, 4, 4, 4, 4, cv2.BORDER_CONSTANT, value=(255, 255, 255))
@@ -60,10 +64,11 @@ def main() -> None:
         return results
 
     ocr.process_cascade = cascade
-    OUT.mkdir(parents=True, exist_ok=True)
+    out = OUT if not PLAIN else OUT.with_name("reads-" + Path(sys.argv[1]).parent.name)
+    out.mkdir(parents=True, exist_ok=True)
     for name in sys.argv[1:]:
         path = Path(name)
-        target = OUT / (path.stem + ".json")
+        target = out / (path.stem + ".json")
         if target.exists():
             continue
         with Image.open(path) as original_image:
