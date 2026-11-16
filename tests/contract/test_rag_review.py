@@ -618,6 +618,37 @@ class ReviewRegressionTests(Base):
         self.assertEqual(jobs.status(str(self.wiki), job["id"])["status"], "cancelled")
         self.assertIsNone(jobs.register_rebuild(self.config, str(self.wiki), self.doc_id, 1))
 
+    def test_exception_without_a_message_is_a_failure(self):
+        """メッセージのない例外で止まった作り直しは、失敗として記録し、再試行できる。"""
+        engine = self.engine()
+        jobs, _ = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "accept")])
+
+        def broken(*args, **kwargs):
+            raise RuntimeError()
+        engine.rebuild_reviewed = broken
+        done = self.run_queued(jobs, engine)
+        self.assertEqual(done[-1]["status"], "failed")
+        self.assertEqual(done[-1]["error"], "RuntimeError")
+        self.assertEqual(jobs.retry(str(self.wiki), done[-1]["job_id"])["status"], "queued")
+        # Jobs.finish に直接、空の理由を渡しても失敗になる
+        jobs.claim("試験")
+        jobs.finish(done[-1]["job_id"], "試験", error="")
+        self.assertEqual(jobs.status(str(self.wiki), done[-1]["job_id"])["status"], "failed")
+
+    def test_report_does_not_fall_back_to_the_job_summary(self):
+        """公開している版の要約が読めないときも、前のジョブの記録の確認の状態に戻らない。"""
+        engine = self.engine()
+        jobs, first = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "fix", "直した本文 三")])
+        self.run_queued(jobs, engine)
+        folder = self.config.workspace(str(self.wiki))
+        for path in (folder / "reviewed" / self.doc_id).glob("*/confidence.json"):
+            path.unlink()  # 後始末と競合して要約が消えた状態
+        lists = self.report(jobs, self.wiki, first)["lists"]
+        self.assertEqual(lists["review:fixed"]["count"], 0)
+        self.assertEqual(lists["review:stale"]["count"], 0)
+
     def test_rebuild_runs_with_the_current_settings(self):
         """作り直しのジョブは、登録したときの設定ではなく、今の設定で動く。"""
         from rag_worker import engine_config
