@@ -28,7 +28,7 @@ from paths import QUESTIONS, SUMMARY as OUT, plugin_dir, require_runs, wiki_base
 RUNS = require_runs()
 GF = "作業前の git fetch に触れた（利用者のグローバルの指示が子にも読み込まれた）"
 
-# 0.21.2 の測り直しの判定。回答を読んで付け、--bind でログのハッシュに結ぶ
+# 0.21.3 の測り直しの判定。回答を読んで付け、--bind でログのハッシュに結ぶ
 J = {
 }
 

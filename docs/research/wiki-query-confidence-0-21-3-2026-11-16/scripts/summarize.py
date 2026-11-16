@@ -89,7 +89,7 @@ def summarize(path: Path) -> dict:
     return out
 
 
-# 0.21.2 の見つけ方の決め方（query-confidence.md の縮退の理由の表のあとの 1〜4）を、記録から機械で当てる。
+# 0.21.3 の見つけ方の決め方（query-confidence.md の縮退の理由の表のあとの 1〜4）を、記録から機械で当てる。
 # 探す道具: MCP の query、CLI の wiki_search.py の検索（--backlinks を除く）、Grep、Glob。
 # wiki のページでの一致がない呼び出し（0 件、SCHEMA.md・index.md・log.md だけ）は数えない
 NOT_PAGES = ("SCHEMA.md", "index.md", "log.md")
