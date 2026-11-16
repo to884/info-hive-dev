@@ -185,3 +185,9 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-16] ingest | /wiki:query の確からしさを Sonnet 5.5 で測った記録
    ページ: sources/queryの確からしさのsonnetでの測定-2026-11-16（新規。sources/queryの確からしさとリリース-wiki-0.20.0、concepts/敵対的レビューで設計を直す進め方 を更新）
+
+## [2026-11-16] ingest | /wiki:query の確からしさを 0.21.1 で測り直した結果
+   ページ: sources/queryの確からしさのsonnetでの測定-2026-11-16、concepts/敵対的レビューで設計を直す進め方 を更新
+
+## [2026-11-16] ingest | /wiki:query の確からしさの決め方の分離と wiki 0.21.1 のリリース
+   ページ: sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1（新規。concepts/リリースの確かめ方 を更新）
