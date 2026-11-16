@@ -278,6 +278,15 @@ class ReaderEntryTests(EntryCase):
             "session-write": [SCRIPTS / "wiki_session.py", "write", "--transcript", self.outside / "s.jsonl",
                               "--title", "題名", "--decisions", self.outside / "d.json", "--wiki", w, "--raw-root",
                               self.raw, "--slug", "記事", "--expect-sha256", "0" * 64, "--json"],
+            # YouTube の字幕の取り込み（wiki 0.22.0、ADR-0027）。yt-dlp を読み込む前、ネットにつなぐ前に止まる。
+            "youtube-inspect": [SCRIPTS / "wiki_youtube.py", "inspect", "--url",
+                                "https://www.youtube.com/watch?v=aaaaaaaaaaa", "--wiki", w, "--raw-root", self.raw,
+                                "--slug", "記事", "--json"],
+            "youtube-write": [SCRIPTS / "wiki_youtube.py", "write", "--url", "https://youtu.be/aaaaaaaaaaa",
+                              "--wiki", w, "--raw-root", self.raw, "--slug", "記事", "--expect-sha256", "0" * 64,
+                              "--json"],
+            "youtube-verify": [SCRIPTS / "wiki_youtube.py", "verify", "--wiki", w, "--raw-root", self.raw,
+                               "--slug", "記事", "--json"],
         }
 
     def test_path_through_missing_directory_is_refused(self):
@@ -484,6 +493,7 @@ class EntranceInventoryTests(unittest.TestCase):
         "wiki_search.py": "ReaderEntryTests の search、search-cache、backlinks",
         "wiki_session.py": "ReaderEntryTests の session-*、tests/wiki/test_wiki_session.py",
         "wiki_stats.py": "ReaderEntryTests の stats",
+        "wiki_youtube.py": "ReaderEntryTests の youtube-*、tests/wiki/test_wiki_youtube.py",
     }
     RUNNERS = {
         "wiki_evolve_agent.py": "評価のランナー（インストール済みのエージェント）",
