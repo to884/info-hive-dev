@@ -125,7 +125,7 @@ def page_records(truth_lines: list[dict], ocr_lines: list[dict], stratum: str) -
         for j, line in zip(ocr_ids, ocr):
             record = {"shape": shape, "confidence": line["confidence"], "distance": dist,
                       "truth_chars": len(truth_text), "truth_text": truth_text, "ocr_text": ocr_text,
-                      "line_text": normalize(line["text"])}
+                      "line_text": normalize(line["text"]), "line_index": j}
             if j in direct_excluded:
                 record.update(rule="excluded", excluded=excluded)
             elif excluded:
