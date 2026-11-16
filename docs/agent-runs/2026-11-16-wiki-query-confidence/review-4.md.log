@@ -1,0 +1,67 @@
+[ask-codex 09:11:06] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\query-confidence）
+## 判定
+
+**採用可。確信度：中。** 今回の差分から、通常利用を妨げる重大な欠陥は崩せなかった。検索結果の同一性についての誤った説明、未同期の説明、再検索の停止条件に軽微な問題が残る。
+
+## 致命的・重大な欠陥
+
+なし。
+
+## 崩れる前提
+
+- **同じwikiを検索すれば、MCPとCLIの結果は同じになる。** モデル、距離のしきい値、索引、埋め込みの準備状態が異なるため成立しない。
+- **検索語を変える再検索は、エージェントが適切に打ち切る。** 話題がwikiに存在せず、同義語でも0件が続く場合の打ち切り条件はない。実際に際限なく続けるかは未検証。
+- **コマンドで直したwarningの説明が、参照先でも同じになっている。** SKILL.mdには「意味の検索が一部だけ」という旧説明が残る。
+
+## 見落としと軽微な問題
+
+1. **軽微：「同じwikiを引くので、結果は変わらない」は実装から保証できない。**
+
+   MCPはruri-v3-130m、CLIは既定でmultilingual-e5-smallを使い、距離のしきい値も異なる。モデル準備中のMCPが語彙検索だけを返す一方、準備済みのCLIが意味検索を使える状態もある。同じ検索語・wikiでも検索処理は同一ではない。
+
+   同じ検索語での再実行禁止は既存の方針なので、今回追加された**禁止の理由の不正確さ**として扱う。今回、両モデルの実検索結果の比較はしていない。
+
+   根拠：[commands/query.md 18行](/C:/Works/info-hive-dev/.claude/worktrees/query-confidence/info-hive-wiki/commands/query.md:18)、wiki_index.py 42〜47行、wiki_search.py 101〜108行。
+
+2. **軽微：warningの説明が参照先と未同期。**
+
+   モデル準備中・利用不能の場合、commands/query.mdは「意味の検索を使えなかった」と説明できる。一方、SKILL.md 140行は、warningがある場合にも「意味の検索だけが埋め込み済みの分に限られる」「一部だけだったことを回答に添える」と指示している。query-workflow.md 23行も旧説明のままである。
+
+   コマンドが使い分けをSKILL.mdへ委ねているため、モデル利用不能時に、実際には使っていない意味検索を「一部使用した」と報告する余地が残る。
+
+   根拠：[SKILL.md 140行](/C:/Works/info-hive-dev/.claude/worktrees/query-confidence/info-hive-wiki/skills/info-hive/SKILL.md:140)、[query-workflow.md 23行](/C:/Works/info-hive-dev/.claude/worktrees/query-confidence/info-hive-wiki/skills/info-hive/references/query-workflow.md:23)、wiki_mcp_server.py 261〜275行。
+
+3. **軽微：検索語変更による再検索に停止条件がない。影響は推測。**
+
+   wikiにない話題に対して、検索語Aで0件、同義語Bで0件、関連語Cで0件、と繰り返しても、現在の指示には違反しない。回数、時間、新しい候補が得られない場合の終了条件は定められていない。
+
+   「探し直すのはよい」は反復を強制しないため、無限ループになるとは断定しない。Sonnetで過剰な反復が発生するかも未検証である。
+
+   根拠：[commands/query.md 18行](/C:/Works/info-hive-dev/.claude/worktrees/query-confidence/info-hive-wiki/commands/query.md:18)。query-workflow.mdの19・47行は読むページやリンクを抑える規則で、検索回数の制限ではない。
+
+4. **軽微：`--backlinks` が「順位を付けて返す」という説明は実装と合わない。**
+
+   実装は被リンク元を収集順に列挙し、関連度やリンク数で順位付けしていない。出力にもスコアはない。上から読むページを選ぶ場合、先頭ほど関連が深いという前提は置けない。
+
+   根拠：[query-workflow.md 59行](/C:/Works/info-hive-dev/.claude/worktrees/query-confidence/info-hive-wiki/skills/info-hive/references/query-workflow.md:59)、[wiki_search.py 1084行](/C:/Works/info-hive-dev/.claude/worktrees/query-confidence/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:1084)。この誤説明は旧版にもあり、今回新設された機能不良ではない。
+
+## 検証した事実
+
+- **一致：** HEADは `b493f83`。対象3ファイルの変更で、検索コードは変更していない。
+- **一致：** warningの3種類は実装に存在する。モデル準備中・利用不能では埋め込みモデルを渡さず、索引埋め込み中では意味検索の対象が一部になる。
+- **一致：** `"" --wiki <root> --backlinks <slug>` は引数定義と分岐に合う。実際に既存wikiで実行し、終了コード0、被リンク元2件、stderr空を確認した。
+- **一致：** `${CLAUDE_PLUGIN_ROOT}/skills/info-hive/references/decision-models.md` に対応するファイルは存在する。
+- **一致：** docs/commands.md、docs/workflows.mdの検索・被リンク・confidence・保存の説明に、今回新たな重大な衝突は見つからなかった。
+- **未検証：** Sonnet 5.5が新しい指示に従う割合、再検索の回数、読むページ数の変化。ファイルは変更していない。
+
+## 崩せなかった点
+
+- 「知っている質問でもwikiを確かめる」は、候補ページの確認で満たせる。全ページの読了や、候補が見つかった場合の追加検索までは要求していない。
+- インデックスを先に読み、候補を厳選する設計との直接の衝突。
+- 内容なしの場合にconfidenceを付けない制約と、低confidenceの回答の保存を提案しない制約。
+- warningの追加説明によってconfidenceの上限を迂回する経路。
+- 被リンク検索への変更によって、wiki本文を承認なしに書き換える経路。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 09:15:47] 完了。session 01a1e179-4857-7133-8558-abc51cf010b9  usage {"input_tokens": 5283230, "cached_input_tokens": 5038976, "cache_write_input_tokens": 0, "output_tokens": 33767, "reasoning_output_tokens": 16166}
