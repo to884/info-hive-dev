@@ -654,6 +654,23 @@ class ReviewRegressionTests(Base):
         self.assertEqual(lists["review:fixed"]["count"], 0)
         self.assertEqual(lists["review:stale"]["count"], 0)
 
+    def test_continuous_searches_do_not_starve_the_rebuild(self):
+        """検索が途切れなく来ても、作り直しのジョブに順番が回る（受け付けた確認を、いつか反映する）。"""
+        from rag_worker import SEARCH_STREAK_LIMIT, next_work
+        jobs, _ = self.ingest_job(self.engine())
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "accept")])
+        streak, kinds = 0, []
+        for _ in range(SEARCH_STREAK_LIMIT * 3):
+            jobs.request_search(self.config, str(self.wiki), "本文", 3)  # 検索の待ち行列を空にしない
+            kind, item, streak = next_work(jobs, "試験", streak)
+            kinds.append(kind)
+            if kind == "search":
+                jobs.finish_search(item["id"], result={"results": []})
+            if kind == "job":
+                break
+        self.assertIn("job", kinds)
+        self.assertLessEqual(kinds.index("job"), SEARCH_STREAK_LIMIT)
+
     def test_rebuild_runs_with_the_current_settings(self):
         """作り直しのジョブは、登録したときの設定ではなく、今の設定で動く。"""
         from rag_worker import engine_config

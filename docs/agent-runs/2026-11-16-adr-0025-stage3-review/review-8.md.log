@@ -1,0 +1,60 @@
+[ask-codex 14:14:43] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr0025-stage2）
+## 判定
+
+**却下。確信度：高。** 検索要求が途切れないと、受理済みの確認が取消し・失敗なしで永久に反映されない経路がある。指定された性質 1 を破る。
+
+## 致命的・重大な欠陥
+
+### 【重大】検索の継続負荷によって、作り直しジョブが実行されない
+
+**再現手順**
+
+1. PDF を取り込み、公開した確認版を 0 にする。
+2. 修正を確認版 1 として受理し、作り直しジョブ J を登録する。
+3. 同じ `data_dir` を使う複数の接続から、検索の待ち行列が空にならないよう要求を続ける。各検索は正常終了する。
+4. ワーカーは検索処理後の `continue` を繰り返し、`jobs.claim(owner)` に到達しない。
+
+実際の `rag_worker.run`、`Jobs`、メモリー上の SQLite を使い、検索完了ごとに次の要求を登録した結果：
+
+```text
+完了した検索数             1000
+取り込み・作り直しの claim   0 回
+J の状態                   queued
+台帳の確認版               1
+公開した確認版             0
+検索本文                   修正前
+```
+
+取消しも失敗も方針変更も発生していない。検索要求が続く限り、同じ分岐を繰り返して確認を反映できない。1,000 件以降も進まないことは、ループの制御構造から導ける。
+
+**根拠：**
+
+- [rag_worker.py:143](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_worker.py:143)：検索を先に取得し、処理後の 150 行で無条件に `continue` する。
+- [rag_worker.py:151](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_worker.py:151)：作り直しの取得は、検索要求がなかった場合にしか実行されない。
+
+## 崩れる前提
+
+- **検索の待ち行列はいずれ空になる。** 複数接続から検索要求を継続すると成立しない。ワーカーが動作し続けていても、作り直しには実行機会がない。
+- **登録漏れの回収は起動後も定期的に実行される。** [rag_worker.py:153](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_worker.py:153) の回収処理も、検索要求と取得可能なジョブがない分岐に限定される。
+
+## 見落としと軽微な問題
+
+契約試験の [run_queued](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/tests/contract/test_rag_review.py:110) は、`jobs.claim` を直接呼ぶ。実際のワーカーの検索優先分岐を通らず、今回の実行機会の欠落を検出しない。
+
+## 検証した事実
+
+- 試験数 35・12・33・4・27 は、AST による集計と**一致**した。
+- 空の例外メッセージを失敗として保存し、明示的に再試行できる修正は、実行結果と**一致**した。
+- 取消し後の遅れた完了、旧 owner の更新拒否、`rerun` 後の取消しを、実際の `Jobs` で確認した。
+- 登録前の停止からの自動回収、公開前後の停止、完了直前の追加確認、方針変更後の取り込み直し、0 行の公開をメモリー上で確認した。
+- 検証環境は Python 3.14.6。ファイル・索引表・ロック・PDF・埋め込みは代替した。Python 3.12、実 LanceDB、実 OCR を含む既存試験一式の成功は**確かめられず**。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 性質 2：取消し済み・失敗済みジョブを、同じ確認版の再登録や遅れた完了で復活させる反例。
+- 性質 3：公開前の行や、後始末前の旧 generation の行を検索結果へ混入させる反例。
+- 性質 1 のうち、実行機会がある場合の停止・再開・追加確認による取りこぼし。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 14:31:59] 完了。session 01a1e2c7-7095-7042-8fc4-4e8c4e575982  usage {"input_tokens": 3189951, "cached_input_tokens": 3057024, "cache_write_input_tokens": 0, "output_tokens": 26110, "reasoning_output_tokens": 12418}
