@@ -1,0 +1,296 @@
+[
+ {
+  "qid": "Q09",
+  "rep": "1",
+  "label": null,
+  "fixed_format": false,
+  "opened_query_confidence": false,
+  "cost": 0.2328,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "ToolSearch",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Grep",
+   "mcp__plugin_wiki_wiki__query"
+  ],
+  "result": "この wiki には、CQRS の略語の意味も設計の考え方も書かれたページがありません。そのため、質問には答えられません。\n\n**探したこと**\n- インデックス（`wiki/index.md`）に「CQRS」はありませんでした。\n- MCP の `query` で「CQRS」を含む質問文のまま検索しました。言い換えた語でも探しましたが、CQRS の意味を述べたページはありませんでした。\n- 「CQRS」が出てくるのは、[[rawの段を任せるエージェントの確かめ-2026-11-14]] だけです。このページは、取り込みの実地の確かめで試したページの名前として CQRS を挙げているだけで、概念の説明はありません。\n- 検索には「索引を埋め込んでいる途中なので、意味の検索は一部のセクションだけが対象」という警告が出ました。語彙検索は wiki 全体を対象にしているので、結果は使えますが、意味の検索は一部しか使えていません。\n\n**取り込むとよいソース**\n- CQRS を説明した記事、または CQRS の解説ページです。`/wiki:ingest` で取り込めば、略語の意味と設計の考え方を wiki から答えられるようになります。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query、wiki:info-hive"
+ },
+ {
+  "qid": "Q09",
+  "rep": "2",
+  "label": null,
+  "fixed_format": false,
+  "opened_query_confidence": false,
+  "cost": 0.2217,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "ToolSearch",
+   "mcp__plugin_wiki_wiki__query",
+   "mcp__plugin_wiki_wiki__query"
+  ],
+  "result": "wiki に、CQRS の略語の意味や設計の考え方を述べたページはありません。\n\nwiki で「CQRS」を検索し、質問文をそのまま使った検索もしましたが、見つかったのは次の 2 件だけです。どちらも CQRS を取り込みの試験に使った記録で、CQRS 自体は説明していません。\n- [[ingestのモデルの比較-2026-11-13]]: CQRS の記事を /wiki:ingest の試験用ページにして、モデルごとの訳の点数と時間を比べた記録です。\n- [[rawの段を任せるエージェントの確かめ-2026-11-14]]: 同じく CQRS の記事を取り込みの確かめに使い、処理時間を並べた記録です。\n\nwiki の外の知識で答えを補うことはしません。\n\n足りない部分を補うなら、「CQRS を説明した記事」や「CQRS の設計を扱った公式の資料」を `/wiki:ingest` で取り込むのがよいです。\n\n使ったツールは次のとおりです。\n- 使用した MCP サーバー: wiki（`query`）\n- 使用した Agent Skills: wiki:query（`/wiki:query` のコマンド）"
+ },
+ {
+  "qid": "Q09",
+  "rep": "3",
+  "label": null,
+  "fixed_format": false,
+  "opened_query_confidence": false,
+  "cost": 0.1119,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Grep",
+   "Grep"
+  ],
+  "result": "wiki には、CQRS が何の略か、どんな設計の考え方かを述べたページはありません。\n\nwiki で「CQRS」を検索し、言い換えた語でも探しました。ヒットしたのは、取り込みの試験で「CQRS の記事」を題材に使った所要時間や点数の記録だけです。[[ingestのモデルの比較-2026-11-13]]、[[rawの段を任せるエージェントの確かめ-2026-11-14]]、[[rawの段の取り直しとW8の出力のリリース-wiki-0.18.1]] がそれにあたります。これらは CQRS の中身には触れていません。\n\n質問の「何の略か」と「どんな設計の考え方か」は、どちらも wiki では扱っていません。そのため、wiki の外の知識で答えを補うことはしません。\n\n**取り込むとよいソース**\n- CQRS を説明した記事や解説ページ。たとえば、試験で使った CQRS の記事を `/wiki:ingest` で取り込めば、略語の意味と設計の考え方が wiki に入ります。\n- 取り込んだあとに同じ質問をすれば、出典つきで答えられます。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q10",
+  "rep": "1",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "cost": 0.3104,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "ToolSearch",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Read",
+   "Read",
+   "Grep",
+   "Grep"
+  ],
+  "result": "**確からしさ（confidence）: 中**\n\n## 回答\n\n**1. pdfminer の本文の並びがプロセスごとに揺れる原因**（確からしさ: 中）\n\n- **原因:** `pdfminer.layout.LTLayoutContainer.group_textboxes` は、テキストボックスの組を距離の近い順にヒープからまとめます。ヒープの要素は `(skip_isany, dist, id(obj1), id(obj2), obj1, obj2)` です。距離が同じ組の順は `id(obj)`、つまりメモリーの番地で決まります。番地はプロセスごとに変わるので、行の並びが変わります（[[pdfminerの本文の並びの揺れ]]）。\n- **観測:** pdfminer.six 20260107 で、令和 7 年版防衛白書（546 ページ）を 3 つのプロセスで取り出すと、5 ページ（8、229、247、263、351）で本文が違いました。文字の数も行の集まりも同じで、行の並びだけが違いました。同じプロセスの中でも、ページごとの受け取りと文書全体の取り出しで違いました。\n- **確かめ方:** ソースを読んで原因を突き止め、`id()` を「テキストボックスを初めて見た順の番号」に置きかえて、3 つのプロセスで 546 ページの本文がすべて同じになったことで確かめています。製品の関数は `_stable_group_textboxes` です。\n- **注意:** 確かめたのは 1 つの PDF と 1 つの版だけです。pdfminer の版を上げたら、直しがまだ効くかを確かめる必要があります。\n\n**2. PyMuPDF でも同じ揺れが起きるか**（確からしさ: 付けない）\n\nwiki には PyMuPDF についての記述がなく、この問いには答えられません。wiki で「PyMuPDF」を検索し、言い換えた語でも探しましたが、該当するページはありませんでした。pdfminer の原因は `group_textboxes` の実装に固有の話なので、ほかのライブラリに同じことが起きるかは、wiki の記述からは言えません。外の知識で補うこともしません。\n\n## 確からしさの理由と上げる方法\n\n- **理由:** 原因の記述は、コンセプトページ [[pdfminerの本文の並びの揺れ]] にだけ書かれています。`sources` に挙がっている [[adr-0025の承認の条件の測定-2026-11-15]] を読みましたが、揺れが起きたことは書かれている一方で、`id()` が原因だという主張は見当たりませんでした。このため前提の出発点は「中」です。結論は、このページの記述をそのまま述べたものです。\n- **上げる方法:** 次のどちらかで、ソース側の記述を確かめられれば「高」になります。\n  - raw ソースを読んで、原因の記述（`id()` による順序）を確かめます。ご承認をいただければ、この場で読みます。\n  - ADR-0025 の測定の記録に原因の説明があれば、ソースの要約ページに反映します。これは wiki の書き換えになるので、提案にとどめます。\n- **PyMuPDF の部分:** PyMuPDF の抽出順の決定性を調べた資料（たとえば PyMuPDF の公式ドキュメントや、pdfminer と PyMuPDF を比べた測定の記録）を `/wiki:ingest` で取り込むと、答えられるようになります。\n- **探し方:** 候補はインデックスから直接見つけました。検索は埋め込みの途中（意味の検索は一部のセクションだけが対象）でしたが、確からしさの上限には数えていません。\n\n回答の保存は提案しません。新しいつながりを見いだす回答ではなく、既存のページの内容を述べたものだからです。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query、wiki:info-hive（`query-confidence.md` の規則を読んだ）"
+ },
+ {
+  "qid": "Q10",
+  "rep": "2",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "cost": 0.2674,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "Glob",
+   "Glob",
+   "ToolSearch",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "mcp__plugin_wiki_wiki__query",
+   "Read",
+   "Read",
+   "Grep",
+   "Grep",
+   "Grep"
+  ],
+  "result": "pdfminer の揺れの原因は wiki にあります。PyMuPDF で同じ揺れが起きるかは、wiki に書かれていません。\n\n## pdfminer の原因\n\npdfminer.six（20260107 で確かめた版）は、`LAParams` のレイアウト解析を使うと、同じ PDF と同じ設定でも、プロセスによって違う本文を返すことがあります。揺れるのは行の並びだけで、文字数と行の集まりは同じです。\n\n`pdfminer.layout.LTLayoutContainer.group_textboxes` が、テキストボックスの組を距離の近い順にヒープからまとめます。ヒープの要素は `(skip_isany, dist, id(obj1), id(obj2), obj1, obj2)` です。距離が同じ組の順を `id(obj)`（メモリーの番地）が決めるので、番地がプロセスごとに変わると並びも変わります。\n\n- **原因の確かめ方:** ページには、ソースを読んで突き止め、直しで揺れが消えたことで確かめたと書かれています。\n- **直した結果:** 距離が同じ組の順を、テキストボックスを初めて見た順の番号に替えると、3 つのプロセスで 546 ページの本文がすべて一致しました。\n- **取り出しの速さ:** 直しても遅くなりませんでした。直した版は平均 0.267 秒/ページ、直さない版は 0.278 秒です。\n- **製品の対応:** `wiki_pdf_layer.py` と `rag_pdf_layer.py` の `_stable_group_textboxes` が、決まった順にします。\n\n出典は [[pdfminerの本文の並びの揺れ]] と [[adr-0025の承認の条件の測定-2026-11-15]] です。\n\n## PyMuPDF で同じ揺れが起きるか\n\nwiki には、PyMuPDF の本文の並びを扱ったページがありません。質問文にある語「PyMuPDF」で検索し、言い換えた語でも探しましたが、ヒットしたのは pdfminer のページと関係の薄いページでした。そのため、起きるとも起きないとも答えません。補うには、PyMuPDF の公式ドキュメントか、PyMuPDF で同じ PDF を複数のプロセスから取り出して比べた測定の記録を `/wiki:ingest` で取り込むのがよいです。\n\n**確からしさ（confidence）: 中**\n\nこの確からしさは pdfminer の部分だけに付けます。PyMuPDF の部分は wiki が扱っていないので付けません。\n\n- 理由: 原因の記述（`id(obj)` で順が決まること）は [[pdfminerの本文の並びの揺れ]] にだけ書かれています。このページの `sources` が挙げる [[adr-0025の承認の条件の測定-2026-11-15]] を読みましたが、揺れが起きたことしか書かれておらず、原因の記述は見当たりませんでした。そのため、前提の出発点は「中」です。\n- 上げる方法: ソースの要約ページが指す測定の原本（`docs/research/adr-0025-measurement-2026-11-15/`）を読んで確かめることを提案します。読んで原因の記述を確かめられれば、「高」になります。読むだけで wiki は変わりません。承認をいただければ読みます。\n\n## 保存の提案\n\n今回の回答は既存のページの要約なので、`synthesis/` への保存は提案しません。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q10",
+  "rep": "3",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "cost": 0.1918,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "ToolSearch",
+   "Read",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Read",
+   "Grep",
+   "Grep"
+  ],
+  "result": "pdfminer の揺れの原因は wiki に書かれています。PyMuPDF で同じ揺れが起きるかは、wiki に書かれていません。\n\n## 1. pdfminer の本文の並びが揺れる原因\n\npdfminer.six（20260107 で確かめた版）は、`LAParams` のレイアウト解析を使うと、同じ PDF と同じ設定でも、プロセスによって違う本文を返すことがあります。原因は次のとおりです（[[pdfminerの本文の並びの揺れ]]）。\n\n- `pdfminer.layout.LTLayoutContainer.group_textboxes` は、テキストボックスの組を距離の近い順にヒープからまとめます。\n- ヒープの要素は `(skip_isany, dist, id(obj1), id(obj2), obj1, obj2)` です。\n- 距離が同じ組の順は `id(obj)`、つまりメモリーの番地で決まります。番地はプロセスごとに変わるので、行の並びが変わります。\n\n観測した内容は次のとおりです（[[adr-0025の承認の条件の測定-2026-11-15]]）。\n\n- 令和 7 年版防衛白書（546 ページ）を 3 つのプロセスで取り出したところ、5 ページ（8、229、247、263、351）で違いが出ました。\n- 違ったページでも、文字の数と行の集まりは同じで、行の並びだけが違いました。\n- 同じプロセスの中でも、ページごとの受け取りと文書全体の取り出しで違いが出ました。\n\n直し方は、距離が同じ組の順を、テキストボックスを初めて見た順の番号で決めることです。この直しで 3 つのプロセスの 546 ページがすべて同じ本文になり、4 つ目のプロセスでも一致しました。製品では wiki の `wiki_pdf_layer.py` と rag の `rag_pdf_layer.py` の `_stable_group_textboxes` が担っています。\n\n## 2. PyMuPDF でも同じ揺れが起きるか\n\nwiki には、PyMuPDF についての記述がありません。「PyMuPDF」で検索し、言い換えた語でも探しましたが、PyMuPDF の本文の並びを扱ったページはありませんでした。答えは wiki の外の知識で補っていません。\n\n取り込むとよいソースは、PyMuPDF の公式ドキュメントと、PyMuPDF で同じ PDF を複数のプロセスから取り出して本文を比べた測定の記録です。比べるには、[[adr-0025の承認の条件の測定-2026-11-15]] と同じ手順を使えます。\n\n## 保存について\n\n新しいつながりを見いだした回答ではないので、synthesis への保存は提案しません。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 結論（原因が `id()` による順の決め方であること）は、[[pdfminerの本文の並びの揺れ]] の記述をそのまま述べたものです。このページはコンセプトのページで、`sources` に [[adr-0025の承認の条件の測定-2026-11-15]] を挙げています。ただし、そのソースの要約ページには「プロセスによって違う本文を返した」という観測しかなく、`id()` が原因だという主張はありません。ほかに読んだ [[pdfの文字の層とリリース-wiki-0.21.0]] にも、原因の記述はありません。そのため出発点は「中」です。\n- 上げる方法: pdfminer.six の `group_textboxes` のソースを読んで原因を述べた記録か、公式の資料を `/wiki:ingest` で取り込み、[[pdfminerの本文の並びの揺れ]] の `sources` に結びます。あるいは、ソースの要約ページの raw（[[adr-0025の承認の条件の測定-2026-11-15]] の `raw` の原本）を読んで確かめる方法があります。承認いただければ、その場で読みます。\n- PyMuPDF の部分は wiki が扱っていないので、確からしさを付けていません。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query（`info-hive` のクエリのワークフロー）"
+ },
+ {
+  "qid": "Q11",
+  "rep": "1",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "cost": 0.273,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "ToolSearch",
+   "mcp__plugin_wiki_wiki__query",
+   "Read",
+   "Read",
+   "Grep",
+   "Read"
+  ],
+  "result": "**1. 依存を解決できなかったパッケージ: `onnxruntime`（`onnxruntime==1.31.1`）**\n\nwiki 0.19.4 を Python のない PC に入れると、MCP サーバーが起動しませんでした。スクリプトの宣言は `requires-python = \">=3.12\"` で、上限がありませんでした。uv 0.13.8 は、使える Python がないと、宣言に合う中でいちばん新しい CPython 3.15 を取ります。MCP サーバーの依存の `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存を解決できませんでした。0.19.5 は、宣言を `\">=3.12,<3.15\"` にそろえて直しています。出典は [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] です。\n\n**2. uv が書かれているプログラミング言語: wiki には書かれていません**\n\nwiki には、uv の実装言語を述べたページがありません。質問文の語（「uv」「プログラミング言語」）で検索し、インデックスも確認しました。言い換えた語でも探しましたが、見つかりませんでした。wiki は uv の版による挙動の違いは記録していますが、実装言語は記録していません。この部分は wiki の外の知識で補っていません。\n\n取り込むとよいソースは、uv の公式ドキュメントか、uv のリポジトリの README です。\n\n**確からしさ（confidence）: 高**（「1. 依存を解決できなかったパッケージ」の部分のみ。2 は wiki が扱っていないので付けません）\n\n- 理由: 結論は [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] の「不具合」の節を、そのまま述べたものです。このページはソースの要約ページなので、出発点は「高」です。上限に当たる事情はありません。検索は MCP の `query` でセクション単位でした。結果に「索引を埋め込んでいる途中」の警告がありましたが、候補のページはインデックスから直接見つけたので、検索の縮退は上限に数えません。\n\n使用した MCP サーバー: wiki（`mcp__plugin_wiki_wiki__query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q11",
+  "rep": "2",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "cost": 0.2385,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Read",
+   "Read",
+   "ToolSearch",
+   "mcp__plugin_wiki_wiki__query"
+  ],
+  "result": "質問の前半は wiki に答えがあります。後半（uv が何のプログラミング言語で書かれているか）は wiki に書かれていません。\n\n**前半: 依存を解決できなかったパッケージ**\n\n`onnxruntime==1.31.1` です。MCP サーバーの依存で、CPython 3.15 の wheel がありませんでした。\n\n- Python の入っていない PC に wiki 0.19.4 を入れると、MCP サーバーが起動しませんでした。\n- スクリプトの宣言は `requires-python = \">=3.12\"` で、上限がありませんでした。そのため uv 0.13.8 は、使える Python がないときに宣言に合う中でいちばん新しい CPython 3.15 を取りました。\n- 3.15 には `onnxruntime==1.31.1` の wheel がなく、依存を解決できませんでした。\n- 0.19.5 で宣言を `\">=3.12,<3.15\"` にそろえて直しています。\n\n出典: [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]（「不具合」「直し方」の節）\n\n**後半: uv の実装言語**\n\nwiki には、uv がどの言語で書かれているかの記述がありません。uv の版、出力の形、`UV_SYSTEM_CERTS` の扱いを述べたページ（[[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]、[[古いuvのUV_SYSTEM_CERTSの直しとリリース-wiki-0.19.4]]）はあります。実装言語を述べたページはありませんでした。\n\n質問文の語（「uv」「プログラミング言語」）で検索しましたが、該当するページは見つかりませんでした。wiki の外の知識で埋めることはしません。\n\n補うなら、「uv の公式ドキュメント」か「uv のリポジトリの README」を `/wiki:ingest` で取り込んでください。\n\n**確からしさ（confidence）: 高**（前半の回答のみ。後半は wiki が扱っていないので付けません）\n\n- 理由: 結論は、ソースの要約ページ [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] の記述をそのまま述べたものです。これは出発点が「高」の前提です。表の上限に当てはまる事情はなく、検索の `mode` は `hybrid`、`index.state` は `ready` でした。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query（`info-hive` のクエリ手順）"
+ },
+ {
+  "qid": "Q11",
+  "rep": "3",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "cost": 0.2078,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Read",
+   "Read",
+   "Grep",
+   "Grep"
+  ],
+  "result": "wiki から、1 つ目の問いに答えるページは見つかりました。2 つ目の問い（uv の実装言語）の記述は、まだ見つかっていません。\n\n**1 つ目の答え:** 依存を解決できなかったのは `onnxruntime`（`onnxruntime==1.31.1`）です。MCP サーバーの依存で、Python 3.15 の wheel がありませんでした。Python の入っていない PC で uv 0.13.8 が、宣言に合う中でいちばん新しい CPython 3.15 を取ったためです（[[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]）。\n\n**2 つ目の問い（uv の実装言語）:** wiki には、uv が何のプログラミング言語で書かれているかを述べたページがありません。この部分は答えません。wiki で質問文にある語（「uv」「プログラミング言語」）を検索し、言い換えた語でも探しましたが、該当する記述はありませんでした。取り込むとよいソースは、uv の公式ドキュメントか uv のリポジトリの README です。\n\n**確からしさ（confidence）: 高**\n\n- 理由: 1 つ目の結論は、ソースの要約ページ [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] の記述をそのまま述べたものです。このページは `sources/` の要約ページなので、出発点は「高」です。上限に当たる事項はありません。インデックスから候補のページを直接見つけたので、検索の縮退も数えません。確からしさを付けたのは答えた 1 つ目の問いだけで、2 つ目の問いには付けていません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q12",
+  "rep": "1",
+  "label": null,
+  "fixed_format": false,
+  "opened_query_confidence": false,
+  "cost": 0.2411,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "ToolSearch",
+   "mcp__plugin_wiki_wiki__query",
+   "mcp__plugin_wiki_wiki__query"
+  ],
+  "result": "この wiki に、OAuth の PKCE についての内容はありません。\n\n- 検索の経過: 質問文の「OAuth の PKCE」で wiki を検索し、語を変えて「PKCE」だけでも探しました。ヒットしたのは、browse のスコープ表示、伏せた判定の経験、Office の COM の書き出しなどのページでした。どれも質問と関係がなく、意味の検索で偶然近く見えた結果です。インデックスにも、OAuth や認証に関する項目はありません。\n- 検索の限界: 意味の検索は、索引を埋め込んでいる途中でした（424 セクション中 384 が済み）。語彙検索は wiki 全体を対象にしているので、結論は変わらないと見ています。\n- 回答の扱い: この wiki にない内容なので、wiki の外の知識で答えは添えません。\n\n**取り込むとよいソース**\n- OAuth の PKCE を定めた仕様書（RFC）\n- OAuth の PKCE を説明した公式ドキュメントや解説記事\n\n取り込むには `/wiki:ingest` を使ってください。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q12",
+  "rep": "2",
+  "label": null,
+  "fixed_format": false,
+  "opened_query_confidence": false,
+  "cost": 0.1728,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "ToolSearch",
+   "mcp__plugin_wiki_wiki__query",
+   "mcp__plugin_wiki_wiki__query"
+  ],
+  "result": "この wiki には、PKCE や OAuth の認可フローを扱ったページがありません。質問文の語「PKCE」で検索し、言い換えた語でも探しました。ヒットしたのは、OAuth とは無関係なページ（テストの判定、改行コード、Office の COM など）だけで、PKCE の意味や、防ぐ攻撃に触れたものはありませんでした。索引の一覧にも、該当しそうな項目はありません。\n\nwiki の外の知識で答えは添えません。\n\n**取り込むとよいソース**\n- OAuth の PKCE を説明した仕様書（RFC）\n- OAuth の PKCE を説明した公式ドキュメントか技術記事\n\n取り込みは `/wiki:ingest` で行えます。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q12",
+  "rep": "3",
+  "label": null,
+  "fixed_format": false,
+  "opened_query_confidence": false,
+  "cost": 0.109,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "ToolSearch",
+   "mcp__plugin_wiki_wiki__query",
+   "mcp__plugin_wiki_wiki__query"
+  ],
+  "result": "この wiki には、OAuth の PKCE についての記載がありません。\n\n質問文の語で「OAuth」「PKCE」を検索しました。言い換えた語でも探しました。しかし、返ってきたのは関係のないページ（埋め込みの類似だけで拾われた、browse のリリースの記録や Windows の落とし穴の経験）だけで、PKCE の略称や防ぐ攻撃を述べたページはありませんでした。インデックスにも該当する項目はありません。\n\nwiki の外の知識で答えを補うことはしません。\n\n**取り込むとよいソースの提案**\n- OAuth の PKCE を定めた仕様（RFC）\n- PKCE を説明した記事や公式ドキュメント\n\n取り込むには `/wiki:ingest` を使います。\n\n使用した MCP サーバー: wiki（`mcp__plugin_wiki_wiki__query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q13",
+  "rep": "1",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "cost": 0.2987,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "ToolSearch",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "mcp__plugin_wiki_wiki__query",
+   "Grep",
+   "Read",
+   "Grep"
+  ],
+  "result": "sqlite-vec の版は 0.1.9 です。作者は wiki に書かれていないので、答えられません。\n\n**1. CI と同じ版にそろえる sqlite-vec の版**\n\n`info-hive-wiki` のスクリプトを変えたときは、CI の手順を手元でも流します。そのときの依存は CI と同じ版にそろえます。wiki に書かれた形は次のとおりです。\n\n`uv run --python 3.12 --with PyYAML==6.0.3 --with fastembed==0.8.0 --with sqlite-vec==0.1.9`\n\nsqlite-vec は **0.1.9** です（[[グラフのlintの期待値]]）。\n\n**2. sqlite-vec を作ったのは誰か**\n\nwiki には、sqlite-vec の作者や開発元を述べたページがありません。検索語は質問文の語で探し、言い換えた語でも探しましたが、見つかりませんでした。wiki で sqlite-vec に触れているのは、次の 3 点です。\n- 検索のバックエンドとして FastEmbed と並べて挙げる記述\n- 埋め込みの依存の一つとして挙げる記述\n- 上の版の指定\n\nこの部分には答えず、確からしさも付けません。取り込むとよいソースは、sqlite-vec の公式ドキュメントか、リポジトリの README です。\n\n**確からしさ（confidence）: 中**（版の質問への回答について）\n\n- 理由: 結論は [[グラフのlintの期待値]] の記述をそのまま述べたものです。このページはコンセプトのページで、`sources` に [[グラフの抽出の修正-0.9.2]] を挙げています。その要約ページを読みましたが、`sqlite-vec` の版や `--with` の指定は書かれていませんでした。そのため前提の出発点は「中」です。\n- 上げる方法:\n  - 0.9.2 の raw ソースを読んで、版の記述を確かめます。承認いただければ、その場で読みます。\n  - 版を決めている `info-hive-wiki/.github/workflows/wiki-tests.yml` を、wiki の取り込みの手順で `/wiki:ingest` し、[[グラフのlintの期待値]] の `sources` に結びます。ソースの要約ページで同じ記述を確かめられれば「高」になります。\n- 作者の質問は答えていないので、確からしさの対象に入れていません。\n\nシンセシスとして保存する提案は、確からしさが「中」で、答えた範囲も 1 点だけなので見送ります。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q13",
+  "rep": "2",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "cost": 0.2487,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Grep",
+   "Grep",
+   "Grep",
+   "Grep"
+  ],
+  "result": "sqlite-vec の版は wiki に書いてあり、`0.1.9` です。作者は wiki に書かれていないので、答えられません。\n\n**版**: `info-hive-wiki` のスクリプトを変えたときは、CI と同じ版の依存で手元の試験を流します。その依存は `uv run --python 3.12 --with PyYAML==6.0.3 --with fastembed==0.8.0 --with sqlite-vec==0.1.9` です。つまり sqlite-vec は `0.1.9` にそろえます（出典: [[グラフのlintの期待値]]）。\n\n**作者**: wiki で「sqlite-vec」を検索し、言い換えた語でも探しました。sqlite-vec は、検索のバックエンドとして使う依存として出てくるだけです（[[typeとupdatedの配列の扱いの修正-wiki-0.14.1]]、`SCHEMA.md`）。作った人や組織を述べたページはありません。この部分には、wiki の外の知識で補った答えを添えません。取り込むなら、sqlite-vec の公式リポジトリの README か公式ドキュメントが適しています。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 版の前提は [[グラフのlintの期待値]] の記述をそのまま述べたものです。このコンセプトのページの `sources` は [[グラフの抽出の修正-0.9.2]] ですが、そのソースの要約ページを読んでも、sqlite-vec の版の記述は見つかりませんでした。出発点は「中」のままです。作者の問いには答えていないので、確からしさを付けません。\n- 上げる方法（版）: [[グラフの抽出の修正-0.9.2]] の raw ソースを読み、sqlite-vec の版の記述を確かめます。承認いただければ、その場で読みます。または、`info-hive-wiki/.github/workflows/wiki-tests.yml` を取り込み、`--with` の版を要約ページに残します。取り込むと、次回から「高」で答えられます。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q13",
+  "rep": "3",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "cost": 0.1929,
+  "subtype": "success",
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Grep",
+   "Grep"
+  ],
+  "result": "**sqlite-vec の版: 0.1.9**\n\n[[グラフのlintの期待値]] に、`info-hive-wiki` のスクリプトを変えたときは CI と同じ版にそろえるよう書かれています。コマンドは `uv run --python 3.12 --with PyYAML==6.0.3 --with fastembed==0.8.0 --with sqlite-vec==0.1.9` です。\n\n**sqlite-vec を作った人: wiki には書かれていません。**\n- 「sqlite-vec を作った人」と、言い換えた語でも探しましたが、作者を述べたページはありませんでした。ここは外の知識では埋めません。\n- 取り込むとよいのは、sqlite-vec の公式リポジトリの README か公式ドキュメントです。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 結論（0.1.9）は [[グラフのlintの期待値]] の記述をそのまま述べたものです。このページの `sources` は [[グラフの抽出の修正-0.9.2]] を挙げています。しかしその要約ページには sqlite-vec の記述がなく、確かめられませんでした。ほかに sqlite-vec の版を述べたページもありません。そのため、コンセプトページだけが根拠になり、出発点が「中」です。\n- 上げる方法: `info-hive-wiki/.github/workflows/wiki-tests.yml` を `/wiki:ingest` で取り込んで要約ページにし、[[グラフのlintの期待値]] の `sources` に結ぶ。要約ページで `sqlite-vec==0.1.9` を確かめられれば「高」になります。なお、この確からしさは版の部分だけに付けたものです。作者の部分は wiki が扱っていないので、確からしさを付けていません。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ }
+]

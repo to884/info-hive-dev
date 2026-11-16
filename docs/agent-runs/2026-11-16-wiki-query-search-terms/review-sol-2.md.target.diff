@@ -1,0 +1,616 @@
+diff --git a/docs/agent-runs/2026-11-16-wiki-query-search-terms/answers-0.21.1-q09-q11.txt b/docs/agent-runs/2026-11-16-wiki-query-search-terms/answers-0.21.1-q09-q11.txt
+new file mode 100644
+index 0000000..90ecbe3
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-wiki-query-search-terms/answers-0.21.1-q09-q11.txt
+@@ -0,0 +1,107 @@
++=== Q09 1 tools=['Bash', 'Grep', 'Read', 'Grep', 'ToolSearch', 'mcp__plugin_wiki_wiki__query']
++wiki に、CQRS の意味や設計の考え方を説明したページはありません。そのため、質問には答えられません。
++
++- `index.md` に CQRS のページはありませんでした。
++- `wiki/` 全体を CQRS で検索すると 3 ファイルに出ましたが、どれも取り込みの試験で使った例のページ名として出るだけでした。該当は [[ingestのモデルの比較-2026-11-13]]、[[rawの段を任せるエージェントの確かめ-2026-11-14]]、[[rawの段の取り直しとW8の出力のリリース-wiki-0.18.1]] です。
++- MCP の `query` でも検索しました（ハイブリッド検索で、0 件ではありませんでした）。上位の結果はどれも CQRS の内容とは関係のないページでした。
++
++wiki の外の知識で答えを補うことはしていません。
++
++提案: CQRS を説明する資料（たとえば取り込みの試験に使った CQRS の Web ページ）を `/wiki:ingest` で取り込んでください。そうすれば wiki から出典つきで答えられます。
++
++使用した MCP サーバー: wiki（`query`）
++使用した Agent Skills: wiki:query
++
++=== Q09 2 tools=['Bash', 'Read', 'Read', 'mcp__plugin_wiki_wiki__query', 'mcp__plugin_wiki_wiki__query']
++この wiki には、CQRS の略語の意味も設計の考え方も書かれていません。そのため、この質問には答えられません。
++
++**確認した範囲**
++- `index.md` に CQRS や関連する概念のページはありません。
++- MCP の `query` で「CQRS」と「コマンドとクエリの責務分離」を検索しました。
++- 「CQRS」という語は、取り込みのモデル比較の試験に使った記事名としてしか出てきません。見つかったのは [[ingestのモデルの比較-2026-11-13]] と [[rawの段を任せるエージェントの確かめ-2026-11-14]] です。どちらも、その記事を取り込むのにかかった時間や訳の点数を記録したページです。
++- 他のヒットは「コマンド」や「問い合わせ」という語に反応しただけで、CQRS とは関係ありません。
++
++wiki にない内容なので、私の知識で補った答えは添えません。確からしさ（confidence）も付けません。
++
++**足りない部分を補うには**
++- CQRS を説明した記事や書籍の章（Martin Fowler の CQRS の解説や Microsoft Learn の CQRS パターンなど）を `/wiki:ingest <URL か PDF>` で取り込むと、次回から wiki だけで答えられます。
++- 取り込み後は、`concept` ページとして「CQRS」を立てる形が自然です。
++
++使用した MCP サーバー: wiki（`query`）
++使用した Agent Skills: wiki:query
++
++=== Q09 3 tools=['Bash', 'ToolSearch', 'Read', 'Read', 'mcp__plugin_wiki_wiki__query', 'mcp__plugin_wiki_wiki__query']
++この wiki には、CQRS の略語の意味も設計の考え方も書かれていません。そのため、質問には答えられません。
++
++- インデックスに CQRS のページはありません。検索語を「CQRS とは何の略で、どんな設計の考え方か」と「Command Query Responsibility Segregation」の 2 通りにして検索しました。MCP の `query` で wiki 全体を引いたところ、定義や解説を含むセクションは見つかりませんでした。
++- CQRS が出てくるのは、`/wiki:ingest` の試験で使った題材としてだけです。取り込みの所要時間を比べる表に「CQRS 162 秒」のような行があります（[[rawの段を任せるエージェントの確かめ-2026-11-14]]）。表の中身は時間の記録で、CQRS の内容ではありません。
++- 上のとおり wiki に根拠がないので、モデルの知識で答えを足すことはしていません。確からしさ（confidence）も付けていません。
++
++**足りない部分を補う方法**
++- CQRS の解説記事（Martin Fowler の記事や Microsoft Learn の CQRS パターンなど）を `/wiki:ingest <URL>` で取り込む。取り込めば、次回から出典つきで答えられます。
++- 取り込み済みの raw があるなら、`raw/` の場所を教えてください。[[rawの段を任せるエージェントの確かめ-2026-11-14]] の試験で使った CQRS のページが、一時の wiki に残っている可能性はあります。
++
++使用した MCP サーバー: wiki（`query`）
++使用した Agent Skills: wiki:query
++
++=== Q11 1 tools=['Bash', 'Read', 'Read', 'Read', 'Read', 'Read', 'Grep', 'ToolSearch', 'mcp__plugin_wiki_wiki__query']
++**1つ目の問い:依存を解決できなかったパッケージは `onnxruntime`(`onnxruntime==1.31.1`)です。**
++
++Python の入っていない PC に wiki 0.19.4 を入れると、MCP サーバーが起動しませんでした。uv 0.13.8 は使える Python がないと、宣言に合う最新の CPython 3.15 を取ります。MCP サーバーの依存 `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存を解決できませんでした。0.19.5 で、宣言を `">=3.12,<3.15"` にそろえて直しています。出典は [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] です。
++
++**2つ目の問い:uv の実装言語は、wiki に記述がなく答えられません。**
++インデックスを読み、ハイブリッド検索を1回行い、「Rust」「で書かれ」「実装言語」の全文検索もしましたが、該当する記述はありませんでした。wiki の外の知識では補いません。wiki には uv の版ごとのエラー出力の違いは記録されていますが、実装言語は記録されていません。補うなら、uv の公式ドキュメントか GitHub リポジトリ(astral-sh/uv)の README を `/wiki:ingest` で取り込むとよいです。
++
++**確からしさ(confidence): 高**(1つ目の問いの結論のみ。2つ目の問いには確からしさを付けません)
++
++- 理由: 1つ目の結論は、ソースの要約ページ [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] の「不具合」節の記述をそのまま述べたものです。矛盾する記述や仮説の表記はなく、上限に当たる行もありません。
++
++保存の提案: 新しいつながりを見いだす回答ではないので、synthesis への保存は不要です。
++
++使用した MCP サーバー: wiki(`query`)
++使用した Agent Skills: wiki:query(wiki:info-hive のクエリ手順を含む)
++
++=== Q11 2 tools=['Read', 'Grep', 'Read', 'Read', 'Glob', 'Grep', 'Read', 'Grep']
++**質問 1: 依存を解決できなかったパッケージ**（確からしさ: 高）
++
++答えは `onnxruntime==1.31.1` です。MCP サーバーの依存の 1 つで、CPython 3.15 の wheel がありませんでした。
++
++- Python の入っていない PC に wiki 0.19.4 を入れると、MCP サーバーが起動しませんでした。0.19.5 はこれを直した版です。
++- uv で動くスクリプトの宣言は `requires-python = ">=3.12"` で、上限がありませんでした。
++- uv 0.13.8 は使える Python がないと、宣言に合う中でいちばん新しい CPython 3.15 を取ります。そのため依存を解決できませんでした。
++- 出典: [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]
++
++**質問 2: uv が何のプログラミング言語で書かれているか**
++
++wiki にはこの内容がなく、答えられません。インデックスと全文の検索（uv と言語名の組み合わせ）で、uv の実装言語に触れたページは見つかりませんでした。取り込むとよいのは、uv の公式ドキュメントか公式リポジトリの README です。`/wiki:ingest` で取り込めば、wiki から答えられます。
++
++**確からしさ（confidence）: 高**
++
++- 理由: 質問 1 の結論は、ソースの要約ページ [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] の記述をそのまま述べたものです。どの上限にも当たりません。確からしさは質問 1 の答えにだけ付けています。質問 2 は wiki が扱っていないので、付けていません。
++
++使用した MCP サーバー: なし
++使用した Agent Skills: wiki:query（`info-hive` のクエリの手順）
++
++=== Q11 3 tools=['Read', 'Read', 'Read', 'Read', 'Glob', 'Grep', 'Glob', 'Read', 'ToolSearch', 'mcp__plugin_wiki_wiki__query']
++**質問 1: 依存を解決できなかったパッケージ**
++
++`onnxruntime==1.31.1` です。これは MCP サーバーの依存の 1 つです。
++
++- Python の入っていない PC に wiki 0.19.4 を入れました。uv 0.13.8 は、使える Python がないと、宣言に合う中でいちばん新しい CPython 3.15 を取ります。
++- `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存を解決できませんでした。
++- 宣言は `requires-python = ">=3.12"` で、上限がありませんでした。直しは `">=3.12,<3.15"` です（wiki 0.19.5）。
++- 出典: [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]
++
++**質問 2: uv の実装言語**
++
++この部分は wiki に書かれていません。インデックスを読み、MCP の `query` でも検索しました。ヒットは uv の使い方や不具合の記録だけで、uv 自体を何の言語で書いたかを述べたページはありませんでした。そのため答えません。
++
++補うには、uv の公式 README や公式ドキュメントを `/wiki:ingest` で取り込んでください。
++
++**確からしさ（confidence）: 高**
++
++- 理由: 質問 1 の結論は、ソースの要約ページ [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] の記述を、そのまま述べたものです。当てはまる上限の行はありません。質問 2 は wiki が扱っていないので、確からしさは付けていません。
++
++使用した MCP サーバー: wiki（`query`）
++使用した Agent Skills: wiki:query
++
+diff --git a/docs/agent-runs/2026-11-16-wiki-query-search-terms/review-sol-1.md b/docs/agent-runs/2026-11-16-wiki-query-search-terms/review-sol-1.md
+new file mode 100644
+index 0000000..741699b
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-wiki-query-search-terms/review-sol-1.md
+@@ -0,0 +1,59 @@
++## 判定
++
++**条件付きで採用可。確信度: 高。** 規則本文は引用符を外した漏れも禁止しているが、照合スクリプトには明確な数え漏れと誤検出があり、測り直しの合否を単独では判定できない。取り込み候補名への混入には、今回の字句による制限が及んでいない。
++
++## 致命的・重大な欠陥
++
++1. **重大：照合スクリプトが、禁止された検索説明を見逃す。**
++
++   `outside_terms()` に次の反例を渡すと、すべて `[]` を返した。
++
++   | 回答の反例 | 見逃す原因 |
++   |---|---|
++   | `Rust でも検索しましたが、見つかりませんでした。` | 引用符がない |
++   | `「Rust」と照合しましたが、一致しませんでした。` | 「照合」が検索説明の判定対象にない |
++   | `「Rust」も調べましたが記述はありません。` | 「調べ」が判定対象にない |
++   | `検索語は次のとおりです。` の次の行に `- 「Rust」` | 改行をまたいで検索説明を認識しない |
++   | `` `Command_Query_Responsibility_Segregation` で検索しました。 `` | `_` を含むバッククォート内の文字列を一律除外する |
++
++   いずれも、新規則の「語を書かず」に反する説明である。したがって、検出が 0 回になっても、漏れが止まったとはいえない。
++
++   根拠：`docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/check_search_terms.py:17–23, 34–41`。禁止の根拠：`info-hive-wiki/commands/query.md:20`、`query-workflow.md:69`。
++
++2. **重大：正当な縮退報告を違反として数える。**
++
++   質問を「CQRS とは何の略か」、回答を次の文にすると、検出結果は `['埋め込みモデルを用意している途中']` になった。
++
++   > 意味の検索は使えず、warning は「埋め込みモデルを用意している途中」でした。
++
++   これは検索語の開示ではなく、要求されている `warning` の理由の報告である。スクリプトは同じ文に「検索」があるだけで、引用された警告文まで検索語として扱う。
++
++   根拠：`check_search_terms.py:34–42`。理由の報告を求める箇所：`info-hive-wiki/commands/query.md:18`、`query-confidence.md:61, 104`。**規則自体の矛盾ではなく、判定器の誤検出**である。
++
++## 崩れる前提
++
++- **「質問文にある語」を部分文字列比較で判定できるという前提。** 実際の Q13 に対して「『C』で検索しました」を渡すと検出されない。質問の `CI` や `sqlite-vec` に文字として存在するためであり、実装言語の候補として質問された語ではない。スクリプトは NFKC・大文字小文字の正規化後の部分文字列を比較している。根拠：`check_search_terms.py:26–27, 32, 41`、同調査ディレクトリの `questions.json` の Q13。結果は再現済み。
++
++- **答えを含む取り込み候補を、エージェントが「答え」と認識するという前提。** 例えば「wiki にはありません。取り込む候補は『Rust で書かれた uv』という資料です」とすれば、検索説明用の字句制限は適用されない。一般則の「外の知識で答えを添えない」で禁止する読みは可能だが、候補名も答えに当たるという意味判断が再び必要になる。根拠：`commands/query.md:20, 29`、`query-confidence.md:17, 88`。**Sonnet が実際にこの経路を使うかは推測であり、今回再現していない。**
++
++## 見落としと軽微な問題
++
++- **軽微：提示された回答抜粋に Q10 がない。** `answers-0.21.1-q09-q11.txt` は Q09 と Q11 の計 6 回だけで、`fitz` の漏れをこのファイルからは確認できない。ただし、別途 `runs-summary-0.21.1.json` の Q10-2 に該当文があり、主張そのものは一致した。
++
++- **軽微：CHANGELOG が、観測した挙動から内部判断まで断定している。** 「略語を展開した語、訳した語、ライブラリの別名を答えと見なさず」は原因の解釈である。回答から確認できるのは、その語を書いたことまでであり、分類を誤ったのか、分類したうえで規則に従わなかったのかは確かめられない。根拠：`info-hive-wiki/CHANGELOG.md:11`。
++
++## 検証した事実
++
++- **一致：** 現行スクリプトを 0.21.1 の要約に実行すると **4/33 回**。Q09-2、Q09-3、Q10-2、Q11-1 を検出した。
++- **一致：** Q01〜Q08 では検出が 0 回だった。ただし、上記の数え漏れがあるため、実際の漏れが皆無だった証明にはならない。
++- **一致：** 検索説明の新規則は、コマンド手順 4c、ワークフロー手順 5、`query-confidence.md:17` で整合している。`wiki.diff` にも対応する変更がある。
++- **確かめられず：** 新規則によって Sonnet の漏れが止まるという実行時の効果。今回行ったのは文面のレビューと検出器の反例検証であり、新規則での Sonnet の測定ではない。
++
++## 崩せなかった点
++
++- 引用符を外すだけの回避は、規則本文の「語を書かず」に反する。引用符の種類だけを制限した規則ではない。
++- ヒットした理由・しなかった理由も明示的に対象となっており、検索結果の説明へ移すだけでは回避できない。
++- 字句制限は「どう探したか」の説明に限定されている。wiki に裏づけられた答えや確からしさの理由に、質問文にない語を書くことまで禁止したとは読めなかった。
++
++使用した MCP サーバー: なし  
++使用した Agent Skills: なし
+diff --git a/docs/agent-runs/2026-11-16-wiki-query-search-terms/review-sol-1.md.log b/docs/agent-runs/2026-11-16-wiki-query-search-terms/review-sol-1.md.log
+new file mode 100644
+index 0000000..2446be2
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-wiki-query-search-terms/review-sol-1.md.log
+@@ -0,0 +1,61 @@
++[ask-codex 13:40:21] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\query-search-term）
++## 判定
++
++**条件付きで採用可。確信度: 高。** 規則本文は引用符を外した漏れも禁止しているが、照合スクリプトには明確な数え漏れと誤検出があり、測り直しの合否を単独では判定できない。取り込み候補名への混入には、今回の字句による制限が及んでいない。
++
++## 致命的・重大な欠陥
++
++1. **重大：照合スクリプトが、禁止された検索説明を見逃す。**
++
++   `outside_terms()` に次の反例を渡すと、すべて `[]` を返した。
++
++   | 回答の反例 | 見逃す原因 |
++   |---|---|
++   | `Rust でも検索しましたが、見つかりませんでした。` | 引用符がない |
++   | `「Rust」と照合しましたが、一致しませんでした。` | 「照合」が検索説明の判定対象にない |
++   | `「Rust」も調べましたが記述はありません。` | 「調べ」が判定対象にない |
++   | `検索語は次のとおりです。` の次の行に `- 「Rust」` | 改行をまたいで検索説明を認識しない |
++   | `` `Command_Query_Responsibility_Segregation` で検索しました。 `` | `_` を含むバッククォート内の文字列を一律除外する |
++
++   いずれも、新規則の「語を書かず」に反する説明である。したがって、検出が 0 回になっても、漏れが止まったとはいえない。
++
++   根拠：`docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/check_search_terms.py:17–23, 34–41`。禁止の根拠：`info-hive-wiki/commands/query.md:20`、`query-workflow.md:69`。
++
++2. **重大：正当な縮退報告を違反として数える。**
++
++   質問を「CQRS とは何の略か」、回答を次の文にすると、検出結果は `['埋め込みモデルを用意している途中']` になった。
++
++   > 意味の検索は使えず、warning は「埋め込みモデルを用意している途中」でした。
++
++   これは検索語の開示ではなく、要求されている `warning` の理由の報告である。スクリプトは同じ文に「検索」があるだけで、引用された警告文まで検索語として扱う。
++
++   根拠：`check_search_terms.py:34–42`。理由の報告を求める箇所：`info-hive-wiki/commands/query.md:18`、`query-confidence.md:61, 104`。**規則自体の矛盾ではなく、判定器の誤検出**である。
++
++## 崩れる前提
++
++- **「質問文にある語」を部分文字列比較で判定できるという前提。** 実際の Q13 に対して「『C』で検索しました」を渡すと検出されない。質問の `CI` や `sqlite-vec` に文字として存在するためであり、実装言語の候補として質問された語ではない。スクリプトは NFKC・大文字小文字の正規化後の部分文字列を比較している。根拠：`check_search_terms.py:26–27, 32, 41`、同調査ディレクトリの `questions.json` の Q13。結果は再現済み。
++
++- **答えを含む取り込み候補を、エージェントが「答え」と認識するという前提。** 例えば「wiki にはありません。取り込む候補は『Rust で書かれた uv』という資料です」とすれば、検索説明用の字句制限は適用されない。一般則の「外の知識で答えを添えない」で禁止する読みは可能だが、候補名も答えに当たるという意味判断が再び必要になる。根拠：`commands/query.md:20, 29`、`query-confidence.md:17, 88`。**Sonnet が実際にこの経路を使うかは推測であり、今回再現していない。**
++
++## 見落としと軽微な問題
++
++- **軽微：提示された回答抜粋に Q10 がない。** `answers-0.21.1-q09-q11.txt` は Q09 と Q11 の計 6 回だけで、`fitz` の漏れをこのファイルからは確認できない。ただし、別途 `runs-summary-0.21.1.json` の Q10-2 に該当文があり、主張そのものは一致した。
++
++- **軽微：CHANGELOG が、観測した挙動から内部判断まで断定している。** 「略語を展開した語、訳した語、ライブラリの別名を答えと見なさず」は原因の解釈である。回答から確認できるのは、その語を書いたことまでであり、分類を誤ったのか、分類したうえで規則に従わなかったのかは確かめられない。根拠：`info-hive-wiki/CHANGELOG.md:11`。
++
++## 検証した事実
++
++- **一致：** 現行スクリプトを 0.21.1 の要約に実行すると **4/33 回**。Q09-2、Q09-3、Q10-2、Q11-1 を検出した。
++- **一致：** Q01〜Q08 では検出が 0 回だった。ただし、上記の数え漏れがあるため、実際の漏れが皆無だった証明にはならない。
++- **一致：** 検索説明の新規則は、コマンド手順 4c、ワークフロー手順 5、`query-confidence.md:17` で整合している。`wiki.diff` にも対応する変更がある。
++- **確かめられず：** 新規則によって Sonnet の漏れが止まるという実行時の効果。今回行ったのは文面のレビューと検出器の反例検証であり、新規則での Sonnet の測定ではない。
++
++## 崩せなかった点
++
++- 引用符を外すだけの回避は、規則本文の「語を書かず」に反する。引用符の種類だけを制限した規則ではない。
++- ヒットした理由・しなかった理由も明示的に対象となっており、検索結果の説明へ移すだけでは回避できない。
++- 字句制限は「どう探したか」の説明に限定されている。wiki に裏づけられた答えや確からしさの理由に、質問文にない語を書くことまで禁止したとは読めなかった。
++
++使用した MCP サーバー: なし  
++使用した Agent Skills: なし
++[ask-codex 13:46:35] 完了。session 01a1e2a7-fc2e-7052-aebd-4428a86317c0  usage {"input_tokens": 1466639, "cached_input_tokens": 1375872, "cache_write_input_tokens": 0, "output_tokens": 9495, "reasoning_output_tokens": 3190}
+diff --git a/docs/agent-runs/2026-11-16-wiki-query-search-terms/review-sol-1.md.status.json b/docs/agent-runs/2026-11-16-wiki-query-search-terms/review-sol-1.md.status.json
+new file mode 100644
+index 0000000..58ff8ea
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-wiki-query-search-terms/review-sol-1.md.status.json
+@@ -0,0 +1,32 @@
++{
++  "state": "done",
++  "pid": 73996,
++  "started": "2026-11-16T13:40:20",
++  "finished": "2026-11-16T13:46:35",
++  "out": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-search-term\\docs\\agent-runs\\2026-11-16-wiki-query-search-terms\\review-sol-1.md",
++  "session_id": "01a1e2a7-fc2e-7052-aebd-4428a86317c0",
++  "usage": {
++    "input_tokens": 1466639,
++    "cached_input_tokens": 1375872,
++    "cache_write_input_tokens": 0,
++    "output_tokens": 9495,
++    "reasoning_output_tokens": 3190
++  },
++  "error": "",
++  "kind": "review",
++  "model": "gpt-6.1-sol",
++  "label": "gpt-6.1-sol",
++  "effort": "high",
++  "mode": "analysis",
++  "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-search-term",
++  "targets": [
++    "info-hive-wiki/commands/query.md",
++    "info-hive-wiki/skills/info-hive/references/query-workflow.md",
++    "info-hive-wiki/skills/info-hive/references/query-confidence.md",
++    "info-hive-wiki/CHANGELOG.md",
++    "docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/check_search_terms.py",
++    "docs/agent-runs/2026-11-16-wiki-query-search-terms/answers-0.21.1-q09-q11.txt",
++    "docs/agent-runs/2026-11-16-wiki-query-search-terms/wiki.diff"
++  ],
++  "diff": null
++}
+diff --git a/docs/agent-runs/2026-11-16-wiki-query-search-terms/review-sol-1.md.task.md b/docs/agent-runs/2026-11-16-wiki-query-search-terms/review-sol-1.md.task.md
+new file mode 100644
+index 0000000..2e49002
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-wiki-query-search-terms/review-sol-1.md.task.md
+@@ -0,0 +1,29 @@
++# レビューの目的
++
++info-hive-wiki のコマンド `/wiki:query`（Claude Sonnet 5.5 が実行する）で、回答の「どう探したか」の説明に、wiki の外の知識が入る漏れを止める変更である。
++
++## 漏れの形
++
++- 0.21.1 の決まりは「自分の知識で思い付いた答えを、検索に使った語として回答に書かない」だった。
++- 0.21.1 で 33 回測ると、4 回で漏れた。Q09（CQRS は何の略か。wiki に答えはない）で「コマンドとクエリの責務分離」「Command Query Responsibility Segregation」、Q10（PyMuPDF の部分は wiki にない）で `fitz`、Q11（uv の実装言語は wiki にない）で「Rust」。回答は `answers-0.21.1-q09-q11.txt` にある。
++- 漏れた回は、決まりが書かれた手順 7 や `query-confidence.md` を読んだうえで破っている。どの語が答えに当たるかを、モデル自身が判断する文面が原因と見た。
++- 答えのある問いの回答には、質問文にない語の引用は 0 回だった（照合は `docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/check_search_terms.py`）。
++
++## 変更
++
++- 語を引用してよいのは、質問文にそのままある語だけとした。自分で選んだ語は「言い換えた語でも探した」と種類だけを書く。どの検索の手段でも、ヒットした理由の説明でも同じ。
++- コマンドの手順 4c と、クエリのワークフローの手順 5 に書いた。手順 7 と `query-confidence.md` は、そこを指す。差分は `wiki.diff`。
++
++## 見てほしいこと
++
++- この決まりで、上の漏れの形が止まるか。止まらない書き方（引用符を使わない、語を地の文に書く、取り込む候補の名前に答えを入れる、など）が残っていないか。
++- 決まりが、答えのある問いの回答や、検索の縮退の報告（`warning`）、確からしさの理由を壊さないか。
++- 照合のスクリプトが、測り直しの判定に使えるか。数え漏れと誤検出の形。
++- 3 つのファイルの記述が食い違っていないか。
++
++対象のファイル:
++- `info-hive-wiki/commands/query.md`
++- `info-hive-wiki/skills/info-hive/references/query-workflow.md`
++- `info-hive-wiki/skills/info-hive/references/query-confidence.md`
++- `info-hive-wiki/CHANGELOG.md` の Unreleased
++- `docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/check_search_terms.py`
+diff --git a/docs/agent-runs/2026-11-16-wiki-query-search-terms/task-2.md b/docs/agent-runs/2026-11-16-wiki-query-search-terms/task-2.md
+new file mode 100644
+index 0000000..90dcd38
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-wiki-query-search-terms/task-2.md
+@@ -0,0 +1,11 @@
++# 2 回目のレビュー
++
++1 回目の指摘（`review-sol-1.md`）を受けて、次のように直した。直し方が指摘の原因を取り除いたか、新しい欠陥を生んでいないかを見てほしい。
++
++1. 照合の数え漏れと誤検出: 回答から検索の説明の文を推し量る作りでは、言い回しの数だけ漏れる。そこで、問いごとに出てはならない外の語の正規表現（`questions.json` の `leak`）を置き、回答のどこかに出たかを主の判定にした。前の走査は、思わぬ漏れを見つける補助の走査にし、合否には使わない（`warning` の引用などは人が読んで外す）。言い回し（調べ、照合、一致）と、直後の箇条書きも読むようにした。
++2. 取り込む候補の名前への混入: 回答のうち wiki の内容を述べない 2 つの部分（どう探したかの説明と、取り込むとよいソースの提案）を 1 つの決まりにまとめ、ソースは資料の種類と、質問文か wiki のページにある語で示し、自分の知識で題名、著者、URL を挙げないこととした。
++3. CHANGELOG の言い過ぎ: 観測したこと（書いたこと、決まりを読んだうえだったこと）だけを書いた。
++
++新しい判定で過去の回答を数えると、漏れた回は 0.20.0 で 6/9、0.21.1 で 5/9（Q09、Q10、Q11 の回）。Q12（PKCE、wiki にない）と Q13（sqlite-vec の版は wiki、言語は wiki にない）は未使用の問いで、測り直しで漏れが別の問いに移るかを見るために足した。
++
++差分は `wiki.diff`（子）と、親の `git diff HEAD~1`（照合、questions.json、run_all.py）。
+diff --git a/docs/agent-runs/2026-11-16-wiki-query-search-terms/task.md b/docs/agent-runs/2026-11-16-wiki-query-search-terms/task.md
+new file mode 100644
+index 0000000..2e49002
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-wiki-query-search-terms/task.md
+@@ -0,0 +1,29 @@
++# レビューの目的
++
++info-hive-wiki のコマンド `/wiki:query`（Claude Sonnet 5.5 が実行する）で、回答の「どう探したか」の説明に、wiki の外の知識が入る漏れを止める変更である。
++
++## 漏れの形
++
++- 0.21.1 の決まりは「自分の知識で思い付いた答えを、検索に使った語として回答に書かない」だった。
++- 0.21.1 で 33 回測ると、4 回で漏れた。Q09（CQRS は何の略か。wiki に答えはない）で「コマンドとクエリの責務分離」「Command Query Responsibility Segregation」、Q10（PyMuPDF の部分は wiki にない）で `fitz`、Q11（uv の実装言語は wiki にない）で「Rust」。回答は `answers-0.21.1-q09-q11.txt` にある。
++- 漏れた回は、決まりが書かれた手順 7 や `query-confidence.md` を読んだうえで破っている。どの語が答えに当たるかを、モデル自身が判断する文面が原因と見た。
++- 答えのある問いの回答には、質問文にない語の引用は 0 回だった（照合は `docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/check_search_terms.py`）。
++
++## 変更
++
++- 語を引用してよいのは、質問文にそのままある語だけとした。自分で選んだ語は「言い換えた語でも探した」と種類だけを書く。どの検索の手段でも、ヒットした理由の説明でも同じ。
++- コマンドの手順 4c と、クエリのワークフローの手順 5 に書いた。手順 7 と `query-confidence.md` は、そこを指す。差分は `wiki.diff`。
++
++## 見てほしいこと
++
++- この決まりで、上の漏れの形が止まるか。止まらない書き方（引用符を使わない、語を地の文に書く、取り込む候補の名前に答えを入れる、など）が残っていないか。
++- 決まりが、答えのある問いの回答や、検索の縮退の報告（`warning`）、確からしさの理由を壊さないか。
++- 照合のスクリプトが、測り直しの判定に使えるか。数え漏れと誤検出の形。
++- 3 つのファイルの記述が食い違っていないか。
++
++対象のファイル:
++- `info-hive-wiki/commands/query.md`
++- `info-hive-wiki/skills/info-hive/references/query-workflow.md`
++- `info-hive-wiki/skills/info-hive/references/query-confidence.md`
++- `info-hive-wiki/CHANGELOG.md` の Unreleased
++- `docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/check_search_terms.py`
+diff --git a/docs/agent-runs/2026-11-16-wiki-query-search-terms/wiki.diff b/docs/agent-runs/2026-11-16-wiki-query-search-terms/wiki.diff
+new file mode 100644
+index 0000000..3d4f594
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-wiki-query-search-terms/wiki.diff
+@@ -0,0 +1,69 @@
++diff --git a/CHANGELOG.md b/CHANGELOG.md
++index 8665552..61a38be 100644
++--- a/CHANGELOG.md
+++++ b/CHANGELOG.md
++@@ -6,6 +6,12 @@
++ 
++ ## [Unreleased]
++ 
+++### Fixed
+++
+++- `/wiki:query` の回答の、どう探したかを説明する文に、wiki の外の知識が入っていた。0.21.1 の「思い付いた答えを検索語として書かない」では、どの語が答えに当たるかをエージェント自身が判断することになる。Claude Sonnet 5.5 で 33 回測ると、4 回で、略語を展開した語、訳した語、ライブラリの別名、答えの語を、探した語として書いた（「Command Query Responsibility Segregation で検索した」など）。どの回も、決まりの書かれた手順を読んだうえでのことだった。
+++  - 回答のうち wiki の内容を述べない 2 つの部分（どう探したかの説明と、取り込むとよいソースの提案）には、自分で選んだ語を書かないこととした。探した語は、質問文にそのままある語だけを示し、ほかは「言い換えた語でも探した」と種類だけを書く。ソースは、資料の種類と、質問文か wiki のページにある語で示し、自分の知識で題名、著者、URL を挙げない。字句で決まる決まりにして、判断に頼らないようにするためである。
+++  - コマンドの手順 4c とクエリのワークフローの手順 5 に書き、手順 7 と確からしさの決め方のファイルからは、そこを指すようにした。答えの語を含む否定の例は、答えの語を含まない書き方の例に替えた。
+++
++ ## [0.21.1] - 2026-11-16
++ 
++ ### Fixed
++diff --git a/commands/query.md b/commands/query.md
++index 02725e5..35519ab 100644
++--- a/commands/query.md
+++++ b/commands/query.md
++@@ -17,6 +17,9 @@ argument-description: "wiki に問い合わせる質問。日本語の質問は
++ 4. 質問の答えは、自分の知識ではなく wiki から取る。答えを知っていると思う質問でも、wiki に書かれていることを確かめてから答える。インデックスから適切な候補が見つからない場合は、wiki に関係する内容がないと伝える前に、ローカルのハイブリッド検索を実行する。API キーを調べたり、求めたりしてはならない。検索は端末の中で行い、wiki やクエリのテキストを外に送らない。MCP のツールと CLI の使い分けは、`info-hive` スキルの「MCP のツールと CLI の使い分け」に従う。
++ 4a. wiki の MCP サーバーのツール `query` が使える場合は、`wiki=<WIKI_ROOT の絶対パス>`、`query=<検索語>`、`top=10` を渡す（ツール名は接続に表示されたもの。Claude Code では `mcp__plugin_wiki_wiki__query`）。日本語の検索語は、分かち書きせずにそのまま渡す（「軽減税率の対象」）。語彙検索は日本語を2文字ずつ区切って照合するので、助詞を除いたり語を空白で区切ったりしなくてよい。必要に応じて `type="concept"`、`tags=["<tag>"]`、`since="YYYY-MM-DD"` で絞り込み、1 ページから返すセクションの数は `per_page` で変える。結果の形は CLI の `--json` と同じである。ツールが結果を返したら、0 件でも、同じ検索語で CLI からやり直さない。サーバーの語彙検索はすでに wiki 全体を対象にしているので、やり直しても新しい情報はほとんど得られない。検索語を変えて探し直すのはよいが、2 回までにする。それでも候補が見つからなければ、手順 7 に進む。結果に `warning` があるとき（埋め込みモデルを用意している途中、使えない、索引を埋め込んでいる途中）も、語彙検索はすでに wiki 全体を対象にしているので、その結果を使い、意味の検索を使えなかったか一部だけだったことを回答に添える。確からしさの上限と上げる方法は、手順 6b に従う。
++ 4b. ツールが使えない、呼び出しが返らない、またはページ単位の順位（`--granularity page`）か依存パッケージを使わない決定的な検索が要る場合は、CLI を使う。`uv run --script "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_search.py" "<検索語>" --wiki "<WIKI_ROOT>" --top 10 --cache --json` を実行する。バックエンドは FastEmbed と sqlite-vec で、依存パッケージが動かない場合は自動的に語彙ベースの BM25 の結果を返す。依存パッケージを使わない、決定的な語彙ベースの検索にしたい場合は、代わりに `python "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_search.py" "<検索語>" --wiki "<WIKI_ROOT>" --top 10 --cache --json --no-embed` を実行する。`uv run --script` の形に `--no-embed` を付けても、uv は宣言されたセマンティック検索用のパッケージを解決してしまうので、付けてはならない。必要に応じて `--type concept` や `--tag <tag>` を使い、ページ単位で順位を付けたいときは `--granularity page` を使う。ツールが使えずに CLI に戻ったときは、そのことをユーザーに伝える。
+++4c. 回答のうち、wiki の内容を述べない部分は 2 つある。どう探したかの説明と、取り込むとよいソースの提案である。この 2 つには、自分で選んだ語（言い換え、略語を展開した語、訳した語、ライブラリやモジュールの別名、答えの候補、自分の知識で挙げた資料の題名、著者、URL）を書かない。自分で選んだ語は、wiki の外の知識や答えそのものを含むことがあり、書く前にどれがそうかを見分けられないためである。
+++   - どう探したかを書くときに語を示してよいのは、質問文にそのままある語だけである。それ以外の語で探したときは、語を書かず、「言い換えた語でも探した」と種類だけを書く。引用符を付けない書き方でも、どの検索の手段（MCP の `query`、CLI、Grep、Glob）で使った語でも、ヒットした理由やヒットしなかった理由を説明するときも同じにする。書き方は、たとえば「wiki で「CQRS」を検索し、言い換えた語でも探しましたが、CQRS の意味を述べたページはありませんでした。」のようにする。
+++   - 取り込むとよいソースは、資料の種類と、質問文か wiki のページにある語で示す（「CQRS を説明した記事」「uv の公式ドキュメント」）。
++ 5. 「X にリンクしているページは？」という質問には、grep ではなく `python "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_search.py" "" --wiki "<WIKI_ROOT>" --backlinks <slug>` を使う。MCP のツールにはこの機能がない。
++ 5b. 関係を問う質問（「X とつながっているものは？」「Y を提案したのは誰？」「A から B への経路をたどって」）で、`<WIKI_ROOT>/graph/graph.sqlite` がある場合は、ページを読む前にグラフに問い合わせ、構造化された隣接ノードを得る。MCP のツール `graph` が使える場合は、`wiki=<WIKI_ROOT の絶対パス>` と `command="neighbors"`、`node=<id>` を渡す（`facts` は `about`、`edges` は `subject`、`path` は `from_node` と `to_node`）。使えない場合は `python "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_graph_query.py" "<WIKI_ROOT>" neighbors --node <id>`（または `facts`、`edges`、`path`）を実行する。開く wiki ページは、型付きエッジの結果をもとに選ぶ。重要な主張については、グラフの行だけをもとに答えてはならない。
++ 6. 使った wiki ページへの `[[wikilink]]` を出典として付け、回答をまとめる。矛盾がある場合は、どちらか一方を選ばず、矛盾をそのまま示す。
++@@ -25,7 +28,7 @@ argument-description: "wiki に問い合わせる質問。日本語の質問は
++    - wiki 自身の事柄（何をいつ取り込んだか、wiki の規約）を `log.md` などの wiki の記録で答えたときも「高」である。
++    - 確からしさを下げる上限は、`query-confidence.md` の上限の表の行だけである。観測や実行の回数、再現したかどうか、raw ソースや git の履歴で確かめていないことでは下げない。
++    1 行目は `**確からしさ（confidence）: 中**` のように、この字句のまま書く（`中` は `高` か `低` に替える）。数値の確率にしてはならない。「中」か「低」のときは、確からしさを決めた要因ごとに、上げる方法（取り込むとよい資料、確かめるページ、使うコマンド）をユーザーに提案する。wiki を書き換える方法は提案にとどめ、承認なしに実行しない。
++-7. wiki に関係する内容がない場合は、そうはっきり伝える。話をでっち上げてはならない。足りない部分を補うために取り込むとよいソースを提案する。このときは確からしさを付けず、wiki の外の知識で答えを添えることもしない。wiki の外の知識には、モデルの知識や一般的な知識のほか、会話に読み込まれたプロジェクトの指示（`AGENTS.md`、`CLAUDE.md` など）と、wiki の外のファイルを含む。ただし、ソースの要約ページがそのソースの raw として指しているもの（frontmatter の `raw` の原本、`rag_job_id` のジョブの抽出済みの Markdown、本文が raw として参照するファイル）は除く。自分の知識で思い付いた答えを、検索に使った語として回答に書くこともしない。添えた答えは、wiki の回答と見分けにくく、そのまま信じられたり保存されたりしやすいためである。質問の一部だけを wiki が扱っていないときも、その部分を外の知識で埋めず、扱っていないと伝える。
+++7. wiki に関係する内容がない場合は、そうはっきり伝える。話をでっち上げてはならない。足りない部分を補うために取り込むとよいソースを提案する。このときは確からしさを付けず、wiki の外の知識で答えを添えることもしない。wiki の外の知識には、モデルの知識や一般的な知識のほか、会話に読み込まれたプロジェクトの指示（`AGENTS.md`、`CLAUDE.md` など）と、wiki の外のファイルを含む。ただし、ソースの要約ページがそのソースの raw として指しているもの（frontmatter の `raw` の原本、`rag_job_id` のジョブの抽出済みの Markdown、本文が raw として参照するファイル）は除く。添えた答えは、wiki の回答と見分けにくく、そのまま信じられたり保存されたりしやすいためである。どう探したかの説明と、取り込むとよいソースの提案は、手順 4c に従って書く。質問の一部だけを wiki が扱っていないときも、その部分を外の知識で埋めず、扱っていないと伝える。
++ 8. 回答が新しいつながりを見いだすものであれば、今後のクエリで役立つように `<WIKI_ROOT>/synthesis/` に保存することを提案する。提案するのを基本とし、ささいな回答ならユーザーが断れるようにする。確からしさが「低」の回答は保存を提案せず、先に上げる方法を提案する。
++ 
++ ユーザーが任意の判定レイヤーを有効にしている場合は、MCP のツールではなく検索スクリプト（手順 4b の `uv run --script` の形）に `--decide` を付ける。すべての行が除外された場合は、wiki にはおそらく答えがないとユーザーに伝える。詳しくは `${CLAUDE_PLUGIN_ROOT}/skills/info-hive/references/decision-models.md` を参照。
++diff --git a/skills/info-hive/references/query-confidence.md b/skills/info-hive/references/query-confidence.md
++index 758f51d..2437c99 100644
++--- a/skills/info-hive/references/query-confidence.md
+++++ b/skills/info-hive/references/query-confidence.md
++@@ -14,7 +14,7 @@
++ 
++ 回答全体の確からしさは、結論と前提のうちもっとも低いものにする。質問に複数の結論で答え、結論によって確からしさが違うときは、それぞれの結論のそばに「（確からしさ: 高）」「（確からしさ: 低）」のように書く。
++ 
++-wiki の外の知識は、前提に使わない。wiki の外の知識には、モデルの知識や一般的な知識のほか、会話に読み込まれたプロジェクトの指示（`AGENTS.md`、`CLAUDE.md` など）と、wiki の外のファイル（リポジトリの文書やコード）を含む。ただし、ソースの要約ページがそのソースの raw として指しているものは、wiki の raw の層なので外の知識に当たらない。指し方は次の 3 つである。frontmatter の `raw` が指す原本、frontmatter の `rag_job_id` のジョブが返す抽出済みの Markdown（rag の MCP の `job_status` で得る）、本文が raw として参照しているファイル（文字コードを変換した写しなど）。これらの raw がその本文で参照しているファイル（Web ページの raw が参照する `raw/assets/<スラッグ>/` の画像など）も含む。要約ページと関係なくリポジトリにあるだけのファイルは、これに当たらない。結論ごとに見て、前提を wiki から取れない結論は答えず、wiki がその部分を扱っていないことと、取り込むとよいソースを伝える（クエリのワークフローの手順 5）。自分の知識で思い付いた答えを、検索に使った語として回答に書くこともしない（「『Rust』で検索したが見つからなかった」のように書くと、答えを示したことになる）。質問が複数の問いを含み、一部の問いにだけ wiki の答えがあるときも、答えのない問いを外の知識で埋めない。答えた結論にだけ確からしさを付け、扱っていない部分には付けない。wiki に関係する内容がまったくないときは、回答全体がこれに当たるので、確からしさを付けない。計算や比較などの決まった手順（「結論の導き方」）は知識ではないので、前提の値が wiki にあれば使ってよい。単位の換算（1 GiB は 1024 MiB）や暦の計算のように、定義で決まっている係数も手順に含める。使ったときは、理由に係数を書く。
+++wiki の外の知識は、前提に使わない。wiki の外の知識には、モデルの知識や一般的な知識のほか、会話に読み込まれたプロジェクトの指示（`AGENTS.md`、`CLAUDE.md` など）と、wiki の外のファイル（リポジトリの文書やコード）を含む。ただし、ソースの要約ページがそのソースの raw として指しているものは、wiki の raw の層なので外の知識に当たらない。指し方は次の 3 つである。frontmatter の `raw` が指す原本、frontmatter の `rag_job_id` のジョブが返す抽出済みの Markdown（rag の MCP の `job_status` で得る）、本文が raw として参照しているファイル（文字コードを変換した写しなど）。これらの raw がその本文で参照しているファイル（Web ページの raw が参照する `raw/assets/<スラッグ>/` の画像など）も含む。要約ページと関係なくリポジトリにあるだけのファイルは、これに当たらない。結論ごとに見て、前提を wiki から取れない結論は答えず、wiki がその部分を扱っていないことと、取り込むとよいソースを伝える（クエリのワークフローの手順 5）。どう探したかの説明と、取り込むとよいソースの提案には、自分で選んだ語を書かない。探した語は質問文にそのままある語だけを示し、ほかは「言い換えた語でも探した」と種類だけを書く。ソースは資料の種類と、質問文か wiki のページにある語で示す（クエリのワークフローの手順 5）。質問が複数の問いを含み、一部の問いにだけ wiki の答えがあるときも、答えのない問いを外の知識で埋めない。答えた結論にだけ確からしさを付け、扱っていない部分には付けない。wiki に関係する内容がまったくないときは、回答全体がこれに当たるので、確からしさを付けない。計算や比較などの決まった手順（「結論の導き方」）は知識ではないので、前提の値が wiki にあれば使ってよい。単位の換算（1 GiB は 1024 MiB）や暦の計算のように、定義で決まっている係数も手順に含める。使ったときは、理由に係数を書く。
++ 
++ ## 前提の出発点（どこに書かれていたか）
++ 
++diff --git a/skills/info-hive/references/query-workflow.md b/skills/info-hive/references/query-workflow.md
++index ce897c2..17bc7c2 100644
++--- a/skills/info-hive/references/query-workflow.md
+++++ b/skills/info-hive/references/query-workflow.md
++@@ -66,6 +66,11 @@ wiki に矛盾する主張がある場合は、どちらか一方を選んで確
++ 
++ wiki にクエリに関係する内容がない場合は、そうはっきり伝える。話をでっち上げてはならない。でっち上げた回答が保存されると、それが wiki を汚すもっとも確実な原因になる。代わりに、足りない部分を補うためにユーザーが取り込めるソースを提案する。wiki の外の知識で答えを添えることもしない。wiki の外の知識には、モデルの知識や一般的な知識のほか、会話に読み込まれたプロジェクトの指示（`AGENTS.md`、`CLAUDE.md` など）と、wiki の外のファイルを含む（`references/query-confidence.md`）。断り書きを付けても、wiki の回答と見分けにくく、そのまま信じられたり保存されたりしやすい。質問の一部だけを wiki が扱っていないときも、その部分は同じに扱う（手順 5b）。
++ 
+++回答のうち、wiki の内容を述べない部分は 2 つある。どう探したかの説明と、取り込むとよいソースの提案である。この 2 つには、自分で選んだ語（言い換え、略語を展開した語、訳した語、ライブラリやモジュールの別名、答えの候補、自分の知識で挙げた資料の題名、著者、URL）を書かない。自分で選んだ語は、wiki の外の知識や答えそのものを含むことがあり、書く前にどれがそうかを見分けられないためである。
+++
+++- どう探したかを書くときに語を示してよいのは、質問文にそのままある語だけである。それ以外の語で探したときは、語を書かず、「言い換えた語でも探した」と種類だけを書く。引用符を付けない書き方でも、どの検索の手段（MCP のツール `query`、`wiki_search.py`、grep）で使った語でも、ヒットした理由やヒットしなかった理由を説明するときも同じにする。書き方は、たとえば「wiki で「CQRS」を検索し、言い換えた語でも探しましたが、CQRS の意味を述べたページはありませんでした。」のようにする。
+++- 取り込むとよいソースは、資料の種類と、質問文か wiki のページにある語で示す（「CQRS を説明した記事」「uv の公式ドキュメント」）。
+++
++ ## 手順 5b: 確からしさ（confidence）を付ける
++ 
++ 回答の終わりに、確からしさを「高」「中」「低」で示し、理由を添える。書く前に、このスキルの `references/query-confidence.md` を読み、そこに書かれた決め方と書き方に従う。このファイルの要約だけで決めてはならない。
+diff --git a/docs/research/wiki-query-confidence-sonnet-2026-11-16/questions.json b/docs/research/wiki-query-confidence-sonnet-2026-11-16/questions.json
+index 166710e..fd184a1 100644
+--- a/docs/research/wiki-query-confidence-sonnet-2026-11-16/questions.json
++++ b/docs/research/wiki-query-confidence-sonnet-2026-11-16/questions.json
+@@ -7,7 +7,9 @@
+   {"id": "Q06", "kind": "judgment", "q": "/wiki:ingest の raw の段は Haiku 5.5 で十分か", "expect": "中", "answer": "wiki は Haiku が raw の規則を破り、Sonnet より速くもないとして、Sonnet 5.5 を使うと決めている", "factors": ["前提はソースの要約ページ [[ingestのモデルの比較-2026-11-13]] で確かめられる（高）", "「十分か」という評価の言葉への当てはめは判断を加えた導き方（中）"], "raise": "その結論を直接述べた資料を取り込む（シンセシスとして保存しても上がらない）", "note": "「高」が出たら、モデルの逸脱か規則の読みの幅かを分けて記録する"},
+   {"id": "Q07", "kind": "log-count", "q": "この wiki の log.md で、2026-11-13 の ingest の記録は何件あるか", "expect": "高", "answer": "10 件（grep -c で確かめた）", "factors": ["wiki 自身の事柄を log.md で答えた（高）", "決まった手順（数え上げ）"], "raise": null},
+   {"id": "Q08", "kind": "log", "q": "この wiki のタグの体系に windows を足したのはいつか", "expect": "高", "answer": "2026-11-13（log.md の schema の行）", "factors": ["wiki 自身の事柄を log.md で答えた（高）"], "raise": null},
+-  {"id": "Q09", "kind": "none", "q": "CQRS とは何の略で、どんな設計の考え方か", "expect": "なし", "answer": "wiki は CQRS を取り込みの比較の試料の名前としてしか挙げておらず、意味を説明していない。確からしさを付けず、外の知識（Command Query Responsibility Segregation など）を添えない", "factors": [], "raise": "CQRS を説明した資料を取り込む"},
+-  {"id": "Q10", "kind": "partial", "q": "pdfminer の本文の並びがプロセスごとに揺れる原因は何か。また、PyMuPDF でも同じ揺れが起きるか", "expect": "中（PyMuPDF の部分は答えない）", "answer": "group_textboxes のヒープで、距離が同じ組の順が id(obj)（メモリーの番地）で決まり、番地がプロセスごとに変わるため。PyMuPDF は wiki が扱っていない", "factors": ["原因はコンセプトのページ [[pdfminerの本文の並びの揺れ]] にあり、ソースの要約ページ [[adr-0025の承認の条件の測定-2026-11-15]] には揺れの現象はあるが原因はない（中）", "PyMuPDF は wiki が扱っていない"], "raise": "raw（docs/research/adr-0025-measurement-2026-11-15.md）を読んで確かめることを提案する。PyMuPDF は述べた資料を取り込む", "note": "-p では承認が得られないので、raw を勝手に読んで「高」にした回は逸脱として数える"},
+-  {"id": "Q11", "kind": "partial", "q": "wiki 0.19.5 の不具合で依存を解決できなかったのはどのパッケージか。また、そのとき Python を取った uv は何のプログラミング言語で書かれているか", "expect": "高（uv の言語の部分は答えない）", "answer": "onnxruntime（onnxruntime==1.31.1 に CPython 3.15 の wheel がなかった）。uv の実装の言語は wiki が扱っていない（外の知識の Rust を添えない）", "factors": ["ソースの要約ページ [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] で確かめた", "uv の言語は wiki が扱っていない"], "raise": "uv の言語の部分を述べた資料を取り込む"}
++  {"id": "Q09", "kind": "none", "q": "CQRS とは何の略で、どんな設計の考え方か", "expect": "なし", "answer": "wiki は CQRS を取り込みの比較の試料の名前としてしか挙げておらず、意味を説明していない。確からしさを付けず、外の知識（Command Query Responsibility Segregation など）を添えない", "factors": [], "raise": "CQRS を説明した資料を取り込む", "leak": ["Command[\\s_-]*Query", "Responsibility", "Segregation", "責務の?分離", "コマンド(と|・)?クエリ"]},
++  {"id": "Q10", "kind": "partial", "q": "pdfminer の本文の並びがプロセスごとに揺れる原因は何か。また、PyMuPDF でも同じ揺れが起きるか", "expect": "中（PyMuPDF の部分は答えない）", "answer": "group_textboxes のヒープで、距離が同じ組の順が id(obj)（メモリーの番地）で決まり、番地がプロセスごとに変わるため。PyMuPDF は wiki が扱っていない", "factors": ["原因はコンセプトのページ [[pdfminerの本文の並びの揺れ]] にあり、ソースの要約ページ [[adr-0025の承認の条件の測定-2026-11-15]] には揺れの現象はあるが原因はない（中）", "PyMuPDF は wiki が扱っていない"], "raise": "raw（docs/research/adr-0025-measurement-2026-11-15.md）を読んで確かめることを提案する。PyMuPDF は述べた資料を取り込む", "note": "-p では承認が得られないので、raw を勝手に読んで「高」にした回は逸脱として数える", "leak": ["fitz", "(?<!Py)MuPDF"]},
++  {"id": "Q11", "kind": "partial", "q": "wiki 0.19.5 の不具合で依存を解決できなかったのはどのパッケージか。また、そのとき Python を取った uv は何のプログラミング言語で書かれているか", "expect": "高（uv の言語の部分は答えない）", "answer": "onnxruntime（onnxruntime==1.31.1 に CPython 3.15 の wheel がなかった）。uv の実装の言語は wiki が扱っていない（外の知識の Rust を添えない）", "factors": ["ソースの要約ページ [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] で確かめた", "uv の言語は wiki が扱っていない"], "raise": "uv の言語の部分を述べた資料を取り込む", "leak": ["Rust"]},
++  {"id": "Q12", "kind": "none", "q": "OAuth の PKCE は何の略で、どんな攻撃を防ぐ仕組みか", "expect": "なし", "answer": "wiki は PKCE を扱っていない。確からしさを付けず、外の知識（Proof Key for Code Exchange、認可コードの横取り）を添えず、検索の説明にも書かない", "factors": [], "raise": "PKCE を説明した資料を取り込む", "leak": ["Proof[\\s_-]*Key", "Code[\\s_-]*Exchange", "code[_ ]?verifier", "横取り", "intercept"]},
++  {"id": "Q13", "kind": "partial", "q": "wiki の開発で CI と同じ版にそろえる sqlite-vec の版はいくつか。また、sqlite-vec は何のプログラミング言語で書かれているか", "expect": "中（sqlite-vec の言語の部分は答えない）", "answer": "0.1.9（コンセプトのページ [[グラフのlintの期待値]] の uv run の依存の指定）。sqlite-vec の実装の言語は wiki が扱っていない（外の知識の C を添えず、検索の説明にも書かない）", "factors": ["コンセプトのページ [[グラフのlintの期待値]] だけに書かれている（中）", "sqlite-vec の言語は wiki が扱っていない"], "raise": "版の出典のソースを確かめる。言語の部分を述べた資料を取り込む", "leak": ["C\\s*言語", "(?<![A-Za-z])C\\s*で(書|実装)", "written in C\\b"]}
+ ]
+diff --git a/docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/check_search_terms.py b/docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/check_search_terms.py
+new file mode 100644
+index 0000000..68452f5
+--- /dev/null
++++ b/docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/check_search_terms.py
+@@ -0,0 +1,121 @@
++# 回答に wiki の外の語が出たかを数える
++#
++# 使い方: python check_search_terms.py <要約の JSON か、記録のディレクトリ> [...]
++#   要約の JSON は runs-summary*.json（回答は result か answer の欄）。
++#   記録のディレクトリは run_one.py が書いた Q*-r*.jsonl を読む（QC_RUNS_DIR の場所）。
++#
++# 判定は 2 段である。
++# 1. 主の判定（漏れ）: questions.json の問いごとの leak（出てはならない外の語の正規表現）が、
++#    回答のどこかに出たか。回答の文の形に頼らないので、引用符の有無や言い回しで数え漏れない。
++#    leak のない問いは数えない。
++# 2. 補助の走査（候補）: 検索や照合を述べた文と、その直後の箇条書きで引用された語のうち、
++#    質問文にないもの。思わぬ漏れ（leak に書いていない語）を見つけるためのもので、
++#    検索の縮退の理由（warning）の引用なども拾うので、人が読んで判断する。合否には使わない。
++import io
++import json
++import re
++import sys
++import unicodedata
++from pathlib import Path
++
++sys.path.insert(0, str(Path(__file__).resolve().parent))
++from paths import QUESTIONS  # noqa: E402
++from summarize import summarize  # noqa: E402
++
++SEARCH_WORDS = re.compile(r"検索|探し|探す|探った|調べ|照合|全文|grep|ヒット|引いた|反応|一致")
++QUOTED = re.compile(r"「([^」]+)」|『([^』]+)』|“([^”]+)”|\"([^\"]+)\"|`([^`]+)`")
++# バッククォートで書かれることの多い、検索の語ではない名前
++TOOL_NAMES = {"query", "get_page", "list_index", "graph", "lint", "stats", "index_chunks",
++              "grep", "glob", "read", "bash", "mcp", "warning", "mode", "hybrid", "lexical"}
++PATH_LIKE = re.compile(r"[/\\]|\.(md|py|json|jsonl|sqlite)\b|^--|^\$")
++LIST_ITEM = re.compile(r"^\s*([-*・]|\d+[.)])\s")
++SENTENCE = re.compile(r"[^。]+")
++
++
++def norm(text: str) -> str:
++    return unicodedata.normalize("NFKC", text).casefold()
++
++
++def leaks(patterns: list[str], answer: str) -> list[str]:
++    """主の判定。出てはならない語のうち、回答に出たものを返す"""
++    text = unicodedata.normalize("NFKC", answer)
++    found = []
++    for p in patterns:
++        m = re.search(p, text, re.IGNORECASE)
++        if m:
++            found.append(m.group(0))
++    return found
++
++
++def search_spans(answer: str) -> list[str]:
++    """検索や照合を述べた文と、行の最後のその文に続く箇条書きの行を返す"""
++    spans = []
++    lines = answer.split("\n")
++    for i, line in enumerate(lines):
++        sents = SENTENCE.findall(line)
++        for k, sent in enumerate(sents):
++            if not SEARCH_WORDS.search(sent):
++                continue
++            spans.append(sent)
++            # 「検索語は次のとおり」のあとの箇条書きも、検索の説明として読む
++            if k == len(sents) - 1:
++                j = i + 1
++                while j < len(lines) and LIST_ITEM.match(lines[j]):
++                    spans.append(lines[j])
++                    j += 1
++    return spans
++
++
++def candidates(question: str, answer: str) -> list[str]:
++    """補助の走査。検索の説明で引用された語のうち、質問文にないものを返す"""
++    q = norm(question)
++    found = []
++    for span in search_spans(answer):
++        for groups in QUOTED.findall(span):
++            term = next(g for g in groups if g)
++            if groups[-1] and (norm(term) in TOOL_NAMES or PATH_LIKE.search(term)):
++                continue
++            if norm(term) not in q and term not in found:
++                found.append(term)
++    return found
++
++
++def load_runs(arg: str) -> list[dict]:
++    path = Path(arg)
++    if path.is_dir():
++        rows = []
++        for log in sorted(path.glob("Q*-r*.jsonl")):
++            qid, rep = log.stem.split("-r")
++            rows.append({"qid": qid, "rep": rep, "answer": summarize(log).get("result") or ""})
++        return rows
++    data = json.loads(path.read_text(encoding="utf-8"))
++    return [{"qid": r["qid"], "rep": str(r["rep"]), "answer": r.get("result") or r.get("answer") or ""}
++            for r in data]
++
++
++def main() -> int:
++    questions = {q["id"]: q for q in json.loads(QUESTIONS.read_text(encoding="utf-8"))}
++    # Windows の端末は cp932 なので、標準出力を UTF-8 にする
++    out = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
++    for arg in sys.argv[1:]:
++        runs = load_runs(arg)
++        judged = leaked = 0
++        out.write(f"# {arg}\n")
++        for r in runs:
++            q = questions[r["qid"]]
++            if q.get("leak"):
++                judged += 1
++                hit = leaks(q["leak"], r["answer"])
++                if hit:
++                    leaked += 1
++                    out.write(f"漏れ {r['qid']}-{r['rep']}: {' / '.join(hit)}\n")
++            cand = candidates(q["q"], r["answer"])
++            if cand:
++                out.write(f"候補 {r['qid']}-{r['rep']}: {' / '.join(cand)}\n")
++        out.write(f"漏れた回: {leaked}/{judged}（leak のある問いの回）\n\n")
++    out.flush()
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/run_all.py b/docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/run_all.py
+index 81069d5..9df9382 100644
+--- a/docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/run_all.py
++++ b/docs/research/wiki-query-confidence-sonnet-2026-11-16/scripts/run_all.py
+@@ -1,4 +1,4 @@
+-# 11 問 × 3 回を直列で流す。各回の費用を足し、上限を超えそうなら止める
++# 11 問（または引数の問い）× 3 回を直列で流す。各回の費用を足し、上限を超えそうなら止める
+ # 記録の場所とプラグインは paths.py（環境変数 QC_RUNS_DIR、QC_PLUGIN_DIR）で決め、run_one.py と共有する
+ import json
+ import subprocess
+@@ -26,7 +26,8 @@ def cost_of(qid, rep):
+ 
+ plugin_dir()  # 子を起動する前に、プラグインの指定を確かめる
+ spent = cost_of("Q01", 0)  # 試しの 1 回（あれば）
+-qids = [f"Q{i:02d}" for i in range(1, 12)]
++# 引数に問いの ID を並べると、その問いだけを流す（省くと Q01〜Q11）
++qids = sys.argv[1:] or [f"Q{i:02d}" for i in range(1, 12)]
+ for rep in (1, 2, 3):
+     for qid in qids:
+         if (RUNS / f"{qid}-r{rep}.meta.json").exists():
+diff --git a/info-hive-wiki b/info-hive-wiki
+index 4ffecc5..9453726 160000
+--- a/info-hive-wiki
++++ b/info-hive-wiki
+@@ -1 +1 @@
+-Subproject commit 4ffecc548ad6a6bbc87690a64e6c73a84354ec44
++Subproject commit 9453726fd5eaf6de7b33e1c7e5bbb0b56239497e
