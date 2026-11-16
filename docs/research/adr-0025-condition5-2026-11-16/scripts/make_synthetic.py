@@ -10,6 +10,7 @@ docs/adr/ の ADR をファイル名の順に並べ、1 つ目を試しの原稿
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import math
@@ -137,9 +138,11 @@ def main() -> None:
         text = manuscript_text(path, cmaps[font])
         vector, lines = draw_vector(text, font)
         images = [degrade(vector, variant, seed) for variant in VARIANTS]
-        (OUT / f"{name}.pdf").write_bytes(image_pdf(images))
+        pdf = image_pdf(images)
+        (OUT / f"{name}.pdf").write_bytes(pdf)
         side = "dev" if name == "dev" else ("tuning" if seed % 2 == 0 else "evaluation")
         truth = {"name": name, "source": path.relative_to(ROOT).as_posix(), "font": font, "side": side, "seed": seed,
+                 "pdf_sha256": hashlib.sha256(pdf).hexdigest(),
                  "pages": [{"page": n, "variant": variant, "kind": "scan",
                             "lines": [{"id": k, "text": line["text"], "box": pixel_box(line["pt"], variant)}
                                       for k, line in enumerate(lines)]}

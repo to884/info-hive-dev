@@ -4,7 +4,7 @@
     python -X utf8 scripts/run_ocr.py <rag-ocr の環境の python> <tag>=<PDF のパス>@<ページ,ページ,...> ...
 
 ページを省くと（<tag>=<PDF のパス>）、すべてのページを OCR する。
-結果は corpus/ocr/<tag>-p<ページ>.json に書く。あれば飛ばす（途中から再開できる）。
+結果は corpus/ocr/<tag>-p<ページ>.json に書く。同じ PDF（SHA-256）の結果があれば飛ばす（途中から再開できる）。
 OCR の本文を含むので、corpus/ の外に置かない。
 """
 
@@ -48,7 +48,8 @@ def main() -> None:
                     numbers = [int(n) for n in pages.split(",")] if pages else list(range(1, len(document) + 1))
                     for number in numbers:
                         target = OUT / f"{tag}-p{number:04d}.json"
-                        if target.exists():
+                        # 同じ PDF（SHA-256 が同じ）の結果だけを使い回す。違えば OCR し直して上書きする
+                        if target.exists() and json.loads(target.read_bytes().decode("utf-8"))["pdf_sha256"] == sha:
                             continue
                         started = time.perf_counter()
                         with closing(document[number - 1]) as page:

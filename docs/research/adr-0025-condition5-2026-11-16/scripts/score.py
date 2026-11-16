@@ -29,6 +29,8 @@ CORPUS = BENCH / "corpus"
 RESULTS = BENCH / "results"
 GRID = [round(0.01 * i, 2) for i in range(1, 100)]
 MIN_COUNT = 20
+# 3 回目のレビューの 1（限界が、比のそろった単位で点の値と同じになる）を直して、4 回目のレビューを通したら真にする
+BOUND_FIXED = False
 SAME = {**{c: "-" for c in "‐‑‒–—―−－"}, "〜": "~", "～": "~",
         **{c: "'" for c in "‘’‚‛"}, **{c: '"' for c in "“”„‟"},
         "･": "・", "·": "・"}
@@ -162,6 +164,8 @@ def collect(side: str) -> dict:
             if not path.exists():
                 raise SystemExit(f"OCR の結果がない: {path.name}")
             ocr = json.loads(path.read_bytes().decode("utf-8"))
+            if ocr["pdf_sha256"] != truth["pdf_sha256"]:
+                raise SystemExit(f"OCR の結果の PDF が正解と違う: {path.name}（OCR し直す）")
             ocr_lines = [{**line, "box": [line["box"][0], line["box"][1], line["box"][0] + line["box"][2],
                                           line["box"][1] + line["box"][3]]} for line in ocr["lines"]]
             label = {"name": truth["name"], "page": page["page"], "variant": page.get("variant"),
@@ -335,6 +339,8 @@ def main() -> None:
                 print(" ", short(rows[s][GRID.index(t)]))
         return
     if mode == "evaluation":
+        if not BOUND_FIXED:
+            raise SystemExit("限界の数え方（3 回目のレビューの 1）を直すまで、確かめる資料は測らない")
         tuning = json.loads((RESULTS / "tuning.json").read_bytes().decode("utf-8"))
         if tuning["chosen"] is None:
             raise SystemExit("選ぶ資料で閾値が決まっていない。確かめる資料は測らない")

@@ -2,7 +2,7 @@
 
 使い方（rag の依存の環境で動かす）:
     python -X utf8 scripts/public_truth.py extract   # 選んで corpus/public/<tag>.truth.json と目で確かめる画像を書く
-    python -X utf8 scripts/public_truth.py apply     # corpus/public/eyecheck.json の結果を正解に当てる
+    python -X utf8 scripts/public_truth.py apply tuning   # corpus/public/eyecheck.json の結果を、その側の正解に当てる
 
 測り方は ../../adr-0025-condition5-2026-11-16.md の「公開の PDF」と「正解から除く行」。
 正解と画像は公開の PDF の中身を含むので、corpus/ の外に置かない。
@@ -137,10 +137,12 @@ def extract() -> None:
         print(tag, side, "当たるページ", len(eligible), "選んだページ", chosen, "数える正解の行", counted, flush=True)
 
 
-def apply() -> None:
-    """目で確かめて画像と違った行を、正解から除く（excluded = "eyecheck"）。"""
+def apply(sides: list[str]) -> None:
+    """目で確かめて画像と違った行（判断できなかった行を含む）を、正解から除く（excluded = "eyecheck"）。"""
     checked = json.loads((OUT / "eyecheck.json").read_bytes().decode("utf-8"))
     for tag, file, side, rule in PLAN:
+        if side not in sides:
+            continue
         path = OUT / f"{tag}.truth.json"
         truth = json.loads(path.read_bytes().decode("utf-8"))
         for page in truth["pages"]:
@@ -164,4 +166,4 @@ def apply() -> None:
 
 
 if __name__ == "__main__":
-    {"extract": extract, "apply": apply}[sys.argv[1]]()
+    extract() if sys.argv[1] == "extract" else apply(sys.argv[2:])
