@@ -320,5 +320,157 @@ class ReviewTests(Base):
         self.assertEqual(self.run_queued(jobs, engine)[-1]["status"], "completed")
 
 
+
+class ReviewRegressionTests(Base):
+    """段階 3 の 1 回目のレビューで見つかった反例（docs/agent-runs/2026-11-16-adr-0025-stage3-review/review-1.md）。"""
+
+    def stop_after_embedding(self, engine: Engine):
+        def stop(phase, completed, total):
+            if phase == "索引の公開" or (phase == "埋め込み" and completed and completed == total):
+                raise RuntimeError("公開の前に止まった")
+        with self.assertRaisesRegex(RuntimeError, "公開の前に止まった"):
+            engine.rebuild_reviewed(str(self.wiki), self.doc_id, progress=stop)
+
+    def test_unpublished_checkpoint_is_not_reused_after_replacing_and_restoring_the_pdf(self):
+        """1. 公開の前に止まった確認の版の途中経過が、PDF を差しかえて戻したあとに使われない。"""
+        engine = self.engine()
+        self.ingest_job(engine)
+        original = self.pdf.read_bytes()
+        doc_a = self.doc_id
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "fix", "直した本文 三")])
+        self.stop_after_embedding(engine)
+        pdf_fixtures.make_ties_pdf(self.pdf, pages=1)  # 同じ場所の PDF を別のものに差しかえる
+        engine.ingest_pdf(str(self.wiki), str(self.pdf), "sources/kinds.md")
+        self.pdf.write_bytes(original)  # 元に戻す
+        again = engine.ingest_pdf(str(self.wiki), str(self.pdf), "sources/kinds.md")
+        self.assertEqual(again["sha256"], doc_a)
+        folder = self.config.workspace(str(self.wiki))
+        rows = engine._table(folder).search().where(f"doc_id = '{doc_a}'").limit(1000).to_list()
+        self.assertEqual(len(rows), again["chunks"])  # 埋め込みを飛ばしていない
+        self.assertTrue(rows)
+
+    def test_empty_version_survives_a_policy_change(self):
+        """2. すべてのページを却下した 0 行の版を、方針が変わった索引に取り込み直しても失敗しない。"""
+        from reportlab.pdfgen import canvas
+        c = canvas.Canvas(str(self.pdf), invariant=1)
+        c.drawString(60, 700, "only page")
+        c.showPage()
+        c.save()
+        self.values["ocr_mode"] = "always"
+        engine = self.engine(answers=[("唯一のページ", [line("唯一のページ", 0.3)])])
+        jobs, _ = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 1, "reject")])
+        self.run_queued(jobs, engine)
+        with patch("rag_config.EXTRACT_REVISION", "extract-v3"):
+            again = engine.ingest_pdf(str(self.wiki), str(self.pdf), "sources/kinds.md")
+            self.assertEqual(engine.search(str(self.wiki), "唯一のページ", limit=5)["results"], [])  # 表がなくても落ちない
+        self.assertEqual((again["status"], again["chunks"], again["index_reset"]), ("indexed", 0, True))
+        self.assertIsNone(again["cleanup_error"])
+        with closing(sqlite3.connect(self.config.workspace(str(self.wiki)) / "catalog.sqlite")) as db:
+            self.assertEqual(db.execute("SELECT review_version FROM documents").fetchone()[0], 1)
+
+    def test_lost_job_registration_is_recovered_from_the_state(self):
+        """3. 台帳に書いたあと、作り直しのジョブを登録する前に止まっても、状態から登録し直す。"""
+        from rag_worker import reconcile_rebuilds
+        engine = self.engine()
+        jobs, _ = self.ingest_job(engine)
+        rag_review.decide(self.config, str(self.wiki), self.doc_id, 0, [self.item(self.wiki, 3, "accept")])  # 登録しない
+        self.assertIsNone(jobs.claim("試験"))
+        with patch.dict(os.environ, {"INFO_HIVE_RAG_CONFIG": str(self.root / "config.json")}):
+            (self.root / "config.json").write_text(json.dumps(self.values), encoding="utf-8")
+            registered = reconcile_rebuilds(jobs)
+        self.assertEqual(len(registered), 1)
+        self.run_queued(jobs, engine)
+        with closing(sqlite3.connect(self.config.workspace(str(self.wiki)) / "catalog.sqlite")) as db:
+            self.assertEqual(db.execute("SELECT review_version FROM documents").fetchone()[0], 1)
+
+    def test_unpublished_build_does_not_overwrite_the_published_artifacts(self):
+        """4. 公開の前に止まった作り直しが、公開している版の本文と確信度の要約を変えない。"""
+        engine = self.engine()
+        jobs, job_id = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "fix", "直した本文 三")])
+        published = self.run_queued(jobs, engine)[-1]["result"]
+        markdown = Path(published["extracted_markdown"])
+        before = markdown.read_text(encoding="utf-8")
+        changed = [ANSWERS[0], ("新しい OCR の本文 三", [line("新しい OCR の本文 三", 0.5)]), ANSWERS[2]]
+        bumped = {"pypdfium2": "9.9.9", "dpi": 150}
+        engine = self.engine(answers=changed)
+
+        def fail(phase, completed, total):
+            if phase == "埋め込み":
+                raise RuntimeError("埋め込みで止まった")
+        with patch("rag_config.render_identity", lambda dpi: bumped), patch("rag_pdf.render_identity", lambda dpi: bumped), \
+                patch("rag_config.EXTRACT_REVISION", "extract-v3"), self.assertRaisesRegex(RuntimeError, "埋め込みで止まった"):
+            engine.ingest_pdf(str(self.wiki), str(self.pdf), "sources/kinds.md", progress=fail)
+        self.assertEqual(markdown.read_text(encoding="utf-8"), before)
+        lists = self.report(jobs, self.wiki, job_id)["lists"]
+        self.assertEqual(lists["review:fixed"]["ranges"], "3")  # 公開している版では、直した結果がそのまま当たっている
+        self.assertEqual(lists["review:stale"]["ranges"], "")
+
+    def test_detail_reads_one_snapshot(self):
+        """5. ocr_page_detail の確認の結果と台帳の版は、同じ時点のもの。"""
+        engine = self.engine()
+        jobs, _ = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "accept")])
+        self.decide(self.wiki, 1, [self.item(self.wiki, 3, "reject")])
+        detail = rag_review.page_detail(self.config, str(self.wiki), self.doc_id, 3)
+        self.assertEqual((detail["ledger_version"], detail["decision"]["version"], detail["decision"]["action"]), (2, 2, "reject"))
+        self.assertEqual([item["version"] for item in detail["history"]], [1, 2])
+
+    def test_old_job_reports_the_published_state(self):
+        """6. 前のジョブの page_report も、今公開している版の状態を返す（OCR が変わったら stale）。"""
+        engine = self.engine()
+        jobs, first = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "fix", "直した本文 三")])
+        self.run_queued(jobs, engine)
+        changed = [ANSWERS[0], ("新しい OCR の本文 三", [line("新しい OCR の本文 三", 0.5)]), ANSWERS[2]]
+        bumped = {"pypdfium2": "9.9.9", "dpi": 150}
+        engine = self.engine(answers=changed)
+        with patch("rag_config.render_identity", lambda dpi: bumped), patch("rag_pdf.render_identity", lambda dpi: bumped), \
+                patch("rag_config.EXTRACT_REVISION", "extract-v3"):
+            engine.ingest_pdf(str(self.wiki), str(self.pdf), "sources/kinds.md")
+            lists = Jobs(self.config.data_dir).status(str(self.wiki), first, threshold=0.8)["result"]["page_report"]["lists"]
+        self.assertEqual(lists["review:stale"]["ranges"], "3")
+        self.assertEqual(lists["review:fixed"]["ranges"], "")
+
+    def test_rerun_keeps_the_full_result(self):
+        """7. 作り直しを、もう一度待ちに戻して動かしたあとも、ジョブの結果に本文と page_report が残る。"""
+        engine = self.engine()
+        jobs, _ = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "accept")])
+        original = engine.rebuild_reviewed
+
+        def rebuild_then_decide(*args, **kwargs):
+            result = original(*args, **kwargs)
+            engine.rebuild_reviewed = original
+            self.decide(self.wiki, 1, [self.item(self.wiki, 4, "fix", "直した本文 四")])
+            return result
+        engine.rebuild_reviewed = rebuild_then_decide
+        done = self.run_queued(jobs, engine)
+        result = done[-1]["result"]
+        self.assertTrue(Path(result["extracted_markdown"]).is_file())
+        self.assertIn("直した本文 四", Path(result["extracted_markdown"]).read_text(encoding="utf-8"))
+        self.assertIn("page_report", result)
+        self.assertEqual(result["review"]["published_version"], 2)
+
+    def test_retry_does_not_make_a_second_rebuild_job(self):
+        engine = self.engine()
+        jobs, _ = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "accept")])
+        first = jobs.list(str(self.wiki))[0]
+        jobs.cancel(str(self.wiki), first["job_id"])
+        self.decide(self.wiki, 1, [self.item(self.wiki, 4, "accept")])
+        jobs.retry(str(self.wiki), first["job_id"])
+        active = [job for job in jobs.list(str(self.wiki)) if job["kind"] == "review" and job["status"] in ("queued", "running", "paused")]
+        self.assertEqual(len(active), 1)
+
+    def test_old_confidence_revision_is_unknown(self):
+        engine = self.engine()
+        jobs, job_id = self.ingest_job(engine)
+        with patch("rag_config.OCR_CONFIDENCE_REVISION", "confidence-v2"):
+            lists = self.report(jobs, self.wiki, job_id)["lists"]
+        self.assertEqual(lists["ocr_low_confidence"]["ranges"], "")
+        self.assertEqual(lists["ocr_unknown_confidence"]["ranges"], "2-4")
+
 if __name__ == "__main__":
     unittest.main()
