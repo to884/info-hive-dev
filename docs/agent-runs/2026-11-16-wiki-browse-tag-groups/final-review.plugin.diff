@@ -1,0 +1,838 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 8665552..bb7b784 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,22 @@
+ 
+ ## [Unreleased]
+ 
++### Changed
++
++- `/wiki:browse` のナビゲーションの木で、索引の見出しのグループの直下に並んでいたページを、ページの最初のタグごとのグループにまとめた（info-hive-dev の `docs/plans/wiki-browse-tag-groups-2026-11-16.md`）。木は「コンセプト › 取り込み › ページ」の形になり、タグのないページは「タグなし」のグループに入る。
++  - タグの段は、ページの項目を持つすべてのグループに挟む。索引の見出しのグループ、分割した索引のグループ、「索引にないページ」の種類のグループのどれも同じである。
++  - 最初のタグは、frontmatter の `tags` の空でない最初の値（NFC）で、索引のページの一覧の行に出るタグと同じである。大文字と小文字は区別する。
++  - タグのグループは、索引の行の順でタグが初めて現れた順に並び、「タグなし」は最後に置く。未解決と曖昧の索引の行と、分割した索引への行は、元のグループに残る。
++  - 索引のページの一覧の既定の並び（索引の順）と、行の階層（`fx-path`）が変わる。階層のいちばん下にタグのグループの名前が付く。左の木のタグのグループの行を押すと、そのタグのページに絞れる（`#group=_gt<番号>`）。
++- `/wiki:browse` の左のペインの木を、Fluent 2 の Nav の部品の入れ子から、Fluent 2 の Tree（`role="tree"`）に置き換えた（info-hive-dev の `docs/plans/wiki-browse-tree-2026-11-16.md`）。Nav は入れ子を 1 段までとし、深い階層には Tree を使うとしているためである。
++  - 見た目は Fluent 2 のサイトの左のペインに合わせた。シェブロンを名前の前に置き、ペインの地をページと同じにし、グループの名前を semibold にした。字下げもサイトの形にした（1 段目と 2 段目の名前がそろい、3 段目から 1 段ずつ下げる）。ホバーは brand の薄い地と brand の文字、今のページと絞っているグループは少し濃い brand の地と semibold で示す。
++  - グループの件数を、名前のすぐ隣の CounterBadge にした。ポインターを置くと、件数の意味が出る。
++  - 記事のページの左の木も、Index のページと同じく、グループの名前と件数だけにした（記事の題名は出さない）。今のページが入っているグループに印が付き、その祖先が開く。グループの名前を押すと、Index のページがそのグループに絞られて開く。グループごとの「一覧」のリンクはなくした。記事の題名は、Index のページの一覧と、記事のページの検索欄から探す。
++  - キーボードでは、木の中で Tab が止まるのは 1 か所になった。↑↓ で項目を移り、→ と ← で開閉と親子の移動、Home と End で端に移り、名前の先頭の文字でも移れる。Enter はそのグループの一覧に移る。
++  - 左の木は開閉できる。最初は深さ 1 のグループが開いている。グループの名前を押すとそのグループの一覧に移り、シェブロンを押すと開閉だけをする。
++- `/wiki:browse` の配色の切り替えを、選択（「OS に合わせる」「ライト」「ダーク」）から、「テーマ」のトグル（Fluent 2 のサイトの形。オンでつまみが三日月になる）にした。最初は OS の設定に合わせる。トグルで OS と違う見た目にするとその見た目を覚え、OS と同じ見た目に戻すと、また OS の設定に合わせる。
++- `/wiki:browse` の画面に出る「索引」を「Index」にした（見出しのリンク、索引のページの題名、木のグループ、「Index にないページ」、並べ方の「Index の順」など）。検索の索引を指す文言は変えていない。
++
+ ## [0.21.1] - 2026-11-16
+ 
+ ### Fixed
+diff --git a/README.md b/README.md
+index 3c46401..d7f7f2f 100644
+--- a/README.md
++++ b/README.md
+@@ -155,7 +155,7 @@ Claude はインデックスを読んで候補のページを見つけ、それ
+ | `/wiki:lint` | 構造と内容の健全性をチェックする。`wiki/graph/ontology.yaml` があればグラフの lint も実行する。 |
+ | `/wiki:stats` | wiki の規模、リンク密度、スケーリングのどの閾値に達しているかを表示する。 |
+ | `/wiki:graph <action>` | コンパイル済みのグラフ層に対して `extract` / `lint` / `neighbors` / `edges` / `path` / `facts` を実行する。 |
+-| `/wiki:browse [slug]` | wiki をブラウザで閲覧する。分類の木、検索、全ページの一覧の絞り込み、配色の切り替えを持つ。必要なときだけ 127.0.0.1 のサーバーを起動する。`--stop` で止める。 |
++| `/wiki:browse [slug]` | wiki をブラウザで閲覧する。分類とタグの木、検索、全ページの一覧の絞り込み、配色の切り替えを持つ。必要なときだけ 127.0.0.1 のサーバーを起動する。`--stop` で止める。 |
+ | `/wiki:learn <task artifacts>` | 検証済みの経験を記録し、根拠にリンクした再利用できるパターンにまとめる。 |
+ | `/wiki:evolve <goal or action>` | スキルの改善案を作成・評価・確認・適用し、ロールバックする。すべての試行の結果を残す。 |
+ | `/wiki:upgrade` | 既存の wiki を現在のプラグインのバージョンにアップグレードする（冪等なファイル操作と、手順を追った SCHEMA.md のマージ）。 |
+diff --git a/commands/browse.md b/commands/browse.md
+index 96e6aca..461da0e 100644
+--- a/commands/browse.md
++++ b/commands/browse.md
+@@ -4,7 +4,7 @@ argument-hint: "[slug] | --stop"
+ argument-description: "slug を付けると、そのページを開く（`[[slug]]` と同じ規則で探す。見つからなければ索引を開く）。`--stop` を付けると、動いている閲覧のサーバーを止める。"
+ ---
+ 
+-wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。配色は OS に合わせるほか、サイドバーの「配色」でライトとダークを選べる。閲覧はいつも読むだけで、wiki のファイルを作ったり書き換えたりしない。未解決リンクをクリックしても、ページはできない。
++wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類と、その下でページの最初のタグごとにまとめたグループ）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。配色は最初は OS に合わせ、サイドバーの「テーマ」のトグルでライトとダークを切り替えられる。閲覧はいつも読むだけで、wiki のファイルを作ったり書き換えたりしない。未解決リンクをクリックしても、ページはできない。
+ 
+ 引数: $ARGUMENTS
+ 
+diff --git a/docs/commands.md b/docs/commands.md
+index 168f30a..1caa3b0 100644
+--- a/docs/commands.md
++++ b/docs/commands.md
+@@ -110,7 +110,7 @@ wiki の型付きグラフ層をコンパイル、lint、またはクエリす
+ 
+ ## `/wiki:browse [slug]`
+ 
+-wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。配色は OS に合わせるほか、サイドバーの「配色」でライトとダークを選べる。必要なときだけ 127.0.0.1 で待ち受けるサーバーを起動し、操作がない状態が 30 分続くと終わる。閲覧は読むだけで、wiki のファイルを変えない。
++wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類と、その下でページの最初のタグごとにまとめたグループ）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。配色は最初は OS に合わせ、サイドバーの「テーマ」のトグルでライトとダークを切り替えられる。必要なときだけ 127.0.0.1 で待ち受けるサーバーを起動し、操作がない状態が 30 分続くと終わる。閲覧は読むだけで、wiki のファイルを変えない。
+ 
+ ```bash
+ /wiki:browse
+diff --git a/skills/info-hive/scripts/browse_assets/app.js b/skills/info-hive/scripts/browse_assets/app.js
+index cc8b95d..5117e51 100644
+--- a/skills/info-hive/scripts/browse_assets/app.js
++++ b/skills/info-hive/scripts/browse_assets/app.js
+@@ -20,8 +20,11 @@
+     search: "M13.73 14.44a6.5 6.5 0 1 1 .7-.7l3.42 3.4a.5.5 0 0 1-.63.77l-.07-.06zm-.71-.71A5.5 5.5 0 0 0 15 9.5a5.5 5.5 0 1 0-1.98 4.23",
+     dismiss: "m4.09 4.22.06-.07a.5.5 0 0 1 .63-.06l.07.06L10 9.29l5.15-5.14a.5.5 0 0 1 .63-.06l.07.06c.18.17.2.44.06.63l-.06.07L10.71 10l5.14 5.15c.18.17.2.44.06.63l-.06.07a.5.5 0 0 1-.63.06l-.07-.06L10 10.71l-5.15 5.14a.5.5 0 0 1-.63.06l-.07-.06a.5.5 0 0 1-.06-.63l.06-.07L9.29 10 4.15 4.85a.5.5 0 0 1-.06-.63l.06-.07z",
+     warning: "M7.37 3.56a3 3 0 0 1 5.26 0l5.5 10A3 3 0 0 1 15.5 18h-11a3 3 0 0 1-2.63-4.44zM10 12.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5m0-6.25a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V7a.5.5 0 0 0-.5-.5",
+-    error: "M7.88 1.88a3 3 0 0 1 4.24 0l6 6a3 3 0 0 1 0 4.24l-6 6a3 3 0 0 1-4.24 0l-6-6a3 3 0 0 1 0-4.24zM13.1 6.9a.5.5 0 0 0-.7 0L10 9.3 7.6 6.9a.5.5 0 0 0-.7.7L9.3 10l-2.4 2.4a.5.5 0 0 0 .7.7l2.4-2.4 2.4 2.4a.5.5 0 0 0 .7-.7L10.7 10l2.4-2.4a.5.5 0 0 0 0-.7"
++    error: "M7.88 1.88a3 3 0 0 1 4.24 0l6 6a3 3 0 0 1 0 4.24l-6 6a3 3 0 0 1-4.24 0l-6-6a3 3 0 0 1 0-4.24zM13.1 6.9a.5.5 0 0 0-.7 0L10 9.3 7.6 6.9a.5.5 0 0 0-.7.7L9.3 10l-2.4 2.4a.5.5 0 0 0 .7.7l2.4-2.4 2.4 2.4a.5.5 0 0 0 .7-.7L10.7 10l2.4-2.4a.5.5 0 0 0 0-.7",
++    // Tree の枝のシェブロン（ChevronRight12Regular）。viewBox は 12 × 12
++    chevronRight: "M4.65 2.15a.5.5 0 0 0 0 .7L7.79 6 4.65 9.15a.5.5 0 1 0 .7.7l3.5-3.5a.5.5 0 0 0 0-.7l-3.5-3.5a.5.5 0 0 0-.7 0"
+   };
++  var ICON_BOX = { chevronRight: "0 0 12 12" };
+ 
+   function has(obj, key) { return Object.prototype.hasOwnProperty.call(obj, key); }
+   function typeLabel(t) { return has(TYPE_LABELS, t) ? TYPE_LABELS[t] : (t || "種類なし"); }
+@@ -40,7 +43,7 @@
+     svg.setAttribute("class", "fui-Icon");
+     svg.setAttribute("width", size || "20");
+     svg.setAttribute("height", size || "20");
+-    svg.setAttribute("viewBox", "0 0 20 20");
++    svg.setAttribute("viewBox", has(ICON_BOX, name) ? ICON_BOX[name] : "0 0 20 20");
+     svg.setAttribute("fill", "currentColor");
+     svg.setAttribute("aria-hidden", "true");
+     svg.setAttribute("focusable", "false");
+@@ -103,31 +106,44 @@
+   if (manifest.stale) { state.stale = true; }
+   var incompletePages = !!(manifest.incomplete && manifest.incomplete.unreadable_pages);
+ 
+-  /* --- 配色の切り替え（Fluent の Select）。theme.js が描く前に当てた値を表す --- */
++  /* --- 配色の切り替え（Fluent の Switch。左のペインの木の設計の 7 節）。オンがダークで、theme.js が描く前に当てた値を表す --- */
+   function themeField() {
+     var api = window.__browseTheme;
+     if (!api) { return null; }
+-    var wrap = el("div", "theme-field");
+-    var label = el("label", "fui-Label theme-label", "配色");
+-    label.htmlFor = "_theme";
+-    var box = el("span", "fui-Select");
+-    box.setAttribute("data-size", "small");
+-    var select = el("select", "fui-Select__select");
+-    select.id = "_theme";
+-    var names = { auto: "OS に合わせる", light: "ライト", dark: "ダーク" };
+-    for (var k = 0; k < api.values.length; k++) {
+-      var o = el("option", "", names[api.values[k]]);
+-      o.value = api.values[k];
+-      select.appendChild(o);
++    var osDark = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
++    function osTheme() { return osDark && osDark.matches ? "dark" : "light"; }
++    function shown() {
++      var t = document.documentElement.getAttribute("data-theme");
++      return t === "dark" || t === "light" ? t : osTheme();
+     }
+-    select.value = api.read();
+-    select.addEventListener("change", function () { api.save(select.value); });
+-    var ic = el("span", "fui-Select__icon");
+-    ic.appendChild(icon("chevron", "1em"));
+-    box.appendChild(select);
+-    box.appendChild(ic);
++    // 形は Fluent 2 のサイトの「Theme」のトグル（線の枠と丸のつまみ。オンでつまみが右に移り、三日月になる）
++    var wrap = el("div", "theme-switch");
++    var label = el("label", "fui-Label theme-label", "テーマ");
++    label.htmlFor = "_theme";
++    var box = el("span", "theme-toggle");
++    var input = el("input", "theme-input");
++    input.type = "checkbox";
++    input.id = "_theme";
++    input.setAttribute("role", "switch");
++    // 読み上げの名前は、見えている「テーマ」を含み、オンが何かを表す
++    input.setAttribute("aria-label", "ダークテーマ");
++    var track = el("span", "theme-track");
++    track.setAttribute("aria-hidden", "true");
++    track.appendChild(el("span", "theme-knob"));
++    box.appendChild(input);
++    box.appendChild(track);
+     wrap.appendChild(label);
+     wrap.appendChild(box);
++    function sync() { input.checked = shown() === "dark"; }
++    sync();
++    // 切り替えたあとの見た目が OS と同じなら auto（OS に合わせる）を、違えばその見た目を保存する
++    input.addEventListener("change", function () {
++      var want = input.checked ? "dark" : "light";
++      api.save(want === osTheme() ? "auto" : want);
++      sync();
++    });
++    // OS に合わせている間は、OS の配色の変化にトグルを合わせる
++    if (osDark && osDark.addEventListener) { osDark.addEventListener("change", sync); }
+     return wrap;
+   }
+   var head = document.querySelector("#_nav .nav-head");
+@@ -338,72 +354,77 @@
+     }
+   });
+ 
+-  /* --- 左の木 --- */
+-  function groupLink(g) {
+-    var a = el("a", "fui-Link tree-filter", "一覧");
+-    a.href = href("index.html") + "#group=" + encodeURIComponent(g.id);
+-    return a;
++  /* --- 左の木（Fluent 2 の Tree。左のペインの木の設計の 2 節、9 節） --- */
++  // 項目の入れ物。どの項目も TreeItemLayout と __main を持つ（2.2）。a の項目の中は span にする
++  function treeNode(tag, cls, level) {
++    var item = el(tag, "fui-TreeItem" + (cls ? " " + cls : ""));
++    item.setAttribute("role", "treeitem");
++    item.setAttribute("aria-level", String(level));
++    item.tabIndex = -1;
++    if (level >= 5) { item.classList.add("tree-deep"); }     // 字下げは 4 段目で止める（2.3）
++    var inner = tag === "div" ? "div" : "span";
++    var layout = el(inner, "fui-TreeItemLayout");
++    item.appendChild(layout);
++    return { item: item, layout: layout, inner: inner };
+   }
+ 
+-  function containsCurrent(g) {
+-    for (var k = 0; k < g.items.length; k++) { if (g.items[k].state === "resolved" && g.items[k].id === current) { return true; } }
+-    for (var c = 0; c < g.children.length; c++) { if (containsCurrent(g.children[c])) { return true; } }
+-    return false;
++  function nodeMain(n, text, cls) {
++    n.layout.appendChild(el(n.inner, "fui-TreeItemLayout__main" + (cls ? " " + cls : ""), text));
+   }
+ 
+-  function treeItem(it) {
+-    if (it.state === "resolved") {
+-      var a = el("a", "fui-NavSubItem", it.label);
+-      a.href = href(it.path) + (it.anchor ? "#" + encodeURIComponent(it.anchor) : "");
+-      var here = it.id === current;
+-      a.setAttribute("aria-current", here ? "page" : "false");
+-      if (here) { a.classList.add("is-current"); }
+-      return a;
+-    }
+-    if (it.state === "group") {
+-      var g = el("a", "fui-NavSubItem", it.label);
+-      g.href = href("index.html") + "#group=" + encodeURIComponent(it.group);
+-      return g;
+-    }
+-    var span = el("span", "fui-NavSubItem wl wl-" + it.state, it.label);
+-    span.title = it.state === "unresolved" ? "ページがない" : "行き先を 1 つに決められない";
+-    return span;
++  // 件数のバッジ（6.3）。読み上げには項目の aria-label で伝えるので、バッジは隠す
++  function nodeCount(n, g) {
++    var aside = el(n.inner, "fui-TreeItemLayout__aside");
++    var b = el("span", "fui-Badge fui-CounterBadge tree-count", String(g.count));
++    b.setAttribute("data-appearance", "tint");
++    b.setAttribute("data-color", "informative");
++    b.setAttribute("data-size", "small");
++    b.setAttribute("data-shape", "circular");
++    b.setAttribute("aria-hidden", "true");
++    b.title = g.count + " ページ";
++    aside.appendChild(b);
++    n.layout.appendChild(aside);
++    n.item.setAttribute("aria-label", g.title + "（" + g.count + " ページ）");
+   }
+ 
+-  function treeGroup(g, depth) {
+-    var d = el("details", "fui-NavCategory tree-group nav-depth-" + Math.min(depth, 6));
+-    d.open = containsCurrent(g);
+-    var sum = el("summary", "fui-NavCategoryItem");
+-    sum.appendChild(el("span", "tree-name", g.title));
+-    sum.appendChild(el("span", "fui-Caption1 tree-count", String(g.count)));
+-    sum.appendChild(groupLink(g));
+-    var exp = el("span", "fui-NavCategoryItem__expandIcon");
+-    exp.setAttribute("aria-hidden", "true");
+-    exp.appendChild(icon("chevron"));
+-    sum.appendChild(exp);
+-    d.appendChild(sum);
+-    var sub = el("div", "fui-NavSubItemGroup");
+-    for (var k = 0; k < g.items.length; k++) { sub.appendChild(treeItem(g.items[k])); }
+-    for (var c = 0; c < g.children.length; c++) { sub.appendChild(treeGroup(g.children[c], depth + 1)); }
+-    d.appendChild(sub);
+-    return d;
++  // グループの一覧への行き先。Index のページでは断片だけ（右の一覧を絞る）、記事のページでは Index のページ
++  function groupHref(id) { return (isIndex ? "" : href("index.html")) + "#group=" + encodeURIComponent(id); }
++
++  // 今のページを、自分の項目として持つグループか（記事のページで印を付けるグループ。左のペインの木の設計の 9 節）
++  function holdsCurrent(g) {
++    for (var k = 0; k < g.items.length; k++) { if (g.items[k].state === "resolved" && g.items[k].id === current) { return true; } }
++    return false;
+   }
+ 
+-  function indexTree(groups, depth) {
+-    var ul = el("ul", "tree-groups nav-depth-" + Math.min(depth, 6));
+-    for (var k = 0; k < groups.length; k++) {
+-      var g = groups[k];
+-      var li = el("li");
+-      var a = el("a", "fui-NavItem");
+-      a.href = "#group=" + encodeURIComponent(g.id);
+-      a.setAttribute("data-group", g.id);
+-      a.appendChild(el("span", "tree-name", g.title));
+-      a.appendChild(el("span", "fui-Caption1 tree-count", String(g.count)));
+-      li.appendChild(a);
+-      if (g.children.length) { li.appendChild(indexTree(g.children, depth + 1)); }
+-      ul.appendChild(li);
++  // 木は、記事のページも Index のページも、グループの名前と件数だけを描く（記事の題名は描かない。9 節）。
++  // 子のないグループは、グループの一覧へのリンクの葉にする。子を持つグループは枝にする
++  function groupNode(g, level) {
++    if (!g.children.length) {
++      var n = treeNode("a", "tree-index", level);
++      n.item.href = groupHref(g.id);
++      n.item.setAttribute("data-group", g.id);
++      nodeMain(n, g.title, "tree-name");
++      nodeCount(n, g);
++      if (!isIndex && holdsCurrent(g)) {
++        n.item.setAttribute("aria-current", "true");
++        n.item.classList.add("is-current");
++      }
++      return n.item;
+     }
+-    return ul;
++    var b = treeNode("div", "tree-group", level);
++    b.item.setAttribute("data-group", g.id);
++    b.item.setAttribute("aria-expanded", level === 1 ? "true" : "false");
++    var exp = el("div", "fui-TreeItemLayout__expandIcon");
++    exp.setAttribute("aria-hidden", "true");
++    exp.appendChild(icon("chevronRight", "12"));
++    b.layout.appendChild(exp);
++    nodeMain(b, g.title, "tree-name");
++    nodeCount(b, g);
++    var sub = el("div", "fui-Tree");
++    sub.setAttribute("role", "group");
++    b.item.appendChild(sub);
++    for (var c = 0; c < g.children.length; c++) { sub.appendChild(groupNode(g.children[c], level + 1)); }
++    return b.item;
+   }
+ 
+   var groupIds = {};
+@@ -421,14 +442,19 @@
+   drawerSum.setAttribute("data-appearance", "subtle");
+   drawer.appendChild(drawerSum);
+   var tree = el("div", "tree");
++  var treeRoot = el("div", "fui-Tree");
++  treeRoot.setAttribute("role", "tree");
++  treeRoot.setAttribute("aria-label", "Index の木");
++  tree.appendChild(treeRoot);
+ 
+   if (isIndex) {
+-    var all = el("a", "fui-NavItem tree-all");
++    var allNode = treeNode("a", "tree-all", 1);
++    var all = allNode.item;
+     all.href = "#";
+     all.setAttribute("data-group", "");
+-    all.appendChild(el("span", "tree-name", "すべてのページ"));
+-    tree.appendChild(all);
+-    tree.appendChild(indexTree(NAV.groups || [], 0));
++    nodeMain(allNode, "すべてのページ", "tree-name");
++    treeRoot.appendChild(all);
++    for (var gi = 0; gi < (NAV.groups || []).length; gi++) { treeRoot.appendChild(groupNode(NAV.groups[gi], 1)); }
+   } else {
+     // 記事のページ: 検索欄と、その結果の場所（木の場所に出す）
+     var results = el("div", "sr-area");
+@@ -443,11 +469,17 @@
+     field.appendChild(hint);
+     navBody.appendChild(field);
+     navBody.appendChild(results);
+-    for (var n = 0; n < (NAV.groups || []).length; n++) { tree.appendChild(treeGroup(NAV.groups[n], 0)); }
++    for (var n = 0; n < (NAV.groups || []).length; n++) { treeRoot.appendChild(groupNode(NAV.groups[n], 1)); }
++    // 今のページを持つグループの祖先の枝を開く。ページが 2 つのグループに載っていれば、どちらも開く
++    Array.prototype.forEach.call(treeRoot.querySelectorAll(".fui-TreeItem.is-current"), function (c) {
++      for (var p = c.parentElement.closest(".fui-TreeItem"); p; p = p.parentElement.closest(".fui-TreeItem")) {
++        p.setAttribute("aria-expanded", "true");
++      }
++    });
+   }
+   // 読めない索引のファイルがあるとき、木が不完全であることを示す（構造の直しの設計の 4.1、10）
+   if (NAV.incomplete) {
+-    tree.insertBefore(el("p", "fui-Caption1 nav-incomplete", "読めない索引のファイルがあるので、この木は不完全"),
++    tree.insertBefore(el("p", "fui-Caption1 nav-incomplete", "読めない Index のファイルがあるので、この木は不完全"),
+                       tree.firstChild);
+   }
+   drawer.appendChild(tree);
+@@ -516,6 +548,109 @@
+   syncDrawer();
+   if (narrow && narrow.addEventListener) { narrow.addEventListener("change", syncDrawer); }
+ 
++  /* --- 木の操作（左のペインの木の設計の 2.4。fluent2.js の enhanceTree を下敷きにし、葉の Enter と同期を直した） --- */
++  function treeItems() { return Array.prototype.slice.call(treeRoot.querySelectorAll(".fui-TreeItem")); }
++  function isBranch(item) { return item.hasAttribute("aria-expanded"); }
++  function parentItem(item) { return item.parentElement ? item.parentElement.closest(".fui-TreeItem") : null; }
++  function firstChild(item) { return item.querySelector(":scope > .fui-Tree > .fui-TreeItem"); }
++  function isShown(item) {
++    for (var p = parentItem(item); p; p = parentItem(p)) { if (p.getAttribute("aria-expanded") === "false") { return false; } }
++    return true;
++  }
++  function shownItems() { return treeItems().filter(isShown); }
++
++  // ローヴィング: tabindex="0" の項目をちょうど 1 つにする
++  function roving(item) {
++    treeItems().forEach(function (t) { t.tabIndex = t === item ? 0 : -1; });
++  }
++  function rovingToCurrent() {
++    var c = treeRoot.querySelector(".fui-TreeItem.is-current");
++    var shown = shownItems();
++    roving(c && isShown(c) ? c : shown[0] || null);
++  }
++  function setOpen(item, open) {
++    if (!isBranch(item)) { return; }
++    item.setAttribute("aria-expanded", open ? "true" : "false");
++    if (open) { return; }
++    // 閉じた枝の中にフォーカスか Tab の入口があれば、枝に移す（隠れた項目を入口に残さない）
++    var r = treeRoot.querySelector('.fui-TreeItem[tabindex="0"]');
++    if (item.contains(document.activeElement) && document.activeElement !== item) { item.focus(); }
++    else if (r && r !== item && item.contains(r)) { roving(item); }
++  }
++  function openAncestors(item) {
++    for (var p = parentItem(item); p; p = parentItem(p)) { p.setAttribute("aria-expanded", "true"); }
++  }
++  // 枝を選ぶ: そのグループの一覧に移る。Index のページでは右の一覧を絞り、閉じていれば開く。
++  // 記事のページでは、Index のページをそのグループに絞って開く（9 節）
++  function selectGroup(item) {
++    var id = item.getAttribute("data-group");
++    if (isIndex) {
++      setOpen(item, true);
++      location.hash = "#group=" + id;
++    } else {
++      location.href = groupHref(id);
++    }
++  }
++
++  // 同期はフォーカスが移ったことで行う。矢印キー、押す操作、focus() のどれでもここを通る
++  treeRoot.addEventListener("focusin", function (ev) {
++    var item = ev.target.closest(".fui-TreeItem");
++    if (item && treeRoot.contains(item)) { roving(item); }
++  });
++
++  treeRoot.addEventListener("click", function (ev) {
++    var layout = ev.target.closest(".fui-TreeItemLayout");
++    if (!layout) { return; }
++    var item = layout.parentElement;
++    if (item.tagName !== "DIV" || !item.classList.contains("fui-TreeItem")) { return; }   // 葉はリンクの既定の動き
++    // 枝の名前は、そのグループの一覧に移る。シェブロンは開閉だけをする
++    if (isBranch(item) && !ev.target.closest(".fui-TreeItemLayout__expandIcon")) {
++      item.focus();
++      selectGroup(item);
++      return;
++    }
++    setOpen(item, item.getAttribute("aria-expanded") !== "true");
++    item.focus();
++  });
++
++  treeRoot.addEventListener("keydown", function (ev) {
++    if (ev.isComposing || ev.keyCode === 229) { return; }        // かな漢字の変換中のキーは扱わない
++    if (ev.ctrlKey || ev.metaKey || ev.altKey) { return; }        // Ctrl+Enter などは既定の動き
++    var item = ev.target;
++    if (!item.classList || !item.classList.contains("fui-TreeItem")) { return; }
++    var items = shownItems();
++    var i = items.indexOf(item);
++    var handled = true;
++    if (ev.key === "ArrowDown") { if (items[i + 1]) { items[i + 1].focus(); } }
++    else if (ev.key === "ArrowUp") { if (i > 0) { items[i - 1].focus(); } }
++    else if (ev.key === "Home") { if (items[0]) { items[0].focus(); } }
++    else if (ev.key === "End") { if (items.length) { items[items.length - 1].focus(); } }
++    else if (ev.key === "ArrowRight") {
++      if (isBranch(item)) {
++        if (item.getAttribute("aria-expanded") !== "true") { setOpen(item, true); }
++        else if (firstChild(item)) { firstChild(item).focus(); }
++      }
++    } else if (ev.key === "ArrowLeft") {
++      if (isBranch(item) && item.getAttribute("aria-expanded") === "true") { setOpen(item, false); }
++      else if (parentItem(item)) { parentItem(item).focus(); }
++    } else if (ev.key === "Enter") {
++      // 葉では止めない: リンクの葉はリンクの既定の動きで移る（1 回目のレビューの 1）
++      if (item.tagName !== "DIV") { handled = false; }
++      else if (isBranch(item)) { selectGroup(item); }
++    } else if (ev.key.length === 1 && /\S/.test(ev.key) && ev.key !== "/") {
++      // 先頭の文字での移動。「/」は検索欄に移るキーなので扱わない
++      var key = ev.key.toLowerCase();
++      var order = items.slice(i + 1).concat(items.slice(0, i + 1));
++      for (var k = 0; k < order.length; k++) {
++        var m = order[k].querySelector(":scope > .fui-TreeItemLayout > .fui-TreeItemLayout__main");
++        if (m && m.textContent.trim().toLowerCase().indexOf(key) === 0) { order[k].focus(); break; }
++      }
++    } else { handled = false; }
++    if (handled) { ev.preventDefault(); }
++  });
++
++  if (!isIndex) { rovingToCurrent(); }
++
+   var cur = tree.querySelector(".is-current");
+   if (cur && cur.scrollIntoView) {
+     // 木だけを送る。ページ全体は送らない
+@@ -598,7 +733,7 @@
+     sortBox.setAttribute("data-size", "small");
+     var sortSel = el("select", "fui-Select__select");
+     sortSel.setAttribute("aria-label", "並べ方");
+-    [["order", "索引の順"], ["updated", "更新の新しい順"], ["title", "題名の順"]].forEach(function (o) {
++    [["order", "Index の順"], ["updated", "更新の新しい順"], ["title", "題名の順"]].forEach(function (o) {
+       var op = el("option", "", o[1]);
+       op.value = o[0];
+       sortSel.appendChild(op);
+@@ -672,10 +807,11 @@
+       if (incompletePages || state.searchIncomplete) {
+         countEl.appendChild(el("span", "count-incomplete", "（読めないページがあるので不完全）"));
+       }
+-      Array.prototype.forEach.call(tree.querySelectorAll("[data-group]"), function (a) {
++      Array.prototype.forEach.call(treeRoot.querySelectorAll(".fui-TreeItem[data-group]"), function (a) {
+         var on = a.getAttribute("data-group") === filt.group;
+         a.setAttribute("aria-current", on ? "true" : "false");
+         a.classList.toggle("is-current", on);
++        if (on) { openAncestors(a); }                 // 絞っているグループの祖先の枝を開く（2.3）
+       });
+       groupChip.hidden = !filt.group;
+       groupChip.textContent = filt.group ? "グループ: " + groupTitles[filt.group] + " ×" : "";
+@@ -696,6 +832,8 @@
+       fromHash();
+     });
+     fromHash();
++    // Tab の入口は、絞っているグループ（なければ「すべてのページ」）にする。木の中にフォーカスがあれば変えない
++    if (!treeRoot.contains(document.activeElement)) { rovingToCurrent(); }
+   }
+   state.navLoaded = true;
+ })();
+diff --git a/skills/info-hive/scripts/browse_assets/style.css b/skills/info-hive/scripts/browse_assets/style.css
+index 3466248..ce289f1 100644
+--- a/skills/info-hive/scripts/browse_assets/style.css
++++ b/skills/info-hive/scripts/browse_assets/style.css
+@@ -46,9 +46,9 @@ body.fui-FluentProvider {
+   display: grid;
+   grid-template-columns: var(--f2-nav-width) minmax(0, 1fr);
+   min-height: 100vh;
+-  /* ナビの列の地を、ナビより下までのばす（ナビは画面の高さで止まる） */
+-  background-image: linear-gradient(to right, var(--colorNeutralBackground4) var(--f2-nav-width), transparent 0);
+ }
++/* ペインの地はページと同じにする（Fluent 2 のサイトの左のペイン。左のペインの木の設計の 6.1） */
++#_nav.fui-NavDrawer { background-color: transparent; }
+ #_nav {
+   position: sticky;
+   top: 0;
+@@ -71,9 +71,39 @@ body.fui-FluentProvider {
+ .scope { margin: 0; }
+ .scope .fui-Badge { white-space: normal; height: auto; }
+ .nav-home { font-weight: var(--fontWeightSemibold); }
+-.theme-field { display: flex; align-items: center; gap: var(--spacingHorizontalS); }
+-.theme-label { font-size: var(--fontSizeBase200); color: var(--colorNeutralForeground3); }
+-.theme-field .fui-Select { flex: 1; }
++/* NavItem は NavDrawer の地（colorNeutralBackground4）を自分にも塗る。ペインの地をページと同じにしたので、
++   地を透明にし、ホバーと押下は木の項目と同じ brand の地と文字にする（左のペインの木の設計の 6.1、6.2） */
++#_nav .nav-home { background-color: transparent; border-radius: var(--borderRadiusXLarge); }
++#_nav .nav-home:hover { background-color: var(--colorBrandBackground2); color: var(--colorBrandForeground2); }
++#_nav .nav-home:active { background-color: var(--colorBrandBackground2Hover); color: var(--colorBrandForeground2Hover); }
++/* 配色のトグル（左のペインの木の設計の 7 節）。形は Fluent 2 のサイトの「Theme」のトグル: 文字の色の線の丸い枠と、
++   丸いつまみ。オンでつまみが右に移り、ページの地の色の丸を重ねて三日月にする。大きさは em で書く（14px で 35 × 21px） */
++.theme-switch { display: flex; align-items: center; gap: var(--spacingHorizontalS); padding-inline: var(--spacingHorizontalS); }
++.theme-label { color: var(--colorNeutralForeground1); }
++.theme-toggle { position: relative; display: inline-flex; font-size: var(--fontSizeBase300); }
++.theme-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 1; }
++.theme-track {
++  position: relative; display: block; box-sizing: border-box; width: 2.5em; height: 1.5em;
++  border: var(--strokeWidthThick) solid var(--colorNeutralForeground1); border-radius: var(--borderRadiusCircular);
++}
++.theme-knob {
++  position: absolute; top: 50%; inset-inline-start: 0.2em; width: 0.75em; height: 0.75em;
++  border-radius: var(--borderRadiusCircular); background-color: var(--colorNeutralForeground1);
++  transform: translateY(-50%); transition: inset-inline-start var(--durationNormal) var(--curveEasyEase);
++}
++.theme-input:checked + .theme-track .theme-knob { inset-inline-start: calc(100% - 0.95em); }
++/* 三日月: つまみの左上に、ページの地の色の丸を重ねる */
++.theme-input:checked + .theme-track .theme-knob::after {
++  content: ""; position: absolute; top: -0.12em; inset-inline-start: -0.12em; width: 0.6em; height: 0.6em;
++  border-radius: var(--borderRadiusCircular); background-color: var(--colorNeutralBackground1);
++}
++.theme-input:focus-visible + .theme-track { outline: var(--strokeWidthThick) solid var(--colorStrokeFocus2); outline-offset: var(--strokeWidthThick); }
++@media (prefers-reduced-motion: reduce) { .theme-knob { transition: none; } }
++@media (forced-colors: active) {
++  .theme-track { border-color: CanvasText; }
++  .theme-knob { background-color: CanvasText; }
++  .theme-input:checked + .theme-track .theme-knob::after { background-color: Canvas; }
++}
+ 
+ /* --- 検索欄と結果 --- */
+ .search { padding: 0 var(--spacingHorizontalM) var(--spacingVerticalS); }
+@@ -95,39 +125,58 @@ body.fui-FluentProvider {
+ .sr-title { display: block; font-weight: var(--fontWeightSemibold); color: var(--colorNeutralForeground1); }
+ .sr-meta, .sr-hit { display: block; color: var(--colorNeutralForeground2); }
+ 
+-/* --- 木（Nav の NavCategory を各段に繰り返す独自の拡張） --- */
+-.tree { padding-bottom: var(--spacingVerticalL); }
++/* --- 木（Fluent 2 の Tree。見た目は Fluent 2 のサイトの左のペインに合わせる。左のペインの木の設計の 2、6） --- */
++.tree { padding: 0 var(--spacingHorizontalS) var(--spacingVerticalL); }
+ .nav-incomplete { margin: 0 var(--spacingHorizontalM) var(--spacingVerticalS); color: var(--colorNeutralForeground2); }
+-.tree-name { flex: 1; min-width: 0; white-space: normal; }
+-.tree-count { color: var(--colorNeutralForeground3); font-variant-numeric: tabular-nums; }
+-.fui-NavCategoryItem { gap: var(--spacingHorizontalXS); height: auto; min-height: var(--f2-size360); }
+-.fui-NavSubItem { white-space: normal; height: auto; padding-block: var(--spacingVerticalSNudge); }
+-/* 1〜4 段目は 1 段ごとに字下げし、5 段目より深い段は 4 段目と同じ位置に置き、左の線で段を示す（作者の決定） */
+-.fui-NavSubItemGroup .tree-group { margin-inline-start: var(--spacingHorizontalL); }
+-.tree-group.nav-depth-4, .tree-group.nav-depth-5, .tree-group.nav-depth-6 { margin-inline-start: 0; }
+-.tree-group.nav-depth-4, .tree-group.nav-depth-5, .tree-group.nav-depth-6 {
+-  border-inline-start: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
++/* リンクの項目の既定の下線を消す。要素の名前で選ばず、木の中の a の項目すべてに当てる（2.2） */
++.tree a.fui-TreeItem { text-decoration: none; }
++/* 行: 角丸 8px。長い名前は折り返し、行の高さを中身に合わせる（2.3、6.1） */
++.tree .fui-TreeItemLayout { border-radius: var(--borderRadiusXLarge); padding-block: var(--spacingVerticalXXS); }
++.tree .fui-TreeItemLayout__main { flex: 1; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
++/* 枝は semibold と colorNeutralForeground1。葉は Tree の既定（colorNeutralForeground2） */
++.tree .tree-group > .fui-TreeItemLayout { color: var(--colorNeutralForeground1); }
++.tree .tree-group > .fui-TreeItemLayout > .fui-TreeItemLayout__main { font-weight: var(--fontWeightSemibold); }
++/* 区画の間の線: 深さ 1 の枝と、その前の深さ 1 の項目のあいだ（6.1） */
++.tree .fui-Tree[role="tree"] > .fui-TreeItem + .tree-group[aria-level="1"] {
++  border-block-start: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
++  padding-block-start: var(--spacingVerticalXXS);
+ }
+-.fui-NavSubItemGroup { overflow: visible; }
+-/* 「一覧」は地が状態で変わる summary の中にあるので、押下の色を含めて中立の文字にする（4.2） */
+-.tree-filter, .tree-filter:hover, .tree-filter:active { visibility: hidden; font-size: var(--fontSizeBase200); color: var(--colorNeutralForeground2); }
+-.fui-NavCategoryItem:hover .tree-filter, .fui-NavCategoryItem:focus-within .tree-filter, .tree-filter:focus-visible,
+-.fui-NavCategoryItem .tree-filter:active {
+-  visibility: visible;
++/* 状態の色（6.2）。Tree の既定のホバーと押下（中立の地）を、brand の薄い地と brand の文字に置き換える */
++.tree .fui-TreeItemLayout:hover { background-color: var(--colorBrandBackground2); color: var(--colorBrandForeground2); }
++.tree .fui-TreeItemLayout:active { background-color: var(--colorBrandBackground2Hover); color: var(--colorBrandForeground2Hover); }
++.tree .fui-TreeItem.is-current > .fui-TreeItemLayout { background-color: var(--colorBrandBackground2Hover); color: var(--colorBrandForeground2Hover); }
++.tree .fui-TreeItem.is-current > .fui-TreeItemLayout > .fui-TreeItemLayout__main { font-weight: var(--fontWeightSemibold); }
++.tree .fui-TreeItemLayout:hover > .fui-TreeItemLayout__expandIcon,
++.tree .fui-TreeItemLayout:active > .fui-TreeItemLayout__expandIcon,
++.tree .fui-TreeItem.is-current > .fui-TreeItemLayout > .fui-TreeItemLayout__expandIcon { color: inherit; }
++/* 件数のバッジ（6.3）: tint の informative の地を、ページよりわずかに離れた灰色（colorNeutralBackground6）にする。
++   tint の既定の地（colorNeutralBackground4）は、暗い配色で #0a0a0a になり、黒く沈む（作者の決定） */
++.tree .tree-count { font-variant-numeric: tabular-nums; background-color: var(--colorNeutralBackground6); }
++/* バッジは名前のすぐ隣に置く（作者の決定。Badge の使い方の「隣に置く」形）。名前は中身の幅にし、aside を名前の直後に置く */
++.tree .fui-TreeItemLayout > .fui-TreeItemLayout__main { flex: 0 1 auto; }
++.tree .fui-TreeItemLayout > .fui-TreeItemLayout__aside { margin-inline-start: 0; padding-inline: var(--spacingHorizontalS) 0; }
++/* 字下げ（2.3、6.1。作者の決定で Fluent 2 のサイトに合わせる）: 名前の位置は「シェブロンの幅 + 段の数 × 1 段」。
++   1 段目と 2 段目の名前は同じ位置にそろえ（サイトの区画の見出しと、その子）、3 段目から 1 段ごとに字下げする。
++   1 段は 18px（トークンの和）。サイトの 35px から、作者の決定で 16px ほど左に寄せた。枝はシェブロンの分だけ前から描く。
++   4 段目で止める */
++.tree { --browse-tree-indent: calc(var(--spacingHorizontalL) + var(--spacingHorizontalXXS)); }
++.tree .fui-TreeItem { --browse-tree-steps: 0; }
++.tree .fui-TreeItem[aria-level="3"] { --browse-tree-steps: 1; }
++.tree .fui-TreeItem[aria-level="4"], .tree .fui-TreeItem.tree-deep { --browse-tree-steps: 2; }
++.tree .fui-TreeItemLayout:where(.fui-TreeItem[aria-expanded] > *) {
++  padding-inline-start: calc(var(--browse-tree-steps) * var(--browse-tree-indent));
+ }
+-.tree-groups { list-style: none; margin: 0; padding: 0; }
+-.tree-groups .tree-groups { padding-inline-start: var(--spacingHorizontalL); }
+-.tree-groups.nav-depth-4, .tree-groups.nav-depth-5, .tree-groups.nav-depth-6 {
+-  padding-inline-start: 0; border-inline-start: var(--strokeWidthThin) solid var(--colorNeutralStroke2);
++.tree .fui-TreeItemLayout:where(.fui-TreeItem:not([aria-expanded]) > *) {
++  padding-inline-start: calc(var(--browse-tree-steps) * var(--browse-tree-indent) + var(--spacingHorizontalXXL));
+ }
+-.tree-groups .fui-NavItem, .tree-all { display: flex; gap: var(--spacingHorizontalS); height: auto; min-height: var(--f2-size360); }
+-.fui-NavItem.is-current, .fui-NavSubItem.is-current {
+-  background-color: var(--colorNeutralBackground4Selected);
+-  /* Nav の選択の印（::after）は、入れ子の NavSubItemGroup と details の中で切れて見えない。
+-     印は内側の影で描く（独自。日本語の画面だけなので左に描く） */
+-  box-shadow: inset var(--strokeWidthThicker) 0 0 var(--colorCompoundBrandForeground1);
++/* 線は背景で描き、箱の大きさを変えない。margin や border で描くと、深い段ごとに字下げが増える（実装の 1 回目のレビューの 1）。
++   位置は 4 段目の枝のシェブロンの中ほど（2 段の字下げ + 12px）で、どの深い段でも同じ所に引く */
++.tree .tree-group.tree-deep > .fui-Tree {
++  background-image: linear-gradient(var(--colorNeutralStroke2), var(--colorNeutralStroke2));
++  background-size: var(--strokeWidthThin) 100%;
++  background-repeat: no-repeat;
++  background-position: calc(2 * var(--browse-tree-indent) + var(--spacingHorizontalM)) 0;
+ }
+-.fui-NavSubItem.is-current::after { content: none; }
+ 
+ /* hidden の要素は、Fluent の部品（Button など）の display より強く隠す。app.js は hidden だけで出し入れする */
+ #_nav [hidden], #_main [hidden] { display: none !important; }
+@@ -285,7 +334,7 @@ a.ext::after { content: " ↗"; }
+ .diag-list li::marker { color: var(--colorStatusWarningForeground3); }
+ 
+ /* --- フォーカス（独自の要素） --- */
+-.ix-title:focus-visible, #_main a:focus-visible, .tree-filter:focus-visible, summary:focus-visible {
++.ix-title:focus-visible, #_main a:focus-visible, summary:focus-visible {
+   outline: var(--strokeWidthThick) solid var(--colorStrokeFocus2);
+   outline-offset: var(--strokeWidthThin);
+   border-radius: var(--borderRadiusSmall);
+@@ -303,7 +352,7 @@ a.ext::after { content: " ↗"; }
+ 
+ /* --- 強制カラー: 今のページと絞っているグループを、システムの色で示す --- */
+ @media (forced-colors: active) {
+-  .fui-NavItem.is-current, .fui-NavSubItem.is-current { outline: var(--strokeWidthThick) solid Highlight; }
++  .tree .fui-TreeItem.is-current > .fui-TreeItemLayout { outline: var(--strokeWidthThick) solid Highlight; outline-offset: calc(var(--strokeWidthThick) * -1); }
+   .fui-Badge.badge {
+     border-color: CanvasText;
+   }
+diff --git a/skills/info-hive/scripts/wiki_browse.py b/skills/info-hive/scripts/wiki_browse.py
+index cda055c..95f43af 100644
+--- a/skills/info-hive/scripts/wiki_browse.py
++++ b/skills/info-hive/scripts/wiki_browse.py
+@@ -491,7 +491,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
+             body = ('<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>見つからない</title>'
+                     f'{core.ICON_LINK}</head>'
+                     '<body><p>ページが見つからない。Wiki が更新されたかもしれない。</p>'
+-                    f'<p><a href="{html.escape(core.rel_href(name, index))}">索引へ</a></p></body></html>\n')
++                    f'<p><a href="{html.escape(core.rel_href(name, index))}">Index へ</a></p></body></html>\n')
+             return self._send(404, body.encode("utf-8"), "text/html; charset=utf-8")
+         reason = None if stale is None else ("組み立てに失敗した" if stale == "failed" else "組み立てている")
+         text = c.render(name, app.state.raw, generated_at=getattr(c, "generated_at", ""), stale=reason)
+diff --git a/skills/info-hive/scripts/wiki_browse_core.py b/skills/info-hive/scripts/wiki_browse_core.py
+index 230d41e..4849876 100644
+--- a/skills/info-hive/scripts/wiki_browse_core.py
++++ b/skills/info-hive/scripts/wiki_browse_core.py
+@@ -511,6 +511,8 @@ ICON_ERROR = ('<svg class="fui-Icon" width="20" height="20" viewBox="0 0 20 20"
+ TYPE_LABELS = {"source": "ソース", "entity": "エンティティ", "concept": "コンセプト", "synthesis": "シンセシス"}
+ SUMMARY_SEPARATORS = ":：—–-"
+ GROUP_ID_RE = re.compile(r"_g[0-9a-z]+\Z")
++TAG_GROUP_ID_RE = re.compile(r"_gt[0-9]+\Z")
++NO_TAG_LABEL = "タグなし"
+ TYPE_CLASS_RE = re.compile(r"[a-z][a-z0-9_-]*\Z")
+ LEAD_LIMIT = 120
+ 
+@@ -578,6 +580,21 @@ def _check_tree(top: list) -> None:
+         raise NavInvariantError("グループの ID が重なる")
+     if not all(GROUP_ID_RE.match(i) for i in ids):
+         raise NavInvariantError("グループの ID の形が違う")
++    # タグでまとめる設計の 2.4: ページの項目を持つのはタグのグループだけで、タグのグループは子を持たず、
++    # 同じ親の下のタグのグループどうしは、同じページを持たない
++    for g in _walk(top):
++        is_tag = bool(TAG_GROUP_ID_RE.match(g["id"]))
++        if is_tag and (g["children"] or any(it["state"] != "resolved" for it in g["items"])):
++            raise NavInvariantError("タグのグループが、子のグループかページでない項目を持つ")
++        if not is_tag and any(it["state"] == "resolved" for it in g["items"]):
++            raise NavInvariantError("タグのグループでないグループが、ページの項目を持つ")
++        seen = set()
++        for ch in g["children"]:
++            if TAG_GROUP_ID_RE.match(ch["id"]):
++                pids = {it["id"] for it in ch["items"] if it["state"] == "resolved"}
++                if pids & seen:
++                    raise NavInvariantError("同じページが、同じ親の 2 つのタグのグループに入っている")
++                seen |= pids
+     shown = set(ids)
+     titles = {g["id"]: g["title"] for g in _walk(top)}
+     for g in _walk(top):
+@@ -940,7 +957,7 @@ class Core:
+                 rest[str(self.page(pid)["meta"].get("type") or "")].append(pid)
+         rest_groups = []
+         if rest:
+-            g = new_group("索引にないページ")
++            g = new_group("Index にないページ")
+             for t in sorted(rest):
+                 # N7: 名前だけを日本語にする。ID と並び（type の値の順）は 1 つ目の段のまま
+                 sub = new_group(type_label(t))
+@@ -951,7 +968,10 @@ class Core:
+         self._page_listing()
+ 
+     def _nav_stage_two(self, file_groups: list, rest_groups: list) -> list:
+-        """木の 2 つ目の段（探しやすさの設計の 2.1 の N2〜N8）。新しい ID は作らない。"""
++        """木の 2 つ目の段（探しやすさの設計の 2.1 の N2〜N7）、3 つ目の段（N9）、件数（N8）。
++
++        2 つ目の段は新しい ID を作らない。ID を作るのは 3 つ目の段（`_gt` の番号）だけである。
++        """
+         listed_before = _page_ids([g for _f, g in file_groups])
+         by_id = {g["id"]: g for _f, g in file_groups}
+         index_g = next((g for f, g in file_groups if f.rel == "index.md"), None)
+@@ -961,7 +981,7 @@ class Core:
+                 x["origin"] = origin
+                 x.setdefault("summary", "")
+             if g is index_g:
+-                g["title"] = "索引"                                  # N2
++                g["title"] = "Index"                                  # N2
+             if not g["items"] and len(g["children"]) == 1:           # N3: 1 度だけ畳む
+                 child = g["children"][0]
+                 g["items"], g["children"] = child["items"], child["children"]
+@@ -973,7 +993,7 @@ class Core:
+         top = []
+         if index_g is not None:                                      # N4
+             if index_g["items"]:
+-                top.append({**index_g, "title": "索引", "children": []})
++                top.append({**index_g, "title": "Index", "children": []})
+             top.extend(index_g["children"])
+         order, summaries = [], {}                                    # N5: 順と要約はグループの ID で決める
+         if index_g is not None:
+@@ -1008,6 +1028,7 @@ class Core:
+             for x in _walk([g]):
+                 x["origin"], x["summary"] = "", ""
+             top.append(g)
++        self._nav_tag_stage(top)                                     # N9: 件数（N8）より前に当てる
+ 
+         def count(g):                                                # N8
+             ids = {it["id"] for it in g["items"] if it["state"] == "resolved"}
+@@ -1021,6 +1042,60 @@ class Core:
+         _check_tree(top)
+         return top
+ 
++    def _nav_tag_stage(self, top: list) -> None:
++        """木の 3 つ目の段 N9（タグでまとめる設計の 2 節）。
++
++        ページの項目を自分の項目に持つグループのすべてで、ページの項目を、ページの最初のタグごとの子のグループ
++        （タグのないページは「タグなし」）に移す。ページでない項目は元のグループに残す。タグのグループは、
++        元のグループの項目の並びでタグが初めて現れた順に、元の子のグループより前に並べ、「タグなし」を最後に置く。
++        ID は `_gt` と、木を深さ優先でたどって（親、子の順）作った順の番号で、タグの文字を入れない。
++        """
++        before = {g["id"]: [it["id"] for it in g["items"] if it["state"] == "resolved"] for g in _walk(top)}
++        listed = _page_ids(top)
++        first_tag = {}
++        counter = [0]
++
++        def tag_of(pid):
++            if pid not in first_tag:
++                tags = self.page_tags(pid)
++                first_tag[pid] = tags[0] if tags else None
++            return first_tag[pid]
++
++        def apply(g):
++            original_children = g["children"]
++            pages = [it for it in g["items"] if it["state"] == "resolved"]
++            if pages:
++                buckets = {}           # 最初のタグ（なければ None）-> 項目。dict は入れた順を保つ
++                for it in pages:
++                    buckets.setdefault(tag_of(it["id"]), []).append(it)
++                keys = [k for k in buckets if k is not None] + ([None] if None in buckets else [])
++                made = []
++                for k in keys:
++                    counter[0] += 1
++                    made.append({"id": f"_gt{counter[0]}", "title": NO_TAG_LABEL if k is None else k,
++                                 "summary": "", "origin": "tag", "items": buckets[k], "children": []})
++                g["items"] = [it for it in g["items"] if it["state"] != "resolved"]
++                g["children"] = made + original_children
++            for ch in original_children:
++                apply(ch)
++
++        for g in top:
++            apply(g)
++        # 2.4 の性質のうち、N9 の前の木と比べるもの。形だけで決まるものは _check_tree() が確かめる
++        if _page_ids(top) != listed:
++            raise NavInvariantError("3 つ目の段で、木に載ったページが変わった")
++        by_id = {g["id"]: g for g in _walk(top)}
++        for gid, pids in before.items():
++            # ページ -> そのページを持つタグのグループの名前の並び。ページ数に比例する時間で数える
++            holders = defaultdict(list)
++            for ch in by_id[gid]["children"]:
++                if ch.get("origin") == "tag":
++                    for pid in {it["id"] for it in ch["items"] if it["state"] == "resolved"}:
++                        holders[pid].append(ch["title"])
++            for pid in set(pids):
++                if holders.get(pid) != [tag_of(pid) or NO_TAG_LABEL]:
++                    raise NavInvariantError("ページが、最初のタグのグループのちょうど 1 つに入っていない")
++
+     def _page_listing(self) -> None:
+         """索引のページの一覧と検索の索引に使う、ページごとの並び、グループ、階層、索引の行の要約（4.1、4.2）。"""
+         self.page_order = []          # 索引の順（木を深さ優先でたどり、ページが最初に現れた順）
+@@ -1329,9 +1404,9 @@ class Core:
+                 f'<body class="fui-FluentProvider {kind}">\n'
+                 f'<nav id="_nav" class="fui-NavDrawer" aria-label="wiki のナビゲーション">'
+                 f'<div class="fui-NavDrawerHeader nav-head">{self._scope_html()}'
+-                f'<a class="fui-NavItem nav-home" href="{prefix}index.html">索引</a></div>'
++                f'<a class="fui-NavItem nav-home" href="{prefix}index.html">Index</a></div>'
+                 f'<div class="fui-NavDrawerBody" id="_navbody">'
+-                f'<noscript><a class="fui-Link" href="{prefix}index.html">索引へ</a></noscript></div></nav>\n'
++                f'<noscript><a class="fui-Link" href="{prefix}index.html">Index へ</a></noscript></div></nav>\n'
+                 f'<main id="_main">\n{banner}')
+ 
+     def _tail(self, path: str, extra_data: tuple = ()) -> str:
+@@ -1441,7 +1516,7 @@ class Core:
+             where = f'<span class="fui-Caption1 state">（{html.escape(" › ".join(trail))}）</span>' if trail else ""
+             lis.append(f'<li><span class="wl wl-{it["state"]}" title="{title}">{html.escape(it["label"])}</span>'
+                        f"{where}</li>")
+-        return ('<section id="_index_unresolved"><h2 class="fui-Subtitle2">ページに決まらない索引の行</h2>'
++        return ('<section id="_index_unresolved"><h2 class="fui-Subtitle2">ページに決まらない Index の行</h2>'
+                 f'<ul>{"".join(lis)}</ul></section>\n')
+ 
+     def render_index(self, stale: "str | None" = None) -> str:
+@@ -1452,16 +1527,16 @@ class Core:
+         nav_note = ""
+         if self.unreadable_indexes:
+             nav_note = (self._message_bar("_nav_incomplete", "warning", "ナビゲーションは不完全",
+-                                          f"読めない索引のファイルがある（{len(self.unreadable_indexes)} 件）。",
++                                          f"読めない Index のファイルがある（{len(self.unreadable_indexes)} 件）。",
+                                           "notice incomplete"))
+         diag_note = self._incomplete_html()
+         total = len(self.page_order)
+         rows = "".join(self._index_row(pid, k + 1, path) for k, pid in enumerate(self.page_order))
+-        return (self._head(path, "索引", stale)
+-                + f'<header id="_ixhead"><h1 class="fui-Title2">索引</h1>'
++        return (self._head(path, "Index", stale)
++                + f'<header id="_ixhead"><h1 class="fui-Title2">Index</h1>'
+                   f'<p class="ix-stats fui-Caption1">{total} ページ</p></header>\n{nav_note}'
+                 + '<div id="_filters" class="fx-bar"><noscript><p class="state fui-Caption1">絞り込みと検索には '
+-                  'JavaScript が要る。一覧は索引の順に並んでいる。</p></noscript></div>\n'
++                  'JavaScript が要る。一覧は Index の順に並んでいる。</p></noscript></div>\n'
+                 + f'<p id="_count" class="fx-count fui-Caption1" aria-live="polite">{total} 件</p>\n'
+                 + f'<ul id="_index" class="fx-list">{rows}</ul>\n'
+                 + self._index_unresolved_html()

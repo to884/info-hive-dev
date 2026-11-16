@@ -4,7 +4,7 @@ title: "browse のデザインシステム（Fluent 2）"
 tags: ["browse"]
 sources: []
 created: 2026-11-14
-updated: 2026-11-15
+updated: 2026-11-16
 ---
 
 # browse のデザインシステム（Fluent 2）
@@ -15,7 +15,8 @@ updated: 2026-11-15
 
 - **同梱する。** `fluent2.css` は書き換えずに、全体をプラグインの `browse_assets/` に写す。出どころ、基準の版、SHA-256 は `browse_assets/README.md` にある。プラグインはスキルの場所を読まない。
 - **`fluent2.js` は使わない。** 要素の `style` に書き込み、閲覧の画面の約束（`[style]` が 0 件）に反する。要るふるまいは `app.js` が受け持つ。
-- **配色を選べる。** `<html data-theme="auto">` を既定にし、ライトとダークを選べる。選んだ値は、http ではポートを区別しない cookie に、`file://` では localStorage に置く。サーバーは起動ごとにポートが変わり、localStorage はポートごとに分かれるためである。
+- **配色を選べる。** `<html data-theme="auto">` を既定にし、ライトとダークを選べる。選んだ値は、http ではポートを区別しない cookie に、`file://` では localStorage に置く。サーバーは起動ごとにポートが変わり、localStorage はポートごとに分かれるためである。0.25.0 からは、Fluent 2 のサイトの形の「テーマ」のトグルで切り替え、OS と同じ見た目に戻すと auto を保存する（[[browseのタグの段とTreeのリリース-wiki-0.25.0]]）。
+- **左のペインは Tree で描く（0.25.0 から）。** Nav は入れ子を 1 段までとし、深い階層には Tree を使う。記事のページも Index のページも、グループの名前と件数のバッジだけを描く。見た目は Fluent 2 のサイトの左のペインに合わせ、ホバーと今の項目は、地と文字を組で brand のトークン（`colorBrandBackground2` 系と `colorBrandForeground2` 系）にする。組の比は 4.5:1 以上を試験で守る（設計は `docs/plans/wiki-browse-tree-2026-11-16.md`）。
 - **ライセンスの表示を出力に付ける。** `fluent2.css` の先頭のコメントは Fluent UI の表示だけを持つ。`fluent2-html-replica` 自身の MIT の表示は、出力に必ず入る `style.css` の先頭のコメントに写す。
 
 ## レビューで分かったこと

@@ -131,7 +131,7 @@ def build(root: Path) -> list:
             x["origin"] = origin
             x.setdefault("summary", "")
         if g is index_g:
-            g["title"] = "索引"                      # N2
+            g["title"] = "Index"                      # N2
         if not g["items"] and len(g["children"]) == 1:   # N3: 1 度だけ畳む
             child = g["children"][0]
             g["items"], g["children"] = child["items"], child["children"]
@@ -143,7 +143,7 @@ def build(root: Path) -> list:
     top = []
     if index_g is not None:                           # N4
         if index_g["items"]:
-            top.append({**index_g, "title": "索引", "children": []})
+            top.append({**index_g, "title": "Index", "children": []})
         top.extend(index_g["children"])
     order, summaries = [], {}                         # N5: 順と要約は、グループの ID で決める
     if index_g is not None:
@@ -174,12 +174,14 @@ def build(root: Path) -> list:
     top = prune(top)
     assert page_ids(top) == listed_before, "2 つ目の段で、索引に載ったページが変わった"
     for g in rest:                                     # N7: 今のグループと ID を使い、名前だけを変える
+        g["title"] = "Index にないページ"             # 画面の名前（左のペインの木の設計の 8 節）
         g["origin"], g["summary"] = "", ""
         for sub in g["children"]:
             t = str(c.page(sub["items"][0]["id"])["meta"].get("type") or "")
             sub["title"] = TYPE_LABELS.get(t, t or "種類なし")
             sub["origin"], sub["summary"] = "", ""
         top.append(g)
+    tag_stage(top, c)                                  # N9: 件数（N8）より前に当てる
 
     def count(g):                                      # N8
         ids = {it["id"] for it in g["items"] if it["state"] == "resolved"}
@@ -192,6 +194,67 @@ def build(root: Path) -> list:
         count(g)
     check(top)
     return top
+
+
+NO_TAG = "タグなし"
+
+
+def first_tag(c, pid: str) -> "str | None":
+    """ページの最初のタグ（タグでまとめる設計の N9-2）。frontmatter の読み方（ref_values と NFC）だけを共有する。"""
+    tags = [unicodedata.normalize("NFC", t) for t in wiki_pages.ref_values(c.page(pid)["meta"].get("tags"))]
+    return tags[0] if tags else None
+
+
+def tag_stage(top: list, c) -> None:
+    """3 つ目の段 N9。ページの項目を持つグループごとに、ページの項目を最初のタグのグループに移す。
+
+    ID は `_gt` と、木を深さ優先でたどって（親、子の順）タグのグループを作った順の番号。
+    """
+    before = {g["id"]: [it["id"] for it in g["items"] if it["state"] == "resolved"] for g in walk(top)}
+    listed = page_ids(top)
+    counter = [0]
+
+    def apply(g):
+        original_children = g["children"]
+        pages = [it for it in g["items"] if it["state"] == "resolved"]
+        if pages:
+            buckets, order = {}, []
+            for it in pages:
+                key = first_tag(c, it["id"])
+                if key not in buckets:
+                    buckets[key] = []
+                    order.append(key)
+                buckets[key].append(it)
+            keys = [k for k in order if k is not None] + ([None] if None in buckets else [])
+            made = []
+            for k in keys:
+                counter[0] += 1
+                made.append({"id": f"_gt{counter[0]}", "title": NO_TAG if k is None else k, "summary": "",
+                             "origin": "tag", "items": buckets[k], "children": []})
+            g["items"] = [it for it in g["items"] if it["state"] != "resolved"]
+            g["children"] = made + original_children
+        for ch in original_children:
+            apply(ch)
+
+    for g in top:
+        apply(g)
+    # 2.4 の 3 つの性質
+    assert page_ids(top) == listed, "N9 で、木に載ったページが変わった"
+    by_id = {g["id"]: g for g in walk(top)}
+    for gid, pids in before.items():
+        g = by_id[gid]
+        assert not any(it["state"] == "resolved" for it in g["items"]), f"N9 のあとも、ページの項目が残る: {gid}"
+        holders = {}
+        for ch in g["children"]:
+            if ch.get("origin") == "tag":
+                for pid in {it["id"] for it in ch["items"]}:
+                    holders.setdefault(pid, []).append(ch["title"])
+        for pid in set(pids):
+            assert len(holders.get(pid, [])) == 1, f"ページがちょうど 1 つのタグのグループにない: {pid}"
+            assert holders[pid][0] == (first_tag(c, pid) or NO_TAG), f"タグのグループの名前が違う: {pid}"
+    for g in walk(top):
+        if g.get("origin") == "tag":
+            assert not g["children"] and all(it["state"] == "resolved" for it in g["items"]), "タグのグループの形が違う"
 
 
 def data_groups(top: list) -> dict:
@@ -256,8 +319,11 @@ def render(top: list) -> list:
     return out
 
 
-def page(slug: str, type_: str, title: str = "") -> str:
-    return f'---\ntype: "{type_}"\ntitle: "{title or slug}"\n---\n\n# {title or slug}\n\n本文。\n'
+def page(slug: str, spec, title: str = "") -> str:
+    """ページの本文。spec は種類の文字か、(種類, frontmatter の tags の行) の組。tags の行は書いたまま入れる。"""
+    type_, tags_line = (spec, None) if isinstance(spec, str) else spec
+    extra = f"{tags_line}\n" if tags_line is not None else ""
+    return f'---\ntype: "{type_}"\ntitle: "{title or slug}"\n{extra}---\n\n# {title or slug}\n\n本文。\n'
 
 
 # 設計書の当てはめの例と、レビューの反例。値が bytes のファイルは、そのまま書く（読めない索引の再現）。
@@ -308,6 +374,34 @@ CASES = [
     ("グループへの行の別名（5 回目のレビューの軽微）",
      {"index.md": "- [[a]]\n- [[indexes/x|User alias]]\n", "indexes/x.md": "---\ntitle: Custom\n---\n- [[b]]\n"},
      {"a": "concept", "b": "concept"}),
+    # タグでまとめる設計（2026年11月16日）の 2.5 の例。`# Wiki` の h1 は N3 で畳まれ、`##` の見出しが最上位に並ぶ
+    ("タグ: 基本",
+     {"index.md": "# Wiki\n## コンセプト\n- [[a]]\n- [[b]]\n- [[c]]\n- [[d]]\n## ソース\n- [[s]]\n"},
+     {"a": ("concept", "tags: [検索, bm25]"), "b": ("concept", "tags: [取り込み]"), "c": "concept",
+      "d": ("concept", "tags: 検索"), "s": "source"}),
+    ("タグ: 項目と見出しの子",
+     {"index.md": "# Wiki\n## 章\n- [[a]]\n- [[nope]]\n### 節\n- [[b]]\n## 付録\n- [[c]]\n"},
+     {"a": ("concept", "tags: [x]"), "b": ("concept", "tags: [y]"), "c": "concept"}),
+    ("タグ: グループへの項目", {"index.md": "- [[a]]\n- [[indexes/x]]\n", "indexes/x.md": "# X\n- [[b]]\n"},
+     {"a": "concept", "b": ("concept", "tags: [t]")}),
+    ("タグ: 同じページが 2 つのグループ",
+     {"index.md": "# Wiki\n## 第一\n- [[a]]\n## 第二\n- [[a]]\n- [[b]]\n"},
+     {"a": ("concept", "tags: [t]"), "b": "concept"}),
+    ("タグ: 同じグループに同じページが 2 回",
+     {"index.md": "# Wiki\n## G\n- [[a]]\n- [[a#a]]\n## H\n- [[b]]\n"},
+     {"a": ("concept", "tags: [t]"), "b": "concept"}),
+    ("タグ: 索引にないページ", {}, {"a": ("concept", "tags: [t]"), "b": "concept", "c": ("source", "tags: [t]")}),
+    ("タグ: NFC で同じになるタグ", {"index.md": "# Wiki\n## G\n- [[a]]\n- [[b]]\n## H\n- [[c]]\n"},
+     {"a": ("concept", "tags: [cafe\u0301]"), "b": ("concept", "tags: [caf\u00e9]"), "c": "concept"}),
+    ("タグ: 大文字と小文字", {"index.md": "# Wiki\n## G\n- [[a]]\n- [[b]]\n## H\n- [[c]]\n"},
+     {"a": ("concept", "tags: [Windows]"), "b": ("concept", "tags: [windows]"), "c": "concept"}),
+    ("タグ: 「タグなし」という値のタグ", {"index.md": "# Wiki\n## G\n- [[a]]\n- [[b]]\n## H\n- [[c]]\n"},
+     {"a": ("concept", "tags: [タグなし]"), "b": "concept", "c": "concept"}),
+    ("タグ: 値のない tags と空の要素", {"index.md": "# Wiki\n## G\n- [[a]]\n- [[b]]\n- [[c]]\n## H\n- [[d]]\n"},
+     {"a": ("concept", "tags:"), "b": ("concept", 'tags: ["", "  ", t]'), "c": ("concept", "tags: []"),
+      "d": "concept"}),
+    ("タグ: 空白と記号を含むタグ", {"index.md": "# Wiki\n## G\n- [[a]]\n## H\n- [[b]]\n"},
+     {"a": ("concept", 'tags: ["research note <b>\\"x\\""]'), "b": "concept"}),
 ]
 
 
