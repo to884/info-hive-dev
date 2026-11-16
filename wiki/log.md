@@ -218,3 +218,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-16] ingest | /wiki:query の回答の「確からしさ」を「確信度」に変えた wiki 0.24.0 のリリース
    ページ: sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0（新規）。concepts/リリースの確かめ方 を更新
+
+## [2026-11-16] ingest | browse の木をタグでまとめ、左のペインを Tree にした wiki 0.25.0 のリリース
+   ページ: sources/browseのタグの段とTreeのリリース-wiki-0.25.0（新規）。concepts/browseのデザインシステム、concepts/browseの画面の確かめ方、index を更新
