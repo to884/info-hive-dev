@@ -1,0 +1,130 @@
+[ask-codex 13:00:27] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-0027-impl）
+## 判定
+
+**却下。確信度：高。** 重大な欠陥を3件再現した。前回の修正は、半角濁点、保存先の大小文字、`-orig` がないトラックという条件で、同種の失敗を防げていない。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】半角濁点を使うと、本文を訂正せずに照合を通せる
+
+raw を `uploaded`・200行とし、L1 に `ﾄﾞヨタ`、L2 に `ヨタ` を含める。親の要約ページを `confidence: "high"` とし、次を書く。
+
+```markdown
+ﾄﾞヨタ〔訂正 L1-1〕
+
+## 字幕の訂正と留保
+
+- L1-1: 字幕 `ﾄﾞヨタ` を `ヨタ` に訂正（根拠 caption:L2）
+```
+
+本文は字幕の元の語から変わっていない。それでも実際の結果は以下だった。
+
+- verify：**終了コード0、`findings: []`**
+- 重み：1、confidence：`high`
+- `unknown_words: {}`
+- lint：`caption_corrections: []`
+
+印の直前を全角の `ドヨタ` にすると、`mark_tail` になる。
+
+原因は、語の直前の半角濁点 U+FF9E にある。NFC はこれを合成せず、`unicodedata.combining("\uff9e")` は0を返す。`char_class` 内の NFKC では結合濁点になるが、カタカナとは判定されない。そのため、カタカナの語の途中を境目として受理する。
+
+根拠：[wiki_captions.py:475](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:475) の文字種判定と、同ファイル501・505・506行の末尾判定。ADR-0027 101行目の語の境目の規則に反する。
+
+### 2. 【重大】Windows の大小文字の別表記で、走査対象外の保存先を受理する
+
+大小文字を区別しない Windows で、wiki に小文字の `graph/` が存在する状態を使う。正常な raw と要約を用意し、次を渡す。
+
+```text
+verify --wiki <W> --raw-root <R> --slug a \
+  --page "GRAPH/a.md=<要約の全文>" --json
+```
+
+要約は、その raw を参照する `type: "source"` のページとする。再現結果は以下だった。
+
+| 指定 | 結果 |
+|---|---|
+| `GRAPH/a.md` | **終了コード0、指摘なし、親 `GRAPH/a.md`** |
+| `graph/a.md` | 終了コード1、保存先を拒否 |
+| overlay なし | 終了コード1、`no_summary` |
+
+実環境の既存ディレクトリで、`os.path.samefile(<W>/graph, <W>/GRAPH) == True` も確認した。`GRAPH/a.md` に保存しても、保存先は既存の `graph/` の中であり、通常の走査はこのディレクトリを除外する。
+
+原因は、overlay のパスの**文字列**だけを `is_page_path` に渡すこと。通常の走査はディスク上の名前 `graph` で除外するため、保存前後で判定が一致しない。
+
+根拠：[wiki_captions.py:1272](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1272)、[wiki_pages.py:49](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:49) の名前の照合と、同ファイル254行の走査時の除外。ADR-0027 112行目の保存先の条件を満たさない。
+
+### 3. 【重大】一覧名そのものが衝突すると、投稿者字幕を指定できない
+
+次のトラック情報で再現した。自動字幕の URL は対応する `kind=asr`・`lang` を持ち、`tlang` はない。
+
+```text
+subtitles:
+  ja
+automatic_captions:
+  ja
+  en-orig
+```
+
+分類後の一覧には、次の3候補が出る。
+
+```text
+ja       uploaded
+en-orig  asr
+ja       asr
+```
+
+実際の `cmd_inspect` の結果は、指定なし、`--track ja`、`--track ja-orig` のすべてで**終了コード3、`track_undecided`** だった。
+
+`ja` は一覧名で2件に当たり、`ja-orig` は存在しない。日本語の投稿者字幕にも自動字幕にも、選択を完了できる指定名がない。V2 の案内に従って一覧の名前を指定しても進めない。
+
+今回の修正が解消するのは、一覧名と別名の衝突だけである。`-orig` がない自動字幕は、一覧名自体が投稿者字幕と重なる。
+
+根拠：[wiki_youtube.py:123](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_youtube.py:123) の名前の決定と、同ファイル147・148行の選択。`-orig` がない形は ADR-0027 26行目でも想定されている。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| NFC と `combining()` で、語の直前に残った濁点を検出できる | 半角濁点 U+FF9E。結合クラスは0で、NFCでも残る |
+| 相対パスの字面がページの条件を満たせば、保存後も走査される | Windows で、既存の除外ディレクトリを大小文字の別表記で指す |
+| 一覧名を別名より優先すれば、指定が一意になる | 投稿者字幕と、`-orig` のない自動字幕の一覧名が同じになる |
+
+## 見落としと軽微な問題
+
+**【軽微】11文字ではない動画 ID を受理する。**
+
+```text
+https://www.youtube.com/watch?v=AbCdEfGhIj0%0A
+```
+
+`classify` はこれを `video` とし、`video_id` に末尾の改行を含む12文字を返した。正規表現の `$` は末尾の改行の直前にも一致し、呼び出し側は `match()` を使っている。
+
+根拠：[wiki_youtube_url.py:23](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_youtube_url.py:23)、同ファイル101行。後段には動画 ID の一致検査があるため、不正な raw の生成まで確認した指摘ではない。
+
+## 検証した事実
+
+| 確かめた主張 | 結果 |
+|---|---|
+| 試験は50件 | 一致。収集件数50件 |
+| ファイルを書かない既存4クラス | 20件成功 |
+| 前回の分解表現 `ト\u3099ヨタ` を拒む | 一致。verify・lint とも `mark_tail` |
+| 半角濁点でも語の途中を拒む | 食い違い。重大1 |
+| overlay と保存後のページの範囲が一致する | 食い違い。重大2 |
+| 一覧の投稿者字幕を名前で選べる | 食い違い。重大3 |
+| `.MD` の既存 raw を検索する | 一致。メモリ上の列挙結果で検出 |
+
+反例は、読み取り内容、ファイル一覧、取得結果をメモリ上で差し替えて検証した。ファイルは変更していない。
+
+全50件の実行、実ファイルへの保存・公開・競合、固定した yt-dlp による実取得は確かめていない。重大3の組み合わせを返す実在動画の有無も未確認であり、再現には yt-dlp の形に沿った合成メタデータを使った。
+
+## 崩せなかった点
+
+- レビュー4の隠れた印との相殺は、`bad_mark` と `unused_definition` になった。
+- レビュー5の、印の始まりだけをコードにする反例は、`bad_mark` になった。
+- 画像の代替テキスト `999` は、`unknown_words` に残った。
+- 自動字幕に `ja-orig` がある前回の衝突条件では、`--track ja` が投稿者字幕を選んだ。
+- 既存試験が扱う、字幕による偽の行番号・フェンス・区間構造の挿入。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 13:14:52] 完了。session 01a1e283-7428-7b81-bb44-195774e03c1d  usage {"input_tokens": 4502218, "cached_input_tokens": 4308224, "cache_write_input_tokens": 0, "output_tokens": 23539, "reasoning_output_tokens": 12541}

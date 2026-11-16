@@ -66,7 +66,8 @@ class LintCase(unittest.TestCase):
     def run_lint(self, allowed_tags=None) -> dict:
         pages = wiki_lint.collect_pages(self.wiki)
         return wiki_lint.lint(pages, 100, 200, list(wiki_lint.DEFAULT_REQUIRED_FM), False, 5,
-                              index_entries=wiki_lint.collect_index_entries(self.wiki), allowed_tags=allowed_tags)
+                              index_entries=wiki_lint.collect_index_entries(self.wiki), allowed_tags=allowed_tags,
+                              wiki_root=self.wiki)
 
 
 class IndexTypeMismatchTests(LintCase):

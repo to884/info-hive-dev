@@ -1,0 +1,140 @@
+## 判定
+
+**却下。確信度：高。** 印と語の境界の見落とし、複数 raw の照合先の取り違え、読めない分割ページの除外により、不正な訂正や過大な confidence を成功として返す反例を再現した。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】直前の数字に書式を付けると、数値を訂正していなくても通る
+
+次の条件で再現した。
+
+- raw は `uploaded`、200 行。L1 は `15`、L2 は `50`。
+- 親の要約ページの本文は `**1**5〔訂正 L1-1〕`。
+- 定義は次のとおりで、confidence は `high`。
+
+```markdown
+- L1-1: 字幕 `15` を `5` に訂正（根拠 caption:L2）
+```
+
+表示される数値は **15 のまま**だが、`text_runs` は強調の終了位置で本文を切り、印の直前を `5` だけとして返す。したがって、`tail_problem` は前の数字 `1` を調べられない。
+
+実測は `verify` 終了コード **0**、`findings: []`、重み **1**、confidence **`high`**。用意したページを対象にした `unknown_words` と、lint の `caption_corrections` も空だった。`[1](https://example.com)5〔訂正 L1-1〕` でも境界の検査を通った。
+
+根拠：[wiki_captions.py:531](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:531) の文字列の分断、[同ファイル:467](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:467) の末尾照合。[ADR:101](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/docs/adr/0027-youtube-captions-via-pinned-yt-dlp.md:101) が求める数字の途中の検出と食い違う。
+
+### 2. 【重大】印の中に書式を入れると、印も形式エラーも消える
+
+本文を次のようにし、定義を置かず、confidence を `high` にする。
+
+```markdown
+50〔**訂正** L1-1〕
+```
+
+Markdown の表示は「50〔訂正 L1-1〕」で、訂正の文字だけが強調される。しかし検査側の文字列は `50〔`、`訂正`、` L1-1〕` に分かれる。どの文字列にも `MARK_START_RE` の開始形がなく、印としても、不正な印としても検出されない。`50〔訂**正** L1-1〕` でも同じだった。
+
+`uploaded`・200 行で、raw に `50` もある条件では、`verify` 終了コード **0**、`findings: []`、重み **0**、confidence **`high`**、`unknown_words: {}`、lint の `caption_corrections: []` を再現した。
+
+これは規定外の書式を含む印だが、その形式違反を報告せず、表示上存在する訂正の記録を検査対象から落としている。前回の見落としを、別の Markdown の境界から再現できる。
+
+根拠：[wiki_captions.py:537](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:537)、[同ファイル:611](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:611)。開始形と完全な印を、分断された文字列ごとにしか検査しない。
+
+### 3. 【重大】`raw` 配列の最後の動画だけを照合し、それ以前の動画を検査済みとして返す
+
+次の状態で再現した。
+
+1. `raw/a.md` と `raw/b.md` は別の動画で、両方とも `uploaded`・200 行。A の L1 は `20`、B の L1 は `15`。
+2. `sources/a.md` の指定を次のようにする。confidence は書かない。
+
+   ```yaml
+   raw: ["raw/a.md", "raw/b.md"]
+   ```
+
+3. A のページに `50〔訂正 L1-1〕` と、次の定義を置く。
+
+   ```markdown
+   - L1-1: 字幕 `15` を `50` に訂正（根拠 model:x）
+   ```
+
+4. `sources/b.md` は B だけを参照し、confidence を `medium` にする。
+
+結果は次のとおりだった。
+
+- 全体の照合と lint の `caption_corrections` は、ともに指摘なし。
+- A に対する `verify` は終了コード **0**。
+- A の結果は `parent: null`、`summaries: []`、`definitions: []`、重み **0**、confidence **`high`**。
+- A の字幕には存在しない `15` の定義は、B の字幕で検証され、B の重みとして数えられる。
+- A の親ページの confidence 欠落も検出されない。
+
+`_refs` は配列を受け入れるが、`summaries[p.rel]` は raw を一つしか保持せず、走査のたびに上書きする。一方、`raw_docs` には A が残る。親の検査は `mine` が空なら指摘せず、`cmd_verify` も raw の結果が一つあれば `no_summary` を出さない。
+
+根拠：[wiki_captions.py:884](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:884)、[同ファイル:1010](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1010)、[wiki_youtube.py:593](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_youtube.py:593)。
+
+### 4. 【重大】分割ページの読み取り失敗で定義が消え、confidence が上がる
+
+次の状態で、子ページの読み取り結果だけを変えて比較した。
+
+- raw は `uploaded`・200 行。
+- 親 `sources/a.md` は confidence `high`、定義なし。
+- 子 `sources/a-2.md` は同じ raw を参照し、`model` の訂正を一つ定義して使用する。
+
+| 子ページの読み取り | verify | 計算した confidence | 重み |
+| --- | --- | --- | --- |
+| 成功 | 終了コード 1、`confidence_mismatch` | `medium` | 3 |
+| `PermissionError` | **終了コード 0、指摘なし** | **`high`** | **0** |
+
+`load_pages` は `OSError` と `UnicodeDecodeError` を受けると、そのページを黙って除外する。共有違反やアクセス拒否で子を読めないだけで、疑いが存在しないものとして計算される。`verify` は不完全な読み取りであることを利用者に伝えない。
+
+根拠：[wiki_captions.py:1114](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1114)。読み取り例外を差し替えて、実際の `load_pages`、`check_wiki`、`cmd_verify` を通して再現した。
+
+## 崩れる前提
+
+- **一つの文字列の続きだけで、表示上の語の境界を判断できる。** 直前の数字や英字に強調・リンクがあると崩れる。
+- **印の開始形は一つの文字列の続きに収まる。** 印の途中に書式が入ると、形式違反の検出も失われる。
+- **一つの要約ページは動画の raw を一つだけ持つ。** 実装が受理する `raw` 配列で崩れる。
+- **読めなかったページは、計算から除いてよい。** そのページに訂正・留保の定義があると、confidence が過大になる。
+
+## 見落としと軽微な問題
+
+**【軽微】`parse_raw` は、生成器が書かない構造を引き続き受理する。**
+
+正常な raw の末尾に、次をそれぞれ追加しても受理された。
+
+```markdown
+この区間に字幕はない
+```
+
+```text
+```text
+題名: FAKE CHAPTER
+```
+```
+
+前者は字幕のある区間にも追加できる。後者は同じ区間に題名を追加し、既存の題名があれば上書きする。許可された行の種類だけを検査し、区間内の出現回数や組み合わせを検査していない。
+
+根拠：[wiki_captions.py:308](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:308)。追加された[試験:392](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/tests/wiki/test_wiki_youtube.py:392) は、最初の区間より前への挿入を検査している。字幕から生成処理を通して、この追加構造を作る経路は崩せなかった。
+
+## 検証した事実
+
+| 主張 | 結果 |
+| --- | --- |
+| 試験は43件 | 一致。収集した件数は43件 |
+| URL・トラック・raw・定義の既存試験 | ファイルを書かない4クラス、**20件成功** |
+| エンコードされた YouTube ホストの拒否 | 一致。該当する既存試験が成功 |
+| 保存済み `final_url` が YouTube の再開を拒否 | 一致。取得処理に到達する前に拒否例外が発生 |
+| 字幕なしは終了コード2 | 一致。`take` がコード2の失敗を返した |
+| 小数秒のチャプター境界 | 一致。60.2秒と60.5秒を分ける試験が成功 |
+| 印・定義・confidence のすり抜け防止 | 食い違い。上記の反例を再現 |
+| 実ファイルへの公開・読み取り専用化・競合 | 実行では確かめていない |
+| 固定した yt-dlp による実取得 | 確かめていない |
+
+読み取り専用の条件に従い、一時ファイルを作る試験を含む全43件は実行していない。追加の反例は、ファイル操作や取得処理をメモリ上の素材に差し替えて検証した。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 生成処理を通じた、字幕の改行・偽の行番号・見出し・バッククォート列による raw の構造の偽造。
+- 通常形のトラック情報に対する、自動翻訳の除外、同じ言語の自動字幕の統合、曖昧な候補での停止。
+- 依頼と異なる動画 ID、配信状態・公開状態による停止。
+- パーセントエンコードされたホストと、保存済みの YouTube 転送先に対する今回の拒否処理。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

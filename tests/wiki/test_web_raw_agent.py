@@ -125,7 +125,7 @@ class ReferenceTest(unittest.TestCase):
         self.assertTrue(asked["question"]["message"])
         self.assertIsNone(asked["error"])
         broke = reports["failed"]
-        self.assertIn(broke["error"]["kind"], {"fetch_failed", "not_initialized", "no_raw_root", "model_unknown", "other"})
+        self.assertIn(broke["error"]["kind"], {"fetch_failed", "youtube", "not_initialized", "no_raw_root", "model_unknown", "other"})
         self.assertIsNone(broke["question"])
 
     def test_status_and_question_kinds_are_documented(self):
@@ -134,7 +134,7 @@ class ReferenceTest(unittest.TestCase):
             self.assertIn(f"| `{status}` |", text)
         for kind in sorted(QUESTION_KINDS):
             self.assertIn(f"| `{kind}` |", text)
-        for kind in ("fetch_failed", "not_initialized", "no_raw_root", "model_unknown"):
+        for kind in ("fetch_failed", "youtube", "not_initialized", "no_raw_root", "model_unknown"):
             self.assertIn(f"`{kind}`", text)
 
     def test_needs_browser_can_continue_with_the_short_body(self):

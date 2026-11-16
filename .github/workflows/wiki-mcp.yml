@@ -121,6 +121,9 @@ jobs:
       - name: セッションの取り込みの試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -B -m unittest tests/wiki/test_wiki_session.py -v
+      - name: YouTube の字幕の取り込みの試験（ADR-0027。ネットにつながず、yt-dlp を読み込まない）
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 python -X utf8 -B -m unittest tests/wiki/test_wiki_youtube.py -v
       - name: URL の取り込みの raw の段を任せるエージェントの試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_web_raw_agent.py -v

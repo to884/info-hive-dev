@@ -1,0 +1,128 @@
+[ask-codex 13:44:14] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-0027-impl）
+## 判定
+
+**却下。確信度：高。** 重大な欠陥を2件再現した。循環するジャンクション経由では走査されない保存先を受理し、補助面のカタカナでは未訂正の本文を正常と判定する。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】循環するジャンクション配下を、保存予定ページとして受理する
+
+Windows で次の状態を使う。
+
+```text
+wiki/
+  SCHEMA.md
+  graph/
+  sources/
+    loop/    ← wiki 自体を指すジャンクション
+raw/
+  a.md       ← 正常な動画の raw
+```
+
+正常な要約を、次の保存先で渡す。
+
+```text
+verify --wiki <W> --raw-root <R> --slug a \
+  --page "sources/loop/graph/a.md=<要約ファイル>" --json
+```
+
+このパスに保存される実体は `wiki/graph/a.md` である。通常走査は最上位の `graph` を除外し、`sources/loop` も循環として降りない。
+
+OS の応答をメモリ上で再現し、実際の `walk_pages` と `cmd_verify` を呼んだ結果：
+
+| 条件 | 結果 |
+|---|---|
+| overlayあり | **終了コード0、`findings: []`** |
+| 検証結果の親 | `sources/loop/graph/a.md` |
+| 保存を反映した通常走査 | **`files=[]`、障害の通知もなし** |
+| overlayなしで再検証 | **終了コード1、`no_summary`** |
+
+`walk_reaches` が確かめるのは、各段がシンボリックリンクでないことと、ディレクトリであることだけである。ジャンクションの循環を判定する、通常走査の識別子比較は実行しない。そのため、「一覧と同じ規則」という前提が成立しない。
+
+根拠：[wiki_captions.py:1332](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1332) の到達判定、[同:1434](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1434) の未走査overlayの追加、[wiki_pages.py:271](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:271) の循環判定。ADR-0027の112行目にある、保存後もページとして読まれる場所だけを認める条件に反する。
+
+### 2. 【重大】補助面のカタカナを使うと、語の途中の切れ目を通せる
+
+raw を `uploaded`・200行とし、L1に元の語、L2に訂正語を置く。
+
+```python
+original = "\U0001B155ヨタ"
+corrected = "ヨタ"
+body = original + "〔訂正 L1-1〕"
+definition = (
+    f"- L1-1: 字幕 `{original}` を `{corrected}` に訂正"
+    "（根拠 caption:L2）"
+)
+```
+
+親の要約ページを `confidence: "high"` とし、この本文と定義を書く。本文はL1から変わっていない。
+
+| 検査 | 結果 |
+|---|---|
+| `cmd_verify` | **終了コード0、`findings: []`** |
+| 重み・confidence | **1・`high`** |
+| `unknown_words` | **`{}`** |
+| lintの`caption_corrections` | **`[]`** |
+
+U+1B155は、実行環境の`unicodedata.name`で **`KATAKANA LETTER SMALL KO`** と確認した。NFKCでも変わらないが、`char_class`は`None`を返す。U+1B000（`KATAKANA LETTER ARCHAIC E`）でも同じ結果になった。先頭を通常の`ト`にすると、verifyとlintの両方が`mark_tail`を返す。
+
+不可視文字の除去後に使う文字種判定が、限られた範囲のカタカナしか認識していない。今回の正規化を通しても、この切れ目は残る。
+
+根拠：[wiki_captions.py:504](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:504) のカタカナ判定と、[同:536](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:536) の境界判定。ADR-0027の101行目が定める、カタカナの語の途中を拒む条件を満たさない。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| 各段がディレクトリで、シンボリックリンクでなければ、一覧はその場所まで降りる | ジャンクションが祖先を指し、通常走査が循環として除外する |
+| NFKC後のカタカナは`char_class`の範囲に入る | U+1B155やU+1B000が語の直前にある |
+| 関係するページの検査対象rawは、そのページの印から引ける | 印をすべて付け忘れ、`sources`だけが要約ページを参照している |
+
+## 見落としと軽微な問題
+
+### 【軽微】印が一つもない関係ページでは、「raw にない語」を調べない
+
+正常な親の要約がある状態で、用意したエンティティページを次の内容にする。`a`はその要約のスラッグで、rawにも訂正定義にも`999`はない。
+
+```yaml
+type: "entity"
+sources: ["a"]
+```
+
+```markdown
+999
+```
+
+このページを`unknown_for`に指定した結果は、**`findings: []`、`unknown_words: {}`**だった。同じrawと本文を`unknown_words(["999"], raw, [])`に直接渡すと、`["999"]`を返した。
+
+関係ページについて検査対象のrawを集める処理は、印の`mk.link`だけを見る。`sources`を見ないため、印の付け忘れがページ内の全件に及ぶと、目印の抽出自体が実行されない。
+
+根拠：[wiki_captions.py:1252](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1252)。ADR-0027の113行目が説明する、印を付けずに直した語を見つける目印に欠落がある。補助機能の欠落なので軽微とする。
+
+## 検証した事実
+
+| 確かめた主張 | 結果 |
+|---|---|
+| 試験は53件 | 一致。収集件数53件 |
+| ファイルを作らない既存4クラス | **21件成功** |
+| 前回の不可視文字を訂正語の先頭に含める反例を拒む | 一致。定義を拒否 |
+| 語の前のWORD JOINER、ZWJ、SOFT HYPHENを拒む | 一致 |
+| 段落の折り返し後の`50〔訂正…〕`を受理する | 一致 |
+| `COM¹`、`LPT³`、`CONIN$`を拒む | 一致 |
+| 保存先判定が通常走査と一致する | 食い違い。重大1 |
+| カタカナの語の途中を拒む | 食い違い。重大2 |
+
+追加の反例は、ファイル内容とOSの応答をメモリ上で差し替えて検証した。ファイルは変更していない。全53件の一括実行、実ジャンクションの作成・実保存、固定したyt-dlpによる実取得は未実施。
+
+## 崩せなかった点
+
+- 前回の不可視文字による反例そのものと、改行・予約名の指摘。
+- 印の始まりだけをコードにする反例。`bad_mark`になった。
+- 隠れた正しい印と、表示される壊れた印の相殺。`bad_mark`になった。
+- 既存試験が扱う、字幕による行番号・フェンス・区間構造の偽造。
+- 種類付きIDによる、同名の投稿者字幕と自動字幕の選択。
+- confidenceの計算式そのもの。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 13:53:23] 完了。session 01a1e2ab-8a30-78e2-8658-caf568f4d0f8  usage {"input_tokens": 3012014, "cached_input_tokens": 2836224, "cache_write_input_tokens": 0, "output_tokens": 15514, "reasoning_output_tokens": 5513}

@@ -45,7 +45,7 @@ class FetchStub:
         self.html = html
         self.requested: list[str] = []
 
-    def __call__(self, url, timeout, max_bytes, accept="", block_private=False):
+    def __call__(self, url, timeout, max_bytes, accept="", block_private=False, refuse_youtube_redirect=False):
         self.requested.append(url)
         if url == PAGE_URL:
             return self.html, url, "text/html; charset=utf-8"
@@ -1483,7 +1483,7 @@ class MainAndWorkDirTest(RawCheckCase):
         self.assertTrue((target / "keep.txt").is_file())
 
 
-def offline(url, timeout, max_bytes, accept="", block_private=False):
+def offline(url, timeout, max_bytes, accept="", block_private=False, refuse_youtube_redirect=False):
     raise wiki_fetch.FetchError("ネットにつながらない")
 
 
@@ -1620,7 +1620,7 @@ class ResumeBeforeFetchTest(FetchCase):
         other = "https://site.example/other"
         requested: list[str] = []
 
-        def stub(url, timeout, max_bytes, accept="", block_private=False):
+        def stub(url, timeout, max_bytes, accept="", block_private=False, refuse_youtube_redirect=False):
             requested.append(url)
             return self.HTML, url, "text/html; charset=utf-8"
 
@@ -2014,7 +2014,7 @@ class ResumeBeforeFetchTest(FetchCase):
                 path.write_bytes(json.dumps(saved).encode("utf-8"))
                 requested: list[str] = []
 
-                def stub(url, timeout, max_bytes, accept="", block_private=False):
+                def stub(url, timeout, max_bytes, accept="", block_private=False, refuse_youtube_redirect=False):
                     requested.append(url)
                     return self.HTML, url, "text/html; charset=utf-8"
 
