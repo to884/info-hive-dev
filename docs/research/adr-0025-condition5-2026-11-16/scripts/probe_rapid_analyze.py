@@ -102,6 +102,28 @@ SIGNALS["今の印 + RapidOCR（足した英数字か記号、端の I は除く
     r["rapid"] is not None and added_symbol(skeleton(r["primary"]), skeleton(r["rapid"]["text"]), True))
 
 
+AMBIGUOUS = [set("O0o"), set("l1I|")]
+
+
+def added_symbol_unambiguous(a: str, b: str) -> bool:
+    """added_symbol と同じだが、取り違えやすい英数字どうし（O と 0 と o、l と 1 と I と |）の 1 文字の入れ替えは数えない。"""
+    import difflib
+
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+        if tag in ("equal", "delete"):
+            continue
+        old, new = a[i1:i2], b[j1:j2]
+        if tag == "replace" and len(old) == len(new) and all(any({x, y} <= s for s in AMBIGUOUS) for x, y in zip(old, new)):
+            continue
+        if any((c.isascii() and c.isalnum()) or not c.isalnum() for c in new + old):
+            return True
+    return False
+
+
+SIGNALS["今の印 + RapidOCR（足した英数字か記号、O/0 と l/1 の入れ替えは除く）"] = lambda r: bool(r["reasons"]) or (
+    r["rapid"] is not None and added_symbol_unambiguous(skeleton(r["primary"]), skeleton(r["rapid"]["text"])))
+
+
 def measure(data: dict, signal) -> str:
     units: dict[str, list[int]] = {}
     for r in data["lines"]:
