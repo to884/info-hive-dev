@@ -206,7 +206,9 @@ python aggregate.py
 python export_summary.py
 ```
 
-`build_fixture.py` は、利用者の置き場所（`%LOCALAPPDATA%\info-hive\models`）にある埋め込みモデルを写す。ready の条件は、最初の呼び出しで索引の埋め込みが始まり、3 回目で `index.state: ready` になった。本番の前に、`ready` になるまで `probe_mcp.py ready` を呼んでおく。`runs-summary.json` では、セッションの一時の場所のパスを `<SCRATCH>` に置き換えている。生の stream-json は `runs/` に置き、git では無視する。判定を付けた全回の要約は [runs-summary.json](wiki-query-confidence-rules-2026-11-16/runs-summary.json) にある。
+`build_fixture.py` は、利用者の置き場所（`%LOCALAPPDATA%\info-hive\models`）にある埋め込みモデルを写す。ready の条件は、最初の呼び出しで索引の埋め込みが始まり、3 回目で `index.state: ready` になった。本番の前に、`ready` になるまで `probe_mcp.py ready` を呼んでおく。`runs-summary.json` では、セッションの一時の場所のパスを `<SCRATCH>` に置き換えている。
+
+`export_summary.py` の判定は手で付けたもので、判定したときのログの SHA-256 を `judged-logs.json` に記録している。測り直すとログのハッシュが変わるので、`export_summary.py` は書き出さずに止まる。回答を読んで判定（`J`）を付け直し、`python export_summary.py --bind` でハッシュを記録し直す。`run_one.py` は、`claude` が失敗した回を完了にせず、ログを `<問い>-r<回>.failed-<時刻>.jsonl` に退避する。`run_all.py` は、退避したログを含む記録先のすべてのログの費用から数え始める。生の stream-json は `runs/` に置き、git では無視する。判定を付けた全回の要約は [runs-summary.json](wiki-query-confidence-rules-2026-11-16/runs-summary.json) にある。
 
 ## 関係する文書
 
