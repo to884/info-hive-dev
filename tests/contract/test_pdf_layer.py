@@ -124,7 +124,10 @@ class AgreementTests(Fixtures):
                     next(pages)
 
     def test_stop_does_not_build_the_next_page(self):
-        """stop のページで止め、次のページを組み立てない（次のページが壊れていても、前のページは読める）。"""
+        """pdfminer_pages は、stop のページで止め、次のページを組み立てない。
+
+        analyze_pages は、ページの数を比べるためにページツリーをすべてたどるので、この保証はない（意図した割り切り）。
+        """
         from unittest.mock import patch
         from pdfminer.pdfpage import PDFPage
         original = PDFPage.get_pages
@@ -357,7 +360,8 @@ class StableOrderTests(Fixtures):
         """決め方を外す（元の pdfminer の id() のまま）と、本文が変わる（試料が原因を捉えている）。
 
         20 ページの ties.pdf では、元の pdfminer は、どのプロセスでも 16〜19 ページで本文が変わった
-        （2026-11-16、8 回）。20 ページすべてが偶然同じになることは、まず起こらない。
+        （2026-11-16、Windows 11 と Python 3.12 で 8 回）。番地の並びが、たまたま決まった順と同じ読み順になると、
+        製品に欠陥がなくても落ちる。手元では起きていないが、ほかの OS と版での頻度は確かめていない。
         """
         data = self.ties.read_bytes()
         stable = [text for _, text in wiki_pdf_layer.pdfminer_pages(data)]
