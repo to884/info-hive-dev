@@ -1,0 +1,134 @@
+書き込み経路では、`init_wiki.py` が呼ぶ `uv` も確認しました。キャッシュを守る木の中に指定すると、依存パッケージの導入で永続的なハードリンクが作られる経路があります。これはコードと uv の公式仕様による判断で、この環境には `uv` がないため再現実行はしていません。
+## 判定
+
+**却下。確信度：高。** `Writer` の流用が既存の書き込み制約と衝突し、POSIX の例外にも漏れがある。raw の根の推定と、子プロセスによるリンク作成にも、具体的な反例が成立する。
+
+## 致命的・重大な欠陥
+
+### 1. 重大：既存の `Writer` では、移行対象の raw と検索キャッシュを書けない
+
+**主張：** 「同じ入口をほかの書き手も使う」という変更だけでは、既存設計の制約を満たせない。
+
+**反例：** wiki を `C:/data/wiki`、raw の根を `C:/data/raw` とする。
+
+- `wiki_session.py` が書く `C:/data/raw/session.md` は、既存 `Writer` の「ページ」「wiki の管理」「作業用」のどの領域にも属さない。
+- `wiki_search.py` が書く `C:/data/wiki/.wiki-cache/search-index.json` は、管理用パスの閉じた許可一覧に入っていない。ページ用の検査も `.wiki-cache` 内を拒む。
+- raw の根を便宜的に `W` として渡すと、今度は raw と `W` の重なりを拒む検査に衝突する。
+
+したがって、既存契約を守れば通常の取り込みとキャッシュ更新が失敗する。通すには、領域・役割・検査条件の追加が必要だが、ADR は入口への追加を一時ファイルと置き換えの二点として説明し、この変更を定義していない。
+
+**根拠・結果：食い違い。**
+
+- [ADR-0029:144](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:144)：全書き込みを同じ入口へ移す提案。
+- [書く段の設計:381](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-apply-2026-11-14.md:381)：三つの書き込み領域と、388 行の許可一覧。
+- [書く段の設計:679](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-apply-2026-11-14.md:679)：raw と `W` の重なりを拒む条件。
+
+### 2. 重大：一時ハードリンクの例外が、同時に採用する書く段を覆っていない
+
+**主張：** 例外を `wiki_session.publish_exclusive()` だけに限定すると、ADR-0023 の実装が規則に違反する。
+
+**反例：** POSIX で、書く段を使って新しい source ページを保存する。
+
+1. ロックの取得は、一時ファイルから `apply.lock` への `os.link()` を使う。
+2. `new` の公開も、一時ファイルから新しいページへの `os.link()` を使う。
+3. どちらも一時ファイルを消すまでリンク数が 2 になる。
+
+これは `wiki_session.publish_exclusive()` の呼び出しではない。正常実行だけで、「どのコマンドも守る木にハードリンクを作らない」と、列挙された唯一の例外を同時に満たせなくなる。
+
+**根拠・結果：既存設計との食い違い。**
+
+- [ADR-0029:55](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:55)、[同:72](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:72)：禁止と例外。
+- [書く段の設計:332](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-apply-2026-11-14.md:332)：ロックの `os.link()`。
+- [書く段の設計:586](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-apply-2026-11-14.md:586)：`new` の `os.link()`。
+
+なお、**現行 v0.19.5 の直接の `os.link()` がセッション用だけであるという記述は一致**している。欠陥は、それを前提に定めた例外が、流用先の設計を覆わない点にある。
+
+### 3. 重大：相対 `raw:` の最初の要素は、実際の raw の根とは限らない
+
+**主張：** 提案された推定は、許可している raw の根のリンクを、根の下の違反として報告する。
+
+**反例：**
+
+```text
+wiki:       C:/data/wiki
+RAW_ROOT:   C:/data/archive/raw
+raw:        "archive/raw/session.md"
+```
+
+この `raw:` は、実際の `raw_ref_of()` が返す形式である。次に、利用者が `C:/data/archive/raw` 自体を、同じ内容の別ディレクトリへのリンクに置き換える。根自体のリンクは ADR-0029 が許可している。
+
+`raw_root` を渡さず lint すると、提案は `archive` を根とみなし、その下の `raw` を検査するため、**許可された実際の根を違反として挙げる**。実際の根を渡した場合とは判定が変わる。検査対象が減るという限界ではなく、許可された配置への誤検出である。
+
+**根拠・結果：保存形式との食い違い。**
+
+- [ADR-0029:47](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:47)：根のリンクを許可。
+- [ADR-0029:48](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:48)：最初の要素を根とみなす規則。
+- [wiki_session.py:1250](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1250)：wiki の親からの相対パスを返す実装。
+- [wiki_lint.py:236](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:236)：wiki の親も候補にする実装。
+
+`raw_ref_of()` の関数だけを読み取りで実行し、この入力から `archive/raw/session.md` が返ることを確認した。リンクの作成実験は行っていない。
+
+### 4. 重大：`init` の子プロセスが、守る木に永続的なハードリンクを作りうる
+
+**主張：** Python のリンク作成呼び出しを探すだけでは、コマンドによるリンク作成を網羅できない。
+
+**反例となる設定・手順：** NTFS 上で、リンクのない初期状態から、次の環境で初期化する。
+
+```powershell
+$env:UV_CACHE_DIR = 'C:\data\wiki\.wiki-cache\uv'
+$env:UV_LINK_MODE = 'hardlink'
+python <scripts>/init_wiki.py C:\data
+```
+
+`init_wiki.py` は環境変数を引き継ぎ、`uv run --script setup_wiki.py` を呼ぶ。uv はスクリプト用環境をキャッシュ内に作り、`hardlink` モードではパッケージをハードリンクで導入する。したがって、除外しない `.wiki-cache/` 内に、リンク数が 2 以上のファイルが残る。これはセッション公開中だけの例外ではなく、Python 側の `Writer` でも捕捉できない子プロセスの操作である。
+
+**根拠・結果：コードと公式仕様から成立する静的反例。**
+
+- [ADR-0029:59](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:59)：`init` は「今のまま」とする表。
+- [init_wiki.py:168](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/init_wiki.py:168)：uv の呼び出しと環境変数の継承。
+- [uv の保存先仕様](https://docs.astral.sh/uv/reference/storage/#script-virtual-environments)、[キャッシュの指定方法](https://docs.astral.sh/uv/concepts/cache/#cache-directory)、[リンクモードの仕様](https://docs.astral.sh/uv/reference/settings/#link-mode)。
+
+この環境には `uv` がないため、導入を伴う再現実行はしていない。
+
+## 崩れる前提
+
+- **書き込みの検査入口は、呼び出し元を増やしても同じ契約で使える。** raw の出力先と検索キャッシュが、既存の許可領域に入らない。
+- **一時ハードリンクはセッションの公開だけで生じる。** 採用済みの書く段も、ロックと新規ページの公開に使う。
+- **相対 `raw:` の最初の要素が raw の根である。** raw の根が wiki の親から複数階層下にあると崩れる。
+- **リンク作成は同梱 Python の呼び出しを検索すれば分かる。** 継承した設定に従う uv の導入処理が反例になる。
+- **移行対象には、事前に読める内容がある。** 先のないファイルのシンボリックリンクでは、保存すべき「直す前のバイト列」を取得できない。
+
+## 見落としと軽微な問題
+
+- **軽微：コマンド表の「書かない」が実際の手順と違う。** `/wiki:lint` は承認された修正、索引更新、ログ追記を行う。[commands/lint.md:18](C:/Works/info-hive-dev/info-hive-wiki/commands/lint.md:18) に明記されている。`init` と `upgrade` も、ひな形だけでなく `setup_wiki.py` 経由で検索キャッシュとベクトル索引を書く。[setup_wiki.py:27](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/setup_wiki.py:27)。表はコマンド全体と検査処理単体を混在させている。
+
+- **軽微：raw の根を渡さない場合、絶対 `raw:` の扱いに情報不足が残る。** セッションの raw も、別ドライブなら `D:/raw/session.md` のような絶対パスになる。根を受け取らず推定もしない lint は、それが管理下の raw か外部原本か区別できない。[ADR-0029:245](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:245) の限界は「どの `raw:` からも指されていないファイル」だが、実際には参照済みの絶対パスも漏れうる。
+
+- **軽微：移行の完了条件は、先のないファイルリンクでは満たせない。** 通常ファイルへの置き換えと事前のバイト列保存を求める一方、事前に読めない場合の完了状態がない。ディレクトリのシンボリックリンクには削除だけの分岐があるが、ファイルリンクにはない。[ADR-0029:167](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:167)。
+
+## 検証した事実
+
+| 主張・確認項目 | 結果 |
+| --- | --- |
+| 読んだコードの版 | **一致。** wiki は `2452f594…`、rag は `c59d05e2…` |
+| 現行スクリプトの直接のリンク作成 | **一致。** 検索した範囲では `wiki_session.publish_exclusive()` の `os.link()` だけ。ただし子プロセスの操作は別 |
+| `shutil.copy2()` による evolve のコピー | **一致。** `wiki_evolve.py:132` と `wiki_evolve_loop.py:349` |
+| ジャンクションへ降り、途中のディレクトリのシンボリックリンクへ降りない走査 | **一致。** `wiki_pages.py:267` 以降 |
+| セッション raw の `verify` | **一致。** ハッシュ一致と読み取り専用の両方が成功条件 |
+| rag の `result.raw` | **一致。** `pdf_path()` の解決済みパスを `/` 区切りで返す |
+| rag のネットワークパス制約 | **一致。** UNC 入力と、ローカルパスからネットワークへのリンクを拒む |
+| `SERVER_FILES` の構文木による依存探索 | **遅延 import を拾える。** 現行コードに適用すると、未掲載の `wiki_decide.py` も検出した |
+| Windows の属性共有・置き換え失敗の実測 | **確かめられず。** 今回はファイル作成・属性変更をしていない |
+
+リポジトリと対象ファイルは変更していない。
+
+## 崩せなかった点
+
+- 外部 PDF のリンクを許し、`result.raw` を保存する方針と、現行 rag・取り込み手順との矛盾は見つからなかった。
+- 絶対 `raw:` が既知の守る木の中を指す場合まで、外部原本として除外する記述にはなっていない。
+- 一意な名前を排他的に作り、名前で置き換える方式は、最後の名前がハードリンクであることによる別名の内容破壊を防ぐ。
+- 親ディレクトリのリンクを検査する入口まで正しく実装できれば、前回の `.wiki-cache` 経由の反例は止まる。
+- 読み取り専用属性を復元してから検証する移行条件に、前回と同じ順序矛盾は見つからなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

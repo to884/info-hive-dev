@@ -1,0 +1,108 @@
+[ask-codex 15:34:12] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-wiki-links-4ebc39）
+`raw-roots.d/` と書く段の管理領域検査に、具体的な衝突が見つかりました。対象設計はこのディレクトリを新設する一方、`Writer` が許すパスは変えないとしています。書く段の設計では、許可一覧にないディレクトリが `apply/` 以下にあるだけで停止するため、通常の raw 保存後にも発生する反例です。
+## 判定
+
+**却下。確信度：高。** 新設する `raw-roots.d/` が、維持するとした書く段の許可パスと衝突する。また、現在の raw の根の外にある非 rag の raw には、内容照合より前のリンク拒否が届いていない。
+
+以下は設計の静的な反例であり、未実装の部品の実行結果ではない。
+
+## 致命的・重大な欠陥
+
+### 1. 重大：通常の raw 保存が、以後の書く段を `unknown_in_cache` で停止させる
+
+**主張：** 新設する記録ディレクトリが、書く段では禁止された管理項目になる。
+
+**反例・手順：**
+
+1. wiki、raw、データの場所を、互いに重ならない通常のディレクトリに置く。リンクはない。
+2. raw の書き手が、設計どおり `W/.wiki-cache/apply/raw-roots.d/<乱数>.json` を作り、raw を保存する。
+3. 同じ wiki で書く段の `begin` または `apply` を呼ぶ。
+4. 管理領域の検査が `raw-roots.d/` を許可された形に分類できず、終了コード1の `unknown_in_cache` になる。
+
+記録の内容や raw の重なりを調べる以前に停止する。通常の取り込みだけで発生する。
+
+**根拠・照合結果：食い違い。**
+
+- [対象設計163行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:163)は、新しいディレクトリへの記録を必須にする。
+- [対象設計294行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:294)は、`Writer` の「領域と許すパスは変えない」と明記する。
+- [書く段の設計388行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-apply-2026-11-14.md:388)の許可一覧に、`apply/raw-roots.d` とその配下はない。
+- [同393行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-apply-2026-11-14.md:393)は、`apply/` 以下に許可された形でない項目があれば停止すると定める。
+
+raw の書き手が下層の部品で記録を作れることと、その後に上層の管理領域検査を通れることは別である。
+
+### 2. 重大：過去の raw のリンクでは、身元・版の照合がリンク拒否より先に進む
+
+**主張：** 追加した先行判定は「守る木の中」の候補に限定されている。現在の raw の根の外にある非 rag の raw について、指示先そのものを先に拒む契約が抜けている。
+
+**反例：**
+
+```text
+wiki               C:/data/wiki
+現在の raw の根    C:/data/raw
+過去の raw         D:/archive/raw/session.md
+```
+
+過去の根は記録されていないものとする。既存の source ページは次の内容を持つ。
+
+```yaml
+type: source
+session_id: S
+raw: D:/archive/raw/session.md
+```
+
+保存後、`session.md` が別ファイルへのシンボリックリンクになった状態を考える。
+
+161行の順序をそのまま適用すると、次の経路になる。
+
+1. 絶対パスなので候補は一つ。
+2. 既知の wiki と現在の raw の根の外なので、段階(2)の `is_link()` が適用されない。
+3. 段階(3)の `os.lstat()` は成功する。
+4. 段階(4)でリンク先の frontmatter を読み、`session_id` を照合する。
+
+この時点で I2 の「読まず、たどらず」に反する。さらに、リンク先の身元が不一致なら、162行に従って候補が捨てられ、`missing` になる。107行の「解けた先」への検査にも届かず、リンクを `links` に出せない。
+
+**根拠・照合結果：設計内の契約が食い違う。**
+
+- [32行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:32)は、非 rag の絶対パスの raw を、現在の根の外でも「指す項目そのもの」は調べると定める。
+- [108行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:108)は、raw の根が渡されない利用や、過去の別の根への参照も認めている。
+- [161行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:161)の先行判定は、木の中の場合だけである。
+- [162行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:162)は、身元・版の不一致で候補を捨てる。
+
+現在の根の中にあるリンクについては前回の反例が閉じている。今回の反例は、設計が引き続き対象とする**過去の根の raw**から成立する。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| 記録の入力を増やせば、書く段はそのまま読める | 記録の置き場所が、管理領域の許可一覧にない |
+| 木の中の候補だけ先にリンク判定すればよい | 非 rag の raw が、現在の根の外を指す |
+| 最後に raw のリンク検査をすれば通知できる | その前の身元・版の照合が候補を `missing` に落とす |
+
+## 見落としと軽微な問題
+
+- **軽微：記録追加後の通常操作を通す試験がない。** 166行の記録試験は、追記・並行実行・保存中断を扱うが、追記済みの正常配置で `begin` が管理領域検査を通ることを明記していない。
+- **軽微：過去の根の raw を読む前に拒んだことを確認する試験がない。** 275行は過去の raw のハードリンクを挙げる試験を持つが、内容を先に読んでいないことと、身元・ハッシュ不一致でも `link` が残ることを組み合わせていない。
+
+## 検証した事実
+
+| 確認対象 | 結果 |
+| --- | --- |
+| 指定コミット | **一致。** wiki `2452f594…`、rag `c59d05e2…` |
+| `missing_raw()` の213〜241行 | **一致。** 三つの基準による存在検査で、ディレクトリと複数値も扱う |
+| `raw_ref_of()` の1250〜1256行 | **一致。** wiki の綴りの親を基準とし、その外は絶対パスになる |
+| `list_index()` の直接読み取り | **一致。** 指定された957〜979行にある |
+| rag の `pdf_path()` | **一致。** `resolve(strict=True)` 後のパスを返す |
+| 指定 wiki 版からローカル `origin/main` のスクリプト差分 | **一致。** PDF 関連2ファイルの追加だけ |
+| 新 resolver・書き込み部品の実行 | **確かめられず。** 指定版には未実装 |
+
+ファイル変更、リンク作成、属性変更は行っていない。
+
+## 崩せなかった点
+
+- 外部 raw がディレクトリならそれ自身を保護根にする契約から、前回の「親まで保護して正常配置を拒む」反例は成立しなかった。
+- 現在の raw の根の中では、追加した順序によって、直接のリンクをハッシュ照合前に拒める。
+- 日誌の一時ハードリンクを完全性判定より先に片付ける順序から、前回と同じ復旧不能は導けなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 15:44:40] 完了。session 01a1e310-37be-7550-8542-15f6bb583b99  usage {"input_tokens": 1374534, "cached_input_tokens": 1252992, "cache_write_input_tokens": 0, "output_tokens": 11549, "reasoning_output_tokens": 5401}

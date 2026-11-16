@@ -1,0 +1,101 @@
+[ask-codex 15:35:58] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-0027-impl）
+## 判定
+
+**却下。確信度：高。** 重大1件、軽微1件を再現した。大小文字の補正は除かれたが、NFCへの変換によって新規ページを既存ページと取り違え、残るはずの訂正定義を検証から消せる。
+
+## 致命的・重大な欠陥
+
+### 【重大】新規の分解形ファイル名を、合成済みの既存ファイル名へ変換する
+
+Unicode正規化形式が異なる名前を別ファイルとして保持するファイルシステムを仮定する。以下のパスはPythonのエスケープ表記である。
+
+**`sources/\u00e9.md` は存在するが、`sources/e\u0301.md` はまだ存在しない。** 14回目の「両方とも既存ファイル」と異なる条件である。
+
+`raw/a.md` は正常な `uploaded` の字幕200行で、L1を `15` とする。
+
+| 既存ページ | 内容 |
+|---|---|
+| `sources/a.md` | 同じrawを参照する親。`confidence: "medium"` |
+| `sources/\u00e9.md` | 同じrawを参照する分割ページ。以下の本文と定義を持ち、confidenceは持たない |
+
+```markdown
+50〔訂正 L1-1〕
+
+## 字幕の訂正と留保
+
+- L1-1: 字幕 `15` を `50` に訂正（根拠 model:x）
+```
+
+保存予定として、次の2ページを `--page` で渡す。
+
+1. `sources/a.md`：confidenceを `high` に変更。
+2. **新規の** `sources/e\u0301.md`：同じrawを参照し、本文は `caption`。定義とconfidenceはない。
+
+OSの応答とファイル内容をメモリ上で差し替え、実際の走査・照合・`cmd_verify`・lintを実行した。
+
+| 状態 | 結果 |
+|---|---|
+| 変更前 | 指摘なし。重み3、計算値 `medium` |
+| 保存予定の検証 | **終了値0、`findings: []`。定義0件、重み0、計算値 `high`** |
+| 指定した名前への保存を反映した状態 | `ambiguous_page_path` を検出 |
+| 保存後のlint | `caption_corrections` に `ambiguous_page_path` |
+
+新規ページ名だけを `sources/new.md` に変えた対照例では、保存前から **`confidence_mismatch`、重み3、計算値 `medium`、終了値1**となった。
+
+原因と根拠：
+
+- [wiki_youtube.py:592](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_youtube.py:592)：`parse_page_args` が、渡された保存先を `overlay[nfc(rel)]` に変換する。
+- [wiki_captions.py:1418](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1418)：直接渡したoverlayのキーもNFCへ変換する。
+- [wiki_captions.py:1442](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1442)：存在確認と実体の識別は、**変換後のパス**で行う。
+- [wiki_captions.py:1471](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1471)：その結果、新規ページの内容を既存ページへ適用し、訂正定義を検証から消す。
+
+実際の保存では既存ページが残る。保存後に衝突を検出しても、[ADR-0027:112](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/docs/adr/0027-youtube-captions-via-pinned-yt-dlp.md:112) が要求する承認前の照合には間に合わない。16回目と同じく、識別子を取得する前に調査対象のパスが変わっている。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| NFCへの変換は、OSが書く場所を変えない | 正規化形式の違う名前を区別する環境で、分解形の新規ファイルを指定する |
+| 実体の識別子を使えば、別ページへの草稿適用を防げる | 識別子を取る前に、保存先を別の既存パスへ変換する |
+| 既存ページ間のNFC衝突検出で十分である | 衝突する片方が保存予定にしか存在せず、検証では既存ページの置換として扱われる |
+
+## 見落としと軽微な問題
+
+### 【軽微】ページ一覧が認める `.MD` を、verifyの引数処理が拒む
+
+`--page "sources/A.MD=draft.md"` は、ファイルを読む前に終了コード1相当の `Fail` になる。
+
+実行結果：
+
+```text
+wiki_pages.is_page_path("sources/A.MD"): True
+wiki_captions.is_overlay_page("sources/A.MD"): True
+parse_page_args: 拒否
+```
+
+[wiki_pages.py:53](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:53) と [wiki_captions.py:1343](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1343) は拡張子を大小文字によらず判定するが、[wiki_youtube.py:587](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_youtube.py:587) は `rel.endswith(".md")` とする。大小文字を区別する環境では、小文字の別名を渡して既存の `.MD` ページを指定することもできない。
+
+## 検証した事実
+
+| 確認事項 | 結果 |
+|---|---|
+| 試験は61件 | 一致。収集件数61件 |
+| 書き込みを伴わない既存4クラス | 21件すべて成功 |
+| 16回目の新規 `detail.md` の反例 | 今回は重み3を保ち、`confidence_mismatch` で拒否 |
+| 既存2ファイルのNFC衝突 | `ambiguous_page_path` を検出 |
+| 渡された保存先を変換せずOSへ問い合わせる | 食い違い。NFC変換が残り、上記反例が成立 |
+
+[test_names_equal_after_nfc_are_not_merged](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/tests/wiki/test_wiki_youtube.py:917) は両ファイルが既存の場合を扱う。[test_new_page_is_not_mistaken_for_other_case](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/tests/wiki/test_wiki_youtube.py:976) は大小文字の違いを扱う。今回の「NFCで重なる新規ページ」の条件は含まれない。
+
+ファイルは変更していない。追加検証はメモリ上の差し替えによるもの。全61件の一括実行、実ファイルの作成・保存、固定したyt-dlpによる実取得は未実施。
+
+## 崩せなかった点
+
+- 16回目の、大小文字だけ異なる新規ページを既存ページと取り違える反例そのもの。
+- 実行した既存試験が扱う、字幕による行・区間・フェンスの偽造。
+- 種類付きIDによるトラック選択と、自動翻訳の除外。
+- 定義が漏れずに渡された場合のconfidenceの計算。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 15:47:07] 完了。session 01a1e311-d611-78f1-8946-964197f39c3b  usage {"input_tokens": 3160500, "cached_input_tokens": 2971648, "cache_write_input_tokens": 0, "output_tokens": 15021, "reasoning_output_tokens": 6138}
