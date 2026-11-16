@@ -548,26 +548,34 @@ class RenderTest(TempWiki):
         groups = nav["groups"]
         # N4: index.md のグループは木のいちばん上に置かない。自分の項目は「索引」のグループに、見出しのグループは上に並ぶ
         top = groups[0]
-        self.assertEqual(top["title"], "索引")
-        self.assertEqual(top["items"][0]["path"], "pre.html")
-        self.assertEqual(top["items"][0]["id"], "pre")
+        self.assertEqual(top["title"], "Index")
+        # N9: ページの項目は、最初のタグのグループ（タグがなければ「タグなし」）に移る
+        self.assertEqual(top["items"], [])
+        self.assertEqual([g["title"] for g in top["children"]], ["タグなし"])
+        self.assertEqual(top["children"][0]["items"][0]["path"], "pre.html")
+        self.assertEqual(top["children"][0]["items"][0]["id"], "pre")
         concepts = groups[1]["children"][0]
         self.assertEqual(groups[1]["title"], "上")
         self.assertEqual(concepts["title"], "概念")
-        # N6: グループへの項目の名前は、行き先のグループの名前
+        # N6: グループへの項目の名前は、行き先のグループの名前。N9-5: ページでない項目は元のグループに残る
         states = [(i["state"], i["label"]) for i in concepts["items"]]
-        self.assertEqual(states, [("resolved", "a"), ("resolved", "b"), ("unresolved", "missing"),
-                                  ("group", "人物")])
+        self.assertEqual(states, [("unresolved", "missing"), ("group", "人物")])
+        self.assertEqual([(i["state"], i["label"]) for g in concepts["children"] for i in g["items"]],
+                         [("resolved", "a"), ("resolved", "b")])
         people = groups[2]
         self.assertEqual(people["title"], "人物")
         self.assertTrue(people["id"].startswith("_gf"))
         self.assertEqual(people["count"], 1)
         self.assertEqual(concepts["count"], 2)
         rest = groups[-1]
-        self.assertEqual(rest["title"], "索引にないページ")
+        self.assertEqual(rest["title"], "Index にないページ")
         # N7: 種類の子のグループの名前は日本語にする
         self.assertEqual([g["title"] for g in rest["children"]], ["コンセプト"])
-        self.assertEqual([i["path"] for g in rest["children"] for i in g["items"]], ["lone.html"])
+        self.assertEqual([i["path"] for g in rest["children"] for t in g["children"] for i in t["items"]],
+                         ["lone.html"])
+        for g in core._walk(c.nav_groups):
+            if g.get("origin") == "tag":
+                self.assertRegex(g["id"], r"\A_gt[0-9]+\Z")
 
 
 # ---------------------------------------------------------------------------
@@ -1423,7 +1431,7 @@ class ScopeTest(TempWiki):
                     self.assertLess(html.index('<nav id="_nav"'), html.index('id="_scope"'))
                     self.assertLess(html.index('id="_scope"'), html.index("<noscript>"))
                 self.assertIn(f"<title>{title}</title>", c.render_page("a"))
-                self.assertIn(f"<title>索引 · {title.split(' · ')[1]}</title>", c.render_index())
+                self.assertIn(f"<title>Index · {title.split(' · ')[1]}</title>", c.render_index())
                 # データのファイル（世代だけで食い違いを確かめる）は、スコープで変わらない。
                 for name in core.DATA_FILES:
                     self.assertEqual(c.render_data(name), plain.render_data(name))
@@ -1548,6 +1556,43 @@ class NavTreeTest(TempWiki):
             core._check_tree([{"id": "_g1", "title": "A", "children": [],
                                "items": [{"state": "group", "group": "_g9", "label": "X"}]}])
 
+    def test_broken_tag_stage_invariant_fails_the_build(self):
+        """タグでまとめる設計の 2.4。形で決まる性質が崩れた木を拒む。"""
+        page = {"state": "resolved", "id": "a", "label": "a"}
+
+        def tag(gid, items, children=()):
+            return {"id": gid, "title": "t", "items": items, "children": list(children)}
+
+        # タグのグループでないグループが、ページの項目を持つ
+        with self.assertRaises(core.NavInvariantError):
+            core._check_tree([{"id": "_g1", "title": "A", "items": [page], "children": []}])
+        # タグのグループが子を持つ
+        with self.assertRaises(core.NavInvariantError):
+            core._check_tree([{"id": "_g1", "title": "A", "items": [],
+                               "children": [tag("_gt1", [page], [tag("_gt2", [page])])]}])
+        # タグのグループが、ページでない項目を持つ
+        with self.assertRaises(core.NavInvariantError):
+            core._check_tree([{"id": "_g1", "title": "A", "items": [],
+                               "children": [tag("_gt1", [{"state": "unresolved", "label": "x"}])]}])
+        # 同じページが、同じ親の 2 つのタグのグループに入る
+        with self.assertRaises(core.NavInvariantError):
+            core._check_tree([{"id": "_g1", "title": "A", "items": [],
+                               "children": [tag("_gt1", [page]), tag("_gt2", [page])]}])
+        core._check_tree([{"id": "_g1", "title": "A", "items": [], "children": [tag("_gt1", [page])]}])
+
+    def test_tag_stage_rejects_a_changed_page_set(self):
+        """N9 の前の木と比べる性質。ページの集合が変わると、組み立てを失敗にする。"""
+        write(self.wiki, "index.md", "# Wiki\n## G\n- [[a]]\n## H\n- [[b]]\n")
+        for name in ("a", "b"):
+            write(self.wiki, f"concepts/{name}.md", page(f"# {name}", type="concept", tags=["t"]))
+        c = build_core(self.wiki)
+        top = [{"id": "_g1", "title": "G", "items": [{"state": "resolved", "id": "concepts/a", "label": "a"}],
+                "children": []}]
+        # N9 の前とあとで、木に載ったページの集合が違って見えると、組み立てを失敗にする
+        with mock.patch.object(core, "_page_ids", side_effect=[{"concepts/a"}, {"concepts/b"}]):
+            with self.assertRaises(core.NavInvariantError):
+                c._nav_tag_stage(top)
+
 
 class SummaryTest(TempWiki):
     """4.2 の要約の順: frontmatter、索引の行、本文の冒頭、なし。"""
@@ -1628,7 +1673,7 @@ class IndexPageTest(TempWiki):
         write(self.wiki, "concepts/a.md", page("# A", title="A", type="concept", tags=["t1", "t2"], updated="2026-04-18"))
         write(self.wiki, "b.md", page("# B", type="__proto__"))
         index = build_core(self.wiki).render_index()
-        self.assertIn('<h1 class="fui-Title2">索引</h1>', index)
+        self.assertIn('<h1 class="fui-Title2">Index</h1>', index)
         self.assertIn('<a class="ix-title" href="concepts/a.html">A</a>', index)
         self.assertIn('class="badge fui-Badge t-concept"', index)
         self.assertIn('class="badge fui-Badge t-other"', index)
@@ -1636,7 +1681,9 @@ class IndexPageTest(TempWiki):
         self.assertIn('<time class="fui-Caption1" datetime="2026-04-18">2026-04-18</time>', index)
         self.assertIn('<p class="ix-summary">要約 A</p>', index)
         self.assertIn('<span class="fui-Tag__primaryText">t2</span>', index)
-        self.assertIn('<div class="fx-path fui-Caption1">コンセプト</div>', index)
+        # N9: 階層のいちばん下は、最初のタグのグループ（タグがなければ「タグなし」）
+        self.assertIn('<div class="fx-path fui-Caption1">コンセプト › t1</div>', index)
+        self.assertIn('<div class="fx-path fui-Caption1">Index にないページ › __proto__ › タグなし</div>', index)
         self.assertIn('id="_index_unresolved"', index)
         self.assertIn('<span class="wl wl-unresolved" title="ページがない">missing</span>', index)
         self.assertIn('id="_filters"', index)

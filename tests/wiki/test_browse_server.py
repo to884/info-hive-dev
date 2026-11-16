@@ -1025,7 +1025,7 @@ class ProcessTest(Base):
         self.assertEqual((ra["reused"], ra["scope"]), (False, "project"))
         self.assertNotIn("scope_name", ra)
         self.assertIn('<p id="_scope" class="scope scope-project">', self.screen(ra))
-        self.assertIn("<title>索引 · プロジェクト</title>", self.screen(ra))
+        self.assertIn("<title>Index · プロジェクト</title>", self.screen(ra))
         # 使い回したときは、今回の指定ではなく、ページを描くサーバーが操作の口で答えたスコープを書く。
         # 記録のファイルは画面を描かないので、記録にスコープを書き足しても使わない。
         record = self.state_dir() / "server.json"
