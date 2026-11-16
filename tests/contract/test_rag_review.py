@@ -135,6 +135,11 @@ class Base(unittest.TestCase):
 
 
 class ConfidenceTests(Base):
+    def test_confidence_revision_is_the_same_on_both_sides(self):
+        """OCR の環境の数え方の版と、rag の数え方の版が同じ（違えば、すべてのページが「確信度が不明」になる）。"""
+        import rag_ocr_confidence
+        self.assertEqual(rag_ocr_confidence.CONFIDENCE_REVISION, OCR_CONFIDENCE_REVISION)
+
     def test_line_invariants(self):
         """文字の確率の数は本文の文字の数、終わりの記号の確率の数は読みの数以下。分けて読んだ行も同じ。"""
         left = ProbStr("あい", [0.9, 0.8], [0.7], 1)
