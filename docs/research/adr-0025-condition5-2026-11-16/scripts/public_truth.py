@@ -1,7 +1,7 @@
 """公開の PDF のページを決まりどおりに選び、正解の行（pdfminer の LTTextLine の文字と箱）を書く。
 
 使い方（rag の依存の環境で動かす）:
-    python -X utf8 scripts/public_truth.py extract   # 選んで corpus/public/<tag>.truth.json と目で確かめる画像を書く
+    python -X utf8 scripts/public_truth.py extract [tag ...]   # 選んで corpus/public/<tag>.truth.json と目で確かめる画像を書く
     python -X utf8 scripts/public_truth.py apply tuning   # corpus/public/eyecheck.json の結果を、その側の正解に当てる
 
 測り方は ../../adr-0025-condition5-2026-11-16.md の「公開の PDF」と「正解から除く行」。
@@ -40,12 +40,32 @@ PLAN = [
     ("kanpo1828-p2", "kanpo-p2.pdf", "tuning", "all"),
     ("kanpo1828-p3", "kanpo-p3.pdf", "tuning", "all"),
     ("kanpo1828-p4", "kanpo-p4.pdf", "tuning", "all"),
-    ("defense", "defense-white-paper-2025.pdf", "evaluation", 20),
+    # 1 回目に 20 ページを選び、2 回目の測り方で 50 ページに増やした（seeded_pages）
+    ("defense", "defense-white-paper-2025.pdf", "evaluation", 50),
     ("kanpo1827-p1", "kanpo-1827-p1.pdf", "evaluation", "all"),
     ("kanpo1827-p2", "kanpo-1827-p2.pdf", "evaluation", "all"),
     ("bert", "bert.pdf", "dev", [1]),
 ]
 CID = re.compile(r"\(cid:\d+\)")
+# 防衛白書から最初に選んだページの数（1 回目の測り方）
+FIRST_DRAW = 20
+
+
+def seeded_pages(eligible: list[int], count: int) -> list[int]:
+    """決めた乱数の種で、ページを count 個選ぶ。
+
+    1 回目の測り方のとおり、random.Random(SEED) で sample(並べた番号, FIRST_DRAW) を呼んで最初のページを選ぶ。
+    それより多く選ぶときは、同じ Random で、残りの番号を並べたものに sample(残り, 残りの数) を続けて呼び、その順の
+    先頭から足す（1 回目の文書の、ページを足すときの決まりと同じ）。最初に選んだページは変わらない。
+    """
+    rng = random.Random(SEED)
+    ordered = sorted(eligible)
+    first = rng.sample(ordered, FIRST_DRAW)
+    if count <= FIRST_DRAW:
+        return sorted(first[:count])
+    rest = [n for n in ordered if n not in first]
+    more = rng.sample(rest, len(rest))
+    return sorted(first + more[:count - FIRST_DRAW])
 
 
 def layout_pages(data: bytes):
@@ -100,10 +120,12 @@ def truth_lines(layout, page) -> list[dict]:
     return lines
 
 
-def extract() -> None:
+def extract(tags: list[str]) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "eyecheck").mkdir(exist_ok=True)
     for tag, file, side, rule in PLAN:
+        if tags and tag not in tags:
+            continue
         data = (CORPUS / file).read_bytes()
         eligible, pages = [], {}
         with pdfium.PdfDocument(data) as document:
@@ -123,7 +145,7 @@ def extract() -> None:
             elif isinstance(rule, list):
                 chosen = [n for n in rule if n in pages]
             else:
-                chosen = sorted(random.Random(SEED).sample(sorted(eligible), rule))
+                chosen = seeded_pages(eligible, rule)
             for number in chosen:
                 with closing(document[number - 1]) as page:
                     bitmap = page.render(scale=DPI / 72)
@@ -166,4 +188,4 @@ def apply(sides: list[str]) -> None:
 
 
 if __name__ == "__main__":
-    extract() if sys.argv[1] == "extract" else apply(sys.argv[2:])
+    extract(sys.argv[2:]) if sys.argv[1] == "extract" else apply(sys.argv[2:])
