@@ -29,7 +29,6 @@ CORPUS = BENCH / "corpus"
 RESULTS = BENCH / "results"
 GRID = [round(0.01 * i, 2) for i in range(1, 100)]
 MIN_COUNT = 20
-Z_ONE_SIDED = 1.6449  # 片側 95%
 SAME = {**{c: "-" for c in "‐‑‒–—―−－"}, "〜": "~", "～": "~",
         **{c: "'" for c in "‘’‚‛"}, **{c: '"' for c in "“”„‟"},
         "･": "・", "·": "・"}
@@ -84,7 +83,8 @@ def page_records(truth_lines: list[dict], ocr_lines: list[dict], stratum: str) -
     """OCR の行ごとの記録と、読み落とした正解の行の記録を返す。
 
     OCR の行の rule は、誤りの決め方: "exact"（error が決まっている）、"pessimistic"（低い行は誤りでない、
-    低くない行は誤り。閾値で決まる）、"excluded"（正解から除いた行とつながる。数えない）。
+    低くない行は誤り。閾値で決まる）、"excluded"（正解から除いた行と直接つながる。数えない）。
+    除いた正解の行を含むまとまりの、その行と直接つながらない OCR の行は、正解が分からないので "pessimistic" にする。
     """
     nodes = [("t", i) for i in range(len(truth_lines))] + [("o", j) for j in range(len(ocr_lines))]
     parent = {node: node for node in nodes}
@@ -95,17 +95,21 @@ def page_records(truth_lines: list[dict], ocr_lines: list[dict], stratum: str) -
             node = parent[node]
         return node
 
+    direct_excluded = set()  # 除いた正解の行と直接つながる OCR の行
     for j, o in enumerate(ocr_lines):
         for i, t in enumerate(truth_lines):
             if joined(o["box"], t["box"]):
                 parent[find(("o", j))] = find(("t", i))
+                if t.get("excluded"):
+                    direct_excluded.add(j)
     groups: dict = {}
     for node in nodes:
         groups.setdefault(find(node), []).append(node)
     records, missed = [], []
     for members in groups.values():
         truth = [truth_lines[i] for kind, i in members if kind == "t"]
-        ocr = [ocr_lines[j] for kind, j in members if kind == "o"]
+        ocr_ids = [j for kind, j in members if kind == "o"]
+        ocr = [ocr_lines[j] for j in ocr_ids]
         excluded = sorted({x["excluded"] for x in truth if x.get("excluded")})
         vertical = sum(bool(x.get("vertical")) for x in truth + ocr) * 2 > len(truth) + len(ocr)
         truth_text = normalize("".join(x["text"] for x in reading_order(truth, vertical)))
@@ -116,12 +120,14 @@ def page_records(truth_lines: list[dict], ocr_lines: list[dict], stratum: str) -
                 missed.append({"shape": shape, "truth_chars": len(truth_text), "truth_text": truth_text})
             continue
         dist = distance(truth_text, ocr_text)
-        for line in ocr:
+        for j, line in zip(ocr_ids, ocr):
             record = {"shape": shape, "confidence": line["confidence"], "distance": dist,
                       "truth_chars": len(truth_text), "truth_text": truth_text, "ocr_text": ocr_text,
                       "line_text": normalize(line["text"])}
-            if excluded:
+            if j in direct_excluded:
                 record.update(rule="excluded", excluded=excluded)
+            elif excluded:
+                record.update(rule="pessimistic")  # まとまりの正解の一部が分からない
             elif truth and len(truth) == 1 and len(ocr) == 1:
                 record.update(rule="exact", error=dist >= 1)
             elif truth:
@@ -159,7 +165,7 @@ def collect(side: str) -> dict:
             ocr_lines = [{**line, "box": [line["box"][0], line["box"][1], line["box"][0] + line["box"][2],
                                           line["box"][1] + line["box"][3]]} for line in ocr["lines"]]
             label = {"name": truth["name"], "page": page["page"], "variant": page.get("variant"),
-                     "kind": page["kind"], "pdf_sha256": ocr["pdf_sha256"]}
+                     "kind": page["kind"], "pdf_sha256": ocr["pdf_sha256"], "stratum": stratum}
             records, missed = page_records(page["lines"], ocr_lines, stratum)
             found[stratum]["lines"] += [{**label, **r} for r in records]
             found[stratum]["missed"] += [{**label, **m} for m in missed]
@@ -169,13 +175,26 @@ def collect(side: str) -> dict:
     return found
 
 
-def wilson(k: int, n: int, z: float) -> list[float] | None:
-    if n == 0:
+def cluster_bound(pairs: list[tuple[float, float]], side: str) -> float | None:
+    """単位（合成は原稿、公開はページ）ごとの (分子, 分母) から、比の片側 95% の限界を返す。
+
+    比 R = Σy / Σx の分散を、単位ごとの残差 y − R·x で線形化して見積もり（n/(n−1) を掛ける）、自由度 n − 1 の
+    t 分布の 95% 点を使う。分母が 0 の単位も数える。単位が 2 つ未満なら None。
+    """
+    from scipy.stats import t as student
+
+    n = len(pairs)
+    total_x = sum(x for _, x in pairs)
+    if n < 2 or total_x == 0:
         return None
-    p = k / n
-    centre = (p + z * z / (2 * n)) / (1 + z * z / n)
-    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
-    return [round(centre - half, 4), round(centre + half, 4)]
+    ratio = sum(y for y, _ in pairs) / total_x
+    variance = n / (n - 1) * sum((y - ratio * x) ** 2 for y, x in pairs) / total_x ** 2
+    half = student.ppf(0.95, n - 1) * math.sqrt(variance)
+    return round(ratio - half if side == "lower" else ratio + half, 4)
+
+
+def cluster_of(record: dict) -> str:
+    return record["name"] if record["stratum"] == "synthetic" else f"{record['name']}-p{record['page']}"
 
 
 def is_error(record: dict, t: float) -> bool:
@@ -187,8 +206,13 @@ def is_error(record: dict, t: float) -> bool:
 def page_share(pages: list[dict], t: float) -> dict:
     known = [p for p in pages if is_low(p, t) is not None]
     low = sum(bool(is_low(p, t)) for p in known)
+    clusters: dict = {}
+    for p in known:
+        y, x = clusters.get(cluster_of(p), (0, 0))
+        clusters[cluster_of(p)] = (y + bool(is_low(p, t)), x + 1)
     return {"pages": len(known), "low_pages": low, "c": low / len(known) if known else None,
-            "unknown_pages": len(pages) - len(known), "c_upper": (wilson(low, len(known), Z_ONE_SIDED) or [None, None])[1]}
+            "unknown_pages": len(pages) - len(known), "clusters": len(clusters),
+            "c_upper": cluster_bound(list(clusters.values()), "upper")}
 
 
 def measure(data: dict, t: float) -> dict:
@@ -199,12 +223,21 @@ def measure(data: dict, t: float) -> dict:
     missed = len(data["missed"])
     every = page_share(data["pages"], t)
     auto = page_share([p for p in data["pages"] if p["kind"] in OCR_KINDS], t)
+    # 単位ごとの (分子, 分母)。OCR したページのある単位は、行がなくても (0, 0) として数える
+    units = {cluster_of(p): {"low": 0, "caught": 0, "errors": 0} for p in data["pages"]}
+    for r in counted:
+        u = units[cluster_of(r)]
+        u["low"] += r["confidence"] < t
+        u["caught"] += r["confidence"] < t and is_error(r, t)
+        u["errors"] += is_error(r, t)
+    for m in data["missed"]:
+        units[cluster_of(m)]["errors"] += 1
     return {"threshold": t, "lines": len(counted), "low": len(low), "errors": len(errors) + missed,
-            "missed": missed, "caught": len(caught),
+            "missed": missed, "caught": len(caught), "clusters": len(units),
             "a": len(caught) / len(low) if low else None,
             "b": len(caught) / (len(errors) + missed) if errors or missed else None,
-            "a_lower": (wilson(len(caught), len(low), Z_ONE_SIDED) or [None])[0],
-            "b_lower": (wilson(len(caught), len(errors) + missed, Z_ONE_SIDED) or [None])[0],
+            "a_lower": cluster_bound([(u["caught"], u["low"]) for u in units.values()], "lower"),
+            "b_lower": cluster_bound([(u["caught"], u["errors"]) for u in units.values()], "lower"),
             "always": every, "auto": auto,
             "pessimistic_lines": sum(r["rule"] == "pessimistic" for r in counted)}
 
@@ -263,7 +296,8 @@ def short(row: dict) -> str:
     return (f"t={row['threshold']:.2f} 低い行 {row['low']} 誤り {row['errors']}（読み落とし {row['missed']}） "
             f"捕えた {row['caught']} (a) {f(row['a'])} (b) {f(row['b'])} "
             f"(c) always {f(row['always']['c'])}（{row['always']['low_pages']}/{row['always']['pages']}） "
-            f"auto {f(row['auto']['c'])}（{row['auto']['low_pages']}/{row['auto']['pages']}）")
+            f"auto {f(row['auto']['c'])}（{row['auto']['low_pages']}/{row['auto']['pages']}） "
+            f"限界 (a) {f(row['a_lower'])} (b) {f(row['b_lower'])} (c) {f(row['always']['c_upper'])}")
 
 
 def main() -> None:
@@ -317,15 +351,11 @@ def main() -> None:
                       and (row["auto"]["c_upper"] is not None and row["auto"]["c_upper"] <= 0.2))
             enough = (row["low"] >= MIN_COUNT and row["errors"] >= MIN_COUNT
                       and row["always"]["pages"] >= MIN_COUNT and row["auto"]["pages"] >= MIN_COUNT)
-            leave_one_out = None
-            if s == "synthetic":
-                names = sorted({p["name"] for p in d["pages"]})
-                leave_one_out = {n: points_ok(measure(subset(d, lambda x, n=n: x["name"] != n), t)) for n in names}
-            passed = points_ok(row) and bounds and enough and (leave_one_out is None or all(leave_one_out.values()))
+            passed = points_ok(row) and bounds and enough
             by = "variant" if s == "synthetic" else "name"
             groups = sorted({p[by] for p in d["pages"]})
             verdict[s] = {"row": row, "points": points_ok(row), "bounds": bounds, "enough": enough,
-                          "leave_one_out": leave_one_out, "pass": passed, "describe": describe(d),
+                          "pass": passed, "describe": describe(d),
                           "by": {g: measure(subset(d, lambda x, g=g: x[by] == g), t) for g in groups}}
         write("evaluation.json", {"threshold": t, "verdict": verdict,
                                   "grid": {s: [measure(d, x) for x in GRID] for s, d in data.items()}})
@@ -333,7 +363,7 @@ def main() -> None:
             write(f"evaluation-lines-{s}.json", line_rows(d, s))
         for s, v in verdict.items():
             print(s, "合格" if v["pass"] else "不合格", "点", v["points"], "区間", v["bounds"], "数", v["enough"],
-                  "1 つ除く", v["leave_one_out"], short(v["row"]))
+                  short(v["row"]))
         return
     raise SystemExit(f"不明なモード: {mode}")
 

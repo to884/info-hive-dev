@@ -151,6 +151,14 @@ def apply() -> None:
             for line in page["lines"]:
                 if line["id"] in wrong and line["excluded"] is None:
                     line["excluded"] = "eyecheck"
+        # ページの決まり（数える正解の行が 10 行以上）を当て直す。外れたページは測らない
+        kept = [p for p in truth["pages"] if sum(x["excluded"] is None for x in p["lines"]) >= 10 or isinstance(rule, list)]
+        dropped = [p["page"] for p in truth["pages"] if p not in kept]
+        if dropped:
+            truth.setdefault("dropped_after_eyecheck", []).extend(dropped)
+            print(tag, "目で確かめたあとに決まりから外れたページ:", dropped,
+                  "（防衛白書なら、決めた順で足して目で確かめる）" if tag == "defense" else "")
+        truth["pages"] = kept
         path.write_bytes(json.dumps(truth, ensure_ascii=False, indent=1).encode("utf-8"))
     print("目で確かめた結果を当てた")
 
