@@ -32,5 +32,6 @@ info-hive の設計で決めたことと、その理由を残す。1 つの判�
 | [0026](0026-wiki-uv-scripts-cap-python-at-tested-range.md) | wiki の uv で動くスクリプトは、CI で試す Python の範囲に上限を付ける | 承認 | 2026年11月15日 |
 | [0027](0027-youtube-captions-via-pinned-yt-dlp.md) | YouTube の動画は、固定した yt-dlp で字幕を取るスクリプトが raw を 1 回で作り、取り込みの手順に動画の分岐を足す | 提案 | （承認の日を入れる） |
 | [0028](0028-wiki-query-answer-confidence-by-rules.md) | `/wiki:query` の回答には、規則で決める 3 段階の確からしさを付け、低ければ上げる方法を提案する | 承認 | 2026年11月16日 |
+| [0029](0029-wiki-and-raw-hold-no-links.md) | wiki と raw の記事にはリンクを置かない。読まず、置き換えず、利用者に知らせる | 提案 | （承認の日を入れる） |
 
 各 ADR には、状態、決定日、決定者、関連を表で書き、続けて背景、決定、理由、検討した選択肢、影響、参照を書く。判断を変えるときは元の ADR を書き換えず、新しい ADR を書いて、元の ADR の状態を「置き換え済み」にする。
