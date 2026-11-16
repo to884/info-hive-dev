@@ -96,9 +96,13 @@ NOT_PAGES = ("SCHEMA.md", "index.md", "log.md")
 EMPTY = ("No files found", "No matches found", "Found 0")
 
 
+PAGE_DIRS = ("sources", "entities", "concepts", "synthesis")
+
+
 def _page_hits(text: str) -> set:
-    """結果の文字列から、wiki のページのスラッグ（.md を除いた名前）を拾う"""
-    names = set(re.findall(r"([^\\/\s\"'`:|]+)\.md", text or ""))
+    """結果の文字列から、インデックスに載るページ（sources、entities、concepts、synthesis の下）のスラッグを拾う。
+    パスを出さない形の結果（MCP の検索の "path" など）も、ページの置き場所の名前で見分ける"""
+    names = set(re.findall(r"(?:%s)[\\/]+([^\\/\s\"'`:|]+)\.md" % "|".join(PAGE_DIRS), text or ""))
     return {n for n in names if n + ".md" not in NOT_PAGES}
 
 
