@@ -48,7 +48,8 @@ class Fixtures(unittest.TestCase):
         cls.kinds = folder / "kinds.pdf"
         cls.ties = folder / "ties.pdf"
         pdf_fixtures.make_kinds_pdf(cls.kinds)
-        pdf_fixtures.make_ties_pdf(cls.ties)
+        # 20 ページにする。元の pdfminer（id() のまま）では、どのプロセスでも 16〜19 ページで本文が変わった
+        pdf_fixtures.make_ties_pdf(cls.ties, pages=20)
 
     @classmethod
     def tearDownClass(cls):
@@ -111,6 +112,34 @@ class AgreementTests(Fixtures):
         self.assertEqual([p["page"] for p in part], [3, 4, 5])
         self.assertEqual(part, whole[2:5])
 
+    def test_page_count_is_checked_before_any_page(self):
+        """途中のページだけを読むときも、ページの数が違えば、1 ページも返さずに止まる。"""
+        from unittest.mock import patch
+        data = self.kinds.read_bytes()
+        for layer in (wiki_pdf_layer, rag_pdf_layer):
+            with self.subTest(layer=layer.__name__), \
+                    patch.object(layer, "pdfminer_page_count", return_value=6):
+                pages = layer.analyze_pages(data, start=2, stop=2)
+                with self.assertRaisesRegex(RuntimeError, "ページの数が違う"):
+                    next(pages)
+
+    def test_stop_does_not_build_the_next_page(self):
+        """stop のページで止め、次のページを組み立てない（次のページが壊れていても、前のページは読める）。"""
+        from unittest.mock import patch
+        from pdfminer.pdfpage import PDFPage
+        original = PDFPage.get_pages
+
+        def broken_after_first(*args, **kwargs):
+            for number, page in enumerate(original(*args, **kwargs), start=1):
+                if number > 1:
+                    raise RuntimeError("2 ページ目を組み立てた")
+                yield page
+
+        data = self.kinds.read_bytes()
+        with patch.object(PDFPage, "get_pages", broken_after_first):
+            found = list(wiki_pdf_layer.pdfminer_pages(data, 1, 1))
+        self.assertEqual([number for number, _ in found], [1])
+
     def test_page_list_shape(self):
         numbers = list(range(1, 402, 2)) + [403, 404, 405]
         first = wiki_pdf_layer.page_list(numbers)
@@ -142,10 +171,13 @@ class WikiOutputTests(Fixtures):
         args = [str(path), "--max-chars", str(max_chars)]
         while True:
             result = self.run_cli(*args)
-            self.assertEqual(result.returncode, 0, result.stderr)
             parts.append(result.stdout)
-            if "--from " not in result.stderr:
+            self.assertLessEqual(len(result.stdout), max_chars)
+            if result.returncode == 0:
+                self.assertNotIn("--from ", result.stderr)
                 return "".join(parts), tokens
+            # 続きがあるときは終了コード 3 で、標準エラーに続きの位置が出る
+            self.assertEqual(result.returncode, 3, result.stderr)
             token = result.stderr.split("--from ", 1)[1].split()[0]
             tokens.append(token)
             args = [str(path), "--max-chars", str(max_chars), "--from", token]
@@ -177,35 +209,37 @@ class WikiOutputTests(Fixtures):
         import wiki_pdf
         data = path.read_bytes()
         digest = hashlib.sha256(data).hexdigest()
+        tag = wiki_pdf.identity_tag(wiki_pdf_layer)
         parts, tokens, page, offset = [], [], 1, 0
         while True:
             text, following = wiki_pdf.render(wiki_pdf_layer, data, digest, max_chars, page, offset)
             parts.append(text)
+            self.assertLessEqual(len(text), max_chars)
+            self.assertTrue(text)
             if following is None:
                 return "".join(parts), tokens
             tokens.append(following)
-            page, offset = wiki_pdf.parse_token(following, digest)
+            page, offset = wiki_pdf.parse_token(following, digest, tag)
 
     def test_parts_join_to_the_whole(self):
+        """分けて読んだ出力をつなぐと、一度に出した出力と同じになる。どの出力も上限を超えない。"""
+        import wiki_pdf
+        offsets = []
         for path in (self.kinds, self.ties):
             whole = self.full(path)
-            for max_chars in (1, 9, 40, 137, 600, 2500):
-                if max_chars == 1 and path == self.kinds:
-                    continue  # 6,000 回あまり呼ぶことになるので、短い ties.pdf だけで確かめる
+            for max_chars in (wiki_pdf.MIN_CHARS, 501, 523, 600, 777, 1000, 2500):
                 with self.subTest(pdf=path.name, max_chars=max_chars):
                     joined, tokens = self.read_in_parts_directly(path, max_chars)
                     self.assertEqual(joined, whole)
                     if max_chars < len(whole):
                         self.assertTrue(tokens)
-                    self.assertTrue(all(len(t) for t in tokens))
-        # CLI を通しても同じ（続きの位置は標準エラーから読む）
-        joined, tokens = self.read_in_parts(self.kinds, 600)
-        self.assertEqual(joined, self.full(self.kinds))
+                    offsets.extend(int(t.split(":")[2]) for t in tokens)
         # ページの途中で分けた場合と、ページの境目で分けた場合の両方を含む
-        offsets = [int(t.rsplit(":", 1)[1]) for t in tokens]
         self.assertTrue(any(o > 0 for o in offsets))
-        _, tokens = self.read_in_parts_directly(self.kinds, 137)
-        self.assertTrue(any(t.endswith(":0") for t in tokens))
+        self.assertIn(0, offsets)
+        # CLI を通しても同じ（続きの位置は標準エラーから読む）
+        joined, _ = self.read_in_parts(self.kinds, 600)
+        self.assertEqual(joined, self.full(self.kinds))
 
     def test_continuation_stops_when_the_pdf_changed(self):
         _, tokens = self.read_in_parts(self.kinds, 600)
@@ -214,9 +248,19 @@ class WikiOutputTests(Fixtures):
         self.assertIn("PDF が、続きの位置を出したときと違う", result.stderr)
         self.assertEqual(result.stdout, "")
 
+    def test_continuation_stops_when_the_extraction_changed(self):
+        _, tokens = self.read_in_parts(self.kinds, 600)
+        changed = tokens[0].rsplit(":", 1)[0] + ":00000000"
+        result = self.run_cli(str(self.kinds), "--from", changed)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("抽出の識別が、続きの位置を出したときと違う", result.stderr)
+        self.assertEqual(result.stdout, "")
+
     def test_bad_continuation_is_rejected(self):
+        import wiki_pdf
         digest = hashlib.sha256(self.kinds.read_bytes()).hexdigest()[:12]
-        for token in (f"{digest}:99:0", f"{digest}:1:999999", "garbage"):
+        tag = wiki_pdf.identity_tag(wiki_pdf_layer)
+        for token in (f"{digest}:99:0:{tag}", f"{digest}:1:999999:{tag}", f"{digest}:1:0", "garbage"):
             with self.subTest(token=token):
                 result = self.run_cli(str(self.kinds), "--from", token)
                 self.assertEqual(result.returncode, 2, result.stderr)
@@ -232,6 +276,9 @@ class WikiOutputTests(Fixtures):
         self.assertEqual(summary["needs_check"], 2)
         self.assertEqual(summary["lists"]["needs_check"], {"count": 2, "ranges": "4,7", "next": None})
         self.assertEqual(summary["lists"]["kind:text"]["ranges"], "1,6-7")
+        # 文字の層の本文が空のページは、判定によらず数える（scan の 4 ページ目には p4 の文字がある）
+        self.assertEqual(summary["empty_text"], 1)
+        self.assertEqual(summary["lists"]["empty_text"], {"count": 1, "ranges": "5", "next": None})
         self.assertEqual(summary["extraction"], wiki_pdf_layer.extraction_identity())
         details = summary["page_details"]
         self.assertEqual([d["page"] for d in details], [2, 3, 7])
@@ -240,7 +287,8 @@ class WikiOutputTests(Fixtures):
         self.assertEqual(details[1]["kind"], "garbled")
 
     def test_arguments(self):
-        for args in (["--json", "--from", "x:1:0"], ["--pages", "1"], ["--max-chars", "0"], ["--json", "--pages", "9"]):
+        for args in (["--json", "--from", "x:1:0:y"], ["--pages", "1"], ["--max-chars", "0"], ["--max-chars", "499"],
+                     ["--json", "--pages", "9"]):
             with self.subTest(args=args):
                 self.assertEqual(self.run_cli(str(self.kinds), *args).returncode, 2)
 
@@ -262,7 +310,11 @@ class StableOrderTests(Fixtures):
             self.assertEqual(run, runs[0])
 
     def plain_pdfminer(self, data: bytes, numbering=None) -> list[str]:
-        """元の pdfminer で取り出す。numbering を渡すと、id(obj) の代わりにその番号で組の順を決める。"""
+        """元の pdfminer で取り出し、TextConverter が書いたままの本文を返す。
+
+        numbering を渡さなければ、組の順は元のまま id(obj)（メモリーの番地）で決まる。渡すと、
+        id(obj) の代わりにその並びの番号で決める（測定の stable_text.py と同じ置きかえ）。
+        """
         import pdfminer.layout as layout
         from pdfminer.converter import TextConverter
         from pdfminer.layout import LAParams
@@ -294,29 +346,46 @@ class StableOrderTests(Fixtures):
                 interpreter = PDFPageInterpreter(manager, device)
                 for page in PDFPage.get_pages(io.BytesIO(data)):
                     interpreter.process_page(page)
-                    texts.append(wiki_pdf_layer.normalize_newlines(output.getvalue()).replace("\f", "").strip())
+                    texts.append(output.getvalue())
                     output.seek(0)
                     output.truncate(0)
         finally:
             layout.LTLayoutContainer.group_textboxes = original
         return texts
 
-    def test_order_decides_the_text(self):
-        """距離の同じ組の順を変えると、本文が変わる（試料が原因を捉えている）。"""
+    def test_removing_the_order_changes_the_text(self):
+        """決め方を外す（元の pdfminer の id() のまま）と、本文が変わる（試料が原因を捉えている）。
+
+        20 ページの ties.pdf では、元の pdfminer は、どのプロセスでも 16〜19 ページで本文が変わった
+        （2026-11-16、8 回）。20 ページすべてが偶然同じになることは、まず起こらない。
+        """
         data = self.ties.read_bytes()
         stable = [text for _, text in wiki_pdf_layer.pdfminer_pages(data)]
-        columns_first = self.plain_pdfminer(data, lambda boxes: sorted(boxes, key=lambda b: (b.x0, -b.y0)))
+        raw = [wiki_pdf_layer.normalize_page_text(text) for text in self.plain_pdfminer(data)]
+        self.assertTrue(any(a != b for a, b in zip(stable, raw, strict=True)))
+
+    def test_order_decides_the_text(self):
+        """距離の同じ組を、列の順の番号で並べると、すべてのページで本文が列の順になる。"""
+        data = self.ties.read_bytes()
+        stable = [text for _, text in wiki_pdf_layer.pdfminer_pages(data)]
+        columns_first = [wiki_pdf_layer.normalize_page_text(text) for text in
+                         self.plain_pdfminer(data, lambda boxes: sorted(boxes, key=lambda b: (b.x0, -b.y0)))]
         self.assertTrue(all(a != b for a, b in zip(stable, columns_first, strict=True)))
         self.assertTrue(stable[0].startswith("P0G0R0C0\n\nP0G0R0C1\n\nP0G0R1C0"))
         self.assertTrue(columns_first[0].startswith("P0G0R0C0\n\nP0G0R1C0\n\nP0G0R0C1"))
 
     def test_same_as_the_measured_prototype(self):
-        """製品の関数は、測定で使った置きかえ（初めて見た順の番号）と同じ本文を返す。"""
+        """製品の関数は、測定で使った置きかえ（初めて見た順の番号）と、正規化の前の本文が同じである。
+
+        測定の stable_text.py は、本文の末尾の改ページの文字だけを除いて SHA-256 を取った。製品は、改行を
+        そろえ、前後の空白も除く（normalize_page_text）ので、本文の SHA-256 は測定の値と違う。並びは同じである。
+        """
         for path in self.all_pdfs():
             with self.subTest(pdf=path.name):
                 data = path.read_bytes()
-                stable = [text for _, text in wiki_pdf_layer.pdfminer_pages(data)]
-                self.assertEqual(stable, self.plain_pdfminer(data, lambda boxes: list(boxes)))
+                product = [text.rstrip(chr(12)) for _, text in wiki_pdf_layer._converter_pages(data)]
+                prototype = [text.rstrip(chr(12)) for text in self.plain_pdfminer(data, lambda boxes: list(boxes))]
+                self.assertEqual(product, prototype)
 
     def test_threads_do_not_disturb_each_other(self):
         data = self.ties.read_bytes()

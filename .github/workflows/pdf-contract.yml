@@ -1,6 +1,7 @@
 name: PDF contract tests
 
-# wiki と rag の PDF の文字の層の契約の試験（ADR-0025 の「wiki と rag のそろい方」）を Linux で流す。
+# wiki と rag の PDF の文字の層の契約の試験（ADR-0025 の「wiki と rag のそろい方」）を、Linux と Windows、
+# wiki_pdf.py が宣言する Python の範囲（3.12〜3.14）で流す。
 # - tests/contract/test_pdf_layer.py: 試験 1、2、7（同じ結果、wiki の出力、本文が毎回同じ）
 # 公開の PDF（試験 6）はネットから取るので CI では使わず、合成の PDF だけで流す。手元では
 # tests/contract/fetch_corpus.py で公開の PDF を取ってから流す。
@@ -26,8 +27,16 @@ concurrency:
 
 jobs:
   contract:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.12', '3.13', '3.14']
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
     env:
       PYTHONUTF8: '1'
       PYTHONIOENCODING: utf-8
@@ -53,4 +62,4 @@ jobs:
           path: info-hive-rag
       - uses: astral-sh/setup-uv@v6
       - name: 契約の試験
-        run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/contract/test_pdf_layer.py -v
+        run: uv run --python ${{ matrix.python }} $DEPS python -X utf8 -m unittest tests/contract/test_pdf_layer.py -v
