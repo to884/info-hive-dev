@@ -23,7 +23,20 @@ ROOT = BENCH.parents[2]
 sys.path.insert(0, str(ROOT / "info-hive-rag" / "scripts"))
 
 from rag_pdf import OCR_KINDS  # noqa: E402
-from rag_review import is_low  # noqa: E402
+from rag_config import OCR_CONFIDENCE_REVISION  # noqa: E402
+
+
+def is_low(entry: dict, threshold: float) -> bool | None:
+    """1 回目の測定のときの製品の決まり（rag_review.is_low。行の印に見直して is_flagged になった）。
+
+    確信度の数え方の版が違うか、最小値がなければ None（不明）。最小値が閾値より低ければ低い。
+    """
+    if entry.get("confidence_revision") != OCR_CONFIDENCE_REVISION:
+        return None
+    minimum = entry.get("confidence_min")
+    if minimum is None:
+        return None
+    return minimum < threshold
 
 CORPUS = BENCH / "corpus"
 RESULTS = BENCH / "results"
@@ -206,8 +219,8 @@ def cluster_bound(pairs: list[tuple[float, float]], side: str) -> float | None:
         return None
     ratio = sum(y for y, _ in pairs) / total_x
     variance = n / (n - 1) * sum((y - ratio * x) ** 2 for y, x in pairs) / total_x ** 2
-    half = student.ppf(0.95, n - 1) * math.sqrt(variance)
-    return round(ratio - half if side == "lower" else ratio + half, 4)
+    half = float(student.ppf(0.95, n - 1)) * math.sqrt(variance)
+    return round(float(ratio - half if side == "lower" else ratio + half), 4)
 
 
 def cluster_of(record: dict) -> str:
