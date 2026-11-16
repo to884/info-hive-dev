@@ -505,9 +505,12 @@ class InspectWriteTests(Workspace):
             self.assertNotIn(bad, text)
         doc = wc.parse_raw(text)
         self.assertEqual((doc.video_id, doc.caption_kind, doc.meta["source_sha256"]), (VID, "asr", sha))
-        # 同じ資料は、スラッグによらず same。
+        # 同じ資料は、スラッグによらず same。書き込みできる状態になっていれば、読み取り専用に戻す（#74 のレビュー）。
+        os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
         code, out = self.write("別の名前", sha)
         self.assertEqual((code, out["status"], out["raw_ref"]), (0, "same", "raw/動画.md"))
+        self.assertTrue(out["read_only"])
+        self.assertFalse(os.stat(path).st_mode & 0o222)
         self.assertFalse((self.raw / "別の名前.md").exists())
         # 字幕が変わったら different。--new-version で別版を書く。
         changed = json3((0, "こんにちは"), (1200, "今日は 50 人が来た"))
@@ -896,6 +899,13 @@ class VerifyTests(Workspace):
             with self.subTest(overlay=list(overlay)):
                 with self.assertRaises(ValueError):
                     wc.check_wiki(self.wiki, overlay)
+
+    def test_binary_raw_of_other_sources_is_not_a_caption_raw(self):
+        """PDF などの、動画でないソースの原本は、照合の対象にしない（to884/info-hive-wiki#74 のレビュー）。"""
+        (self.raw / "資料.pdf").write_bytes(b"%PDF-1.7" + bytes(range(128, 256)))
+        self.write_page("sources/資料.md", self.page("資料", "x", raw="raw/資料.pdf", kind=None, confidence=None))
+        self.assertEqual([f.as_dict() for f in wc.check_wiki(self.wiki, {}).findings
+                          if f.path in ("sources/資料.md", "raw/資料.pdf")], [])
 
     def test_new_page_appears_on_every_alias(self):
         """新しいページは、一覧がそのディレクトリに降りるすべての道筋で読まれる（レビューの 13 回目）。
