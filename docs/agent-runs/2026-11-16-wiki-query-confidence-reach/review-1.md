@@ -1,0 +1,67 @@
+## 判定
+
+**条件付きで採用可。確信度: 中。** 判定表の移動による欠落は確認できなかった。ただし、外部ファイルの例外を `raw` 欄の参照先に限定したため、既存手順で作る変換・抽出ファイルの扱いが矛盾する。変更後のエージェントの挙動は未測定である。
+
+## 致命的・重大な欠陥
+
+### 重大：正規のソースの変換版・抽出版が、外部知識として排除される
+
+**主張：** 新しい定義は、wiki 外のファイルを禁止し、例外を「ソースの要約ページの `raw` が指す raw ソース」に限定している。しかし既存の取り込み手順では、`raw` が指す原本とは別のファイルを本文として読む。
+
+**反例・再現条件：**
+
+1. Shift_JIS の資料を取り込む。既存手順に従い、`raw` 欄には原本を記し、UTF-8 変換版は本文から参照する。
+2. 要約に省かれた詳細について質問し、ユーザーが原本の確認を承認する。
+3. 指定済みの UTF-8 変換版を読む。
+4. 新定義を字義どおり適用すると、そのファイルは wiki 外にあり、`raw` 欄の参照先でもないため、回答の前提に使えない。
+
+RAG でも同じ構造になる。`raw` は元の PDF を指すが、本文として読むのは別ファイルの `result.extracted_markdown` である。同じ資料の内容でも、原本を直接読むか、既存手順で作ったファイルを読むかで、回答への使用可否が変わる。
+
+**根拠：**
+
+- 禁止と例外：[query-confidence.md:17](C:/Works/info-hive-dev/.claude/worktrees/query-confidence-reach/info-hive-wiki/skills/info-hive/references/query-confidence.md:17)、[commands/query.md:28](C:/Works/info-hive-dev/.claude/worktrees/query-confidence-reach/info-hive-wiki/commands/query.md:28)
+- 原本を `raw` に残して変換版を読む規定：[ingest-workflow.md:49](C:/Works/info-hive-dev/.claude/worktrees/query-confidence-reach/info-hive-wiki/skills/info-hive/references/ingest-workflow.md:49)
+- RAG の原本と抽出本文の区別：[ingest-workflow.md:30](C:/Works/info-hive-dev/.claude/worktrees/query-confidence-reach/info-hive-wiki/skills/info-hive/references/ingest-workflow.md:30)、[同:246](C:/Works/info-hive-dev/.claude/worktrees/query-confidence-reach/info-hive-wiki/skills/info-hive/references/ingest-workflow.md:246)
+
+これは文面の衝突である。実際のモデルが拒否する割合までは確認していない。
+
+## 崩れる前提
+
+- **「`raw` 欄の参照先だけで、正規の資料を網羅できる」**  
+  文字コード変換版や RAG の抽出 Markdown を使うと崩れる。上記の重大な欠陥に当たる。
+
+- **「Read を明記すれば、正本が読まれる」**  
+  改訂版での測定がない。旧版の読込率 0/33 は確認できるが、新版の読込率は確かめられず。調査報告自身も、読ませれば改善するという因果関係を仮説としている。
+
+- **「低く迷う余地が、規則内の分類に限られる」**  
+  「迷ったら低いほう」を独立した裁量と解釈すると、表にない理由で下げる挙動が再発する。ただし、直前に「出発点、導き方、上限だけ」と限定しているため、規則同士の必然的な矛盾とは判定しない。
+
+## 見落としと軽微な問題
+
+- **軽微：利用者向け文書だけ raw の例外がない。**  
+  [docs/commands.md:75](C:/Works/info-hive-dev/.claude/worktrees/query-confidence-reach/info-hive-wiki/docs/commands.md:75) は、wiki 外のファイルを「どれも回答に使わない」としている。`raw: "docs/資料.md"` のような、コマンドと正本では許される使い方も、こちらの説明では禁止になる。**食い違いを確認。**
+
+- **軽微：承認済み ADR の正本の場所が古い。**  
+  [ADR-0028:37](C:/Works/info-hive-dev/.claude/worktrees/query-confidence-reach/docs/adr/0028-wiki-query-answer-confidence-by-rules.md:37) は、現在も正本を `query-workflow.md` の手順 5b と定めている。実装側ではそこが案内だけになった。リンクをたどれば到達できるが、配置の決定と現状は一致しない。
+
+- **軽微：CHANGELOG が原因を測定結果より強く断定している。**  
+  [CHANGELOG.md:13](C:/Works/info-hive-dev/.claude/worktrees/query-confidence-reach/info-hive-wiki/CHANGELOG.md:13) は、外れた9回を「すべて要約の言い回しの読み違い」と断定する。一方、[調査報告:137](C:/Works/info-hive-dev/.claude/worktrees/query-confidence-reach/docs/research/wiki-query-confidence-sonnet-2026-11-16.md:137) は、読み違いで説明できるところまでを確認し、正本を読ませた版では未測定だと区別している。原因の説明と、修正の効果の実証は分かれている。
+
+## 検証した事実
+
+- 対象 HEAD は `fd12baf037659395d9b11c789ecabe81fd4b3f53`。変更ファイルにコードは含まれない。
+- 元の手順 5b と移動先の表は、ともに45行。手順参照の表記変更を正規化すると全行一致した。判定条件、値、優先順の欠落は確認できなかった。
+- `SKILL.md`、コマンド、ワークフロー、利用者向け文書から、新しい正本への案内は存在する。
+- 保存済みの測定データから、試行を除く33回、一致24回、正本を開いた回0回、指定字句の出現0回を再集計できた。
+- `${CLAUDE_PLUGIN_ROOT}` の書き方は、`commands/ingest.md` の参照文書への案内と一致する。公式仕様でもコマンドの Markdown 本文中で展開される。対象版での実行確認はしていない。[Claude Code 公式仕様](https://code.claude.com/docs/en/plugins-reference#where-each-variable-resolves)
+- `plugin.json` と CHANGELOG の版は `0.21.1` で一致する。既存機能の指示の修正として patch とする判断は崩せなかった。
+
+## 崩せなかった点
+
+- `raw` が直接 `docs/` 内の資料を指す場合は、正本とコマンドに明示された例外で扱える。
+- wiki 自身の事柄を `log.md`、`SCHEMA.md`、インデックスなどから答える出発点「高」は維持されている。
+- 「上限は表の行だけ」は、導き方による「中」や、出発点による「低」を排除しない。判定手順では別々の段階として定義されている。
+- 外の知識の禁止は回答の根拠についての規定であり、プロジェクトの指示を作業手順として使うことまで禁じるとは読めない。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
