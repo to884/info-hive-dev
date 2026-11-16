@@ -5,9 +5,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from summarize import summarize, short  # noqa: E402
+from paths import QUESTIONS, SUMMARY as OUT, require_runs  # noqa: E402
 
-SCRATCH = Path(__file__).resolve().parent
-OUT = Path(r"C:\Works\info-hive-dev\.claude\worktrees\infallible-elbakyan-e57994\docs\research\wiki-query-confidence-sonnet-2026-11-16\runs-summary.json")
+RUNS = require_runs()
 
 # 回答を読んで付けた判定（got: 回答全体の確からしさ。部分の問いは答えた部分の判定）
 J = {
@@ -42,9 +42,9 @@ J = {
  ("Q11","3"): {"got":"中","note":"同上","external":"検索語に Rust を使ったと書き、取り込む候補に astral-sh/uv を挙げた"},
 }
 
-qs = {q["id"]: q for q in json.loads((OUT.parent / "questions.json").read_text(encoding="utf-8"))}
+qs = {q["id"]: q for q in json.loads(QUESTIONS.read_text(encoding="utf-8"))}
 rows = []
-for meta in sorted((SCRATCH / "runs").glob("Q*.meta.json")):
+for meta in sorted(RUNS.glob("Q*.meta.json")):
     m = json.loads(meta.read_text(encoding="utf-8"))
     s = summarize(meta.with_name(meta.name.replace(".meta.json", ".jsonl")))
     j = J[(m["qid"], m["rep"])]

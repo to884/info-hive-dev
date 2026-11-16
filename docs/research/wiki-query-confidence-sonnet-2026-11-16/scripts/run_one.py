@@ -6,11 +6,8 @@ import sys
 import time
 from pathlib import Path
 
-SCRATCH = Path(r"C:\UserData\toshiki\Temp\claude\64a3a45f32a1ff74\eb96472c-06ce-4d16-b46d-1da5f77f09a0\scratchpad")
-REPO = Path(r"C:\Works\info-hive-dev\.claude\worktrees\infallible-elbakyan-e57994")
-PLUGIN = SCRATCH / "wiki-v0.20.0"
-QUESTIONS = REPO / "docs" / "research" / "wiki-query-confidence-sonnet-2026-11-16" / "questions.json"
-OUT = SCRATCH / "runs"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from paths import QUESTIONS, REPO, RUNS as OUT, plugin_dir  # noqa: E402
 
 ALLOWED = [
     "Read", "Glob", "Grep", "Skill",
@@ -26,13 +23,14 @@ def main() -> int:
     qid, rep = sys.argv[1], sys.argv[2]
     qs = {q["id"]: q for q in json.loads(QUESTIONS.read_text(encoding="utf-8"))}
     q = qs[qid]
-    OUT.mkdir(exist_ok=True)
+    plugin = plugin_dir()
+    OUT.mkdir(parents=True, exist_ok=True)
     log = OUT / f"{qid}-r{rep}.jsonl"
     cmd = [
         "claude", "-p", f"/wiki:query {q['q']}",
         "--model", "claude-sonnet-5-5",
         "--output-format", "stream-json", "--verbose",
-        "--plugin-dir", str(PLUGIN),
+        "--plugin-dir", str(plugin),
         "--permission-mode", "default",
         "--allowedTools", *ALLOWED,
         "--disallowedTools", "Edit", "Write", "NotebookEdit",

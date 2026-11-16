@@ -1,10 +1,13 @@
 # 外の知識の語と、MCP の結果の mode・warning・state を全回で抜き出す
 import json
 import re
+import sys
 from pathlib import Path
 
-SCRATCH = Path(__file__).resolve().parent
-SUMMARY = Path(r"C:\Works\info-hive-dev\.claude\worktrees\infallible-elbakyan-e57994\docs\research\wiki-query-confidence-sonnet-2026-11-16\runs-summary.json")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from paths import SUMMARY, require_runs  # noqa: E402
+
+RUNS = require_runs()
 rows = json.loads(SUMMARY.read_text(encoding="utf-8"))
 pat = re.compile(r"AGENTS|CLAUDE\.md|wiki の外|補足|一般に|一般的|CSP|ADR-0010|Rust|astral|Fowler|Microsoft")
 for r in rows:
@@ -15,7 +18,7 @@ for r in rows:
 
 print("=== mcp")
 used = 0
-for f in sorted((SCRATCH / "runs").glob("Q*.jsonl")):
+for f in sorted(RUNS.glob("Q*.jsonl")):
     ids, out = {}, []
     for line in f.read_bytes().decode("utf-8", "replace").splitlines():
         try:
