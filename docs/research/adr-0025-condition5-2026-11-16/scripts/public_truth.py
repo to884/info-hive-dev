@@ -58,7 +58,7 @@ DROPPED_AFTER_EYECHECK = {256}
 
 
 # 3 回目の確かめる資料で、目で確かめたあとに決まりから外れたページ（決めた順の続きで入れ替える）
-DROPPED_V3: set[int] = set()
+DROPPED_V3: set[int] = {69}
 
 
 def seeded_pages_v3(eligible: list[int], seed: int, count: int) -> list[int]:

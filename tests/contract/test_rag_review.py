@@ -245,6 +245,18 @@ class FlagTests(Base):
         detail = rag_review.page_detail(self.config, str(self.wiki), self.doc_id, 2)
         self.assertEqual([(x["reasons"], x["rapid_text"]) for x in detail["flagged_lines"]], [(["rapid"], "図表II-2")])
 
+    def test_rapid_added_counts_characters(self):
+        """差分の区切り方に左右されない（8 回目のレビューの反例）。負号の足し忘れは印にし、落としただけと、
+        取り違えやすい英数字の入れ替えだけは印にしない。"""
+        from rag_ocr_flags import rapid_added
+        self.assertTrue(rapid_added("100", "-100"))
+        self.assertTrue(rapid_added("100", "\u2212100"))
+        self.assertFalse(rapid_added("ABAA", "AAA"))
+        self.assertFalse(rapid_added("O0", "0O"))
+        self.assertTrue(rapid_added("述べた。", "述べた38。"))
+        self.assertTrue(rapid_added("■計画", "口計画"))
+        self.assertFalse(rapid_added("長い", "畏い"))
+
     def test_alt_line_without_a_match_is_compared_with_an_empty_text(self):
         """別の解像度で、つながる行がなければ、空の本文と比べる（確信度が 0.9 未満なら印）。"""
         import rag_ocr_flags

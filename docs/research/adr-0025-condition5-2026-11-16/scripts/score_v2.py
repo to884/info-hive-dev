@@ -30,6 +30,10 @@ from rag_ocr_flags import OCR_FLAG_REVISION, reasons_for  # noqa: E402
 from score import CORPUS, RESULTS, cluster_bound, load_truths, page_records  # noqa: E402
 
 THRESHOLD = 0.3
+# 読む OCR の結果の置き場所と、照らす印の版。2 回目は ocr2（flags-v1）、3 回目は ocr3（今の製品の版）
+import os  # noqa: E402
+OCR_DIR = os.environ.get("SCORE_OCR_DIR", "ocr2")
+EXPECTED_FLAGS = os.environ.get("SCORE_FLAG_REVISION", "flags-v1" if OCR_DIR == "ocr2" else OCR_FLAG_REVISION)
 TUNING_PAGES = 75  # 製品の印と試した印を照らす、選ぶ資料のページの数
 MIN_UNITS = 10
 MIN_COUNT = 20
@@ -44,10 +48,10 @@ def collect(side: str) -> dict:
         stratum = truth["stratum"]
         for page in truth["pages"]:
             key = f"{truth['name']}-p{page['page']:04d}"
-            ocr = json.loads((CORPUS / "ocr2" / f"{key}.json").read_bytes().decode("utf-8"))
+            ocr = json.loads((CORPUS / OCR_DIR / f"{key}.json").read_bytes().decode("utf-8"))
             if ocr["pdf_sha256"] != truth["pdf_sha256"]:
                 raise SystemExit(f"OCR の結果の PDF が正解と違う: {key}")
-            if ocr.get("flag_revision") != OCR_FLAG_REVISION:
+            if ocr.get("flag_revision") != EXPECTED_FLAGS:
                 raise SystemExit(f"印のない OCR の結果: {key}")
             lines = [{**x, "box": rag_ocr_flags.corners(x["box"]), "source_box": x["box"]} for x in ocr["lines"]]
             records, missed = page_records(page["lines"], lines, stratum)
@@ -158,7 +162,7 @@ def main() -> None:
             raise SystemExit("製品の印と試した印の照合（compare_flags.py）が通っていない。確かめる資料は測らない")
         import hashlib
         for key, sha in record["inputs"].items():  # 照らした OCR の結果が、今のファイルと同じか
-            if hashlib.sha256((CORPUS / "ocr2" / f"{key}.json").read_bytes()).hexdigest() != sha:
+            if hashlib.sha256((CORPUS / OCR_DIR / f"{key}.json").read_bytes()).hexdigest() != sha:
                 raise SystemExit(f"照合のあとで OCR の結果が変わった: {key}（compare_flags.py をやり直す）")
     data = collect(mode)
     result = {}

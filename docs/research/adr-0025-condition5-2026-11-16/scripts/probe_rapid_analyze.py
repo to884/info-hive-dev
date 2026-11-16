@@ -149,5 +149,15 @@ def main() -> None:
                 print(f"  {name}: {measure(data, signal)}")
 
 
+
+
+# 8 回目のレビューのあと: 決まりを自分で持たず、製品の rag_ocr_flags.rapid_added を使う（製品と試しが同じ欠陥を
+# 持つと、一致を確かめても見つからないため）
+from rag_ocr_flags import rapid_added as product_rapid_added  # noqa: E402
+
+SIGNALS["今の印 + 製品の rapid（flags-v3）"] = lambda r: bool(r["reasons"]) or (
+    r["rapid"] is not None and product_rapid_added(r["primary"], r["rapid"]["text"]))
+
+
 if __name__ == "__main__":
     main()
