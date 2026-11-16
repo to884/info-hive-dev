@@ -120,6 +120,8 @@ The /wiki:browse page runs under a strict CSP (ADR-0010). Do not use inline styl
 
 このプロジェクトで蓄積した知識をもとに答える質問では、先に `wiki/index.md`（インデックスを分割した wiki では、`wiki/indexes/` の該当するファイル）を読み、1行の要約から必要なページを探す。引用には `[[wikilinks]]` を使う。インデックスからよい候補が見つからなければ、`info-hive` スキルの `wiki_search.py` でローカルのハイブリッド検索をする。依存パッケージを使わない BM25 にするには `--no-embed` を付ける。
 
+関係を問う質問では、wiki の MCP サーバーのツール `graph`（使えなければ `info-hive` スキルの `wiki_graph_query.py`）で `wiki/graph/graph.sqlite` も参照できる。
+
 新しいソースを加えるときは、`info-hive` スキルの取り込みのワークフローに従う。`wiki/sources/`、`wiki/entities/`、`wiki/concepts/`、`wiki/synthesis/` のどこに置くかを決め、影響するページを洗い出し、ページを書き直さずに `str_replace` で必要な箇所だけを更新する。インデックスを更新し、`wiki/log.md` に1行の記録を追記する。
 
 規模を保つための規律: ページは1つの話題に絞る（目安は空白を除いて 10,000 文字または 100 行、上限は 25,000 文字または 200 行）。約 150 ページか、インデックスが 300 行を超えたら、インデックスを分割する。どのページにも YAML の frontmatter を付け、相互参照にはすべて `[[wikilinks]]` を使う。

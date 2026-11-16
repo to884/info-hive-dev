@@ -222,6 +222,9 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 ## [2026-11-16] ingest | browse の木をタグでまとめ、左のペインを Tree にした wiki 0.25.0 のリリース
    ページ: sources/browseのタグの段とTreeのリリース-wiki-0.25.0（新規）。concepts/browseのデザインシステム、concepts/browseの画面の確かめ方、index を更新
 
+## [2026-11-16] ingest | browse の同梱の fluent2.css をスキルの 0.1.5 に写し直した wiki 0.25.1 のリリース
+   ページ: sources/browseの同梱のfluent2のcssの更新-wiki-0.25.1（新規）。index を更新
+
 ## [2026-11-16] ingest | The components of agent memory（Anthropic）
    ページ: sources/components-of-agent-memory、concepts/エージェントのメモリの階層（新規）。concepts/editとwriteの書き込みの競合、concepts/エージェントに守らせる決まりの書き方、index を更新
    raw: `wiki:web-raw` に任せた（報告したモデル: Claude Sonnet 5.5）。訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5
