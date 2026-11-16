@@ -73,7 +73,7 @@ class FetchStub:
         self.html = html
         self.requested: list[str] = []
 
-    def __call__(self, url, timeout, max_bytes, accept="", block_private=False):
+    def __call__(self, url, timeout, max_bytes, accept="", block_private=False, refuse_youtube_redirect=False):
         self.requested.append(url)
         if url == PAGE_URL:
             return self.html, url, "text/html; charset=utf-8"

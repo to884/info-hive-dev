@@ -1,0 +1,121 @@
+[ask-codex 11:04:46] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-0027-impl）
+## 判定
+
+**却下。確信度：高。** 定義のない訂正印が verify と lint を通る反例と、YouTube の URL が Web ページの経路を通る反例を再現した。ADR-0027 が防ごうとした失敗が残っている。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】本文中の訂正印をコード内と誤認し、定義なし・confidence `high` で通す
+
+本文を次のようにする。先頭はバックスラッシュ **2 個**である。
+
+```text
+\\`x` 50〔訂正 L1-1〕 `z`
+```
+
+同梱の Markdown パーサーでは、`x` と `z` だけがコードになり、`50〔訂正 L1-1〕` は通常の本文になる。しかし `_mask_code_spans` は、直前がバックスラッシュなら、その個数によらずバッククォートを無視する。その結果、`x` の閉じバッククォートを開きと誤認し、訂正印を隠してしまう。
+
+次の状態で再現した。
+
+- raw は `uploaded`、200 行、L1 に `15` がある。
+- 親の要約ページに上記の本文を書き、定義を置かず、`confidence: "high"` とする。
+- ファイルの読み取りをメモリ上の素材に差し替え、実際の照合処理を実行する。
+
+結果は `verify` の終了コード **0**、`findings: []`、重み **0**、confidence **`high`**、`unknown_words: {}`。lint の `caption_corrections` も空になった。これは「印を付け忘れた訂正」の限界ではなく、**本文に存在する印を検査が消している**。
+
+根拠：[wiki_captions.py:500](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:500) のコード判定と、同ファイル 582 行目以降の印の走査。ADR の機械の照合 (4) に食い違う。
+
+### 2. 【重大】ホストのパーセントエンコードで YouTube の拒否をすり抜ける
+
+次の入力が通る。
+
+```text
+https://www%2eyoutube%2ecom/watch?v=AbCdEfGhIj0
+```
+
+実測結果は次のとおり。
+
+```text
+classify: other
+refuse_youtube: 拒否しない
+urllib.request.Request.host: www.youtube.com
+Request.full_url: https://www%2eyoutube%2ecom/watch?v=AbCdEfGhIj0
+```
+
+拒否判定はエンコードされたホストを見ているが、Python の通信処理は復号した `www.youtube.com` に接続する。応答の URL が入力の綴りを保つ場合、最後の URL の検査も通る。
+
+通信と書き込みを差し替えた `build` の検証では、終了コード **0**で `write_outputs` に到達し、フッターの文章を含む Web raw が生成された。`source_sha256_of` は `"html"` だった。
+
+根拠：[wiki_youtube_url.py:51](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_youtube_url.py:51)、[wiki_fetch.py:88](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:88) のホスト判定と、同ファイル 179 行目の `Request` 生成、1357 行目の最後の検査。ADR の「経路の守り」に食い違う。
+
+実際の YouTube サーバーへの通信は行っていない。通信先の復号と、応答後に raw を生成するコード経路を確認した。
+
+### 3. 【重大】短縮 URL から始めた旧版の取り込みは、転送先が YouTube でも再開する
+
+次の状態を用意する。
+
+1. 0.22.0 より前に、短縮 URL から YouTube に転送されるページを Web 経路で取得する。
+2. raw と作業用の写しがそろった段階で中断する。
+3. 0.22.0 で、同じ短縮 URL・スラッグを指定し、`--force` を付けずに再開する。
+
+渡された短縮 URL は YouTube ではないので入口の検査を通る。その後の再開分岐は、保存済みの `final_url` を検査せず成功を返す。
+
+整合した保存済み記録を返すよう差し替えた検証で、次の結果になった。
+
+```json
+{
+  "final_url": "https://www.youtube.com/watch?v=AbCdEfGhIj0",
+  "unchanged": true,
+  "fetch_skipped": true,
+  "work_dir": true
+}
+```
+
+終了コードは **0**。`resumable_fetch` 自体にも YouTube を拒む条件はなく、旧版が正規に作った記録を除外しない。Web raw の取り込みを、そのまま後段へ進められる。
+
+根拠：[wiki_fetch.py:1330](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:1330) の再開分岐、`wiki_rawcheck.py:310` の再開条件。
+
+## 崩れる前提
+
+- **拒否判定で見たホストと、通信処理が使うホストが同じである。** パーセントエンコードされたホストで崩れる。
+- **コードスパンは、バッククォート直前の 1 文字で判定できる。** 連続するバックスラッシュの偶奇で崩れる。印の除外だけでなく、「raw にない語」の抽出にも影響する。
+- **取得前の URL を検査すれば、再開する取り込みも安全である。** 保存済みの転送先が YouTube の場合に崩れる。
+- **【軽微・ADR 側の限界】原文の境界を調べれば、表示上も語の途中でないと分かる。** 本文 `&#49;5〔訂正 L1-1〕` に対し、`15` を `5` に訂正する定義は検査を通ったが、Markdown の表示は `15〔訂正 L1-1〕` のままだった。実装は ADR の「原文を比較する」方式には一致するが、表示上の数値の境界は保証しない。
+- **同時に別スラッグへ書かなければ、同じ raw は増えない。** 同時実行では検索後に双方が公開できる。これは ADR 185 行目で明示的に受け入れられた制約であり、新たな実装欠陥には数えていない。
+
+## 見落としと軽微な問題
+
+- **【軽微】`different` を `slug_taken` として返す。** 同じ動画・異なるハッシュの raw が指定スラッグにある場合、`slug_state: "different"` でも `cmd_write` は `status: "slug_taken"` を返した。「別の動画や記事が名前を占有している状態」と区別できない。根拠：`wiki_youtube.py:531`。ADR 78 行目の状態の区別と食い違う。
+
+- **【軽微】字幕がない動画を、空のトラック一覧から選ばせる。** `subtitles` と `automatic_captions` が空の場合、`inspect` は終了コード **3**、`track_undecided`、`tracks: []` となった。V2 はこの状態でユーザーにトラックを選ばせるため、字幕ファイルを置く案内へ進まない。根拠：`wiki_youtube.py:469`、503 行目。字幕なしを取得不能として扱う説明と食い違う。
+
+- **【軽微】小数秒のチャプター境界より前の字幕を、次の区間へ入れる。** チャプター開始を `60.5` 秒、字幕を `tStartMs=60200` とすると、字幕が次の区間に入った。所属判定より前にチャプター開始を整数秒へ切り捨てている。根拠：`wiki_captions.py:138`。ADR の区間の定義と食い違う。
+
+- **【軽微】`parse_raw` は、生成器と同じ構造だけを受け入れる検査ではない。** 正常な raw の末尾に任意の見出しと本文を足しても受理した。フェンス外の未認識行を無視するためである。根拠：`wiki_captions.py:288`。ただし、字幕から生成処理を通じてこの状態を作る攻撃は崩せなかった。生成側の自己検査と、既存 raw の読み取り側は、保証が異なる。
+
+## 検証した事実
+
+| 対象 | 結果 |
+| --- | --- |
+| URL、トラック、raw、定義の既存試験 | ファイルを書かない 4 クラス、**17 試験が成功** |
+| 本文中の印の見落とし | verify 成功、lint 指摘なしを再現 |
+| エンコードした YouTube ホスト | 拒否判定と通信先の食い違い、Web raw 生成への到達を再現 |
+| 保存済み転送先が YouTube の再開 | 終了コード 0 を再現 |
+| 手順 5b の追加行 | 動画の confidence と、`model`／留保の語の上限は ADR と一致 |
+| 実ファイルへの公開・読み取り専用化・競合 | 実行による確認はしていない |
+| 固定した yt-dlp での実取得 | 未検証 |
+
+読み取り専用の条件を守るため、一時ファイルを作る試験を含む全試験コマンドは実行していない。追加の反例検証は、通信とファイル操作を差し替えて行った。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 字幕の改行、偽の `L<n>`、区間見出し、`題名:`、バッククォート列による、**生成処理を通じた raw の構造の偽造**。
+- 通常の URL 引数による `tlang` の除外、元の自動字幕の統合、トラック候補が曖昧なときの停止。
+- メタデータの動画 ID が依頼と異なる場合の停止。
+- 通常の印・定義での、根拠の場所の不一致、同じ位置の重複、ページ間の定義の食い違いの検出。
+- confidence の計算式そのもの。確認した水増しは、計算前に印を見落とす経路だった。
+- 通常形の字幕 URL を警告・例外に含めた場合の `_clean` による伏せ字。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 11:26:10] 完了。session 01a1e219-8d4a-7323-ba6c-a5c0d27b52b7  usage {"input_tokens": 3367745, "cached_input_tokens": 3195264, "cache_write_input_tokens": 0, "output_tokens": 24679, "reasoning_output_tokens": 15242}

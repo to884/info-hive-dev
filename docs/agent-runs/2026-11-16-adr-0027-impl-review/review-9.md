@@ -1,0 +1,134 @@
+## 判定
+
+**却下。確信度：高。** 重大な欠陥を2件再現した。不可視文字を訂正語の先頭に含めると未訂正の本文が検証を通り、ディレクトリのシンボリックリンク配下では、保存後に走査されない要約ページを受理する。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】不可視文字を訂正語に含めると、語の途中を境目として受理する
+
+raw を `uploaded`・200行とし、次を含める。
+
+```python
+original = "ト\u2060ヨタ"       # L1
+corrected = "\u2060ヨタ"       # L2
+body = original + "〔訂正 L1-1〕"
+definition = (
+    f"- L1-1: 字幕 `{original}` を `{corrected}` に訂正"
+    "（根拠 caption:L2）"
+)
+```
+
+親の要約ページに `confidence: "high"` と、この本文・定義を書く。本文は **L1の元の語から変わっていない**。
+
+実際の結果は以下だった。
+
+| 検査 | 結果 |
+|---|---|
+| `cmd_verify` | **終了コード0、`findings: []`** |
+| 計算結果 | 重み1、confidence `high` |
+| lint | **`caption_corrections: []`** |
+| browse | 元の `ト\u2060ヨタ` を本文として保持 |
+
+U+200D（ZERO WIDTH JOINER）、U+00AD（SOFT HYPHEN）を訂正語の先頭に含めても、同じ結果になった。
+
+原因は、不可視カテゴリーの検査が**定義した語の外側の1文字だけ**に掛かること。訂正語の先頭について拒むのは結合文字 `M` だけで、`Cf` は通る。その後の `char_class(nword[:1])` が `None` になり、前のカタカナとの連続も検出しない。
+
+根拠：[wiki_captions.py:508](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:508)、[同:514](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:514)、[同:517](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:517)。語の途中の切れ目を拒む [ADR-0027:101](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/docs/adr/0027-youtube-captions-via-pinned-yt-dlp.md:101) の目的を満たさない。
+
+### 2. 【重大】通常走査が降りないディレクトリの配下を、保存予定ページとして受理する
+
+次の状態を使う。
+
+- 初期化済みの wiki と、正常な `raw/a.md` がある。
+- `wiki/sources/linked` は、ディレクトリへのシンボリックリンクである。
+- リンク先には正常にファイルを保存できる。
+- 要約の保存先を `sources/linked/a.md` とする。
+
+正常な要約全文を、次の指定で渡す。
+
+```text
+verify --wiki <W> --raw-root <R> --slug a \
+  --page "sources/linked/a.md=<要約ファイル>" --json
+```
+
+ファイル一覧と読み取りをメモリ上で差し替え、通常走査の実装と `cmd_verify` を実行した結果：
+
+| 条件 | 結果 |
+|---|---|
+| overlayあり | **終了コード0、指摘なし、親 `sources/linked/a.md`** |
+| 通常の `walk_pages` | **`files=[]`、走査障害の通知もなし** |
+| overlayなし | **終了コード1、`no_summary`** |
+
+通常走査は、途中のディレクトリがシンボリックリンクなら降りない。一方、overlay は字面と最上位の除外項目との同一性だけを検査し、走査に現れなかったページも最後に追加する。したがって、その場所に保存しても要約ページとして読まれない。
+
+根拠：[通常走査の判定・wiki_pages.py:267](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:267)、[最上位だけの検査・wiki_captions.py:1318](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1318)、[overlayの追加・同:1385](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1385)。保存後もページとして読まれる場所だけを認める [ADR-0027:112](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/docs/adr/0027-youtube-captions-via-pinned-yt-dlp.md:112) と食い違う。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| 不可視文字が語の境目を隠すなら、その文字は定義した語の直前にある | 不可視文字を訂正語の先頭に含める |
+| 字面の検査と最上位の `samefile` 検査を通れば、通常走査でもページになる | 途中のディレクトリがシンボリックリンクである |
+| 検証と閲覧が同じ表示文字列を使う | Markdown の改行。検証は `\n`、閲覧の `inline_text` は空白にする |
+| Windows の予約名は実装の集合で覆えている | 上付き数字を使うデバイス名など、集合にない予約名を指定する |
+
+## 見落としと軽微な問題
+
+### 【軽微】段落を折り返しただけで、正常な訂正が `mark_tail` になる
+
+同じ正常な raw・定義に対し、本文だけを次のように変えた。
+
+```markdown
+説明は 50〔訂正 L1-1〕
+```
+
+これは指摘なし。一方、次は **`mark_tail`** になった。
+
+```markdown
+説明は
+50〔訂正 L1-1〕
+```
+
+語と印は同じ行にあり、語の途中も切れていない。検証側が改行を `Cc` の不可視文字として拒むためである。閲覧の `inline_text` は後者を `説明は 50〔訂正 L1-1〕` とする。
+
+根拠：[wiki_captions.py:631](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:631)、[同:514](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:514)、[wiki_browse_core.py:434](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:434)。
+
+### 【軽微】Windows の予約名の拒否に漏れがある
+
+次のすべてで、`is_overlay_page` は `True`、Windows の標準ライブラリ `ntpath.isreserved` も `True` を返した。
+
+```text
+sources/COM¹/a.md
+sources/LPT³/a.md
+sources/CONIN$/a.md
+```
+
+「予約された名前を拒む」という説明とは食い違う。今回確かめたのは判定の漏れまでで、実保存は行っていない。
+
+根拠：[wiki_captions.py:1298](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1298)、[予約名の集合・同:1308](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1308)。同リポジトリの [wiki_browse_core.py:201](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:201) は、これらも予約名に含めている。
+
+## 検証した事実
+
+| 主張・確認事項 | 結果 |
+|---|---|
+| 試験は51件 | 一致。収集件数51件 |
+| ファイルを書かない既存4クラス | 21件成功 |
+| レビュー8のWORD JOINER・ZWJの反例を拒む | 一致。ただし重大1の変形は通る |
+| 分解濁点・半角濁点の既出反例を拒む | 一致 |
+| `GRAPH/`、`graph./`、`graph /`、短い名前などの既出保存先を拒む | 一致 |
+| `unknown_for` がディスクの綴りへの変更に追従する | 一致。`SOURCES/a.md` 指定でも `{"sources/a.md":["999"]}` |
+| 投稿者字幕と同名の自動字幕を種類付きIDで選ぶ | 既存試験で成功 |
+| 動画ID末尾の `%0A` を拒む | 一致 |
+| 保存前後でページの集合が一致する | 食い違い。重大2 |
+
+追加の反例は、合成した raw・ページと、メモリ上のファイル一覧・読み取りで検証した。ファイルは変更していない。全51件の一括実行、実保存・競合、固定した yt-dlp による実取得は確かめていない。
+
+## 崩せなかった点
+
+- 既存試験が扱う、字幕による行番号・フェンス・区間構造の偽造。
+- 投稿者字幕と自動字幕の名前の衝突を、種類付きIDで解決する処理。
+- confidence の計算式そのもの。
+- レビュー8で指摘された、保存先の綴り変更による未知語の脱落。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

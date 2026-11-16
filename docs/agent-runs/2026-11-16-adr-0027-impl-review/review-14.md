@@ -1,0 +1,99 @@
+## 判定
+
+**却下。確信度：高。** 重大1件、軽微1件を再現した。13回目の反例は拒否されるが、別ファイルの名前がUnicode正規化後に衝突すると、訂正の定義が消え、過大な `confidence` を承認できる。
+
+## 致命的・重大な欠陥
+
+### 【重大】NFCで同じになる別ファイルの定義を上書きし、confidenceを水増しする
+
+Unicode正規化形式が異なる名前を、別ファイルとして保持できる環境を仮定する。次の2ファイルを同じディレクトリに置く。パスはPythonのエスケープ表記で示す。
+
+| ファイル名 | 内容 |
+|---|---|
+| `sources/e\u0301.md`（`e`＋結合アクセント） | 下記の訂正と定義がある |
+| `sources/\u00e9.md`（合成済みの `é`） | 本文は `caption`。定義なし |
+
+両ページのfrontmatterは、`type: "source"`、`raw: "raw/é.md"`、`caption_kind: "uploaded"`、`confidence: "high"` とする。rawは正常な字幕200行で、L1は `15`。
+
+最初のページの本文：
+
+```markdown
+50〔訂正 L1-1〕
+
+## 字幕の訂正と留保
+
+- L1-1: 字幕 `15` を `50` に訂正（根拠 model:x）
+```
+
+OSの応答とファイル内容をメモリ上で差し替え、実際の `walk_pages`、`load_pages`、`cmd_verify`、lintを実行した。
+
+```text
+walk_pages: 異なる2ファイルを返す
+load_pages: 両方のrelが sources/é.md になる
+
+verify:
+  終了コード: 0
+  findings: []
+  definitions: []
+  weight: 0
+  confidence: high
+```
+
+定義を持つファイルの名前を、正規化後も異なる `sources/separate.md` にし、分割ページなので `confidence` を外した対照例では、**重み3、計算値 `medium`、`confidence_mismatch`、終了コード1**になった。定義の内容ではなく、名前の衝突によって検査が消えている。
+
+原因と根拠：
+
+- [wiki_captions.py:1473](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1473)：異なるディスク上のパスをNFCへ変換し、同じ `PageIn.rel` を持つページを残す。
+- [wiki_captions.py:1140](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1140)：`scans` を `p.rel` の辞書にするため、後から読む定義なしのページが、先の解析結果を上書きする。
+- [wiki_captions.py:1148](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1148)：両ページとも上書き後の解析結果で照合され、訂正を数えない。
+- [wiki_captions.py:1118](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1118)：要約ページの対応も同じキーに潰れる。
+
+lint全体が無警告になるわけではない。`duplicate_slugs` は `normalization_collision: True` を報告する。しかし、**`caption_corrections` は空で、verifyは成功する**。ADRの照合による承認前の停止条件は働かない。
+
+なお、[wiki_browse_core.py:658](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:658) は、同じ識別子になる別ファイルを明示的に `id_collision` として扱っている。この状態は、リポジトリの他の処理でも想定されている。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| NFCにした相対パスは、ページごとに一意である | 合成済み文字と結合文字列の名前を持つ別ファイルが共存する |
+| `scans[p.rel]` は、そのページ自身の解析結果である | 正規化後のキーが衝突し、後のページが解析結果を上書きする |
+| rawの既存ファイル名と指定スラッグは、NFCで文字列比較すれば対応する | 大文字・小文字を区別しない環境で、指定の大小文字だけが異なる |
+
+## 見落としと軽微な問題
+
+### 【軽微】同じ動画の別版を、大小文字の違いで `slug_taken` と誤判定する
+
+Windowsの大小文字を区別しない環境で、`raw/Video.md` に同じ動画の古い字幕がある状態を使う。新しい字幕のSHA-256を渡すと、実際の `existing_raws` と `relations` の結果は次のとおりだった。
+
+| 指定スラッグ | `existing[0].state` | `slug_state` |
+|---|---|---|
+| `Video` | `different` | `different` |
+| `video` | `different` | **`slug_taken`** |
+
+`video.md` の存在確認は `Video.md` に当たるが、[wiki_youtube.py:382](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_youtube.py:382) の比較は `r["slug"] == nfc(slug)` なので、その既存rawを見失う。結果として、同じ動画の別版と、別資料による名前の占有を取り違える。上書きには進まないため、軽微とする。
+
+## 検証した事実
+
+| 確認事項 | 結果 |
+|---|---|
+| 試験は57件 | 一致。収集件数57件 |
+| 書き込みを伴わない既存4クラス | 21件すべて成功 |
+| 同じ相対パスの `--page` を2回渡すと止まる | 一致。`Fail`、終了コード1を確認 |
+| 新規ページを同じディレクトリの全別名へ展開する | 一致。実体の鍵を差し替えた検証で両経路に追加された |
+| 13回目の反例を拒む | 一致。`bad_mark_summary` と `confidence_on_child` を確認 |
+| 既存ページの定義を漏れなく数える | 食い違い。NFC衝突の反例で定義が消えた |
+| `different` と `slug_taken` を取り違えない | 食い違い。大小文字の反例のとおり |
+
+ファイルは変更していない。追加検証はメモリ上の差し替えによるもの。全57件の一括実行、実ファイル・ジャンクションの作成、固定したyt-dlpによる実取得は未実施。
+
+## 崩せなかった点
+
+- 13回目の新規ページの別名に関する反例そのもの。
+- 同じ相対パスの `--page` が黙って上書きされる反例。
+- 既存試験が扱う、字幕による行番号・フェンス・区間構造の偽造。
+- 種類付きIDによる投稿者字幕と自動字幕の選択。
+- 定義が漏れずに渡された場合のconfidenceの計算式。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
