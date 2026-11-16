@@ -1,0 +1,65 @@
+name: PDF contract tests
+
+# wiki と rag の PDF の文字の層の契約の試験（ADR-0025 の「wiki と rag のそろい方」）を、Linux と Windows、
+# wiki_pdf.py が宣言する Python の範囲（3.12〜3.14）で流す。
+# - tests/contract/test_pdf_layer.py: 試験 1、2、7（同じ結果、wiki の出力、本文が毎回同じ）
+# 公開の PDF（試験 6）はネットから取るので CI では使わず、合成の PDF だけで流す。手元では
+# tests/contract/fetch_corpus.py で公開の PDF を取ってから流す。
+#
+# info-hive-wiki と info-hive-rag はパブリックなので、トークンなしで、このリポジトリが指すコミットを取る。
+# 依存の版は、wiki_pdf.py の `# /// script` と、rag_pdf_layer.py の PDFMINER_VERSION、PYPDFIUM2_VERSION に合わせる。
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - info-hive-rag
+      - info-hive-wiki
+      - tests/contract/**
+      - .github/workflows/pdf-contract.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pdf-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.12', '3.13', '3.14']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      DEPS: >-
+        --with pdfminer.six==20260107 --with pypdfium2==5.15.2 --with reportlab==4.4.4
+        --with pillow==13.0.0 --with pypdf==6.1.3
+    steps:
+      - uses: actions/checkout@v4
+      - name: サブモジュールの参照を調べる
+        id: refs
+        run: |
+          echo "wiki=$(git ls-tree HEAD info-hive-wiki | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+          echo "rag=$(git ls-tree HEAD info-hive-rag | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          repository: to884/info-hive-wiki
+          ref: ${{ steps.refs.outputs.wiki }}
+          path: info-hive-wiki
+      - uses: actions/checkout@v4
+        with:
+          repository: to884/info-hive-rag
+          ref: ${{ steps.refs.outputs.rag }}
+          path: info-hive-rag
+      - uses: astral-sh/setup-uv@v6
+      - name: 契約の試験
+        run: uv run --python ${{ matrix.python }} $DEPS python -X utf8 -m unittest tests/contract/test_pdf_layer.py -v

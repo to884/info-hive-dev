@@ -495,6 +495,7 @@ class EntranceInventoryTests(unittest.TestCase):
         "wiki_help.py": "コマンドの一覧と個別のヘルプを出す",
         "wiki_mcp_launch.py": "MCP の入口。wiki はツールの引数でサーバーが受け取る",
         "wiki_mcp_relay.py": "MCP の中継。同上",
+        "wiki_pdf.py": "1 つの PDF の文字の層を取り出す。wiki には書かない（ADR-0025）",
         "wiki_workspace.py": "作業領域の設定から wiki の場所を出すだけで、wiki を読まない",
     }
     # wiki のパスを受け取る書き方。NO_WIKI の入口にあれば、分類を見直す。
