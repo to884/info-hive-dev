@@ -239,3 +239,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
    ページ: sources/claude-quickstarts-managed-agents-knowledge-wiki（新規）。concepts/editとwriteの書き込みの競合、concepts/エージェントのメモリの階層、sources/managed-agents-cma-dreaming-with-a-dynamic-workflow、index を更新
    raw: `wiki:web-raw` に任せた（報告したモデル: Claude Sonnet 5.5）。訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5。README だけで、ファイルの一覧の表は 1 段落につぶれて英語のまま残った
    グラフ: ノード +1、型付きエッジ +0
+
+## [2026-11-17] ingest | browse の種類とグループの絞り込みの直しと wiki 0.25.2 のリリース
+   ページ: sources/browseの種類とグループの絞り込みの直しとリリース-wiki-0.25.2（新規）。index を更新
