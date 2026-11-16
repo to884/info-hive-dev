@@ -182,3 +182,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-16] ingest | ADR-0025 の段階 1 と wiki 0.21.0 のリリース
    ページ: sources/pdfの文字の層とリリース-wiki-0.21.0（新規。concepts/リリースの確かめ方 を更新）
+
+## [2026-11-16] ingest | /wiki:query の確からしさを Sonnet 5.5 で測った記録
+   ページ: sources/queryの確からしさのsonnetでの測定-2026-11-16（新規。sources/queryの確からしさとリリース-wiki-0.20.0、concepts/敵対的レビューで設計を直す進め方 を更新）
