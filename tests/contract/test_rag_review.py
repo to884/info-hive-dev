@@ -118,6 +118,7 @@ class Base(unittest.TestCase):
         """MCP の decide_ocr_pages と同じに、台帳に書いてから作り直しのジョブを登録する。"""
         version = rag_review.decide(self.config, str(wiki), self.doc_id, base, items)
         Jobs(self.config.data_dir).register_rebuild(self.config, str(wiki), self.doc_id)
+        rag_review.Ledger(self.config.workspace(str(wiki))).mark_registered(self.doc_id, version)
         return version
 
     def item(self, wiki: Path, page: int, action: str, text: str | None = None) -> dict:
@@ -452,6 +453,76 @@ class ReviewRegressionTests(Base):
         self.assertIn("直した本文 四", Path(result["extracted_markdown"]).read_text(encoding="utf-8"))
         self.assertIn("page_report", result)
         self.assertEqual(result["review"]["published_version"], 2)
+
+    def reconcile(self, jobs: Jobs) -> list[dict]:
+        from rag_worker import reconcile_rebuilds
+        (self.root / "config.json").write_text(json.dumps(self.values), encoding="utf-8")
+        with patch.dict(os.environ, {"INFO_HIVE_RAG_CONFIG": str(self.root / "config.json")}):
+            return reconcile_rebuilds(jobs)
+
+    def test_cancelled_or_failed_rebuild_is_not_registered_again(self):
+        """取り消したか失敗した作り直しは、状態からの登録し直しで復活しない（明示的な再試行で動かす）。"""
+        engine = self.engine()
+        jobs, _ = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "accept")])
+        job = [item for item in jobs.list(str(self.wiki)) if item["kind"] == "review"][0]
+        jobs.cancel(str(self.wiki), job["job_id"])
+        self.assertEqual(self.reconcile(jobs), [])
+        self.assertIsNone(jobs.claim("試験"))
+
+    def test_rerun_after_catching_up_inside_the_loop_keeps_the_result(self):
+        """作り直しの内側の繰り返しで台帳に追いついたあと、もう一度動かしても（何もしない）結果が欠けない。"""
+        engine = self.engine()
+        jobs, _ = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "accept")])
+        job = jobs.claim("試験")
+        decided = []
+
+        def publish():
+            jobs.begin_publication(job["id"], "試験")
+            if not decided:  # 1 回目の公開の直前に、次の確認を受け付ける（処理中なので rerun の印が付く）
+                decided.append(self.decide(self.wiki, 1, [self.item(self.wiki, 4, "fix", "直した本文 四")]))
+        result = engine.rebuild_reviewed(str(self.wiki), self.doc_id, before_publish=publish)
+        self.assertEqual(result["review"]["published_version"], 2)  # 内側の繰り返しで、版 2 まで公開した
+        jobs.finish(job["id"], "試験", result=result)
+        self.assertEqual(jobs.status(str(self.wiki), job["id"])["status"], "queued")  # rerun で待ちに戻る
+        final = self.run_queued(jobs, engine)[-1]
+        self.assertEqual(final["status"], "completed")
+        self.assertIn("直した本文 四", Path(final["result"]["extracted_markdown"]).read_text(encoding="utf-8"))
+        self.assertIn("page_report", final["result"])
+
+    def test_empty_published_summary_is_used(self):
+        """公開している版に OCR したページがなくなっても、前のジョブの記録の確認の状態を返さない。"""
+        from reportlab.pdfgen import canvas
+        c = canvas.Canvas(str(self.pdf), invariant=1)
+        c.drawString(60, 700, "a page with a text layer that is long enough to be judged as text")
+        c.showPage()
+        c.save()
+        self.values["ocr_mode"] = "always"
+        engine = self.engine(answers=[("OCR の本文", [line("OCR の本文", 0.3)])])
+        jobs, first = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 1, "reject")])
+        self.run_queued(jobs, engine)
+        self.values["ocr_mode"] = "auto"
+        self.engine().ingest_pdf(str(self.wiki), str(self.pdf), "sources/kinds.md")
+        lists = Jobs(self.config.data_dir).status(str(self.wiki), first, threshold=0.8)["result"]["page_report"]["lists"]
+        self.assertEqual(lists["review:rejected"]["count"], 0)
+        self.assertEqual(lists["ocr_low_confidence"]["count"], 0)
+
+    def test_rebuild_uses_the_path_the_user_gave(self):
+        """作り直しは、索引の台帳に残した、利用者が渡したままの PDF のパスで取り込み直す。"""
+        engine = self.engine()
+        jobs, _ = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "accept")])
+        seen = []
+        original = engine.ingest_pdf
+
+        def record(wiki, source, *args, **kwargs):
+            seen.append(source)
+            return original(wiki, source, *args, **kwargs)
+        engine.ingest_pdf = record
+        self.run_queued(jobs, engine)
+        self.assertEqual(seen, [str(self.pdf)])
 
     def test_retry_does_not_make_a_second_rebuild_job(self):
         engine = self.engine()
