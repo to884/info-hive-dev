@@ -14,8 +14,13 @@ sys.path.insert(0, str(ROOT / "poc"))
 from poc_data import POC_DATA  # noqa: E402
 sys.path.insert(0, str(ROOT / "info-hive-rag/scripts"))
 import rag_pdf
+import rag_pdf_layer
 from rag_config import MODELS, Config, write_json
 from rag_index import Engine
+
+
+# rag 0.6.0 の索引の方針の指紋（試験の設定ではなく、既定の設定の値）
+PINNED_FINGERPRINT = "48605951088f2fc5c45ad3b14dc2a4ebd35142874e58106adfeca22215e48f94"
 
 
 class FakeEmbedder:
@@ -39,14 +44,15 @@ class ExtractionTests(unittest.TestCase):
         self.wiki = self.make_wiki("wiki")
         self.values = {"data_dir": str(self.root / "data"), "embedding_model": "cl-nagoya/ruri-v3-30m",
                        "ocr_mode": "off", "batch_size": 4}
-        # 抽出（ページの判定）が呼ばれた回数を数える。キャッシュを使えば呼ばれない。
+        # 抽出（ページの判定）が呼ばれた回数を数える。キャッシュを使えば呼ばれない。判定は wiki と同じ中身の
+        # rag_pdf_layer の中で呼ばれる（ADR-0025）。
         self.inspected = 0
-        original = rag_pdf.inspect_page
+        original = rag_pdf_layer.inspect_page
 
         def counting(page):
             self.inspected += 1
             return original(page)
-        patcher = patch.object(rag_pdf, "inspect_page", counting)
+        patcher = patch.object(rag_pdf_layer, "inspect_page", counting)
         patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -75,10 +81,11 @@ class ExtractionTests(unittest.TestCase):
     def pages(self, engine, doc_id):
         return sorted(engine.config.extraction_dir(doc_id).glob("page-*.json"))
 
-    def test_fingerprint_is_unchanged_from_0_4_0(self):
+    def test_fingerprint_is_pinned(self):
         # 指紋の中身を変えると、すべての利用者の索引が方針の変わった索引になる（ADR-0014）。変えるときはこの値も直す。
-        self.assertEqual(Config({"data_dir": str(self.root / "data")}).fingerprint,
-                         "1c61f7d933f39d12ba198703de5b65c8a88110116a91f9b619395ce5cbdfc909")
+        # rag 0.6.0 で、抽出の版 extract-v2 と文字の層の識別を入れて変えた（ADR-0025）。0.4.0〜0.5.3 の値は
+        # 1c61f7d933f39d12ba198703de5b65c8a88110116a91f9b619395ce5cbdfc909 だった。
+        self.assertEqual(Config({"data_dir": str(self.root / "data")}).fingerprint, PINNED_FINGERPRINT)
 
     def test_cache_lives_in_data_dir_and_is_keyed_by_extraction_settings(self):
         engine = self.engine()
@@ -185,20 +192,6 @@ class ExtractionTests(unittest.TestCase):
         # other は ocr_dpi=200 の指紋で同じ版を使っているので、まだ残る。
         self.assertTrue((first.config.data_dir / "extracted" / old["sha256"]).exists())
 
-    def test_extraction_from_0_4_0_is_moved_and_reused(self):
-        engine = self.engine()
-        data = self.source.read_bytes()
-        doc_id = hashlib.sha256(data).hexdigest()
-        generation = hashlib.sha256((doc_id + engine.config.fingerprint).encode("ascii")).hexdigest()
-        legacy = engine.config.workspace(str(self.wiki)) / "extracted" / generation
-        rag_pdf.extract_pages(data, engine.config, legacy)
-        self.assertEqual(self.inspected, 3)
-        result = self.ingest(engine)
-        self.assertEqual(self.inspected, 3)
-        self.assertEqual(len(self.pages(engine, doc_id)), 3)
-        self.assertFalse(legacy.exists())
-        self.assertEqual(result["pages"], 3)
-
     def test_failed_embedding_after_model_change_keeps_the_old_index(self):
         first = self.engine()
         result = self.ingest(first)
@@ -258,22 +251,6 @@ class ExtractionTests(unittest.TestCase):
         item = [item for item in third.status(str(self.wiki))["reingest"]][0]
         self.assertEqual(item["source_pages"], ["sources/別のページ.md", "sources/資料.md"])
 
-    def test_extraction_from_0_4_0_is_reused_after_a_model_change(self):
-        first = self.engine()
-        data = self.source.read_bytes()
-        doc_id = hashlib.sha256(data).hexdigest()
-        result = self.ingest(first)
-        # 0.4.0 の置き場所に戻す（0.4.0 で取り込んだ状態を作る）。
-        generation = hashlib.sha256((doc_id + first.config.fingerprint).encode("ascii")).hexdigest()
-        legacy = first.config.workspace(str(self.wiki)) / "extracted" / generation
-        legacy.parent.mkdir(parents=True)
-        os.replace(first.config.extraction_dir(doc_id), legacy)
-        second = self.engine(embedding_model="cl-nagoya/ruri-v3-70m")
-        self.ingest(second)
-        self.assertEqual(self.inspected, 3)
-        self.assertEqual(len(self.pages(second, result["sha256"])), 3)
-        self.assertFalse(legacy.exists())
-
     def legacy_layout(self, engine, *sources):
         """取り込んだ文書の抽出の結果を、0.4.0 の置き場所に戻す（0.4.0 で取り込んだ状態を作る）。"""
         for source in sources:
@@ -283,40 +260,10 @@ class ExtractionTests(unittest.TestCase):
             legacy.parent.mkdir(parents=True, exist_ok=True)
             os.replace(engine.config.extraction_dir(doc_id), legacy)
 
-    def test_every_0_4_0_extraction_is_reused_after_a_model_change(self):
-        other = self.root / "refs" / "別の資料.pdf"
-        self.make_pdf(other, "Another document entirely")
-        first = self.engine()
-        self.ingest(first)
-        first.ingest_pdf(str(self.wiki), str(other), "sources/別の資料.md")
-        self.legacy_layout(first, self.source, other)
-        second = self.engine(embedding_model="cl-nagoya/ruri-v3-70m")
-        self.ingest(second)  # 1 件目で索引を空にする。2 件目は空にしたあとの取り込み
-        second.ingest_pdf(str(self.wiki), str(other), "sources/別の資料.md")
-        self.assertEqual(self.inspected, 6)  # 最初の 2 件の取り込みだけ。取り込み直しでは抽出しない
-        self.assertFalse((second.config.workspace(str(self.wiki)) / "extracted").exists())
-
-    def test_interrupted_move_of_0_4_0_extraction_is_finished(self):
-        engine = self.engine()
-        result = self.ingest(engine)
-        self.legacy_layout(engine, self.source)
-        legacy = next((engine.config.workspace(str(self.wiki)) / "extracted").iterdir())
-        cache = engine.config.extraction_dir(result["sha256"])
-        cache.mkdir(parents=True)
-        os.replace(legacy / "page-000001.json", cache / "page-000001.json")  # 1 ページだけ移して止まった
-        (engine.config.workspace(str(self.wiki)) / "catalog.sqlite").unlink()  # 取り込み直させる
-        for name in ("lance", "index-state.json"):
-            path = engine.config.workspace(str(self.wiki)) / name
-            shutil.rmtree(path) if path.is_dir() else path.unlink()
-        self.ingest(engine)
-        self.assertEqual(self.inspected, 3)
-        self.assertEqual(len(self.pages(engine, result["sha256"])), 3)
-        self.assertFalse(legacy.exists())
-
     def test_raising_the_extraction_revision_reindexes_with_the_new_extraction(self):
         engine = self.engine()
         self.ingest(engine)
-        with patch("rag_config.EXTRACT_REVISION", "extract-v2"):
+        with patch("rag_config.EXTRACT_REVISION", "extract-v3"):
             # 抽出の版を上げると、方針が変わった索引になる。取り込み直すまで前の抽出で検索しない。
             self.assertTrue(engine.status(str(self.wiki))["reingest_required"])
             with self.assertRaisesRegex(ValueError, "取り込み直"):
@@ -324,7 +271,7 @@ class ExtractionTests(unittest.TestCase):
             again = self.ingest(engine)
             self.assertEqual(again["status"], "indexed")
             self.assertTrue(again["index_reset"])
-            self.assertIn("extract-v2", again["extracted_markdown"])
+            self.assertIn("extract-v3", again["extracted_markdown"])
             self.assertTrue(Path(again["extracted_markdown"]).is_file())
             self.assertEqual(self.inspected, 6)
             found = engine.search(str(self.wiki), "Extraction cache checkpoint", limit=3)["results"]
@@ -407,11 +354,10 @@ class ExtractionTests(unittest.TestCase):
         for name in ("lance", "index-state.json"):
             path = workspace / name
             shutil.rmtree(path) if path.is_dir() else path.unlink()
-        with patch("rag_config.EXTRACT_REVISION", "extract-v2"):
-            result = self.ingest(engine)
-            self.assertEqual(self.inspected, 6)  # 0.4.0 の結果を新しい版として使わず、抽出し直した
-            self.assertEqual(len(self.pages(engine, result["sha256"])), 3)
-            self.assertIn("extract-v2", result["extracted_markdown"])
+        result = self.ingest(engine)
+        self.assertEqual(self.inspected, 6)  # 0.4.0 の結果を新しい版として使わず、抽出し直した
+        self.assertEqual(len(self.pages(engine, result["sha256"])), 3)
+        self.assertIn("extract-v2", result["extracted_markdown"])
 
     def test_embedding_checkpoint_is_not_reused_after_raising_the_extraction_revision(self):
         import numpy as np
@@ -432,7 +378,7 @@ class ExtractionTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "止まった"):
             engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md", progress=stop)
         engine._embedder.texts = 0
-        with patch("rag_config.EXTRACT_REVISION", "extract-v2"):
+        with patch("rag_config.EXTRACT_REVISION", "extract-v3"):
             result = self.ingest(engine)
             self.assertEqual(engine._embedder.texts, result["chunks"])  # 前の版の途中経過を飛ばさない
             generation = engine.config.generation(result["sha256"])
