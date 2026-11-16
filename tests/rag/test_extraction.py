@@ -87,6 +87,12 @@ class ExtractionTests(unittest.TestCase):
         # 1c61f7d933f39d12ba198703de5b65c8a88110116a91f9b619395ce5cbdfc909 だった。
         self.assertEqual(Config({"data_dir": str(self.root / "data")}).fingerprint, PINNED_FINGERPRINT)
 
+    def test_legacy_fingerprint_reproduces_the_0_4_0_value(self):
+        # 0.4.0 が wiki ごとに置いた抽出の結果は、0.4.0〜0.5.3 の式の指紋で場所が決まる。後始末で探すために、
+        # その式を legacy_fingerprint として残す。既定の設定で、0.4.0〜0.5.3 の指紋と同じ値になる。
+        self.assertEqual(Config({"data_dir": str(self.root / "data")}).legacy_fingerprint,
+                         "1c61f7d933f39d12ba198703de5b65c8a88110116a91f9b619395ce5cbdfc909")
+
     def test_cache_lives_in_data_dir_and_is_keyed_by_extraction_settings(self):
         engine = self.engine()
         result = self.ingest(engine)
@@ -255,7 +261,7 @@ class ExtractionTests(unittest.TestCase):
         """取り込んだ文書の抽出の結果を、0.4.0 の置き場所に戻す（0.4.0 で取り込んだ状態を作る）。"""
         for source in sources:
             doc_id = hashlib.sha256(source.read_bytes()).hexdigest()
-            generation = hashlib.sha256((doc_id + engine.config.fingerprint).encode("ascii")).hexdigest()
+            generation = hashlib.sha256((doc_id + engine.config.legacy_fingerprint).encode("ascii")).hexdigest()
             legacy = engine.config.workspace(str(self.wiki)) / "extracted" / generation
             legacy.parent.mkdir(parents=True, exist_ok=True)
             os.replace(engine.config.extraction_dir(doc_id), legacy)

@@ -171,6 +171,38 @@ class OcrStoreTests(Base):
         marker = json.loads((Config(self.values).extraction_root / self.doc_id / "ocr" / "adopted.json").read_text(encoding="utf-8"))
         self.assertEqual(list(marker["sources"]), [f"auto-150-{OCR_REVISION[:12]}-extract-v1"])
 
+    def interrupt_adoption(self):
+        """移す途中（印と 1 ページを書いたあと、2 ページ目を書く前）で止める。"""
+        self.legacy_cache(f"auto-150-{OCR_REVISION[:12]}-extract-v1", {2: "移した 2", 3: "移した 3", 4: "移した 4"})
+        original, calls = rag_pdf.write_json, []
+
+        def stop_on_third(path, value):
+            calls.append(path)
+            if len(calls) == 3:
+                raise RuntimeError("移す途中で止まった")
+            return original(path, value)
+        with patch("rag_pdf.write_json", stop_on_third), self.assertRaisesRegex(RuntimeError, "移す途中で止まった"):
+            self.ingest(self.engine(StubOcr()))
+
+    def test_interrupted_adoption_resumes_with_the_same_render(self):
+        self.interrupt_adoption()
+        ocr = StubOcr()
+        result = self.ingest(self.engine(ocr))
+        self.assertEqual(ocr.calls, 0)  # 描画の識別が同じなので、続きを写した
+        self.assertEqual([self.markdown_pages(result)[n] for n in (2, 3, 4)], ["移した 2", "移した 3", "移した 4"])
+
+    def test_interrupted_adoption_is_not_resumed_after_the_render_changed(self):
+        self.interrupt_adoption()
+        bumped = {"pypdfium2": "9.9.9", "dpi": 150}
+        ocr = StubOcr()
+        with patch("rag_config.render_identity", lambda dpi: bumped), patch("rag_pdf.render_identity", lambda dpi: bumped):
+            result = self.ingest(self.engine(ocr))
+        self.assertEqual(ocr.calls, 3)  # 移し始めたときと描画の識別が違うので、写さずに OCR した
+        self.assertTrue(all(self.markdown_pages(result)[n].startswith("OCR の本文") for n in (2, 3, 4)))
+        marker = json.loads((Config(self.values).extraction_root / self.doc_id / "ocr" / "adopted.json").read_text(encoding="utf-8"))
+        state = marker["sources"][f"auto-150-{OCR_REVISION[:12]}-extract-v1"]
+        self.assertEqual((state["state"], state["render"]), ("copying", rag_config.render_identity(150)))
+
 
 class PageReportTests(Base):
     """試験 4: rag の page_report。"""
