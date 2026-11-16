@@ -1,0 +1,1581 @@
+[
+ {
+  "qid": "Q01",
+  "rep": 0,
+  "trial": true,
+  "expect": "高",
+  "got": "高",
+  "note": "試しの回。高のときも原本を開く提案を添えた",
+  "model": "claude-sonnet-5-5",
+  "seconds": 23.2,
+  "cost_usd": 0.2462,
+  "turns": 4,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head; ls wiki/SCHEMA.md; grep -n \\\"0.19.5\\\" wiki/index.md wiki/indexes/*.md 2>/dev/null | head -20\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 40}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "## 答え\n\nPython が入っていない PC では、uv が「宣言に合う中でいちばん新しい CPython」である 3.15 を取り、MCP サーバーの依存を解決できなかったことが原因です。\n\n1. uv で動く 8 本のスクリプトの宣言は `requires-python = \">=3.12\"` で、上限がありませんでした。\n2. 使える Python がない環境では、uv 0.13.8 が宣言に合う最新の CPython 3.15 を取得します。\n3. MCP サーバーの依存 `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存を解決できませんでした。サーバーはそのため起動しませんでした。\n4. 開発用の PC には Python 3.12 が入っていたので、この不具合は表に出ませんでした。\n\n### 見えにくくなった要因\n- 中継は、依存を解決できない失敗を「環境が作りかけで壊れている」と取り違え、入れ直していました。\n- 失敗の理由は `server.log` にしか残らず、利用者が読む `launch.log` には残りませんでした。\n- ADR-0018 は「3.14 まで試験が通っている」ことを理由に上限を付けませんでした。しかし uv が実際に選んだのは、試験より後に出た未検証の版でした。\n\n### 0.19.5 での直し方\n- 宣言を CI の行列に合わせて `\">=3.12,<3.15\"` にしました。\n- 範囲内のすべての minor 版で 8 本の依存が入るかを、CI で確かめるようにしました。\n- 入れ直しても直らない失敗を `UvSetupError` にまとめ、依存を解決できない失敗を `UvResolveError` にしました。後者は入れ直さずに止まります。\n- 環境を用意できなかった理由は、uv の出力の要約と一緒に `launch.log` に書くようにしました。\n\n### 出典\n- [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n- 関連: [[古いuvのUV_SYSTEM_CERTSの直しとリリース-wiki-0.19.4]]（未読）\n\n### 確からしさ: 高\n結論は、取り込み済みのソース要約ページに書かれている内容をそのまま述べたもので、導出や判断は加えていません。矛盾する記述や置き換えられた記述は見つかっていません。\n\nただし今回は、ページが指す原本（`docs/agent-runs/2026-11-15-wiki-python-upper-bound/`）と ADR-0026 は読んでいません。厳密に確かめたい場合は、この 2 つを開いてください。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query（info-hive スキルのクエリ手順）"
+ },
+ {
+  "qid": "Q01",
+  "rep": 1,
+  "trial": false,
+  "expect": "高",
+  "got": "高",
+  "model": "claude-sonnet-5-5",
+  "seconds": 17.5,
+  "cost_usd": 0.1336,
+  "turns": 4,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 40}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"0\\\\.19\\\\.5\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"content\", \"head_limit\": 30}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5.md\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "Python が入っていない PC で MCP サーバーが起動しなかった原因は、依存の `onnxruntime==1.31.1` に Python 3.15 の wheel がなく、uv が Python 3.15 を選んだことです。\n\n## 原因\n\n- wiki 0.19.4 では、uv で動くスクリプトの宣言が `requires-python = \">=3.12\"` で、上限がありませんでした。\n- Python が入っていない PC では、uv 0.13.8 は宣言に合う中でいちばん新しい CPython 3.15 を取りました。\n- MCP サーバーの依存 `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存を解決できませんでした。\n- 開発用の PC には Python 3.12 が入っていたので、この不具合は表に出ませんでした。\n\n## 起動失敗を深くした問題\n\n- 中継は、依存を解決できない失敗を「環境が作りかけで壊れている」と取り違え、環境を入れ直していました。\n- 失敗の理由は `server.log` にしか残らず、利用者が読む `launch.log` には残りませんでした。\n\n## 上限がなかった理由\n\nADR-0018 は「3.14 まで試験が通っている」ことを理由に、上限を付けませんでした。ところが uv が実際に選んだのは、試験より後に出た、誰も試していない版でした。\n\n## 直し方\n\n- 8 本のスクリプトの宣言を、CI の行列の範囲 `\">=3.12,<3.15\"` にそろえました。\n- 範囲のすべての minor の版で、依存が入るかを CI で確かめるようにしました。\n- 入れ直しても直らない失敗を `UvSetupError` にまとめ、依存を解決できない失敗を `UvResolveError` にしました。後者は入れ直さずに止まります。\n- 環境を用意できなかった理由は、uv の出力の要約と一緒に `launch.log` に書くようにしました。\n\n## 出典\n\n[[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n\n## 確からしさ: 高\n\nこの回答は、上の source ページの「不具合」の節に書かれたことをそのまま述べたものです。矛盾する記述や仮説の記述は見つかりませんでした。検索は縮退しておらず、index から候補を直接見つけています。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q01",
+  "rep": 2,
+  "trial": false,
+  "expect": "高",
+  "got": "高",
+  "model": "claude-sonnet-5-5",
+  "seconds": 23.8,
+  "cost_usd": 0.2002,
+  "turns": 7,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -30; ls wiki/SCHEMA.md; ls wiki/indexes 2>/dev/null; cat .info-hive/workspace.json 2>/dev/null\"}",
+    "error": true
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\"}",
+    "error": false
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query\", \"max_results\": 1}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"wiki\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki\", \"query\": \"0.19.5 Python が入っていない PC で MCP サーバーが起動しない\", \"top\": 10}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"0\\\\.19\\\\.5\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\", \"output_mode\": \"content\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5.md\", \"limit\": 45}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**原因は、uv が Python のない PC で CPython 3.15 を取得し、その版では MCP サーバーの依存を解決できなかったことです。**\n\nwiki で確認できた経緯は次のとおりです。\n\n1. 対象は wiki 0.19.4 でした。uv で動くスクリプトの宣言が `requires-python = \">=3.12\"` で、上限がありませんでした。\n2. uv 0.13.8 は、使える Python がないと、宣言に合う中でいちばん新しい CPython 3.15 を取得します。\n3. MCP サーバーの依存 `onnxruntime==1.31.1` には、3.15 の wheel がありませんでした。そのため依存を解決できず、サーバーが起動しませんでした。\n4. 開発用の PC には Python 3.12 が入っていたため、この問題は表に出ませんでした。\n5. ADR-0018 は「3.14 まで試験が通っている」ことを理由に上限を付けませんでした。ところが uv が実際に選んだのは、試験より後に出た、誰も試していない版でした。\n6. 原因の周辺に、あと 2 つの問題がありました。\n   - 中継は、依存を解決できない失敗を「環境が作りかけで壊れている」と取り違え、環境を入れ直しました。\n   - 失敗の理由は `server.log` にしか残らず、利用者が読む `launch.log` には残りませんでした。\n\n直し方は、8 本のスクリプトの宣言を `\">=3.12,<3.15\"` にそろえることでした。あわせて次の対策を入れました。\n- 宣言と CI の行列が食い違うと落ちる試験\n- 範囲内の全 minor 版で依存が入るかを確かめる CI\n- 入れ直さずに止まる `UvResolveError`\n- 失敗の理由を `launch.log` に残す変更\n\n出典: [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n\n**確からしさ: 高**\n- 結論は、ソースの要約ページが「不具合」の節で原因をそのまま述べています。\n- 判断を加えた部分や、矛盾、置き換えられた記述はありません。\n- 検索は縮退せず、ハイブリッドで動きました。\n- 要約ページの原本（`docs/agent-runs/2026-11-15-wiki-python-upper-bound/`）は、今回は開いていません。確かめたいときは、そこを見るのが最短です。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q01",
+  "rep": 3,
+  "trial": false,
+  "expect": "高",
+  "got": "高",
+  "model": "claude-sonnet-5-5",
+  "seconds": 22.7,
+  "cost_usd": 0.0846,
+  "turns": 6,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki/SCHEMA.md wiki/index.md wiki/indexes 2>&1 | head; ls .info-hive 2>&1 | head\"}",
+    "error": false
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query\", \"max_results\": 1}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki/SCHEMA.md\", \"limit\": 60}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"wiki\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki\", \"query\": \"Python の入っていない PC で MCP サーバーが起動しなかった\", \"top\": 10}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki/sources/Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5.md\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**結論:** 原因は、uv で動くスクリプトの Python の版に上限がなかったことです。そのため、Python が入っていない PC では、uv が依存の対応していない新しい Python を取ってしまいました。\n\n## 原因の流れ\n\n1. uv で動くスクリプトの宣言は `requires-python = \">=3.12\"` で、上限がありませんでした。\n2. Python が入っていない PC では、uv 0.13.8 は宣言に合う中でいちばん新しい CPython 3.15 を取ってきます。\n3. MCP サーバーの依存 `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存を解決できずに起動に失敗しました。\n4. 開発用の PC には Python 3.12 があったので、この不具合は表に出ませんでした。\n5. ADR-0018 は「3.14 まで試験が通っている」ことを理由に上限を付けませんでした。実際に uv が選んだのは、試験より後に出た、誰も試していない版でした。\n\n## 失敗を見えにくくしていた 2 つの問題\n\n- 中継が、依存を解決できない失敗を「環境が作りかけで壊れている」と取り違えて入れ直していました。\n- 失敗の理由は `server.log` にしか残らず、利用者が読む `launch.log` には残りませんでした。\n\n## 0.19.5 での直し\n\n- 8 本のスクリプトの宣言を `\">=3.12,<3.15\"` にそろえました。\n- 範囲内のすべての minor の版で依存が入るかを、CI で確かめるようにしました。\n- 依存を解決できない失敗を `UvResolveError` にして、入れ直さずに止めるようにしました。\n- 失敗の理由を、uv の出力の要約と一緒に `launch.log` に書くようにしました。\n\n## 出典\n\n[[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n\n## 確からしさ: 高\n\n結論は、ソースの要約ページに書かれた内容をそのまま述べたものです。このページは、新しい Windows 11 の VM での確認で見つけた不具合を、原本 `docs/agent-runs/2026-11-15-wiki-python-upper-bound/` から取り込んだ記録です。矛盾する記述や、置き換えられた記述は見つかりませんでした。検索も縮退していません（`warning` なし、索引は 408 件すべて埋め込み済み）。ただし、確かめたのはこの要約ページだけです。原本や ADR-0026 は開いていません。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q02",
+  "rep": 1,
+  "trial": false,
+  "expect": "高",
+  "got": "中",
+  "note": "raw の研究レポートを承認なしに grep して一致を確かめたうえで、規則にない上限（実行が 1 回だけ）で中にした",
+  "model": "claude-sonnet-5-5",
+  "seconds": 22.5,
+  "cost_usd": 0.2078,
+  "turns": 7,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"ls wiki/SCHEMA.md wiki/index.md wiki/indexes 2>&1 | head; ls .info-hive 2>&1 | head\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 60}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"ingest|取り込み.*モデル|モデル.*比較|Opus 5.5|Sonnet 5.5\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\", \"output_mode\": \"content\", \"-i\": true}",
+    "error": false
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query,mcp__plugin_wiki_wiki__get_page\", \"max_results\": 2}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__get_page",
+    "input": "{\"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"page\": \"ingestのモデルの比較-2026-11-13\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"920|499\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\docs\\\\research\\\\wiki-ingest-model-comparison-2026-11-13.md\", \"output_mode\": \"content\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "Medium のページの取り込みでは、Opus 5.5 のほうが Sonnet 5.5 より **421 秒（約 7 分）多くかかった**。\n\n- Opus 5.5 は 920 秒、Sonnet 5.5 は 499 秒で、差は 920 − 499 = 421 秒である。\n- 出典は [[ingestのモデルの比較-2026-11-13]] の「時間とトークン（取り込み全体）」の表。\n- この比較の対象は、有料の壁で冒頭しか取れないため、ログイン済みの Chrome で表示した本文を `wiki_fetch.py` の変換に通して渡した Medium の記事（約 61,000 文字）である。\n- 1 つのページとモデルの組み合わせにつき、実行は 1 回だけである。\n- 表の数値は、原本 `docs/research/wiki-ingest-model-comparison-2026-11-13.md` の 85 行目と同じだった。\n\n**確からしさ: 中**\n\n- 前提の数値は、ソースの要約ページに書かれていて、原本の表とも一致した。差は引き算だけで出る。\n- 上限は、実行が 1 回だけで、ばらつきが分からない点にある。同じ条件で再現した記録も見つからなかった。\n\n上げる方法は次のとおり。\n- 実行の記録 `docs/agent-runs/2026-11-13-wiki-ingest-model-comparison/` で、各実行の秒数が原本と合うか確かめる。\n- Medium の同じ条件で、各モデルを数回ずつ実行して、秒数のばらつきを見る。\n\n保存の提案: 新しいつながりのない単純な参照なので、synthesis への保存は提案しない。\n\n使用した MCP サーバー: wiki（`get_page`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q02",
+  "rep": 2,
+  "trial": false,
+  "expect": "高",
+  "got": "高",
+  "model": "claude-sonnet-5-5",
+  "seconds": 22.0,
+  "cost_usd": 0.0822,
+  "turns": 6,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -20; test -f wiki/SCHEMA.md && echo SCHEMA_OK; grep -n -i -E \\\"opus|sonnet|medium\\\" wiki/index.md | head -30\"}",
+    "error": false
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query\", \"max_results\": 1}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 40}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"query\": \"Medium の取り込み Opus 5.5 Sonnet 5.5 時間\", \"top\": 10}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"Medium|時間|秒|サブエージェント\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\ingestのモデルの比較-2026-11-13.md\", \"output_mode\": \"content\", \"-n\": true}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**答え: 約 421 秒(約 7 分)多くかかった。**\n\nMedium の有料記事(英語、約 61,000 文字、図 34 枚)の取り込み全体の時間は、Sonnet 5.5 が 499 秒、Opus 5.5 が 920 秒だった。差は 920 − 499 = 421 秒で、Opus は Sonnet の約 1.8 倍かかっている。[[ingestのモデルの比較-2026-11-13]] の「時間とトークン(取り込み全体)」の表から取った。\n\n補足:\n- 比較した 4 ページのうち、Opus が Sonnet の 1.8 倍に収まったのは Medium だけだった。ほかの 3 ページでは、同じ表から出る比は SQLite が約 2.5 倍、ブルームフィルタが約 5 倍、CQRS が約 7 倍だった。\n- この時間は、サブエージェントで測った取り込み全体の時間で、1 回の計測値である。回ごとに手順と測り方が違うため、後日の測定([[rawの段を任せるエージェントの確かめ-2026-11-14]])とは直接比べられない。\n- Medium は有料の壁のため、ログイン済みの Chrome に表示された本文を変換して 3 モデルに渡している。\n\n**確からしさ: 高。** 数値は、ソースの要約ページの表に直接書かれている。矛盾する記述や、置き換えられた記述は見つからなかった。検索も縮退していない(語彙検索と埋め込みの両方が使えた)。引き算は決まった手順なので、判断は加わっていない。\n\n使用した MCP サーバー: wiki(`query`)\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q02",
+  "rep": 3,
+  "trial": false,
+  "expect": "高",
+  "got": "中",
+  "note": "規則にない上限（raw で確かめていない）で中にした",
+  "model": "claude-sonnet-5-5",
+  "seconds": 24.5,
+  "cost_usd": 0.0608,
+  "turns": 7,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"ls wiki/SCHEMA.md wiki/index.md; ls wiki/indexes 2>/dev/null; ls .info-hive 2>/dev/null; grep -n -i -E \\\"medium|opus|sonnet\\\" wiki/index.md | head -30\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 40}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"Medium|秒\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\ingestのモデルの比較-2026-11-13.md\", \"output_mode\": \"content\", \"-n\": true}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\ingestのモデルの比較-2026-11-13.md\", \"offset\": 64, \"limit\": 20}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"Medium\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\rawの段を任せるエージェントの確かめ-2026-11-14.md\", \"output_mode\": \"content\", \"-n\": true}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"920\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\raw\", \"output_mode\": \"files_with_matches\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**約 421 秒**（Opus 5.5 が 920 秒、Sonnet 5.5 が 499 秒で、920 − 499 = 421 秒）。Opus は Sonnet の約 1.8 倍の時間がかかりました。\n\n- 「時間とトークン（取り込み全体）」の表が出典です。この数値は raw の段だけではなく、取り込み全体の時間です。\n- Medium は有料記事（英語、約 61,000 文字、図 34 枚）です。同じ表の Haiku 5.5 は 342 秒でした。\n- 差の 421 秒は、表の 2 つの値から引き算で出しました。\n- 出典: [[ingestのモデルの比較-2026-11-13]]\n\n**確からしさ: 中**\n\n- 920 秒と 499 秒は、ソースの要約ページに書かれた値です。raw のレポートは `raw/` に見つからず、数値は原本で確かめていません。\n- 結論は決まった引き算で導いたので、結論の側に上限はありません。上限は前提の側です。\n- 上げる方法は 2 つあります。\n  - 調査の元レポート（記録）を `raw/` に取り込み、920 秒と 499 秒を原本で確かめる。\n  - `wiki/sources/ingestのモデルの比較-2026-11-13.md` の記述が、原本から取り込んだものか確かめる。\n\nwiki を書き換える作業は提案にとどめ、実行していません。この回答は単純な引き算なので、synthesis への保存は提案しません。\n\n使用した MCP サーバー: なし（wiki の MCP ツールは使わず、インデックスと source ページを直接読みました）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q03",
+  "rep": 1,
+  "trial": false,
+  "expect": "中",
+  "got": "中",
+  "external": "AGENTS.md の CSP の記述を「補足（wiki の外）」として添えた",
+  "model": "claude-sonnet-5-5",
+  "seconds": 19.2,
+  "cost_usd": 0.1709,
+  "turns": 4,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -30; ls .info-hive 2>/dev/null; grep -n -i \\\"fluent\\\" wiki/index.md | head -30\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\concepts\\\\browseのデザインシステム.md\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"fluent2\\\\.js\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"content\", \"-C\": 1, \"head_limit\": 30}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**結論:** `fluent2.js` は、要素の `style` 属性に書き込むからです。browse の画面は、`[style]` が 0 件という約束を守る必要があり、`fluent2.js` はこれに反します。必要なふるまいは、代わりに `app.js` が受け持ちます。\n\n出典は [[browseのデザインシステム]] です。2026年11月14日に作者が決めた内容（ADR-0021）が書かれています。\n\n関連する決まりは次のとおりです。\n- `/wiki:browse` の画面は、Fluent 2 を React なしで再現した CSS（`fluent2.css`）だけで描きます。\n- `fluent2.css` は書き換えずに、全体をプラグインの `browse_assets/` に写します。\n- 同ページには、`fluent2.js` を使わないことと `app.js` が引き受けることが書かれています。ただし「画面の約束」の中身は書かれていません。\n- 同ページの「関係するページ」には [[browseの画面の確かめ方]] があります。ただし、このページは読んでいません。\n\n**補足（wiki の外）:** リポジトリの `AGENTS.md` には、browse は厳格な CSP（ADR-0010）の下で動くので、インライン style とインラインスクリプトは使わず、クラスとトークンの CSS を使うと書かれています。これは wiki のページではありません。上の「画面の約束」の中身である可能性が高いですが、wiki には明記がありません。\n\n**確からしさ: 中**\n- 理由は 2 つあります。\n  - 結論は、ページの記述をそのまま述べたものです。\n  - そのページは `sources: []` で、ソースの要約ページや raw に当たる根拠が付いていません。\n- 上げる方法:\n  - `docs/plans/wiki-browse-fluent2-2026-11-14.md` と ADR-0021 を wiki に取り込み、ページの出典にします。\n  - `info-hive-wiki/browse_assets/README.md` で、`fluent2.js` を写していないことを確かめます。\n\nwiki の書き換えは、承認なしには行いません。取り込みが必要でしたら、お知らせください。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q03",
+  "rep": 2,
+  "trial": false,
+  "expect": "中",
+  "got": "中",
+  "external": "理由の中で、wiki にない「CSP（ADR-0010）」に触れた（AGENTS.md から取ったと見られる）",
+  "model": "claude-sonnet-5-5",
+  "seconds": 25.9,
+  "cost_usd": 0.1367,
+  "turns": 7,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -30; test -f wiki/SCHEMA.md && echo SCHEMA_OK; ls .info-hive 2>/dev/null\"}",
+    "error": true
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\"}",
+    "error": false
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query,mcp__plugin_wiki_wiki__get_page\", \"max_results\": 2}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"query\": \"Fluent 2 fluent2.js を使わない\", \"wiki\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki\", \"top\": 10}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__get_page",
+    "input": "{\"wiki\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki\", \"page\": \"browseのデザインシステム\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "`fluent2.js` が要素の `style` 属性に書き込むからです。browse の画面は、`[style]` を持つ要素が 0 件であることを約束にしています。その約束と合いません。\n\n- `fluent2.js` は使いません。`fluent2.js` は要素の `style` に書き込み、閲覧の画面の約束（`[style]` が 0 件）に反します。`fluent2.css` は書き換えずに同梱し、必要なふるまいは `app.js` が受け持ちます。[[browseのデザインシステム]]\n- 画面の描画に使うのは CSS だけです。作者が 2026-11-14 に決めたもので、React は使いません。CSS はスキル `fluent2-html-replica` の `fluent2.css` です（ADR-0021）。\n- CSS はプラグインの `browse_assets/` に写して持つので、プラグインはスキルの場所を読みません。\n\n**確からしさ: 中**\n- 「`style` に書き込むので使わない」という理由は、ソースの要約ページではなく、コンセプトページ 1 つにしか書かれていません。\n- 約束の根拠である、`[style]` が 0 件になる決まりと CSP（ADR-0010）の元の文書は、今回は確かめていません。\n- 上げる方法は 3 つあります。\n  - ADR-0021 と `docs/plans/wiki-browse-fluent2-2026-11-14.md` を読んで、決定の理由を確かめます。\n  - `info-hive-wiki/skills/info-hive/` の browse の画面の実装で、`fluent2.js` を読み込んでいないこと、`[style]` が 0 件であることを確かめます。\n  - 上の 2 つの文書を要約ページとして取り込みます。希望があれば `/wiki:ingest` で取り込めます。\n\n使用した MCP サーバー: wiki（query、get_page）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q03",
+  "rep": 3,
+  "trial": false,
+  "expect": "中",
+  "got": "中",
+  "external": "AGENTS.md の CSP の記述を添えた",
+  "model": "claude-sonnet-5-5",
+  "seconds": 23.0,
+  "cost_usd": 0.1704,
+  "turns": 7,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki/SCHEMA.md wiki/index.md; ls .info-hive/workspace.json 2>&1 | head -1; git fetch -q 2>&1 | tail -1; git log -1 --format=%h…",
+    "error": true
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"fluent2|Fluent 2|Fluent\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"count\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 40}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\concepts\\\\browseのデザインシステム.md\"}",
+    "error": false
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query\", \"max_results\": 1}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"query\": \"fluent2.js を使わない理由\", \"top\": 10}",
+    "error": false
+   }
+  ],
+  "permission_denials": [
+   {
+    "tool_name": "Bash",
+    "tool_use_id": "toolu_01BbeNWxcj6e6auKhxDGAR4e",
+    "tool_input": {
+     "command": "cd \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\" && ls wiki/SCHEMA.md wiki/index.md; ls .info-hive/workspace.json 2>&1 | head -1; git fetch -q 2>&1 | tail -1; git log -1 --format=%h origin/main; git describe --tags --abbrev=0 origin/main 2>&1"
+    }
+   }
+  ],
+  "wiki_changed": false,
+  "answer": "## 回答\n\nbrowse の画面は、`fluent2.js` を使いません。理由は、`fluent2.js` が要素の `style` 属性に書き込むからです。これは、閲覧の画面の約束である「`[style]` が 0 件」に反します。\n\n- `fluent2.css` は書き換えずに `browse_assets/` へ全体を写して使います。\n- `fluent2.js` が担うはずのふるまいのうち、必要なものは `app.js` が受け持ちます。\n- 2026年11月14日に作者が決めた内容です（ADR-0021）。0.18.0 で実装しました。\n- 出典は [[browseのデザインシステム]] の「決まりの要点」です。経緯は [[browseの探しやすさとFluent2のリリース-wiki-0.18.0]] にあります。\n\n補足として、プロジェクトの AGENTS.md には「/wiki:browse は厳格な CSP の下で動く。インラインの style 属性とインラインのスクリプトは使わない（ADR-0010）」とあります。これは wiki のページではなく指示ファイルの記述です。ただ、`style` 属性に書き込む `fluent2.js` を使わない理由と整合します。\n\n検索は MCP の `query` で行い、結果は正常でした。\n\n## 確からしさ: 中\n\n- **理由:** 結論は [[browseのデザインシステム]] にそのまま書かれています。ただ、このページは `sources: []` で、ソースの要約ページにも raw にも根拠がひもづいていません。ADR-0021 と設計書（`docs/plans/wiki-browse-fluent2-2026-11-14.md`）の本文は、今回は読んでいません。\n- **上げる方法:**\n  1. `docs/adr/` の ADR-0021 と上記の設計書を読み、`fluent2.js` を外した理由の記述を確かめます。\n  2. 確かめたら、その ADR を `/wiki:ingest` で取り込み、このページの `sources` にひもづけます。\n\nwiki の書き換えは提案にとどめ、実行していません。この回答は新しいつながりを見いだすものではないため、synthesis への保存は提案しません。\n\n使用した MCP サーバー: wiki（`mcp__plugin_wiki_wiki__query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q04",
+  "rep": 1,
+  "trial": false,
+  "expect": "中",
+  "got": "中",
+  "note": "メインのチェックアウトの docs/plans を grep し、その記述も理由に使った",
+  "raise_fit": "部分",
+  "model": "claude-sonnet-5-5",
+  "seconds": 27.4,
+  "cost_usd": 0.2567,
+  "turns": 8,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -30; ls wiki/SCHEMA.md; ls .info-hive 2>/dev/null; wc -l wiki/index.md; ls wiki/indexes 2>/dev/null\"}",
+    "error": true
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 60}",
+    "error": false
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query\", \"max_results\": 1}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"query\": \"暗い配色 brand リンク ホバー コントラスト比 4.5:1\", \"top\": 10}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"4\\\\.18|4\\\\.5:1\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"content\", \"-C\": 1}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"4\\\\.18\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\docs\", \"output_mode\": \"content\", \"head_limit\": 8}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**答え: 0.32 足りない。**\n\n暗い配色で、brand のリンクの色（`colorBrandForegroundLink`）とホバーの地（`colorSubtleBackgroundHover`）の組は **4.18:1** です。4.5:1 との差は 4.5 − 4.18 = **0.32** で、基準の約 93% にあたります。この組は 4.5:1 を満たしません。\n\n- 同じ地と `colorNeutralBackground1Hover` の組は 3.87:1 でした。こちらは 0.63 足りません。\n- 押下のリンクの色（`colorBrandForegroundLinkPressed`）は、暗い配色で地との比が 3.85:1 です。\n- 対策として、地が状態で変わる要素には brand のリンクの色を使わない規則にしました。中立の文字の色を使います。\n- 中立の文字の色に直したあと、ポインターを置いた状態の最小値は 8.07:1 でした。\n\n出典:\n- [[browseのデザインシステム]]（「レビューで分かったこと」）\n- 設計書 `docs/plans/wiki-browse-fluent2-2026-11-14.md` の 191 行目。ここには「同梱した `fluent2.css` の値で計算した」とあります。\n\n**確からしさ: 中**\n\n- 4.18:1 は、設計書が同梱 CSS の色の値から計算した数値です。wiki のコンセプトページはその設計書に由来していて、ページの `sources` は空です。\n- 4.18:1 を最初に出したのは Sol の設計レビューで、「約」付きです。「追加のブラウザ実測は環境制限で行えていない」とも書かれています。\n- 設計書は、33 の画面を実際に測った試作の最小値（5.18:1）を、別の対策の確認として記録しています。ただし 4.18:1 そのものをブラウザで測った記録は、今回読んだ範囲に見つかりませんでした。\n- 色の値から計算した数値なので、計算の前提が正しければ確度は高いです。ただしブラウザで測った記録が wiki の根拠にないため、「高」にはしませんでした。\n\n**上げる方法**\n- 同梱した `fluent2.css` の 2 つの色の値から、コントラスト比を計算し直します。\n- 設計書にある暗い配色の試験を実行し、測った値を確かめます。\n- 0.18.0 のリリースの記録（[[browseの探しやすさとFluent2のリリース-wiki-0.18.0]]）に、実測値を足すことを提案します。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q04",
+  "rep": 2,
+  "trial": false,
+  "expect": "中",
+  "got": "中",
+  "note": "グローバルの指示の git fetch を試み、権限で拒まれた",
+  "model": "claude-sonnet-5-5",
+  "seconds": 33.4,
+  "cost_usd": 0.2133,
+  "turns": 8,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && git fetch -q 2>&1 | tail -2; git rev-parse --short origin/main; git describe --tags --abbrev=0 origin/main 2>/dev/null; ls wiki/S…",
+    "error": true
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query,mcp__plugin_wiki_wiki__get_page,mcp__plugin_wiki_wiki__list_index\", \"max_results\": 3}",
+    "error": false
+   },
+   {
+    "name": "PowerShell",
+    "input": "{\"command\": \"git fetch -q; git rev-parse --short origin/main; git describe --tags --abbrev=0 origin/main; Test-Path wiki/SCHEMA.md; Test-Path wiki/index.md\"}",
+    "error": true
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__list_index",
+    "input": "{\"wiki\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki\"}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"wiki\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki\", \"query\": \"browse 暗い配色 brand リンク ホバー コントラスト比 4.5:1\", \"top\": 10}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__get_page",
+    "input": "{\"wiki\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki\", \"page\": \"browseのデザインシステム\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"4\\\\.18\", \"path\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\", \"glob\": \"!**/node_modules/**\", \"output_mode\": \"content\", \"head_limit\": 15}",
+    "error": false
+   }
+  ],
+  "permission_denials": [
+   {
+    "tool_name": "Bash",
+    "tool_use_id": "toolu_01KMAkWXTStt1pMpC5v5oxdK",
+    "tool_input": {
+     "command": "cd \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\" && git fetch -q 2>&1 | tail -2; git rev-parse --short origin/main; git describe --tags --abbrev=0 origin/main 2>/dev/null; ls wiki/SCHEMA.md wiki/index.md; ls .info-hive 2>/dev/null; wc -l wiki/index.md"
+    }
+   },
+   {
+    "tool_name": "PowerShell",
+    "tool_use_id": "toolu_01SoNodu7GTSP8Q6Q5LvsYoQ",
+    "tool_input": {
+     "command": "git fetch -q; git rev-parse --short origin/main; git describe --tags --abbrev=0 origin/main; Test-Path wiki/SCHEMA.md; Test-Path wiki/index.md"
+    }
+   }
+  ],
+  "wiki_changed": false,
+  "answer": "**答え: 0.32 足りない。** 4.5 − 4.18 = 0.32 で、比は 4.18:1 である。\n\n暗い配色では、brand のリンクの色（`colorBrandForegroundLink`）と、ホバーの地（`colorSubtleBackgroundHover`）の組が 4.18:1 になり、4.5:1 を割る（出典: [[browseのデザインシステム]]）。比で見ると、基準の約 93% にあたる。\n\n同じページには、次の組も載っている。\n\n- 押下の色（`colorBrandForegroundLinkPressed`）は、暗い配色で地との比が 3.85:1 になる。\n- 木の「一覧」のリンクで押したままにすると、4.36:1 になる。\n\nどちらも 4.5:1 を割る。\n\nwiki の規則では、地が状態で変わる要素は brand のリンクの色を使わず、中立の文字の色にする。\n\n**確からしさ: 中**\n\n- 4.18:1 は、コンセプトのページ [[browseのデザインシステム]] だけに書かれている。このページは `sources` が空で、ソースの要約ページにも raw にも結ばれていない。\n- 回答は、その値を 4.5 から引いただけで、判断は加えていない。\n- 検索は通常の状態（hybrid、warning なし）で、矛盾する記述や置き換えられた記述は見つからなかった。\n- 値の出どころは、検索で見つかった `docs/plans/wiki-browse-fluent2-2026-11-14.md` にある。そこには同梱した `fluent2.css` の値から計算したとあるが、このページは wiki の外なので根拠に数えていない。実際に測った値は確かめていない。\n\n確からしさを「高」に上げる方法（提案のみで、実行はしていない）:\n\n1. 上の計画書や `docs/agent-runs/2026-11-14-wiki-browse-fluent2/` を `/wiki:ingest` でソースとして取り込み、[[browseのデザインシステム]] の `sources` に結ぶ。\n2. 同梱した `fluent2.css` の 2 つの色の値から、相対輝度とコントラスト比を計算し直す。\n\n答えは単純な引き算なので、シンセシスとして保存する必要はないと考える。\n\n使用した MCP サーバー: plugin:wiki:wiki（`list_index`、`query`、`get_page`）\n使用した Agent Skills: wiki:query\n\n<br>\n\n補足: 作業の準備の `git fetch` は、実行の承認が得られず行っていない。そのため、origin/main やタグの最新の状態、他セッションとの競合リスクは未確認である。この質問は wiki を読むだけで答えが決まり、何も書いていないので、競合の影響はない。"
+ },
+ {
+  "qid": "Q04",
+  "rep": 3,
+  "trial": false,
+  "expect": "中",
+  "got": "中",
+  "model": "claude-sonnet-5-5",
+  "seconds": 23.5,
+  "cost_usd": 0.0759,
+  "turns": 5,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -20 && test -f wiki/SCHEMA.md && echo SCHEMA_OK && cat .info-hive/workspace.json 2>/dev/null; wc -l wiki/index.md;…",
+    "error": true
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"コントラスト|contrast|4\\\\.5\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"content\", \"-i\": true, \"head_limit\": 40}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\concepts\\\\browseのデザインシステム.md\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**結論:** 4.5:1 に **0.32 足りません**。wiki には、この組のコントラスト比が 4.18:1 と書かれています。差は 4.5 − 4.18 = 0.32 で、基準値の約 7% にあたります。\n\n**根拠（[[browseのデザインシステム]]）**\n- 暗い配色で、brand のリンクの色（`colorBrandForegroundLink`）とホバーの地（`colorSubtleBackgroundHover`）の組は 4.18:1 で、4.5:1 を割ります。\n- 止まっている状態の配色が通っていても、操作中は通るとは限りません。この組はその例として、Sol の敵対的レビューで見つかった崩れた前提に挙がっています。\n- 関連して、押下の色 `colorBrandForegroundLinkPressed` も暗い配色で 3.85:1 です。木の「一覧」のリンクの押下は 4.36:1 でした。\n- この数字は、直し方の判断にも使われています。ホバーで地が変わる要素では brand のリンクの色を使わず、押している間もホバーの色のままにしています。\n\n**確からしさ: 中**\n- 数値は concept ページにだけ書かれています。ページの `sources:` は空で、ソースの要約ページにも 4.18 の記述はありません（`wiki/` を「コントラスト」「4.5」で検索して確かめました）。\n- 計算は引き算だけで、判断は入っていません。\n- 4.18 は、ADR-0021 の設計のレビュー時点の値です。0.18.0 や 0.19.0 の実装で色が変わっていないかは、wiki からは確かめられていません。\n\n**確からしさを上げる方法**\n- `docs/adr/` の ADR-0021 と `docs/plans/wiki-browse-fluent2-2026-11-14.md` で、4.18:1 の記述を確かめる。\n- `findability.test.mjs` の配色の測定の出力で、現行の値を確かめる。\n- 確かめた結果は、ソースの要約ページか、concept ページの `sources:` に足すことを提案します。承認なしには書き換えません。\n\nこの回答は、保存の対象になる新しいつながりを含まないため、`synthesis/` への保存は提案しません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q05",
+  "rep": 1,
+  "trial": false,
+  "expect": "中",
+  "got": "低",
+  "note": "仮説の上限に加え、規則にない上限（成功が 1 回だけ）で低にした",
+  "model": "claude-sonnet-5-5",
+  "seconds": 26.6,
+  "cost_usd": 0.2616,
+  "turns": 8,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -30; ls .info-hive 2>/dev/null; wc -l wiki/SCHEMA.md wiki/index.md; ls wiki/indexes 2>/dev/null\"}",
+    "error": true
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query\", \"max_results\": 1}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\"}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"query\": \"Word の COM で文書を開いて PDF に書き出すとき、Documents.Open にはどう引数を渡せばよいか\", \"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"top\": 10}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\concepts\\\\officeのcomでの書き出し.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\office-com-word-export-2026-11-15.md\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**答え:** `Documents.Open` には、パスだけを渡す。読み取り専用などの追加の引数は渡さない。\n\nwiki に書かれている手順の案は次のとおりです。\n\n1. `$w.DisplayAlerts = 0` にする。\n2. `$w.Documents.Open($path)` で開く。戻り値が null なら、そこで止める。\n3. `ExportAsFixedFormat($pdf, 17)` で PDF に書き出す。\n4. `Close(0)` と `Quit()` で閉じる。\n5. pwsh 7 で動かす。全体を `Start-Job` と `Wait-Job -Timeout` で包み、時間の上限を付ける。\n6. 止まったときは、残った `/Automation -Embedding` の WINWORD.EXE を確かめる。\n\n**観測された事実**（[[office-com-word-export-2026-11-15]]、[[officeのcomでの書き出し]]）\n\n- Windows PowerShell 5.1 で `Documents.Open(パス, $false, $true)`（読み取り専用）と渡したところ、300 秒たっても終わらず、PDF もできなかった。\n- pwsh 7 の `Start-Job` の中で `DisplayAlerts = 0` にし、パスだけを渡したときは、開いて書き出せた。\n- 引数をパスだけにしたスクリプトを Windows PowerShell 5.1 で動かすと、`Documents.Open` が null を返した。同じ実行で、PowerPoint と Excel の書き出しは成功した。\n- 使った例は、info-hive-dev の `docs/research/markitdown-benchmark-2026-11-15/scripts/export_office.ps1` にある。\n\n**仮説**\n\n- 読み取り専用の引数が原因で、画面に出ない確認を待ったまま止まった、と考えられている。\n- null を返した原因は分かっていない。直前の試しで開いた Word が残っていた影響の可能性もあるが、どちらも確かめていない。\n\n**適用範囲**\n\n- Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 で観測した。\n- `pwsh -File` でスクリプト全体が最後まで通るかは確かめていない。\n- ほかの PC や Office の版では確かめていない。\n\n**確からしさ: 低**\n\n- 理由は 3 つある。成功は 1 回の作業だけで、同じ条件でくり返していない。原因は仮説の段階（`status: hypothesis`）である。手順の案は、書き出し全体を通した確認になっていない。\n- 検索は MCP の `query` で行い、語彙と埋め込みの両方が使えた。縮退はない。\n\n**確からしさを上げる方法**（提案のみで、実行はしていません）\n\n- `export_office.ps1` を、同じ条件（パスだけの引数、pwsh 7、`Start-Job`）で複数回動かし、結果を `/wiki:learn` で記録する。\n- 別の PC か Office の版で試す。\n- `pwsh -File` で最後まで通るかを確かめる。\n- Windows PowerShell 5.1 で null になる原因を切り分ける。具体的には、事前に残った WINWORD.EXE を終了させてから再試験する。\n- 確かめたら、[[officeのcomでの書き出し]] の `status` を更新する。\n\n確からしさが「低」なので、シンセシスとしての保存は提案しません。先に上の確認をするのがよいです。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q05",
+  "rep": 2,
+  "trial": false,
+  "expect": "中",
+  "got": "中",
+  "model": "claude-sonnet-5-5",
+  "seconds": 26.2,
+  "cost_usd": 0.0964,
+  "turns": 10,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -30; test -f wiki/SCHEMA.md && echo SCHEMA_OK; cat .info-hive/workspace.json 2>/dev/null; git fetch -q && git log …",
+    "error": true
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query\", \"max_results\": 1}",
+    "error": false
+   },
+   {
+    "name": "PowerShell",
+    "input": "{\"command\": \"$r=\\\"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\"; Test-Path \\\"$r\\\\wiki\\\\SCHEMA.md\\\"; Get-Content \\\"$r\\\\wiki\\\\SCHEMA.md\\\" -TotalCount 40\"}",
+    "error": true
+   },
+   {
+    "name": "Glob",
+    "input": "{\"pattern\": \"wiki/SCHEMA.md\"}",
+    "error": false
+   },
+   {
+    "name": "Glob",
+    "input": "{\"pattern\": \"wiki/index.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 60}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"query\": \"Word COM Documents.Open PDF 書き出し 引数\", \"top\": 10}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\concepts\\\\officeのcomでの書き出し.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\office-com-word-export-2026-11-15.md\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [
+   {
+    "tool_name": "Bash",
+    "tool_use_id": "toolu_012FZ362J6LUaPPRsDNwJhz1",
+    "tool_input": {
+     "command": "cd \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\" && ls wiki | head -30; test -f wiki/SCHEMA.md && echo SCHEMA_OK; cat .info-hive/workspace.json 2>/dev/null; git fetch -q && git log -1 --format=%h origin/main && git describe --tags --abbrev=0 origin/main"
+    }
+   },
+   {
+    "tool_name": "PowerShell",
+    "tool_use_id": "toolu_01AeHbkoMn2YeBhsqmdHVXQt",
+    "tool_input": {
+     "command": "$r=\"C:\\Works\\info-hive-dev\\.claude\\worktrees\\infallible-elbakyan-e57994\"; Test-Path \"$r\\wiki\\SCHEMA.md\"; Get-Content \"$r\\wiki\\SCHEMA.md\" -TotalCount 40"
+    }
+   }
+  ],
+  "wiki_changed": false,
+  "answer": "**結論:** `Documents.Open` には、**パスだけ**を渡す。読み取り専用などの追加引数は付けない。\n\n## 手順の案\n```powershell\n$w.DisplayAlerts = 0\n$doc = $w.Documents.Open($path)   # 引数はパスのみ。戻り値が null なら止める\n$doc.ExportAsFixedFormat($pdf, 17)\n$doc.Close(0)\n$w.Quit()\n```\n- `DisplayAlerts` は 0 にする。\n- pwsh 7 で動かす。\n- 全体を `Start-Job` と `Wait-Job -Timeout` で包み、止まっても進められるようにする。\n- 止まったあとは、残った `/Automation -Embedding` の WINWORD.EXE を確かめる。\n\n## 避けること\n- `Documents.Open($path, $false, $true)` のように、読み取り専用の引数を渡さない。この形では 300 秒たっても終わらず、PDF もできなかった。\n- Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返した。原因は分かっていない。直前の試しで残った Word の影響かもしれない。\n\n## 出典\n- [[officeのcomでの書き出し]]\n- [[office-com-word-export-2026-11-15]]\n- 試料の作り方の文脈は [[抽出の品質の測り方]]\n\n## 確からしさ: 中\n- **根拠:** 出発点は raw から取り込んだ source ページで、前提は確かめてある。ただし、成功した例は 1 回の作業だけで、同じ条件でくり返していない。concept ページの `status` も `hypothesis` である。\n- **判断が入る部分:** 読み取り専用の引数が原因だという説明は、仮説である。手順は「案」であり、`pwsh -File` で最後まで通るかも未確認である。\n- **条件:** Office 16.0、Windows 11、PowerShell 7.6.9 の 1 台でしか観測していない。\n\n### 確からしさを上げる方法\n- 同じ手順を、別のセッションか別の PC でもう一度動かし、結果を `/wiki:learn` で記録する。\n- パスだけの呼び出しと、読み取り専用の引数つきの呼び出しを、同じ条件で比べる。\n- `pwsh -File` でスクリプト全体が通るか確かめる。\n\nこれらは提案のみで、wiki は書き換えていない。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query（`info-hive` のクエリ手順）"
+ },
+ {
+  "qid": "Q05",
+  "rep": 3,
+  "trial": false,
+  "expect": "中",
+  "got": "低",
+  "note": "仮説の上限に加え、規則にない上限（再現がない）で低にした",
+  "model": "claude-sonnet-5-5",
+  "seconds": 25.2,
+  "cost_usd": 0.132,
+  "turns": 8,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -30; ls wiki/SCHEMA.md; cat .info-hive/workspace.json 2>/dev/null\"}",
+    "error": true
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query\", \"max_results\": 1}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\"}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"query\": \"Word の COM で文書を開いて PDF に書き出すとき、Documents.Open にはどう引数を渡せばよいか\", \"top\": 10}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\concepts\\\\officeのcomでの書き出し.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\office-com-word-export-2026-11-15.md\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**結論:** `Documents.Open` には**パスだけ**を渡します。`ReadOnly` などの追加引数は付けません。あわせて `DisplayAlerts` を 0 にし、pwsh 7 で実行します。\n\n## 手順の案\nwiki の手順の案は次のとおりです（[[officeのcomでの書き出し]]）。\n\n1. `$w.DisplayAlerts = 0`\n2. `$w.Documents.Open($path)`。戻り値が null なら止まる。\n3. `ExportAsFixedFormat($pdf, 17)`\n4. `Close(0)`、`Quit()`\n5. 全体を `Start-Job` と `Wait-Job -Timeout` で包み、時間の上限を付ける。止まったときに備えて、残った `/Automation -Embedding` の WINWORD.EXE を確かめる。\n\n使った例は、info-hive-dev の `docs/research/markitdown-benchmark-2026-11-15/scripts/export_office.ps1` です（[[抽出の方式の比較-markitdown-2026-11-15]]）。\n\n## 根拠（[[office-com-word-export-2026-11-15]]）\n- Windows PowerShell 5.1 で `Documents.Open(パス, $false, $true)`（読み取り専用）を使うと、300 秒で終わらず、PDF もできませんでした。WINWORD.EXE が残っていました。\n- pwsh 7 の `Start-Job` の中で `DisplayAlerts = 0` にし、パスだけを渡すと、開いて書き出せました。\n- パスだけにしたスクリプトを Windows PowerShell 5.1 で動かすと、`Documents.Open` が null を返しました。同じ実行で、PowerPoint と Excel の書き出しは成功しました。\n- [[抽出の品質の測り方]] にも、読み取り専用の引数で Word が応答しなくなった、という同じ記述があります。\n\n## 注意\n- 読み取り専用で止まる理由は仮説です。画面に出ない確認を待っていた可能性があります。\n- 5.1 で null が返った原因は分かっていません。直前の試しで残った Word の影響かもしれません。\n- `pwsh -File` でスクリプト全体を最後まで通せるかは確かめていません。\n- 観測は Office 16.0、PowerShell 7.6.9、Windows 11 の 1 台、1 回の作業だけです。\n\n## 確からしさ: 低\n- 理由は 2 つあります。\n  - ページの状態が `hypothesis`（仮説）です。\n  - 成功例が 1 回で、同じ条件での再現がありません。\n- 「パスだけを渡す」は観測と一致します。「それが解決策だ」という因果は確かめられていません。\n\n**上げる方法:**\n- 同じスクリプトを、新しい Word で `pwsh -File` でも、複数回くり返して試す。\n- 読み取り専用の引数だけを変えた対照の試験をする。\n- 結果を `/wiki:learn` で記録し、ページの `status` を `supported` に更新する。これらは提案です。承認なしには書き換えません。\n\n確からしさが「低」なので、シンセシスとしての保存は提案しません。先に上の確かめを行うことを勧めます。\n\n使用した MCP サーバー: wiki（`mcp__plugin_wiki_wiki__query`）\n使用した Agent Skills: wiki:query（wiki:info-hive のクエリ手順）"
+ },
+ {
+  "qid": "Q06",
+  "rep": 1,
+  "trial": false,
+  "expect": "中",
+  "got": "中",
+  "reason_ok": "部分",
+  "note": "「一般化には上限」と書いたが、評価の言葉への当てはめとは書いていない",
+  "raise_fit": "いいえ",
+  "model": "claude-sonnet-5-5",
+  "seconds": 24.5,
+  "cost_usd": 0.2494,
+  "turns": 8,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -30 && wc -l wiki/index.md wiki/SCHEMA.md; ls wiki/indexes 2>/dev/null\"}",
+    "error": true
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query\", \"max_results\": 1}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 60}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\"}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"query\": \"ingest raw の段 Haiku\", \"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"top\": 10}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\concepts\\\\ingestに使うモデル.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\ingestのモデルの比較-2026-11-13.md\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**結論: 不十分。wiki の記録では、raw の段に Haiku 5.5 は向かず、Sonnet 5.5 を使うと決めている。**\n\nこの判断は 2026-11-13 の比較に基づく（[[ingestに使うモデル]]、[[ingestのモデルの比較-2026-11-13]]）。比較では、同じ 4 つの Web ページを Haiku 5.5、Sonnet 5.5、Opus 5.5 で取り込んだ。\n\n- **規則違反が多い。** Haiku は raw の規則を何度も破った。\n  - SQLite のコードブロック 5 個中 3 個で、SQL のコメントを訳して中身を変えた。\n  - 本文のリンクを SQLite で 8 か所、Medium で 1 か所落とした。Sonnet は 2 か所、Opus は 1 か所だった。\n  - Medium の図の下の説明文 34 個を本文から消し、alt に移した。\n  - `Event Sourcing` のような英語の固有名詞を訳した。\n  - 曖昧さ回避の表を雑音として残した。\n- **訳の評価に波がある。** GPT-6.1 Sol による目隠しの評価（10 点満点）では、Haiku は CQRS で忠実さ 8.8 の 1 位だった。一方、SQLite は 7.8 で 3 位、Medium は 6.5 で 3 位だった（Sonnet は 9.1 と 9.5）。\n- **図の補足の誤りが多い。** 照らし合わせた 9 枚のうち、誤りがあったのは Haiku が 2 枚、Sonnet が 1 枚、Opus が 0 枚。\n- **速さの利点がない。** 取り込み全体の時間は、Haiku が 122〜342 秒、Sonnet が 85〜499 秒だった。Sonnet より速いとは言えない。\n\nraw は取り込んだあとに書き換えない原本で、誤りは取り直すまで残る。要約ページの引用も raw から取る。そのため、規則を破りやすいモデルは使えないと判断している。\n\nこの結論には 3 つの前提がある。\n\n- 1 つのページとモデルの組み合わせにつき、実行は 1 回だけである。\n- ページは 4 つだけである。\n- 費用の比は出せなかった。\n\n日本語のページは訳がないので、Sonnet と Opus の raw はほぼ同じだった。Haiku が日本語のページでどうなるかは、wiki に記録がない。また、このセッションの Sonnet 5.5 より新しいモデルで比べ直した記録も、wiki にはない。\n\n**確からしさ: 中**\n\n- 結論の主張は、モデルごとの比較の表（source ページ）から直接読める。\n- ただし実行は 1 回ずつ、ページは 4 つなので、一般化には上限がかかる。\n- 目隠しの評価は Sol 1 体による判定である。\n- 比較の元の調査（`docs/research/wiki-ingest-model-comparison-2026-11-13.md`）は、今回確かめていない。\n- 「Haiku 5.5 で十分か」という問いのうち、日本語のページだけに限った場合は wiki に記録がない。\n\n**確からしさを上げる方法（提案のみ。実行はしていません）**\n\n- 元の調査レポートと `docs/agent-runs/2026-11-13-wiki-ingest-model-comparison/` の記録を読み、表の数値を確かめる。\n- 日本語のページや、Haiku の弱点が出なかった種類のページを足して、同じスクリプトで比べ直す。複数回の実行も足す。\n- 費用の比を出す調査を取り込む。これは、費用を下げる目的で Haiku を検討する場合に有効である。\n\n回答をシンセシスとして保存するほどの新しい結びつきはないので、保存は提案しません。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q06",
+  "rep": 2,
+  "trial": false,
+  "expect": "中",
+  "got": "中",
+  "reason_ok": "いいえ",
+  "note": "理由は実行の回数とページの数",
+  "raise_fit": "いいえ",
+  "model": "claude-sonnet-5-5",
+  "seconds": 26.1,
+  "cost_usd": 0.238,
+  "turns": 7,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\"}",
+    "error": false
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"+wiki query\", \"max_results\": 5}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"query\": \"/wiki:ingest の raw の段は Haiku で十分か\", \"top\": 10}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\concepts\\\\ingestに使うモデル.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\ingestのモデルの比較-2026-11-13.md\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**結論: 十分ではない。wiki の記録は「Haiku 5.5 は不適」で、raw の段は Sonnet 5.5 にすると決めている。**\n\n## 根拠\n\n[[ingestに使うモデル]] は、raw の段を Sonnet 5.5 で行うと決めている。2026-11-13 に Haiku 5.5、Sonnet 5.5、Opus 5.5 を 4 つの Web ページで比べた結果である（[[ingestのモデルの比較-2026-11-13]]）。raw は取り込んだあとに書き換えない原本で、要約ページの引用も raw から取る。誤りは取り直すまで残る。\n\nHaiku 5.5 は、raw の規則を何度も破った。\n\n| 項目 | Haiku 5.5 |\n| --- | --- |\n| コードブロック | SQLite の 5 個中 3 個で、SQL のコメントを訳して中身を変えた |\n| 本文のリンク | SQLite で 8 か所、Medium で 1 か所を落とした |\n| 図の下の説明文（Medium） | 34 個を本文から消し、alt に移した |\n| 図の補足 | 9 枚中 2 枚で誤り（Sonnet は 1 枚、Opus は 0 枚） |\n| 訳の点数（目隠しの評価） | Medium の 5 つの節で 6.5 点で、3 モデル中の最下位。Sonnet と Opus は 9.5 点 |\n| 固有名詞の英語表記 | `Event Sourcing` などを訳した |\n| 速さ | 122〜342 秒。Sonnet は 85〜499 秒で、速さはほぼ変わらない |\n\n- Haiku が勝ったのは CQRS の訳（8.8 点で 1 位）だけである。\n- 段落の欠落と統合、見出しの階層は、3 モデルとも保った。\n- 速さで Sonnet を上回らないので、Haiku にする利点も見つからない。\n\n## 条件と限界\n\n- 1 つのページとモデルの組み合わせにつき、実行は 1 回だけである。ページも 4 つなので、Haiku の弱点が毎回出るとまでは言えない。\n- 比べたのは Haiku 5.5 の古い版かもしれない。wiki には、新しいモデルが出たら同じ 4 ページで比べ直す手順がある（`docs/agent-runs/2026-11-13-wiki-ingest-model-comparison/scripts/`）。\n- 費用の比は出せなかった。トークン数に固定の分（約 66k）が含まれるためである。\n- wiki には、Haiku を後から検査で補う案を試した記録はない。「確かめのスクリプトで Haiku の誤りを拾えるか」は、この wiki からは答えられない。\n- PDF とテキストのソースは、原本をそのまま置くので、モデルの差は出ない。\n\n## 確からしさ: 中\n\n- **根拠:** 結論を直接述べた source ページと concept ページがあり、数値も source ページに表で載っている。\n- **上限をかけた要因:** 比較が各 1 回で、4 ページと少ない。\n- **上げる方法:**\n  - 同じ 4 ページで Haiku 5.5 を複数回回し、規則違反が毎回出るかを数える。\n  - raw の段を `wiki:web-raw`（`model: sonnet`）に任せた現行の形で、`model: haiku` に替えて `wiki_rawcheck.py` が違反を拾えるか試す。拾えるなら、安く済ませる案を考えられる。\n  - どちらも wiki の変更を伴わない実験である。承認があれば、計画の作成から手伝う。\n\n結果は [[ingestに使うモデル]]（見直す条件の節に、再比較の手順がある）に反映する。この回答はシンセシスとして保存するほどの新しい知見ではないので、保存は提案しない。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q06",
+  "rep": 3,
+  "trial": false,
+  "expect": "中",
+  "got": "中",
+  "reason_ok": "いいえ",
+  "note": "「決まった手順で導いた」と書き、規則にない上限 3 つで中にした",
+  "raise_fit": "いいえ",
+  "model": "claude-sonnet-5-5",
+  "seconds": 27.0,
+  "cost_usd": 0.1155,
+  "turns": 7,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -30; wc -l wiki/index.md; ls .info-hive 2>/dev/null\"}",
+    "error": true
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 40}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\concepts\\\\ingestに使うモデル.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\ingestのモデルの比較-2026-11-13.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\rawの段を任せるエージェントの確かめ-2026-11-14.md\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**結論: 十分ではない。** wiki の記録では、raw の段は Sonnet 5.5 に決めており、Haiku 5.5 は採用しなかった。\n\n## 根拠\n\n[[ingestに使うモデル]] によると、raw の段（取得、雑音の削除、訳、画像の補足、検査）は Sonnet 5.5 で行う。0.15.0 からは、エージェント `wiki:web-raw`（`model: sonnet`）がこの段を担う。\n\nHaiku を外した理由は、[[ingestのモデルの比較-2026-11-13]] にある。\n\n- **raw の規則違反が多い。**\n  - SQLite のページで、コードブロック 5 個中 3 個の SQL コメントを訳した。\n  - 本文のリンクを落とした。SQLite で 8 か所、Medium で 1 か所。\n  - Medium で、図の下の説明文 34 個を本文から消して alt に移した。\n- **訳の点数が不安定。** 目隠し評価（忠実さ）は、CQRS では 8.8 で 1 位だった。SQLite では 7.8、Medium では 6.5 で、どちらも 3 位だった。Sonnet は 9.1 と 9.5。\n- **図の補足の誤りが多い。** 照らし合わせた 9 枚のうち、Haiku は 2 枚、Sonnet は 1 枚、Opus は 0 枚。\n- **速さの利点がない。** 取り込み全体の時間は、Haiku が 122〜342 秒、Sonnet が 85〜499 秒で、Sonnet のほうが速いページもあった。\n\nraw は取り込んだあとに書き換えない原本で、要約ページの引用もここから取る。誤りは取り直すまで残るので、規則を破りやすいモデルは向かない。\n\n## 例外と限界\n\n- PDF とテキストのソースは原本をそのまま置くので、モデルの差は出ない。日本語のページも訳がないので、Sonnet と Opus の raw はほぼ同じだった。この範囲の Haiku は未検証だが、差が出るのは英語の Web ページが中心と見られる。\n- 1 つのページとモデルの組み合わせにつき、実行は 1 回だけ。\n- 比較は 0.14.0 より前の手順で行っている。0.15.0 以降の `wiki:web-raw` や W8 の JSON 判定と組み合わせた Haiku は試していない。\n- 費用の比は出せていない。報告されたトークン数に約 66k の固定分が含まれるため。Haiku が安いかどうかは、wiki からは言えない。\n\n## 確からしさ: 中\n\n- **結論は決まった手順で導いた。** 「Haiku は規則を破る」という前提は、調査の要約ページ [[ingestのモデルの比較-2026-11-13]] にあり、raw の原本（`docs/research/...`）では今回確かめていない。\n- **上限が 3 つある。**\n  - 実行が 1 回だけである。\n  - 比較の後で手順が変わり、Haiku を再測定していない。\n  - 費用の比がない。\n\n### 上げる方法\n\n- 原本 `docs/research/wiki-ingest-model-comparison-2026-11-13.md` を開き、表の数値を確かめる。\n- 0.15.0 以降の手順で、同じ 4 ページを Haiku で取り込み直し、`tests/wiki/check_web_raw_agent.py` で確かめる。この結果を取り込むと、確からしさが上がる。\n- 費用が論点なら、`claude -p` の費用の記録（[[rawの段を任せるエージェントの確かめ-2026-11-14]] と同じ形）を Haiku でも取る。\n\nこの回答は、保存を提案するほどの新しいつながりを含まないので、synthesis には保存しない。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q07",
+  "rep": 1,
+  "trial": false,
+  "expect": "高",
+  "got": "高",
+  "model": "claude-sonnet-5-5",
+  "seconds": 20.2,
+  "cost_usd": 0.1725,
+  "turns": 3,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -30; ls .info-hive 2>/dev/null; grep -c \\\"\\\" wiki/log.md; grep -n \\\"2026-11-13\\\" wiki/log.md | head -50\"}",
+    "error": false
+   },
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki\\\" && sed -n 20,60p log.md; echo ---; grep -n \\\"^## \\\\[\\\" log.md | grep -c \\\"ingest\\\"; grep -n \\\"log\\\" SCHEMA.md | head -15; head …",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "2026-11-13 の ingest の記録は **10 件**です。\n\n`wiki/log.md` の見出し `## [2026-11-13] ingest | …` が 10 行ありました。\n\n| 行 | 内容 |\n|---|---|\n| 29 | Git Bash のパス変換で git の引数が壊れる件 |\n| 32 | rag 0.5.2 の PDF のヘッダーの境界の書き方の修正 |\n| 35 | rag 0.5.3 の PDF のヘッダーのエラーメッセージの修正 |\n| 38 | rag 0.5.2・0.5.3 の書き方とメッセージの修正、リリースの記録 |\n| 41 | Windows の Python で書き戻すと LF が CRLF に変わる件 |\n| 44 | browse のスコープ表示、wiki 0.12.0 のリリースと画面の確かめの記録 |\n| 47 | 検索の結果の tags と sources の修正、wiki 0.12.1 のリリースの記録 |\n| 50 | title が値なしや配列のときの修正、wiki 0.12.2 のリリースの記録 |\n| 53 | 初期化していないディレクトリを wiki として扱わない修正、wiki 0.13.0 のリリースの記録 |\n| 56 | /wiki:ingest のモデルの比較（2026-11-13） |\n\n- **件数に入れなかったもの:** 27 行目の `schema | タグの体系に windows を足した` は、同じ日付でも種別が `schema` なので除いています。\n- **「2026-11-13」を名前に含む別のページ:** 57 行目の `ingestのモデルの比較-2026-11-13` は 56 行目の本文で、別件ではありません。78 行目は 2026-11-14 の記録で、そのページ名を参照しているだけです。\n- **集計の方法:** 見出しの日付と種別を数えました。`log.md` 全体の ingest 見出しは 43 件です。\n\n出典: [[log]]（`wiki/log.md`）\n\n**確からしさ: 高**\n- 質問の対象が `log.md` そのものです。\n- 日付と種別が見出しに書かれているので、判断を加えずに数えられました。\n- 検索は使わず、ファイルを直接読んで数えています。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q07",
+  "rep": 2,
+  "trial": false,
+  "expect": "高",
+  "got": "高",
+  "model": "claude-sonnet-5-5",
+  "seconds": 21.6,
+  "cost_usd": 0.0506,
+  "turns": 5,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"ls wiki/SCHEMA.md wiki/log.md .info-hive/workspace.json 2>&1; grep -c \\\"2026-11-13\\\" wiki/log.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 80}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"2026-11-13\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\log.md\", \"output_mode\": \"content\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"^## \\\\[2026-11-13\\\\] ingest\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\log.md\", \"output_mode\": \"count\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**10 件**です。\n\n`wiki/log.md` の見出し `## [2026-11-13] ingest | …` を数えました。\n\n1. Git Bash のパス変換で git の引数が壊れる件\n2. rag 0.5.2 の PDF のヘッダーの境界の書き方の修正\n3. rag 0.5.3 の PDF のヘッダーのエラーメッセージの修正\n4. rag 0.5.2・0.5.3 の書き方とメッセージの修正、リリースの記録\n5. Windows の Python で書き戻すと LF が CRLF に変わる件\n6. browse のスコープ表示、wiki 0.12.0 のリリースと画面の確かめの記録\n7. 検索の結果の tags と sources の修正、wiki 0.12.1 のリリースの記録\n8. title が値なしや配列のときの修正、wiki 0.12.2 のリリースの記録\n9. 初期化していないディレクトリを wiki として扱わない修正、wiki 0.13.0 のリリースの記録\n10. /wiki:ingest のモデルの比較（2026-11-13）\n\n2026-11-13 の日付を含む行は 13 行あります。次の 3 行は ingest の記録ではないので除きました。\n- 27 行目は `schema` の記録です（タグの体系に windows を足した）。\n- 57 行目は 10 件目の本文で、同じ記録の続きです。\n- 78 行目は 2026-11-14 の記録の本文で、ファイル名に `2026-11-13` を含むだけです。\n\n**確からしさ: 高**\n出典は `log.md` そのものです。見出しの形式は固定なので、正規表現による件数（10）と目視での一覧が一致しました。ページ本文を読まない集計の質問なので、検索（`query`）は使っていません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q07",
+  "rep": 3,
+  "trial": false,
+  "expect": "高",
+  "got": "高",
+  "model": "claude-sonnet-5-5",
+  "seconds": 22.9,
+  "cost_usd": 0.0689,
+  "turns": 5,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"ls wiki/SCHEMA.md .info-hive/workspace.json 2>&1; ls wiki | head\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"2026-11-13\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\log.md\", \"output_mode\": \"content\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"^## \\\\[2026-11-13\\\\]\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\log.md\", \"output_mode\": \"count\"}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "2026-11-13 の ingest の記録は **10 件**です。\n\n`wiki/log.md` で見出し `## [2026-11-13]` は全部で 11 件ありました。そのうち 1 件（27 行目）は `schema` の記録で、ingest ではありません。残りの 10 件が `ingest |` の記録です（29、32、35、38、41、44、47、50、53、56 行目）。\n\n- Git Bash のパス変換で git の引数が壊れる件\n- rag 0.5.2 の PDF のヘッダーの境界の書き方の修正\n- rag 0.5.3 の PDF のヘッダーのエラーメッセージの修正\n- rag 0.5.2・0.5.3 の書き方とメッセージの修正、リリースの記録\n- Windows の Python で書き戻すと LF が CRLF に変わる件\n- browse のスコープ表示、wiki 0.12.0 のリリースと画面の確かめの記録\n- 検索の結果の tags と sources の修正、wiki 0.12.1 のリリースの記録\n- title が値なしや配列のときの修正、wiki 0.12.2 のリリースの記録\n- 初期化していないディレクトリを wiki として扱わない修正、wiki 0.13.0 のリリースの記録\n- /wiki:ingest のモデルの比較（2026-11-13）\n\n78 行目の「2026-11-13」は、`2026-11-14` の記録に含まれる本文中の言及です。見出しの日付ではないので、数えていません。\n\n出典: [[log]]。`wiki/log.md` の見出しを直接数えました。\n\n**確からしさ: 高**\n- 日付と見出しの種別は、log.md の見出しの文字列と一致するかどうかで機械的に判定できます。\n- 数え方は、見出しの照合を 2 通り（日付だけ・日付と `ingest`）で行い、11 件と 10 件で矛盾がないことを確かめました。\n- 検索は使わず、ファイルを直接 grep しました。そのため、検索の縮退による上限は付きません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q08",
+  "rep": 1,
+  "trial": false,
+  "expect": "高",
+  "got": "中",
+  "note": "log.md の日付を git の履歴で確かめていないことを上限にした",
+  "model": "claude-sonnet-5-5",
+  "seconds": 15.1,
+  "cost_usd": 0.2149,
+  "turns": 5,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\"}",
+    "error": false
+   },
+   {
+    "name": "Glob",
+    "input": "{\"pattern\": \".info-hive/workspace.json\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\log.md\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"windows\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"glob\": \"{log.md,index.md,SCHEMA.md}\", \"output_mode\": \"content\", \"-i\": true}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "2026-11-13 です。\n\n`wiki/log.md` の 27 行目に、`## [2026-11-13] schema | タグの体系に windows を足した` という記録があります。`wiki/SCHEMA.md` の「タグの体系」にも、`windows` の説明（Windows で動かすときの落とし穴と避け方についてのページ）が入っています。\n\n- 出典: `wiki/log.md`、`wiki/SCHEMA.md`\n- 検索はしていません。log.md の記録と SCHEMA.md の現在の内容を直接読んで答えました。\n\n**確からしさ: 中**\n- 追記専用のログの 1 行と、SCHEMA.md の現在の内容は食い違っていません。\n- ただし根拠は log.md の記録だけです。SCHEMA.md を実際に書き換えた日は、git の履歴では確かめていません。ログの日付と実際の変更の日付がずれている可能性は、完全には除けません。\n- 上げる方法: 次のコマンドで SCHEMA.md の該当行が入ったコミットの日付を確かめられます。\n\n  `git log -S\"windows\" --format=\"%ad %h\" --date=short -- wiki/SCHEMA.md`\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q08",
+  "rep": 2,
+  "trial": false,
+  "expect": "高",
+  "got": "高",
+  "model": "claude-sonnet-5-5",
+  "seconds": 19.8,
+  "cost_usd": 0.0694,
+  "turns": 5,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"ls wiki/SCHEMA.md wiki/index.md wiki/indexes 2>&1 | head; ls .info-hive 2>&1 | head\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"windows\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"-i\": true, \"output_mode\": \"content\", \"glob\": \"{SCHEMA.md,index.md,log.md}\", \"head_limit\": 40}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\log.md\", \"offset\": 20, \"limit\": 25}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "この wiki のタグの体系に `windows` を足したのは、**2026-11-13** です。\n\n- [[log]] の 27 行目に、`## [2026-11-13] schema | タグの体系に windows を足した` という記録があります。\n- [[SCHEMA]] の「タグの体系」に、現在 `windows`（Windows で動かすときの落とし穴と避け方についてのページ）が載っています。\n- 同じ日の次の記録は、`windows` タグに当たる最初の取り込み（[[pythonの書き戻しの改行]] の元になった「Windows の Python で書き戻すと LF が CRLF に変わる件」）です。足した日と整合しています。\n\n**確からしさ: 高**\n日付は、log.md の「schema」の記録に直接書かれています。SCHEMA.md の現在の内容とも食い違いはありません。ただし log.md の日付は記録を書いた日で、SCHEMA.md の編集履歴（git のコミット日）とは別です。コミットの日付まで確かめたい場合は `git log -S\"windows\" -- wiki/SCHEMA.md` で調べられます。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q08",
+  "rep": 3,
+  "trial": false,
+  "expect": "高",
+  "got": "中",
+  "note": "wiki 自身の事柄を、ソースの要約ページや raw で確かめていないとして中にした",
+  "model": "claude-sonnet-5-5",
+  "seconds": 19.2,
+  "cost_usd": 0.1125,
+  "turns": 6,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"ls wiki/ 2>&1 | head; test -f wiki/SCHEMA.md && echo SCHEMA_OK; cat .info-hive/workspace.json 2>/dev/null\"}",
+    "error": true
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"windows\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"-i\": true, \"output_mode\": \"content\", \"head_limit\": 40}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\log.md\", \"offset\": 20, \"limit\": 28}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**2026-11-13** です。\n\n`wiki/log.md` の 27 行目に `## [2026-11-13] schema | タグの体系に windows を足した` という記録があります。現在の定義は `wiki/SCHEMA.md` の「タグの体系」にあります。`windows` は「Windows で動かすときの落とし穴と避け方についてのページ」を指します。\n\n足した理由や、きっかけになった作業は log に書かれていません。時刻も日付までしか分かりません。同じ 11-13 の直後の記録に Git Bash のパス変換と Python の CRLF の件があります。ただ、因果関係は wiki に書かれていないため、推測になります。\n\n**確からしさ: 中**\n- 日付は log の 1 行を、そのまま読んで答えています。記録自体は wiki の運用記録で、ソースの要約ページや raw では確かめていません。\n- 日付は、タグを足した作業を記録した日です。タグを最初に使ったページの作成日と一致するかは確かめていません。\n\n**上げる方法**\n- `git log -S\"windows\" -- wiki/SCHEMA.md` で、`SCHEMA.md` に `windows` の行が入ったコミットの日時を確かめます。読むだけの操作です。\n- `tags` に `windows` を持つ最も古いページの `created` と見比べます。\n\nwiki に書き込む提案はありません。この回答は一行の事実確認なので、synthesis への保存も提案しません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q09",
+  "rep": 1,
+  "trial": false,
+  "expect": "なし",
+  "got": "なし",
+  "model": "claude-sonnet-5-5",
+  "seconds": 22.4,
+  "cost_usd": 0.2074,
+  "turns": 8,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Glob",
+    "input": "{\"pattern\": \"wiki/SCHEMA.md\"}",
+    "error": false
+   },
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cat .info-hive/workspace.json 2>/dev/null; ls\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 60}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"CQRS|コマンド・クエリ|Command Query\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"-i\": true, \"output_mode\": \"count\"}",
+    "error": false
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query\", \"max_results\": 1}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"query\": \"CQRS\", \"top\": 10}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"CQRS|コマンド・クエリ|Command Query\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"-i\": true, \"output_mode\": \"content\", \"-C\": 1}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "この wiki には、CQRS の略称や設計の考え方を説明したページがありません。そのため、この質問には答えられません。\n\nCQRS が出てくるのは、取り込みの試験に使った英語の記事の題材としてだけです。次の3ページに、所要時間・費用・訳の評価点の表があります。\n- [[ingestのモデルの比較-2026-11-13]]\n- [[rawの段を任せるエージェントの確かめ-2026-11-14]]\n- [[rawの段の取り直しとW8の出力のリリース-wiki-0.18.1]]\n\n取り込んだ記事の中身を要約したページは、wiki にありません。MCP の `query` は「CQRS」で検索しましたが、上位の結果はすべて、上の試験の記録か無関係なページでした。\n\nwiki の外の知識で略称や考え方を補うことは、手順 7 に従ってしません。確からしさも付けません。\n\n補うには、CQRS の解説記事（試験で使った原文の URL など）を `/wiki:ingest` で取り込むのが近道です。取り込めば `concept` ページ「CQRS」ができ、次回から wiki だけで答えられます。取り込みは承認なしには実行しません。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q09",
+  "rep": 2,
+  "trial": false,
+  "expect": "なし",
+  "got": "なし",
+  "model": "claude-sonnet-5-5",
+  "seconds": 21.5,
+  "cost_usd": 0.1615,
+  "turns": 6,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"ls wiki/SCHEMA.md wiki/index.md .info-hive/workspace.json 2>&1; ls wiki/indexes 2>&1 | head\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 60}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"CQRS|コマンドクエリ|Command Query\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"files_with_matches\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"CQRS|コマンドクエリ|Command Query\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"content\", \"-C\": 1}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"query\": \"CQRS コマンドクエリ責務分離\", \"top\": 10}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "この wiki には、CQRS が何の略か、どんな設計の考え方かを説明するページがありません。答えは出せません。\n\n**確認したこと**\n- `wiki/SCHEMA.md` と `wiki/index.md` はあります。初期化済みの wiki です。\n- 「CQRS」「コマンドクエリ」「Command Query」で全文検索しました。\n- MCP の `query` でハイブリッド検索も 1 回行いました（`warning` なし、索引は 408 セクションすべて埋め込み済み）。\n- 全文検索で当たったのは 3 ページだけです。どれも、CQRS の Web ページを取り込みの試験の入力に使った記録で、CQRS の中身は書いていません。\n  - [[ingestのモデルの比較-2026-11-13]]\n  - [[rawの段を任せるエージェントの確かめ-2026-11-14]]\n  - [[rawの段の取り直しとW8の出力のリリース-wiki-0.18.1]]\n- 検索の上位に出た他のページは、意味の近さで拾われただけで、CQRS とは関係ありません。\n\nこの問いに対して、wiki の外の知識で答えを添えることはしません。\n\n**取り込むとよい資料**\n- CQRS を解説した記事。上の試験で取り込んだ CQRS の Web ページが使えそうです。ただし、今の wiki にはその raw や要約ページが残っていません。\n- 取り込むなら `/wiki:ingest <URL>` を使ってください。承認をいただければ、取り込みの手順に進みます。\n\n使用した MCP サーバー: plugin:wiki:wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q09",
+  "rep": 3,
+  "trial": false,
+  "expect": "なし",
+  "got": "なし",
+  "note": "取り込む候補として外部の記事の名前を挙げた（答えは添えていない）",
+  "model": "claude-sonnet-5-5",
+  "seconds": 19.2,
+  "cost_usd": 0.07,
+  "turns": 5,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Glob",
+    "input": "{\"pattern\": \"wiki/{SCHEMA.md,index.md}\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"CQRS\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"count\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 60}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"query\": \"CQRS\", \"top\": 10}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "wiki には、CQRS が何の略か、どんな設計の考え方かを説明するページがありません。\n\n**wiki にあった記述**\n\nCQRS は、取り込み機能を試したときの「試験用の題材」として出てくるだけです。「CQRS という名前の英語のページを取り込んだ」という扱いで、内容の説明は含まれていません。\n\n- [[ingestのモデルの比較-2026-11-13]]: Haiku、Sonnet、Opus の 3 モデルで取り込みを比べた表です。CQRS のページについて、訳の点数と所要時間が載っています。\n- [[rawの段を任せるエージェントの確かめ-2026-11-14]]: `/wiki:ingest` で CQRS の英語ページを取り込み、エージェントの動きを確かめた記録です。\n\nどちらも略語の意味や設計の考え方には触れていません。全文検索でも同じ 3 ページしか当たりませんでした（MCP の `query` で検索し、索引は 408 セクションすべて埋め込み済みでした）。\n\n**扱わないこと**\n\nwiki の外の知識で答えを補うことはしません。そのため、確からしさ（confidence）も付けません。\n\n**提案**\n\nCQRS の説明を wiki に入れるには、`/wiki:ingest <URL>` で解説記事を取り込むのが早いです。たとえば Martin Fowler の「CQRS」の記事、または Microsoft Learn の CQRS パターンの解説があります。取り込んだあとに同じ質問をすれば、出典付きで答えられます。\n\n使用した MCP サーバー: plugin:wiki:wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q10",
+  "rep": 1,
+  "trial": false,
+  "expect": "中（PyMuPDF の部分は答えない）",
+  "got": "中",
+  "reason_ok": "いいえ",
+  "note": "理由は raw 未確認と、1 つの PDF と 1 つの版。原因がソースの要約ページにないことは挙げていない",
+  "raise_fit": "はい",
+  "model": "claude-sonnet-5-5",
+  "seconds": 29.7,
+  "cost_usd": 0.2549,
+  "turns": 8,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\"; ls wiki | head -30; cat .info-hive/workspace.json 2>/dev/null; wc -l wiki/index.md; ls wiki/indexes 2>/dev/null\"}",
+    "error": true
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 60}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\concepts\\\\pdfminerの本文の並びの揺れ.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\adr-0025の承認の条件の測定-2026-11-15.md\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"PyMuPDF|pymupdf|fitz\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"content\", \"head_limit\": 30}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"query\": \"PyMuPDF\", \"top\": 10}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "## 回答\n\n### 1. pdfminer の本文の並びがプロセスごとに揺れる原因\n\n原因は、`pdfminer.layout.LTLayoutContainer.group_textboxes` の「距離が同じ組」の順序付けにあります。\n\n- この関数は、テキストボックスの組を距離の近い順にヒープからまとめます。ヒープの要素は `(skip_isany, dist, id(obj1), id(obj2), obj1, obj2)` です。\n- 距離が同じ組の順は `id(obj)`、つまりメモリーの番地で決まります。番地はプロセスごとに変わるので、まとめる順が変わり、行の並びが変わります。\n- 観測では、防衛白書 546 ページのうち 5 ページ（8、229、247、263、351）で並びが違いました。文字の数と行の集まりは同じで、並びだけが違いました。\n- 同じプロセスの中でも、ページごとの受け取りと文書全体の取り出しで違うことがありました。\n- 直し方は、距離が同じ組の順を、テキストボックスを初めて見た順の番号にすることです。この直しで、3 つのプロセスで 546 ページの本文がすべて同じになりました。速度も落ちませんでした。\n\n出典: [[pdfminerの本文の並びの揺れ]]、[[adr-0025の承認の条件の測定-2026-11-15]]\n\n### 2. PyMuPDF でも同じ揺れが起きるか\n\n**wiki にはこの内容がありません。** インデックスと、MCP の `query` による「PyMuPDF」の検索（ハイブリッド、408 セクション全部を埋め込み済み）のどちらにも、PyMuPDF（fitz）を扱ったページは見つかりませんでした。pdfminer の揺れは、確かめた範囲では pdfminer.six 20260107 の 1 つの PDF だけです（同ページの「気をつけること」）。PyMuPDF の挙動は、wiki の外の知識では答えません。\n\n## 確からしさ: 中（1 の部分。2 は付けない）\n\n- 原因は、ソースを読んで突き止め、直しで揺れが消えたことで裏付けています。ただし、ここで読んだのは、concept ページと source の要約ページだけです。原本の `docs/research/adr-0025-measurement-2026-11-15.md` は開いていません。\n- 確かめたのは、1 つの PDF と 1 つの版（20260107）だけです。\n\n### 上げる方法\n\n- 原本の `docs/research/adr-0025-measurement-2026-11-15.md` と `scripts/stable_text.py` を開き、ページの記述と照らします。\n- PyMuPDF については、PyMuPDF の抽出を同じ 546 ページと、揺れを起こす合成 PDF（`tests/contract/pdf_fixtures.py` の `make_ties_pdf`）で、別々のプロセスから 3 回以上取り出して比べた記録が要ります。この測定を `docs/research/` に足し、取り込むことを提案します。\n\nシンセシスとして保存することは、2 の部分が空なので提案しません。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q10",
+  "rep": 2,
+  "trial": false,
+  "expect": "中（PyMuPDF の部分は答えない）",
+  "got": "中",
+  "reason_ok": "いいえ",
+  "note": "同上",
+  "raise_fit": "はい",
+  "model": "claude-sonnet-5-5",
+  "seconds": 30.1,
+  "cost_usd": 0.2116,
+  "turns": 8,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -30; ls .info-hive 2>/dev/null; wc -l wiki/SCHEMA.md wiki/index.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 60}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\"}",
+    "error": false
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query\", \"max_results\": 1}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\concepts\\\\pdfminerの本文の並びの揺れ.md\"}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"query\": \"PyMuPDF 本文の並びの揺れ\", \"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"top\": 10}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"PyMuPDF|fitz|MuPDF\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"content\", \"-n\": true}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "## 回答\n\n### 1. pdfminer の本文の並びがプロセスごとに揺れる原因\n\n原因は、距離が同じテキストボックスの組の順を、メモリーの番地で決めていることです。\n\n- pdfminer.six（20260107 で確認）で `LAParams` のレイアウト解析を使うと、同じ PDF と同じ設定でも、プロセスによって違う本文が返ることがあります。\n- `pdfminer.layout.LTLayoutContainer.group_textboxes` は、テキストボックスの組を距離の近い順にヒープからまとめます。ヒープの要素は `(skip_isany, dist, id(obj1), id(obj2), obj1, obj2)` です。\n- 距離が同じ組の順は `id(obj)`、つまりメモリーの番地で決まります。番地はプロセスごとに変わるので、行の並びが変わります。\n- 令和 7 年版防衛白書（546 ページ）では、3 プロセスと 2 つの取り出し方法の計 6 回のうち、どれかで違ったのが 5 ページ（8、229、247、263、351）でした。違うページでも、文字数と行の集まりは同じで、行の並びだけが違いました。\n- 同じプロセスの中でも、ページごとの受け取りと文書全体の取り出しで違いが出ました。\n\n直し方は、距離が同じ組の順を、ページ内でテキストボックスを初めて見た順の番号で決めることです。試しの置きかえでは、3 プロセスで 546 ページすべての本文が一致しました。4 つ目のプロセスでも一致しました。速度は落ちませんでした（直した版 0.267 秒/ページ、直さない版 0.278 秒/ページ）。製品では、`wiki_pdf_layer.py` と rag の `rag_pdf_layer.py` の `_stable_group_textboxes` が同じ番号の振り方をします。\n\n出典: [[pdfminerの本文の並びの揺れ]]、[[adr-0025の承認の条件の測定-2026-11-15]]、[[pdfの文字の層とリリース-wiki-0.21.0]]\n\n### 2. PyMuPDF でも同じ揺れが起きるか\n\n**wiki にはこの内容がありません。** 「PyMuPDF」「MuPDF」「fitz」はどのページにも出てきません。検索（MCP の `query`）でも、該当するページは出ませんでした。wiki で確かめられたのは pdfminer の件だけです。そのため、この部分は wiki の外の知識で埋めずに、扱っていないとお伝えします。\n\n関連する記述は 1 点だけあります。pdfminer の揺れが出るのは、`group_textboxes` が `id()` を距離が同じ組の順決めに使うからです。この原因は pdfminer のレイアウト解析の実装に固有のものです。PyMuPDF に当てはまるかどうかは、wiki の記述からは言えません。\n\nwiki に載っている確かめは、1 つの PDF と 1 つの版だけです。揺れを確実に起こす試料の作り方（合成の PDF、`tests/contract/pdf_fixtures.py` の `make_ties_pdf`）は、PyMuPDF の確認にも使えるかもしれません。\n\n### 確からしさ\n\n**1 は「中」、2 は答えがないので付けません。**\n\n- 1 の原因は、ADR-0025 の承認の条件の測定を記録したソースのページに基づきます。ソースを読んで突き止め、直しで揺れが消えたことで確かめた、という記述です。\n- 上限を決めたのは、確かめた範囲です。確かめたのは 1 つの PDF と 1 つの版で、pdfminer の版が上がったときの効き方は未確認と、ページ自身が書いています。\n- 回答の途中で raw の原本までは確かめていません。ソースの要約ページと概念ページの記述に頼っています。\n\n上げる方法は次のとおりです。\n\n- `docs/research/adr-0025-measurement-2026-11-15/` の測定の記録と `scripts/stable_text.py` を確かめます。\n- pdfminer の別の版で、直しが効くかを測ります。\n\n### 提案（承認なしには実行しません）\n\nPyMuPDF の揺れを調べるなら、次の 2 つが考えられます。\n\n1. `make_ties_pdf` の合成 PDF を PyMuPDF で 3 回以上、別々のプロセスで取り出して比べます。\n2. 結果を取り込みの手順で wiki に加えます。\n\n新しいつながりを見いだす回答ではないため、`synthesis/` への保存は提案しません。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q10",
+  "rep": 3,
+  "trial": false,
+  "expect": "中（PyMuPDF の部分は答えない）",
+  "got": "中",
+  "reason_ok": "いいえ",
+  "note": "原因の根拠をソースの要約ページと誤って書いた",
+  "raise_fit": "いいえ",
+  "model": "claude-sonnet-5-5",
+  "seconds": 26.1,
+  "cost_usd": 0.1265,
+  "turns": 8,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\"; ls wiki | head -30; ls .info-hive 2>/dev/null; wc -l wiki/index.md; ls wiki/indexes 2>/dev/null\"}",
+    "error": true
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki/SCHEMA.md\", \"limit\": 60}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki/index.md\"}",
+    "error": false
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query\", \"max_results\": 1}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki/concepts/pdfminerの本文の並びの揺れ.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki/sources/adr-0025の承認の条件の測定-2026-11-15.md\"}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"query\": \"PyMuPDF の本文の並びの揺れ\", \"wiki\": \"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki\", \"top\": 10}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "## 回答\n\n### 原因\npdfminer.six（20260107 で確認）の `pdfminer.layout.LTLayoutContainer.group_textboxes` が原因です。この関数はテキストボックスの組を、距離の近い順にヒープからまとめます。ヒープの要素は `(skip_isany, dist, id(obj1), id(obj2), obj1, obj2)` です。距離が同じ組の順は `id(obj)`、つまりメモリーの番地で決まります。番地はプロセスごとに変わるので、行の並びが揺れます。[[pdfminerの本文の並びの揺れ]]\n\n観測した内容は次のとおりです。\n- 令和 7 年版防衛白書（546 ページ）を 3 つのプロセスで取り出したところ、5 ページ（8、229、247、263、351）で違いが出ました。\n- 違ったページでも、文字の数と行の集まりは同じで、行の並びだけが違いました。\n- 同じプロセスの中でも、ページごとの受け取りと文書全体の取り出しで本文が違いました。\n- 原因は、ソースを読んで突き止めました。次の直しで揺れが消えたことで確かめています。[[adr-0025の承認の条件の測定-2026-11-15]]\n\n直し方は、距離が同じ組の順を、テキストボックスを初めて見た順の番号で決めることです。この直しで 3 つのプロセスの本文がすべて一致し、速度も落ちませんでした。製品では `_stable_group_textboxes`（`wiki_pdf_layer.py` と `rag_pdf_layer.py`）がこれを行います。[[pdfの文字の層とリリース-wiki-0.21.0]]\n\n### PyMuPDF でも起きるか\n**wiki にはこの内容がありません。** PyMuPDF の本文の並びの揺れを調べた記録は、検索でも見つかりませんでした。wiki に書かれているのは pdfminer の揺れだけです。関連しそうな記述に PDFium が出てきますが、これは判定と OCR の画像用で、本文の取り出しの比較ではありません。PyMuPDF の答えは、wiki の外の知識では補いません。\n\n取り込むとよい資料は、PyMuPDF で同じ 3 プロセス以上の取り出しを比べた測定です。`docs/research/adr-0025-measurement-2026-11-15/scripts/stable_text.py` と `tests/contract/pdf_fixtures.py` の `make_ties_pdf` が流用できます。\n\n### 確からしさ: 中\n- **原因の部分:** 根拠は測定の記録（ソースの要約ページ）で、ソースを読んで突き止め、直しで消えたことも確かめています。ただし確かめたのは 1 つの PDF と 1 つの版だけです。これが「中」に留まる理由です。\n- **PyMuPDF の部分:** wiki に記述がないので、判定できません。\n- **上げる方法:** pdfminer の別の版や別の PDF で確かめます。上の PyMuPDF の測定も取り込みます。\n\n回答を `synthesis/` に保存することは提案しません。PyMuPDF の部分が空で、新しいつながりも見つかっていないためです。\n\n使用した MCP サーバー: plugin:wiki:wiki（query）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q11",
+  "rep": 1,
+  "trial": false,
+  "expect": "高（uv の言語の部分は答えない）",
+  "got": "中",
+  "note": "規則にない上限（原本未確認）で中にした",
+  "external": "検索語に Rust を使ったと書いた",
+  "model": "claude-sonnet-5-5",
+  "seconds": 24.0,
+  "cost_usd": 0.2114,
+  "turns": 6,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -30 && wc -l wiki/index.md && ls wiki/indexes 2>/dev/null | head\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 40}",
+    "error": false
+   },
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994/wiki\\\" && cat \\\"sources/Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5.md\\\"; grep -rn -i \\\"rust\\\\|written in\\\\|で書かれ\\\" --include=*.md . | grep …",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"Rust|rust|プログラミング言語\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"content\", \"head_limit\": 20}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "## 回答\n\n**前半（依存を解決できなかったパッケージ）**: `onnxruntime==1.31.1` です。wiki は 0.19.5 でこの不具合を直しました。\n\nPython の入っていない PC に wiki 0.19.4 を入れると、MCP サーバーが起動しませんでした。スクリプトの宣言が `requires-python = \">=3.12\"` で、上限がなかったためです。uv 0.13.8 は、使える Python がないと、宣言に合う中でいちばん新しい CPython 3.15 を取ります。MCP サーバーの依存の `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存を解決できませんでした。出典は [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] です。\n\n**後半（uv の実装言語）**: この wiki には書かれていません。ページ本文を読み、「Rust」や「プログラミング言語」で全文を検索しましたが、どちらも 0 件でした。uv の実装言語を外の知識で補うことはしません。\n\n## 確からしさ: 中\n\n- 前半は、ソースの要約ページに書かれた内容をそのまま述べています。ただ、原本（`docs/agent-runs/2026-11-15-wiki-python-upper-bound/`）やそのログまでは確かめていません。\n- 後半は、wiki に扱いがないため答えていません。\n\n**上げる方法**\n- 前半: 原本の `docs/agent-runs/2026-11-15-wiki-python-upper-bound/` と ADR-0026 を開き、`onnxruntime` の記述を直接確かめてください。\n- 後半: uv の公式文書（またはリポジトリの README）を `/wiki:ingest` で取り込めば、次から wiki だけで答えられます。\n\n後半を扱っていないので、`synthesis/` への保存は提案しません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q11",
+  "rep": 2,
+  "trial": false,
+  "expect": "高（uv の言語の部分は答えない）",
+  "got": "中",
+  "note": "同上",
+  "external": "検索語に Rust を使ったと書いた",
+  "model": "claude-sonnet-5-5",
+  "seconds": 29.7,
+  "cost_usd": 0.1508,
+  "turns": 8,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Bash",
+    "input": "{\"command\": \"cd \\\"C:/Works/info-hive-dev/.claude/worktrees/infallible-elbakyan-e57994\\\" && ls wiki | head -30 && wc -l wiki/index.md; ls wiki/indexes 2>/dev/null; ls .info-hive 2>/dev/null\"}",
+    "error": true
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\index.md\"}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5.md\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"Rust|rust|書かれて|実装言語\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"content\", \"head_limit\": 20}",
+    "error": false
+   },
+   {
+    "name": "ToolSearch",
+    "input": "{\"query\": \"select:mcp__plugin_wiki_wiki__query\", \"max_results\": 1}",
+    "error": false
+   },
+   {
+    "name": "mcp__plugin_wiki_wiki__query",
+    "input": "{\"query\": \"uv のプログラミング言語 実装\", \"wiki\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"top\": 10}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "**前半: 依存を解決できなかったパッケージは `onnxruntime` です。**\n\nwiki 0.19.4 を Python のない PC に入れると、MCP サーバーが起動しませんでした。uv 0.13.8 は使える Python がないとき、宣言 `>=3.12` に合う中でいちばん新しい CPython 3.15 を取ります。MCP サーバーの依存 `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存を解決できませんでした。0.19.5 は、宣言を CI の範囲の `\">=3.12,<3.15\"` にそろえて直しました。\n出典: [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n\n**後半: uv の実装言語は、この wiki に書かれていません。**\nwiki には uv の実装言語の記述がなく、`Rust` などの語での検索でも見つかりませんでした。MCP の `query` は 2 通り試しました（語彙と埋め込みの検索では、実装言語の記述は見つかりませんでした）。外の知識で答えを添えることは、この手順ではしません。取り込む場合は、uv の公式の文書か GitHub のリポジトリを `/wiki:ingest` で取り込むのが適切です。\n\n**確からしさ: 前半は「中」です。**\n- 根拠は、ソースの要約ページ 1 つだけです。raw（`docs/agent-runs/2026-11-15-wiki-python-upper-bound/`）と ADR-0026 は確かめていません。\n- 結論は、ページの記述をそのまま述べたものです。\n- 上げる方法: 上の raw と ADR-0026 を読み、`onnxruntime` と 3.15 の記述が一致するか確かめてください。\n\n後半は wiki に答えがないため、確からしさは付けません。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q11",
+  "rep": 3,
+  "trial": false,
+  "expect": "高（uv の言語の部分は答えない）",
+  "got": "中",
+  "note": "同上",
+  "external": "検索語に Rust を使ったと書き、取り込む候補に astral-sh/uv を挙げた",
+  "model": "claude-sonnet-5-5",
+  "seconds": 19.2,
+  "cost_usd": 0.0547,
+  "turns": 5,
+  "opened_step_5b": false,
+  "tools": [
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\SCHEMA.md\", \"limit\": 60}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"0\\\\.19\\\\.5\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"content\", \"head_limit\": 30}",
+    "error": false
+   },
+   {
+    "name": "Read",
+    "input": "{\"file_path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\\\\sources\\\\Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5.md\"}",
+    "error": false
+   },
+   {
+    "name": "Grep",
+    "input": "{\"pattern\": \"Rust|言語で書か|written in\", \"path\": \"C:\\\\Works\\\\info-hive-dev\\\\.claude\\\\worktrees\\\\infallible-elbakyan-e57994\\\\wiki\", \"output_mode\": \"content\", \"-i\": true, \"head_limit\": 20}",
+    "error": false
+   }
+  ],
+  "permission_denials": [],
+  "wiki_changed": false,
+  "answer": "## 回答\n\n**1. 依存を解決できなかったパッケージ: `onnxruntime`**\n\n- wiki 0.19.4 のときの話で、0.19.5 はその直しの版です。\n- Python の入っていない PC では、uv 0.13.8 が宣言（`requires-python = \">=3.12\"`、上限なし）に合う中でいちばん新しい CPython 3.15 を取りました。\n- MCP サーバーの依存 `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存を解決できず、MCP サーバーが起動しませんでした。\n- 開発用の PC には 3.12 があったので、不具合は表に出ませんでした。\n- 直しでは、8 本のスクリプトの宣言を CI の範囲の `\">=3.12,<3.15\"` にそろえました。\n\n出典: [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n\n**2. uv が何のプログラミング言語で書かれているか: wiki には書かれていません**\n\n- wiki 全体を「Rust」「written in」「言語で書か」で検索しましたが、該当する記述はありませんでした。\n- 知識から答えを補うことはしません。\n- 取り込むとよい資料は、uv の公式ドキュメントか GitHub リポジトリ（astral-sh/uv）の README です。\n\n## 確からしさ: 中\n\n- 1 は、ソースの要約ページに明記されていて、矛盾する記述もありません。ただし要約ページを読んだだけで、原本（`docs/agent-runs/2026-11-15-wiki-python-upper-bound/`）は確かめていません。\n- 2 は wiki に記述がないため、確からしさは付けません。\n- 上げる方法は、原本のレポートを確かめることと、uv の資料を `/wiki:ingest` で取り込むことです。\n\nsynthesis への保存は提案しません。新しいつながりはなく、2 は答えが出ていないためです。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ }
+]
