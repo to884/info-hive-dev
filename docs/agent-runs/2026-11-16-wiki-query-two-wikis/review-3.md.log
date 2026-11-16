@@ -1,0 +1,126 @@
+[ask-codex 08:29:02] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev）
+## 判定
+
+**却下。確信度：高。** `disjoint` が保証する現在のページ集合の分離だけでは、問い合わせが読む内容の分離も、ページへの書き込み禁止も成立しない。索引経由の読み込み、MCP の古いキャッシュ、CLI キャッシュのハードリンクに具体的な反例がある。
+
+## 致命的・重大な欠陥
+
+### 1. 重大：ページと索引の間の共有ファイルを見逃し、別スコープの本文を読む
+
+両方の根を初期化し、次の配置にする。根の識別子と `wiki_key()` はそれぞれ異なるものとする。
+
+```text
+ユーザー wiki U/
+  SCHEMA.md
+  own.md
+  index.md ──────┐
+                │ 同じファイルへのハードリンク
+プロジェクト P/ │
+  SCHEMA.md     │
+  index.md      │
+  secret.md ────┘
+```
+
+`walk_pages(U)` は `index.md` を除外するため、ページ集合は `{U/own.md}` と `{P/secret.md}` になり、補助の仕様では **`disjoint`** になる。しかし第3.3節は両方の索引を読むよう要求している。`list_index(U)` は、プロジェクト側の `secret.md` と同じ本文を、`wiki: U` の索引として返す。
+
+**検証結果：食い違い。** ファイルシステムの入口をモックに置き換え、実際の `walk_pages()` と、ソースから抽出した `list_index()` を実行した。
+
+```text
+U のページ識別子: {11}
+P のページ識別子: {22}
+交差: 空
+unlistable / unknown: 両方とも空
+
+list_index(U):
+{"wiki": "C:/kb/u", "index": "PROJECT_SECRET", "indexes": []}
+
+U/index.md と P/secret.md の識別子: 同一
+```
+
+これは異なるファイルの内容が偶然一致する例ではなく、**問い合わせが同じ実ファイルを別スコープから読む経路**である。補助を省略せず、配置が変化せず、識別子が正しくても起きる。第5節にはこの限界がない。
+
+根拠：[補助の比較範囲](/C:/Works/info-hive-dev/docs/plans/wiki-query-two-wikis-2026-11-16.md:169)、[索引を読む規則](/C:/Works/info-hive-dev/docs/plans/wiki-query-two-wikis-2026-11-16.md:98)、[最上位の索引をページから除外する処理](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:49)、[索引本文を返す処理](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:965)。
+
+### 2. 重大：現在のファイルが分離していても、MCP が保持する古い本文は分離していない
+
+次の順序で再現できる。
+
+1. `U/concepts/x.md` と `P/concepts/x.md` をハードリンクにし、本文を `# PROJ_DATA` とする。
+2. 単一 wiki の問い合わせで U を検索し、MCP に本文と索引を保持させる。
+3. U 側だけを別ファイルに差し替え、本文を同じバイト数の `# USER_DATA` にする。元の更新時刻を復元する。他の Markdown は変えない。
+4. MCP サーバーを継続したまま補助を実行する。現在のページの識別子は異なるので、補助の仕様では `disjoint` になる。
+5. 両方を検索する。
+
+`stat_signature()` が比較するのは相対パス・サイズ・更新時刻だけで、ファイル識別子も本文も含まない。したがって U の `refresh()` は変更なしとして戻り、U の検索にも差し替え前の `PROJ_DATA` が残る。P の検索と同じ内容が、別スコープの結果として返る。
+
+**検証結果：食い違い。** 実際の `stat_signature()` と `WikiIndex.refresh()` をソースから抽出し、入出力をモックに置き換えた確認では、現在の識別子を別々にした状態でも次になった。
+
+```text
+refresh(): {"changed": False}
+保持された本文: PROJECT_OLD_SECRET
+```
+
+これは**補助より前に完了した変更**である。第5節の「確かめたあとの変化」には該当しない。また、`get_page()` は本文を読み直すため、検索の抜粋とページ本文が食い違う状態にもなる。
+
+根拠：[署名の構成](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:815)、[署名が同じなら更新を省略](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:850)、[保持したセクションから検索結果を生成](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:914)、[`get_page()` の本文読み直し](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:943)。
+
+### 3. 重大：許可したキャッシュ書き込みが、他方の Markdown を破壊できる
+
+補助を実行する前から、次のハードリンクが存在する配置を考える。
+
+```text
+U/.wiki-cache/search-index.json.tmp
+                ║ 同じ実ファイル
+P/concepts/secret.md
+```
+
+U と P の通常ページは共有していない。`.wiki-cache/` は走査対象から除外されるため、補助の仕様では `disjoint` になる。
+
+ここで、MCP が利用できない条件で、計画が認める CLI の `--cache` を使う。意味検索は不要で、`--no-embed --cache` でも成立する。
+
+`write_parse_cache()` は既存の `.tmp` を `write_text()` で開き、キャッシュの JSON を書いてから `os.replace()` する。最初の書き込みでハードリンク先の **`P/concepts/secret.md` の本文が JSON に置き換わる**。最後の rename は、その変更を取り消さない。
+
+**検証結果：食い違い。** 実際の `write_parse_cache()` に対して、ハードリンクを識別子共有として表したメモリ上のファイルシステムを与えたところ、被害ページの内容が Markdown からキャッシュ JSON に変わった。実ファイルへの破壊試験は行っていない。
+
+キャッシュを書いてよいという作者の決定を前提としても、**書き込み先が実体としてキャッシュに限られる前提**が崩れる。`INFO_HIVE_DATA_DIR` の変更も、補助後の配置変更も不要である。第8節の「キャッシュ以外は書かない」という直しは、この経路を閉じていない。
+
+根拠：[書き込み禁止とキャッシュの例外](/C:/Works/info-hive-dev/docs/plans/wiki-query-two-wikis-2026-11-16.md:114)、[キャッシュの除外](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:37)、[一時ファイルへの書き込み](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:249)、[CLI が指定するキャッシュの場所](/C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:1153)。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| `walk_pages()` の集合が、問い合わせで読むファイルを代表する | 一方の索引が、他方のページと同じ実ファイルである |
+| 現在のファイル識別子が分かれれば、検索結果も分かれる | MCP が差し替え前の本文を保持し、パス・サイズ・更新時刻が変わらない |
+| `.wiki-cache/` への書き込みは、ページを変更しない | キャッシュの既存ファイルが、他方のページへのハードリンクである |
+| 第5節の配置変化の免責で、キャッシュとの不一致も説明できる | 配置変更が補助実行前に完了している |
+
+## 見落としと軽微な問題
+
+- **軽微：試験の配置がページ同士の共有に偏っている。** 第4節には、ページと索引の共有、キャッシュとページの共有、MCP が保持する過去の状態がない。列挙された補助試験がすべて通っても、上記3件は残る。根拠：[試験対象](/C:/Works/info-hive-dev/docs/plans/wiki-query-two-wikis-2026-11-16.md:184)。
+- 第5節には、ページ走査外の読み込みと、検索が保持する本文の鮮度についての限界がない。既存の識別子・登録誤読・検査後の変更に関する記述では、上記の条件を覆わない。
+
+## 検証した事実
+
+| 主張 | 結果 |
+| --- | --- |
+| MCP と CLI のページ収集は共通の走査を使う | 一致。`collect_pages()` → `iter_page_files()` → `walk_pages()` |
+| 共通のページ走査が、問い合わせの全読み取りを覆う | 食い違い。索引には `walk_index_files()` と直接読み取りがある |
+| MCP の `get_page()` は収集したページだけを選ぶ | 一致。任意の raw パスを直接返す入口ではない |
+| MCP は根ごとの `WikiIndex` を保持する | 一致。`State.wikis` のキーは解決した `Path` |
+| `wiki_key()` は Windows/macOS で `casefold()` する | 一致。実ディレクトリの同一性とは別の判定である |
+| MCP の `graph` 自体は DB を読み取り専用で開く | 一致。`mode=ro` を使用 |
+| ユーザー側の設定を現在地とは独立に読める | 一致。`user_workspace_root()` と `load_workspace()` がある |
+
+補助は未実装なので、実際の JSON・終了コードは確かめられない。レビュー対象3ファイルと関連実装を読み、書き込みを伴わないモックで検証した。実 wiki の問い合わせやファイル変更は行っていない。
+
+## 崩せなかった点
+
+- 安定したページ集合の双方に同じファイルが含まれる場合、識別子の比較でハードリンクやジャンクション経由の共有を検出する方針は崩せなかった。
+- `same` と `key_collision` を分けたことで、前回の `straße`／`strasse` を同じ wiki に縮退させる問題は、仕様上は解消している。
+- 指定された識別子が正しく取得できる条件で、補助が不当に `same`・`overlap` を返す確実な反例は見つからなかった。
+- グラフの再抽出禁止、スコープごとの独立した登録解決、定型文の扱いには、4版目による新たな破綻を確認できなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 08:38:27] 完了。session 01a1e18a-f4c3-7c52-9f2d-8fdff56375fb  usage {"input_tokens": 1601946, "cached_input_tokens": 1477888, "cache_write_input_tokens": 0, "output_tokens": 13533, "reasoning_output_tokens": 6254}
