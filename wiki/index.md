@@ -45,6 +45,7 @@
 - [[抽出の方式の比較-markitdown-2026-11-15]]: 今の抽出（pdftotext、pdfminer、PDFium、wiki_fetch）と MarkItDown 0.1.9 を、Office で作った 15 の試料で、速度、指標、Sol の判定で比べた調査
 - [[youtubeの字幕の取り込みの選択肢-2026-11-15]]: YouTube の字幕を wiki に取り込む取り方（yt-dlp、youtube-transcript-api、Gemini、文字起こし、公式 API など）と組み込み方の選択肢、手元での確かめ
 - [[youtubeの字幕の取り込みの設計-2026-11-15]]: YouTube の字幕を固定した yt-dlp で取り、取り込みに動画の分岐を足す設計、自動字幕の訂正と confidence、8 回の敵対的レビュー、ADR-0027（承認）
+- [[youtubeの取り込みの試しと直しとリリース-wiki-0.23.2]]: wiki 0.23.0 の YouTube の取り込みを使い捨ての wiki で手順どおりに通した結果、取得の時刻と「raw にない語」の直し、外す範囲を 2 度絞った 3 回の敵対的レビュー、wiki 0.23.2 のリリース
 - [[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]: ADR-0027 を実装した wiki 0.23.0、17 回の敵対的レビューで替えた照合の作り（表示の文字で読む、絞らない、実物に尋ねる）、区切りの判断、Codex の指摘、版の振り直し
 - [[extraction-metrics-string-presence-2026-11-15]]: 経験（failure）。抽出の指標が文字列の有無だけを見て、数値の境目、表の列、混線を見逃した
 - [[blind-judge-binding-and-form-feed-2026-11-15]]: 経験（failure）。伏せた判定が採点した中身に結び付かず、Sol が改ページの文字を読み飛ばした

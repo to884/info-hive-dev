@@ -1,0 +1,30 @@
+diff --git a/tests/wiki/test_wiki_youtube.py b/tests/wiki/test_wiki_youtube.py
+index 2656cff..3fc1b2d 100644
+--- a/tests/wiki/test_wiki_youtube.py
++++ b/tests/wiki/test_wiki_youtube.py
+@@ -496,6 +496,9 @@ class InspectWriteTests(Workspace):
+         self.assertEqual(list(self.raw.iterdir()), [])
+         code, out = self.write("動画", sha)
+         self.assertEqual((code, out["status"]), (0, "created"), out)
++        # 字幕を取った時刻を返す。要約ページの fetched_at に写す（0.23.2）。
++        from datetime import datetime
++        self.assertIsNotNone(datetime.fromisoformat(out["fetched_at"]).utcoffset())
+         path = self.raw / "動画.md"
+         self.assertTrue(out["read_only"])
+         self.assertFalse(os.stat(path).st_mode & 0o222)
+@@ -1074,6 +1077,15 @@ class VerifyTests(Workspace):
+             result = wc.check_wiki(self.wiki, {"SOURCES/動画.md": self.page("動画", "999 人")}, only_raw="raw/動画.md",
+                                    unknown_for={"SOURCES/動画.md"})
+             self.assertIn("999", result.unknown_words["sources/動画.md"])
++        # 行き先の値（create、update、source_only）だけを目印から外す。表に書いた主張の数値は残す（0.23.2 のレビュー）。
++        claims = self.page("動画", "本文は x").replace(
++            "本文は x", "本文は x\n\n## 主張と行き先\n\n| 主張 | 行き先 |\n| --- | --- |\n| 参加者は 999 人 | create |\n"
++            "| y | `source_only` |\n| z | update |\n\n## 関係するページ\n\n### 概要\n\nサンプル")
++        words = self.check({"sources/動画.md": claims}).unknown_words["sources/動画.md"]
++        self.assertIn("999", words)
++        self.assertIn("サンプル", words)
++        for absent in ("create", "source", "only", "update"):
++            self.assertNotIn(absent, words)
+         # 印のない関係するページも、sources の要約ページの raw と照らす（レビューの 10 回目）。
+         entity = self.page("e", "999 社", raw=None, kind=None, confidence=None, type_="entity").replace(
+             'tags: ["x"]', 'tags: ["x"]' + chr(10) + 'sources: ["動画"]')
