@@ -624,7 +624,7 @@ Tree は、入れ子の階層のデータ（メニュー、フォルダー、入
 |---|---|---|---|---|
 | Tree（ルート） | `div` | `role="tree"`、`aria-label` | `fui-Tree` | `[tree]hooks/useRootTree.ts:101` |
 | Tree（子の木） | `div` | `role="group"` | `fui-Tree` | `[tree]hooks/useSubtree.ts:38` |
-| TreeItem | `div`、ローヴィングで 1 つだけ `tabindex="0"` | `role="treeitem"`、`aria-level`、枝は `aria-expanded` | `fui-TreeItem` | `[tree]components/TreeItem/useTreeItem.tsx:331-340` |
+| TreeItem | `div`（リンクの葉は `a`）、ローヴィングで 1 つだけ `tabindex="0"` | `role="treeitem"`、`aria-level`、枝は `aria-expanded` | `fui-TreeItem` | `[tree]components/TreeItem/useTreeItem.tsx:331-340` |
 | TreeItemLayout | `div` | なし | `fui-TreeItemLayout` | `[tree]components/TreeItemLayout/useTreeItemLayoutStyles.styles.ts:11-20` |
 | expandIcon | `div`、`aria-hidden`。枝だけ。`ChevronRight12Regular` | なし | `fui-TreeItemLayout__expandIcon` | `[tree]components/TreeItemLayout/useTreeItemLayout.tsx:287-292`、`[tree]components/TreeItemChevron.tsx:5, 16` |
 | iconBefore・main・iconAfter・aside | `div`／`span` | なし | `fui-TreeItemLayout__iconBefore` ほか | 同 11-20 |
@@ -633,7 +633,14 @@ Tree は、入れ子の階層のデータ（メニュー、フォルダー、入
 - TreeItem の中に、TreeItemLayout と子の Tree を並べる。フォーカスを受けるのは TreeItem で、フォーカスの線は子の TreeItemLayout に描く。
 - 枝と葉は `aria-expanded` の有無で分ける。CSS はこれで字下げとシェブロンを決める。
 - 段は `aria-level` に書く。CSS は 1〜10 段を `--fluent-TreeItem--level` に変える（v9 も 1〜10 段を class で付ける、`[tree]components/TreeItem/useTreeItemStyles.styles.ts:53-60, 72-89`）。11 段以上は、要素の style に `--fluent-TreeItem--level` を書く。
-- キーボード: 上下の矢印、左右の矢印（開閉と親子の移動）、Home、End、Enter と、先頭の文字での移動である（`[tree]utils/tokens.ts:1, 11-25`）。`navigation.js` がこれを行う。
+- キーボード: 上下の矢印、左右の矢印（開閉と親子の移動）、Home、End、Enter と、先頭の文字での移動である（`[tree]utils/tokens.ts:1, 11-25`）。`navigation.js` がこれを行う。Enter は、枝では開閉して既定の動作を止め、葉では何もせず既定の動作を止めない。Alt と左右の矢印（ブラウザーの戻る・進む）と、Ctrl、Meta、Alt の付いた文字（Ctrl+C などのショートカット）は扱わない（`[tree]components/TreeItem/useTreeItem.tsx:215-218, 251-254, 276-277`）。
+- 葉を押して画面を移る木（Fluent 2 の Tree の使い方の Interaction modes の Navigation）では、葉の TreeItem を `a` にし、`href` を書く。押すとリンクの既定の動きで移り、Enter でも移る。`a` の中に置く TreeItemLayout と `__main` は `span` にする。リンクの既定の下線は CSS が消す。枝は `a` にしない（押すと開閉する）。actions は、`a` の中に置かない（`a` の中に `button` やリンクを入れられない）。
+
+```html
+<a class="fui-TreeItem" role="treeitem" aria-level="2" tabindex="-1" href="report.html">
+  <span class="fui-TreeItemLayout"><span class="fui-TreeItemLayout__main">報告書</span></span>
+</a>
+```
 - 選択（`selectionMode`）は Checkbox や Radio で示し、Tree 自身の色は変わらない。この章では扱わない。
 
 ### バリエーション
@@ -738,7 +745,10 @@ Tree は、入れ子の階層のデータ（メニュー、フォルダー、入
 
 ### v9 との差と未確認の点
 
-- actions は、v9 ではホバーかフォーカスの間だけ描かれ、その間は aside を描かない（`[tree]components/TreeItemLayout/useTreeItemLayout.tsx:150-376` の `isActionsVisible`）。CSS は `:hover` と `:focus-visible` で表示を切り替える近似である。
+- actions は、v9 ではホバーかフォーカスの間だけ描かれ、その間は aside を描かない（`[tree]components/TreeItemLayout/useTreeItemLayout.tsx:150-376` の `isActionsVisible`）。v9 は TreeItem に `mouseover`、`mouseout`、`focus`、`blur` を付け（同 327-348）、対象が子の木にあるイベントでは出さない（同 219-237）。子の行にポインターを置いても、祖先の枝の actions は出ない。CSS は、行（TreeItemLayout）の `:hover`、TreeItem の `:focus-visible`、actions の中の `:focus-visible` で表示を切り替える近似である。v9 は、ポインターで押して受けたフォーカスでも出し、キーで操作している間はポインターが離れても隠さない（同 263-273）。CSS は `:focus-visible` で、この区別を近似する。
+- 葉の Enter: v9 は項目の `click()` を呼ぶだけで、既定の動作を止めない（`[tree]components/TreeItem/useTreeItem.tsx:175-180`）。その click で利用者の `onClick` が起きる（同 111-124）。`navigation.js` は、葉の Enter で click を起こさない。リンクの葉は、ブラウザーがリンクの既定の動きで click を起こす。`div` の葉の Enter で処理をしたいときは、利用者が `keydown` を書く。
+- 先頭の文字での移動: v9 は `/\w/` に合う文字（英数字と `_`）だけを扱う（`[tree]components/TreeItem/useTreeItem.tsx:276-277`）。`navigation.js` は、日本語の名前も探せるよう、空白でない 1 文字を扱う。
+- リンクの葉（`a.fui-TreeItem`）は、この再現の追加である。v9 の TreeItem の根は `div` だけである（`[tree]components/TreeItem/TreeItem.types.ts:12`）。下線を消す規則（`text-decoration-line: none`）にも v9 の出典はない。サイトの使い方の Navigation の記述との突き合わせは未確認である。
 - 子の木の開閉に動きはない。v9 の Collapse は再現していない。
 - 字下げについて、サイトの指針と Web Components v3 は small で 12px とする（`packages/web-components/src/tree-item/tree-item.styles.ts:41, 49, 140`）。v9 は size によらず 24px である。ここでは v9 を採った。
 - FlatTree、TreeItemPersonaLayout、`selectionMode` の選択の部品（`fui-TreeItemLayout__selector` の中身）は扱っていない。
