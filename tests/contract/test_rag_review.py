@@ -607,6 +607,17 @@ class ReviewRegressionTests(Base):
         self.assertIsNotNone(second)
         self.assertNotEqual(second["job_id"], first["job_id"])
 
+    def test_cancel_before_finish_keeps_the_version(self):
+        """作り直しが deferred で戻ってから完了を書くまでに取り消されたら、受け持った版をそのまま持つ（復活させない）。"""
+        jobs = Jobs(self.config.data_dir)
+        self.ingest_job(self.engine())
+        jobs.register_rebuild(self.config, str(self.wiki), self.doc_id, 1)
+        job = jobs.claim("試験")
+        self.assertTrue(jobs.cancel(str(self.wiki), job["id"])["cancellation_accepted"])
+        jobs.finish(job["id"], "試験", result={"status": "deferred"})
+        self.assertEqual(jobs.status(str(self.wiki), job["id"])["status"], "cancelled")
+        self.assertIsNone(jobs.register_rebuild(self.config, str(self.wiki), self.doc_id, 1))
+
     def test_rebuild_runs_with_the_current_settings(self):
         """作り直しのジョブは、登録したときの設定ではなく、今の設定で動く。"""
         from rag_worker import engine_config

@@ -1,0 +1,73 @@
+[ask-codex 13:39:23] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr0025-stage2）
+## 判定
+
+**却下。確信度：高。** `deferred` の完了処理が、直前に受理された取消しの記録を変更し、同じ確認版を自動再登録できる状態にする反例を再現した。「取り消したジョブは担当版を保持する」という今回の規則に反する。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】取消し済みジョブから担当版を消し、同じ版の作り直しを復活させる
+
+`Jobs.finish` の担当版更新には、`owner` と `status='running'` の条件がない。後続の完了更新には両条件があるため、**状態は `cancelled` のまま、`review_version` だけが NULL になる。**
+
+再現手順：
+
+1. 設定 A の索引に確認版 1 の作り直し J を登録する。
+2. J を取り消し、設定 B に変更する。索引は A のままとする。
+3. J を明示的に再試行する。現在の設定 B で動き、方針不一致により `deferred` を返す。
+4. `rebuild_reviewed` が戻ってから `finish` が始まるまでに、J を再び取り消す。公開開始前なので取消しは受理される。
+5. `finish(result={"status": "deferred"})` が、取消し済み J の担当版を NULL にする。
+6. 設定を A に戻す。起動時の状態照合では確認版 1 が未公開かつ未担当と判定され、別 ID のジョブとして登録される。2 回目の取消し後に、再試行の指示は要らない。
+
+実際の `Jobs` のメソッドと SQL をメモリー上の SQLite で実行した結果：
+
+```text
+before_cancel                 running / review_version=1
+cancel_accepted               True
+after_finish                  cancelled / review_version=None
+same_version_registered_again True
+new_job_claimed                True
+```
+
+根拠：
+
+- [rag_jobs.py:317](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_jobs.py:317)：担当版更新は `id`、`kind`、`rerun` だけで絞り、取消し済み行も更新する。
+- [rag_jobs.py:341](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_jobs.py:341)：公開開始前の処理中ジョブは取消し可能。
+- [rag_index.py:536](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_index.py:536)：`deferred` は公開開始のコールバックを通らず返る。
+- [rag_jobs.py:105](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_jobs.py:105)：NULL になった担当版は、同じ版の再登録を阻止できない。
+- [rag_worker.py:194](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_worker.py:194)：状態からの登録し直しも、この登録処理を呼ぶ。
+
+DB の状態遷移と再登録は動的に再現した。設定変更から実索引の再公開までの一連の実行は未実施であり、その部分は上記コード経路による判断である。
+
+## 崩れる前提
+
+- **正常結果を受け取った `finish` は、まだ自分が所有する処理中ジョブを更新している。** ワーカーと MCP の取消し要求が並行すると成立しない。
+- **完了更新が取消し済み行を除外すれば、取消しの記録は保全される。** その前に実行する担当版更新が、取消しの再登録防止を壊す。
+- **取消しと `deferred` の処理は独立して検証できる。** 両者の間に割込みが入った場合だけ、担当版が失われる。
+
+## 見落としと軽微な問題
+
+- **【軽微】追加試験が取消しとの競合を通っていない。** [test_rag_review.py:598](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/tests/contract/test_rag_review.py:598) は、処理中のジョブをそのまま `deferred` で完了させる。`finish` の前に取消しを受理させる順序がなく、今回の欠陥を検出しない。
+
+## 検証した事実
+
+| 主張 | 結果 |
+|---|---|
+| 作り直しは現在の設定、取り込みは登録時の設定を選ぶ | **一致。** 実装と `engine_config` の分離実行で確認。 |
+| 正常完了した `deferred` は担当版を手放す | **一致。** 実際の `Jobs.finish` で確認。 |
+| 取消し済みジョブは担当版を保持する | **食い違い。** 重大指摘の順序で NULL になる。 |
+| 通常の失敗後、同じ版を自動再登録しない | **一致。** 担当版が保持され、登録は拒否された。 |
+| `rerun` は担当版を保持して待機に戻り、公開開始の印を戻す | **一致。** 版 2・`queued`・`publication_started=0` を確認。その後の取消しも受理された。 |
+| 契約試験は 31 件ある | **一致。** AST で数えた。 |
+| 提示された試験一式が通る | **確かめられず。** この環境には必要な依存パッケージがない。 |
+
+動的検証は Python 3.14.6 とメモリー上の SQLite で行った。`ingest_pdf` の `deferred` 分岐も、ファイル操作とロックを代替して、公開コールバックが呼ばれないことを確認した。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 5 回目の「古い登録時設定で動いて `deferred` になり、新しい確認版を抱えたまま完了する」経路は、今回の設定選択と担当版解放によって遮断されている。
+- 取消し済みの同じ版を、遅れて到着した登録要求だけで復活させる経路は崩せなかった。
+- 通常の失敗、`rerun`、明示的再試行の範囲では、担当版の保持と公開開始の印の扱いを崩せなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 13:47:13] 完了。session 01a1e2a7-1850-77c1-8122-62aa2c54a9f7  usage {"input_tokens": 1805024, "cached_input_tokens": 1694080, "cache_write_input_tokens": 0, "output_tokens": 11701, "reasoning_output_tokens": 4973}
