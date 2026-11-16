@@ -59,6 +59,8 @@
 - [[2つのwikiを引く問い合わせの設計-2026-11-16]]: `/wiki:query --both` で 2 つの wiki を引く設計、書かない問い合わせ、7 回の敵対的レビュー、raw と wiki にリンクを置かない規則（ADR-0029、提案）
 - [[queryの確からしさのsonnetでの測定-2026-11-16]]: wiki 0.20.0 の `/wiki:query` の確信度を Sonnet 5.5 で 11 問 × 3 回測った結果（一致 24/33、手順 5b を開いた回は 0）と、規則の直しの案
 - [[components-of-agent-memory]]: Anthropic の記事。エージェントのメモリの 4 層とドリーミング、CL-Bench、Pokémon、wiki と検索の組み合わせ、共有ページの書き込みの欠け
+- [[managed-agents-cma-dreaming-with-a-dynamic-workflow]]: ドリーミングを Managed Agents の動的ワークフローで組む cookbook。3 種のエージェント、wiki 型のメモリ、同時の書き込みの扱い、信頼できない入力への守り、費用
+- [[claude-quickstarts-managed-agents-knowledge-wiki]]: 変化の遅い文書群から一度作るナレッジ wiki のクイックスタート（README）。作る段と問う段、出所と矛盾の保ち方、費用の主張、共有ページの約 5% の損失
 - [[queryの確からしさの未測定の規則の測定-2026-11-16]]: wiki 0.21.1 の確信度の未測定の規則（シンセシス、矛盾、superseded、エッジ、検索の縮退、複数の結論）を試験用の wiki で 15 問 × 3 回測った結果（一致 40/45、グラフを引いた回は 0）と、規則の直しの案
 
 ## エンティティ

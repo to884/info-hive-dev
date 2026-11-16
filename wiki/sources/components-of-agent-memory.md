@@ -59,3 +59,4 @@ Anthropic の研究ブログの記事で、Lance Martin が書いた（2026-11-0
 - [[editとwriteの書き込みの競合]]
 - [[エージェントに守らせる決まりの書き方]]
 - [[llm-wiki記事作成の方法論]]
+- [[managed-agents-cma-dreaming-with-a-dynamic-workflow]]: 記事が紹介するドリーミングの入門の cookbook

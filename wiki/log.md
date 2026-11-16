@@ -226,3 +226,13 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
    ページ: sources/components-of-agent-memory、concepts/エージェントのメモリの階層（新規）。concepts/editとwriteの書き込みの競合、concepts/エージェントに守らせる決まりの書き方、index を更新
    raw: `wiki:web-raw` に任せた（報告したモデル: Claude Sonnet 5.5）。訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5
    グラフ: ノード +2、型付きエッジ +0
+
+## [2026-11-16] ingest | Dreaming with a dynamic workflow（Claude の cookbook）
+   ページ: sources/managed-agents-cma-dreaming-with-a-dynamic-workflow（新規）。concepts/editとwriteの書き込みの競合、concepts/エージェントのメモリの階層、sources/components-of-agent-memory、index を更新
+   raw: `wiki:web-raw` に任せた（報告したモデル: Claude Sonnet 5.5）。訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5
+   グラフ: ノード +1、型付きエッジ +0
+
+## [2026-11-16] ingest | Knowledge wiki with a dynamic workflow（claude-quickstarts）
+   ページ: sources/claude-quickstarts-managed-agents-knowledge-wiki（新規）。concepts/editとwriteの書き込みの競合、concepts/エージェントのメモリの階層、sources/managed-agents-cma-dreaming-with-a-dynamic-workflow、index を更新
+   raw: `wiki:web-raw` に任せた（報告したモデル: Claude Sonnet 5.5）。訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5。README だけで、ファイルの一覧の表は 1 段落につぶれて英語のまま残った
+   グラフ: ノード +1、型付きエッジ +0

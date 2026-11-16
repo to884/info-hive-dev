@@ -2,7 +2,7 @@
 type: "concept"
 title: "Claude Code の Edit と Write の書き込みの競合"
 tags: ["取り込み", "windows"]
-sources: ["セッションの取り込みの設計-2026-11-14", "wikiの書く段の設計-2026-11-15", "components-of-agent-memory"]
+sources: ["セッションの取り込みの設計-2026-11-14", "wikiの書く段の設計-2026-11-15", "components-of-agent-memory", "managed-agents-cma-dreaming-with-a-dynamic-workflow", "claude-quickstarts-managed-agents-knowledge-wiki"]
 created: 2026-11-14
 updated: 2026-11-16
 ---
@@ -32,3 +32,14 @@ updated: 2026-11-16
 ## 外での観測
 
 Anthropic の記事 [[components-of-agent-memory]] にも、同じ型の失敗がある。Harvey LAB の契約のタスクで wiki を組み立てたとき、4 体のエージェントが共有のページ `provisions.md` に契約の条件を同時に書き、1 体の保存が別の 1 体の行を消した。wiki から作った準備書面には、採点した 57 の事実のうち 41（72%）しか入らなかった。契約ごとに 1 体が自分のページを書き、条件をそのまま引用する指示に替えると、57 がすべて残った。共有のファイルの書き手を 1 つにするという点で、ADR-0023 の決定と同じ方向である。ただし記事が直したのは指示で、ロックではない。
+
+ドリーミングの cookbook [[managed-agents-cma-dreaming-with-a-dynamic-workflow]] は、同じディレクトリを並行して書くアナライザーに、ロックの代わりに手順で守らせている。書く直前にファイルを読み直してほかの書き手の中身を残し、書いたあとに別のターンで読み戻して、自分の中身が消えていたら両方をまとめて書き直す。共有の索引は全体を書き直さず、狙った編集で足す。統合、改名、移動はさせず、ほかに書き手のいない最後の段（オーガナイザー）に回す。上の表の最後の競合（数ミリ秒の中で重なる書き込み）は、読み戻しで見つけて書き直す形である。この wiki の設計（ロックと日誌）とどちらが確かかは、確かめていない。
+
+文書から wiki を作るクイックスタート [[claude-quickstarts-managed-agents-knowledge-wiki]] は、損失を知ったうえで受け入れている。エージェントが共有ページに直接書くので、いちばん混み合うエンティティのページでは、登録した行の約 5% で内容が失われる。それでも、共有ページには異なる文書の数値が集まり、食い違いに旗を立てられるので、受け入れるとしている（README の主張で、確かめていない）。
+
+| 扱い方 | 例 |
+| --- | --- |
+| ロックで防ぐ | この wiki の `wiki_apply.py`（ADR-0023、承認済み、実装はまだ） |
+| 読み戻して直し、統合は書き手のいない段に回す | [[managed-agents-cma-dreaming-with-a-dynamic-workflow]] |
+| 書き手をページごとに 1 つにする | [[components-of-agent-memory]] の契約のページ |
+| 損失を受け入れる | [[claude-quickstarts-managed-agents-knowledge-wiki]] の共有のエンティティのページ |
