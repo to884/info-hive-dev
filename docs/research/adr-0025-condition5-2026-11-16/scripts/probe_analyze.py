@@ -67,8 +67,28 @@ def attach_other_dpi(ocr_lines: list[dict], name: str) -> None:
         line["dpi_text"] = "".join(o["text"] for o in reading_order(matched, vertical))
 
 
+def eye_truth(side: str) -> dict[tuple[str, int], str]:
+    """目で書き起こした正解（文字の層から決められない公開の OCR の行）。(ページの鍵, 行の番号) → 文字。"""
+    folder = CORPUS / "public" / "eyetruth" / side
+    path = folder / "truth.json"
+    if not path.exists():
+        return {}
+    index = {x["file"]: (x["key"], x["line_index"]) for x in
+             json.loads((folder / "index.json").read_bytes().decode("utf-8"))}
+    return {index[name]: text for name, text in json.loads(path.read_bytes().decode("utf-8")).items()}
+
+
+def apply_eye_truth(records: list[dict], key: str, truths: dict) -> None:
+    """書き起こした正解がある行は、その正解と比べて誤りを決める（1 対 1 と同じく "exact" にする）。"""
+    for r in records:
+        text = truths.get((key, r["line_index"]))
+        if text is not None and r["rule"] in ("pessimistic", "excluded"):
+            r.update(rule="exact", error=normalize(text) != r["line_text"], eye=True)
+
+
 def collect() -> dict:
     found = {"synthetic": {"lines": [], "missed": 0, "pages": []}, "public": {"lines": [], "missed": 0, "pages": []}}
+    truths = eye_truth("tuning")
     for truth in load_truths():
         if truth["side"] != "tuning":
             continue
@@ -80,6 +100,8 @@ def collect() -> dict:
                                           line["box"][1] + line["box"][3]]} for line in reads]
             attach_other_dpi(ocr_lines, f"{truth['name']}-p{page['page']:04d}")
             records, missed = page_records(page["lines"], ocr_lines, stratum)
+            if stratum == "public":
+                apply_eye_truth(records, f"{truth['name']}-p{page['page']:04d}", truths)
             for r in records:
                 r["line"] = ocr_lines[r["line_index"]]
             found[stratum]["lines"] += records
@@ -133,6 +155,12 @@ def main() -> None:
 # (a) 印の行のうち誤り、(b) 誤りの行のうち印（検出できなかった正解の行は入れない）、(c) 正しい行のうち印（誤報）。
 # 不利な側の行は、印があれば誤りでない（(a) を下げ、(c) の誤報に入る）、印がなければ誤り（(b) を下げる）。
 COMBOS = ["blur", "r100", "dpi", "blur+dpi", "any+dpi"]
+# 公開の正解を目で作ったあと、試す前に決めた中間の 4 つ（200 dpi の食い違いを、ほかの信号で裏付けたときだけ使う）
+SIGNALS["blur+dpi&c<0.9"] = lambda line: differs(line, "blur100") or (other_dpi(line) and (line["confidence"] or 0) < 0.9)
+SIGNALS["blur+dpi&c<0.95"] = lambda line: differs(line, "blur100") or (other_dpi(line) and (line["confidence"] or 0) < 0.95)
+SIGNALS["blur+dpi&r100"] = lambda line: differs(line, "blur100") or (other_dpi(line) and differs(line, "r100"))
+SIGNALS["blur+dpi&pad"] = lambda line: differs(line, "blur100") or (other_dpi(line) and differs(line, "pad100"))
+COMBOS += ["blur+dpi&c<0.9", "blur+dpi&c<0.95", "blur+dpi&r100", "blur+dpi&pad"]
 
 
 def line_unit(data: dict, signal, t: float) -> dict:
