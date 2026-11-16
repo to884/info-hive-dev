@@ -595,6 +595,31 @@ class ReviewRegressionTests(Base):
         self.assertEqual(jobs.status(str(self.wiki), job["id"])["status"], "queued")
         self.assertTrue(jobs.cancel(str(self.wiki), job["id"])["cancellation_accepted"])
 
+    def test_deferred_rebuild_does_not_keep_the_version(self):
+        """何もせずに終わった（deferred）作り直しは、受け持った版を手放す。あとで、その版を登録できる。"""
+        jobs = Jobs(self.config.data_dir)
+        self.engine()
+        self.ingest_job(self.engine())
+        first = jobs.register_rebuild(self.config, str(self.wiki), self.doc_id, 1)
+        job = jobs.claim("試験")
+        jobs.finish(job["id"], "試験", result={"status": "deferred"})
+        second = jobs.register_rebuild(self.config, str(self.wiki), self.doc_id, 1)
+        self.assertIsNotNone(second)
+        self.assertNotEqual(second["job_id"], first["job_id"])
+
+    def test_rebuild_runs_with_the_current_settings(self):
+        """作り直しのジョブは、登録したときの設定ではなく、今の設定で動く。"""
+        from rag_worker import engine_config
+        jobs, _ = self.ingest_job(self.engine())
+        old = Config({**self.values, "ocr_dpi": 200})
+        jobs.register_rebuild(old, str(self.wiki), self.doc_id, 1)
+        job = jobs.claim("試験")
+        (self.root / "config.json").write_text(json.dumps(self.values), encoding="utf-8")
+        with patch.dict(os.environ, {"INFO_HIVE_RAG_CONFIG": str(self.root / "config.json")}):
+            chosen = json.loads(engine_config(jobs, job))
+        self.assertEqual(chosen["ocr_dpi"], 150)
+        self.assertEqual(json.loads(job["config"])["ocr_dpi"], 200)
+
     def test_retry_does_not_make_a_second_rebuild_job(self):
         engine = self.engine()
         jobs, _ = self.ingest_job(engine)
