@@ -572,6 +572,29 @@ class ReviewRegressionTests(Base):
         self.run_queued(jobs, engine)
         self.assertEqual(seen, [given])
 
+    def test_late_registration_of_the_same_version_does_not_revive_a_cancelled_job(self):
+        """確認を台帳に書いたあと、ワーカーが先に登録したジョブを取り消し、受け付けた側があとから同じ版を登録しても、復活しない。"""
+        engine = self.engine()
+        jobs, _ = self.ingest_job(engine)
+        version = rag_review.decide(self.config, str(self.wiki), self.doc_id, 0, [self.item(self.wiki, 3, "accept")])
+        first = self.reconcile(jobs)[0]  # ワーカーが状態から先に登録した
+        jobs.cancel(str(self.wiki), first["job_id"])
+        self.assertIsNone(jobs.register_rebuild(self.config, str(self.wiki), self.doc_id, version))  # 受け付けた側が続きを動かした
+        self.assertEqual(jobs.rebuild_for(str(self.wiki), self.doc_id, version)["status"], "cancelled")
+        self.assertIsNone(jobs.claim("試験"))
+
+    def test_job_back_in_the_queue_by_rerun_can_be_cancelled(self):
+        """rerun で待ちに戻った作り直しは、前の試行の公開開始の印が残らず、取り消せる。"""
+        engine = self.engine()
+        jobs, _ = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "accept")])
+        job = jobs.claim("試験")
+        jobs.begin_publication(job["id"], "試験")
+        self.decide(self.wiki, 1, [self.item(self.wiki, 4, "accept")])  # 処理中に次の確認（rerun の印）
+        jobs.finish(job["id"], "試験", result={"status": "indexed"})
+        self.assertEqual(jobs.status(str(self.wiki), job["id"])["status"], "queued")
+        self.assertTrue(jobs.cancel(str(self.wiki), job["id"])["cancellation_accepted"])
+
     def test_retry_does_not_make_a_second_rebuild_job(self):
         engine = self.engine()
         jobs, _ = self.ingest_job(engine)
