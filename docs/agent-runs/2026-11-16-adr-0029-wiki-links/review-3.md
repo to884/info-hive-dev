@@ -1,0 +1,130 @@
+## 判定
+
+**却下。確信度：高。** 2 層への分離で検査の起点が変わり、キャッシュの根に必要な検査が抜ける。また、raw の根を渡した場合にも、過去の取り込み先を外部原本と取り違える反例が残る。
+
+## 致命的・重大な欠陥
+
+### 1. 重大：キャッシュを検査の根にすると、根そのものの mount を拒む条件が抜ける
+
+**主張：** `Writer` の検査を a、b、e と c、d に分けるだけでは、検索キャッシュにも同じ守りが及ぶとはいえない。
+
+ADR は下層の根を検索キャッシュでは `<wiki>/.wiki-cache` とする。一方、移設元の e は**根自身を mount の検査から除く**。元の設計では `.wiki-cache` は `W` の子なので検査され、さらに d にも `.wiki-cache` 自身を含めた mount の拒否が明記されている。この d は、キャッシュの書き手が使わない上層へ残される。
+
+**静的反例：**
+
+```text
+W = /data/wiki
+/data/wiki/.wiki-cache = /outside の bind mount
+/outside/search-index.json = 既存の保存対象ファイル
+```
+
+この状態で検索キャッシュを書く。
+
+- 下層に渡す根は `/data/wiki/.wiki-cache`。
+- 根は通常のディレクトリであり、シンボリックリンクでもリパースポイントでもないため、a は拒まない。
+- 根より下に輪はないため、b は拒まない。
+- e を移設元と同じ境界で当てると、根自身の mount は検査対象外になる。
+- 一時ファイルと `os.replace()` は `/outside` に作用し、既存ファイルを置き換える。
+
+「同じ a、b、e」だけでは、この反例を止める契約になっていない。POSIX の mount をリンク規則の対象外にする判断とは別に、ADR が約束する**書き込みの道の検査**が欠ける問題である。
+
+**根拠・結果：設計の検査範囲に食い違い。**
+
+- [ADR-0029:155](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:155)：下層の検査と、キャッシュに渡す根。
+- [書く段の設計:385](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-apply-2026-11-14.md:385)：a、b の境界。
+- [同:388](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-apply-2026-11-14.md:388)：d は `.wiki-cache` 自身にも mount の拒否を求める。
+- [同:389](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-apply-2026-11-14.md:389)：e は `W` 自身を除く。
+- [wiki_search.py:249](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:249)：キャッシュの配置先。
+
+下層は未実装であり、実装を動かした結果ではなく、記載された分担から成立する反例である。
+
+### 2. 重大：raw の根を渡しても、過去の取り込み先を外部原本として検査から外す
+
+**主張：** 「`/wiki:ingest` の手順 0 と同じ順で現在の根を決める」ことは、その wiki が過去に使った raw の根を特定することにはならない。
+
+**反例・手順：**
+
+1. wiki を `C:/data/wiki` とする。
+2. 取り込み時に raw の根を明示して、セッションを `D:/archive/raw/session.md` に保存する。
+3. source ページには、実際の `raw_ref_of()` が返す次の値を書く。
+
+   ```yaml
+   raw: "D:/archive/raw/session.md"
+   ```
+
+4. この raw に、同一ボリューム上の別名のハードリンクがある状態にする。
+5. 後日、raw の根を明示せず `/wiki:lint` を呼ぶ。その時点の指示または既定値から、`C:/data/raw` を選んで渡す。
+
+提案の絶対 `raw:` の規則では、`D:/archive/raw/session.md` は、渡された raw の木と wiki の木の両方の外にあるため、**外部原本として検査されない**。`raw_root` 自体は渡されているので、省略時の `summary` の警告条件にも該当しない。
+
+これは rag の外部 PDF ではなく、プラグインが保存したセッション raw である。前回の「根を省略すると判断できない」問題を、引数を常に渡すことで閉じたことにはならない。
+
+**根拠・結果：保存形式と根の選定手順を組み合わせると検査漏れ。**
+
+- [ADR-0029:49](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:49)：既知の 2 つの木の外を検査対象外にする。
+- [同:124](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:124)：現在の取り込み手順に従って根を選ぶ。警告は根を渡さない場合の規定。
+- [commands/ingest.md:13](C:/Works/info-hive-dev/info-hive-wiki/commands/ingest.md:13)：利用者が取り込みごとに根を明示できる。
+- [wiki_session.py:1250](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1250)：wiki の親の外なら絶対パスを返す。
+- [書く段の設計:669](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-apply-2026-11-14.md:669)：既存設計では、計画・記録・ページから複数の raw の根を集める。
+
+`raw_ref_of()` の関数だけを読み取りで実行し、この入力から `D:/archive/raw/session.md` が返ることを確認した。ハードリンクの作成実験は行っていない。
+
+## 崩れる前提
+
+- **検査の根を変えても、a、b、e は元と同じ範囲を守る。** `.wiki-cache` を `W` の子から検査の根へ変えると、根を除く条件の意味が変わる。
+- **現在の指示から選んだ raw の根が、既存ページの取り込み先も覆う。** 過去の明示指定や、根の変更で崩れる。
+- **既知の根の外にある絶対 `raw:` は、対象外の外部原本である。** 別ドライブに保存したセッション raw も同じ形式になる。
+- **コマンド名だけで、守る木への書き込みの有無を決められる。** MCP と CLI の経路、およびデータの保存先によって変わる。
+
+## 見落としと軽微な問題
+
+### 軽微：`stats` の「書かない」は、許可された配置で成立しない
+
+[ADR-0029:69](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:69) は `/wiki:stats` を「書かない」とする。一方、75 行では `INFO_HIVE_DATA_DIR` を wiki 内に置くことを許している。
+
+例えば `INFO_HIVE_DATA_DIR=C:/data/wiki/local-data` として、未読の wiki に MCP の `stats` を呼ぶと、`State.wiki()` が `WikiIndex` を作り、守る木の中の `local-data/index/<key>/wiki.json` を書く。`refresh()` も索引を更新する。
+
+**結果：コマンド表とコードが食い違う。**
+
+- [wiki_mcp_server.py:405](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_server.py:405)
+- [wiki_index.py:831](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:831)
+- [wiki_index.py:853](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:853)
+- [wiki_mcp_common.py:93](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_common.py:93)
+
+### 軽微：evolve の対象スキルが守る木の外にあることは、コードで保証されていない
+
+[ADR-0029:66](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:66) は「対象のスキルは守る木の外」と断定する。
+
+しかし、`wiki_evolve.py propose` が拒むのは実験記録 `.evolution` の中などであり、`<wiki>/skills/example` のような通常のディレクトリは、この配置検査を通る。評価ループも同様である。
+
+**結果：対象外とする前提は、現行コードからは確認できない。**
+
+- [wiki_evolve.py:204](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:204)
+- [wiki_evolve_loop.py:490](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_evolve_loop.py:490)
+
+## 検証した事実
+
+| 主張・確認項目 | 結果 |
+| --- | --- |
+| wiki の照合版 | 主チェックアウトの HEAD は `08d60aa…` に進んでいた。変更ファイルを確認し、該当箇所は `git show 2452f59:…` で指定版を照合した |
+| rag の照合版 | **一致。** `c59d05e…` |
+| `Writer` の 3 領域に raw と検索キャッシュが入らない | **一致。** 2 層化で、前回の「そのまま流用」の矛盾は除かれている |
+| ロックと `new` も一時ハードリンクを使う | **一致。** 書く段の設計 332、586 行 |
+| `publish_exclusive()` はリンク後に一時名を消す | **一致。** `wiki_session.py:1218–1229` |
+| ジャンクションに降り、ディレクトリのシンボリックリンクには降りない | **一致。** `wiki_pages.py:257–286` |
+| rag は解決済みパスを `result.raw` に返す | **一致。** `rag_config.py:199`、`rag_index.py:661` |
+| rag は UNC 入力とローカルからネットワークへのリンクを拒む | **一致。** `rag_config.py:188–209` |
+| `SERVER_FILES` に `wiki_decide.py` がない | **一致。** 構文木による依存探索を実行し、未掲載として検出した |
+| Windows のリンク・属性の実測結果 | **確かめられず。** 今回は作成・属性変更を行っていない |
+
+ファイルは変更していない。書き込みを伴う反例は静的に検証した。
+
+## 崩せなかった点
+
+- 例外を関数名から置き方へ変えたことで、ロックと `new` が例外から漏れる前回の矛盾は見つからなかった。
+- 新しく排他的に作った一時ファイルを公開して一時名を消す方式そのものから、正常終了後に永続ハードリンクが残る反例は見つからなかった。
+- raw の根を省略した lint が、途中のディレクトリと判別できない絶対パスを未検査として報告する規定は明記されている。
+- 外部 PDF のリンクを許し、`result.raw` を保存する方針と、現行 rag・ADR-0013 との矛盾は見つからなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

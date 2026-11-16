@@ -1,0 +1,107 @@
+[ask-codex 09:48:14] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-wiki-links-4ebc39）
+## 判定
+
+**却下。確信度：高。** 一時ファイルの修正対象に外部ファイルを書き換える経路が残り、提案された修正方法も親ディレクトリのリンクを防げない。セッション raw の移行手順も、読み取り専用属性を含めると記載どおりには完了しない。
+
+## 致命的・重大な欠陥
+
+### 1. 重大：`wiki_fetch.write_outputs()` が修正対象から漏れ、同じハードリンク破壊が残る
+
+**反例：** 同一ボリューム上で、次の一時ファイルを外部の通常ファイルへのハードリンクとして置き、対応する PID のプロセスで `write_outputs()` を呼ぶ。
+
+```text
+<RAW_ROOT>/.<slug>.md.<pid>.tmp ── 外部の保存対象ファイル
+```
+
+`write_outputs()` は、この名前を `"w"` で開いて書く。事前検査はシンボリックリンクとパスの包含だけを見るため、ハードリンクは通る。外部ファイルの内容は切り詰められ、取得本文に変わる。その後の `os.replace()` では元に戻らない。PID の再利用による残存ファイルでも成立する。
+
+**根拠・結果：食い違い。** ADR は一時ファイルを「既にない名前として作る」と定める一方、修正対象を wiki の 2 関数と rag の 1 関数に限定している。「すべてとは限らない」という列挙の留保では、この具体的な書き手の扱いが決まらない。
+
+- [ADR-0029:120](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:120)：一時ファイルの一般則と修正対象。
+- [wiki_fetch.py:1177](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:1177)：PID で決まる名前と事前検査。
+- [wiki_fetch.py:1196](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:1196)：既存ファイルを開く書き込み。
+- [wiki_fetch.py:1115](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_fetch.py:1115)：`inside()` はパスの包含だけを調べる。
+
+これはコードから成立する静的反例であり、実ファイルへの破壊実験は行っていない。
+
+### 2. 重大：`mkstemp()` と `os.replace()` でも、途中のディレクトリのリンクを通して外部を書き換える
+
+**反例：**
+
+```text
+<wiki>/.wiki-cache → /outside
+/outside/search-index.json    既存の利用者データ
+```
+
+提案どおり同じディレクトリで `mkstemp()` すると、一時ファイルは `/outside` に作られる。続く `os.replace()` は `/outside/search-index.json` を置き換える。一意の一時ファイル名でも、外部データの消失は防げない。
+
+**根拠・結果：保証範囲との食い違い。** ADR-0029:120 は、lint まで違反配置が残る間に「プラグインのスクリプトが別名を通して書かない」ことを、この変更の目的としている。しかし、`os.replace()` が追わないのは最後の名前のリンクであり、親ディレクトリのリンクは通常どおりたどる。
+
+これは禁止規則に違反する配置だが、同節が明示的に扱う「lint を流すまで残る」状態そのものである。
+
+- [ADR-0029:120](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:120)：提案された操作と目的。
+- [wiki_search.py:249](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:249)：親の作成からキャッシュ配置まで、親のリンクを拒む検査はない。
+- [ADR-0029:206](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:206)：残る外部書き込みとして挙げる SQLite と Edit 以外にも、この経路が残る。
+
+### 3. 重大：セッション raw の移行手順が読み取り専用属性と衝突する
+
+**反例：** `wiki_session.py write` が作った読み取り専用 raw に、別名のハードリンクがある状態を移行する。
+
+ADR の手順は「一時ファイルへコピー → `os.replace()` → `verify` → `write`」だが、次の問題がある。
+
+- Windows では、読み取り専用の既存 raw を置き換える段階で失敗する。ハードリンク側の読み取り専用属性を解除すると、共有するファイル自体の属性が変わり、もう一方の名前にも影響する。
+- 書き込み可能なコピーへ置き換えられた場合でも、`verify` はハッシュ一致だけでは成功しない。読み取り専用でなければ終了コード 1 を返すため、後から `write` で属性を戻すという順序と衝突する。
+
+**根拠・結果：コードと食い違い。**
+
+- [ADR-0029:147](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:147)：ハードリンクの置き換えとセッション raw の移行手順。
+- [wiki_session.py:1675](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1675)：`verify` の成功条件はハッシュ一致と読み取り専用の両方。
+- [wiki_session.py:1663](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1663)：読み取り専用へ戻すのは `write` 側。
+- Windows の読み取り専用ファイルの削除制約と、ハードリンク間の属性共有は [Microsoft の属性仕様](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-fscc/ca28ec38-f155-4768-81d6-4bfeb8586fc9)、[ハードリンクの説明](https://learn.microsoft.com/en-us/windows/win32/fileio/hard-links-and-junctions)による。Windows の置き換え失敗自体は今回実測していない。
+
+既存の書き込み可能ファイルに実際の `cmd_verify()` を読み取りだけで実行し、`sha256_matches: true`、`read_only: false`、戻り値 `1` を確認した。
+
+## 崩れる前提
+
+- **一時ファイルを一意にすれば、別名を通した書き込みを防げる。** 最後の名前より上にディレクトリのリンクがあれば崩れる。
+- **修正が必要な書き手は、列挙した 3 つで足りる。** `wiki_fetch.write_outputs()` が反例になる。
+- **移行直後の `verify` は、同じバイト列かだけを確認できる。** 読み取り専用属性が失われたコピーで崩れる。
+- **サーバーを読み込めば、依存モジュールが `sys.modules` に現れる。** ツールの関数内で遅延 import する構造で崩れる。
+
+## 見落としと軽微な問題
+
+1. **軽微：`SERVER_FILES` の試験案は、今回の追加漏れを検出できない。**  
+   ADR-0029:136 はサーバー import 後の `sys.modules` と照合するとしている。しかし `wiki_lint` は [wiki_mcp_server.py:383](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_server.py:383) で遅延 import される。新しいプロセスで実際にサーバーだけを import すると、同梱モジュールは `wiki_mcp_common` と `wiki_mcp_server` の 2 つだけだった。将来 `wiki_links` を `SERVER_FILES` から落としても、この試験では見逃す。
+
+2. **軽微・仕様不足：相対 `raw:` の途中のリンクが検査範囲から落ちる。**  
+   `raw: "../W1_Raw/books/a.pdf"`、`W1_Raw/books` が外部へのリンク、`a.pdf` は通常ファイルでリンク数 1、`--raw-root` は省略、という配置を考える。ADR-0029:45、106 の「指す項目そのもの」を `find_links()` に渡すだけでは、祖先の `books` は検査されない。これは raw の根を省略した場合の制限だが、[ADR-0029:208](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:208) が述べる「どの `raw:` からも指されていないファイル」に限った漏れではない。`wiki_links.py` は未実装のため、実装結果ではなく仕様上の不足としての指摘である。
+
+3. **軽微：過去レビューの原因を「どれもリンク」とする記述は事実と違う。**  
+   [ADR-0029:14](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/adr/0029-wiki-and-raw-hold-no-links.md:14) は 1〜4 回目の重大な反例をそう総括する。しかし [review-1.md:7](C:/Works/info-hive-dev/docs/agent-runs/2026-11-16-wiki-query-two-wikis/review-1.md:7) の問い合わせ中のグラフ書き込み、同:17 の通常の入れ子、同:29 の発見手順、同:41 の opt-in の問題は、リンクを必要としない。
+
+## 検証した事実
+
+| 主張 | 結果 |
+| --- | --- |
+| 照合対象のコミット | **一致。** wiki は `2452f59`、rag は `c59d05e` |
+| `walk_markdown()` はジャンクションに降り、通常ファイルを指すファイルリンクを読む | **一致。** `wiki_pages.py:229–298` |
+| `write_parse_cache()`、`write_atomic()`、`_mark_reviews()` は固定名へ書く | **一致。** ただし修正対象には漏れがある |
+| Windows の `DirEntry.stat()` からハードリンク数を得られない | **一致。** [Python 3.14 の文書](https://docs.python.org/3.14/library/os.html#os.DirEntry.stat)も該当属性を 0 とする |
+| 名前の代理ビットが別の名前の実体を表す | **一致。** [Microsoft の定義](https://learn.microsoft.com/en-us/windows/win32/fileio/reparse-point-tags)と合う |
+| rag は入力パスをジョブに残し、解決済みパスを `result.raw` に返す | **一致。** `rag_jobs.py:55–79`、`rag_index.py:481–487,660–664` |
+| 現行取り込み手順が `result.raw` を再登録する | **その手順はない。** `commands/ingest.md:48–51` と整合する |
+| マウントしたフォルダー、OneDrive、WSL リンクの実環境での判定 | **確かめられず。** 今回も作成実験は行っていない |
+
+書き込みを伴う反例の再現は行っていない。ファイルは変更していない。
+
+## 崩せなかった点
+
+- 外部 PDF のハードリンクを許す判断と、ADR-0013 の台帳・原本を複製しない方針との矛盾は見つからなかった。
+- `result.raw` をページへ保存する方針は、現行 rag と取り込み手順に一致している。
+- リンクを読む走査を維持する点は、ADR-0017 と矛盾しない。`SCHEMA.md` のリンクによる初期化判定を維持する点も ADR-0019 と整合する。
+- 同一ファイルシステム上の bind mount による共有を、双方の木の識別子比較で見つける論法は崩せなかった。
+- `fetch.json.tmp` は書く前に作業ディレクトリを削除・再作成するため、既存ハードリンクを事前配置する反例は成立しなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: research
+[ask-codex 09:58:54] 完了。session 01a1e1d3-7947-7810-9e4d-ebc094773a12  usage {"input_tokens": 2718533, "cached_input_tokens": 2557824, "cache_write_input_tokens": 0, "output_tokens": 14495, "reasoning_output_tokens": 5988}
