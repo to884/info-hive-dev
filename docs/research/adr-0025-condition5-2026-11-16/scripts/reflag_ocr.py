@@ -24,8 +24,9 @@ def main() -> None:
     changed = skipped = 0
     for path in sorted(folder.glob("*.json")):
         result = json.loads(path.read_bytes().decode("utf-8"))
-        lines = result.get("lines") or []
-        if not lines or any(k not in x for x in lines for k in ("blur_text", "alt_text", "rapid_text")):
+        lines = result.get("lines")
+        # 行の記録がない（None）結果だけを飛ばす。行が 0 件（[]）は正常な結果なので、版を上げる（9 回目のレビュー）
+        if lines is None or any(k not in x for x in lines for k in ("blur_text", "alt_text", "rapid_text")):
             skipped += 1
             continue
         if result.get("flag_revision") == OCR_FLAG_REVISION:
