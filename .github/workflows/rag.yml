@@ -92,3 +92,8 @@ jobs:
       - name: rag の契約の試験
         if: ${{ !cancelled() && steps.checkout-rag.outcome == 'success' && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/contract/test_rag_contract.py -v
+      # OCR の確信度と確認（ADR-0025 の試験 8）。本物の NDLOCR-Lite での確率の受け取りは、
+      # tests/rag/verify_ocr_confidence.py を手元の OCR の環境で動かして確かめる（CI では読み込めない）
+      - name: OCR の確信度と確認の契約の試験
+        if: ${{ !cancelled() && steps.checkout-rag.outcome == 'success' }}
+        run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/contract/test_rag_review.py -v
