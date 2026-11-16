@@ -194,6 +194,9 @@ class OcrStoreTests(Base):
         result = self.ingest(self.engine(ocr))
         self.assertEqual(ocr.calls, 0)  # 描画の識別が同じなので、続きを写した
         self.assertEqual([self.markdown_pages(result)[n] for n in (2, 3, 4)], ["移した 2", "移した 3", "移した 4"])
+        marker = json.loads((Config(self.values).extraction_root / self.doc_id / "ocr" / "adopted.json").read_text(encoding="utf-8"))
+        state = marker["sources"][f"auto-150-{OCR_REVISION[:12]}-extract-v1"]
+        self.assertEqual((state["state"], state["pages"]), ("done", ["2-4"]))  # 止まる前に写した 2 ページ目も記録する
 
     def test_interrupted_adoption_is_not_resumed_after_the_render_changed(self):
         self.one_source_interrupted()
