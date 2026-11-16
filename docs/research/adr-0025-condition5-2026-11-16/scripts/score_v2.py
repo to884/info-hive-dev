@@ -150,16 +150,21 @@ def show(stratum: str, row: dict, judged: dict) -> None:
 
 def main() -> None:
     mode = sys.argv[1]
-    if mode not in ("tuning", "evaluation"):
+    if mode not in ("tuning", "evaluation", "evaluation3"):
         raise SystemExit(f"不明なモード: {mode}")
-    target = RESULTS / f"v2-{mode}.json"
-    if mode == "evaluation" and target.exists():
+    # 3 回目（../../adr-0025-condition5-v3-2026-11-17.md）は、ocr3 の結果で数え、結果に v3 を付ける。
+    # 開発用の資料（tuning、evaluation）を ocr3 で数えるときも v3 を付ける（2 回目の結果を上書きしない）
+    tag = "v3" if OCR_DIR == "ocr3" else "v2"
+    target = RESULTS / f"{tag}-{mode}.json"
+    one_shot = mode == "evaluation3" or (mode == "evaluation" and tag == "v2")
+    if one_shot and target.exists():
         raise SystemExit("確かめる資料は、もう測った（1 回だけ）")
-    if mode == "evaluation":
-        check = RESULTS / "compare-flags.json"
+    if one_shot:
+        check = RESULTS / ("compare-flags-v3.json" if tag == "v3" else "compare-flags.json")
+        pages = 186 if tag == "v3" else TUNING_PAGES
         record = json.loads(check.read_bytes().decode("utf-8")) if check.exists() else {}
-        if not record.get("all_equal") or record.get("pages") != TUNING_PAGES:
-            raise SystemExit("製品の印と試した印の照合（compare_flags.py）が通っていない。確かめる資料は測らない")
+        if not record.get("all_equal") or record.get("pages") != pages:
+            raise SystemExit("製品の印と試した印の照合が通っていない。確かめる資料は測らない")
         import hashlib
         for key, sha in record["inputs"].items():  # 照らした OCR の結果が、今のファイルと同じか
             if hashlib.sha256((CORPUS / OCR_DIR / f"{key}.json").read_bytes()).hexdigest() != sha:
