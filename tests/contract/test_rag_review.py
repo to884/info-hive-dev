@@ -42,14 +42,18 @@ class FakeEmbedder:
         return np.tile(np.asarray([1.] + [0.] * (self.dimension - 1), dtype=np.float32), (len(texts), 1))
 
 
-def line(text: str, confidence: float, row: int = 0, blur: str | None = None, alt: str | None = None) -> dict:
-    """スタブの行。row は行の位置（箱を重ねない）。blur と alt は、ぼかした読みと別の解像度の読み（省くと同じ本文）。"""
+def line(text: str, confidence: float, row: int = 0, blur: str | None = None, alt: str | None = None,
+         rapid: str | None = None) -> dict:
+    """スタブの行。row は行の位置（箱を重ねない）。blur、alt、rapid は、ぼかした読み、別の解像度の読み、別の認識器の
+    読み（省くと同じ本文）。"""
     found = {"text": text, "box": [0, row * 20, 100, 10], "vertical": False, "detector_confidence": 0.9,
              "chars": [confidence] * len(text), "eos": [confidence], "confidence": 0.0 if not text else confidence}
     if blur is not None:
         found["stub_blur"] = blur
     if alt is not None:
         found["stub_alt"] = alt
+    if rapid is not None:
+        found["stub_rapid"] = rapid
     return found
 
 
@@ -79,8 +83,10 @@ class StubOcr:
                   "lines": [{k: v for k, v in x.items() if not k.startswith("stub_")} for x in lines]}
         if self.flags:
             answer["blur_revision"] = "blur-v1"
+            answer["rapid_revision"] = "rapidocr-3.10.0-ja-v1"
             for record, x in zip(answer["lines"], lines):
                 record["blur_text"] = x.get("stub_blur", x["text"])
+                record["rapid_text"] = x.get("stub_rapid", x["text"])
         return answer
 
 
@@ -227,6 +233,17 @@ class FlagTests(Base):
         self.assertEqual(lists["review:pending"]["ranges"], "3")  # 2 は確信度が高い、4 は読みが同じ
         detail = rag_review.page_detail(self.config, str(self.wiki), self.doc_id, 3)
         self.assertEqual([x["reasons"] for x in detail["flagged_lines"]], [["alt"]])
+
+    def test_rapid_flags_added_symbols_only(self):
+        """別の認識器の読みが英数字か記号を足すか置き換えた行に印を付ける。落としただけ、見た目の同じ文字、
+        取り違えやすい英数字どうしの入れ替えは印にしない。"""
+        answers = [("図表-2 二", [line("図表-2", 0.97, rapid="図表II-2")]),
+                   ("※注 三", [line("※注", 0.97, rapid="注"), line("ネット", 0.97, row=1, rapid="ネッ卜")]),
+                   ("Hello 四", [line("Hello", 0.97, rapid="He11o")])]
+        lists, _, _ = self.pending(answers)
+        self.assertEqual(lists["review:pending"]["ranges"], "2")
+        detail = rag_review.page_detail(self.config, str(self.wiki), self.doc_id, 2)
+        self.assertEqual([(x["reasons"], x["rapid_text"]) for x in detail["flagged_lines"]], [(["rapid"], "図表II-2")])
 
     def test_alt_line_without_a_match_is_compared_with_an_empty_text(self):
         """別の解像度で、つながる行がなければ、空の本文と比べる（確信度が 0.9 未満なら印）。"""

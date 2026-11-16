@@ -46,12 +46,26 @@ PLAN = [
     ("kanpo1827-p1", "kanpo-1827-p1.pdf", "evaluation", "all"),
     ("kanpo1827-p2", "kanpo-1827-p2.pdf", "evaluation", "all"),
     ("bert", "bert.pdf", "dev", [1]),
+    # 3 回目の確かめる資料（../../adr-0025-condition5-v3-2026-11-17.md）
+    ("disaster", "disaster-white-paper-2025.pdf", "evaluation3", ("seed", 20261117, 50)),
+    *[(f"kanpo1826-p{i}", f"kanpo-1826-p{i}.pdf", "evaluation3", "all") for i in range(1, 7)],
 ]
 CID = re.compile(r"\(cid:\d+\)")
 # 防衛白書から最初に選んだページの数（1 回目の測り方）
 FIRST_DRAW = 20
 # 目で確かめて行を除いたあと、決まり（数える正解の行が 10 行以上）から外れたページ。決めた順の続きで入れ替える
 DROPPED_AFTER_EYECHECK = {256}
+
+
+# 3 回目の確かめる資料で、目で確かめたあとに決まりから外れたページ（決めた順の続きで入れ替える）
+DROPPED_V3: set[int] = set()
+
+
+def seeded_pages_v3(eligible: list[int], seed: int, count: int) -> list[int]:
+    """random.Random(seed) で、並べた番号の順を sample(並べた番号, すべての数) で決め、外れたページを飛ばして先頭から count 個。"""
+    ordered = sorted(eligible)
+    order = random.Random(seed).sample(ordered, len(ordered))
+    return sorted([n for n in order if n not in DROPPED_V3][:count])
 
 
 def seeded_pages(eligible: list[int], count: int) -> list[int]:
@@ -147,7 +161,7 @@ def extract(tags: list[str]) -> None:
             elif isinstance(rule, list):
                 chosen = [n for n in rule if n in pages]
             else:
-                chosen = seeded_pages(eligible, rule)
+                chosen = seeded_pages_v3(eligible, rule[1], rule[2]) if isinstance(rule, tuple) else seeded_pages(eligible, rule)
             for number in chosen:
                 with closing(document[number - 1]) as page:
                     bitmap = page.render(scale=DPI / 72)
@@ -177,8 +191,10 @@ def apply(sides: list[str]) -> None:
             # 2 回目の測り方で、確かめる資料の目次のページで見つけた（選ぶ資料には該当がない）。
             # ページの選び方を変えないよう、選んだあとのここで除く
             for line in page["lines"]:
+                # 3 回目から、割り当てのない文字（Cn。2 回目の確かめる資料の防衛白書で、行頭の「●」が U+2FDF だった）も除く
                 if line["excluded"] is None and any(
-                        unicodedata.category(c) == "Cc" and c not in "\t\n" for c in line["text"]):
+                        (unicodedata.category(c) == "Cc" and c not in "\t\n") or unicodedata.category(c) == "Cn"
+                        for c in line["text"]):
                     line["excluded"] = "garbled"
             wrong = set(checked[key]["wrong"])
             for line in page["lines"]:
