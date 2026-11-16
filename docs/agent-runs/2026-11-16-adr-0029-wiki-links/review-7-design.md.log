@@ -1,0 +1,92 @@
+[ask-codex 13:48:34] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-wiki-links-4ebc39）
+## 判定
+
+**却下。確信度：高。** 依存の完全性判定が、プラグイン自身の残した一時ハードリンクの復旧を阻む。また、MCP の索引への書き込みを拒んだ場合に、読み取りを続けるための処理経路が設計されていない。
+
+以下は設計の静的な反例であり、新しい部品の実行結果ではない。
+
+## 致命的・重大な欠陥
+
+### 1. 重大：一時ハードリンクの後始末より先に、完全性判定で停止する
+
+**主張：** 「次にロックを取った書き手が一時ファイルを消す」という復旧手順に到達できない。
+
+**反例・手順：**
+
+1. POSIX で `new` により `W/concepts/a.md` を公開する。
+2. `os.link(tmp, target)` の直後、一時ファイルを消す前にプロセスが終了する。
+3. `a.md` と `.wa-*.tmp` が残り、両方のリンク数が2になる。
+4. 次の書く段の事前収集は、`a.md` を `Walk.links` に入れる。設計の完全性条件により `complete=False` となる。
+5. 書く段は終了コード1で停止する。一時ファイルの削除はロック取得後の復旧にあるため、そこへ進めない。
+
+これは利用者が違反配置を作った場合ではなく、設計が認めた公開方式の中断だけで発生する。
+
+**根拠・結果：食い違い。**
+
+- [対象設計149行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:149)と150行は、`links` があれば不完全として書く段を停止させる。
+- [対象設計227行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:227)は、残った一時ファイルを次の書き手が消すと説明する。
+- [書く段の設計559行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-apply-2026-11-14.md:559)では、ページからの raw 収集と `Writer` の構築がロック前にある。一時ファイルの削除は[同593行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-apply-2026-11-14.md:593)である。
+
+さらに、事前停止を通過させても、削除対象の一時ファイル自身がハードリンクである。[対象設計184行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:184)の拒否条件と、後始末としての削除との適用関係も決まっていない。
+
+### 2. 重大：MCP の索引を書けない場合、「書かずに続ける」先がない
+
+**主張：** 派生物への書き込み拒否を警告へ変える契約だけでは、現在の MCP の読み取り経路を継続できない。
+
+**反例となる配置：**
+
+```text
+INFO_HIVE_DATA_DIR = W/.mcp
+W/.mcp/index/<wiki_key> → 別ディレクトリへのジャンクション
+W の記事はすべて通常ファイル
+```
+
+MCP の新しいプロセスから `query`、`get_page`、`stats` を呼ぶ。
+
+これらは先に `State.wiki()` で `WikiIndex` を作る。コンストラクターは索引ディレクトリと `wiki.json` を書き、その後 `Collection` が SQLite と Tantivy を開く。書き込み部品が途中のジャンクションを拒めば、検索やページ取得に必要なオブジェクトが完成しない。
+
+拒否を送出すればコマンドが失敗する。個別のファイル書き込みだけを省略しても、後続処理は `collection` を必要とする。索引を使わずに記事を読む経路や、その場合の結果の契約は本文にない。
+
+**根拠・結果：継続経路の契約欠落。**
+
+- [対象設計192行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:192)は、MCP の索引を書けなくても、警告を付けて続けると定める。
+- 指定版 `2452f59` の [wiki_mcp_server.py:188](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_server.py:188)は、`WikiIndex` の生成を必須としている。
+- [wiki_index.py:831](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:831)は生成時に書き込み、`Collection` を構築する。同403行以降は SQLite を開いて更新する。
+- [wiki_mcp_server.py:255](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_server.py:255)の `query_wiki()`、同346行の `get_page`、同405行の `stats` は、この生成と更新の成功を前提にする。
+
+指定版から抽出した `query_wiki()` に、`State.wiki()` が `LinkRefused` を送出する入力をメモリ上で与えると、結果を返さず例外が伝播した。新実装でも必ず同じになるという主張ではなく、現行構造から新契約への接続が欠けているという指摘である。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| 残った一時ハードリンクは、次の書き手が片付けられる | 後始末より前の依存収集が、その公開済み記事をリンクとして拒む |
+| 派生物への書き込みを省略すれば、読み取りはそのまま続けられる | MCP の初回アクセスで、索引オブジェクトの構築自体が拒まれる |
+
+## 見落としと軽微な問題
+
+- **軽微：復旧と完全性判定を組み合わせた試験がない。** [153行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:153)はリンクによる停止を試すが、プラグイン自身が公開途中で残したリンクからの復旧を試さない。既存の書く段の中断試験と、新しい完全性判定の試験を別々に通しても、欠陥1は検出できない。
+- **軽微：派生物への書き込み拒否後に読み取りが成功する試験がない。** [275行以降](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:275)には警告の配送と部品の拒否試験があるが、索引を生成できない状態から `query`、`get_page`、`stats` が結果を返す試験はない。
+
+## 検証した事実
+
+| 確認対象 | 結果 |
+| --- | --- |
+| 指定コミット | **一致。** wiki `2452f59475f0c5b04e7c7aeef075c47b315cf813`、rag `c59d05e26add60a9b706141f83f662b81c265533` |
+| `_stat_entry()`、`list_index()`、`missing_raw()`、`raw_ref_of()` の引用箇所 | **一致。** 確認した行番号と振る舞いは説明どおり |
+| rag の `pdf_path()` | **一致。** 指定版は入力を検査した後、`resolve(strict=True)` の結果を返す |
+| 指定 wiki 版からローカル `origin/main` までのスクリプト差分 | **一致。** `wiki_pdf.py` と `wiki_pdf_layer.py` の追加だけ |
+| 新しい部品の実行結果 | **確かめられず。** 指定版に `wiki_links.py`、`wiki_fsguard.py`、`wiki_apply.py` は存在しない |
+
+ファイル変更、リンク作成、属性変更は行っていない。実行確認は、指定版から抽出した関数へのメモリ上の代替入力に限る。
+
+## 崩せなかった点
+
+- 本文の読み取り失敗、文字コードの誤り、frontmatter の解釈失敗を `complete=False` にする条件は、前回の本文読み取り失敗の反例を閉じている。
+- 登録後に木の中の PDF がリンクへ変わった場合、記録されたパスの文字で所属を判断する契約から、前回と同じ検査除外は導けなかった。
+- raw ディレクトリの検査を `articles_only=True` に絞る契約では、前回の隠し項目による誤検出は再現しなかった。
+- 既存ハードリンクを通常の書き込みで置き換えず拒む点は、本文と試験一覧で一致している。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 13:58:40] 完了。session 01a1e2af-80fe-7c32-92cb-ffd53e645b8b  usage {"input_tokens": 2093605, "cached_input_tokens": 1936640, "cache_write_input_tokens": 0, "output_tokens": 13784, "reasoning_output_tokens": 6027}
