@@ -1,6 +1,6 @@
 ---
 type: "source"
-title: "/wiki:query の確からしさの規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース"
+title: "/wiki:query の確信度の規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース"
 tags: ["リリース", "query", "測定", "レビュー"]
 authors: ["to884"]
 raw: "docs/research/wiki-query-confidence-0-21-3-2026-11-16.md"
@@ -9,9 +9,9 @@ created: 2026-11-16
 updated: 2026-11-16
 ---
 
-# /wiki:query の確からしさの規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース
+# /wiki:query の確信度の規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース
 
-[[queryの確からしさの未測定の規則の測定-2026-11-16]] で作者が決めた直しの向き（案 1-A、2-B、3、4）を `/wiki:query` の確からしさの規則に入れ、Claude Sonnet 5.5 で測り直して、wiki 0.23.1 として出した記録である。測定の原本は `docs/research/wiki-query-confidence-0-21-3-2026-11-16.md`、決定は ADR-0028 の「0.23.1 の追記」、レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-confidence-0-21-2/` にある。
+[[queryの確からしさの未測定の規則の測定-2026-11-16]] で作者が決めた直しの向き（案 1-A、2-B、3、4）を `/wiki:query` の確信度の規則に入れ、Claude Sonnet 5.5 で測り直して、wiki 0.23.1 として出した記録である。測定の原本は `docs/research/wiki-query-confidence-0-21-3-2026-11-16.md`、決定は ADR-0028 の「0.23.1 の追記」、レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-confidence-0-21-2/` にある。
 
 ## 直したこと
 
@@ -72,6 +72,7 @@ updated: 2026-11-16
 - [[queryの確からしさの未測定の規則の測定-2026-11-16]]（前回の測定と、直しの案）
 - [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]
 - [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]
+- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（このあと、名前を「確信度」に変えた）
 - [[エージェントに守らせる決まりの書き方]]
 - [[リリースの確かめ方]]
 - [[敵対的レビューで設計を直す進め方]]

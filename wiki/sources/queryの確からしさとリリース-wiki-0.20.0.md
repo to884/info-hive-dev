@@ -1,6 +1,6 @@
 ---
 type: "source"
-title: "/wiki:query の回答の確からしさと wiki 0.20.0 のリリース"
+title: "/wiki:query の回答の確信度と wiki 0.20.0 のリリース"
 tags: ["リリース", "query", "confidence", "プロンプト"]
 authors: ["to884"]
 raw: "docs/agent-runs/2026-11-16-wiki-query-confidence"
@@ -9,9 +9,9 @@ created: 2026-11-16
 updated: 2026-11-16
 ---
 
-# /wiki:query の回答の確からしさと wiki 0.20.0 のリリース
+# /wiki:query の回答の確信度と wiki 0.20.0 のリリース
 
-`/wiki:query` の回答に確からしさ（confidence）を付け、低いときは上げる方法を提案するようにして、wiki 0.20.0 として出した記録である。原本（Sol の 6 回のレビュー）は `docs/agent-runs/2026-11-16-wiki-query-confidence/` にあり、決定は ADR-0028（2026年11月16日に承認）にある。決め方の正本は、プラグインの `skills/info-hive/references/query-workflow.md` の手順 5b である。
+`/wiki:query` の回答に確信度（confidence）を付け、低いときは上げる方法を提案するようにして、wiki 0.20.0 として出した記録である。原本（Sol の 6 回のレビュー）は `docs/agent-runs/2026-11-16-wiki-query-confidence/` にあり、決定は ADR-0028（2026年11月16日に承認）にある。決め方の正本は、プラグインの `skills/info-hive/references/query-workflow.md` の手順 5b である。
 
 ## 付ける場所を回答にした理由
 
@@ -58,7 +58,7 @@ worktree のプラグインを `claude --plugin-dir` で読み込み、この wi
 
 - 仮説のページ（[[officeのcomでの書き出し]]）に頼る質問は「中」だった。上げる方法として、仮説を確かめて `/wiki:learn` で記録することが出た。
 - コンセプトのページにある質問では、ソースの要約ページで確かめきれず「中」になった。上げる方法として raw を読むことが出た。
-- wiki が扱っていない質問には、確からしさを付けなかった。ただし、外の知識を添えていた。これが作者の「添えない」の決定のきっかけになった。
+- wiki が扱っていない質問には、確信度を付けなかった。ただし、外の知識を添えていた。これが作者の「添えない」の決定のきっかけになった。
 
 リリースのあとで、Sonnet 5.5 で 11 問を 3 回ずつ流して測った（[[queryの確からしさのsonnetでの測定-2026-11-16]]）。こちらでは、33 回のどれも手順 5b を開かず、`commands/query.md` の手順 6b の要約だけで判定した。判定の一致は 24/33 で、外れた 9 回はすべて期待より低く、規則にない上限（観測が 1 回だけ、raw 未確認）によるものだった。
 
