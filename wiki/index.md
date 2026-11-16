@@ -36,6 +36,7 @@
 - [[browseを5つのブラウザで確かめた記録とリリース-wiki-0.19.3]]: browse を Firefox、WebKit、Edge、Chrome で確かめた結果、製品の Chrome と Edge の favicon.ico の 404 の直し（wiki 0.19.3）、競合で始まらなかった親の CI
 - [[古いuvのUV_SYSTEM_CERTSの直しとリリース-wiki-0.19.4]]: 古い uv が読まない UV_SYSTEM_CERTS を利用者の決定とみなしてやり直さなかった不具合と、uv の版の判定を 3 つの状態にした直し（wiki 0.19.4）
 - [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]: Python のない PC で uv が 3.15 を取り MCP サーバーが起動しなかった不具合、宣言を CI の範囲にそろえた直し、uv の版による誤りの書き方の違い（wiki 0.19.5）
+- [[pdfの文字の層とリリース-wiki-0.21.0]]: ADR-0025 の段階 1（`wiki_pdf.py` と wiki と rag で同じ中身の取り出し、契約の試験）を出した wiki 0.21.0、レビューで直したページの対応の検査、Windows の改行と入口の分類で落ちた CI、版の振り直し
 - [[queryの確からしさとリリース-wiki-0.20.0]]: `/wiki:query` の回答に規則で決める確からしさと上げる方法を足した wiki 0.20.0、6 回のレビューで崩れた前提、Sonnet 5.5 向けの監査、リリースの確かめ、動画の字幕の上限を ADR-0027 の実装に回した分担
 - [[wikiの書く段の設計-2026-11-15]]: wiki の書き込みを `wiki_apply.py` に移す設計、15 回の敵対的レビュー、作者の判断（wiki ごとの残るロック）、ADR-0023
 - [[抽出の方式の比較-markitdown-2026-11-15]]: 今の抽出（pdftotext、pdfminer、PDFium、wiki_fetch）と MarkItDown 0.1.9 を、Office で作った 15 の試料で、速度、指標、Sol の判定で比べた調査
