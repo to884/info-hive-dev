@@ -1,0 +1,1712 @@
+diff --git a/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5-rag.diff b/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5-rag.diff
+new file mode 100644
+index 0000000..6d8d6a2
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5-rag.diff
+@@ -0,0 +1,602 @@
++diff --git a/CHANGELOG.md b/CHANGELOG.md
++index c597abf..0a8fe1f 100644
++--- a/CHANGELOG.md
+++++ b/CHANGELOG.md
++@@ -23,10 +23,11 @@
++ - `job_status` の `result` に、抽出の識別（`extraction`）を足しました。
++ - `status` に、今の OCR の設定（`settings` の `ocr_mode` と `ocr_dpi`）を足しました。
++ 
++-- OCR の確信度を数えるようにしました（ADR-0025）。NDLOCR-Lite の認識器（PARSeq）の出力に softmax をかけ、文字ごとと行の読み終わりの記号の確率を受け取り、行の確信度をその最小値にします。認識した本文が空の行は「読めなかった行」として 0 にします。NDLOCR-Lite のファイルは変えていません。確率は OCR の結果と一緒に保存し、0.5 以前の OCR の結果（移した結果）は「確信度が不明」になります。行の確信度が閾値（設定の `ocr_confidence_threshold`。既定は 0.8 で、校正していない仮の値です）より低い行があるページを、確信度の低いページとします。閾値は索引の方針の指紋に入れないので、変えても取り込み直しは要りません。
++-- 確信度の低いページを、wiki ごとに確かめられるようにしました。MCP のツール `ocr_page_detail` は、OCR の本文、確信度の低い行、今の確認の結果と台帳の版を返します。`decide_ocr_pages` は、「そのまま使う」「直す」「却下する」を受け付け、その wiki の本文と索引を作り直すジョブを登録します。確認の結果は wiki の作業領域の `reviews.sqlite` に置き、同じ PDF を使うほかの wiki と、共有の抽出の結果は変えません。直したページは直した本文で、却下したページは索引から外して作り直します。もとにした台帳の版か、確かめた OCR の本文が今と違えば受け付けません。
+++- OCR の確信度を数えるようにしました（ADR-0025）。NDLOCR-Lite の認識器（PARSeq）の出力に softmax をかけ、文字ごとと行の読み終わりの記号の確率を受け取り、行の確信度をその最小値にします。認識した本文が空の行は「読めなかった行」として 0 にします。NDLOCR-Lite のファイルは変えていません。確率は OCR の結果と一緒に保存し、0.5 以前の OCR の結果（移した結果）は「確信度が不明」になります。行の確信度は、行の印の材料の 1 つです（次の項）。
+++- OCR の行に、誤っている見込みの高い行の印を付けるようにしました（ADR-0025 の「行の印」）。行の確信度が閾値（設定の `ocr_confidence_threshold`。既定は 0.3）より低い行、行の画像を少しぼかして読み直すと本文が変わる行、ページを別の解像度（`ocr_dpi` の 4/3 倍）で読み直した本文と違い確信度が 0.9 未満の行に、印が付きます。OCR は 1 ページあたり、描画と検出と読みをもう 1 回行うので、およそ 2 倍の時間がかかります。印の付いた行があるページが、確認の要るページです。閾値は索引の方針の指紋に入れないので、変えても取り込み直しは要りません。
+++- 確認の要るページを、wiki ごとに確かめられるようにしました。MCP のツール `ocr_page_detail` は、OCR の本文、印の付いた行（印の理由と 2 つ目の読み）、今の確認の結果と台帳の版を返します。`decide_ocr_pages` は、「そのまま使う」「直す」「却下する」を受け付け、その wiki の本文と索引を作り直すジョブを登録します。確認の結果は wiki の作業領域の `reviews.sqlite` に置き、同じ PDF を使うほかの wiki と、共有の抽出の結果は変えません。直したページは直した本文で、却下したページは索引から外して作り直します。もとにした台帳の版か、確かめた OCR の本文が今と違えば受け付けません。
++ - 確認の結果を当てた索引は、新しい版の行をすべて書いてから公開を切りかえます。作り直しが途中で止まっても、検索は前の版を返します。作り直しの処理中に受け付けた確認も、続けて反映します。確認の結果は、抽出の版や設定を変えて取り込み直しても残り、OCR をやり直して本文が変わったページは確認待ちに戻ります。
++-- `page_report` に、確信度の低いページ、確信度が不明のページ、確認の状態ごとのページ（確認待ち、そのまま使う、直した、却下した、古くなった、反映待ち）と、台帳の確認の版、公開した確認の版を足しました。`status` は確認待ちのページの数を、検索の結果は確認待ちと反映待ちの印を返します。
+++- `page_report` に、印の付いた行があるページ（`ocr_flagged`）、印が不明のページ（`ocr_unknown_flags`）、確認の状態ごとのページ（確認待ち、そのまま使う、直した、却下した、古くなった、反映待ち）と、台帳の確認の版、公開した確認の版を足しました。`status` は確認待ちのページの数を、検索の結果は確認待ちと反映待ちの印を返します。
++ 
++ ### 内部
++ 
++diff --git a/README.md b/README.md
++index 1e18b40..2bb550b 100644
++--- a/README.md
+++++ b/README.md
++@@ -52,8 +52,8 @@ Claude Code の終了時は、ワーカーと OCR の子プロセスを停止し
++ | `register_pdf` | PDF を絶対パスで登録し、ジョブ ID を返す。受付時に PDF の中身は読まない |
++ | `ingest_pdf` | 同じ引数を受け付ける `register_pdf` の別名。同期的な完了待ちではない |
++ | `job_status` | 指定した wiki とジョブの進捗・結果を返す。`wait_seconds=1〜30` で短時間待機できる。結果の `page_report` は、判定ごとのページ、確かめるべきページ、OCR したページ、OCR の結果が空のページを返す（失敗したジョブでも、それまでのページの分）。範囲の数が 200 を超える一覧は、`page_report_from` に `next` を渡して続きを取る |
++-| `ocr_page_detail` | 完了した取り込みのジョブの、OCR したページの本文、確信度の低い行、今の確認の結果、台帳の確認の版と公開した確認の版を返す |
++-| `decide_ocr_pages` | OCR の確信度の低いページの確認（そのまま使う、直す、却下する）を受け付け、その wiki の本文と索引を作り直すジョブを返す。もとにした台帳の版か、確かめた OCR の本文の SHA-256 が今と違えば受け付けない |
+++| `ocr_page_detail` | 完了した取り込みのジョブの、OCR したページの本文、印の付いた行（印の理由と 2 つ目の読み）、今の確認の結果、台帳の確認の版と公開した確認の版を返す |
+++| `decide_ocr_pages` | OCR の印の付いた行があるページの確認（そのまま使う、直す、却下する）を受け付け、その wiki の本文と索引を作り直すジョブを返す。もとにした台帳の版か、確かめた OCR の本文の SHA-256 が今と違えば受け付けない |
++ | `cancel_job` | キャンセルする。索引の公開開始後は受理しないため、`cancellation_accepted` を確認する |
++ | `retry_job` | 失敗またはキャンセルしたジョブを明示的に再試行する |
++ | `status` | 対象 wiki の索引件数とジョブ一覧と、今の OCR の設定（`settings`）を返す。設定が変わって取り込み直す PDF があれば `reingest` で、0.3.0 のデータが残っていれば `legacy_data` で伝える |
++diff --git a/scripts/rag_config.py b/scripts/rag_config.py
++index d8df02f..76a9f6b 100644
++--- a/scripts/rag_config.py
+++++ b/scripts/rag_config.py
++@@ -32,13 +32,15 @@ EXTRACT_REVISION = rag_pdf_layer.EXTRACT_REVISION
++ # 0.4.0 の抽出は extract-v1 にあたる。0.4.0 が wiki ごとに置いた結果を移すのは、この版のときだけ。
++ LEGACY_EXTRACT_REVISION = "extract-v1"
++ # OCR の結果を別に保存する形の版（ADR-0025）。保存の形を変えたら上げる。
++-OCR_STORE_REVISION = "ocr-store-v1"
+++# v2 から、別の解像度の読みと、行の印（rag_ocr_flags）を一緒に保存する。
+++OCR_STORE_REVISION = "ocr-store-v2"
++ # OCR の確信度の数え方の版（ADR-0025）。rag_ocr.py の数え方を変えたら上げる。版が違う結果は「確信度が不明」になる。
++ # OCR の鍵には入れない（数え方を変えても OCR はやり直さない）。
++ OCR_CONFIDENCE_REVISION = "confidence-v1"
++-# 行の確信度の閾値の既定値。ADR-0025 の承認の条件 5 で校正するまでの仮の値で、page_report に「未校正」と出す。
+++# 行の印の 1（確信度が低い）の閾値の既定値（ADR-0025 の「行の印」）。承認の条件 5 の選ぶ資料で選んだ値で、
+++# 確かめる資料で確かめるまでは、page_report に「未校正」と出す。
++ # 索引の方針の指紋には入れない（閾値を変えても、取り込み直しは要らない）。
++-DEFAULT_OCR_CONFIDENCE_THRESHOLD = 0.8
+++DEFAULT_OCR_CONFIDENCE_THRESHOLD = 0.3
++ OCR_CONFIDENCE_THRESHOLD_CALIBRATED = False
++ 
++ 
++@@ -208,8 +210,13 @@ class Config:
++ 
++     @property
++     def ocr_key(self) -> str:
++-        """OCR の結果の鍵。描画の識別（pypdfium2 の版と dpi）と OCR の版で決まる。ocr_mode と文字の層は入れない。"""
++-        return f"{OCR_STORE_REVISION}-{OCR_REVISION[:12]}-{short_hash(render_identity(self.ocr_dpi), 12)}"
+++        """OCR の結果の鍵。描画の識別（pypdfium2 の版と dpi、読み直しの dpi）と OCR の版と印の版で決まる。
+++        ocr_mode と文字の層は入れない。"""
+++        from rag_ocr_flags import OCR_FLAG_REVISION, alt_dpi
+++
+++        render = {"render": render_identity(self.ocr_dpi), "alt_render": render_identity(alt_dpi(self.ocr_dpi)),
+++                  "flags": OCR_FLAG_REVISION}
+++        return f"{OCR_STORE_REVISION}-{OCR_REVISION[:12]}-{short_hash(render, 12)}"
++ 
++     def ocr_dir(self, doc_id: str) -> Path:
++         """OCR の結果の置き場所。抽出の結果と同じく文書ごとに置き、同じロックと後始末に乗せる。"""
++diff --git a/scripts/rag_jobs.py b/scripts/rag_jobs.py
++index c0a0282..c901bb1 100644
++--- a/scripts/rag_jobs.py
+++++ b/scripts/rag_jobs.py
++@@ -135,7 +135,7 @@ class Jobs:
++     def status(self, wiki_root: str, job_id: str, page_report_from: int = 0, threshold: float | None = None) -> dict:
++         """ジョブの状態を返す。結果の page_report の一覧は、page_report_from の位置から 200 個の範囲を返す。
++ 
++-        page_report の確認の状態（確信度の低いページ、確認待ち、反映待ちなど）は、返すときに、その wiki の台帳と
+++        page_report の確認の状態（印の付いた行があるページ、確認待ち、反映待ちなど）は、返すときに、その wiki の台帳と
++         公開した版から作る。threshold を省くと、ジョブを登録したときの設定の閾値を使う。
++         """
++         wiki = str(Path(wiki_root).expanduser().resolve())
++@@ -173,8 +173,9 @@ class Jobs:
++ 
++     @staticmethod
++     def _with_review(report: dict, job_config: dict, wiki: str, doc_id: str | None, threshold: float) -> dict:
++-        """page_report に、確信度の低いページと確認の状態を足す（ADR-0025 の「状態の表示」）。"""
+++        """page_report に、印の付いた行があるページと確認の状態を足す（ADR-0025 の「状態の表示」）。"""
++         from rag_config import OCR_CONFIDENCE_THRESHOLD_CALIBRATED
+++        from rag_ocr_flags import OCR_FLAG_REVISION
++         from rag_pdf_layer import page_ranges
++         from rag_review import Ledger, load_summary, published_documents, published_folder, review_lists
++         confidence = report.get("confidence") or {}
++@@ -215,7 +216,9 @@ class Jobs:
++                            # 確認を当てた本文（公開している版）。確認の結果がなければ None（ジョブの extracted_markdown を読む）
++                            "extracted_markdown": markdown},
++                 "confidence": {"revision": confidence.get("revision"), "threshold": threshold,
++-                               "threshold_calibrated": OCR_CONFIDENCE_THRESHOLD_CALIBRATED}}
+++                               "threshold_calibrated": OCR_CONFIDENCE_THRESHOLD_CALIBRATED,
+++                               # 行の印の決め方の版（ADR-0025 の「行の印」）。確認が要るページは、印の付いた行で決まる
+++                               "flag_revision": OCR_FLAG_REVISION}}
++ 
++     def completed_document(self, wiki_root: str, job_id: str) -> str:
++         """完了した取り込みのジョブの PDF の SHA-256 を返す。失敗したジョブと作り直しのジョブは受け付けない。"""
++diff --git a/scripts/rag_ocr.py b/scripts/rag_ocr.py
++index bfde4e0..54e102d 100644
++--- a/scripts/rag_ocr.py
+++++ b/scripts/rag_ocr.py
++@@ -41,6 +41,8 @@ def serve(threads: int,device: str='cpu'):
++         rec_classes=str(package/'config/NDLmoji.yaml'),enable_tcy=False)
++     models=None
++     evidence=None
+++    blurred={}
+++    blur_wanted=[False]
++     class BoundedRecognizer:
++         def __init__(self,model,gate): self.model,self.gate=model,gate
++         def read(self,image):
++@@ -80,17 +82,35 @@ def serve(threads: int,device: str='cpu'):
++                             evidence[name]={'cuda_node_events':cuda_events,'profile':str(path),'providers':model.session.get_providers()}
++                     gate=threading.BoundedSemaphore(threads)
++                     # 文字ごとの確率も受け取る（ADR-0025）。セッションを作り直したあとで包む
++-                    from rag_ocr_confidence import ConfidentRecognizer
+++                    from rag_ocr_confidence import ConfidentRecognizer, blur_text
++                     models=(detector,*[BoundedRecognizer(ConfidentRecognizer(model),gate) for model in recognizers])
+++                    # 行の印の「ぼかした読み」（ADR-0025）。process_cascade のあとに、行の画像ごとに読む。
+++                    # NDLOCR-Lite のファイルは変えず、モジュールの関数を包む
+++                    original_cascade=ocr.process_cascade
+++                    def cascade(alllineobj,recognizer30,recognizer50,recognizer100,is_cascade=True):
+++                        results=original_cascade(alllineobj,recognizer30,recognizer50,recognizer100,is_cascade=is_cascade)
+++                        blurred.clear()
+++                        if blur_wanted[0]:
+++                            for lineobj in alllineobj:
+++                                blurred[lineobj.idx]=blur_text(recognizer100,lineobj.npimg)
+++                        return results
+++                    ocr.process_cascade=cascade
++                 image=Path(request['image'])
+++                blur_wanted[0]=bool(request.get('blur'))
++                 with Image.open(image) as original:
++                     pixels=np.array(original.convert('RGB'))
++                 result=ocr._run_ocr_on_image_array(*models,image.name,pixels,str(image.parent),save_viz=False)
++-            from rag_ocr_confidence import CONFIDENCE_REVISION, line_records
+++            from rag_ocr_confidence import BLUR_REVISION, CONFIDENCE_REVISION, line_records
+++            records=line_records(result['json_lines'])
+++            if blur_wanted[0]:
+++                for index,record in enumerate(records):
+++                    record['blur_text']=blurred.get(index)
++             answer={'ok':True,'text':result['text'].strip(),'line_count':result['line_count'],
++                     'vertical_line_count':result['vertical_line_count'],'pid':os.getpid(),'device':device,
++                     # 行ごとの本文、文字と終わりの記号の確率、行の確信度、検出器の confidence（ADR-0025）
++-                    'lines':line_records(result['json_lines']),'confidence_revision':CONFIDENCE_REVISION}
+++                    'lines':records,'confidence_revision':CONFIDENCE_REVISION}
+++            if blur_wanted[0]:
+++                answer['blur_revision']=BLUR_REVISION
++             if evidence:
++                 answer['gpu_execution']=evidence
++                 evidence=None
++diff --git a/scripts/rag_ocr_client.py b/scripts/rag_ocr_client.py
++index 9404243..d0750e0 100644
++--- a/scripts/rag_ocr_client.py
+++++ b/scripts/rag_ocr_client.py
++@@ -43,11 +43,12 @@ class OcrClient:
++                                 ctypes.c_void_p,ctypes.POINTER(wintypes.DWORD),ctypes.c_void_p]
++             self._peek.restype=wintypes.BOOL
++ 
++-    def recognize(self,image: Path,timeout: float=1800)->dict:
+++    def recognize(self,image: Path,timeout: float=1800,blur: bool=False)->dict:
+++        # blur を真にすると、行ごとに、ぼかした画像を読んだ本文（blur_text）も返す（ADR-0025 の「行の印」）
++         if self.process is None: self._start()
++         if self.process.poll() is not None:
++             raise RuntimeError('OCR ワーカーが終了しました。保存済みのページから再開してください。')
++-        self.process.stdin.write(json.dumps({'image':str(image.resolve())},ensure_ascii=False)+'\n')
+++        self.process.stdin.write(json.dumps({'image':str(image.resolve()),'blur':bool(blur)},ensure_ascii=False)+'\n')
++         self.process.stdin.flush()
++         deadline=time.monotonic()+timeout
++         while time.monotonic()<deadline:
++diff --git a/scripts/rag_ocr_confidence.py b/scripts/rag_ocr_confidence.py
++index 89b38e9..c091b91 100644
++--- a/scripts/rag_ocr_confidence.py
+++++ b/scripts/rag_ocr_confidence.py
++@@ -64,6 +64,28 @@ class ConfidentRecognizer:
++         return ProbStr(text, chars, eos, 1)
++ 
++ 
+++# 行の印の「ぼかした読み」（ADR-0025 の「行の印」）。ぼかしの強さと読み方を変えたら上げる
+++BLUR_REVISION = "blur-v1"
+++BLUR_SIGMA = 0.7
+++
+++
+++def blur_text(recognizer100, image) -> str:
+++    """行の画像に、標準偏差 BLUR_SIGMA ピクセルのガウスぼかしをかけ、100 文字用の認識器で読んだ本文を返す。
+++
+++    NDLOCR-Lite の process_cascade と同じく、98 文字以上に読めた横書きの行は、左右に分けて読み、つなぐ。
+++    """
+++    import cv2
+++
+++    if image is None or image.size == 0:
+++        return ""
+++    blurred = cv2.GaussianBlur(image, (0, 0), BLUR_SIGMA)
+++    text = str(recognizer100.read(blurred))
+++    if len(text) >= 98 and blurred.shape[0] < blurred.shape[1]:
+++        half = blurred.shape[1] // 2
+++        text = str(recognizer100.read(blurred[:, :half, :])) + str(recognizer100.read(blurred[:, half:, :]))
+++    return text
+++
+++
++ def line_records(json_lines: list[dict]) -> list[dict]:
++     """NDLOCR-Lite の json_lines から、保存する行の記録を作る。
++ 
++diff --git a/scripts/rag_ocr_flags.py b/scripts/rag_ocr_flags.py
++new file mode 100644
++index 0000000..5fd582d
++--- /dev/null
+++++ b/scripts/rag_ocr_flags.py
++@@ -0,0 +1,124 @@
+++"""OCR の行の印（ADR-0025 の「行の印」）。2 つ目の読みと比べて、誤っている見込みの高い行に印を付ける。
+++
+++印の理由は 3 つある。
+++- "low": 行の確信度が閾値（ocr_confidence_threshold）より低い。閾値は設定で変わるので、保存せず、数えるときに決める。
+++- "blur": 行の画像を少しぼかして読み直した本文（OCR の環境の rag_ocr が返す blur_text）が、採った本文と違う。
+++- "alt": ページを別の解像度で描き直し、検出から読み直した本文が、採った本文と違い、かつ行の確信度が 0.9 未満。
+++
+++"blur" と "alt" は、OCR したときに決まるので、OCR の結果と一緒に保存する（static_flags）。
+++本文の比べ方と、行の対応と、読む順は、承認の条件 5 の測定（docs/research/adr-0025-condition5-2026-11-16/scripts/score.py）と
+++同じにする。依存は標準ライブラリだけにする。
+++"""
+++
+++from __future__ import annotations
+++
+++import unicodedata
+++
+++# 印の決め方を変えたら上げる（保存した印は、版が違えば「不明」として扱う）
+++OCR_FLAG_REVISION = "flags-v1"
+++# 別の解像度の食い違いを印にするのは、行の確信度がこの値より低いときだけ
+++ALT_CONFIDENCE_LIMIT = 0.9
+++# 見た目の同じ記号をそろえる表（測定と同じ）
+++SAME = {**{c: "-" for c in "\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uff0d"}, "\u301c": "~", "\uff5e": "~",
+++        **{c: "'" for c in "\u2018\u2019\u201a\u201b"}, **{c: '"' for c in "\u201c\u201d\u201e\u201f"},
+++        "\uff65": "\u30fb", "\u00b7": "\u30fb", "\u25cb": "\u3007"}
+++
+++
+++def alt_dpi(ocr_dpi: int) -> int:
+++    """読み直しに使う解像度（ocr_dpi の 4/3 倍。既定の 150 なら 200）。"""
+++    return round(ocr_dpi * 4 / 3)
+++
+++
+++def normalize(text: str) -> str:
+++    """比べるための形にする。NFKC、空白を除く、見た目の同じ記号をそろえる。"""
+++    text = unicodedata.normalize("NFKC", text)
+++    return "".join(SAME.get(c, c) for c in text if not c.isspace())
+++
+++
+++def corners(box) -> list[float]:
+++    """行の記録の箱 [x, y, 幅, 高さ] を [x0, y0, x1, y1] にする。"""
+++    x, y, w, h = box
+++    return [x, y, x + w, y + h]
+++
+++
+++def area(box) -> float:
+++    return max(0.0, box[2] - box[0]) * max(0.0, box[3] - box[1])
+++
+++
+++def joined(a, b) -> bool:
+++    """2 つの箱（[x0, y0, x1, y1]）の重なりの面積が、小さい方の箱の面積の半分以上なら、つながる。"""
+++    inter = [max(a[0], b[0]), max(a[1], b[1]), min(a[2], b[2]), min(a[3], b[3])]
+++    smaller = min(area(a), area(b))
+++    return smaller > 0 and area(inter) >= 0.5 * smaller
+++
+++
+++def reading_order(lines: list[dict], vertical: bool) -> list[dict]:
+++    """読む順に並べる（lines の各要素は "box" に [x0, y0, x1, y1] を持つ）。
+++
+++    横書きは上から下、同じ高さは左から右。縦書きは右から左、同じ列は上から下。入力の順によらない全順序にするため、
+++    先に行を帯（横書きは高さの帯、縦書きは列）にまとめる。行の中心の順に見ていき、今の帯の範囲と、行の高さ
+++    （縦書きは幅）の半分以上が重なれば同じ帯に入れ、帯の範囲を広げる。同じ値は、箱と本文で決める。
+++    """
+++    if vertical:
+++        def across(b):
+++            return (-b[2], -b[0])
+++
+++        def along(b):
+++            return b[1]
+++    else:
+++        def across(b):
+++            return (b[1], b[3])
+++
+++        def along(b):
+++            return b[0]
+++
+++    def tie(line):
+++        return (tuple(line["box"]), str(line.get("text", "")))
+++
+++    ordered = sorted(lines, key=lambda x: ((across(x["box"])[0] + across(x["box"])[1]) / 2, along(x["box"]), tie(x)))
+++    bands: list[list] = []
+++    for line in ordered:
+++        lo, hi = across(line["box"])
+++        if bands:
+++            band_lo, band_hi, members = bands[-1]
+++            inter = min(hi, band_hi) - max(lo, band_lo)
+++            if inter >= 0.5 * max(1e-9, min(hi - lo, band_hi - band_lo)):
+++                bands[-1] = [min(lo, band_lo), max(hi, band_hi), members + [line]]
+++                continue
+++        bands.append([lo, hi, [line]])
+++    return [line for _, _, members in bands for line in sorted(members, key=lambda x: (along(x["box"]), tie(x)))]
+++
+++
+++def alt_texts(lines: list[dict], alt_lines: list[dict], scale: float) -> list[str]:
+++    """採った行ごとに、別の解像度で読んだ行のうちつながる行を、読む順につないだ本文を返す。
+++
+++    alt_lines の箱は scale 倍して、採った行の座標にそろえる。つながる行がなければ空の本文にする。
+++    """
+++    others = [{"text": x.get("text", ""), "box": [v * scale for v in corners(x["box"])]} for x in alt_lines]
+++    result = []
+++    for line in lines:
+++        box = corners(line["box"])
+++        matched = [o for o in others if joined(o["box"], box)]
+++        result.append("".join(o["text"] for o in reading_order(matched, bool(line.get("vertical")))))
+++    return result
+++
+++
+++def static_flags(line: dict) -> list[str]:
+++    """OCR したときに決まる印の理由（"blur"、"alt"）。line は blur_text と alt_text を持つ。"""
+++    reasons = []
+++    text = normalize(line.get("text", ""))
+++    if line.get("blur_text") is not None and normalize(line["blur_text"]) != text:
+++        reasons.append("blur")
+++    confidence = line.get("confidence")
+++    if (line.get("alt_text") is not None and normalize(line["alt_text"]) != text
+++            and confidence is not None and confidence < ALT_CONFIDENCE_LIMIT):
+++        reasons.append("alt")
+++    return reasons
+++
+++
+++def reasons_for(line: dict, threshold: float) -> list[str]:
+++    """印の理由をすべて返す（"low" は、そのときの閾値で決める）。空なら印はない。"""
+++    reasons = []
+++    if line.get("confidence") is not None and line["confidence"] < threshold:
+++        reasons.append("low")
+++    return reasons + list(line.get("flags") or [])
++diff --git a/scripts/rag_pdf.py b/scripts/rag_pdf.py
++index 1f6fa26..2c83ef3 100644
++--- a/scripts/rag_pdf.py
+++++ b/scripts/rag_pdf.py
++@@ -20,6 +20,7 @@ from pathlib import Path
++ import rag_pdf_layer
++ from rag_config import (EXTRACT_REVISION, LEGACY_EXTRACT_REVISION, OCR_CONFIDENCE_REVISION, OCR_REVISION,
++                         OCR_STORE_REVISION, Config, render_identity, text_layer_identity, write_json)
+++from rag_ocr_flags import OCR_FLAG_REVISION, alt_dpi, alt_texts, static_flags
++ from rag_review import text_sha256
++ # ページの判定は、wiki と同じ中身の rag_pdf_layer に置く（ADR-0025）。rag_pdf.inspect_page の名前も残す
++ from rag_pdf_layer import inspect_page  # noqa: F401
++@@ -32,21 +33,47 @@ UNKNOWN_RENDER = "unknown-rag-0.5"
++ LEGACY_CACHE = re.compile(r"^(auto|always)-(\d+)-([0-9a-f]{12})-" + re.escape(LEGACY_EXTRACT_REVISION) + "$")
++ 
++ 
+++def _render(page, dpi: int, path: Path) -> None:
+++    bitmap = page.render(scale=dpi / 72)
+++    try:
+++        bitmap.to_pil().save(path)
+++    finally:
+++        bitmap.close()
+++
+++
++ def ocr_page(page, config: Config, work: Path, client=None) -> dict:
++-    """ページを描画して OCR し、NDLOCR-Lite の応答（text、line_count）を返す。"""
+++    """ページを描画して OCR し、NDLOCR-Lite の応答（text、line_count、lines）を返す。
+++
+++    client（OCR のワーカー）で OCR するときは、行の印（ADR-0025 の「行の印」）の材料も集める。ページを
+++    ocr_dpi で描いて読み、行ごとに、ぼかした画像の読み（blur_text）も受け取る。ページを別の解像度
+++    （alt_dpi）で描き直して検出から読み直し、行ごとにつながる行の本文（alt_text）を求め、印の理由（flags）を決める。
+++    """
++     # 原本ではなく、メモリ上の PDF から描画した一時画像を渡す。
++     with tempfile.TemporaryDirectory(prefix="ocr-", dir=work, ignore_cleanup_errors=True) as directory:
++         folder = Path(directory)
++         image = folder / "page.png"
++-        bitmap = page.render(scale=config.ocr_dpi / 72)
++-        try:
++-            bitmap.to_pil().save(image)
++-        finally:
++-            bitmap.close()
+++        _render(page, config.ocr_dpi, image)
++         if client is not None:
++-            response = client.recognize(image)
++-            return {"text": response["text"], "line_count": response.get("line_count"),
++-                    "lines": response.get("lines"), "confidence_revision": response.get("confidence_revision")}
+++            response = client.recognize(image, blur=True)
+++            result = {"text": response["text"], "line_count": response.get("line_count"),
+++                      "lines": response.get("lines"), "confidence_revision": response.get("confidence_revision")}
+++            lines = response.get("lines")
+++            if lines is None or response.get("blur_revision") is None:
+++                return result  # 行の記録かぼかした読みがない（印は不明になる）
+++            dpi = alt_dpi(config.ocr_dpi)
+++            second = folder / "page-alt.png"
+++            _render(page, dpi, second)
+++            alt = client.recognize(second, blur=False)
+++            if alt.get("lines") is None:
+++                return result
+++            marked = []
+++            for line, text in zip(lines, alt_texts(lines, alt["lines"], config.ocr_dpi / dpi)):
+++                line = {**line, "alt_text": text}
+++                line["flags"] = static_flags(line)
+++                marked.append(line)
+++            result.update(lines=marked, flag_revision=OCR_FLAG_REVISION, blur_revision=response["blur_revision"],
+++                          alt_render=render_identity(dpi))
+++            return result
++         env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8",
++                "UV_CACHE_DIR": str(config.uv_cache_dir)}
++         runner = Path(__file__).with_name("rag_ocr.py")
++@@ -168,7 +195,11 @@ def confidence_record(response: dict) -> dict | None:
++         return None
++     if any(line.get("confidence") is None for line in lines):
++         return None  # 不変条件を満たさない行があった（rag_ocr が確信度を付けなかった）
++-    return {"revision": OCR_CONFIDENCE_REVISION, "lines": lines}
+++    record = {"revision": OCR_CONFIDENCE_REVISION, "lines": lines}
+++    if response.get("flag_revision") == OCR_FLAG_REVISION:
+++        record.update(flag_revision=OCR_FLAG_REVISION, blur_revision=response.get("blur_revision"),
+++                      alt_render=response.get("alt_render"))
+++    return record
++ 
++ 
++ def confidence_min(entry: dict | None) -> float | None:
++@@ -180,6 +211,14 @@ def confidence_min(entry: dict | None) -> float | None:
++     return min(values) if values else 1.0
++ 
++ 
+++def page_flagged(entry: dict | None) -> bool | None:
+++    """OCR したときに決まる印（"blur"、"alt"）の付いた行があるか。印の版が今と違えば None（印が不明）。"""
+++    record = (entry or {}).get("confidence")
+++    if not record or record.get("revision") != OCR_CONFIDENCE_REVISION or record.get("flag_revision") != OCR_FLAG_REVISION:
+++        return None
+++    return any(line.get("flags") for line in record["lines"])
+++
+++
++ def _judgement_path(cache: Path, number: int) -> Path:
++     return cache / f"judge-{number:06d}.json"
++ 
++@@ -246,6 +285,8 @@ def extract_pages(data: bytes, config: Config, cache: Path, progress=None, ocr_c
++                           "ocr_sha256": text_sha256(text) if needs_ocr else None,
++                           "confidence_min": confidence_min(found) if needs_ocr else None,
++                           "confidence_revision": ((found or {}).get("confidence") or {}).get("revision") if needs_ocr else None,
+++                          "flagged": page_flagged(found) if needs_ocr else None,
+++                          "flag_revision": ((found or {}).get("confidence") or {}).get("flag_revision") if needs_ocr else None,
++                           "garble": entry["garble"], "needs_check": entry["needs_check"],
++                           "text_sha256": entry["text_sha256"]}
++             write_json(cache / f"page-{number:06d}.json", page_entry)
++@@ -288,11 +329,13 @@ def page_report(data: bytes, config: Config, cache: Path) -> dict:
++             "lists": lists, "extraction": text_layer_identity(), "extract_revision": EXTRACT_REVISION,
++             "ocr": {"mode": config.ocr_mode, "dpi": config.ocr_dpi, "revision": OCR_REVISION,
++                     "render": render_identity(config.ocr_dpi), "store": config.ocr_key},
++-            # 確信度の低いページは、返すときに、そのときの閾値で数える（Jobs.status）。ここには最小値だけを持つ
+++            # 印の付いた行があるページは、返すときに、そのときの閾値で数える（Jobs.status）。ここには、確信度の最小値と、
+++            # OCR したときに決まった印（blur、alt）の付いた行があるかだけを持つ
++             "confidence": {"revision": OCR_CONFIDENCE_REVISION,
++                            "pages": {str(n): {"ocr": True, "ocr_sha256": e.get("ocr_sha256"),
++                                               "confidence_min": e.get("confidence_min"),
++-                                              "confidence_revision": e.get("confidence_revision")}
+++                                              "confidence_revision": e.get("confidence_revision"),
+++                                              "flagged": e.get("flagged"), "flag_revision": e.get("flag_revision")}
++                                      for n, e in sorted(done.items()) if e.get("ocr")}}}
++ 
++ 
++diff --git a/scripts/rag_review.py b/scripts/rag_review.py
++index ba71195..e1789d1 100644
++--- a/scripts/rag_review.py
+++++ b/scripts/rag_review.py
++@@ -1,4 +1,4 @@
++-"""OCR の確信度の低いページの確認（ADR-0025 の「OCR の確信度とページの確認」）。
+++"""OCR の印の付いた行があるページの確認（ADR-0025 の「OCR の行の印とページの確認」）。
++ 
++ 確認の結果は wiki ごとに持つ。置き場所は 3 つに分ける。
++ 
++@@ -172,29 +172,33 @@ class Ledger:
++         return version
++ 
++ 
++-def is_low(entry: dict, threshold: float) -> bool | None:
++-    """OCR したページの確信度が低いか。確信度が不明なら None を返す（低いとも高いとも扱わない）。
+++def is_flagged(entry: dict, threshold: float) -> bool | None:
+++    """OCR したページに、印の付いた行があるか（ADR-0025 の「行の印」）。印が不明なら None を返す。
++ 
++-    数え方の版（confidence_revision）が今と違う記録も、確信度が不明として扱う。
+++    印は、行の確信度が閾値より低い（"low"）か、OCR したときに決まった印（"blur"、"alt"）があること。
+++    確信度の数え方の版（confidence_revision）か印の決め方の版（flag_revision）が今と違う記録は、印が不明として
+++    扱う（確認が要るとも要らないとも扱わない）。
++     """
++     from rag_config import OCR_CONFIDENCE_REVISION
++-    if entry.get("confidence_revision") != OCR_CONFIDENCE_REVISION:
+++    from rag_ocr_flags import OCR_FLAG_REVISION
+++    if entry.get("confidence_revision") != OCR_CONFIDENCE_REVISION or entry.get("flag_revision") != OCR_FLAG_REVISION:
++         return None
++     minimum = entry.get("confidence_min")
++-    if minimum is None:
+++    flagged = entry.get("flagged")
+++    if minimum is None or flagged is None:
++         return None
++-    return minimum < threshold
+++    return bool(flagged) or minimum < threshold
++ 
++ 
++ def page_state(entry: dict, decision: dict | None, threshold: float) -> str | None:
++-    """OCR したページの確認の状態。OCR していないページと、確信度が高いか不明で決めていないページは None。"""
+++    """OCR したページの確認の状態。OCR していないページと、印がないか不明で決めていないページは None。"""
++     if not entry.get("ocr"):
++         return None
++     if decision is not None:
++         if decision["ocr_sha256"] != entry.get("ocr_sha256"):
++             return "stale"  # OCR をやり直して本文が変わった。決めた結果は当てず、確認待ちに戻す
++         return {"accept": "accepted", "fix": "fixed", "reject": "rejected"}[decision["action"]]
++-    return "pending" if is_low(entry, threshold) else None
+++    return "pending" if is_flagged(entry, threshold) else None
++ 
++ 
++ def apply_decisions(pages: list[dict], decisions: dict[int, dict]) -> list[dict]:
++@@ -221,7 +225,8 @@ def confidence_summary(pages: list[dict]) -> dict:
++     """wiki の作業領域に置く、公開する版のページの確信度の要約（検索の印、status、page_report の確認の状態で使う）。"""
++     return {"pages": {str(page["page"]): {"ocr": bool(page.get("ocr")), "ocr_sha256": page.get("ocr_sha256"),
++                                           "confidence_min": page.get("confidence_min"),
++-                                          "confidence_revision": page.get("confidence_revision")}
+++                                          "confidence_revision": page.get("confidence_revision"),
+++                                          "flagged": page.get("flagged"), "flag_revision": page.get("flag_revision")}
++                       for page in pages if page.get("ocr")}}
++ 
++ 
++@@ -245,14 +250,14 @@ def review_lists(summary: dict[int, dict], ledger_decisions: dict[int, dict], pu
++     """確認の状態ごとのページ。公開した版の状態から作り、台帳の版が新しいページは awaiting_publish にも入れる。"""
++     lists: dict[str, list[int]] = {f"review:{state}": [] for state in STATES}
++     lists["review:awaiting_publish"] = []
++-    lists["ocr_low_confidence"] = []
++-    lists["ocr_unknown_confidence"] = []
+++    lists["ocr_flagged"] = []
+++    lists["ocr_unknown_flags"] = []
++     for page, entry in sorted(summary.items()):
++-        low = is_low(entry, threshold)
++-        if low:
++-            lists["ocr_low_confidence"].append(page)
++-        elif low is None:
++-            lists["ocr_unknown_confidence"].append(page)
+++        flagged = is_flagged(entry, threshold)
+++        if flagged:
+++            lists["ocr_flagged"].append(page)
+++        elif flagged is None:
+++            lists["ocr_unknown_flags"].append(page)
++         state = page_state(entry, published_decisions.get(page), threshold)
++         if state:
++             lists[f"review:{state}"].append(page)
++@@ -298,18 +303,23 @@ def page_detail(config, wiki: str, doc_id: str, page: int) -> dict:
++     entry = ocr_pages(config, doc_id).get(int(page))
++     if entry is None:
++         raise ValueError(f"{page} ページ目は、この PDF の OCR したページではありません。")
+++    from rag_ocr_flags import OCR_FLAG_REVISION, reasons_for
++     stored = OcrStore(config, doc_id).load(int(page))
++     record = (stored or {}).get("confidence")
++     threshold = config.ocr_confidence_threshold
++     lines = None
++-    if record:
++-        lines = [{"line": number, "text": line["text"], "confidence": line["confidence"], "box": line.get("box"),
++-                  "vertical": line.get("vertical")}
++-                 for number, line in enumerate(record["lines"], start=1) if line["confidence"] < threshold]
+++    if record and record.get("flag_revision") == OCR_FLAG_REVISION:
+++        lines = []
+++        for number, line in enumerate(record["lines"], start=1):
+++            reasons = reasons_for(line, threshold)
+++            if reasons:
+++                lines.append({"line": number, "text": line["text"], "reasons": reasons,
+++                              "blur_text": line.get("blur_text"), "alt_text": line.get("alt_text"),
+++                              "confidence": line["confidence"], "box": line.get("box"), "vertical": line.get("vertical")})
++     snapshot = Ledger(folder).snapshot(doc_id, int(page), published)
++     return {"page": int(page), "ocr_text": entry["text"], "ocr_sha256": entry["ocr_sha256"],
++-            "confidence_min": entry.get("confidence_min"), "confidence_known": is_low(entry, threshold) is not None,
++-            "threshold": threshold, "low_lines": lines,
+++            "confidence_min": entry.get("confidence_min"), "flags_known": is_flagged(entry, threshold) is not None,
+++            "threshold": threshold, "flagged_lines": lines,
++             "state": page_state(entry, snapshot["published"], threshold),
++             "decision": snapshot["latest"], "history": snapshot["history"],
++             "ledger_version": snapshot["version"], "published_version": published}
++diff --git a/scripts/rag_server.py b/scripts/rag_server.py
++index a878e91..1e75bbe 100644
++--- a/scripts/rag_server.py
+++++ b/scripts/rag_server.py
++@@ -155,7 +155,9 @@ async def job_status(wiki_root: str, job_id: str, wait_seconds: int = 0, page_re
++ @server.tool()
++ def ocr_page_detail(wiki_root: str, job_id: str, page: int) -> dict:
++     """完了した取り込みのジョブの、OCR したページの詳しいことを返す（ADR-0025）。OCR の本文、その SHA-256、
++-    確信度の低い行（行の番号、本文、確信度、ページの中の位置）、今の確認の結果と履歴、台帳の確認の版、公開した確認の版。
+++    印の付いた行（flagged_lines。行の番号、本文、印の理由 reasons（low: 確信度が閾値より低い、blur: ぼかした読みと違う、
+++    alt: 別の解像度の読みと違い確信度が 0.9 未満）、ぼかした読み blur_text、別の解像度の読み alt_text、確信度、ページの中の位置）、
+++    今の確認の結果と履歴、台帳の確認の版、公開した確認の版。
++     OCR の本文は共有の抽出の結果から返すので、直したり却下したりしたあとでも、元の OCR の本文が分かる。"""
++     from rag_review import page_detail
++     doc_id = jobs().completed_document(wiki_root, job_id)
++@@ -164,7 +166,7 @@ def ocr_page_detail(wiki_root: str, job_id: str, page: int) -> dict:
++ 
++ @server.tool()
++ def decide_ocr_pages(wiki_root: str, job_id: str, base_version: int, decisions: list[dict]) -> dict:
++-    """OCR の確信度の低いページの確認の結果を受け付ける（ADR-0025）。decisions はページごとに
+++    """OCR の印の付いた行があるページの確認の結果を受け付ける（ADR-0025）。decisions はページごとに
++     {"page", "action": accept / fix / reject, "text"（fix のとき、直した本文）, "decided_by": user / agent_draft_approved,
++     "ocr_sha256"（ocr_page_detail で確かめた OCR の本文の SHA-256）}。base_version は、もとにした台帳の確認の版
++     （ocr_page_detail の ledger_version）。台帳の版か SHA-256 が今と違えば受け付けない。受け付けたら台帳の版を上げ、
+diff --git a/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5.md b/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5.md
+new file mode 100644
+index 0000000..8e6590e
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5.md
+@@ -0,0 +1,108 @@
++## 判定
++
++**却下。確信度：高。** 正解を作れなかった行の扱いが測定規約と食い違い、合否を甘くする反例が再現しました。また、「情報のある単位が 10 以上」でも、偶然の合格を除くという信頼限界の保証は成立しません。
++
++## 致命的・重大な欠陥
++
++### 1. 重大：正解未確定の行の一部を、不利な側に数えず除外する
++
++**確認結果：文書と実装が食い違う。保存済みの選ぶ資料にも該当あり。**
++
++v2 文書は、目で読めなかった行を「不利な側」に数えると定めています。しかし、除外した正解の行と直接つながる OCR 行は `rule="excluded"` になり、目視正解がなければそのまま残ります。`measure()` は、その行を集計から完全に外します。
++
++再現入力として、10 単位それぞれに以下を置きました。
++
++- 印付きの誤り 2 行
++- 印なしの正しい行 20 行
++- 目視正解のない `excluded` の行 20 行、すべて印なし
++
++現実装は **(b)=1.0、全条件合格**。規約どおり最後の行を不利な側に数えると、**(b)=20/220≒0.091、不合格**になります。
++
++選ぶ資料でも、`kanpo1828-p3-p0001` の行番号 208、210、211 は、目視正解の項目がなく、`excluded` のまま落ちています。いずれも印付きなので、規約どおりなら誤報です。これを数えると、公開資料の (a) は **0.8191 → 0.8108**、(c) は **0.0817 → 0.0859** に変わります。
++
++根拠：
++
++- `docs/research/adr-0025-condition5-v2-2026-11-16.md`「公開の正解」手順 4、「数え方」
++- `scripts/score.py:155–158`：直接つながる行を `excluded` にする
++- `scripts/probe_analyze.py:89–94`：正解がなければ状態を変えない
++- `scripts/score_v2.py:65–67`：`excluded` を集計から外す
++
++以下の `scripts/` は、`docs/research/adr-0025-condition5-2026-11-16/scripts/` を指します。
++
++### 2. 重大：情報のある単位が十分でも、信頼限界が点の値に潰れ、偶然合格を許す
++
++**確認結果：再現。単位数の追加では、残差がすべて 0 になる欠陥は解消していない。**
++
++50 ページそれぞれに「印で捕えた誤り 2 行、正しい行 20 行」を置くと、現実装は次を返しました。
++
++| 指標 | 点の値 | 判定に使う限界 |
++|---|---:|---:|
++| (a) | 1.0 | 下限 1.0 |
++| (b) | 1.0 | 下限 1.0 |
++| (c) | 0.0 | 上限 0.0 |
++
++情報のある単位は各 50、件数も十分なので、すべて合格します。
++
++これが偶然合格になる具体的な母集団を構成できます。546 ページのうち、541 ページは上記の容易なページ、残り 5 ページは「検出済みの誤り 100 行をすべて印なしで見逃すページ」とします。母集団の (b) は、
++
++`1082 / (1082 + 500) ≒ 0.684`
++
++で基準未達です。しかし、無作為に選んだ 50 ページに難しい 5 ページが一つも入らない確率は、
++
++`C(541, 50) / C(546, 50) ≒ 61.75%`
++
++です。その場合、上記の「下限 1.0」で合格します。これは実際の PDF にそうしたページがあるという主張ではなく、**測定規約が排除できない反例**です。
++
++根拠：
++
++- `scripts/score.py:208–223`：残差 `y − R*x` がすべて 0 なら分散も 0
++- `scripts/score_v2.py:86–103`：その限界を採用し、分母が非ゼロの単位数だけを追加確認する
++- v2 文書「合否」2、3：「偶然の合格を除く」という保証と食い違う
++
++### 3. 重大：目視正解を作る OCR と、採点する OCR が別で、行の対応を照合しない
++
++**確認結果：参照先の食い違いを確認。現資料での誤対応発生は未確認。**
++
++`eye_truth_packets.py` は `corpus/ocr/` から箱と行番号を取り、目視正解用の画像を作ります。一方、v2 の採点は `corpus/ocr2/` を使います。目視正解を当てる鍵は、ページ名と配列上の行番号だけです。
++
++反例の前提は、再 OCR で検出順や分割が変わることです。旧 OCR の行 0 が上段の「甲」、新 OCR の行 0 が下段の「乙」を誤って「甲」と読んだ行なら、旧行 0 の正解「甲」が新行 0 に当たり、誤読を正解にします。`apply_eye_truth()` が、この入力を `error=False` にすることを確認しました。
++
++PDF の SHA-256 は同じなので既存の照合を通ります。選ぶ資料の一致検査も、確かめる資料の旧 OCR と新 OCR の対応は検証しません。
++
++根拠：
++
++- `scripts/eye_truth_packets.py:35–41, 55–57`：`ocr/` の箱と行番号で作成
++- `scripts/score_v2.py:43–53`：`ocr2/` を採点
++- `scripts/probe_analyze.py:78–94`：ページ名と行番号だけで正解を適用
++
++## 崩れる前提
++
++- **目視正解がない行も、規約どおり不利に数えられる。** `excluded` から正解未確定のまま残ると、集計から消えます。
++- **分母が非ゼロの単位が 10 以上あれば、信頼限界が機能する。** 観測した単位の比がそろうと残差分散は 0 のままです。
++- **旧 OCR と再 OCR の行番号が同じ物理的な行を指す。** 検出順・行の分割が変わると崩れます。箱や OCR 結果のハッシュによる照合はありません。
++
++## 見落としと軽微な問題
++
++- **軽微：一致検査が失敗を終了コードで伝えない。** `compare_flags.py:50–56` は、不一致や行数の差を表示しても正常終了します。`score_v2.py` にも、この検査の合格を確認する処理はありません。
++- **軽微：検出できなかった行の割合が出力されない。** v2 文書は数と割合の報告を求めますが、`score_v2.py` の出力には `missed` の件数だけがあります。
++
++## 検証した事実
++
++- `compare_flags.py` を再実行し、**75 ページ・3,211 行すべて**で本文・箱・確信度、ぼかした読み、別解像度の読み、印が一致しました。
++- 公開の選ぶ資料は、`exact` 927 行、`pessimistic` 1 行、`excluded` 3 行でした。
++- 行の印とページの印の一致を、メモリ上の入力で **3,200 条件**確認しました。
++- 印の版がないページは不明に分類され、確認待ちには入りませんでした。
++- 閾値だけを変えても、索引の指紋、抽出の鍵、OCR の鍵は変わりませんでした。
++- ゼロ分散の反例では t 分位点だけを有限値のスタブにしました。結果は分位点の値に依存しません。120 件の契約試験全体は再実行していません。
++- 確かめる資料の成績は計算していません。漏洩があったことを裏付ける根拠は見つかりませんでしたが、過去に開いていないことまでは確認できません。
++
++## 崩せなかった点
++
++- 選ぶ資料における、製品と probe の印の一致。
++- 閾値変更時の再判定と、不明な版を不明として扱う基本処理。
++- `○` と `〇` の正規化、対応する別解像度の行がない場合の空文字列との比較。
++- 読む順の既存の反例に対する入力順への非依存。
++- 今回の印の追加によって、段階 3 の確認・再構築・公開の仕組みが必ず崩れる反例。
++
++使用した MCP サーバー: なし  
++使用した Agent Skills: なし
+diff --git a/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5.md.log b/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5.md.log
+new file mode 100644
+index 0000000..debeac5
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5.md.log
+@@ -0,0 +1,110 @@
++[ask-codex 20:47:05] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr0025-stage2）
++## 判定
++
++**却下。確信度：高。** 正解を作れなかった行の扱いが測定規約と食い違い、合否を甘くする反例が再現しました。また、「情報のある単位が 10 以上」でも、偶然の合格を除くという信頼限界の保証は成立しません。
++
++## 致命的・重大な欠陥
++
++### 1. 重大：正解未確定の行の一部を、不利な側に数えず除外する
++
++**確認結果：文書と実装が食い違う。保存済みの選ぶ資料にも該当あり。**
++
++v2 文書は、目で読めなかった行を「不利な側」に数えると定めています。しかし、除外した正解の行と直接つながる OCR 行は `rule="excluded"` になり、目視正解がなければそのまま残ります。`measure()` は、その行を集計から完全に外します。
++
++再現入力として、10 単位それぞれに以下を置きました。
++
++- 印付きの誤り 2 行
++- 印なしの正しい行 20 行
++- 目視正解のない `excluded` の行 20 行、すべて印なし
++
++現実装は **(b)=1.0、全条件合格**。規約どおり最後の行を不利な側に数えると、**(b)=20/220≒0.091、不合格**になります。
++
++選ぶ資料でも、`kanpo1828-p3-p0001` の行番号 208、210、211 は、目視正解の項目がなく、`excluded` のまま落ちています。いずれも印付きなので、規約どおりなら誤報です。これを数えると、公開資料の (a) は **0.8191 → 0.8108**、(c) は **0.0817 → 0.0859** に変わります。
++
++根拠：
++
++- `docs/research/adr-0025-condition5-v2-2026-11-16.md`「公開の正解」手順 4、「数え方」
++- `scripts/score.py:155–158`：直接つながる行を `excluded` にする
++- `scripts/probe_analyze.py:89–94`：正解がなければ状態を変えない
++- `scripts/score_v2.py:65–67`：`excluded` を集計から外す
++
++以下の `scripts/` は、`docs/research/adr-0025-condition5-2026-11-16/scripts/` を指します。
++
++### 2. 重大：情報のある単位が十分でも、信頼限界が点の値に潰れ、偶然合格を許す
++
++**確認結果：再現。単位数の追加では、残差がすべて 0 になる欠陥は解消していない。**
++
++50 ページそれぞれに「印で捕えた誤り 2 行、正しい行 20 行」を置くと、現実装は次を返しました。
++
++| 指標 | 点の値 | 判定に使う限界 |
++|---|---:|---:|
++| (a) | 1.0 | 下限 1.0 |
++| (b) | 1.0 | 下限 1.0 |
++| (c) | 0.0 | 上限 0.0 |
++
++情報のある単位は各 50、件数も十分なので、すべて合格します。
++
++これが偶然合格になる具体的な母集団を構成できます。546 ページのうち、541 ページは上記の容易なページ、残り 5 ページは「検出済みの誤り 100 行をすべて印なしで見逃すページ」とします。母集団の (b) は、
++
++`1082 / (1082 + 500) ≒ 0.684`
++
++で基準未達です。しかし、無作為に選んだ 50 ページに難しい 5 ページが一つも入らない確率は、
++
++`C(541, 50) / C(546, 50) ≒ 61.75%`
++
++です。その場合、上記の「下限 1.0」で合格します。これは実際の PDF にそうしたページがあるという主張ではなく、**測定規約が排除できない反例**です。
++
++根拠：
++
++- `scripts/score.py:208–223`：残差 `y − R*x` がすべて 0 なら分散も 0
++- `scripts/score_v2.py:86–103`：その限界を採用し、分母が非ゼロの単位数だけを追加確認する
++- v2 文書「合否」2、3：「偶然の合格を除く」という保証と食い違う
++
++### 3. 重大：目視正解を作る OCR と、採点する OCR が別で、行の対応を照合しない
++
++**確認結果：参照先の食い違いを確認。現資料での誤対応発生は未確認。**
++
++`eye_truth_packets.py` は `corpus/ocr/` から箱と行番号を取り、目視正解用の画像を作ります。一方、v2 の採点は `corpus/ocr2/` を使います。目視正解を当てる鍵は、ページ名と配列上の行番号だけです。
++
++反例の前提は、再 OCR で検出順や分割が変わることです。旧 OCR の行 0 が上段の「甲」、新 OCR の行 0 が下段の「乙」を誤って「甲」と読んだ行なら、旧行 0 の正解「甲」が新行 0 に当たり、誤読を正解にします。`apply_eye_truth()` が、この入力を `error=False` にすることを確認しました。
++
++PDF の SHA-256 は同じなので既存の照合を通ります。選ぶ資料の一致検査も、確かめる資料の旧 OCR と新 OCR の対応は検証しません。
++
++根拠：
++
++- `scripts/eye_truth_packets.py:35–41, 55–57`：`ocr/` の箱と行番号で作成
++- `scripts/score_v2.py:43–53`：`ocr2/` を採点
++- `scripts/probe_analyze.py:78–94`：ページ名と行番号だけで正解を適用
++
++## 崩れる前提
++
++- **目視正解がない行も、規約どおり不利に数えられる。** `excluded` から正解未確定のまま残ると、集計から消えます。
++- **分母が非ゼロの単位が 10 以上あれば、信頼限界が機能する。** 観測した単位の比がそろうと残差分散は 0 のままです。
++- **旧 OCR と再 OCR の行番号が同じ物理的な行を指す。** 検出順・行の分割が変わると崩れます。箱や OCR 結果のハッシュによる照合はありません。
++
++## 見落としと軽微な問題
++
++- **軽微：一致検査が失敗を終了コードで伝えない。** `compare_flags.py:50–56` は、不一致や行数の差を表示しても正常終了します。`score_v2.py` にも、この検査の合格を確認する処理はありません。
++- **軽微：検出できなかった行の割合が出力されない。** v2 文書は数と割合の報告を求めますが、`score_v2.py` の出力には `missed` の件数だけがあります。
++
++## 検証した事実
++
++- `compare_flags.py` を再実行し、**75 ページ・3,211 行すべて**で本文・箱・確信度、ぼかした読み、別解像度の読み、印が一致しました。
++- 公開の選ぶ資料は、`exact` 927 行、`pessimistic` 1 行、`excluded` 3 行でした。
++- 行の印とページの印の一致を、メモリ上の入力で **3,200 条件**確認しました。
++- 印の版がないページは不明に分類され、確認待ちには入りませんでした。
++- 閾値だけを変えても、索引の指紋、抽出の鍵、OCR の鍵は変わりませんでした。
++- ゼロ分散の反例では t 分位点だけを有限値のスタブにしました。結果は分位点の値に依存しません。120 件の契約試験全体は再実行していません。
++- 確かめる資料の成績は計算していません。漏洩があったことを裏付ける根拠は見つかりませんでしたが、過去に開いていないことまでは確認できません。
++
++## 崩せなかった点
++
++- 選ぶ資料における、製品と probe の印の一致。
++- 閾値変更時の再判定と、不明な版を不明として扱う基本処理。
++- `○` と `〇` の正規化、対応する別解像度の行がない場合の空文字列との比較。
++- 読む順の既存の反例に対する入力順への非依存。
++- 今回の印の追加によって、段階 3 の確認・再構築・公開の仕組みが必ず崩れる反例。
++
++使用した MCP サーバー: なし  
++使用した Agent Skills: なし
++[ask-codex 20:59:54] 完了。session 01a1e42e-aad8-7c90-822c-48121962198f  usage {"input_tokens": 3905686, "cached_input_tokens": 3750272, "cache_write_input_tokens": 0, "output_tokens": 16210, "reasoning_output_tokens": 7553}
+diff --git a/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5.md.status.json b/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5.md.status.json
+new file mode 100644
+index 0000000..fab26e8
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5.md.status.json
+@@ -0,0 +1,32 @@
++{
++  "state": "done",
++  "pid": 9272,
++  "started": "2026-11-16T20:47:04",
++  "finished": "2026-11-16T20:59:54",
++  "out": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\adr0025-stage2\\docs\\agent-runs\\2026-11-16-adr-0025-condition5-review\\review-5.md",
++  "session_id": "01a1e42e-aad8-7c90-822c-48121962198f",
++  "usage": {
++    "input_tokens": 3905686,
++    "cached_input_tokens": 3750272,
++    "cache_write_input_tokens": 0,
++    "output_tokens": 16210,
++    "reasoning_output_tokens": 7553
++  },
++  "error": "",
++  "kind": "review",
++  "model": "gpt-6.1-sol",
++  "label": "gpt-6.1-sol",
++  "effort": "high",
++  "mode": "analysis",
++  "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\adr0025-stage2",
++  "targets": [
++    "docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5-rag.diff",
++    "info-hive-rag/scripts",
++    "info-hive-wiki/skills/info-hive/references/ingest-workflow.md",
++    "tests/contract/test_rag_review.py",
++    "docs/research/adr-0025-condition5-v2-2026-11-16.md",
++    "docs/research/adr-0025-condition5-2026-11-16/scripts",
++    "docs/adr/0025-pdf-text-layer-with-pdfminer-vertical.md"
++  ],
++  "diff": null
++}
+diff --git a/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5.md.task.md b/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5.md.task.md
+new file mode 100644
+index 0000000..518a1eb
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5.md.task.md
+@@ -0,0 +1,21 @@
++# ADR-0025 の行の印の実装と、条件 5 の 2 回目の測り方のレビュー（5 回目、確かめる資料を測る前）
++
++## 目的
++
++4 回目（`review-4.md`、設計）の指摘を直し、行の印を rag に実装した。条件 5 の 2 回目の測り方を、確かめる資料を測る前に決めた。
++
++- **実装（rag）:** `info-hive-rag/scripts/rag_ocr_flags.py`（新規）、`rag_ocr.py`（ぼかした読み）、`rag_ocr_confidence.py`（`blur_text`）、`rag_ocr_client.py`、`rag_pdf.py`（別の解像度の読み、`page_flagged`）、`rag_review.py`（`is_flagged`、`page_detail`）、`rag_config.py`（OCR の保存先の鍵、閾値の既定 0.3）、`rag_jobs.py`、`rag_server.py`。差分は info-hive-rag の `git diff 6c7185b 24ddbb3`。
++- **実装（wiki）:** `info-hive-wiki/skills/info-hive/references/ingest-workflow.md` の確認の手順。
++- **試験:** `tests/contract/test_rag_review.py` の `FlagTests` ほか。手元で 120 件が通った。
++- **測り方:** `docs/research/adr-0025-condition5-v2-2026-11-16.md` と、`docs/research/adr-0025-condition5-2026-11-16/scripts/score_v2.py`、`compare_flags.py`、`public_truth.py`、`eye_truth_packets.py`、`probe_analyze.py`（`eye_truth`、`apply_eye_truth`）。
++- **4 回目の指摘の直し:** 試しの読みに画像と PDF の SHA-256 を記録して照らす（`probe_render.py`、`probe_reads.py`、`probe_analyze.load_reads`）。読む順を入力の順によらない全順序にした（`score.reading_order`、`rag_ocr_flags.reading_order`）。98 文字以上の行は ADR の決まり（左右に分けて読む）を正とし、選ぶ資料に該当がなかったことを測り方に書く。
++
++確かめたこと: 製品のコードの印は、選ぶ資料の 75 ページ、3,211 行のすべてで、試した印と一致した（`compare_flags.py`）。製品の印で選ぶ資料を数えた値は `results/v2-tuning.json` にある。確かめる資料は、まだ数えていない。
++
++次の性質を壊す欠陥だけを、重大として挙げてほしい。
++
++1. **製品の印が、ADR の「行の印」と、測った印と同じになる:** 実装が ADR と食い違わない。OCR の保存、印が不明のときの扱い、閾値を変えたときの扱い、作り直しと確認の仕組み（段階 3）が、印でも成り立つ。
++2. **測り方が、確かめる資料での偶然の合格や、後からの選択を許さない:** v2 の文書とスクリプトが食い違わない。目で作る正解、(b) から外す行、単位ごとの限界と「情報のある単位が 10 以上」の決まり、確かめる資料の増やし方（防衛白書を 50 ページに）が、合格を甘くしない。
++3. **確かめる資料が漏れていない:** 選ぶ資料の結果を見て決めたことが、確かめる資料の結果に寄せて決めたものになっていない。
++
++公開の PDF の中身はこの依頼に含めない。
+diff --git a/docs/agent-runs/2026-11-16-adr-0025-condition5-review/task-5.md b/docs/agent-runs/2026-11-16-adr-0025-condition5-review/task-5.md
+new file mode 100644
+index 0000000..518a1eb
+--- /dev/null
++++ b/docs/agent-runs/2026-11-16-adr-0025-condition5-review/task-5.md
+@@ -0,0 +1,21 @@
++# ADR-0025 の行の印の実装と、条件 5 の 2 回目の測り方のレビュー（5 回目、確かめる資料を測る前）
++
++## 目的
++
++4 回目（`review-4.md`、設計）の指摘を直し、行の印を rag に実装した。条件 5 の 2 回目の測り方を、確かめる資料を測る前に決めた。
++
++- **実装（rag）:** `info-hive-rag/scripts/rag_ocr_flags.py`（新規）、`rag_ocr.py`（ぼかした読み）、`rag_ocr_confidence.py`（`blur_text`）、`rag_ocr_client.py`、`rag_pdf.py`（別の解像度の読み、`page_flagged`）、`rag_review.py`（`is_flagged`、`page_detail`）、`rag_config.py`（OCR の保存先の鍵、閾値の既定 0.3）、`rag_jobs.py`、`rag_server.py`。差分は info-hive-rag の `git diff 6c7185b 24ddbb3`。
++- **実装（wiki）:** `info-hive-wiki/skills/info-hive/references/ingest-workflow.md` の確認の手順。
++- **試験:** `tests/contract/test_rag_review.py` の `FlagTests` ほか。手元で 120 件が通った。
++- **測り方:** `docs/research/adr-0025-condition5-v2-2026-11-16.md` と、`docs/research/adr-0025-condition5-2026-11-16/scripts/score_v2.py`、`compare_flags.py`、`public_truth.py`、`eye_truth_packets.py`、`probe_analyze.py`（`eye_truth`、`apply_eye_truth`）。
++- **4 回目の指摘の直し:** 試しの読みに画像と PDF の SHA-256 を記録して照らす（`probe_render.py`、`probe_reads.py`、`probe_analyze.load_reads`）。読む順を入力の順によらない全順序にした（`score.reading_order`、`rag_ocr_flags.reading_order`）。98 文字以上の行は ADR の決まり（左右に分けて読む）を正とし、選ぶ資料に該当がなかったことを測り方に書く。
++
++確かめたこと: 製品のコードの印は、選ぶ資料の 75 ページ、3,211 行のすべてで、試した印と一致した（`compare_flags.py`）。製品の印で選ぶ資料を数えた値は `results/v2-tuning.json` にある。確かめる資料は、まだ数えていない。
++
++次の性質を壊す欠陥だけを、重大として挙げてほしい。
++
++1. **製品の印が、ADR の「行の印」と、測った印と同じになる:** 実装が ADR と食い違わない。OCR の保存、印が不明のときの扱い、閾値を変えたときの扱い、作り直しと確認の仕組み（段階 3）が、印でも成り立つ。
++2. **測り方が、確かめる資料での偶然の合格や、後からの選択を許さない:** v2 の文書とスクリプトが食い違わない。目で作る正解、(b) から外す行、単位ごとの限界と「情報のある単位が 10 以上」の決まり、確かめる資料の増やし方（防衛白書を 50 ページに）が、合格を甘くしない。
++3. **確かめる資料が漏れていない:** 選ぶ資料の結果を見て決めたことが、確かめる資料の結果に寄せて決めたものになっていない。
++
++公開の PDF の中身はこの依頼に含めない。
+diff --git a/docs/research/adr-0025-condition5-2026-11-16/results/compare-flags.json b/docs/research/adr-0025-condition5-2026-11-16/results/compare-flags.json
+new file mode 100644
+index 0000000..5fbdc6a
+--- /dev/null
++++ b/docs/research/adr-0025-condition5-2026-11-16/results/compare-flags.json
+@@ -0,0 +1,9 @@
++{
++ "pages": 75,
++ "lines": 3211,
++ "text": 3211,
++ "blur": 3211,
++ "alt": 3211,
++ "flags": 3211,
++ "all_equal": true
++}
+diff --git a/docs/research/adr-0025-condition5-2026-11-16/results/probe-line-unit-tuning.json b/docs/research/adr-0025-condition5-2026-11-16/results/probe-line-unit-tuning.json
+index 6d0f730..59c9aff 100644
+--- a/docs/research/adr-0025-condition5-2026-11-16/results/probe-line-unit-tuning.json
++++ b/docs/research/adr-0025-condition5-2026-11-16/results/probe-line-unit-tuning.json
+@@ -8,11 +8,11 @@
+    "c": 0.0548
+   },
+   "public": {
+-   "flagged": 243,
++   "flagged": 246,
+    "errors": 279,
+-   "a": 0.868,
++   "a": 0.858,
+    "b": 0.756,
+-   "c": 0.0493
++   "c": 0.0537
+   },
+   "margin_ok": false
+  },
+@@ -25,11 +25,11 @@
+    "c": 0.0906
+   },
+   "public": {
+-   "flagged": 220,
++   "flagged": 223,
+    "errors": 279,
+-   "a": 0.895,
++   "a": 0.883,
+    "b": 0.706,
+-   "c": 0.0354
++   "c": 0.0399
+   },
+   "margin_ok": false
+  },
+@@ -42,11 +42,11 @@
+    "c": 0.0802
+   },
+   "public": {
+-   "flagged": 281,
++   "flagged": 284,
+    "errors": 279,
+-   "a": 0.698,
++   "a": 0.69,
+    "b": 0.703,
+-   "c": 0.131
++   "c": 0.135
+   },
+   "margin_ok": false
+  },
+@@ -59,11 +59,11 @@
+    "c": 0.1245
+   },
+   "public": {
+-   "flagged": 359,
++   "flagged": 362,
+    "errors": 279,
+-   "a": 0.713,
++   "a": 0.707,
+    "b": 0.918,
+-   "c": 0.1587
++   "c": 0.1626
+   },
+   "margin_ok": false
+  },
+@@ -76,11 +76,11 @@
+    "c": 0.2816
+   },
+   "public": {
+-   "flagged": 409,
++   "flagged": 412,
+    "errors": 279,
+-   "a": 0.641,
++   "a": 0.636,
+    "b": 0.939,
+-   "c": 0.2265
++   "c": 0.2301
+   },
+   "margin_ok": false
+  },
+@@ -93,11 +93,11 @@
+    "c": 0.0847
+   },
+   "public": {
+-   "flagged": 293,
++   "flagged": 296,
+    "errors": 279,
+-   "a": 0.819,
++   "a": 0.811,
+    "b": 0.86,
+-   "c": 0.0817
++   "c": 0.0859
+   },
+   "margin_ok": true
+  },
+@@ -110,11 +110,11 @@
+    "c": 0.0945
+   },
+   "public": {
+-   "flagged": 297,
++   "flagged": 300,
+    "errors": 279,
+-   "a": 0.811,
++   "a": 0.803,
+    "b": 0.864,
+-   "c": 0.0863
++   "c": 0.0905
+   },
+   "margin_ok": true
+  },
+@@ -127,11 +127,11 @@
+    "c": 0.0639
+   },
+   "public": {
+-   "flagged": 257,
++   "flagged": 260,
+    "errors": 279,
+-   "a": 0.864,
++   "a": 0.854,
+    "b": 0.796,
+-   "c": 0.0539
++   "c": 0.0583
+   },
+   "margin_ok": false
+  },
+@@ -144,11 +144,11 @@
+    "c": 0.0684
+   },
+   "public": {
+-   "flagged": 272,
++   "flagged": 275,
+    "errors": 279,
+-   "a": 0.864,
++   "a": 0.855,
+    "b": 0.842,
+-   "c": 0.057
++   "c": 0.0613
+   },
+   "margin_ok": false
+  },
+@@ -161,11 +161,11 @@
+    "c": 0.0548
+   },
+   "public": {
+-   "flagged": 253,
++   "flagged": 256,
+    "errors": 279,
+-   "a": 0.854,
++   "a": 0.844,
+    "b": 0.774,
+-   "c": 0.057
++   "c": 0.0613
+   },
+   "margin_ok": false
+  },
+@@ -178,11 +178,11 @@
+    "c": 0.0906
+   },
+   "public": {
+-   "flagged": 229,
++   "flagged": 232,
+    "errors": 279,
+-   "a": 0.886,
++   "a": 0.875,
+    "b": 0.728,
+-   "c": 0.0401
++   "c": 0.0445
+   },
+   "margin_ok": false
+  },
+@@ -195,11 +195,11 @@
+    "c": 0.0802
+   },
+   "public": {
+-   "flagged": 294,
++   "flagged": 297,
+    "errors": 279,
+-   "a": 0.711,
++   "a": 0.704,
+    "b": 0.749,
+-   "c": 0.131
++   "c": 0.135
+   },
+   "margin_ok": false
+  },
+@@ -212,11 +212,11 @@
+    "c": 0.1245
+   },
+   "public": {
+-   "flagged": 359,
++   "flagged": 362,
+    "errors": 279,
+-   "a": 0.713,
++   "a": 0.707,
+    "b": 0.918,
+-   "c": 0.1587
++   "c": 0.1626
+   },
+   "margin_ok": false
+  },
+@@ -229,11 +229,11 @@
+    "c": 0.2816
+   },
+   "public": {
+-   "flagged": 409,
++   "flagged": 412,
+    "errors": 279,
+-   "a": 0.641,
++   "a": 0.636,
+    "b": 0.939,
+-   "c": 0.2265
++   "c": 0.2301
+   },
+   "margin_ok": false
+  },
+@@ -246,11 +246,11 @@
+    "c": 0.0847
+   },
+   "public": {
+-   "flagged": 293,
++   "flagged": 296,
+    "errors": 279,
+-   "a": 0.819,
++   "a": 0.811,
+    "b": 0.86,
+-   "c": 0.0817
++   "c": 0.0859
+   },
+   "margin_ok": true
+  },
+@@ -263,11 +263,11 @@
+    "c": 0.0945
+   },
+   "public": {
+-   "flagged": 297,
++   "flagged": 300,
+    "errors": 279,
+-   "a": 0.811,
++   "a": 0.803,
+    "b": 0.864,
+-   "c": 0.0863
++   "c": 0.0905
+   },
+   "margin_ok": true
+  },
+@@ -280,11 +280,11 @@
+    "c": 0.0639
+   },
+   "public": {
+-   "flagged": 261,
++   "flagged": 264,
+    "errors": 279,
+-   "a": 0.854,
++   "a": 0.845,
+    "b": 0.799,
+-   "c": 0.0586
++   "c": 0.0629
+   },
+   "margin_ok": false
+  },
+@@ -297,11 +297,11 @@
+    "c": 0.0684
+   },
+   "public": {
+-   "flagged": 277,
++   "flagged": 280,
+    "errors": 279,
+-   "a": 0.852,
++   "a": 0.843,
+    "b": 0.846,
+-   "c": 0.0632
++   "c": 0.0675
+   },
+   "margin_ok": false
+  },
+@@ -314,11 +314,11 @@
+    "c": 0.058
+   },
+   "public": {
+-   "flagged": 268,
++   "flagged": 271,
+    "errors": 279,
+-   "a": 0.836,
++   "a": 0.827,
+    "b": 0.803,
+-   "c": 0.0678
++   "c": 0.0721
+   },
+   "margin_ok": false
+  },
+@@ -331,11 +331,11 @@
+    "c": 0.0939
+   },
+   "public": {
+-   "flagged": 248,
++   "flagged": 251,
+    "errors": 279,
+-   "a": 0.863,
++   "a": 0.853,
+    "b": 0.767,
+-   "c": 0.0524
++   "c": 0.0567
+   },
+   "margin_ok": false
+  },
+@@ -348,11 +348,11 @@
+    "c": 0.0834
+   },
+   "public": {
+-   "flagged": 318,
++   "flagged": 321,
+    "errors": 279,
+-   "a": 0.72,
++   "a": 0.713,
+    "b": 0.821,
+-   "c": 0.1371
++   "c": 0.1411
+   },
+   "margin_ok": false
+  },
+@@ -365,11 +365,11 @@
+    "c": 0.1271
+   },
+   "public": {
+-   "flagged": 364,
++   "flagged": 367,
+    "errors": 279,
+-   "a": 0.709,
++   "a": 0.703,
+    "b": 0.925,
+-   "c": 0.1633
++   "c": 0.1672
+   },
+   "margin_ok": false
+  },
+@@ -382,11 +382,11 @@
+    "c": 0.2836
+   },
+   "public": {
+-   "flagged": 412,
++   "flagged": 415,
+    "errors": 279,
+-   "a": 0.636,
++   "a": 0.631,
+    "b": 0.939,
+-   "c": 0.2311
++   "c": 0.2347
+   },
+   "margin_ok": false
+  },
+@@ -399,11 +399,11 @@
+    "c": 0.0874
+   },
+   "public": {
+-   "flagged": 298,
++   "flagged": 301,
+    "errors": 279,
+-   "a": 0.812,
++   "a": 0.804,
+    "b": 0.867,
+-   "c": 0.0863
++   "c": 0.0905
+   },
+   "margin_ok": true
+  },
+@@ -416,11 +416,11 @@
+    "c": 0.0971
+   },
+   "public": {
+-   "flagged": 302,
++   "flagged": 305,
+    "errors": 279,
+-   "a": 0.805,
++   "a": 0.797,
+    "b": 0.871,
+-   "c": 0.0909
++   "c": 0.0951
+   },
+   "margin_ok": true
+  },
+@@ -433,11 +433,11 @@
+    "c": 0.0671
+   },
+   "public": {
+-   "flagged": 273,
++   "flagged": 276,
+    "errors": 279,
+-   "a": 0.839,
++   "a": 0.83,
+    "b": 0.821,
+-   "c": 0.0678
++   "c": 0.0721
+   },
+   "margin_ok": false
+  },
+@@ -450,11 +450,11 @@
+    "c": 0.0711
+   },
+   "public": {
+-   "flagged": 286,
++   "flagged": 289,
+    "errors": 279,
+-   "a": 0.836,
++   "a": 0.827,
+    "b": 0.857,
+-   "c": 0.0724
++   "c": 0.0767
+   },
+   "margin_ok": true
+  }
+diff --git a/docs/research/adr-0025-condition5-2026-11-16/results/v2-tuning.json b/docs/research/adr-0025-condition5-2026-11-16/results/v2-tuning.json
+index 5ffa56d..6f0d05d 100644
+--- a/docs/research/adr-0025-condition5-2026-11-16/results/v2-tuning.json
++++ b/docs/research/adr-0025-condition5-2026-11-16/results/v2-tuning.json
+@@ -10,6 +10,7 @@
+    "eye": 0,
+    "missed": 0,
+    "units": 12,
++   "missed_share": 0.0,
+    "a": 0.8343949044585988,
+    "b": 0.8780160857908847,
+    "c": 0.0847457627118644,
+@@ -30,21 +31,22 @@
+  },
+  "public": {
+   "row": {
+-   "flagged": 293,
++   "flagged": 296,
+    "errors": 279,
+-   "correct": 649,
++   "correct": 652,
+    "caught": 240,
+-   "false": 53,
++   "false": 56,
+    "pessimistic": 1,
+    "eye": 342,
+    "missed": 424,
+    "units": 15,
+-   "a": 0.8191126279863481,
++   "missed_share": 0.3768888888888889,
++   "a": 0.8108108108108109,
+    "b": 0.8602150537634409,
+-   "c": 0.08166409861325115,
+-   "a_lower": 0.775,
++   "c": 0.08588957055214724,
++   "a_lower": 0.7642,
+    "b_lower": 0.7552,
+-   "c_upper": 0.1342,
++   "c_upper": 0.1376,
+    "units_a": 14,
+    "units_b": 15,
+    "units_c": 15
+diff --git a/docs/research/adr-0025-condition5-2026-11-16/scripts/compare_flags.py b/docs/research/adr-0025-condition5-2026-11-16/scripts/compare_flags.py
+index f2c2d85..5a12e6f 100644
+--- a/docs/research/adr-0025-condition5-2026-11-16/scripts/compare_flags.py
++++ b/docs/research/adr-0025-condition5-2026-11-16/scripts/compare_flags.py
+@@ -51,9 +51,16 @@ def main() -> None:
+                     examples.append({"page": key, "checks": checks, "product_flags": mine.get("flags"), "probe_flags": expected})
+             if len(product["lines"]) != len(probe):
+                 examples.append({"page": key, "lines": (len(product["lines"]), len(probe))})
++    all_equal = not examples and all(counts[k] == counts["lines"] for k in ("text", "blur", "alt", "flags"))
+     print(json.dumps(counts, ensure_ascii=False))
+     for example in examples:
+         print(json.dumps(example, ensure_ascii=False))
++    from score import RESULTS
++    RESULTS.mkdir(exist_ok=True)
++    (RESULTS / "compare-flags.json").write_bytes(
++        (json.dumps({**counts, "all_equal": all_equal}, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
++    if not all_equal:
++        raise SystemExit("製品の印と試した印が違う行がある")
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/docs/research/adr-0025-condition5-2026-11-16/scripts/eye_truth_packets.py b/docs/research/adr-0025-condition5-2026-11-16/scripts/eye_truth_packets.py
+index c20eb8f..edcca6f 100644
+--- a/docs/research/adr-0025-condition5-2026-11-16/scripts/eye_truth_packets.py
++++ b/docs/research/adr-0025-condition5-2026-11-16/scripts/eye_truth_packets.py
+@@ -9,7 +9,9 @@
+ 
+ from __future__ import annotations
+ 
++import hashlib
+ import json
++import os
+ import sys
+ from pathlib import Path
+ 
+@@ -20,6 +22,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
+ from score import CORPUS, load_truths, page_records  # noqa: E402
+ 
+ MARGIN = 40
++# 行を取る OCR の結果の置き場所。2 回目の測り方では、採点する ocr2 から作る
++SOURCE = os.environ.get("EYE_TRUTH_OCR", "ocr2")
+ 
+ 
+ def main() -> None:
+@@ -32,7 +36,7 @@ def main() -> None:
+             continue
+         for page in truth["pages"]:
+             key = f"{truth['name']}-p{page['page']:04d}"
+-            ocr = json.loads((CORPUS / "ocr" / f"{key}.json").read_bytes().decode("utf-8"))
++            ocr = json.loads((CORPUS / SOURCE / f"{key}.json").read_bytes().decode("utf-8"))
+             if ocr["pdf_sha256"] != truth["pdf_sha256"]:
+                 raise SystemExit(f"OCR の結果の PDF が正解と違う: {key}")
+             lines = [{**line, "box": [line["box"][0], line["box"][1], line["box"][0] + line["box"][2],
+@@ -54,7 +58,9 @@ def main() -> None:
+                     crop = crop.resize((crop.width * 2, crop.height * 2), Image.LANCZOS)
+                 name = f"{key}-l{j:04d}.png"
+                 crop.save(out / name)
+-                index.append({"file": name, "key": key, "line_index": j, "vertical": bool(lines[j].get("vertical"))})
++                index.append({"file": name, "key": key, "line_index": j, "vertical": bool(lines[j].get("vertical")),
++                              "source": SOURCE, "box": ocr["lines"][j]["box"],
++                              "ocr_text_sha256": hashlib.sha256(ocr["lines"][j]["text"].encode("utf-8")).hexdigest()})
+     (out / "index.json").write_bytes(json.dumps(index, ensure_ascii=False, indent=1).encode("utf-8"))
+     print(len(index), "行")
+ 
+diff --git a/docs/research/adr-0025-condition5-2026-11-16/scripts/probe_analyze.py b/docs/research/adr-0025-condition5-2026-11-16/scripts/probe_analyze.py
+index a4958f0..6952acb 100644
+--- a/docs/research/adr-0025-condition5-2026-11-16/scripts/probe_analyze.py
++++ b/docs/research/adr-0025-condition5-2026-11-16/scripts/probe_analyze.py
+@@ -75,23 +75,34 @@ def load_reads(folder: str, key: str, pdf_sha256: str) -> list[dict]:
+     return reads["lines"]
+ 
+ 
+-def eye_truth(side: str) -> dict[tuple[str, int], str]:
+-    """目で書き起こした正解（文字の層から決められない公開の OCR の行）。(ページの鍵, 行の番号) → 文字。"""
++def eye_truth(side: str) -> dict[tuple[str, int], dict]:
++    """目で書き起こした正解（文字の層から決められない公開の OCR の行）。(ページの鍵, 行の番号) → 正解と、行の照合の材料。"""
+     folder = CORPUS / "public" / "eyetruth" / side
+     path = folder / "truth.json"
+     if not path.exists():
+         return {}
+-    index = {x["file"]: (x["key"], x["line_index"]) for x in
+-             json.loads((folder / "index.json").read_bytes().decode("utf-8"))}
+-    return {index[name]: text for name, text in json.loads(path.read_bytes().decode("utf-8")).items()}
++    index = {x["file"]: x for x in json.loads((folder / "index.json").read_bytes().decode("utf-8"))}
++    return {(index[name]["key"], index[name]["line_index"]): {**index[name], "text": text}
++            for name, text in json.loads(path.read_bytes().decode("utf-8")).items()}
+ 
+ 
+-def apply_eye_truth(records: list[dict], key: str, truths: dict) -> None:
+-    """書き起こした正解がある行は、その正解と比べて誤りを決める（1 対 1 と同じく "exact" にする）。"""
++def apply_eye_truth(records: list[dict], key: str, truths: dict, lines: list[dict]) -> None:
++    """書き起こした正解がある行は、その正解と比べて誤りを決める（1 対 1 と同じく "exact" にする）。
++
++    正解は、正解を作ったときの OCR の行（箱と本文の SHA-256）に結びついている。採点する OCR の同じ番号の行と
++    照らし、違えば止まる（OCR し直して行の順や分け方が変わったとき、別の行に正解を当てないため）。
++    """
++    import hashlib
++
+     for r in records:
+-        text = truths.get((key, r["line_index"]))
+-        if text is not None and r["rule"] in ("pessimistic", "excluded"):
+-            r.update(rule="exact", error=normalize(text) != r["line_text"], eye=True)
++        truth = truths.get((key, r["line_index"]))
++        if truth is None or r["rule"] not in ("pessimistic", "excluded"):
++            continue
++        line = lines[r["line_index"]]
++        if "box" in truth and (list(truth["box"]) != list(line["source_box"]) or truth["ocr_text_sha256"]
++                               != hashlib.sha256(line["text"].encode("utf-8")).hexdigest()):
++            raise SystemExit(f"目で作った正解の行が、採点する OCR の行と違う: {key} の {r['line_index']}")
++        r.update(rule="exact", error=normalize(truth["text"]) != r["line_text"], eye=True)
+ 
+ 
+ def collect() -> dict:
+@@ -108,7 +119,8 @@ def collect() -> dict:
+             attach_other_dpi(ocr_lines, f"{truth['name']}-p{page['page']:04d}", truth["pdf_sha256"])
+             records, missed = page_records(page["lines"], ocr_lines, stratum)
+             if stratum == "public":
+-                apply_eye_truth(records, f"{truth['name']}-p{page['page']:04d}", truths)
++                apply_eye_truth(records, f"{truth['name']}-p{page['page']:04d}", truths,
++                                [{**x, "source_box": y["box"]} for x, y in zip(ocr_lines, reads)])
+             for r in records:
+                 r["line"] = ocr_lines[r["line_index"]]
+             found[stratum]["lines"] += records
+@@ -176,8 +188,7 @@ def line_unit(data: dict, signal, t: float) -> dict:
+ 
+     errors = correct = caught = false = flags = 0
+     for r in data["lines"]:
+-        if r["rule"] == "excluded":
+-            continue
++        # 目で正解を作れなかった "excluded" の行も、落とさずに不利な側に数える（5 回目のレビュー）
+         f = flagged(r["line"])
+         error = r["error"] if r["rule"] == "exact" else not f
+         flags += f
+diff --git a/docs/research/adr-0025-condition5-2026-11-16/scripts/public_truth.py b/docs/research/adr-0025-condition5-2026-11-16/scripts/public_truth.py
+index 4e91fb9..285f391 100644
+--- a/docs/research/adr-0025-condition5-2026-11-16/scripts/public_truth.py
++++ b/docs/research/adr-0025-condition5-2026-11-16/scripts/public_truth.py
+@@ -1,7 +1,7 @@
+ """公開の PDF のページを決まりどおりに選び、正解の行（pdfminer の LTTextLine の文字と箱）を書く。
+ 
+ 使い方（rag の依存の環境で動かす）:
+-    python -X utf8 scripts/public_truth.py extract   # 選んで corpus/public/<tag>.truth.json と目で確かめる画像を書く
++    python -X utf8 scripts/public_truth.py extract [tag ...]   # 選んで corpus/public/<tag>.truth.json と目で確かめる画像を書く
+     python -X utf8 scripts/public_truth.py apply tuning   # corpus/public/eyecheck.json の結果を、その側の正解に当てる
+ 
+ 測り方は ../../adr-0025-condition5-2026-11-16.md の「公開の PDF」と「正解から除く行」。
+@@ -15,6 +15,7 @@ import io
+ import json
+ import random
+ import re
++import unicodedata
+ import sys
+ from contextlib import closing
+ from pathlib import Path
+@@ -40,12 +41,33 @@ PLAN = [
+     ("kanpo1828-p2", "kanpo-p2.pdf", "tuning", "all"),
+     ("kanpo1828-p3", "kanpo-p3.pdf", "tuning", "all"),
+     ("kanpo1828-p4", "kanpo-p4.pdf", "tuning", "all"),
+-    ("defense", "defense-white-paper-2025.pdf", "evaluation", 20),
++    # 1 回目に 20 ページを選び、2 回目の測り方で 50 ページに増やした（seeded_pages）
++    ("defense", "defense-white-paper-2025.pdf", "evaluation", 50),
+     ("kanpo1827-p1", "kanpo-1827-p1.pdf", "evaluation", "all"),
+     ("kanpo1827-p2", "kanpo-1827-p2.pdf", "evaluation", "all"),
+     ("bert", "bert.pdf", "dev", [1]),
+ ]
+ CID = re.compile(r"\(cid:\d+\)")
++# 防衛白書から最初に選んだページの数（1 回目の測り方）
++FIRST_DRAW = 20
++# 目で確かめて行を除いたあと、決まり（数える正解の行が 10 行以上）から外れたページ。決めた順の続きで入れ替える
++DROPPED_AFTER_EYECHECK = {256}
++
++
++def seeded_pages(eligible: list[int], count: int) -> list[int]:
++    """決めた乱数の種で、ページを count 個選ぶ。
++
++    1 回目の測り方のとおり、random.Random(SEED) で sample(並べた番号, FIRST_DRAW) を呼んで最初のページを選ぶ。
++    それより多く選ぶときは、同じ Random で、残りの番号を並べたものに sample(残り, 残りの数) を続けて呼び、その順の
++    先頭から足す（1 回目の文書の、ページを足すときの決まりと同じ）。最初に選んだページは変わらない。
++    """
++    rng = random.Random(SEED)
++    ordered = sorted(eligible)
++    first = rng.sample(ordered, FIRST_DRAW)
++    rest = [n for n in ordered if n not in first]
++    order = first + rng.sample(rest, len(rest))
++    # 外れたページを飛ばし、同じ順の続きで足す
++    return sorted([n for n in order if n not in DROPPED_AFTER_EYECHECK][:count])
+ 
+ 
+ def layout_pages(data: bytes):
+@@ -100,10 +122,12 @@ def truth_lines(layout, page) -> list[dict]:
+     return lines
+ 
+ 
+-def extract() -> None:
++def extract(tags: list[str]) -> None:
+     OUT.mkdir(parents=True, exist_ok=True)
+     (OUT / "eyecheck").mkdir(exist_ok=True)
+     for tag, file, side, rule in PLAN:
++        if tags and tag not in tags:
++            continue
+         data = (CORPUS / file).read_bytes()
+         eligible, pages = [], {}
+         with pdfium.PdfDocument(data) as document:
+@@ -123,7 +147,7 @@ def extract() -> None:
+             elif isinstance(rule, list):
+                 chosen = [n for n in rule if n in pages]
+             else:
+-                chosen = sorted(random.Random(SEED).sample(sorted(eligible), rule))
++                chosen = seeded_pages(eligible, rule)
+             for number in chosen:
+                 with closing(document[number - 1]) as page:
+                     bitmap = page.render(scale=DPI / 72)
+@@ -149,6 +173,13 @@ def apply(sides: list[str]) -> None:
+             key = f"{tag}-p{page['page']:04d}"
+             if key not in checked:
+                 raise SystemExit(f"目で確かめていないページ: {key}")
++            # 制御文字（タブと改行を除く）を含む行も、文字の層が見た目の文字を表していない行として除く。
++            # 2 回目の測り方で、確かめる資料の目次のページで見つけた（選ぶ資料には該当がない）。
++            # ページの選び方を変えないよう、選んだあとのここで除く
++            for line in page["lines"]:
++                if line["excluded"] is None and any(
++                        unicodedata.category(c) == "Cc" and c not in "\t\n" for c in line["text"]):
++                    line["excluded"] = "garbled"
+             wrong = set(checked[key]["wrong"])
+             for line in page["lines"]:
+                 if line["id"] in wrong and line["excluded"] is None:
+@@ -166,4 +197,4 @@ def apply(sides: list[str]) -> None:
+ 
+ 
+ if __name__ == "__main__":
+-    extract() if sys.argv[1] == "extract" else apply(sys.argv[2:])
++    extract(sys.argv[2:]) if sys.argv[1] == "extract" else apply(sys.argv[2:])
+diff --git a/docs/research/adr-0025-condition5-2026-11-16/scripts/score_v2.py b/docs/research/adr-0025-condition5-2026-11-16/scripts/score_v2.py
+index f622ff1..9e74f97 100644
+--- a/docs/research/adr-0025-condition5-2026-11-16/scripts/score_v2.py
++++ b/docs/research/adr-0025-condition5-2026-11-16/scripts/score_v2.py
+@@ -48,10 +48,12 @@ def collect(side: str) -> dict:
+                 raise SystemExit(f"OCR の結果の PDF が正解と違う: {key}")
+             if ocr.get("flag_revision") != OCR_FLAG_REVISION:
+                 raise SystemExit(f"印のない OCR の結果: {key}")
+-            lines = [{**x, "box": rag_ocr_flags.corners(x["box"])} for x in ocr["lines"]]
++            lines = [{**x, "box": rag_ocr_flags.corners(x["box"]), "source_box": x["box"]} for x in ocr["lines"]]
+             records, missed = page_records(page["lines"], lines, stratum)
+             if stratum == "public":
+-                apply_eye_truth(records, key, truths)
++                apply_eye_truth(records, key, truths, lines)
++            found[stratum]["truth_lines"] = found[stratum].get("truth_lines", 0) + sum(
++                1 for x in page["lines"] if not x.get("excluded"))
+             unit = truth["name"] if stratum == "synthetic" else key
+             for r in records:
+                 line = lines[r["line_index"]]
+@@ -65,8 +67,7 @@ def measure(data: dict) -> dict:
+     units: dict[str, dict] = {}
+     totals = {"flagged": 0, "errors": 0, "correct": 0, "caught": 0, "false": 0, "pessimistic": 0, "eye": 0}
+     for r in data["lines"]:
+-        if r["rule"] == "excluded":
+-            continue
++        # 目で正解を作れなかった行（除いた正解の行と直接つながる行で、読めなかったもの）も、落とさずに不利な側に数える
+         flagged = bool(r["reasons"])
+         error = r["error"] if r["rule"] == "exact" else not flagged
+         u = units.setdefault(r["unit"], {"flagged": 0, "errors": 0, "correct": 0, "caught": 0, "false": 0})
+@@ -86,6 +87,7 @@ def measure(data: dict) -> dict:
+         return sum(1 for u in units.values() if u[n])
+ 
+     return {**totals, "missed": len(data["missed"]), "units": len(units),
++            "missed_share": len(data["missed"]) / data["truth_lines"] if data.get("truth_lines") else None,
+             "a": ratio("caught", "flagged"), "b": ratio("caught", "errors"), "c": ratio("false", "correct"),
+             "a_lower": cluster_bound([(u["caught"], u["flagged"]) for u in units.values()], "lower"),
+             "b_lower": cluster_bound([(u["caught"], u["errors"]) for u in units.values()], "lower"),
+@@ -107,7 +109,7 @@ def verdict(row: dict) -> dict:
+ def show(stratum: str, row: dict, judged: dict) -> None:
+     f = lambda v: "-" if v is None else f"{v:.3f}"  # noqa: E731
+     print(f"{stratum}: 行 {row['errors'] + row['correct']} 印 {row['flagged']} 誤り {row['errors']}"
+-          f"（検出できなかった正解の行 {row['missed']}、不利な側 {row['pessimistic']}、目で作った正解 {row['eye']}）")
++          f"（検出できなかった正解の行 {row['missed']}（{(row['missed_share'] or 0):.1%}）、不利な側 {row['pessimistic']}、目で作った正解 {row['eye']}）")
+     print(f"  (a) {f(row['a'])}（下限 {f(row['a_lower'])}） (b) {f(row['b'])}（下限 {f(row['b_lower'])}）"
+           f" (c) {f(row['c'])}（上限 {f(row['c_upper'])}） 単位 {row['units_a']}/{row['units_b']}/{row['units_c']}"
+           f" → {json.dumps(judged, ensure_ascii=False)}")
+@@ -120,6 +122,10 @@ def main() -> None:
+     target = RESULTS / f"v2-{mode}.json"
+     if mode == "evaluation" and target.exists():
+         raise SystemExit("確かめる資料は、もう測った（1 回だけ）")
++    if mode == "evaluation":
++        check = RESULTS / "compare-flags.json"
++        if not check.exists() or not json.loads(check.read_bytes().decode("utf-8")).get("all_equal"):
++            raise SystemExit("製品の印と試した印の照合（compare_flags.py）が通っていない。確かめる資料は測らない")
+     data = collect(mode)
+     result = {}
+     for stratum, d in data.items():
+diff --git a/docs/research/adr-0025-condition5-v2-2026-11-16.md b/docs/research/adr-0025-condition5-v2-2026-11-16.md
+index cd7c4f4..9c053f0 100644
+--- a/docs/research/adr-0025-condition5-v2-2026-11-16.md
++++ b/docs/research/adr-0025-condition5-v2-2026-11-16.md
+@@ -66,10 +66,20 @@ OCR の行ごとに、1 回目の「行の対応と、行の誤り」の決ま
+ 1 回目に決めたまま、まだ数えていない資料を使う。
+ 
+ - **合成:** 測る原稿の番号が奇数の 12 原稿（60 ページ）。1 回目の OCR の結果（`corpus/ocr/`）は開いていない。印を付けるため、`corpus/ocr2/` に OCR し直す。
+-- **公開:** 防衛白書の 20 ページと、官報の第 1827 号の 2 ページ目（1 ページ目は決まりから外れた）。目で正解を作る前に、1 回目の手順で文字の層を目で確かめる。
+-- **大きさ:** 選ぶ資料の公開の 15 ページでは、誤りの行は 279 行、印の付いた行は 293 行だった。確かめる資料の公開の 21 ページでも、基準の 3 と 4 を満たす見込みである。満たさなければ「判断できない」になる。
++- **公開:** 防衛白書の 50 ページと、官報の第 1827 号の 2 ページ目（1 ページ目は決まりから外れた）。目で正解を作る前に、1 回目の手順で文字の層を目で確かめる。
++- **大きさ（作者の決定、2026-11-16）:** 1 回目は防衛白書から 20 ページを選んでいた。製品の印で選ぶ資料を数えると、公開は点の値で (b) 0.860 だったが、単位が 15 ページしかなく、(b) の下限は 0.755 だった（`results/v2-tuning.json`）。21 ページでは下限で外れる見込みが高いので、防衛白書を 50 ページに増やした。足したページは、1 回目の文書の「ページを足すとき」の決まり（同じ `random.Random` で、残りのページの番号に `sample` を続けて呼んだ順）の先頭の 30 ページで、最初の 20 ページは変わらない（`scripts/public_truth.py` の `seeded_pages`）。数える正解の行は 4,551 行になった。目で確かめたあとに決まりから外れたページは、同じ順の続きで足す。
++- **準備で決めたこと（点数を見る前）:** 確かめる資料の公開の 51 ページの正解の行（4,800 行）を、Claude のエージェント 10 体で目で確かめた。防衛白書の目次のページ（6、7 ページ目）で、文字の層の行の多くが制御文字（0x08）だけでできていて、画像の文字を表していなかった。1 回目の「正解から除く行」は、私用領域の文字、`(cid:<数>)`、U+FFFD だけを除いていたので、制御文字（タブと改行を除く Unicode の Cc）を含む行も除くことにした。選ぶ資料には該当がない。ページの選び方を変えないよう、この除き方は、目で確かめた結果を当てる段（`public_truth.py apply`）で行う。除いたあとに 256 ページ目が決まり（10 行以上）から外れたので、決めた順の続きの 50 ページ目と入れ替え、目で確かめた。
+ - **縦書き:** 確かめる資料の公開のページに、縦書きのページはない。縦書きの OCR の行の印は、選ぶ資料の官報の 2 ページでしか見ていない。これは、この測り方の限りとして報告に書く。
+ 
++## 5 回目のレビューで直したことと、限界の前提
++
++Sol の 5 回目のレビュー（`docs/agent-runs/2026-11-16-adr-0025-condition5-review/review-5.md`、却下）の指摘を、次のように直した。どれも、確かめる資料を数える前である。
++
++1. **正解を作れなかった行を落としていた:** 除いた正解の行と直接つながる OCR の行で、目で正解を作れなかった行（読めないとされた行）が、集計から消えていた。この文書の決まり（不利な側に数える）のとおり、`score_v2.py` と `probe_analyze.py` で数えるようにした。選ぶ資料の公開は、(a) 0.819 → 0.811、(c) 0.082 → 0.086 になった（3 行）。
++2. **目で作った正解と、採点する OCR の行の対応を照らしていなかった:** 目で作る正解の一覧に、正解を作ったときの OCR の行の箱と本文の SHA-256 を書き、採点するときに、採点する OCR（`corpus/ocr2/`）の同じ番号の行と照らす。違えば止まる。確かめる資料の正解は、`corpus/ocr2/` の行から作る。選ぶ資料の正解（`corpus/ocr/` の行から作った）は、照らして、342 行すべてが `corpus/ocr2/` の行と一致した。
++3. **限界の前提（直さず、前提として書く）:** 単位ごとの限界は、選んだ単位の比がそろうと、点の値と同じになる。選ばれなかった少数の単位（たとえば、誤りが多く印の付かないページ）が母集団にあれば、どの有限の試料でも、それを見逃して合格することがある。この測り方の限界は、次を前提にする。単位（合成の原稿、公開のページ）を決めた手順で無作為に選んでいること。選ばれなかった種類の単位が、結果を大きく変えるほど多くないこと。この前提が崩れる資料（選んだページと性質の違う章や、縦書きの資料）は、この判定の対象の外である。
++4. **軽微:** `compare_flags.py` は、違う行があれば終了コードで失敗を返し、結果を `results/compare-flags.json` に書く。`score_v2.py evaluation` は、この照合が通っていなければ止まる。`score_v2.py` は、検出できなかった正解の行の割合も出す。
++
+ ## 記録とコミット
+ 
+ 1 回目と同じく、公開の PDF の本文と OCR の本文、目で作った正解は、`corpus/` に置き、リポジトリに入れない。`results/` には集計と、行ごとの数値だけを置く。
