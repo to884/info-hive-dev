@@ -57,7 +57,8 @@ def summarize(path: Path) -> dict:
             out["denials"] = r.get("permission_denials")
             out["subtype"] = r.get("subtype")
     text = out.get("result") or ""
-    m = re.findall(r"確からしさ[^\n]{0,20}?[:：]\s*\**\s*(高|中|低)", text)
+    # 回答の名前が「確からしさ」から「確信度」に変わったので、両方の字句を読む
+    m = re.findall(r"(?:確信度|確からしさ)[^\n]{0,20}?[:：]\s*\**\s*(高|中|低)", text)
     out["confidence_marks"] = m
     out["opened_workflow"] = any(
         "query-workflow.md" in json.dumps(x.get("input"), ensure_ascii=False) for x in out["tools"])
