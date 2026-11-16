@@ -30,6 +30,7 @@ from rag_ocr_flags import OCR_FLAG_REVISION, reasons_for  # noqa: E402
 from score import CORPUS, RESULTS, cluster_bound, load_truths, page_records  # noqa: E402
 
 THRESHOLD = 0.3
+TUNING_PAGES = 75  # 製品の印と試した印を照らす、選ぶ資料のページの数
 MIN_UNITS = 10
 MIN_COUNT = 20
 
@@ -75,7 +76,7 @@ def measure(data: dict) -> dict:
                             ("caught", flagged and error), ("false", flagged and not error)):
             u[name] += value
             totals[name] += value
-        totals["pessimistic"] += r["rule"] == "pessimistic"
+        totals["pessimistic"] += r["rule"] in ("pessimistic", "excluded")
         totals["eye"] += bool(r.get("eye"))
     for m in data["missed"]:
         units.setdefault(m["unit"], {"flagged": 0, "errors": 0, "correct": 0, "caught": 0, "false": 0})
@@ -86,13 +87,37 @@ def measure(data: dict) -> dict:
     def informative(n):
         return sum(1 for u in units.values() if u[n])
 
+    def mean_bound(k, n, side):
+        """単位ごとの比（分母が 0 の単位は除く）の平均と、1 標本の t 分布による片側 95% の限界。
+
+        行で重みを付けた比の限界は、単位の大きさが偏ると働かない（6 回目のレビュー）。単位ごとの比の平均は、
+        単位を 1 つの観測として数えるので、大きな単位に引っ張られない。
+        """
+        import math
+        import statistics
+
+        from scipy.stats import t as student
+
+        values = [u[k] / u[n] for u in units.values() if u[n]]
+        if len(values) < 2:
+            return None, None
+        mean = statistics.fmean(values)
+        half = float(student.ppf(0.95, len(values) - 1)) * statistics.stdev(values) / math.sqrt(len(values))
+        return round(mean, 4), round(mean - half if side == "lower" else mean + half, 4)
+
+    a_mean, a_mean_lower = mean_bound("caught", "flagged", "lower")
+    b_mean, b_mean_lower = mean_bound("caught", "errors", "lower")
+    c_mean, c_mean_upper = mean_bound("false", "correct", "upper")
+
     return {**totals, "missed": len(data["missed"]), "units": len(units),
             "missed_share": len(data["missed"]) / data["truth_lines"] if data.get("truth_lines") else None,
             "a": ratio("caught", "flagged"), "b": ratio("caught", "errors"), "c": ratio("false", "correct"),
             "a_lower": cluster_bound([(u["caught"], u["flagged"]) for u in units.values()], "lower"),
             "b_lower": cluster_bound([(u["caught"], u["errors"]) for u in units.values()], "lower"),
             "c_upper": cluster_bound([(u["false"], u["correct"]) for u in units.values()], "upper"),
-            "units_a": informative("flagged"), "units_b": informative("errors"), "units_c": informative("correct")}
+            "units_a": informative("flagged"), "units_b": informative("errors"), "units_c": informative("correct"),
+            "a_mean": a_mean, "a_mean_lower": a_mean_lower, "b_mean": b_mean, "b_mean_lower": b_mean_lower,
+            "c_mean": c_mean, "c_mean_upper": c_mean_upper}
 
 
 def verdict(row: dict) -> dict:
@@ -100,10 +125,12 @@ def verdict(row: dict) -> dict:
               and row["c"] is not None and row["c"] <= 0.15)
     bounds = (row["a_lower"] is not None and row["a_lower"] >= 0.5 and row["b_lower"] is not None
               and row["b_lower"] >= 0.8 and row["c_upper"] is not None and row["c_upper"] <= 0.15)
+    unit_bounds = (row["a_mean_lower"] is not None and row["a_mean_lower"] >= 0.5 and row["b_mean_lower"] is not None
+                   and row["b_mean_lower"] >= 0.8 and row["c_mean_upper"] is not None and row["c_mean_upper"] <= 0.15)
     units = min(row["units_a"], row["units_b"], row["units_c"]) >= MIN_UNITS
     enough = min(row["flagged"], row["errors"], row["correct"]) >= MIN_COUNT
-    return {"points": points, "bounds": bounds, "units": units, "enough": enough,
-            "pass": points and bounds and units and enough}
+    return {"points": points, "bounds": bounds, "unit_bounds": unit_bounds, "units": units, "enough": enough,
+            "pass": points and bounds and unit_bounds and units and enough}
 
 
 def show(stratum: str, row: dict, judged: dict) -> None:
@@ -111,7 +138,9 @@ def show(stratum: str, row: dict, judged: dict) -> None:
     print(f"{stratum}: 行 {row['errors'] + row['correct']} 印 {row['flagged']} 誤り {row['errors']}"
           f"（検出できなかった正解の行 {row['missed']}（{(row['missed_share'] or 0):.1%}）、不利な側 {row['pessimistic']}、目で作った正解 {row['eye']}）")
     print(f"  (a) {f(row['a'])}（下限 {f(row['a_lower'])}） (b) {f(row['b'])}（下限 {f(row['b_lower'])}）"
-          f" (c) {f(row['c'])}（上限 {f(row['c_upper'])}） 単位 {row['units_a']}/{row['units_b']}/{row['units_c']}"
+          f" (c) {f(row['c'])}（上限 {f(row['c_upper'])}） 単位 {row['units_a']}/{row['units_b']}/{row['units_c']}")
+    print(f"  単位の平均: (a) {f(row['a_mean'])}（下限 {f(row['a_mean_lower'])}） (b) {f(row['b_mean'])}"
+          f"（下限 {f(row['b_mean_lower'])}） (c) {f(row['c_mean'])}（上限 {f(row['c_mean_upper'])}）"
           f" → {json.dumps(judged, ensure_ascii=False)}")
 
 
@@ -124,8 +153,13 @@ def main() -> None:
         raise SystemExit("確かめる資料は、もう測った（1 回だけ）")
     if mode == "evaluation":
         check = RESULTS / "compare-flags.json"
-        if not check.exists() or not json.loads(check.read_bytes().decode("utf-8")).get("all_equal"):
+        record = json.loads(check.read_bytes().decode("utf-8")) if check.exists() else {}
+        if not record.get("all_equal") or record.get("pages") != TUNING_PAGES:
             raise SystemExit("製品の印と試した印の照合（compare_flags.py）が通っていない。確かめる資料は測らない")
+        import hashlib
+        for key, sha in record["inputs"].items():  # 照らした OCR の結果が、今のファイルと同じか
+            if hashlib.sha256((CORPUS / "ocr2" / f"{key}.json").read_bytes()).hexdigest() != sha:
+                raise SystemExit(f"照合のあとで OCR の結果が変わった: {key}（compare_flags.py をやり直す）")
     data = collect(mode)
     result = {}
     for stratum, d in data.items():

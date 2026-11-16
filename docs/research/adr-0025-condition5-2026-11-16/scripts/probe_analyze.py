@@ -99,8 +99,10 @@ def apply_eye_truth(records: list[dict], key: str, truths: dict, lines: list[dic
         if truth is None or r["rule"] not in ("pessimistic", "excluded"):
             continue
         line = lines[r["line_index"]]
-        if "box" in truth and (list(truth["box"]) != list(line["source_box"]) or truth["ocr_text_sha256"]
-                               != hashlib.sha256(line["text"].encode("utf-8")).hexdigest()):
+        if "box" not in truth or "ocr_text_sha256" not in truth:
+            raise SystemExit(f"目で作った正解に、行を照らす材料がない: {key} の {r['line_index']}")
+        if (list(truth["box"]) != list(line["source_box"]) or truth["ocr_text_sha256"]
+                != hashlib.sha256(line["text"].encode("utf-8")).hexdigest()):
             raise SystemExit(f"目で作った正解の行が、採点する OCR の行と違う: {key} の {r['line_index']}")
         r.update(rule="exact", error=normalize(truth["text"]) != r["line_text"], eye=True)
 

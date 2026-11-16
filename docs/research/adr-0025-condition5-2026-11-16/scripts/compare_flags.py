@@ -22,14 +22,19 @@ from score import CORPUS, load_truths  # noqa: E402
 
 
 def main() -> None:
+    import hashlib
+
     counts = {"pages": 0, "lines": 0, "text": 0, "blur": 0, "alt": 0, "flags": 0}
     examples = []
+    inputs = {}
     for truth in load_truths():
         if truth["side"] != "tuning":
             continue
         for page in truth["pages"]:
             key = f"{truth['name']}-p{page['page']:04d}"
-            product = json.loads((CORPUS / "ocr2" / f"{key}.json").read_bytes().decode("utf-8"))
+            raw = (CORPUS / "ocr2" / f"{key}.json").read_bytes()
+            inputs[key] = hashlib.sha256(raw).hexdigest()
+            product = json.loads(raw.decode("utf-8"))
             if product["pdf_sha256"] != truth["pdf_sha256"]:
                 raise SystemExit(f"製品の OCR の結果の PDF が正解と違う: {key}")
             probe = probe_analyze.load_reads("reads", key, truth["pdf_sha256"])
@@ -51,14 +56,15 @@ def main() -> None:
                     examples.append({"page": key, "checks": checks, "product_flags": mine.get("flags"), "probe_flags": expected})
             if len(product["lines"]) != len(probe):
                 examples.append({"page": key, "lines": (len(product["lines"]), len(probe))})
-    all_equal = not examples and all(counts[k] == counts["lines"] for k in ("text", "blur", "alt", "flags"))
+    all_equal = (counts["pages"] > 0 and not examples
+                 and all(counts[k] == counts["lines"] for k in ("text", "blur", "alt", "flags")))
     print(json.dumps(counts, ensure_ascii=False))
     for example in examples:
         print(json.dumps(example, ensure_ascii=False))
     from score import RESULTS
     RESULTS.mkdir(exist_ok=True)
     (RESULTS / "compare-flags.json").write_bytes(
-        (json.dumps({**counts, "all_equal": all_equal}, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
+        (json.dumps({**counts, "all_equal": all_equal, "inputs": inputs}, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
     if not all_equal:
         raise SystemExit("製品の印と試した印が違う行がある")
 
