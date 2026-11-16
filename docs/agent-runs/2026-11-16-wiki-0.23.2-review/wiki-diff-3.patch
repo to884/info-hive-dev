@@ -1,0 +1,172 @@
+diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+index 14188e6..066aaab 100644
+--- a/.claude-plugin/plugin.json
++++ b/.claude-plugin/plugin.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "wiki",
+-  "version": "0.23.0",
++  "version": "0.23.2",
+   "description": "日本語による Markdown の wiki を構築し、ローカルのハイブリッド検索、出典つきの回答、グラフ、タスクの経験からのスキル改善を提供する。praneybehl/llm-wiki-plugin v4.0.1 の日本語向け移植版。",
+   "author": {
+     "name": "to884"
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 0e5bfe1..3fb3b86 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,16 @@
+ 
+ ## [Unreleased]
+ 
++## [0.23.2] - 2026-11-16
++
++### Changed
++
++- `wiki_youtube.py` の `inspect` と `write` が、字幕を取った時刻 `fetched_at`（時差つきの ISO 8601）を返すようにした。要約ページの `fetched_at` には、`write` の結果の値を写す（手順 V5 と `ingest-workflow.md` の「YouTube の動画」）。これまでは時刻を別に取る必要があった。
++
++### Fixed
++
++- `wiki_youtube.py verify` の「raw にない語」に、`## 主張と行き先` の表の行き先の値（`create`、`source_only`）が混ざっていた。表の「行き先」の列で、中身がちょうど手順の値（`create`、`update`、`source_only`）のセルだけを目印から外す。表に書いた主張や、本文の同じ語は、これまでどおり目印の対象にする。使い捨ての wiki で自動字幕の講義を最初から最後まで取り込んで見つけた。
++
+ ## [0.23.0] - 2026-11-16
+ 
+ ### Added
+diff --git a/commands/ingest.md b/commands/ingest.md
+index 14fa972..00b3858 100644
+--- a/commands/ingest.md
++++ b/commands/ingest.md
+@@ -29,7 +29,7 @@ argument-description: "取り込むソース。ファイルのパス、URL、ま
+ - **V2. 調べる。** `<Y> inspect --url "<URL>" --wiki "<WIKI_ROOT>" --raw-root "<RAW_ROOT>" --json` を実行する。ディスクには何も書かない。終了コード 2 なら、`message` をそのまま伝えて止まる（自動でやり直さない）。字幕がない動画なら、字幕を `.md` か `.txt` にして `<RAW_ROOT>/` に置く方法（ふつうのソース）を案内する。終了コード 3（`status` が `track_undecided`）なら、`tracks`（名前、種類、言語）と `reason` を示し、ユーザーが選んだトラックの `id`（`uploaded:ja`、`asr:ja-orig` の形）を `--track <id>` に付けてやり直す。`warnings` は、そのままユーザーに伝える。
+ - **V3. スラッグを決める。** `title` を手がかりに、スラッグ（`references/page-conventions.md` の命名の規則）をユーザーと決め、`--slug "<スラッグ>"` を付けて `inspect` をやり直す。`existing` に `same` があれば、同じ字幕の raw がすでにある（スラッグは違ってもよい）。raw は書かずにそのファイルを使い、要約ページがあれば、続けるか止めるかをユーザーに聞く（スクリプトは取り込みが済んだかを判定しない）。`different` だけなら、字幕の違う raw があるので、別版のスラッグ（`<スラッグ>-<YYYYMMDD>`）で書くかをユーザーに聞く。`slug_state` が `slug_taken` なら、別のスラッグをユーザーと決める。`unreadable` があれば、そのファイルの名前を伝える。
+ - **V4. raw の承認を得る。** 題名、チャンネル、長さ、選んだトラック（`track` の名前と種類。`asr` は自動字幕）、字幕の行の数（`lines`）、`source_sha256` をユーザーに示し、この内容で raw を書いてよいかの承認を得る。
+-- **V5. raw を書く。** `<Y> write --url "<URL>" --wiki "<WIKI_ROOT>" --raw-root "<RAW_ROOT>" --slug "<スラッグ>" --expect-sha256 <source_sha256> --json`（V2 で `--track` を付けたなら同じものを付け、別版で書くと決めたら `--new-version` を付ける）を実行する。`status` が `created` か `same` なら、`raw_ref` を控えて続ける。終了コード 3 のうち、`changed`（あいだに字幕が変わった）なら V2 からやり直し、`different` と `slug_taken` なら V3 に戻る。raw は上書きしない。
++- **V5. raw を書く。** `<Y> write --url "<URL>" --wiki "<WIKI_ROOT>" --raw-root "<RAW_ROOT>" --slug "<スラッグ>" --expect-sha256 <source_sha256> --json`（V2 で `--track` を付けたなら同じものを付け、別版で書くと決めたら `--new-version` を付ける）を実行する。`status` が `created` か `same` なら、`raw_ref` と `fetched_at`（字幕を取った時刻。要約ページの `fetched_at` に写す）を控えて続ける。終了コード 3 のうち、`changed`（あいだに字幕が変わった）なら V2 からやり直し、`different` と `slug_taken` なら V3 に戻る。raw は上書きしない。
+ - **V6. 読む。** raw を読む。字幕の行は `L<番号> [時刻] 本文` の形で、区間（チャプターか 10 分ごと）に分かれている。長いときは手順 3 のとおり区間ごとに分けて読み、全体を一度にコンテキストに入れない。上の手順 4（要点の話し合い）と手順 5（関係するページを洗い出す）を行う。
+ - **V7. wiki の変更を用意する。** 要約ページの全文、関係するページの直し、`## 主張と行き先` の表、索引とログの行、手順 7 の型付きのエッジを、会話の中で用意する。まだ wiki に書かない。要約ページの書き方、自動字幕の聞き違いの訂正と留保の印と定義、`confidence` の決め方は、`references/ingest-workflow.md` の「YouTube の動画」にある。定義の行は `<Y> define` で作る。
+ - **V8. 変更を照らす。** 用意したページ（新しいページの全文、直すページは直したあとの全文）を、`<WIKI_ROOT>/.wiki-cache/youtube/<スラッグ>/` の下にファイルとして置き、`<Y> verify --wiki "<WIKI_ROOT>" --raw-root "<RAW_ROOT>" --slug "<raw のスラッグ>" --page "sources/<スラッグ>.md=<置いたファイル>" --page "<wiki からの相対パス>=<置いたファイル>" … --json` を実行する。相対パスは、そのページを書く wiki の中の場所にする（`.wiki-cache/` などのページとして読まれない場所は拒まれる）。新しいページは既存のディレクトリの直下にだけ置ける。新しいディレクトリが要るときは、ユーザーの承認を得て先に作る。`findings` は wiki 全体の字幕の訂正と留保の食い違いで、この取り込みで用意したページでないページのものも入る。`findings` があれば（終了コード 1）、その行を直してやり直し、通るまでユーザーに承認を求めない。用意したページでないページの食い違いなら、ユーザーに示し、直し方の承認を得る。通ったら、新しいページの全文、直す箇所ごとの前と後、索引とログに足す行に加えて、定義の一覧（識別子、時刻、字幕の語、訂正した語、根拠の種類と場所。`result.definitions`）、confidence とその理由（`result.confidence` と `result.reasons`）、「raw にない語」（`unknown_words`。印を付けずに直した語の目印で、保証ではない）をユーザーに示し、承認を得る。ユーザーが退けた訂正は留保に変え、V8 をやり直す。
+diff --git a/skills/info-hive/references/ingest-workflow.md b/skills/info-hive/references/ingest-workflow.md
+index 6b7937c..54b0588 100644
+--- a/skills/info-hive/references/ingest-workflow.md
++++ b/skills/info-hive/references/ingest-workflow.md
+@@ -208,7 +208,7 @@ raw（`raw/<スラッグ>.md`）は、frontmatter（`page-conventions.md` の「
+ 動画のソースの要約ページは、次のように書く。
+ 
+ - `raw` には、動画の raw を 1 つだけ書く（どの raw の行と照らし、どの raw の confidence に数えるかを決めるため）。
+-- frontmatter に、ふつうの項目（手順 5）に加えて、`url`（raw の `url`）、`video_id`、`caption_kind`（raw の値を写す）、`confidence`（下の決め方による `"high"`、`"medium"`、`"low"`。分割したときは親のページだけに書く）、`fetched_at`（`write` を実行した時刻。時差つきの ISO 8601 の文字列）を書く。`raw` には `write` が出した `raw_ref` を書く。
++- frontmatter に、ふつうの項目（手順 5）に加えて、`url`（raw の `url`）、`video_id`、`caption_kind`（raw の値を写す）、`confidence`（下の決め方による `"high"`、`"medium"`、`"low"`。分割したときは親のページだけに書く）、`fetched_at`（`write` の結果の `fetched_at` を写す。字幕を取った時刻で、時差つきの ISO 8601 の文字列）を書く。`raw` には `write` が出した `raw_ref` を書く。
+ - `caption_kind` が `asr` なら、本文の冒頭に「自動字幕から書いた。固有名詞と数値には聞き違いが含まれうる」と書く。
+ - 動画が日本語でなくても raw は訳さない。要約ページは日本語で書き、引用は字幕の言語のまま、raw の逐語で引く。
+ - 根拠の位置は、raw の行の番号と時刻（`L123 [12:34]`）で書く。動画へのリンクは `https://www.youtube.com/watch?v=<ID>&t=<秒>s` にする。
+@@ -246,7 +246,7 @@ wiki に書く語のうち、字幕の聞き違いと考えた固有名詞、数
+ 
+ 重みとしきい値は、較正していない仮の値である。定義が変われば、そのたびに計算し直し、親の要約ページの値を書き換える。`verify` と lint が、計算した値と書かれた値を照らす。ユーザーが訂正を退けて留保にすると、重みは 3 になり、confidence は下がるか変わらない。
+ 
+-`verify` は、定義の字幕の語が raw の行にあること、根拠の場所に訂正した語があること、印と定義が対応すること、印の直前の末尾、confidence の計算を照らす。訂正した語が正しいかは確かめられない。本文から、数字の並びと 2 文字以上の英字かカタカナの並びのうち、raw にも定義にもないものを「raw にない語」として挙げる。印を付けずに直した語を見つける目印で、漢字だけの名前と言い換えは挙がらない。
++`verify` は、定義の字幕の語が raw の行にあること、根拠の場所に訂正した語があること、印と定義が対応すること、印の直前の末尾、confidence の計算を照らす。訂正した語が正しいかは確かめられない。本文から、数字の並びと 2 文字以上の英字かカタカナの並びのうち、raw にも定義にもないものを「raw にない語」として挙げる（引用、コード、定義の節は探さない。`## 主張と行き先` の表の「行き先」の列で、中身がちょうど `create`、`update`、`source_only` のセルも探さない。表の主張や本文の同じ語は探す）。印を付けずに直した語を見つける目印で、漢字だけの名前と言い換えは挙がらない。
+ 
+ ## 手順 2: ソースを読む
+ 
+diff --git a/skills/info-hive/scripts/wiki_captions.py b/skills/info-hive/scripts/wiki_captions.py
+index c6bc827..516cc1b 100644
+--- a/skills/info-hive/scripts/wiki_captions.py
++++ b/skills/info-hive/scripts/wiki_captions.py
+@@ -589,6 +589,7 @@ class InlineText:
+     targets: dict
+     line: int
+     quote: bool
++    workflow_value: bool = False   # `## 主張と行き先` の表の「行き先」の列の、手順が決めた値だけのセル
+ 
+ 
+ def _wikilink_label(match: "re.Match") -> str:
+@@ -607,7 +608,24 @@ def inline_texts(body_lines: list[str]) -> list[InlineText]:
+     tokens = wiki_pages.new_parser().parse("\n".join(body_lines))
+     out: list[InlineText] = []
+     depth = 0
+-    for tok in tokens:
++    # `## 主張と行き先` の表の「行き先」の列の値を見分けるための状態。見出しと表の列は、パーサーのトークンで決める。
++    section = ""
++    headers: list = []
++    col = -1
++    cell = None        # 次の inline が入るセル（"th" か "td"）
++    for i, tok in enumerate(tokens):
++        if tok.type == "heading_open" and tok.level == 0 and tok.tag in ("h1", "h2"):
++            nxt = tokens[i + 1] if i + 1 < len(tokens) else None
++            section = nxt.content.strip() if tok.tag == "h2" and nxt is not None else ""
++        elif tok.type == "table_open":
++            headers = []
++        elif tok.type == "tr_open":
++            col = -1
++        elif tok.type in ("th_open", "td_open"):
++            col += 1
++            cell = tok.type[:2]
++        elif tok.type in ("th_close", "td_close"):
++            cell = None
+         if tok.type == "blockquote_open":
+             depth += 1
+             continue
+@@ -616,6 +634,12 @@ def inline_texts(body_lines: list[str]) -> list[InlineText]:
+             continue
+         if tok.type != "inline" or tok.map is None:
+             continue
++        workflow_value = False
++        if cell == "th":
++            headers.append(tok.content.strip())
++        elif (cell == "td" and section == CLAIMS_HEADING and 0 <= col < len(headers)
++              and headers[col] == CLAIMS_DESTINATION_COLUMN and tok.content.strip() in CLAIMS_DESTINATIONS):
++            workflow_value = True
+         chars: list = []
+         kinds: list = []
+         runs: list = []
+@@ -667,7 +691,8 @@ def inline_texts(body_lines: list[str]) -> list[InlineText]:
+                     put(f"（{suffix}）", "other")
+             # そのほか（強調の開きと閉じ）は文字を持たず、続きを切るだけである。
+             state["run"] += 1
+-        out.append(InlineText("".join(chars), kinds, runs, segs, lines, targets, tok.map[0], depth > 0))
++        out.append(InlineText("".join(chars), kinds, runs, segs, lines, targets, tok.map[0], depth > 0,
++                              workflow_value))
+     return out
+ 
+ 
+@@ -747,8 +772,20 @@ def _is_code_example(it: InlineText, start: int) -> bool:
+     return all(it.kinds[i] == "code" and it.runs[i] == run for i in range(mk.start(), mk.end()))
+ 
+ 
++# 取り込みの手順が決めた `## 主張と行き先` の表の「行き先」の列と、その値（ingest-workflow.md の手順 7b）。
++CLAIMS_HEADING = "主張と行き先"
++CLAIMS_DESTINATION_COLUMN = "行き先"
++CLAIMS_DESTINATIONS = ("create", "update", "source_only")
++
++
+ def _prose(it: InlineText) -> str:
+-    """「raw にない語」を探す文字（本文、wikilink の表示名、画像の代替の文字。コードは空白にし、印を除く）。"""
++    """「raw にない語」を探す文字（本文、wikilink の表示名、画像の代替の文字。コードは空白にし、印を除く）。
++
++    `## 主張と行き先` の表の「行き先」の列で、中身がちょうど手順の値（create、update、source_only）のセルは、本文の
++    語でないので探さない。節や字面で外すと、表の主張や本文の同じ語まで隠れた（wiki 0.23.2 のレビューの 1 回目と 2 回目）。
++    """
++    if it.workflow_value:
++        return ""
+     text = "".join(ch if k in ("text", "link", "image") else " " for ch, k in zip(it.display, it.kinds))
+     return DISPLAY_MARK_RE.sub(" ", text)
+ 
+diff --git a/skills/info-hive/scripts/wiki_youtube.py b/skills/info-hive/scripts/wiki_youtube.py
+index c3be26c..36dc1dc 100644
+--- a/skills/info-hive/scripts/wiki_youtube.py
++++ b/skills/info-hive/scripts/wiki_youtube.py
+@@ -43,6 +43,7 @@ import sys
+ import time
+ import urllib.parse
+ from dataclasses import dataclass, field
++from datetime import datetime
+ from pathlib import Path
+ 
+ sys.path.insert(0, str(Path(__file__).resolve().parent))
+@@ -494,6 +495,8 @@ def take(url: str, requested: str | None) -> dict:
+             result["warnings"] = s.warnings()
+             return result
+         data = s.json3(track)
++        # 字幕を取った時刻。raw には書かず、要約ページの fetched_at に写す（ADR-0027）。時差つきの ISO 8601。
++        result["fetched_at"] = datetime.now().astimezone().isoformat(timespec="seconds")
+         result["warnings"] = s.warnings()
+     text, sha, count = render(info, found.video_id, track, lang or track.lang, data)
+     result.update({"track": track.public(), "source_sha256": sha, "lines": count, "_raw": text})

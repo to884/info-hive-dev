@@ -2,7 +2,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 承認 |
+| 状態 | 承認（入力の実体を置き場所によらず読む決定のうち、リンクを通って届く実体は ADR-0029 で置き換え済み） |
 | 決定日 | 2026年11月11日 |
 | 決定者 | info-hive の開発者（このリポジトリの作者） |
 | 関連 | ADR-0010（中核と表示の分離）、ADR-0016（閲覧専用の確認）、[browse の第 1 段階の設計](../plans/wiki-browse-stage1-2026-11-09.md)（守ること 1 を本 ADR で言い換える）、[browse の構造の直し](../plans/wiki-browse-structure-2026-11-11.md)、`docs/agent-runs/2026-11-09-wiki-browse-stage1-review/impl-root-causes.md`、`docs/agent-runs/2026-11-11-wiki-browse-structure/design-review-2.md` |
