@@ -129,5 +129,44 @@ def main() -> None:
     (RESULTS / "probe-tuning.json").write_bytes((json.dumps(report, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
 
 
+# 行を単位にした基準（作者の決定 2026-11-16）で、決めておいた組み合わせを数える。
+# (a) 印の行のうち誤り、(b) 誤りの行のうち印（検出できなかった正解の行は入れない）、(c) 正しい行のうち印（誤報）。
+# 不利な側の行は、印があれば誤りでない（(a) を下げ、(c) の誤報に入る）、印がなければ誤り（(b) を下げる）。
+COMBOS = ["blur", "r100", "dpi", "blur+dpi", "any+dpi"]
+
+
+def line_unit(data: dict, signal, t: float) -> dict:
+    def flagged(line):
+        return (line["confidence"] is not None and line["confidence"] < t) or signal(line)
+
+    errors = correct = caught = false = flags = 0
+    for r in data["lines"]:
+        if r["rule"] == "excluded":
+            continue
+        f = flagged(r["line"])
+        error = r["error"] if r["rule"] == "exact" else not f
+        flags += f
+        errors += error
+        correct += not error
+        caught += f and error
+        false += f and not error
+    return {"flagged": flags, "errors": errors, "a": round(caught / flags, 3) if flags else None,
+            "b": round(caught / errors, 3) if errors else None, "c": round(false / correct, 4) if correct else None}
+
+
+def line_main() -> None:
+    data = collect()
+    report = {}
+    for t in (0.0, 0.3, 0.5):
+        for name in COMBOS:
+            row = {s: line_unit(d, SIGNALS[name], t) for s, d in data.items()}
+            ok = all(r["a"] is not None and r["a"] >= 0.55 and r["b"] >= 0.85 and r["c"] <= 0.10 for r in row.values())
+            report[f"{name}@{t}"] = {**row, "margin_ok": ok}
+            print(f"{name:9s} t={t:.1f}", " ".join(f"{s}: (a) {r['a']} (b) {r['b']} (c) {r['c']}" for s, r in row.items()),
+                  "余裕で満たす" if ok else "")
+    (RESULTS / "probe-line-unit-tuning.json").write_bytes(
+        (json.dumps(report, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
+
+
 if __name__ == "__main__":
-    main()
+    line_main() if len(sys.argv) > 1 and sys.argv[1] == "--line" else main()
