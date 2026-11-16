@@ -1,0 +1,69 @@
+[ask-codex 19:20:48] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\yt-fix）
+## 判定
+
+**条件付きで採用可。確信度：高。** 1 回目の「節全体が検査から消える」欠陥は解消しています。ただし、新しい除外は行き先の値に限定されず、主張に含まれる同じ字面も消すため、印なしの訂正を見落とす退行が残っています。
+
+## 致命的・重大な欠陥
+
+### 重大：行き先ではない本文の `update` も検査から消える
+
+**反例を再現しました。** raw の字幕を次にします。
+
+```text
+実行する命令は delete である。
+```
+
+要約ページは `type: source`、`caption_kind: asr`、`confidence: medium` とし、この raw を参照させます。印と定義は書かず、本文を次にします。
+
+```markdown
+## 概要
+
+実行する命令は update である。
+```
+
+`check_pages` の結果は次のとおりでした。ファイル参照だけをメモリ上の素材に差し替えています。
+
+| 条件 | findings | unknown_words | 重み／confidence |
+| --- | --- | --- | --- |
+| 現行の除外あり | `[]` | `{}` | `0`／`medium` |
+| `_WORKFLOW_WORDS_RE` の除外を無効化 | `[]` | `update` が出る | `0`／`medium` |
+
+同じ文を「主張と行き先」の**主張列**に置いた場合、または `sources` で要約ページを参照する関連ページに置いた場合も、`update` は消えました。管理用の値と実際の命令名を区別していません。
+
+根拠：
+
+- [wiki_captions.py:1032](C:/Works/info-hive-dev/.claude/worktrees/yt-fix/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1032)：正規表現は前後の文字だけを判定する。
+- [wiki_captions.py:1042](C:/Works/info-hive-dev/.claude/worktrees/yt-fix/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1042)：すべての本文に除外を適用し、見出し・列・ページの種類を確認しない。
+- [ingest-workflow.md:248](C:/Works/info-hive-dev/.claude/worktrees/yt-fix/info-hive-wiki/skills/info-hive/references/ingest-workflow.md:248)：説明上の除外は「主張と行き先」の行き先の値である。
+
+影響はこの三つの字面に限られますが、英語の用語や操作名を扱う講義では、主張の意味を変える訂正そのものが該当します。これは訂正の正しさを保証できないという既知の限界とは別に、従来出ていた目印が消える問題です。
+
+## 崩れる前提
+
+- **`create`、`update`、`source_only` は管理用の語である。** 命令名、API の操作名、識別子について説明する本文では、主張を構成する語になります。
+- **前後が英数字と `_` でなければ、行き先の値と判断できる。** 通常の日本語文中の「命令は update である」も同じ条件を満たします。
+- **表の数値と別のカタカナ語を検査できれば、主張の検査は維持されている。** 主張自体に除外語が入る場合には成立しません。
+
+## 見落としと軽微な問題
+
+- **軽微：追加テストが除外語の役割を入れ替えていない。** [test_wiki_youtube.py:1080](C:/Works/info-hive-dev/.claude/worktrees/yt-fix/tests/wiki/test_wiki_youtube.py:1080) は、行き先の値が消え、`999` と `サンプル` が残ることを確認します。`update` を主張列や通常の本文に置く反例は含まれていません。
+- **軽微：時刻の回帰テストは依然として限定的。** 同ファイル 499〜501 行は `created` の時差の有無だけを確認します。`inspect`、`same`、秒精度、取得後に採時する順序は検査していません。ただし、今回の実行では不具合を再現できませんでした。
+
+## 検証した事実
+
+- **一致：** 提示された二つのパッチの全ハンクは、現行ファイルの対応箇所と一致しました。
+- **一致：** 表の `999` と、「関係するページ」配下の h3 本文の `サンプル` は目印に残りました。
+- **食い違い：** 「行き先の値だけを除外する」という説明に対し、実装は本文全体から同じ字面を除外します。
+- **一致：** 通信と時計を差し替え、`inspect` と `write same` の双方で `json3取得 → 採時 → raw生成` の順序と、時差付き・秒精度の返却を確認しました。
+- **試験結果：** ファイルを書かない既存テスト 21 件が成功しました。加えて、入出力をメモリに差し替えた照合系の既存テスト 14 件も成功しました。
+- **未検証：** 実ネットワークでの取得と、ファイル作成を伴う全体テストは実行していません。
+
+## 崩せなかった点
+
+- 1 回目の反例だった、節全体による数値・本文の隠蔽は再現しませんでした。
+- 印・定義・根拠・矛盾・confidence の照合を、新しい語の除外で迂回する反例は得られませんでした。
+- `fetched_at` の追加について、`inspect` と `same` の返却動作を崩せませんでした。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 19:26:12] 完了。session 01a1e3df-ac54-7203-b712-2cf7d267a30d  usage {"input_tokens": 1608749, "cached_input_tokens": 1493760, "cache_write_input_tokens": 0, "output_tokens": 8606, "reasoning_output_tokens": 2009}
