@@ -11,7 +11,7 @@ updated: 2026-11-16
 
 # /wiki:query の回答の確からしさと wiki 0.20.0 のリリース
 
-`/wiki:query` の回答に確からしさ（confidence）を付け、低いときは上げる方法を提案するようにして、wiki 0.20.0 として出した記録である。原本（Sol の 6 回のレビュー）は `docs/agent-runs/2026-11-16-wiki-query-confidence/` にあり、決定は ADR-0028（提案）にある。決め方の正本は、プラグインの `skills/info-hive/references/query-workflow.md` の手順 5b である。
+`/wiki:query` の回答に確からしさ（confidence）を付け、低いときは上げる方法を提案するようにして、wiki 0.20.0 として出した記録である。原本（Sol の 6 回のレビュー）は `docs/agent-runs/2026-11-16-wiki-query-confidence/` にあり、決定は ADR-0028（2026年11月16日に承認）にある。決め方の正本は、プラグインの `skills/info-hive/references/query-workflow.md` の手順 5b である。
 
 ## 付ける場所を回答にした理由
 
