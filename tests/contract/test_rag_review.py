@@ -117,13 +117,15 @@ class Base(unittest.TestCase):
     def decide(self, wiki: Path, base: int, items: list[dict]) -> int:
         """MCP の decide_ocr_pages と同じに、台帳に書いてから作り直しのジョブを登録する。"""
         version = rag_review.decide(self.config, str(wiki), self.doc_id, base, items)
-        Jobs(self.config.data_dir).register_rebuild(self.config, str(wiki), self.doc_id)
-        rag_review.Ledger(self.config.workspace(str(wiki))).mark_registered(self.doc_id, version)
+        Jobs(self.config.data_dir).register_rebuild(self.config, str(wiki), self.doc_id, version)
         return version
 
     def item(self, wiki: Path, page: int, action: str, text: str | None = None) -> dict:
         detail = rag_review.page_detail(self.config, str(wiki), self.doc_id, page)
         return {"page": page, "action": action, "text": text, "decided_by": "user", "ocr_sha256": detail["ocr_sha256"]}
+
+    def ledger_version(self, wiki: Path | None = None) -> int:
+        return rag_review.Ledger(self.config.workspace(str(wiki or self.wiki))).version(self.doc_id)
 
     def search_texts(self, engine: Engine, wiki: Path, query: str) -> list[dict]:
         return engine.search(str(wiki), query, limit=20)["results"]
@@ -234,14 +236,14 @@ class ReviewTests(Base):
         engine = self.engine()
         jobs, _ = self.ingest_job(engine)
         self.decide(self.wiki, 0, [self.item(self.wiki, 3, "accept")])
-        jobs.register_rebuild(self.config, str(self.wiki), self.doc_id)
+        jobs.register_rebuild(self.config, str(self.wiki), self.doc_id, self.ledger_version())
         original = engine.rebuild_reviewed
 
         def rebuild_then_decide(*args, **kwargs):
             result = original(*args, **kwargs)
             # 作り直しが最後に台帳を読んだあと、終わりを書く前に、次の確認を受け付ける
             self.decide(self.wiki, 1, [self.item(self.wiki, 4, "fix", "直した本文 四")])
-            jobs.register_rebuild(self.config, str(self.wiki), self.doc_id)
+            jobs.register_rebuild(self.config, str(self.wiki), self.doc_id, self.ledger_version())
             engine.rebuild_reviewed = original
             return result
         engine.rebuild_reviewed = rebuild_then_decide
@@ -317,7 +319,7 @@ class ReviewTests(Base):
         engine = self.engine()
         jobs, _ = self.ingest_job(engine)
         self.decide(self.wiki, 0, [self.item(self.wiki, 3, "accept")])
-        jobs.register_rebuild(self.config, str(self.wiki), self.doc_id)
+        jobs.register_rebuild(self.config, str(self.wiki), self.doc_id, self.ledger_version())
         self.assertEqual(self.run_queued(jobs, engine)[-1]["status"], "completed")
 
 
@@ -523,6 +525,52 @@ class ReviewRegressionTests(Base):
         engine.ingest_pdf = record
         self.run_queued(jobs, engine)
         self.assertEqual(seen, [str(self.pdf)])
+
+    def test_later_decision_is_registered_after_the_covering_job_was_cancelled(self):
+        """登録し直したジョブ（版 1）を取り消し、版 2 の確認の登録が失われても、版 2 は登録し直す。"""
+        engine = self.engine()
+        jobs, _ = self.ingest_job(engine)
+        rag_review.decide(self.config, str(self.wiki), self.doc_id, 0, [self.item(self.wiki, 3, "accept")])
+        first = self.reconcile(jobs)
+        self.assertEqual(len(first), 1)
+        jobs.cancel(str(self.wiki), first[0]["job_id"])
+        rag_review.decide(self.config, str(self.wiki), self.doc_id, 1, [self.item(self.wiki, 4, "accept")])  # 登録しない
+        second = self.reconcile(jobs)
+        self.assertEqual(len(second), 1)
+        self.assertNotEqual(second[0]["job_id"], first[0]["job_id"])
+        self.run_queued(jobs, engine)
+        with closing(sqlite3.connect(self.config.workspace(str(self.wiki)) / "catalog.sqlite")) as db:
+            self.assertEqual(db.execute("SELECT review_version FROM documents").fetchone()[0], 2)
+
+    def test_failed_rebuild_is_not_registered_again(self):
+        """作り直しが失敗したら、状態からの登録し直しで復活しない（明示的な再試行で動かす）。"""
+        engine = self.engine()
+        jobs, _ = self.ingest_job(engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "accept")])
+        moved = self.pdf.with_name("moved.pdf")
+        self.pdf.rename(moved)  # PDF を移したので、作り直しは失敗する
+        done = self.run_queued(jobs, engine)
+        self.assertEqual(done[-1]["status"], "failed")
+        self.assertEqual(self.reconcile(jobs), [])
+        self.assertIsNone(jobs.claim("試験"))
+
+    def test_rebuild_uses_the_given_path_even_when_it_resolves_differently(self):
+        """利用者が渡したパスと、解決したパスが違うとき（ネットワークドライブなど）も、渡したパスで作り直す。"""
+        engine = self.engine()
+        given = str(self.pdf.parent / ".." / "refs" / self.pdf.name)
+        jobs = Jobs(self.config.data_dir)
+        jobs.register(self.config, str(self.wiki), given, "sources/kinds.md")
+        process_job(jobs, "試験", jobs.claim("試験"), engine)
+        self.decide(self.wiki, 0, [self.item(self.wiki, 3, "accept")])
+        seen = []
+        original = engine.ingest_pdf
+
+        def record(wiki, source, *args, **kwargs):
+            seen.append(source)
+            return original(wiki, source, *args, **kwargs)
+        engine.ingest_pdf = record
+        self.run_queued(jobs, engine)
+        self.assertEqual(seen, [given])
 
     def test_retry_does_not_make_a_second_rebuild_job(self):
         engine = self.engine()
