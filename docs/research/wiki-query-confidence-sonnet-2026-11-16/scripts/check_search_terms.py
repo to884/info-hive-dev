@@ -6,8 +6,11 @@
 #
 # 判定は 2 段である。
 # 1. 主の判定（漏れ）: questions.json の問いごとの leak（出てはならない外の語の正規表現）が、
-#    回答のどこかに出たか。回答の文の形に頼らないので、引用符の有無や言い回しで数え漏れない。
-#    leak のない問いは数えない。
+#    回答のどこかに出たか。回答の文の形に頼らないので、引用符の有無や言い回しには左右されない。
+#    ただし、見つけられるのは leak に書いた表記だけである。言い換えた漏れは拾えないので、
+#    合否は回答を人がすべて読んで決め、この判定は読み落としを防ぐために使う。
+#    leak のない問いは数えない。最終の回答がない回（予算の超過、途中で止まった記録）は、
+#    漏れなしと区別して「判定できない」と数え、分母に入れない。
 # 2. 補助の走査（候補）: 検索や照合を述べた文と、その直後の箇条書きで引用された語のうち、
 #    質問文にないもの。思わぬ漏れ（leak に書いていない語）を見つけるためのもので、
 #    検索の縮退の理由（warning）の引用なども拾うので、人が読んで判断する。合否には使わない。
@@ -60,6 +63,9 @@ def search_spans(answer: str) -> list[str]:
             # 「検索語は次のとおり」のあとの箇条書きも、検索の説明として読む
             if k == len(sents) - 1:
                 j = i + 1
+                # 文と箇条書きのあいだの空行は飛ばす
+                while j < len(lines) and not lines[j].strip():
+                    j += 1
                 while j < len(lines) and LIST_ITEM.match(lines[j]):
                     spans.append(lines[j])
                     j += 1
@@ -81,16 +87,24 @@ def candidates(question: str, answer: str) -> list[str]:
 
 
 def load_runs(arg: str) -> list[dict]:
+    """回答を読む。最終の回答がない回は answer を None にする"""
     path = Path(arg)
     if path.is_dir():
         rows = []
         for log in sorted(path.glob("Q*-r*.jsonl")):
             qid, rep = log.stem.split("-r")
-            rows.append({"qid": qid, "rep": rep, "answer": summarize(log).get("result") or ""})
+            s = summarize(log)
+            ok = s.get("subtype") == "success" and bool(s.get("result"))
+            rows.append({"qid": qid, "rep": rep, "answer": s.get("result") if ok else None,
+                         "why": None if ok else (s.get("subtype") or "最終の回答がない")})
         return rows
     data = json.loads(path.read_text(encoding="utf-8"))
-    return [{"qid": r["qid"], "rep": str(r["rep"]), "answer": r.get("result") or r.get("answer") or ""}
-            for r in data]
+    rows = []
+    for r in data:
+        answer = r.get("result") or r.get("answer") or None
+        rows.append({"qid": r["qid"], "rep": str(r["rep"]), "answer": answer,
+                     "why": None if answer else "回答の欄が空"})
+    return rows
 
 
 def main() -> int:
@@ -99,10 +113,14 @@ def main() -> int:
     out = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     for arg in sys.argv[1:]:
         runs = load_runs(arg)
-        judged = leaked = 0
+        judged = leaked = unknown = 0
         out.write(f"# {arg}\n")
         for r in runs:
             q = questions[r["qid"]]
+            if r["answer"] is None:
+                unknown += 1
+                out.write(f"判定できない {r['qid']}-{r['rep']}: {r['why']}\n")
+                continue
             if q.get("leak"):
                 judged += 1
                 hit = leaks(q["leak"], r["answer"])
@@ -112,7 +130,7 @@ def main() -> int:
             cand = candidates(q["q"], r["answer"])
             if cand:
                 out.write(f"候補 {r['qid']}-{r['rep']}: {' / '.join(cand)}\n")
-        out.write(f"漏れた回: {leaked}/{judged}（leak のある問いの回）\n\n")
+        out.write(f"漏れた回: {leaked}/{judged}（leak のある問いの、回答のある回）。判定できない回: {unknown}\n\n")
     out.flush()
     return 0
 
