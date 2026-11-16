@@ -1366,6 +1366,8 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
       if (isComposingKey(ev)) return;
       const item = document.activeElement;
       if (!item || !item.classList || !item.classList.contains('fui-TreeItem') || !tree.contains(item)) return;
+      // Alt と左右の矢印は、ブラウザーの戻る・進むに残す（v9 の useTreeItem.tsx:215-218, 251-254）
+      if (ev.altKey && (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight')) return;
       const items = visibleItems();
       const rtl = getComputedStyle(tree).direction === 'rtl';
       const openKey = rtl ? 'ArrowLeft' : 'ArrowRight';
@@ -1381,9 +1383,14 @@ The name and trademarks of copyright holders may NOT be used in advertising or p
       } else if (ev.key === closeKey) {
         if (isBranch(item) && item.getAttribute('aria-expanded') === 'true') toggle(item, false);
         else focusItem(parentItem(item));
-      } else if (ev.key === 'Enter') toggle(item);
-      else if (ev.key.length === 1 && /\S/.test(ev.key)) {
-        // 先頭文字の検索: 今の項目の次から順に探す
+      } else if (ev.key === 'Enter') {
+        // v9 は Enter で項目の click() を呼ぶだけで、既定の動作を止めない（useTreeItem.tsx:175-180）。
+        // 枝は開閉して止める。葉は止めない: リンクの葉（a.fui-TreeItem[href]）は、リンクの既定の動きで移る
+        if (isBranch(item)) toggle(item);
+        else handled = false;
+      } else if (ev.key.length === 1 && /\S/.test(ev.key) && !ev.altKey && !ev.ctrlKey && !ev.metaKey) {
+        // 先頭文字の検索: 今の項目の次から順に探す。Alt、Ctrl、Meta の付いた文字（Ctrl+C などのショートカット）は
+        // 扱わない（v9 の useTreeItem.tsx:276-277）。v9 は /\w/ の文字に限るが、ここでは日本語の名前も探せるよう空白以外にする
         const key = ev.key.toLocaleLowerCase();
         const start = items.indexOf(item);
         const order = items.slice(start + 1).concat(items.slice(0, start + 1));
