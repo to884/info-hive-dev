@@ -1,0 +1,95 @@
+## 判定
+
+**却下。確信度：高。** 新規の保存先同士が衝突し、同時には保存できないページ集合でも `verify` が終了コード0を返す。重大1件、軽微1件を確認した。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】保存先を個別に検査するため、実現できないページ集合を正常と判定する
+
+正常な `uploaded` の raw `raw/a.md` を200行で作り、L1を `15` とする。まだ `sources/x.md` が存在しない状態で、次の3ページを同時に渡す。
+
+| 保存先 | 内容 |
+|---|---|
+| `sources/a.md` | 親の要約。`raw: "raw/a.md"`、`caption_kind: "uploaded"`、`confidence: "medium"` |
+| `sources/x.md` | 通常のエンティティページ。`sources: ["a"]` |
+| `sources/x.md/child.md` | 同じrawの分割要約。下記の本文と定義を持ち、confidenceは書かない |
+
+分割要約の本文と定義：
+
+```markdown
+50〔訂正 L1-1〕
+
+## 字幕の訂正と留保
+
+- L1-1: 字幕 `15` を `50` に訂正（根拠 model:reason）
+```
+
+実際の `cmd_verify` の結果は以下だった。
+
+```text
+終了コード: 0
+findings: []
+summaries: ["sources/a.md", "sources/x.md/child.md"]
+weight: 3
+confidence: medium
+```
+
+しかし、`sources/x.md` は、一方ではファイル、もう一方ではディレクトリでなければならない。どちらを先に保存しても、もう一方を保存できない。
+
+`walk_reaches` は、存在しない各保存先について既存の祖先が `visited` にあるかだけを調べる。別のoverlayがその途中のパスをファイルとして作ることを見ない。`load_pages` も、その検査を各ページに独立して適用した後、全ページを追加する。
+
+同じ原因で、**大文字・小文字を区別しないWindowsのファイルシステムでは、新規の `sources/a.md` と `sources/A.md` も別ページとして通る**。前者を親、後者を上記の分割要約にすると、`cmd_verify` は終了コード0・指摘なしだった。親、分割要約の順に保存した状態を反映すると、残るファイルは分割要約の内容になり、再検査は `missing_confidence` を返した。
+
+根拠：
+
+- [wiki_captions.py:1357](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1357)：存在しない保存先の祖先だけを検査する。
+- [wiki_captions.py:1430](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1430)：overlayを個別に検査する。
+- [wiki_captions.py:1449](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1449)：未保存のoverlayを別々のページとして追加する。
+- [ADR-0027:112](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/docs/adr/0027-youtube-captions-via-pinned-yt-dlp.md:112)：保存後にページとして読まれる場所だけを認める要件と食い違う。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| 存在しない途中のパスは、保存時に通常のディレクトリとして作れる | 別のoverlayがそのパスをファイルとして使う |
+| 現在のディスクの綴りに直せば、保存先の別表記を統一できる | 大文字・小文字だけ異なる保存先が、どちらもまだ存在しない |
+| 各保存先を個別に通せば、保存後のページ集合も検証時と一致する | overlay同士が同じ場所を共有するか、ファイルとディレクトリとして衝突する |
+
+## 見落としと軽微な問題
+
+### 【軽微】補助面のカタカナは「rawにない語」の抽出から漏れる
+
+次の2文字は、現在の `char_class` では両方とも `"katakana"` になる。どちらも含まないrawに対して試した。
+
+```python
+word = "\U0001B000\U0001B155"  # 𛀀𛅕
+unknown_words([word], raw, [])  # []
+```
+
+2文字以上のカタカナなのに、未知語として挙がらない。語の境界判定は修正されたが、未知語の抽出は引き続き固定範囲 `[ァ-ヺー]{2,}` を使っている。
+
+根拠：[wiki_captions.py:1014](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/info-hive-wiki/skills/info-hive/scripts/wiki_captions.py:1014)、[ADR-0027:113](C:/Works/info-hive-dev/.claude/worktrees/adr-0027-impl/docs/adr/0027-youtube-captions-via-pinned-yt-dlp.md:113)。補助的な目印の欠落なので軽微とする。
+
+## 検証した事実
+
+| 確かめた主張 | 結果 |
+|---|---|
+concat| テストは53件 | 一致。収集件数53件 |
+| ファイルを作らない既存4クラス | 21件成功 |
+| 補助面のカタカナによる既出の境界すり抜けを拒む | 一致。既存試験で確認 |
+| シンボリックリンク・循環ジャンクション配下の既出保存先を拒む | 一致。OS応答を差し替え、通常走査とoverlayの拒否を確認 |
+| 印がない関係ページも `sources` から照合する | 一致。`999` が未知語として挙がった |
+| 保存先の検証結果が、保存後のページ集合と一致する | 食い違い。重大1 |
+
+反例は、raw・ページ・ファイルシステムの応答をメモリ上で差し替え、実際の `cmd_verify`、`check_wiki`、`check_pages` で検証した。ファイルは変更していない。全53件の一括実行、実保存・競合、固定したyt-dlpによる実取得は未実施。
+
+## 崩せなかった点
+
+- 前回のシンボリックリンクと循環ジャンクションの反例そのもの。
+- 前回の補助面のカタカナによる、未訂正の本文のすり抜け。
+- 既存試験が扱う、字幕による行番号・フェンス・区間構造の偽造。
+- 種類付きIDによる投稿者字幕と自動字幕の選択。
+- confidenceの計算式そのもの。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

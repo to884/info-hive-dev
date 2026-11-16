@@ -1,0 +1,72 @@
+[ask-codex 14:24:56] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-wiki-links-4ebc39）
+## 判定
+
+**却下。確信度：高。** 許可された wiki の根のリンクを使うだけで、セッションの `raw:` が別の原本に解決される反例が成立する。リンク検査と原本保護が、誤ったファイルを対象にできる。
+
+## 致命的・重大な欠陥
+
+### 1. 重大：セッション raw の生成時と解決時で、基準になる「wiki の親」が異なる
+
+**反例となる配置：**
+
+```text
+C:/view/wiki                 → D:/store/wiki へのディレクトリリンク
+C:/view/raw/session.md       実際に保存したセッション raw
+D:/store/raw/session.md      無関係な通常ファイル
+```
+
+1. セッション取り込みに `--wiki C:/view/wiki --raw-root C:/view/raw` を渡す。
+2. 指定版の `raw_ref_of()` は、入力された wiki パスの親を基準にして `raw/session.md` を返す。source ページには、この値と `session_id:` が入る。
+3. MCP に `wiki=C:/view/wiki` を渡す。MCP は根を `D:/store/wiki` に正規化する。
+4. 設計160行の resolver は、セッションなので **`D:/store` だけ**を基準にする。
+5. 無関係な `D:/store/raw/session.md` を `resolved` とする。これがなければ、実在する原本を `missing` とする。
+
+したがって、実際の原本をハードリンクにしても、lint は別の通常ファイルを検査できる。依存収集にも誤った原本が入り、`resolved`／`missing` のいずれでも完全性を真にできる。
+
+**根拠・照合結果：食い違い。**
+
+- [設計29行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:29)は、wiki の根そのもののリンクを許す。
+- [設計160行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:160)は、セッション raw を wiki の親だけで解く。[149行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:149)は `missing` でも完全性を真にする。
+- wiki `2452f59` の [wiki_session.py:1640](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1640)は入力パスを保持し、[1250行](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1250)の `raw_ref_of()` は `abspath()` を使う。根のリンクは解決しない。
+- [wiki_mcp_server.py:105](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_server.py:105)と [wiki_mcp_common.py:78](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_common.py:78)は、根を解決してから後続処理へ渡す。
+- 指定版から抽出した関数のメモリ上の確認でも、生成値は `raw/session.md`、入力の根では原本あり、正規化後の根では原本なしとなった。
+
+これは、対象外とされた `subst` 経由のソース入力ではない。**明示的に許可した wiki の根のリンクと、現行の生成元の組み合わせ**である。新 resolver は未実装なので、上記は契約から導いた静的反例である。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| セッションが保存時に使う「wiki の親」と、resolver が使う親は同じ | wiki の根のリンク先が、別の親ディレクトリにある |
+| `session_id:` があれば、現在の wiki の親だけで原本を特定できる | 保存時のパスの綴りが正規化によって失われる |
+| `resolved`／`missing` なら依存収集を完全としてよい | 基準ディレクトリ自体を取り違えている |
+
+## 見落としと軽微な問題
+
+- **軽微：旧 `missing_raw()` との一致試験が `unknown` と両立しない。**  
+  [設計163行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:163)は、非セッションの旧「ないものの一覧」と、新 resolver の `missing` の一致を要求する。しかし、全候補の存在確認が `PermissionError` になると、指定版の [wiki_lint.py:206](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:206)は失敗を `False` に変え、旧関数は「ない」と報告する。新契約の159行では `unknown` である。`_exists()` へ例外を与え、`False` になることを確認した。
+
+- **軽微：SQLite の最終名に対する保証と試験要求が一致しない。**  
+  [設計191行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:191)は、ベクトル索引の SQLite について、部品が検査できるのは道までで、最後の名前のハードリンクは防げないとする。一方、[276行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:276)は、その索引がハードリンクなら語彙検索へ退避することを要求する。現行の [wiki_search.py:611](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:611)は直接 `sqlite3.connect()` する。途中のディレクトリが通常なら、道の検査だけでは、この退避を起動する `LinkRefused` は得られない。
+
+## 検証した事実
+
+| 確認対象 | 結果 |
+| --- | --- |
+| 指定コミット | **一致。** wiki `2452f59`、rag `c59d05e` を `git show` で照合 |
+| `_stat_entry()`、`list_index()`、`missing_raw()`、`raw_ref_of()` の引用箇所 | **一致。** 確認した行番号と振る舞いは説明どおり |
+| rag のパス処理 | **一致。** `pdf_path()` は解決したパスを返し、登録結果の `raw` に使う |
+| 指定 wiki 版からローカル `origin/main` までのスクリプト差分 | **一致。** `wiki_pdf.py` と `wiki_pdf_layer.py` の追加だけ |
+| 新 resolver と書き込み部品の通し試験 | **確かめられず。** 未実装。今回の実行確認は指定版の関数とメモリ上の代替入力に限定 |
+
+ファイル変更、リンク作成、属性変更は行っていない。
+
+## 崩せなかった点
+
+- 前回の途中の `..` による所属判定の反例は、取り込み・PDF 登録の停止と試験に反映されている。
+- MCP の索引を書けない場合をツールの失敗とする契約から、前回の「継続経路がない」という欠陥は再導出できなかった。
+- 日誌に記録された一時ハードリンクの削除を、完全性判定より前に許す変更から、前回と同じ復旧不能は導けなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 14:35:21] 完了。session 01a1e2d0-cc92-77c2-8471-0e67caf99a19  usage {"input_tokens": 2791835, "cached_input_tokens": 2627968, "cache_write_input_tokens": 0, "output_tokens": 14019, "reasoning_output_tokens": 6998}

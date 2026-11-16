@@ -1,0 +1,85 @@
+[ask-codex 14:42:36] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-wiki-links-4ebc39）
+## 判定
+
+**却下。確信度：高。** 5版目の修正は、読み取り時に渡された根の綴りしか復元できず、保存時の綴りに依存するセッション raw を誤って解決する経路が残る。既存の問い合わせ設計には、その綴りを後続の呼び出しへ渡さない手順もある。
+
+以下は設計の静的反例である。未実装の resolver による通し試験ではない。
+
+## 致命的・重大な欠陥
+
+### 1. 重大：現在の入力の綴りを残しても、保存時に使った「wiki の親」は復元できない
+
+**反例となる配置：**
+
+```text
+C:/view/wiki                 → D:/store/wiki へのディレクトリリンク
+C:/view/raw/session.md       保存したセッション raw
+D:/store/raw/session.md      無関係な通常ファイル
+```
+
+1. `--wiki C:/view/wiki --raw-root C:/view/raw` でセッションを保存する。
+2. 指定版の `raw_ref_of()` は `raw/session.md` を返す。source ページには、この値と `session_id:` が入る。
+3. 後日、同じ wiki を実体側の `D:/store/wiki` で lint または問い合わせに渡す。
+4. 5版目の resolver に渡る「利用者が書いたままの根」と「解決した根」は、どちらも `D:/store/wiki` になる。
+5. 両基準とも無関係な `D:/store/raw/session.md` を指し、`resolved` になる。そのファイルがなければ、実在する原本を `missing` にする。
+
+保存時の `C:/view` は、今回の入力にもページの `raw:` にも残っていない。候補をすべて確認しても、この欠落は検出できない。`missing` でも完全性を真にするため、誤った依存集合を完全と扱える。
+
+さらに、問い合わせ設計の[86行](C:/Works/info-hive-dev/docs/plans/wiki-query-two-wikis-2026-11-16.md:86)は、補助の後の**すべての呼び出しへ正規化済みの `roots` を渡し、登録から読んだパスを渡さない**と要求する。この経路では、利用者が登録した綴りが別名側でも、後続の resolver には実体側の根しか届かない。
+
+**根拠・照合結果：食い違い。**
+
+- [対象設計160行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:160)が保持するのは、現在の MCP・CLI 呼び出しの入力の綴りである。保存時の基準は記録しない。
+- [162行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:162)は、新しいセッション raw も現在の相対参照の形式を維持する。
+- [149行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:149)は、`resolved` と `missing` を完全性の許容条件にする。
+- wiki `2452f59` の [wiki_session.py:1250](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1250)から関数を抽出し、手順1の入力で `raw/session.md` が生成されることをメモリ上で確認した。
+
+前回の「同じ入力の綴りを MCP の正規化が消す」という再掲ではない。今回は、**保存時と読み取り時で根の指定を変えた場合**と、**関連設計が正規化済みの根だけを後続へ渡す場合**に、5版目の修正で原因を閉じられていないという指摘である。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+| --- | --- |
+| 現在の入力の綴りと解決済みの根から、保存時の基準を列挙できる | 別名で保存した wiki を、実体側または別の別名で読む |
+| 呼び出し元は元の綴りを resolver まで保持できる | 問い合わせ設計86行に従い、正規化済みの `roots` を後続へ渡す |
+| 全候補を確認できれば、依存を完全と判定できる | 必要な基準自体が候補集合から欠けている |
+
+## 見落としと軽微な問題
+
+**軽微：旧 `missing_raw()` との一致試験が、追加した基準と両立しない。**
+
+[163行](C:/Works/info-hive-dev/.claude/worktrees/adr-wiki-links-4ebc39/docs/plans/wiki-links-2026-11-16.md:163)は、非セッションの source について、全候補を確認できれば旧関数の「ないものの一覧」と新 resolver の `missing` が一致すると要求する。しかし、5版目では解決済みの根の親も候補に加わる。
+
+```text
+wiki = C:/view/wiki → D:/store/wiki
+raw: raw/book.md                  非セッションの source
+D:/store/raw/book.md              これだけ存在する
+```
+
+旧関数の3候補には `D:/store/raw/book.md` が入らず、「ない」になる。新契約では、そのファイルが追加候補に入り `resolved` になる。全候補の存在確認が成功する場合でも一致しない。
+
+指定版から抽出した旧関数へ、存在確認をメモリ上で差し替えてこの差を確認した。前回の `PermissionError` による不一致とは別の反例である。
+
+## 検証した事実
+
+| 確認対象 | 結果 |
+| --- | --- |
+| 指定コミット | **一致。** wiki `2452f594…`、rag `c59d05e2…` を確認 |
+| セッション raw の生成基準 | **一致。** `raw_ref_of()` は入力された wiki の綴りの親を使う |
+| 旧 `missing_raw()` の基準 | **一致。** wiki、wiki の親、ページのディレクトリの3候補 |
+| 問い合わせ設計との接続 | **食い違い。** 後続には正規化済みの根だけを渡す契約が残る |
+| rag の `pdf_path()` | **一致。** `resolve(strict=True)` の結果を返す |
+| 指定 wiki 版からローカル `origin/main` のスクリプト差分 | **一致。** `wiki_pdf.py` と `wiki_pdf_layer.py` の追加だけ |
+| 新 resolver・書き込み部品の実行結果 | **確かめられず。** 指定版には未実装 |
+
+ファイル変更、リンク作成、属性変更は行っていない。
+
+## 崩せなかった点
+
+- 本文の読み取り・文字コード・frontmatter の解釈失敗を完全性に含める条件から、以前と同じ取りこぼしは導けなかった。
+- SQLite の行き先と付随ファイルを事前確認する契約により、前回の「道だけを検査して末尾のハードリンクを見逃す」という指摘は再導出できなかった。
+- MCP の索引を書けない場合をツールの失敗とする契約から、以前の「続行先がない」という矛盾は導けなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 14:50:40] 完了。session 01a1e2e0-f7f8-7913-ad74-89b09572fa8a  usage {"input_tokens": 1168573, "cached_input_tokens": 1047680, "cache_write_input_tokens": 0, "output_tokens": 12515, "reasoning_output_tokens": 6034}
