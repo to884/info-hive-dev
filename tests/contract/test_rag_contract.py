@@ -171,28 +171,32 @@ class OcrStoreTests(Base):
         marker = json.loads((Config(self.values).extraction_root / self.doc_id / "ocr" / "adopted.json").read_text(encoding="utf-8"))
         self.assertEqual(list(marker["sources"]), [f"auto-150-{OCR_REVISION[:12]}-extract-v1"])
 
-    def interrupt_adoption(self):
-        """移す途中（印と 1 ページを書いたあと、2 ページ目を書く前）で止める。"""
-        self.legacy_cache(f"auto-150-{OCR_REVISION[:12]}-extract-v1", {2: "移した 2", 3: "移した 3", 4: "移した 4"})
+    def interrupt_adoption(self, stop_at: int):
+        """rag_pdf の write_json の stop_at 回目（1 から）で止める。"""
         original, calls = rag_pdf.write_json, []
 
-        def stop_on_third(path, value):
+        def stop(path, value):
             calls.append(path)
-            if len(calls) == 3:
+            if len(calls) == stop_at:
                 raise RuntimeError("移す途中で止まった")
             return original(path, value)
-        with patch("rag_pdf.write_json", stop_on_third), self.assertRaisesRegex(RuntimeError, "移す途中で止まった"):
+        with patch("rag_pdf.write_json", stop), self.assertRaisesRegex(RuntimeError, "移す途中で止まった"):
             self.ingest(self.engine(StubOcr()))
 
+    def one_source_interrupted(self):
+        """元が 1 つ。書く順は、印（文書の描画の識別）、印（元の copying）、2 ページ目、3 ページ目。3 ページ目の前で止める。"""
+        self.legacy_cache(f"auto-150-{OCR_REVISION[:12]}-extract-v1", {2: "移した 2", 3: "移した 3", 4: "移した 4"})
+        self.interrupt_adoption(stop_at=4)
+
     def test_interrupted_adoption_resumes_with_the_same_render(self):
-        self.interrupt_adoption()
+        self.one_source_interrupted()
         ocr = StubOcr()
         result = self.ingest(self.engine(ocr))
         self.assertEqual(ocr.calls, 0)  # 描画の識別が同じなので、続きを写した
         self.assertEqual([self.markdown_pages(result)[n] for n in (2, 3, 4)], ["移した 2", "移した 3", "移した 4"])
 
     def test_interrupted_adoption_is_not_resumed_after_the_render_changed(self):
-        self.interrupt_adoption()
+        self.one_source_interrupted()
         bumped = {"pypdfium2": "9.9.9", "dpi": 150}
         ocr = StubOcr()
         with patch("rag_config.render_identity", lambda dpi: bumped), patch("rag_pdf.render_identity", lambda dpi: bumped):
@@ -200,8 +204,21 @@ class OcrStoreTests(Base):
         self.assertEqual(ocr.calls, 3)  # 移し始めたときと描画の識別が違うので、写さずに OCR した
         self.assertTrue(all(self.markdown_pages(result)[n].startswith("OCR の本文") for n in (2, 3, 4)))
         marker = json.loads((Config(self.values).extraction_root / self.doc_id / "ocr" / "adopted.json").read_text(encoding="utf-8"))
-        state = marker["sources"][f"auto-150-{OCR_REVISION[:12]}-extract-v1"]
-        self.assertEqual((state["state"], state["render"]), ("copying", rag_config.render_identity(150)))
+        self.assertEqual(marker["sources"][f"auto-150-{OCR_REVISION[:12]}-extract-v1"]["state"], "copying")
+        self.assertEqual(marker["render"], rag_config.render_identity(150))  # 移す描画の識別は、文書ごとに 1 つ
+
+    def test_adoption_stopped_between_two_sources_is_not_continued_after_the_render_changed(self):
+        """always の元を移し終え、auto の元を記録する前に止まったあと、描画の識別が変わっても、auto の元から移さない。"""
+        self.legacy_cache(f"always-150-{OCR_REVISION[:12]}-extract-v1", {2: "always の 2"})
+        self.legacy_cache(f"auto-150-{OCR_REVISION[:12]}-extract-v1", {2: "auto の 2", 3: "auto の 3"})
+        # 書く順は、印（文書の描画の識別）、印（always の copying）、2 ページ目、印（always の done）、印（auto の copying）
+        self.interrupt_adoption(stop_at=5)
+        bumped = {"pypdfium2": "9.9.9", "dpi": 150}
+        ocr = StubOcr()
+        with patch("rag_config.render_identity", lambda dpi: bumped), patch("rag_pdf.render_identity", lambda dpi: bumped):
+            result = self.ingest(self.engine(ocr))
+        self.assertEqual(ocr.calls, 3)
+        self.assertTrue(all(self.markdown_pages(result)[n].startswith("OCR の本文") for n in (2, 3, 4)))
 
 
 class PageReportTests(Base):
