@@ -15,6 +15,7 @@ import io
 import json
 import random
 import re
+import unicodedata
 import sys
 from contextlib import closing
 from pathlib import Path
@@ -49,6 +50,8 @@ PLAN = [
 CID = re.compile(r"\(cid:\d+\)")
 # 防衛白書から最初に選んだページの数（1 回目の測り方）
 FIRST_DRAW = 20
+# 目で確かめて行を除いたあと、決まり（数える正解の行が 10 行以上）から外れたページ。決めた順の続きで入れ替える
+DROPPED_AFTER_EYECHECK = {256}
 
 
 def seeded_pages(eligible: list[int], count: int) -> list[int]:
@@ -61,11 +64,10 @@ def seeded_pages(eligible: list[int], count: int) -> list[int]:
     rng = random.Random(SEED)
     ordered = sorted(eligible)
     first = rng.sample(ordered, FIRST_DRAW)
-    if count <= FIRST_DRAW:
-        return sorted(first[:count])
     rest = [n for n in ordered if n not in first]
-    more = rng.sample(rest, len(rest))
-    return sorted(first + more[:count - FIRST_DRAW])
+    order = first + rng.sample(rest, len(rest))
+    # 外れたページを飛ばし、同じ順の続きで足す
+    return sorted([n for n in order if n not in DROPPED_AFTER_EYECHECK][:count])
 
 
 def layout_pages(data: bytes):
@@ -171,6 +173,13 @@ def apply(sides: list[str]) -> None:
             key = f"{tag}-p{page['page']:04d}"
             if key not in checked:
                 raise SystemExit(f"目で確かめていないページ: {key}")
+            # 制御文字（タブと改行を除く）を含む行も、文字の層が見た目の文字を表していない行として除く。
+            # 2 回目の測り方で、確かめる資料の目次のページで見つけた（選ぶ資料には該当がない）。
+            # ページの選び方を変えないよう、選んだあとのここで除く
+            for line in page["lines"]:
+                if line["excluded"] is None and any(
+                        unicodedata.category(c) == "Cc" and c not in "\t\n" for c in line["text"]):
+                    line["excluded"] = "garbled"
             wrong = set(checked[key]["wrong"])
             for line in page["lines"]:
                 if line["id"] in wrong and line["excluded"] is None:

@@ -48,10 +48,12 @@ def collect(side: str) -> dict:
                 raise SystemExit(f"OCR の結果の PDF が正解と違う: {key}")
             if ocr.get("flag_revision") != OCR_FLAG_REVISION:
                 raise SystemExit(f"印のない OCR の結果: {key}")
-            lines = [{**x, "box": rag_ocr_flags.corners(x["box"])} for x in ocr["lines"]]
+            lines = [{**x, "box": rag_ocr_flags.corners(x["box"]), "source_box": x["box"]} for x in ocr["lines"]]
             records, missed = page_records(page["lines"], lines, stratum)
             if stratum == "public":
-                apply_eye_truth(records, key, truths)
+                apply_eye_truth(records, key, truths, lines)
+            found[stratum]["truth_lines"] = found[stratum].get("truth_lines", 0) + sum(
+                1 for x in page["lines"] if not x.get("excluded"))
             unit = truth["name"] if stratum == "synthetic" else key
             for r in records:
                 line = lines[r["line_index"]]
@@ -65,8 +67,7 @@ def measure(data: dict) -> dict:
     units: dict[str, dict] = {}
     totals = {"flagged": 0, "errors": 0, "correct": 0, "caught": 0, "false": 0, "pessimistic": 0, "eye": 0}
     for r in data["lines"]:
-        if r["rule"] == "excluded":
-            continue
+        # 目で正解を作れなかった行（除いた正解の行と直接つながる行で、読めなかったもの）も、落とさずに不利な側に数える
         flagged = bool(r["reasons"])
         error = r["error"] if r["rule"] == "exact" else not flagged
         u = units.setdefault(r["unit"], {"flagged": 0, "errors": 0, "correct": 0, "caught": 0, "false": 0})
@@ -86,6 +87,7 @@ def measure(data: dict) -> dict:
         return sum(1 for u in units.values() if u[n])
 
     return {**totals, "missed": len(data["missed"]), "units": len(units),
+            "missed_share": len(data["missed"]) / data["truth_lines"] if data.get("truth_lines") else None,
             "a": ratio("caught", "flagged"), "b": ratio("caught", "errors"), "c": ratio("false", "correct"),
             "a_lower": cluster_bound([(u["caught"], u["flagged"]) for u in units.values()], "lower"),
             "b_lower": cluster_bound([(u["caught"], u["errors"]) for u in units.values()], "lower"),
@@ -107,7 +109,7 @@ def verdict(row: dict) -> dict:
 def show(stratum: str, row: dict, judged: dict) -> None:
     f = lambda v: "-" if v is None else f"{v:.3f}"  # noqa: E731
     print(f"{stratum}: 行 {row['errors'] + row['correct']} 印 {row['flagged']} 誤り {row['errors']}"
-          f"（検出できなかった正解の行 {row['missed']}、不利な側 {row['pessimistic']}、目で作った正解 {row['eye']}）")
+          f"（検出できなかった正解の行 {row['missed']}（{(row['missed_share'] or 0):.1%}）、不利な側 {row['pessimistic']}、目で作った正解 {row['eye']}）")
     print(f"  (a) {f(row['a'])}（下限 {f(row['a_lower'])}） (b) {f(row['b'])}（下限 {f(row['b_lower'])}）"
           f" (c) {f(row['c'])}（上限 {f(row['c_upper'])}） 単位 {row['units_a']}/{row['units_b']}/{row['units_c']}"
           f" → {json.dumps(judged, ensure_ascii=False)}")
@@ -120,6 +122,10 @@ def main() -> None:
     target = RESULTS / f"v2-{mode}.json"
     if mode == "evaluation" and target.exists():
         raise SystemExit("確かめる資料は、もう測った（1 回だけ）")
+    if mode == "evaluation":
+        check = RESULTS / "compare-flags.json"
+        if not check.exists() or not json.loads(check.read_bytes().decode("utf-8")).get("all_equal"):
+            raise SystemExit("製品の印と試した印の照合（compare_flags.py）が通っていない。確かめる資料は測らない")
     data = collect(mode)
     result = {}
     for stratum, d in data.items():

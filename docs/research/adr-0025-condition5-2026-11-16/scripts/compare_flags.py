@@ -51,9 +51,16 @@ def main() -> None:
                     examples.append({"page": key, "checks": checks, "product_flags": mine.get("flags"), "probe_flags": expected})
             if len(product["lines"]) != len(probe):
                 examples.append({"page": key, "lines": (len(product["lines"]), len(probe))})
+    all_equal = not examples and all(counts[k] == counts["lines"] for k in ("text", "blur", "alt", "flags"))
     print(json.dumps(counts, ensure_ascii=False))
     for example in examples:
         print(json.dumps(example, ensure_ascii=False))
+    from score import RESULTS
+    RESULTS.mkdir(exist_ok=True)
+    (RESULTS / "compare-flags.json").write_bytes(
+        (json.dumps({**counts, "all_equal": all_equal}, ensure_ascii=False, indent=1) + "\n").encode("utf-8"))
+    if not all_equal:
+        raise SystemExit("製品の印と試した印が違う行がある")
 
 
 if __name__ == "__main__":

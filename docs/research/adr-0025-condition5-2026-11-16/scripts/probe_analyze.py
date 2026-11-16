@@ -75,23 +75,34 @@ def load_reads(folder: str, key: str, pdf_sha256: str) -> list[dict]:
     return reads["lines"]
 
 
-def eye_truth(side: str) -> dict[tuple[str, int], str]:
-    """目で書き起こした正解（文字の層から決められない公開の OCR の行）。(ページの鍵, 行の番号) → 文字。"""
+def eye_truth(side: str) -> dict[tuple[str, int], dict]:
+    """目で書き起こした正解（文字の層から決められない公開の OCR の行）。(ページの鍵, 行の番号) → 正解と、行の照合の材料。"""
     folder = CORPUS / "public" / "eyetruth" / side
     path = folder / "truth.json"
     if not path.exists():
         return {}
-    index = {x["file"]: (x["key"], x["line_index"]) for x in
-             json.loads((folder / "index.json").read_bytes().decode("utf-8"))}
-    return {index[name]: text for name, text in json.loads(path.read_bytes().decode("utf-8")).items()}
+    index = {x["file"]: x for x in json.loads((folder / "index.json").read_bytes().decode("utf-8"))}
+    return {(index[name]["key"], index[name]["line_index"]): {**index[name], "text": text}
+            for name, text in json.loads(path.read_bytes().decode("utf-8")).items()}
 
 
-def apply_eye_truth(records: list[dict], key: str, truths: dict) -> None:
-    """書き起こした正解がある行は、その正解と比べて誤りを決める（1 対 1 と同じく "exact" にする）。"""
+def apply_eye_truth(records: list[dict], key: str, truths: dict, lines: list[dict]) -> None:
+    """書き起こした正解がある行は、その正解と比べて誤りを決める（1 対 1 と同じく "exact" にする）。
+
+    正解は、正解を作ったときの OCR の行（箱と本文の SHA-256）に結びついている。採点する OCR の同じ番号の行と
+    照らし、違えば止まる（OCR し直して行の順や分け方が変わったとき、別の行に正解を当てないため）。
+    """
+    import hashlib
+
     for r in records:
-        text = truths.get((key, r["line_index"]))
-        if text is not None and r["rule"] in ("pessimistic", "excluded"):
-            r.update(rule="exact", error=normalize(text) != r["line_text"], eye=True)
+        truth = truths.get((key, r["line_index"]))
+        if truth is None or r["rule"] not in ("pessimistic", "excluded"):
+            continue
+        line = lines[r["line_index"]]
+        if "box" in truth and (list(truth["box"]) != list(line["source_box"]) or truth["ocr_text_sha256"]
+                               != hashlib.sha256(line["text"].encode("utf-8")).hexdigest()):
+            raise SystemExit(f"目で作った正解の行が、採点する OCR の行と違う: {key} の {r['line_index']}")
+        r.update(rule="exact", error=normalize(truth["text"]) != r["line_text"], eye=True)
 
 
 def collect() -> dict:
@@ -108,7 +119,8 @@ def collect() -> dict:
             attach_other_dpi(ocr_lines, f"{truth['name']}-p{page['page']:04d}", truth["pdf_sha256"])
             records, missed = page_records(page["lines"], ocr_lines, stratum)
             if stratum == "public":
-                apply_eye_truth(records, f"{truth['name']}-p{page['page']:04d}", truths)
+                apply_eye_truth(records, f"{truth['name']}-p{page['page']:04d}", truths,
+                                [{**x, "source_box": y["box"]} for x, y in zip(ocr_lines, reads)])
             for r in records:
                 r["line"] = ocr_lines[r["line_index"]]
             found[stratum]["lines"] += records
@@ -176,8 +188,7 @@ def line_unit(data: dict, signal, t: float) -> dict:
 
     errors = correct = caught = false = flags = 0
     for r in data["lines"]:
-        if r["rule"] == "excluded":
-            continue
+        # 目で正解を作れなかった "excluded" の行も、落とさずに不利な側に数える（5 回目のレビュー）
         f = flagged(r["line"])
         error = r["error"] if r["rule"] == "exact" else not f
         flags += f

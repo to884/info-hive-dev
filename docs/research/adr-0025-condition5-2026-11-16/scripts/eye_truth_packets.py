@@ -9,7 +9,9 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -20,6 +22,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from score import CORPUS, load_truths, page_records  # noqa: E402
 
 MARGIN = 40
+# 行を取る OCR の結果の置き場所。2 回目の測り方では、採点する ocr2 から作る
+SOURCE = os.environ.get("EYE_TRUTH_OCR", "ocr2")
 
 
 def main() -> None:
@@ -32,7 +36,7 @@ def main() -> None:
             continue
         for page in truth["pages"]:
             key = f"{truth['name']}-p{page['page']:04d}"
-            ocr = json.loads((CORPUS / "ocr" / f"{key}.json").read_bytes().decode("utf-8"))
+            ocr = json.loads((CORPUS / SOURCE / f"{key}.json").read_bytes().decode("utf-8"))
             if ocr["pdf_sha256"] != truth["pdf_sha256"]:
                 raise SystemExit(f"OCR の結果の PDF が正解と違う: {key}")
             lines = [{**line, "box": [line["box"][0], line["box"][1], line["box"][0] + line["box"][2],
@@ -54,7 +58,9 @@ def main() -> None:
                     crop = crop.resize((crop.width * 2, crop.height * 2), Image.LANCZOS)
                 name = f"{key}-l{j:04d}.png"
                 crop.save(out / name)
-                index.append({"file": name, "key": key, "line_index": j, "vertical": bool(lines[j].get("vertical"))})
+                index.append({"file": name, "key": key, "line_index": j, "vertical": bool(lines[j].get("vertical")),
+                              "source": SOURCE, "box": ocr["lines"][j]["box"],
+                              "ocr_text_sha256": hashlib.sha256(ocr["lines"][j]["text"].encode("utf-8")).hexdigest()})
     (out / "index.json").write_bytes(json.dumps(index, ensure_ascii=False, indent=1).encode("utf-8"))
     print(len(index), "行")
 
