@@ -1,4 +1,4 @@
-"""OCR の確信度と確認の契約の試験（ADR-0025 の「wiki と rag のそろい方」の 8）。
+"""OCR の確信度、行の印と確認の契約の試験（ADR-0025 の「wiki と rag のそろい方」の 8）。
 
 rag の依存が要るので、rag の CI（.github/workflows/rag.yml）で流す。OCR と埋め込みはスタブである。
 本物の NDLOCR-Lite で確率を受け取ることは、tests/rag/verify_ocr_confidence.py で手元で確かめる（CI では読み込めない）。
@@ -42,28 +42,51 @@ class FakeEmbedder:
         return np.tile(np.asarray([1.] + [0.] * (self.dimension - 1), dtype=np.float32), (len(texts), 1))
 
 
-def line(text: str, confidence: float) -> dict:
-    return {"text": text, "box": [0, 0, 10, 10], "vertical": False, "detector_confidence": 0.9,
-            "chars": [confidence] * len(text), "eos": [confidence], "confidence": 0.0 if not text else confidence}
+def line(text: str, confidence: float, row: int = 0, blur: str | None = None, alt: str | None = None) -> dict:
+    """スタブの行。row は行の位置（箱を重ねない）。blur と alt は、ぼかした読みと別の解像度の読み（省くと同じ本文）。"""
+    found = {"text": text, "box": [0, row * 20, 100, 10], "vertical": False, "detector_confidence": 0.9,
+             "chars": [confidence] * len(text), "eos": [confidence], "confidence": 0.0 if not text else confidence}
+    if blur is not None:
+        found["stub_blur"] = blur
+    if alt is not None:
+        found["stub_alt"] = alt
+    return found
 
 
 class StubOcr:
-    """OCR の代わり。呼ばれた順に、決めた本文と行の確信度を返す（kinds.pdf では 2、3、4 ページ目の順に呼ばれる）。"""
+    """OCR の代わり。呼ばれた順に、決めた本文と行の確信度を返す（kinds.pdf では 2、3、4 ページ目の順に呼ばれる）。
 
-    def __init__(self, answers):
+    rag は、ページごとに、ぼかした読みを求めて 1 回（blur=True）、別の解像度で 1 回（blur=False）呼ぶ。calls は
+    1 回目だけを数える。2 回目は、直前のページの行を、別の解像度の座標（4/3 倍）で返す。
+    """
+
+    def __init__(self, answers, flags=True):
         self.answers = list(answers)
         self.calls = 0
+        self.flags = flags
+        self.last = []
 
-    def recognize(self, image):
+    def recognize(self, image, blur=False):
+        if not blur:
+            scale = 4 / 3
+            return {"ok": True, "text": "", "line_count": len(self.last), "confidence_revision": OCR_CONFIDENCE_REVISION,
+                    "lines": [{**x, "text": x.get("stub_alt", x["text"]), "box": [v * scale for v in x["box"]]}
+                              for x in self.last]}
         text, lines = self.answers[self.calls % len(self.answers)]
         self.calls += 1
-        return {"ok": True, "text": text, "line_count": len(lines), "lines": lines,
-                "confidence_revision": OCR_CONFIDENCE_REVISION}
+        self.last = lines
+        answer = {"ok": True, "text": text, "line_count": len(lines), "confidence_revision": OCR_CONFIDENCE_REVISION,
+                  "lines": [{k: v for k, v in x.items() if not k.startswith("stub_")} for x in lines]}
+        if self.flags:
+            answer["blur_revision"] = "blur-v1"
+            for record, x in zip(answer["lines"], lines):
+                record["blur_text"] = x.get("stub_blur", x["text"])
+        return answer
 
 
 # 2 ページ目は確信度が高い、3 ページ目は低い行がある、4 ページ目は読めなかった行がある
 ANSWERS = [("高い確信度の本文 二", [line("高い確信度の本文 二", 0.97)]),
-           ("低い確信度の本文 三", [line("低い確信度の", 0.95), line("本文 三", 0.41)]),
+           ("低い確信度の本文 三", [line("低い確信度の", 0.95), line("本文 三", 0.41, row=1)]),
            ("", [line("", 0.0)])]
 
 
@@ -89,8 +112,8 @@ class Base(unittest.TestCase):
     def config(self) -> Config:
         return Config(self.values)
 
-    def engine(self, answers=ANSWERS, embedder=None) -> Engine:
-        self.ocr = StubOcr(answers)
+    def engine(self, answers=ANSWERS, embedder=None, flags=True) -> Engine:
+        self.ocr = StubOcr(answers, flags=flags)
         return Engine(self.config, embedder=embedder or FakeEmbedder(MODELS[self.config.model]),
                       extractor=functools.partial(rag_pdf.extract_pages, ocr_client=self.ocr))
 
@@ -157,8 +180,8 @@ class ConfidenceTests(Base):
     def test_only_pages_below_the_threshold_are_low(self):
         jobs, job_id = self.ingest_job(self.engine())
         lists = self.report(jobs, self.wiki, job_id)["lists"]
-        self.assertEqual(lists["ocr_low_confidence"]["ranges"], "3-4")  # 3 は低い行、4 は読めなかった行
-        self.assertEqual(lists["ocr_unknown_confidence"]["ranges"], "")
+        self.assertEqual(lists["ocr_flagged"]["ranges"], "3-4")  # 3 は低い行、4 は読めなかった行
+        self.assertEqual(lists["ocr_unknown_flags"]["ranges"], "")
         self.assertEqual(lists["review:pending"]["ranges"], "3-4")
         report = self.report(jobs, self.wiki, job_id)
         self.assertEqual((report["confidence"]["threshold"], report["confidence"]["threshold_calibrated"]), (0.8, False))
@@ -173,9 +196,76 @@ class ConfidenceTests(Base):
         jobs, job_id = self.ingest_job(self.engine())
         self.assertEqual(self.ocr.calls, 0)
         lists = self.report(jobs, self.wiki, job_id)["lists"]
-        self.assertEqual(lists["ocr_unknown_confidence"]["ranges"], "2-4")
-        self.assertEqual(lists["ocr_low_confidence"]["ranges"], "")
+        self.assertEqual(lists["ocr_unknown_flags"]["ranges"], "2-4")
+        self.assertEqual(lists["ocr_flagged"]["ranges"], "")
         self.assertEqual(lists["review:pending"]["ranges"], "")  # 不明は低いとも高いとも扱わない
+
+
+class FlagTests(Base):
+    """行の印（ADR-0025 の「行の印」）。確信度に加え、ぼかした読みと別の解像度の読みとの食い違いで印を付ける。"""
+
+    def pending(self, answers, flags=True) -> tuple[dict, Jobs, str]:
+        jobs, job_id = self.ingest_job(self.engine(answers, flags=flags))
+        return self.report(jobs, self.wiki, job_id)["lists"], jobs, job_id
+
+    def test_blur_disagreement_flags_a_confident_line(self):
+        """確信度が高くても、ぼかした読みが違う行には印が付き、そのページは確認待ちになる。"""
+        answers = [("本文 二", [line("本文 二", 0.97, blur="本文 ニ")]), ("本文 三", [line("本文 三", 0.97)]),
+                   ("本文 四", [line("本文 四", 0.97)])]
+        lists, _, _ = self.pending(answers)
+        self.assertEqual(lists["review:pending"]["ranges"], "2")
+        detail = rag_review.page_detail(self.config, str(self.wiki), self.doc_id, 2)
+        self.assertEqual([(x["text"], x["reasons"], x["blur_text"]) for x in detail["flagged_lines"]],
+                         [("本文 二", ["blur"], "本文 ニ")])
+        self.assertTrue(detail["flags_known"])
+
+    def test_alt_disagreement_needs_confidence_below_the_limit(self):
+        """別の解像度の読みとの食い違いは、行の確信度が 0.9 未満のときだけ印にする。"""
+        answers = [("本文 二", [line("本文 二", 0.97, alt="本文 ニ")]), ("本文 三", [line("本文 三", 0.85, alt="本文 ミ")]),
+                   ("本文 四", [line("本文 四", 0.85)])]
+        lists, _, _ = self.pending(answers)
+        self.assertEqual(lists["review:pending"]["ranges"], "3")  # 2 は確信度が高い、4 は読みが同じ
+        detail = rag_review.page_detail(self.config, str(self.wiki), self.doc_id, 3)
+        self.assertEqual([x["reasons"] for x in detail["flagged_lines"]], [["alt"]])
+
+    def test_alt_line_without_a_match_is_compared_with_an_empty_text(self):
+        """別の解像度で、つながる行がなければ、空の本文と比べる（確信度が 0.9 未満なら印）。"""
+        import rag_ocr_flags
+        lines = [{"text": "あ", "box": [0, 0, 10, 10]}, {"text": "い", "box": [0, 100, 10, 10]}]
+        self.assertEqual(rag_ocr_flags.alt_texts(lines, [{"text": "あ", "box": [0, 0, 10, 10]}], 1.0), ["あ", ""])
+        self.assertEqual(rag_ocr_flags.static_flags({"text": "い", "confidence": 0.5, "blur_text": "い", "alt_text": ""}),
+                         ["alt"])
+
+    def test_readings_equal_after_normalizing_do_not_flag(self):
+        """見た目の同じ記号（○ と 〇、全角と半角、空白）だけが違う読みは、違うとしない。"""
+        answers = [("〇 二", [line("〇 二", 0.97, blur="○二")]), ("Ａ 三", [line("Ａ 三", 0.85, alt="A三")]),
+                   ("本文 四", [line("本文 四", 0.97)])]
+        lists, _, _ = self.pending(answers)
+        self.assertEqual(lists["review:pending"]["ranges"], "")
+
+    def test_ocr_without_flags_is_unknown(self):
+        """ぼかした読みを返さない OCR（印の材料がない）のページは、印が不明になり、確認が要るとも要らないとも扱わない。"""
+        lists, _, _ = self.pending(ANSWERS, flags=False)
+        self.assertEqual(lists["ocr_unknown_flags"]["ranges"], "2-4")
+        self.assertEqual(lists["review:pending"]["ranges"], "")
+
+    def test_reading_order_does_not_depend_on_the_input_order(self):
+        """行をつなぐ順は、入力の順によらない（行の対応で、別の解像度の本文を作るときに使う）。"""
+        import itertools
+        import rag_ocr_flags
+        boxes = [{"box": [20, 0, 30, 10], "text": "A"}, {"box": [10, 4, 20, 14], "text": "B"},
+                 {"box": [0, 8, 10, 18], "text": "C"}, {"box": [0, 40, 10, 50], "text": "D"}]
+        for vertical in (False, True):
+            orders = {"".join(x["text"] for x in rag_ocr_flags.reading_order(list(p), vertical))
+                      for p in itertools.permutations(boxes)}
+            self.assertEqual(len(orders), 1, (vertical, orders))
+
+    def test_ocr_store_key_has_the_flag_revision(self):
+        """印の決め方の版を上げると、OCR の結果の置き場所が変わる（古い印を使わない）。"""
+        import rag_ocr_flags
+        before = self.config.ocr_key
+        with patch.object(rag_ocr_flags, "OCR_FLAG_REVISION", "flags-v999"):
+            self.assertNotEqual(self.config.ocr_key, before)
 
 
 class ReviewTests(Base):
@@ -514,7 +604,7 @@ class ReviewRegressionTests(Base):
         self.engine().ingest_pdf(str(self.wiki), str(self.pdf), "sources/kinds.md")
         lists = Jobs(self.config.data_dir).status(str(self.wiki), first, threshold=0.8)["result"]["page_report"]["lists"]
         self.assertEqual(lists["review:rejected"]["count"], 0)
-        self.assertEqual(lists["ocr_low_confidence"]["count"], 0)
+        self.assertEqual(lists["ocr_flagged"]["count"], 0)
 
     def test_rebuild_uses_the_path_the_user_gave(self):
         """作り直しは、索引の台帳に残した、利用者が渡したままの PDF のパスで取り込み直す。"""
@@ -713,8 +803,8 @@ class ReviewRegressionTests(Base):
         jobs, job_id = self.ingest_job(engine)
         with patch("rag_config.OCR_CONFIDENCE_REVISION", "confidence-v2"):
             lists = self.report(jobs, self.wiki, job_id)["lists"]
-        self.assertEqual(lists["ocr_low_confidence"]["ranges"], "")
-        self.assertEqual(lists["ocr_unknown_confidence"]["ranges"], "2-4")
+        self.assertEqual(lists["ocr_flagged"]["ranges"], "")
+        self.assertEqual(lists["ocr_unknown_flags"]["ranges"], "2-4")
 
 if __name__ == "__main__":
     unittest.main()

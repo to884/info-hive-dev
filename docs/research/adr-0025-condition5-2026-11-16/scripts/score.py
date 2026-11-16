@@ -64,21 +64,34 @@ def joined(ocr_box, truth_box) -> bool:
 
 
 def reading_order(lines: list[dict], vertical: bool) -> list[dict]:
-    def overlap(a, b, lo, hi) -> float:
-        inter = min(a[hi], b[hi]) - max(a[lo], b[lo])
-        return inter / max(1e-9, min(a[hi] - a[lo], b[hi] - b[lo]))
+    """読む順に並べる。横書きは上から下、同じ高さは左から右。縦書きは右から左、同じ列は上から下。
 
-    def compare(p, q) -> int:
-        a, b = p["box"], q["box"]
-        if not vertical:
-            if overlap(a, b, 1, 3) >= 0.5:  # 同じ高さ: 左から右
-                return -1 if a[0] < b[0] else 1
-            return -1 if a[1] + a[3] < b[1] + b[3] else 1  # 上から下
-        if overlap(a, b, 0, 2) >= 0.5:  # 同じ列: 上から下
-            return -1 if a[1] < b[1] else 1
-        return -1 if a[0] + a[2] > b[0] + b[2] else 1  # 右から左
+    入力の順によらない全順序にするため、先に行を帯（横書きは高さの帯、縦書きは列）にまとめる。行の中心の順に
+    見ていき、今の帯の範囲と、行の高さ（縦書きは幅）の半分以上が重なれば同じ帯に入れ、帯の範囲を広げる。
+    帯の中は、横書きは左端、縦書きは上端の順に並べる。同じ値は、箱と本文で決める。
+    """
+    if vertical:
+        across = lambda b: (-b[2], -b[0])  # noqa: E731  列を右から並べるための、横の範囲（符号を返して右を先に）
+        along = lambda b: b[1]  # noqa: E731
+    else:
+        across = lambda b: (b[1], b[3])  # noqa: E731  高さの範囲
+        along = lambda b: b[0]  # noqa: E731
 
-    return sorted(lines, key=functools.cmp_to_key(compare))
+    def tie(line):
+        return (tuple(line["box"]), str(line.get("text", "")))
+
+    ordered = sorted(lines, key=lambda x: ((across(x["box"])[0] + across(x["box"])[1]) / 2, along(x["box"]), tie(x)))
+    bands: list[list] = []
+    for line in ordered:
+        lo, hi = across(line["box"])
+        if bands:
+            band_lo, band_hi, members = bands[-1]
+            inter = min(hi, band_hi) - max(lo, band_lo)
+            if inter >= 0.5 * max(1e-9, min(hi - lo, band_hi - band_lo)):
+                bands[-1] = [min(lo, band_lo), max(hi, band_hi), members + [line]]
+                continue
+        bands.append([lo, hi, [line]])
+    return [line for _, _, members in bands for line in sorted(members, key=lambda x: (along(x["box"]), tie(x)))]
 
 
 def page_records(truth_lines: list[dict], ocr_lines: list[dict], stratum: str) -> tuple[list[dict], list[dict]]:

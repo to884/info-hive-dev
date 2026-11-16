@@ -56,7 +56,8 @@ class StubOcr:
         self.text = text
         self.empty_calls = set(empty_calls)
 
-    def recognize(self, image):
+    def recognize(self, image, blur=False):
+        # 行の記録を返さないので、rag は別の解像度で読み直さない（印は不明になる）
         self.calls += 1
         text = "" if self.calls in self.empty_calls else f"{self.text} {self.calls}"
         return {"ok": True, "text": text, "line_count": 0 if not text else 1}

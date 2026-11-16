@@ -27,7 +27,10 @@ import rag_pdf  # noqa: E402
 from rag_config import OCR_CONFIDENCE_REVISION, Config  # noqa: E402
 from rag_ocr_client import OcrClient  # noqa: E402
 
-OUT = BENCH / "corpus" / "ocr"
+import os  # noqa: E402
+
+# 書き出す先。1 回目（確信度だけ）は ocr、見直し（行の印）は ocr2（RUN_OCR_OUT=ocr2）
+OUT = BENCH / "corpus" / os.environ.get("RUN_OCR_OUT", "ocr")
 
 
 def main() -> None:
@@ -57,6 +60,7 @@ def main() -> None:
                         record = rag_pdf.confidence_record(response)
                         entry = {"confidence": record}
                         result = {"tag": tag, "pdf_sha256": sha, "page": number, "text": response["text"],
+                                  "flag_revision": record.get("flag_revision") if record else None,
                                   "confidence_revision": record["revision"] if record else None,
                                   "confidence_min": rag_pdf.confidence_min(entry),
                                   "lines": record["lines"] if record else None,

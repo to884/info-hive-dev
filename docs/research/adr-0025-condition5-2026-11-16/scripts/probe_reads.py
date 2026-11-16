@@ -3,11 +3,12 @@
 
 使い方（rag の OCR の環境の python で動かす）:
     <rag-ocr の python> -X utf8 scripts/probe_reads.py corpus/probe/png/*.png
-corpus/probe/reads/<名前>.json に書く。あれば飛ばす。
+corpus/probe/reads/<名前>.json に書く。同じ画像（SHA-256）を読んだ結果があれば飛ばす。
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sys
@@ -69,7 +70,9 @@ def main() -> None:
     for name in sys.argv[1:]:
         path = Path(name)
         target = out / (path.stem + ".json")
-        if target.exists():
+        image_sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+        # 同じ画像（SHA-256）を読んだ結果だけを使い回す。違えば読み直して上書きする
+        if target.exists() and json.loads(target.read_bytes().decode("utf-8")).get("image_sha256") == image_sha256:
             continue
         with Image.open(path) as original_image:
             pixels = np.array(original_image.convert("RGB"))
@@ -77,7 +80,8 @@ def main() -> None:
         records = line_records(result["json_lines"])
         for index, record in enumerate(records):
             record["reads"] = extra.get(index)
-        target.write_bytes(json.dumps({"page": path.stem, "lines": records}, ensure_ascii=False).encode("utf-8"))
+        target.write_bytes(json.dumps({"page": path.stem, "image_sha256": image_sha256, "lines": records},
+                                      ensure_ascii=False).encode("utf-8"))
         print(path.stem, len(records), "行", flush=True)
 
 

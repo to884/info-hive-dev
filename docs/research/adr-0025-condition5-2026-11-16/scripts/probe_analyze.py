@@ -51,20 +51,28 @@ SIGNALS = {
 }
 
 
-def attach_other_dpi(ocr_lines: list[dict], name: str) -> None:
+def attach_other_dpi(ocr_lines: list[dict], name: str, pdf_sha256: str) -> None:
     """ほかの dpi の読みの行を、箱を 150 dpi に縮めて対応させ、読む順につないだ本文を dpi_text に置く。"""
-    path = CORPUS / "probe" / f"reads-png{OTHER_DPI}" / f"{name}.json"
-    if not path.exists():
-        return
     scale = 150 / OTHER_DPI
     others = []
-    for line in json.loads(path.read_bytes().decode("utf-8"))["lines"]:
+    for line in load_reads(f"reads-png{OTHER_DPI}", name, pdf_sha256):
         x, y, w, h = line["box"]
         others.append({**line, "box": [x * scale, y * scale, (x + w) * scale, (y + h) * scale]})
     for line in ocr_lines:
         matched = [o for o in others if joined(o["box"], line["box"])]
         vertical = bool(line.get("vertical"))
         line["dpi_text"] = "".join(o["text"] for o in reading_order(matched, vertical))
+
+
+def load_reads(folder: str, key: str, pdf_sha256: str) -> list[dict]:
+    """試しの読みを、描いた画像と元の PDF の SHA-256 で照らしてから返す（照らせなければ止まる）。"""
+    png_folder = {"reads": "png", f"reads-png{OTHER_DPI}": f"png{OTHER_DPI}"}[folder]
+    manifest = json.loads((CORPUS / "probe" / png_folder / "manifest.json").read_bytes().decode("utf-8"))
+    entry = manifest[f"{key}.png"]
+    reads = json.loads((CORPUS / "probe" / folder / f"{key}.json").read_bytes().decode("utf-8"))
+    if entry["pdf_sha256"] != pdf_sha256 or reads.get("image_sha256") != entry["png_sha256"]:
+        raise SystemExit(f"試しの読みの出典が、今の試料と違う: {folder}/{key}（描き直して読み直す）")
+    return reads["lines"]
 
 
 def eye_truth(side: str) -> dict[tuple[str, int], str]:
@@ -94,11 +102,10 @@ def collect() -> dict:
             continue
         stratum = truth["stratum"]
         for page in truth["pages"]:
-            reads = json.loads((CORPUS / "probe" / "reads" / f"{truth['name']}-p{page['page']:04d}.json")
-                               .read_bytes().decode("utf-8"))["lines"]
+            reads = load_reads("reads", f"{truth['name']}-p{page['page']:04d}", truth["pdf_sha256"])
             ocr_lines = [{**line, "box": [line["box"][0], line["box"][1], line["box"][0] + line["box"][2],
                                           line["box"][1] + line["box"][3]]} for line in reads]
-            attach_other_dpi(ocr_lines, f"{truth['name']}-p{page['page']:04d}")
+            attach_other_dpi(ocr_lines, f"{truth['name']}-p{page['page']:04d}", truth["pdf_sha256"])
             records, missed = page_records(page["lines"], ocr_lines, stratum)
             if stratum == "public":
                 apply_eye_truth(records, f"{truth['name']}-p{page['page']:04d}", truths)
