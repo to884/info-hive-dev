@@ -1,0 +1,1082 @@
+[
+ {
+  "qid": "Q01",
+  "rep": "1",
+  "expect": "高",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 24.6,
+  "cost": 0.3102511,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Bash",
+   "Read",
+   "Read"
+  ],
+  "result": "Python の入っていない PC で wiki 0.19.4 の MCP サーバーが起動しなかった原因は、uv が使える Python を持たないときに、誰も試していない Python 3.15 を取得したことです。MCP サーバーの依存が 3.15 では解決できませんでした。\n\n- **宣言に上限がなかった**: uv で動くスクリプトの宣言は `requires-python = \">=3.12\"` で、上限がありませんでした。uv 0.13.8 は、使える Python がないと、宣言に合う中でいちばん新しい CPython 3.15 を取得します。\n- **依存が 3.15 で解決できなかった**: MCP サーバーの依存 `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存を解決できずに起動が失敗しました。\n- **開発用 PC では表に出なかった**: 開発用の PC には Python 3.12 があったので、3.15 が取得されませんでした。\n- **ADR-0018 の前提が外れていた**: ADR-0018 は「3.14 まで試験が通っている」ことを理由に上限を付けませんでした。しかし uv が選んだのは、試験より後に出た、誰も試していない版でした。\n\n利用者が原因を追いにくくなる問題が、さらに 2 つありました。\n- 中継が、依存を解決できない失敗を「環境が作りかけで壊れている」と取り違えて入れ直していました。\n- 失敗の理由は `server.log` にしか残らず、利用者が読む `launch.log` には残りませんでした。\n\n0.19.5 では次のように直しました。\n- 8 本のスクリプトの宣言を、CI の行列の範囲の `\">=3.12,<3.15\"` にそろえました。\n- 範囲内のすべての minor 版で依存が入るかを、CI で確かめるようにしました。\n- 依存を解決できない失敗を `UvResolveError` にして、入れ直さずに止まるようにしました。\n- 環境を用意できなかった理由を、uv の出力の要約とともに `launch.log` に書くようにしました。\n\n出典: [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]、関連: [[古いuvのUV_SYSTEM_CERTSの直しとリリース-wiki-0.19.4]]\n\n**確からしさ（confidence）: 高**\n\n- 理由: 結論は、ソースの要約ページ [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] の「不具合」の節をそのまま述べたものです。インデックスから候補を直接見つけたので、検索の縮退には当たりません。仮説、矛盾、置き換えられた記述もありません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q01",
+  "rep": "2",
+  "expect": "高",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 18.1,
+  "cost": 0.1578408,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Bash",
+   "Read",
+   "Read"
+  ],
+  "result": "**答え**: 原因は、uv で動かすスクリプトの Python 版の宣言に上限がなかったことです。\n\n- スクリプトの宣言は `requires-python = \">=3.12\"` で、上限がありませんでした。\n- Python の入っていない PC では、uv 0.13.8 が宣言に合う中でいちばん新しい CPython 3.15 を取りました。\n- MCP サーバーの依存 `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存を解決できませんでした。そのため MCP サーバーが起動しませんでした。\n- 開発用の PC には Python 3.12 が入っていたので、この不具合は表に出ませんでした。\n- ADR-0018 は「3.14 まで試験が通っている」ことを理由に上限を付けませんでした。しかし uv が実際に選んだのは、試験より後に出た、誰も試していない版でした。\n\n不具合には、次の 2 つの問題が重なっていました。\n\n- 中継が、依存を解決できない失敗を「環境が作りかけで壊れている」と取り違え、環境を入れ直していました。\n- 失敗の理由は `server.log` にしか残らず、利用者が読む `launch.log` には残りませんでした。\n\n0.19.5 では、8 本のスクリプトの宣言を CI の行列の範囲の `\">=3.12,<3.15\"` にそろえて直しました。入れ直しても直らない失敗は `UvSetupError` と `UvResolveError` に分け、`UvResolveError` では入れ直さずに止まります。環境を用意できなかった理由は、すべて `launch.log` に書きます。\n\n出典: [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n\n**確からしさ（confidence）: 高**\n\n- 理由: 結論は、ソースの要約ページ [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] の「不具合」の節をそのまま述べたものです。要約ページに書かれた前提なので、出発点は「高」です。当てはまる上限の行はありません。\n\n検索は、インデックスから候補を直接見つけたので使っていません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query、info-hive"
+ },
+ {
+  "qid": "Q01",
+  "rep": "3",
+  "expect": "高",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 20.2,
+  "cost": 0.10923859999999999,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "ToolSearch",
+   "Read",
+   "Read"
+  ],
+  "result": "Python の入っていない PC で MCP サーバーが起動しなかったのは、uv が新しすぎる Python（3.15）を選び、その版では依存が入らなかったためです。\n\n- **宣言に上限がなかった。** uv で動くスクリプトの宣言は `requires-python = \">=3.12\"` で、上限がありませんでした。\n- **uv が 3.15 を取った。** uv 0.13.8 は、使える Python がないと、宣言に合う中でいちばん新しい CPython 3.15 を取ります。\n- **依存を解決できなかった。** MCP サーバーの依存 `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存の解決に失敗して起動しませんでした。\n- **開発用の PC では出なかった。** 開発用の PC には Python 3.12 が入っていたため、この不具合は表に出ませんでした。\n- **上限を付けなかった理由が外れた。** ADR-0018 は「3.14 まで試験が通っている」ことを理由に上限を付けませんでした。しかし uv が選んだのは、試験より後に出た、誰も試していない版でした。\n\n関連する不具合が 2 つありました。\n- 中継が、依存を解決できない失敗を「環境が作りかけで壊れている」と取り違えて、入れ直していました。\n- 失敗の理由は `server.log` にしか残らず、利用者が読む `launch.log` には残りませんでした。\n\n直し方は次の 2 点です。\n- 8 本のスクリプトの宣言を、CI の行列と同じ `\">=3.12,<3.15\"` にそろえました。\n- 入れ直しても直らない失敗は `UvSetupError`、依存を解決できない失敗は `UvResolveError` に分け、入れ直さずに止まるようにしました。理由は `launch.log` にも書きます。\n\n出典: [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n\n**確からしさ（confidence）: 高**\n\n- 理由: 結論は、ソースの要約ページ [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] の「不具合」の節を、そのまま述べたものです。インデックスから直接そのページを見つけて全文を読んだので、検索の縮退の上限には当たりません。仮説の記述や矛盾もありません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q02",
+  "rep": "1",
+  "expect": "高",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 19.3,
+  "cost": 0.2450132,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Read",
+   "Bash",
+   "Read"
+  ],
+  "result": "Medium のページの取り込みでは、Opus 5.5 が Sonnet 5.5 より **421 秒** 多くかかりました。\n\n- Opus 5.5 は 920 秒、Sonnet 5.5 は 499 秒でした。差は 920 − 499 = 421 秒です。\n- 同じ表の他のページでは、Opus は CQRS で 538 秒、SQLite で 295 秒、ブルームフィルタで 336 秒多くかかっています。\n- どの組み合わせも実行は 1 回だけです。\n- 出典: [[ingestのモデルの比較-2026-11-13]]（「時間とトークン（取り込み全体）」の表）\n\n**確からしさ（confidence）: 高**\n\n- 理由: 前提の 2 つの値（920 秒と 499 秒）は、ソースの要約ページ [[ingestのモデルの比較-2026-11-13]] に書かれています。結論は、この 2 つの値の引き算という決まった手順で導きました。当てはまる上限はありません。候補のページはインデックスから直接見つけたので、検索の縮退にも当たりません。\n\n使った MCP サーバー: なし\n使った Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q02",
+  "rep": "2",
+  "expect": "高",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 16.7,
+  "cost": 0.19089630000000005,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Read",
+   "Read"
+  ],
+  "result": "Medium のページの取り込みは、Opus 5.5 が Sonnet 5.5 より **421 秒**多くかかりました。\n\n- Opus 5.5 は 920 秒、Sonnet 5.5 は 499 秒で、差は 920 − 499 = 421 秒です。\n- 数値は取り込み全体の時間です。\n- Medium は有料記事です。ログイン済みの Chrome に表示された本文を `wiki_fetch.py` の変換に通して、3 モデルに渡しました。\n- 1 つのページとモデルの組み合わせにつき、実行は 1 回だけです。\n\n出典: [[ingestのモデルの比較-2026-11-13]]（「時間とトークン（取り込み全体）」の表）\n\n**確からしさ（confidence）: 高**\n\n- 理由: 前提の 2 つの時間は、ソースの要約ページ [[ingestのモデルの比較-2026-11-13]] の表に書かれています。結論はその 2 つの値の引き算で、決まった手順で導きました。上限の表に当てはまる行はありません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query、info-hive"
+ },
+ {
+  "qid": "Q02",
+  "rep": "3",
+  "expect": "高",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 21.6,
+  "cost": 0.14838639999999997,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Read",
+   "Bash",
+   "Read",
+   "Read"
+  ],
+  "result": "Opus 5.5 は Sonnet 5.5 より **421 秒**多くかかりました。\n\nMedium の記事の取り込み全体の時間は、Opus 5.5 が 920 秒、Sonnet 5.5 が 499 秒です（920 − 499 = 421）。Opus は Sonnet の約 1.8 倍の時間でした。比較したのは、1 つのページとモデルの組み合わせにつき 1 回だけの実行です。\n\n| ページ | Sonnet 5.5 | Opus 5.5 |\n| --- | --- | --- |\n| Medium | 499 秒、272k トークン | 920 秒、296k トークン |\n\n出典: [[ingestのモデルの比較-2026-11-13]]（「時間とトークン（取り込み全体）」の表）。\n\n**確からしさ（confidence）: 高**\n\n- 理由: 2 つの値（920 秒と 499 秒）は、読んだソースの要約ページ [[ingestのモデルの比較-2026-11-13]] にそのまま書かれています。インデックスから直接そのページを見つけたので、検索の縮退は上限になりません。結論は、書かれた 2 つの値を引き算しただけの手順で導いています。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q03",
+  "rep": "1",
+  "expect": "中",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 28.8,
+  "cost": 0.3023054,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "ToolSearch",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Read",
+   "Grep",
+   "Read",
+   "Read"
+  ],
+  "result": "`fluent2.js` を使わないのは、要素の `style` 属性に値を書き込むからです。browse の画面は「`[style]` が 0 件」という約束を守っていて、それに反するためです。\n\n- **理由:** `fluent2.js` は要素の `style` に書き込みます。browse の画面の約束（`[style]` が 0 件）に反するので使いません。[[browseのデザインシステム]]に、この決まりとして書かれています。\n- **代わりの仕組み:** `fluent2.js` が担うはずのふるまいのうち、必要なものは `app.js` が受け持ちます。\n- **CSS は使う:** `fluent2.css` は書き換えずに `browse_assets/` へ全体を写して使います。画面全体は、React を使わない Fluent 2 の再現 CSS で描きます。2026年11月14日に作者が決めた方針です（ADR-0021）。実装は wiki 0.18.0（F1）と 0.19.0（F2）で行いました。\n- **補足:** このページには、「`style` を使えない」理由が、画面のどの制約から来るのかという説明はありません。ページ内の `[style]` 0 件の記述は、0.19.0 の実装記録（[[browseの記事のページのFluent2のリリース-wiki-0.19.0]]）でも確認できませんでした。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 結論は [[browseのデザインシステム]] の「決まりの要点」をそのまま述べたものです。ただし、そのページの `sources` は空で、ソースの要約ページで同じ主張を確かめられませんでした。関連する [[browseの探しやすさとFluent2のリリース-wiki-0.18.0]] と [[browseの記事のページのFluent2のリリース-wiki-0.19.0]] の検索結果の抜粋には、`fluent2.js` の記述が見当たりませんでした。出発点は、コンセプトのページにだけ書かれていた場合の「中」です。検索は MCP の `query` で、`mode` は hybrid、`index.state` は ready で、検索の縮退はありません。\n- 上げる方法:\n  - ADR-0021（`docs/adr/`）か設計 `docs/plans/wiki-browse-fluent2-2026-11-14.md` を `/wiki:ingest` で取り込みます。\n  - 取り込んだ要約ページを [[browseのデザインシステム]] の `sources` に結びます。要約ページに「`fluent2.js` は `style` を書くので使わない」と書かれていれば「高」になります。\n  - 0.18.0 のソースの要約ページは、本文の読み込みを承認いただければ、`fluent2.js` の記述を確かめます。wiki は変更しません。\n\nwiki の書き換えは提案だけで、承認なしには実行しません。確からしさが「中」なので、シンセシスとしての保存は、上げる方法を先に実施してからにします。\n\n使用した MCP サーバー: plugin:wiki:wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q03",
+  "rep": "2",
+  "expect": "中",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 21.0,
+  "cost": 0.0833581,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Grep",
+   "Read",
+   "Grep",
+   "Grep"
+  ],
+  "result": "`/wiki:browse` の画面で `fluent2.js` を使わないのは、それが要素の `style` に書き込むからです。閲覧の画面は「`[style]` が 0 件」という約束を持っていて、`fluent2.js` はこれに反します。\n\n- `fluent2.css` は書き換えずにプラグインの `browse_assets/` へ同梱します。`fluent2.js` は同梱せず、必要なふるまいは `app.js` が受け持ちます。([[browseのデザインシステム]])\n- この決定は 2026-11-14 に作者が行いました。ADR-0021 と `docs/plans/wiki-browse-fluent2-2026-11-14.md` が根拠です。\n- 「`[style]` が 0 件」の約束は、AGENTS.md の Browse UI constraints にある CSP の制約と同じ方向のものです。ただし、AGENTS.md は wiki の外の指示なので、この回答の根拠には使っていません。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 結論は [[browseのデザインシステム]] の記述をそのまま述べたものです。このページは `sources: []` で、ソースの要約ページに結ばれていません。インデックスから選んだ [[browseの探しやすさとFluent2のリリース-wiki-0.18.0]] を `fluent2.js`、`[style]`、インラインで検索しましたが、該当する記述はありませんでした。出発点は「中」です。他の上限には当てはまりません。\n- 上げる方法: 次のどちらかで「高」になります。\n  - 決定の根拠になった ADR-0021 か設計書 `docs/plans/wiki-browse-fluent2-2026-11-14.md` を `/wiki:ingest` で取り込み、[[browseのデザインシステム]] の `sources` に結ぶ。\n  - 0.18.0 のソースの raw を読んで、`fluent2.js` を使わない理由が書かれているか確かめる。raw が大きい場合があるので、承認をもらってから読みます。\n\nwiki の書き換えは提案だけにとどめ、実行していません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query、info-hive"
+ },
+ {
+  "qid": "Q03",
+  "rep": "3",
+  "expect": "中",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 27.2,
+  "cost": 0.1280908,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "ToolSearch",
+   "mcp__plugin_wiki_wiki__query",
+   "Read",
+   "Read",
+   "Read",
+   "Grep",
+   "Grep",
+   "Read"
+  ],
+  "result": "browse が `fluent2.js` を使わない理由を、wiki の該当ページで確かめました。その理由が書かれていたのはコンセプトのページ 1 つだけで、ソースの要約ページでは裏づけを取れていません。\n\n**回答**\n\n`fluent2.js` は、要素の `style`（インライン style）に書き込みます。それが、閲覧の画面の約束（`[style]` が 0 件）に反するので、browse では使いません。`fluent2.js` が担うはずのふるまいは、`app.js` が受け持ちます（[[browseのデザインシステム]] の「決まりの要点」）。\n\n一方、`fluent2.css` は書き換えずにプラグインの `browse_assets/` に写して使います。出どころ、基準の版、SHA-256 は `browse_assets/README.md` に記録されています。JS だけを外し、CSS は使う決め方です。この方針は 2026年11月14日に作者が決めたもので、ADR-0021 に当たります。実装は 0.18.0 の F1 です（[[browseの探しやすさとFluent2のリリース-wiki-0.18.0]]）。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 結論は [[browseのデザインシステム]] の記述をそのまま述べたものです。ただしこのページは `sources: []` で、根拠にするソースの要約ページに結ばれていません。`fluent2.js` を使わない理由は、リリースのソースの要約ページ（0.18.0 と 0.19.0）にも書かれていませんでした。検索では見つからず、`fluent2.js` を含む行はこのコンセプトのページだけです。そのため、出発点は「中」です。検索は MCP の `query` で、`mode` は hybrid、`index.state` は ready でした。検索の縮退（意味の検索を使えなかったこと）による上限はありません。\n- 上げる方法:\n  - ADR-0021 または設計書 `docs/plans/wiki-browse-fluent2-2026-11-14.md` を `/wiki:ingest` で取り込み、[[browseのデザインシステム]] の `sources` に結びます。取り込んだソースの要約ページで同じ記述を確かめられれば「高」になります。\n  - 0.18.0 のリリース記録の raw（`docs/agent-runs/2026-11-14-wiki-browse-fluent2/`）を読んで確かめる方法もあります。読むだけで wiki は変わりませんが、大きい可能性があるので、承認をいただいたときだけ読みます。\n\nどちらも提案にとどめ、実行していません。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query、wiki:info-hive"
+ },
+ {
+  "qid": "Q04",
+  "rep": "1",
+  "expect": "中",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 25.5,
+  "cost": 0.26447380000000004,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Grep",
+   "Read"
+  ],
+  "result": "browse の暗い配色で、brand のリンクの色（`colorBrandForegroundLink`）とホバーの地（`colorSubtleBackgroundHover`）の組は 4.18:1 です。4.5:1 には **0.32 足りません**（4.5 − 4.18）。比で言うと、基準の約 93%（4.18 ÷ 4.5）です。\n\nwiki には、止まっている状態の配色が通っていても、操作中（ホバー）は通るとは限らない例として載っています。この組は 4.5:1 を割ります。出典は [[browseのデザインシステム]] の「レビューで分かったこと」です。この組の数値はこのページにしかありません。同じ数値を [[browseの探しやすさとFluent2のリリース-wiki-0.18.0]] などのソースの要約ページで探しましたが、見つかりませんでした。\n\nこの件への対処として、同ページには次の 2 つの規則が書かれています。\n- 地を状態で変えてよいのは、操作できる要素だけにする。\n- 自分か祖先の地が変わる要素では、brand のリンクの色を使わない。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 4.18:1 という数値は [[browseのデザインシステム]] にだけ書かれています。そのページの `sources` は空で、ソースの要約ページにも同じ数値がありません。出発点は「中」です。不足分の 0.32 は、書かれた 2 つの値の差を引いただけで、決まった手順による計算です。そのため結論の確からしさは前提と同じ「中」です。\n- 上げる方法: 配色の試験の記録（作者の `docs/agent-runs/2026-11-14-wiki-browse-fluent2/` にあるレビューへの対応など）か、コントラスト比を測った資料を `/wiki:ingest` で取り込みます。そのうえで [[browseのデザインシステム]] の `sources` に結ぶと、ソースの要約ページで 4.18:1 を確かめられ、「高」になります。\n\nこの回答は、新しいつながりを見いだすものではありません。そのため、シンセシスとしての保存は提案しません。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q04",
+  "rep": "2",
+  "expect": "中",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 20.4,
+  "cost": 0.18074360000000003,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Read",
+   "Grep",
+   "Read",
+   "Grep",
+   "Read",
+   "Grep"
+  ],
+  "result": "暗い配色では、brand のリンクの色（`colorBrandForegroundLink`）とホバーの地（`colorSubtleBackgroundHover`）の組が **4.18:1** です。4.5:1 には **0.32 足りません**（4.5 − 4.18）。割合では約 7% 下回ります。出典は [[browseのデザインシステム]] です。\n\n同じページに、押下の色の例も書かれています。`colorBrandForegroundLinkPressed` は暗い配色で地との比が 3.85:1 です（[[browseの記事のページのFluent2のリリース-wiki-0.19.0]] にも同じ数値があります）。この押下の例は、あなたの聞いた組とは別です。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 結論は、[[browseのデザインシステム]] の記述（4.18:1）から 4.5 を引いた計算です。使った前提は 4.18:1 の値だけです。この値の出どころはコンセプトのページで、frontmatter の `sources` が空です。ソースの要約ページでは確かめられず、出発点は「中」になりました。インデックスと検索（`4.18`）では、この値を書いたほかのページは見つかりませんでした。\n- 上げる方法: 4.18:1 を測った資料を `/wiki:ingest` で取り込み、[[browseのデザインシステム]] の `sources` に結んでください。候補は次の 2 つです。\n  - 設計の ADR-0021\n  - `docs/plans/wiki-browse-fluent2-2026-11-14.md`\n\n  取り込んだソースの要約ページで同じ値を確かめられれば、「高」になります。wiki の書き換えは提案だけで、実行していません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q04",
+  "rep": "3",
+  "expect": "中",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 24.6,
+  "cost": 0.1339803,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Grep"
+  ],
+  "result": "browse の暗い配色で、brand のリンクの色（`colorBrandForegroundLink`）とホバーの地（`colorSubtleBackgroundHover`）の組は 4.18:1 です。4.5:1 には **0.32 足りません**（4.5 − 4.18 = 0.32）。基準を割る組です。\n\n- 4.18:1 は [[browseのデザインシステム]] の「レビューで分かったこと」に書かれています。止まっている状態の配色が通っても、操作中は通るとは限らない、という例として挙がっています。\n- 同じページには、押下の色にも 4.5:1 を割る例があります（木の「一覧」のリンクで 4.36:1）。足りない幅は 0.14 です。\n- この組を踏まえて、規則は「自分か祖先の地が変わる要素は brand のリンクの色を使わない」になりました。\n- 経緯は [[browseの探しやすさとFluent2のリリース-wiki-0.18.0]] にあります。ただし、4.18:1 という数値はこのソースの要約ページには書かれていません。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 結論は、[[browseのデザインシステム]] の 4.18:1 と 4.5:1 の差を引いた計算です。計算は決まった手順なので、結論の確からしさは前提と同じになります。前提の出発点は「中」です。コンセプトのページに書かれた値で、そのページの `sources` が空だからです。関連するソースの要約ページ [[browseの探しやすさとFluent2のリリース-wiki-0.18.0]] も読みましたが、この数値は見つかりませんでした。\n- 上げる方法: 4.18:1 を測った記録（レビューの原本や試験の出力）を `/wiki:ingest` で取り込み、[[browseのデザインシステム]] の `sources` に結びます。取り込んだソースの要約ページで同じ値を確かめられれば「高」になります。0.18.0 のソースが指す `docs/agent-runs/2026-11-14-wiki-browse-fluent2/` が候補です。wiki の書き換えは、承認をいただいてから行います。\n\n保存について: 新しいつながりを見いだす回答ではないので、`synthesis/` への保存は提案しません。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q05",
+  "rep": "1",
+  "expect": "中",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 24.4,
+  "cost": 0.3053707,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "ToolSearch",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Read",
+   "Read",
+   "Read",
+   "Read"
+  ],
+  "result": "**`Documents.Open` にはパスだけを渡す。** 読み取り専用などの追加引数は渡さない。\n\nこの wiki には、次の手順の案が書かれています（[[officeのcomでの書き出し]]）。\n\n- `$w.DisplayAlerts = 0` にしてから、`$w.Documents.Open($path)` を呼びます。\n- 戻り値が null なら、そこで止めます。\n- 開けたら `ExportAsFixedFormat($pdf, 17)`、`Close(0)`、`Quit()` の順に呼びます。\n- 全体を `Start-Job` と `Wait-Job -Timeout` で包みます。止まったときに備えるためです。\n- pwsh 7 で動かします。\n- 止まった後は、残った `/Automation -Embedding` の WINWORD.EXE がないかを確かめます。\n\n読み取り専用の引数を渡した場合の結果は、観測された内容として [[office-com-word-export-2026-11-15]] に書かれています。\n\n- Windows PowerShell 5.1 で `Documents.Open(パス, $false, $true)` を呼ぶと、300 秒で終わらず、PDF もできませんでした。\n- 同じ呼び出しで、`/Automation -Embedding` の WINWORD.EXE が残っていました。\n- パスだけにして pwsh 7 の `Start-Job` で動かすと、開いて書き出せました。\n- パスだけにして Windows PowerShell 5.1 で動かすと、`Documents.Open` は null を返しました。この原因は分かっていません。\n- PowerPoint と Excel は、同じスクリプトで書き出せました。\n\n観測した環境は Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 です。`pwsh -File` でスクリプトを最後まで通せるかは確かめていません。止まった原因は、画面に出ない確認を待ったまま止まった、という仮説です。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 結論は [[officeのcomでの書き出し]] の手順の案を、そのまま述べたものです。観測は [[office-com-word-export-2026-11-15]] の要約ページで確かめました。この要約ページは、止まった原因を「仮説」としています。コンセプトのページ自体も `status: hypothesis` で、「仮説の段階」と書かれています。上限の表の「仮説として書かれている」行が当たるため、上限は「中」です。\n- 上げる方法: 仮説を確かめた結果を `/wiki:learn` で記録します。たとえば、パスだけの呼び出しを同じ条件でくり返し、`pwsh -File` で最後まで通した結果です。これで経験のパターンを `supported` にできる証拠が残り、「高」になります。または、Word の `Documents.Open` の引数を述べた資料を `/wiki:ingest` で取り込みます。どちらも提案にとどめ、承認なしには実行しません。\n\n保存の提案: 回答は既存のコンセプトページの内容そのままで、新しいつながりはありません。このため、`synthesis/` への保存は提案しません。\n\n使用した MCP サーバー: wiki（`mcp__plugin_wiki_wiki__query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q05",
+  "rep": "2",
+  "expect": "中",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 27.4,
+  "cost": 0.1587851,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "ToolSearch",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Read",
+   "Read",
+   "Read",
+   "Glob",
+   "Read"
+  ],
+  "result": "wiki から答えます。根拠のページを読み終え、確からしさの決め方も確認しました。\n\n**答え: `Documents.Open` には、ファイルのパスだけを渡します。** 読み取り専用などの追加の引数は付けません。\n\n- 手順の案は次のとおりです（[[officeのcomでの書き出し]]）。\n  1. `$w.DisplayAlerts = 0`\n  2. `$w.Documents.Open($path)`\n  3. 戻り値が null なら止まる\n  4. `ExportAsFixedFormat($pdf, 17)`\n  5. `Close(0)`\n  6. `Quit()`\n- 全体は `Start-Job` と `Wait-Job -Timeout` で包みます。pwsh 7 で動かし、残った `/Automation -Embedding` の WINWORD.EXE も確かめます。\n- 付けてはいけない引数の例は `Documents.Open(パス, $false, $true)`（読み取り専用）です。Windows PowerShell 5.1 で 300 秒たっても終わらず、PDF もできませんでした。\n- パスだけにしても、Windows PowerShell 5.1 では `Documents.Open` が null を返しました。pwsh 7 の `Start-Job` の中でパスだけを渡したときは、開いて書き出せました（[[office-com-word-export-2026-11-15]]）。\n- PowerPoint と Excel の書き出しは、同じ実行で成功しました。\n- 止まった原因は、読み取り専用の引数のせいで、画面に出ない確認を待ったことだと考えられています。この説は確かめられていません。null を返した原因は分かっていません。\n- 観測した環境は Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 です。`pwsh -File` で最後まで通るかは確かめていません。\n- 使った例は `docs/research/markitdown-benchmark-2026-11-15/scripts/export_office.ps1` です（[[抽出の方式の比較-markitdown-2026-11-15]]）。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 観測そのものは、ソースの要約ページ [[office-com-word-export-2026-11-15]] に書かれています。ただ、「パスだけを渡せばよい」という結論は、その観測から導いた勧めで、前提にない判断を加えています。根拠のコンセプトページ [[officeのcomでの書き出し]] も `status: hypothesis` で、仮説として書かれているため、上限は「中」です。成功した例は 1 回の作業だけです。\n- 上げる方法: 同じ条件（pwsh 7 の `Start-Job`、パスだけ、`DisplayAlerts = 0`）で書き出しをくり返し、結果を `/wiki:learn` で記録します。経験のパターンを `supported` にできる証拠が残れば、仮説の上限が外れます。null を返した原因（直前の Word の残りの影響など）を切り分けた結果も同じように記録します。wiki を書き換える操作なので、実行はご承認のあとにします。\n\n補足: 手順 6b の `query-confidence.md` は、指定された worktree（`query-confidence-reach`）から読みました。この worktree（`qc-measure-0-21-1`）には `info-hive-wiki/skills/info-hive/references/query-confidence.md` がありません。\n\n使用した MCP サーバー: wiki（`mcp__plugin_wiki_wiki__query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q05",
+  "rep": "3",
+  "expect": "中",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 29.5,
+  "cost": 0.2577851,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Bash",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Read",
+   "Read",
+   "Read",
+   "Read"
+  ],
+  "result": "Word の COM で PDF に書き出すときは、`Documents.Open` にパスだけを渡します。wiki のこの結論は、仮説の段階です。\n\n## 答え\n\n`Documents.Open` には、読み取り専用の引数を付けずに、パスだけを渡します（[[officeのcomでの書き出し]]）。\n\n手順の案は次のとおりです。\n\n1. `$w.DisplayAlerts = 0` にする。\n2. `$w.Documents.Open($path)` で開く。戻り値が null なら止める。\n3. `ExportAsFixedFormat($pdf, 17)` で書き出す。\n4. `Close(0)` と `Quit()` で閉じる。\n5. 全体を `Start-Job` と `Wait-Job -Timeout` で包み、止まったときに備える。\n6. pwsh 7 で動かす。\n\n- **読み取り専用の引数を避ける理由:** `Documents.Open(パス, $false, $true)` では、300 秒たっても終わらず、PDF もできませんでした。`/Automation -Embedding` の WINWORD.EXE が残っていました（[[office-com-word-export-2026-11-15]]）。\n- **PowerShell の版:** Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返しました。同じ実行で PowerPoint と Excel は書き出せました。pwsh 7 の `Start-Job` の中では、パスだけの渡し方で書き出せました。\n- **止まる原因:** 読み取り専用の引数で、画面に出ない確認を待ったまま止まったと考えられています。ただし仮説です。null が返った原因は分かっていません。\n- **適用範囲:** Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 で観測した結果です。`pwsh -File` で最後まで通るかは確かめていません。ほかの PC や Office の版でも確かめていません。\n- **参考:** 使った例は `docs/research/markitdown-benchmark-2026-11-15/scripts/export_office.ps1` です。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 結論は、ソースの要約ページ [[office-com-word-export-2026-11-15]] に書かれた観測を言い換えたものです。手順の案には、wiki の記録にない判断も含みます。そのため前提の出発点は「高」です。ただし、根拠のコンセプトページ [[officeのcomでの書き出し]] が `status: hypothesis`（「仮説」と明記）なので、上限の表の「仮説として書かれている」行に当たり、「中」になります。\n- 上げる方法: 次のどちらかを行います。\n  - 同じ条件でくり返した結果を `/wiki:learn` で記録し、経験のパターンを `supported` にできる証拠を残す。\n  - 別の PC と Office の版、または `pwsh -File` で通して確かめた結果を記録する。\n\n  確かめる前に、wiki を書き換えることはしません。\n\nこの答えは新しいつながりを見いだしたものではないので、`synthesis/` への保存は提案しません。\n\n作業の準備として求められていた `git fetch` は、権限の確認で止まったため実行していません。そのため、origin/main の最新状態と他セッションとの競合リスクは未確認です。\n\n使用した MCP サーバー: wiki（`mcp__plugin_wiki_wiki__query`）\n使用した Agent Skills: wiki:query、wiki:info-hive"
+ },
+ {
+  "qid": "Q06",
+  "rep": "1",
+  "expect": "中",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 25.7,
+  "cost": 0.28904569999999996,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Read",
+   "Read",
+   "ToolSearch",
+   "mcp__plugin_wiki_wiki__query",
+   "Read",
+   "Read",
+   "Read",
+   "Read"
+  ],
+  "result": "**結論: 十分とは言えない。wiki には Haiku 5.5 を使わない決定が記録されている。**\n\nwiki が示す根拠は次のとおり。\n\n- 2026-11-13 に、同じ 4 つの Web ページで Haiku 5.5、Sonnet 5.5、Opus 5.5 の raw を比べた。その結果、raw の段は Sonnet 5.5 で行うと決めた（[[ingestに使うモデル]]、[[ingestのモデルの比較-2026-11-13]]）。\n- Haiku 5.5 は raw の規則を何度も破った。\n  - SQLite のコードブロック 5 個のうち 3 個で、SQL のコメントを訳して中身を変えた。\n  - 本文のリンクを SQLite で 8 か所、Medium で 1 か所落とした。\n  - Medium の図の下の説明文 34 個を本文から消し、alt に移した。\n  - 固有名詞の英語表記を訳した（`Event Sourcing` など）。\n  - 曖昧さ回避の表を雑音として残した。\n- 図の補足は、照らし合わせた 9 枚のうち 2 枚で誤りがあった（ブルームフィルタのグラフの立ち上がり、Medium の散布図の解決の時間）。Sonnet は 1 枚、Opus は 0 枚だった。\n- 訳の目隠しの評価では、Medium の 5 つの節で忠実さが Haiku 6.5、Sonnet 9.5、Opus 9.5 だった。一方、CQRS では Haiku が 8.8 で 1 位だった。\n- 速さの利点もなかった。取り込み全体の時間は Haiku が 122〜342 秒、Sonnet が 85〜499 秒で、Sonnet のほうが速いページもあった。\n- raw は取り込んだあとに書き換えない原本で、要約ページの引用も raw から取る。そのため、ここでの誤りは取り直すまで残る（[[ingestに使うモデル]]）。\n\nwiki に書かれていない点が 2 つある。\n\n- 比較は 1 ページとモデルの組み合わせにつき 1 回だけで、規則違反が毎回起きるかは分からない。\n- PDF とテキストのソースは原本をそのまま置くので、raw にモデルの差は出ない。Haiku が問題になるのは Web ページの raw だけである。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 前提は読んだソースの要約ページ [[ingestのモデルの比較-2026-11-13]] に書かれているので、出発点は「高」である。ただし「十分か」は評価の言葉で、前提に判断を加えて導いた結論なので、「中」を上限にした。wiki は「Haiku は規則を破る」という事実と「Sonnet にする」という決定を記録している。「十分でない」とまとめたのは、その 2 つからの私の判断である。\n- 上げる方法: 「raw の段に Haiku は使えない」という基準を直接述べた資料が要る。たとえば、ADR か設計書に「Haiku 5.5 は採らない」と明記し、`/wiki:ingest` で取り込むと、判断を加えずに答えられる。比較の数値を取り直すなら、[[ingestに使うモデル]] の「見直す条件」にあるスクリプトで、複数回の実行を足す方法がある。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q06",
+  "rep": "2",
+  "expect": "中",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 29.6,
+  "cost": 0.1264379,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "ToolSearch",
+   "Read",
+   "Read"
+  ],
+  "result": "**結論: 十分ではない。この wiki では Haiku 5.5 を採用していない。** raw の段は Sonnet 5.5 で行う決定になっている（[[ingestに使うモデル]]）。\n\n比較した調査（[[ingestのモデルの比較-2026-11-13]]）では、Haiku 5.5 に次の問題があった。\n\n- **コードブロック:** SQLite のページで、5 個中 3 個の SQL コメントを訳して中身を変えた。raw の規則に反する。\n- **本文のリンク:** SQLite で 8 か所、Medium で 1 か所を落とした。\n- **図の下の説明文:** Medium の 34 個を本文から消し、alt に移した。\n- **固有名詞:** `Event Sourcing`、`Domain-Driven Design` などの英語表記を訳した。\n- **訳の点数（Medium の 5 つの節）:** 目隠しの評価の忠実さは Haiku 6.5、Sonnet 9.5、Opus 9.5 だった。SQLite の忠実さも Haiku 7.8 で、Sonnet 9.1 と Opus 9.5 を下回った。\n- **図の補足:** 照らし合わせた 9 枚のうち 2 枚で誤りがあった（Sonnet は 1 枚、Opus は 0 枚）。\n- **速さ:** 取り込み全体は Haiku が 122〜342 秒、Sonnet が 85〜499 秒で、Sonnet と変わらない。速さの利点がない。\n\nraw は取り込んだあとに書き換えない原本で、誤りは取り直すまで残り、要約ページの引用も raw から取る（[[ingestに使うモデル]]）。この性質が、Haiku を採らない理由を重くしている。\n\n補足は次のとおり。\n\n- CQRS の訳だけは、Haiku が忠実さ 8.8 で 1 位だった。\n- Sonnet にも弱点があり、受け入れている。原文にない `<>` の補い、図 1 枚の読み違い、雑音の残りがある。\n- 日本語のページは訳がなく、Sonnet と Opus の raw はほぼ同じだった。Haiku は日本語のページでは測っていない。\n- PDF とテキストのソースは原本をそのまま置くので、モデルの差は出ない。\n- 比較は 1 ページとモデルの組につき 1 回の実行で、4 ページが対象だった。\n- 見直す条件に「新しいモデルが出たら同じ 4 ページで比べ直せる」とある。スクリプトは `docs/agent-runs/2026-11-13-wiki-ingest-model-comparison/scripts/` にある。\n- wiki 0.15.0 以降、raw の段は `model: sonnet` のエージェント `wiki:web-raw` が行う。\n\n**確からしさ（confidence）: 中**\n\n- 理由: Haiku の誤りの個々の事実は、ソースの要約ページ [[ingestのモデルの比較-2026-11-13]] に書かれており、出発点は「高」である。ただし、「十分か」への答えは、その事実を使って私が下した判断である。結論の導き方の表では判断を加えた導き方に当たり、「中」が上限になる。wiki には「Haiku で十分か」を直接述べた記述はなく、あるのは Sonnet を選んだ決定と、Haiku が規則を破ったという事実である。\n- 上げる方法: 「Haiku は不採用」と直接述べた資料か、Haiku を前提にした判断の記録があれば、`/wiki:ingest` で取り込むと「高」にできる。たとえば、日本語のページや Haiku の別の版で測り直した調査レポートが当たる。\n\n保存の提案: 今回の回答は既存のページの要約で、新しいつながりを見いだすものではない。`synthesis/` への保存は不要と考える。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query（info-hive スキルのクエリの手順）"
+ },
+ {
+  "qid": "Q06",
+  "rep": "3",
+  "expect": "中",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 28.8,
+  "cost": 0.1442107,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "ToolSearch",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Read",
+   "Read",
+   "Read"
+  ],
+  "result": "**結論: 十分ではない。wiki は、raw の段を Sonnet 5.5 で行うと決めており、Haiku 5.5 は採らなかった。**\n\n根拠は 2026-11-13 の比較調査である。Haiku 5.5、Sonnet 5.5、Opus 5.5 に同じ 4 つの Web ページを取り込ませ、raw を比べた（[[ingestのモデルの比較-2026-11-13]]、[[ingestに使うモデル]]）。\n\n**Haiku 5.5 が raw の規則を破った点**\n- **コードブロック**: SQLite のページでは、5 個中 3 個の SQL コメントを訳して中身を変えた。Sonnet と Opus は全部保った。\n- **本文のリンク**: SQLite で 8 か所、Medium で 1 か所を落とした。Sonnet は 2 か所、Opus は 1 か所だった。\n- **図の下の説明文**: Medium の 34 個を本文から消し、alt に移した。Sonnet と Opus は保った。\n- **図の補足の誤り**: 照らし合わせた 9 枚のうち 2 枚で誤った。Sonnet は 1 枚、Opus は 0 枚だった。\n- **訳の点数**（目隠しの評価、10 点満点の忠実さ）: SQLite は 7.8 で Sonnet の 9.1 より低い。Medium は 6.5 で Sonnet の 9.5 より低い。CQRS だけは 8.8 で、3 モデルの中で 1 位だった。\n- **速さ**: Haiku は 122〜342 秒、Sonnet は 85〜499 秒で、Haiku のほうが速いとは言えない。\n\n**なぜ重く見るか**: raw は取り込んだあとに書き換えない原本で、誤りは取り直すまで残る。要約ページの引用も raw から取る（[[ingestに使うモデル]]）。\n\n**適用範囲**: モデルの差が出るのは Web ページだけである。PDF とテキストのソースは原本をそのまま置くので、モデルによる差は出ない。日本語のページは訳がないので、Sonnet と Opus の raw はほぼ同じだった。Haiku は日本語のページでも、ブルームフィルタのグラフの立ち上がりの補足を誤った。\n\n**見直す条件**: wiki には「新しいモデルが出たら、同じ 4 ページで比べ直せる」とある。Haiku を再び試すなら、`docs/agent-runs/2026-11-13-wiki-ingest-model-comparison/scripts/` のスクリプトで比べ直す。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 比較の数値と Haiku が規則を破った事実は、ソースの要約ページ [[ingestのモデルの比較-2026-11-13]] に書かれており、出発点は「高」である。一方、質問の「十分か」は評価の言葉で、「Haiku は規則を破るので採らない」は wiki の判断から導いた結論である。前提にない判断を加えた扱いになるため、「中」とした。ただし wiki 自体が、同じ理由で Sonnet を採ると決めている（[[ingestに使うモデル]]）。\n- 上げる方法: 「十分」の基準を wiki に書いたうえで、その基準で比べ直した結果を取り込む。例えば許容するリンクの欠落数や、コードブロックを変えてよいかを決める。比べ直したときは、[[ingestに使うモデル]] の「見直す条件」に従い、同じスクリプトで Haiku を測り直した記録を `/wiki:ingest` で取り込む。\n\nシンセシスの保存は提案しない。新しいつながりを見いだした回答ではなく、既存ページの要約だからである。\n\n使用した MCP サーバー: wiki（`mcp__plugin_wiki_wiki__query`）\n使用した Agent Skills: wiki:query（`/wiki:query` として起動）"
+ },
+ {
+  "qid": "Q07",
+  "rep": "1",
+  "expect": "高",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 16.7,
+  "cost": 0.2009814,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Bash"
+  ],
+  "result": "`wiki/log.md` に、2026-11-13 の ingest の記録は **10 件**あります。\n\n`^## \\[2026-11-13\\] ingest \\|` に一致する見出しを数えました（`wiki/log.md` の 29、32、35、38、41、44、47、50、53、56 行目）。\n\n- 同じ日付で操作名が `schema` の記録が 1 件あります（27 行目、タグの体系に windows を足した記録）。ingest ではないので数えていません。\n- 78 行目の記録は、見出しの日付が別の日で、ページ名に「2026-11-13」が入っているだけです（`sources/ingestのモデルの比較-2026-11-13`）。これも数えていません。\n\n出典: [[log]]（規約は [[SCHEMA]]）\n\n**確からしさ（confidence）: 高**\n\n- 理由: wiki 自身の事柄（何をいつ取り込んだか）を、wiki の記録である `log.md` の見出し行を数えて答えました。数え上げは決まった手順なので、前提と同じ「高」です。上限に当てはまる要因はありません。検索は使わず、`log.md` を直接読んでいます。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q07",
+  "rep": "2",
+  "expect": "高",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 19.7,
+  "cost": 0.155027,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Bash"
+  ],
+  "result": "`log.md` に、2026-11-13 の ingest の記録は **9 件**あります。\n\n`log.md` の見出し（`## [日付] 種別 | …`）を数えました。2026-11-13 の見出しは 10 件で、うち 1 件（27 行目）は種別が `schema` です。残り 9 件が `ingest` で、29、32、35、38、41、44、47、50、53、56 行目のうち 56 行目以外を除いた数ではなく、次のとおり 56 行目を含めた数です。\n\n内訳は 29、32、35、38、41、44、47、50、53 行目の 9 件に、56 行目の「/wiki:ingest のモデルの比較」を加えた **10 件**です。先の 9 件は誤りで、正しくは **10 件**です。\n\n- 2026-11-13 の見出し全体は 11 件です。内訳は `schema` が 1 件（27 行目）、`ingest` が 10 件です。\n- 78 行目は「2026-11-14」の記録に属する行です。56〜57 行目の本文にある「2026-11-13」は、ソースページ名の一部で、別の記録ではありません。\n\n出典: [[log]]\n\n**確からしさ（confidence）: 高**\n\n- 理由: wiki 自身の事柄（何をいつ取り込んだか）を、記録である [[log]] の見出しを数えて答えた。結論は書かれた見出しを数え上げた結果で、判断を加えていない。当てはまる上限はない。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q07",
+  "rep": "3",
+  "expect": "高",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 18.3,
+  "cost": 0.06402240000000001,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Grep",
+   "Read"
+  ],
+  "result": "2026-11-13 の ingest の記録は **10 件**です。`log.md` の見出し（`## [2026-11-13] ingest | …`）を数えました。\n\n| 行 | 内容 |\n| --- | --- |\n| 29 | Git Bash のパス変換で git の引数が壊れる件 |\n| 32 | rag 0.5.2 の PDF のヘッダーの境界の書き方の修正 |\n| 35 | rag 0.5.3 の PDF のヘッダーのエラーメッセージの修正 |\n| 38 | rag 0.5.2・0.5.3 の書き方とメッセージの修正、リリースの記録 |\n| 41 | Windows の Python で書き戻すと LF が CRLF に変わる件 |\n| 44 | browse のスコープ表示、wiki 0.12.0 のリリースと画面の確かめの記録 |\n| 47 | 検索の結果の tags と sources の修正、wiki 0.12.1 のリリースの記録 |\n| 50 | title が値なしや配列のときの修正、wiki 0.12.2 のリリースの記録 |\n| 53 | 初期化していないディレクトリを wiki として扱わない修正、wiki 0.13.0 のリリースの記録 |\n| 56 | /wiki:ingest のモデルの比較（2026-11-13） |\n\n次の行は数えていません。\n\n- 27 行目は同じ日付ですが、種別が `schema` です（タグの体系に windows を足した）。\n- 78 行目は日付が 11-14 の記録の本文です。ページ名に「2026-11-13」を含む `sources/ingestのモデルの比較-2026-11-13` を指しているだけです。\n- 57 行目は 56 行目の記録の続きです。\n\n出典: [[log]]（`wiki/log.md`）\n\n**確からしさ（confidence）: 高**\n\n- 理由: wiki 自身の事柄（何をいつ取り込んだか）を、正本である `log.md` の記録で答えました。結論は見出し行を種別 `ingest` で数え上げたもので、決まった手順で導いています。上限に当たる事項はありません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query（info-hive のクエリワークフロー）"
+ },
+ {
+  "qid": "Q08",
+  "rep": "1",
+  "expect": "高",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 18.2,
+  "cost": 0.2400909,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Grep",
+   "Grep",
+   "Read"
+  ],
+  "result": "タグの体系に `windows` を足したのは **2026-11-13** です。\n\n- `wiki/log.md` に「`## [2026-11-13] schema | タグの体系に windows を足した`」という記録があります。\n- 現在の `wiki/SCHEMA.md` の「タグの体系」にも、`windows`（Windows で動かすときの落とし穴と避け方についてのページ）が載っています。\n- 時刻は wiki に書かれていません。日付までしか分かりません。\n\n出典: [[log]]、SCHEMA.md の「タグの体系」\n\n**確からしさ（confidence）: 高**\n\n- 理由: 質問は wiki 自身の規約の変更時期を問うものです。結論は、wiki の記録である `log.md` の schema 行をそのまま述べたものです。`SCHEMA.md` の現在の内容とも食い違いません。上限の表に当たる行はありません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query（query-confidence.md を参照）"
+ },
+ {
+  "qid": "Q08",
+  "rep": "2",
+  "expect": "高",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 24.1,
+  "cost": 0.1711502,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Grep",
+   "Read",
+   "Bash",
+   "Glob",
+   "Read",
+   "Read"
+  ],
+  "result": "`log.md` に該当する記録があったので、それをもとに答えをまとめます。\n\n**答え:** タグの体系に `windows` を足したのは **2026-11-13** です。\n\n- [[log]] に `## [2026-11-13] schema | タグの体系に windows を足した` という記録があります。\n- `SCHEMA.md` のタグの体系には、`windows` が「Windows で動かすときの落とし穴と避け方についてのページ」として載っています。\n- 同じ日の取り込みに、Windows の Python の書き戻しで LF が CRLF に変わる件があります。足した日が近く、この件の取り込みに合わせて足した可能性があります。ただし `log.md` に理由は書かれていないので、推測です。\n\n**確からしさ（confidence）: 高**\n\n- 理由: wiki 自身の事柄（スキーマの変更がいつあったか）を、その記録である [[log]] と `SCHEMA.md` に書かれたとおりに答えました。結論は記録をそのまま述べたものです。確からしさを下げる上限には当てはまりません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query\n\n補足: 指示された `query-confidence.md` は、この worktree の `info-hive-wiki` に存在しませんでした。そのため、指示にあった別の worktree（`query-confidence-reach`）のファイルを読んで決め方を確かめました。"
+ },
+ {
+  "qid": "Q08",
+  "rep": "3",
+  "expect": "高",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 17.6,
+  "cost": 0.0705601,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Grep",
+   "Read"
+  ],
+  "result": "2026年11月13日です。\n\n`wiki/log.md` に `## [2026-11-13] schema | タグの体系に windows を足した` という記録があります。`wiki/SCHEMA.md` の「タグの体系」にも、今の `windows` タグの説明があります（Windows で動かすときの落とし穴と避け方についてのページ）。この日の記録には時刻がなく、足した理由の説明もありません。記録のすぐ後には、同じ日の Windows 関連の取り込み（Git Bash のパス変換の件）が続いています。\n\n出典: [[log]]、[[SCHEMA]]\n\n**確からしさ（confidence）: 高**\n\n- 理由: wiki 自身の事柄（タグの体系をいつ変えたか）なので、wiki の記録である `log.md` と `SCHEMA.md` の記述で答えた。結論は記録をそのまま述べたものである。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q09",
+  "rep": "1",
+  "expect": "なし",
+  "label": null,
+  "fixed_format": false,
+  "opened_query_confidence": false,
+  "opened_query_workflow": false,
+  "seconds": 25.0,
+  "cost": 0.2246705,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Grep",
+   "Read",
+   "Grep",
+   "ToolSearch",
+   "mcp__plugin_wiki_wiki__query"
+  ],
+  "result": "wiki に、CQRS の意味や設計の考え方を説明したページはありません。そのため、質問には答えられません。\n\n- `index.md` に CQRS のページはありませんでした。\n- `wiki/` 全体を CQRS で検索すると 3 ファイルに出ましたが、どれも取り込みの試験で使った例のページ名として出るだけでした。該当は [[ingestのモデルの比較-2026-11-13]]、[[rawの段を任せるエージェントの確かめ-2026-11-14]]、[[rawの段の取り直しとW8の出力のリリース-wiki-0.18.1]] です。\n- MCP の `query` でも検索しました（ハイブリッド検索で、0 件ではありませんでした）。上位の結果はどれも CQRS の内容とは関係のないページでした。\n\nwiki の外の知識で答えを補うことはしていません。\n\n提案: CQRS を説明する資料（たとえば取り込みの試験に使った CQRS の Web ページ）を `/wiki:ingest` で取り込んでください。そうすれば wiki から出典つきで答えられます。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q09",
+  "rep": "2",
+  "expect": "なし",
+  "label": null,
+  "fixed_format": false,
+  "opened_query_confidence": false,
+  "opened_query_workflow": false,
+  "seconds": 20.9,
+  "cost": 0.1073298,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "mcp__plugin_wiki_wiki__query"
+  ],
+  "result": "この wiki には、CQRS の略語の意味も設計の考え方も書かれていません。そのため、この質問には答えられません。\n\n**確認した範囲**\n- `index.md` に CQRS や関連する概念のページはありません。\n- MCP の `query` で「CQRS」と「コマンドとクエリの責務分離」を検索しました。\n- 「CQRS」という語は、取り込みのモデル比較の試験に使った記事名としてしか出てきません。見つかったのは [[ingestのモデルの比較-2026-11-13]] と [[rawの段を任せるエージェントの確かめ-2026-11-14]] です。どちらも、その記事を取り込むのにかかった時間や訳の点数を記録したページです。\n- 他のヒットは「コマンド」や「問い合わせ」という語に反応しただけで、CQRS とは関係ありません。\n\nwiki にない内容なので、私の知識で補った答えは添えません。確からしさ（confidence）も付けません。\n\n**足りない部分を補うには**\n- CQRS を説明した記事や書籍の章（Martin Fowler の CQRS の解説や Microsoft Learn の CQRS パターンなど）を `/wiki:ingest <URL か PDF>` で取り込むと、次回から wiki だけで答えられます。\n- 取り込み後は、`concept` ページとして「CQRS」を立てる形が自然です。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q09",
+  "rep": "3",
+  "expect": "なし",
+  "label": null,
+  "fixed_format": false,
+  "opened_query_confidence": false,
+  "opened_query_workflow": false,
+  "seconds": 21.1,
+  "cost": 0.11270770000000001,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "ToolSearch",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "mcp__plugin_wiki_wiki__query"
+  ],
+  "result": "この wiki には、CQRS の略語の意味も設計の考え方も書かれていません。そのため、質問には答えられません。\n\n- インデックスに CQRS のページはありません。検索語を「CQRS とは何の略で、どんな設計の考え方か」と「Command Query Responsibility Segregation」の 2 通りにして検索しました。MCP の `query` で wiki 全体を引いたところ、定義や解説を含むセクションは見つかりませんでした。\n- CQRS が出てくるのは、`/wiki:ingest` の試験で使った題材としてだけです。取り込みの所要時間を比べる表に「CQRS 162 秒」のような行があります（[[rawの段を任せるエージェントの確かめ-2026-11-14]]）。表の中身は時間の記録で、CQRS の内容ではありません。\n- 上のとおり wiki に根拠がないので、モデルの知識で答えを足すことはしていません。確からしさ（confidence）も付けていません。\n\n**足りない部分を補う方法**\n- CQRS の解説記事（Martin Fowler の記事や Microsoft Learn の CQRS パターンなど）を `/wiki:ingest <URL>` で取り込む。取り込めば、次回から出典つきで答えられます。\n- 取り込み済みの raw があるなら、`raw/` の場所を教えてください。[[rawの段を任せるエージェントの確かめ-2026-11-14]] の試験で使った CQRS のページが、一時の wiki に残っている可能性はあります。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q10",
+  "rep": "1",
+  "expect": "中（PyMuPDF の部分は答えない）",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 22.1,
+  "cost": 0.2686539,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Read",
+   "Read",
+   "Read",
+   "mcp__plugin_wiki_wiki__query",
+   "Read",
+   "Grep"
+  ],
+  "result": "**原因（wiki の記述）**\n\n`pdfminer.layout.LTLayoutContainer.group_textboxes` は、テキストボックスの組を距離の近い順にヒープからまとめます。ヒープの要素は `(skip_isany, dist, id(obj1), id(obj2), obj1, obj2)` です。距離が同じ組の順は `id(obj)`、つまりメモリーの番地で決まります。番地はプロセスごとに変わるので、行の並びが揺れます。[[pdfminerの本文の並びの揺れ]]\n\n- 令和 7 年版防衛白書（546 ページ）では、3 プロセス・2 方法の 6 回のどれかで 5 ページが違いました。違いは行の並びだけで、文字の数と行の集まりは同じでした。\n- 距離が同じ組を作る合成 PDF（20 ページ）では、16〜19 ページで元の pdfminer と直した版の本文が違いました（Windows 11、Python 3.12、8 回）。\n- 距離が同じ組の順を、ページ内でテキストボックスを初めて見た順の番号にすると、揺れは消えました。確かめたのは pdfminer.six 20260107 の 1 つの版と、その防衛白書だけです。\n- 製品側の直しは、wiki の `wiki_pdf_layer.py` と rag の `rag_pdf_layer.py` にある `_stable_group_textboxes` です。[[pdfの文字の層とリリース-wiki-0.21.0]]\n\n**PyMuPDF でも同じ揺れが起きるか**\n\nwiki には PyMuPDF（MuPDF）について書かれたページがありません。語彙とハイブリッド検索の結果に PyMuPDF の記述はなく、全文検索でも該当はありませんでした。そのため、起きるかどうかは wiki からは答えられません。wiki の外の知識で補うこともしません。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 原因の結論は [[pdfminerの本文の並びの揺れ]] の記述をそのまま述べたものです。このページの `sources` は [[adr-0025の承認の条件の測定-2026-11-15]] です。ただしそのソース要約ページには、`id()` による決め方（ヒープの要素の中身）が見当たりません。そのため前提の出発点は「中」です。ページ自身が「ソースを読んで突き止め、次の直しで揺れが消えたことで確かめた」と述べています。\n- 上げる方法: 次のどちらかで、`group_textboxes` が `id()` で順を決めていることを確かめます。\n  - 作者の承認を得て、[[adr-0025の承認の条件の測定-2026-11-15]] の raw ソース（`docs/research/adr-0025-measurement-2026-11-15/`）を読みます。\n  - pdfminer.six のソースを `/wiki:ingest` で取り込みます。\n\n  確かめられれば「高」になります。\n- PyMuPDF の部分は wiki が扱っていないので、確からしさは付けていません。比べた記録を残すには、PyMuPDF の抽出を同じ試料（防衛白書や `make_ties_pdf`）で複数プロセスから測った結果を取り込みます。または [[抽出の方式の比較-markitdown-2026-11-15]] のような比較調査に PyMuPDF を加える方法もあります。\n- 保存の提案: 確からしさが「中」で、新しいつながりも見いだしていないので、synthesis への保存は提案しません。\n\n使用した MCP サーバー: wiki（`mcp__plugin_wiki_wiki__query`）\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q10",
+  "rep": "2",
+  "expect": "中（PyMuPDF の部分は答えない）",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 27.8,
+  "cost": 0.2166484,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Read",
+   "Read",
+   "Read",
+   "Read",
+   "Grep",
+   "Grep",
+   "Grep",
+   "Grep"
+  ],
+  "result": "## 原因\n\npdfminer.six（20260107 で確かめた版）の `LTLayoutContainer.group_textboxes` が原因です。この関数はテキストボックスの組を、距離の近い順にヒープからまとめます。ヒープの要素は `(skip_isany, dist, id(obj1), id(obj2), obj1, obj2)` です。距離が同じ組の順は `id(obj)`（メモリーの番地）で決まり、番地はプロセスごとに変わります。そのため、同じ PDF と同じ設定でも、行の並びだけが変わることがあります。\n\nwiki には次の記録があります。\n\n- 令和 7 年版防衛白書（546 ページ）では、6 回の取り出しのどれかで違ったのは 5 ページでした。違うページでは文字数も行の集まりも同じで、並びだけが違いました。\n- 原因はソースを読んで突き止めました。`group_textboxes` を呼ぶあいだだけ `id` を置きかえて並びを決まった順にすると、3 つのプロセスで 546 ページの本文がすべて同じになりました。この直しで原因を確かめています。\n- 製品では、wiki の `wiki_pdf_layer.py` と rag の `rag_pdf_layer.py` の `_stable_group_textboxes` で同じ手順を実装しています。\n\n出典は [[pdfminerの本文の並びの揺れ]] と [[adr-0025の承認の条件の測定-2026-11-15]] です。\n\n## PyMuPDF で同じ揺れが起きるか\n\nwiki には答えがありません。インデックスを読み、`PyMuPDF`、`pymupdf`、`fitz`、`MuPDF` で wiki 全体を検索しましたが、該当するページはありませんでした。PyMuPDF の並びの安定性を述べた記述がなく、wiki の外の知識でも答えません。\n\n取り込むとよい資料は次の 2 つです。\n\n- PyMuPDF の本文取り出し（`get_text` など）の読み順の決め方を述べた公式文書。\n- 同じ防衛白書で、PyMuPDF を 3 回以上別々のプロセスで走らせた測定。ADR-0025 の測定と同じ形で、`/wiki:ingest` で取り込めます。\n\nwiki の記録には PDFium の記述があります。ただしこれは判定と OCR の画像用で、本文の並びを比べた記録ではありません。\n\n**確からしさ（confidence）: 中**\n\n- 理由: 原因についての答えは [[pdfminerの本文の並びの揺れ]] の記述をそのまま述べたものです。このページの `sources` が挙げるソースの要約ページ [[adr-0025の承認の条件の測定-2026-11-15]] には、揺れが起きたことは書かれています。しかし `id()` による並びという原因の仕組みは書かれていません。そのため前提の出発点は「中」です。PyMuPDF の部分は wiki が扱っていないので、確からしさを付けていません。\n- 上げる方法: 原因の仕組みを要約ページに結ぶには、`docs/research/adr-0025-measurement-2026-11-15.md` の raw を読んで確かめます。raw は大きいことがあるので、承認をいただいた場合だけ読みます。raw が仕組みまで書いていなければ、pdfminer.six の `group_textboxes` のソースか公式文書を `/wiki:ingest` で取り込み、[[pdfminerの本文の並びの揺れ]] の `sources` に結ぶと「高」になります。\n- 保存について: 新しいつながりを見いだす回答ではなく、確からしさも「中」なので、`synthesis/` への保存は提案しません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query"
+ },
+ {
+  "qid": "Q10",
+  "rep": "3",
+  "expect": "中（PyMuPDF の部分は答えない）",
+  "label": "中",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 33.1,
+  "cost": 0.20032410000000003,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Read",
+   "Read",
+   "Read",
+   "Grep",
+   "ToolSearch",
+   "mcp__plugin_wiki_wiki__query"
+  ],
+  "result": "## 1. pdfminer の本文の並びがプロセスごとに揺れる原因\n\n`pdfminer.layout.LTLayoutContainer.group_textboxes` は、テキストボックスの組を距離の近い順にヒープからまとめます。ヒープの要素は `(skip_isany, dist, id(obj1), id(obj2), obj1, obj2)` です。距離が同じ組の順は `id(obj)`、つまりメモリーの番地で決まります。番地はプロセスごとに変わるので、本文の行の並びが変わります。[[pdfminerの本文の並びの揺れ]]\n\n- **対象:** pdfminer.six 20260107 で、`LAParams` のレイアウト解析を使うときです。\n- **観測:** 令和 7 年版防衛白書（546 ページ）を 3 プロセスで取り出したところ、5 ページ（8、229、247、263、351）で違いました。違いは行の並びだけで、文字数と行の集まりは同じでした。同じプロセスの中でも、ページごとの受け取りと文書全体の取り出しで違いました。[[adr-0025の承認の条件の測定-2026-11-15]]\n- **確かめ方:** ソースを読んで突き止めました。距離が同じ組の順をページ内で決まった順にすると、揺れが消えました。\n- **直し方:** 組の順を、テキストボックスを初めて見た順の番号で決めます。製品では `_stable_group_textboxes`（wiki の `wiki_pdf_layer.py` と rag の `rag_pdf_layer.py`）で入れました。\n\n## 2. PyMuPDF でも同じ揺れが起きるか\n\nwiki には、PyMuPDF を扱った記述がありません。ページ全体の字句検索でも、ハイブリッド検索（MCP の `query`）でも、該当は見つかりませんでした。この部分には確からしさを付けず、外の知識でも答えません。\n\nwiki にあるのは pdfminer の原因だけです。原因は pdfminer の `group_textboxes` の実装に固有の話で、PyMuPDF に当てはまるかは wiki から言えません。\n\n取り込むとよい資料は次のとおりです。\n\n- PyMuPDF で同じ PDF を複数プロセスから取り出して比べた測定。`docs/research/adr-0025-measurement-2026-11-15/scripts/stable_text.py` と同じ手順で行えます。\n- 揺れを確実に起こす合成 PDF（`tests/contract/pdf_fixtures.py` の `make_ties_pdf`）を PyMuPDF にも当てた結果。\n\n---\n\n**確からしさ（confidence）: 中**（第 1 の問いへの答えについて）\n\n- 理由: 結論は [[pdfminerの本文の並びの揺れ]] の記述をそのまま述べたものです。`id()` が原因だという前提は、このコンセプトページにだけあります。`sources` に挙がるソースの要約ページ [[adr-0025の承認の条件の測定-2026-11-15]] を読みましたが、揺れがあったことしか書かれておらず、原因の記述は見当たりませんでした。そのため出発点は「中」です。\n- 上げる方法: `docs/research/adr-0025-measurement-2026-11-15.md` の raw を読み、`id()` が原因だという記述を確かめます。raw は大きいので、承認をいただければその場で読みます。記述が raw にもなければ、原因を直接述べた資料（`group_textboxes` のソースを調べた記録など）を `/wiki:ingest` で取り込み、このページの `sources` に結びます。\n\nPyMuPDF の部分は扱っていないので、取り込むとよい資料は上に書いたとおりです。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query、info-hive"
+ },
+ {
+  "qid": "Q11",
+  "rep": "1",
+  "expect": "高（uv の言語の部分は答えない）",
+  "label": "高",
+  "fixed_format": false,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 27.2,
+  "cost": 0.2901931,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Bash",
+   "Read",
+   "Read",
+   "Read",
+   "Read",
+   "Read",
+   "Grep",
+   "ToolSearch",
+   "mcp__plugin_wiki_wiki__query"
+  ],
+  "result": "**1つ目の問い:依存を解決できなかったパッケージは `onnxruntime`(`onnxruntime==1.31.1`)です。**\n\nPython の入っていない PC に wiki 0.19.4 を入れると、MCP サーバーが起動しませんでした。uv 0.13.8 は使える Python がないと、宣言に合う最新の CPython 3.15 を取ります。MCP サーバーの依存 `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存を解決できませんでした。0.19.5 で、宣言を `\">=3.12,<3.15\"` にそろえて直しています。出典は [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] です。\n\n**2つ目の問い:uv の実装言語は、wiki に記述がなく答えられません。**\nインデックスを読み、ハイブリッド検索を1回行い、「Rust」「で書かれ」「実装言語」の全文検索もしましたが、該当する記述はありませんでした。wiki の外の知識では補いません。wiki には uv の版ごとのエラー出力の違いは記録されていますが、実装言語は記録されていません。補うなら、uv の公式ドキュメントか GitHub リポジトリ(astral-sh/uv)の README を `/wiki:ingest` で取り込むとよいです。\n\n**確からしさ(confidence): 高**(1つ目の問いの結論のみ。2つ目の問いには確からしさを付けません)\n\n- 理由: 1つ目の結論は、ソースの要約ページ [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] の「不具合」節の記述をそのまま述べたものです。矛盾する記述や仮説の表記はなく、上限に当たる行もありません。\n\n保存の提案: 新しいつながりを見いだす回答ではないので、synthesis への保存は不要です。\n\n使用した MCP サーバー: wiki(`query`)\n使用した Agent Skills: wiki:query(wiki:info-hive のクエリ手順を含む)"
+ },
+ {
+  "qid": "Q11",
+  "rep": "2",
+  "expect": "高（uv の言語の部分は答えない）",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 22.8,
+  "cost": 0.092054,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Read",
+   "Grep",
+   "Read",
+   "Read",
+   "Glob",
+   "Grep",
+   "Read",
+   "Grep"
+  ],
+  "result": "**質問 1: 依存を解決できなかったパッケージ**（確からしさ: 高）\n\n答えは `onnxruntime==1.31.1` です。MCP サーバーの依存の 1 つで、CPython 3.15 の wheel がありませんでした。\n\n- Python の入っていない PC に wiki 0.19.4 を入れると、MCP サーバーが起動しませんでした。0.19.5 はこれを直した版です。\n- uv で動くスクリプトの宣言は `requires-python = \">=3.12\"` で、上限がありませんでした。\n- uv 0.13.8 は使える Python がないと、宣言に合う中でいちばん新しい CPython 3.15 を取ります。そのため依存を解決できませんでした。\n- 出典: [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n\n**質問 2: uv が何のプログラミング言語で書かれているか**\n\nwiki にはこの内容がなく、答えられません。インデックスと全文の検索（uv と言語名の組み合わせ）で、uv の実装言語に触れたページは見つかりませんでした。取り込むとよいのは、uv の公式ドキュメントか公式リポジトリの README です。`/wiki:ingest` で取り込めば、wiki から答えられます。\n\n**確からしさ（confidence）: 高**\n\n- 理由: 質問 1 の結論は、ソースの要約ページ [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] の記述をそのまま述べたものです。どの上限にも当たりません。確からしさは質問 1 の答えにだけ付けています。質問 2 は wiki が扱っていないので、付けていません。\n\n使用した MCP サーバー: なし\n使用した Agent Skills: wiki:query（`info-hive` のクエリの手順）"
+ },
+ {
+  "qid": "Q11",
+  "rep": "3",
+  "expect": "高（uv の言語の部分は答えない）",
+  "label": "高",
+  "fixed_format": true,
+  "opened_query_confidence": true,
+  "opened_query_workflow": false,
+  "seconds": 28.5,
+  "cost": 0.16328190000000004,
+  "wiki_status": "",
+  "init": {
+   "model": "claude-sonnet-5-5",
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\query-confidence-reach\\info-hive-wiki",
+     "source": "wiki@inline",
+     "version": "0.21.1"
+    }
+   ]
+  },
+  "tools": [
+   "Read",
+   "Read",
+   "Read",
+   "Read",
+   "Glob",
+   "Grep",
+   "Glob",
+   "Read",
+   "ToolSearch",
+   "mcp__plugin_wiki_wiki__query"
+  ],
+  "result": "**質問 1: 依存を解決できなかったパッケージ**\n\n`onnxruntime==1.31.1` です。これは MCP サーバーの依存の 1 つです。\n\n- Python の入っていない PC に wiki 0.19.4 を入れました。uv 0.13.8 は、使える Python がないと、宣言に合う中でいちばん新しい CPython 3.15 を取ります。\n- `onnxruntime==1.31.1` には 3.15 の wheel がなく、依存を解決できませんでした。\n- 宣言は `requires-python = \">=3.12\"` で、上限がありませんでした。直しは `\">=3.12,<3.15\"` です（wiki 0.19.5）。\n- 出典: [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n\n**質問 2: uv の実装言語**\n\nこの部分は wiki に書かれていません。インデックスを読み、MCP の `query` でも検索しました。ヒットは uv の使い方や不具合の記録だけで、uv 自体を何の言語で書いたかを述べたページはありませんでした。そのため答えません。\n\n補うには、uv の公式 README や公式ドキュメントを `/wiki:ingest` で取り込んでください。\n\n**確からしさ（confidence）: 高**\n\n- 理由: 質問 1 の結論は、ソースの要約ページ [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]] の記述を、そのまま述べたものです。当てはまる上限の行はありません。質問 2 は wiki が扱っていないので、確からしさは付けていません。\n\n使用した MCP サーバー: wiki（`query`）\n使用した Agent Skills: wiki:query"
+ }
+]
