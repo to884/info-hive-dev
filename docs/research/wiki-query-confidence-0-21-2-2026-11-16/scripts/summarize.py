@@ -89,6 +89,83 @@ def summarize(path: Path) -> dict:
     return out
 
 
+# 0.21.2 の見つけ方の決め方（query-confidence.md の縮退の理由の表のあとの 1〜4）を、記録から機械で当てる。
+# 探す道具: MCP の query、CLI の wiki_search.py の検索（--backlinks を除く）、Grep、Glob。
+# wiki のページでの一致がない呼び出し（0 件、SCHEMA.md・index.md・log.md だけ）は数えない
+NOT_PAGES = ("SCHEMA.md", "index.md", "log.md")
+EMPTY = ("No files found", "No matches found", "Found 0")
+
+
+def _page_hits(text: str) -> set:
+    """結果の文字列から、wiki のページのスラッグ（.md を除いた名前）を拾う"""
+    names = set(re.findall(r"([^\\/\s\"'`:|]+)\.md", text or ""))
+    return {n for n in names if n + ".md" not in NOT_PAGES}
+
+
+def _kind(x: dict):
+    """探す道具なら (種類, 正常な hybrid か, 一致したページ) を返す。そうでなければ None"""
+    name, inp, res = x["name"], x.get("input") or {}, x.get("result", "") or ""
+    if name.endswith("__query"):
+        mo = re.search(r'"mode":\s*"(\w+)"', res)
+        w = re.search(r'"warning":\s*(null|"[^"]*")', res)
+        s = re.search(r'"state":\s*"(\w+)"', res)
+        normal = bool(mo and mo.group(1) == "hybrid" and (not w or w.group(1) == "null") and not (s and s.group(1) == "embedding"))
+        return ("mcp", normal, _page_hits(res))
+    if name == "Bash" and "wiki_search.py" in str(inp.get("command", "")) and "--backlinks" not in str(inp.get("command", "")):
+        cmd = str(inp.get("command", ""))
+        mo = re.search(r'"mode":\s*"(\w+)"', res)
+        normal = bool(mo and mo.group(1) == "hybrid") and "--no-embed" not in cmd and "--granularity page" not in cmd
+        return ("cli", normal, _page_hits(res))
+    if name in ("Grep", "Glob"):
+        hits = set() if any(res.strip().startswith(e) for e in EMPTY) else _page_hits(res)
+        target = str(inp.get("path", ""))
+        if not hits and res.strip() and target.endswith(".md") and not any(target.endswith(n) for n in NOT_PAGES):
+            # 1 つのページを対象にした Grep が、パスを出さずに本文の行を返した
+            hits = {Path(target).stem}
+        return (name.lower(), False, hits)
+    return None
+
+
+def _opens(x: dict, page: str) -> bool:
+    name, inp = x["name"], json.dumps(x.get("input"), ensure_ascii=False)
+    if name in ("Read",) or name.endswith("__get_page"):
+        return page in inp
+    if name == "Bash" and "wiki_search.py" not in inp and "wiki_graph_query.py" not in inp:
+        return page in inp and re.search(r"\b(cat|head|sed|type|Get-Content)\b", inp) is not None
+    return False
+
+
+def found_by(out: dict, pages: list) -> dict:
+    """答えのページごとに、見つけ方の決め方の 1〜4 のどれに当たったかを返す"""
+    res = {}
+    for page in pages:
+        pre, first = [], None
+        for i, x in enumerate(out["tools"]):
+            if _opens(x, page):
+                first = i
+                break
+            k = _kind(x)
+            if k and k[2]:
+                pre.append({"i": i, "kind": k[0], "normal": k[1], "lists": page in k[2]})
+        if first is None:
+            res[page] = {"rule": "未読", "pre": pre}
+            continue
+        if not pre:
+            rule = "1-index"
+        elif any(p["normal"] and p["lists"] for p in pre):
+            rule = "2-hybrid"
+        elif any(p["kind"] in ("grep", "glob") for p in pre):
+            rule = "3-reason0"
+        elif any(not p["normal"] for p in pre):
+            rule = "3-degraded"
+        else:
+            rule = "4-hybrid-only"
+        # 開いたあとの、正常な hybrid での検索し直し（その場での検索し直し）
+        resea = any((k := _kind(x)) and k[1] and page in k[2] for x in out["tools"][first + 1:])
+        res[page] = {"rule": rule, "first_open": first, "pre": pre, "re_searched_hybrid": resea}
+    return res
+
+
 if __name__ == "__main__":
     for p in sys.argv[1:]:
         s = summarize(Path(p))

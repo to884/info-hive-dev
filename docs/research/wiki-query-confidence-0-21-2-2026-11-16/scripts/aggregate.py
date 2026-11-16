@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from summarize import summarize  # noqa: E402
+from summarize import found_by, summarize  # noqa: E402
 from paths import QUESTIONS, plugin_dir, require_runs, wiki_base  # noqa: E402
 
 RUNS = require_runs()
@@ -43,6 +43,7 @@ for meta in sorted(RUNS.glob("R*-r[0-9].meta.json")):
         "qid": m["qid"], "rep": m["rep"], "condition": m["condition"], "expect": qs[m["qid"]]["expect"],
         "final": s["final_marks"], "inline": s["inline_marks"], "any": s["any_marks"],
         "opened_confidence": s["opened_confidence"], "searches": s["searches"], "graph_calls": s["graph_calls"],
+        "found_by": found_by(s, qs[m["qid"]].get("answer_pages", [])),
         "tool_names": [t["name"] for t in s["tools"]], "outside": outside(s["tools"]),
         "cost": s.get("cost"), "seconds": m["seconds"], "turns": s.get("turns"), "subtype": s.get("subtype"),
         "denials": s.get("denials"), "wiki_changed": m["wiki_changed"], "result": s.get("result"),
@@ -53,6 +54,7 @@ for r in rows:
     total += r["cost"] or 0
     print(r["qid"], r["rep"], r["condition"][:5], "exp", r["expect"], "final", r["final"], "inline", r["inline"],
           "cf" if r["opened_confidence"] else "--", "graph" if r["graph_calls"] else "",
+          {k[:8]: v["rule"] for k, v in r["found_by"].items()},
           [(x.get("via"), x.get("mode"), (x.get("warning") or "")[:12]) for x in r["searches"]],
           f"${(r['cost'] or 0):.3f}", r["seconds"], "s", "OUTSIDE" if r["outside"] else "",
           "WIKI-CHANGED" if r["wiki_changed"] else "")
