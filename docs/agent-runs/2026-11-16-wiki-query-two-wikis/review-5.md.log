@@ -1,0 +1,138 @@
+[ask-codex 09:15:56] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev）
+## 判定
+
+**却下。確信度：高。** bind mount により、「リンクがなく、同じでも入れ子でもない根」の内部共有が成立し、`disjoint` でも出典の混同と他方への書き込みが起こる。また、PDF のパスを解決してから渡す規則は、現在対応しているネットワークドライブからの登録を壊す。
+
+## 致命的・重大な欠陥
+
+### 1. 致命：bind mount はリンク検査を通過し、根の親を比較しても内部共有を検出できない
+
+Linux で、初期化済みの別々の根 `/U` と `/P` を用意し、次の配置にする。
+
+```text
+/U/SCHEMA.md
+/U/shared/           ← /P/shared を bind mount
+/U/.wiki-cache/      ← /P/shared を bind mount
+
+/P/SCHEMA.md
+/P/shared/secret.md  本文: # PROJECT_SECRET
+```
+
+配置を作る操作は、以下のとおりである。**今回のレビューでは実行していない。**
+
+```sh
+mount --bind /P/shared /U/shared
+mount --bind /P/shared /U/.wiki-cache
+```
+
+通常ファイルはハードリンク数 1、識別子は安定して取得でき、検査後にも配置は変わらないとする。
+
+bind mount は、既存のファイルやディレクトリを別の場所から見せる機能であり、シンボリックリンクを作らない。ファイル単体もマウントできる。[Linux の mount(2)](https://man7.org/linux/man-pages/man2/mount.2.html)
+
+この配置では、仕様どおりに判定すると次の結果になる。
+
+- `/U` と `/P` の識別子は異なるため、`same` ではない。
+- どちらの根から親をたどっても他方の根に到達しないため、`nested` ではない。
+- `is_symlink()`、ジャンクション、通常ファイルの `st_nlink >= 2` のどれにも当たらず、`links` ではない。
+- `wiki_key()` も異なるため、**`disjoint` が返る**。
+
+ところが検索は `/U/shared/secret.md` に降り、`/P/shared/secret.md` の本文をユーザースコープの結果として返す。さらに CLI のキャッシュ書き込みは、`/U/.wiki-cache/search-index.json` を通じて、**他方の wiki の `/P/shared/search-index.json` を作成・更新する**。これは `/P/.wiki-cache/` への書き込みではない。
+
+OS の入口をメモリ上のモデルに差し替え、実際の `walk_pages()`、`collect_pages()`、`write_parse_cache()` で確認した。
+
+```text
+U の収集結果: shared/secret.md → # PROJECT_SECRET
+P の収集結果: shared/secret.md → # PROJECT_SECRET
+根の識別子: 異なる
+共有ファイルの識別子: 同じ
+共有ファイルの st_nlink: 1
+根と他方の親の識別子の一致: なし
+キャッシュ書き込みで作られた場所: P/shared/search-index.json
+```
+
+**根拠：**
+
+- [設計書:157](C:/Works/info-hive-dev/docs/plans/wiki-query-two-wikis-2026-11-16.md:157)：リンクのない木の共有は根の入れ子に限る、という論法。
+- [設計書:183](C:/Works/info-hive-dev/docs/plans/wiki-query-two-wikis-2026-11-16.md:183)：リンク判定の列挙にマウントがない。
+- [設計書:201](C:/Works/info-hive-dev/docs/plans/wiki-query-two-wikis-2026-11-16.md:201)：入れ子の検査は根から親への比較だけ。
+- [wiki_pages.py:267](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:267)：通常ディレクトリには降りる。
+- [wiki_search.py:274](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:274)：収集した名前から本文を読む。
+- [wiki_search.py:249](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:249)：キャッシュのディレクトリを通して書き込む。
+
+同じ欠陥は、**根自体が bind mount の場合の入れ子判定**にも現れる。`/P/inner` に別の wiki を置き、それを `/U` に bind mount すると、`/U` の親は `/` であり、元の `/P/inner` の親 `/P` にはたどり着かない。`normalize_wiki_root()` は `Path.resolve()` を呼ぶだけで、マウント元のパスに置き換える処理はない。根の中を読む実体は入れ子でも、仕様の `nested` 判定は取り逃がす。
+
+第 5 節の「識別子の限界」「確かめたあとの変化」「規則を守らない配置」の例外には依存しない。
+
+### 2. 重大：PDF の解決済みパスを渡すと、対応済みのネットワークドライブが登録できなくなる
+
+Windows で `Z:` がネットワーク共有に割り当てられ、利用者が `Z:\book.pdf` を指定した場合を考える。ファイル自体にリンクは必要ない。
+
+現在の rag は、次の違いを意図的に保っている。
+
+- 入力が `Z:\book.pdf`：解決先が UNC でも、ネットワークドライブからの入力なら受け付ける。
+- 入力が `\\server\share\book.pdf`：解決する前に拒否する。
+- 永続ジョブには、解決前のドライブ文字付きパスを記録する。
+
+設計の「`register_pdf` にも解決した先のパスを渡す」を適用すると、入力が UNC に変わり、登録時点で拒否される。
+
+実際の `Config.pdf_path()` に、パス解決・属性取得・ネットワークドライブ判定だけを差し替えて確認した。
+
+```text
+'Z:/book.pdf'
+  → \\server\share\book.pdf を返す
+
+'\\server\share\book.pdf'
+  → ValueError: UNC パスとデバイスのパスは指定できません。
+```
+
+**検証結果：現実装と食い違う。** 新仕様に従うと、既存の対応入力が失敗する。
+
+**根拠：**
+
+- [設計書:153](C:/Works/info-hive-dev/docs/plans/wiki-query-two-wikis-2026-11-16.md:153)、[設計書:173](C:/Works/info-hive-dev/docs/plans/wiki-query-two-wikis-2026-11-16.md:173)：PDF 登録に解決済みパスを渡す規則。
+- [rag_config.py:169](C:/Works/info-hive-dev/info-hive-rag/scripts/rag_config.py:169)：UNC に解決されるため、利用者が渡したパスを保存するという明示的な説明。
+- [rag_config.py:188](C:/Works/info-hive-dev/info-hive-rag/scripts/rag_config.py:188)：UNC 入力の事前拒否。
+- [rag_config.py:207](C:/Works/info-hive-dev/info-hive-rag/scripts/rag_config.py:207)：ネットワークドライブ経由を認める分岐。
+- [rag_jobs.py:78](C:/Works/info-hive-dev/info-hive-rag/scripts/rag_jobs.py:78)：解決前のパスをジョブに保存。
+- [test_jobs.py:364](C:/Works/info-hive-dev/tests/rag/test_jobs.py:364)：この区別を確認する既存試験。
+
+## 崩れる前提
+
+| 前提 | 崩れる条件 |
+| --- | --- |
+| 列挙したリンクがなければ、名前空間は実体の木と一致する | bind mount が同じ部分木を別の場所に公開する |
+| 内部共有は、根同士の一致か入れ子に限られる | 別々の根の内部に、同じ部分木をマウントする |
+| 根から親をたどれば、実体の包含関係を検出できる | 内側の根を別の場所に bind mount し、その別名を登録する |
+| `.wiki-cache/` に書けば、他方の wiki を変更しない | キャッシュディレクトリが他方の通常ディレクトリのマウント先である |
+| 解決済みパスへの置換は rag の受付条件を保つ | ドライブ文字付きの入力が、受付禁止の UNC 入力に変わる |
+
+## 見落としと軽微な問題
+
+- **軽微：ハードリンクの扱いに古い仕様が残っている。** [設計書:32](C:/Works/info-hive-dev/docs/plans/wiki-query-two-wikis-2026-11-16.md:32) は「警告を出して対象外」と書くが、第 3.8 節と第 6 節の決定は「認めず、`links` で停止」である。
+- **軽微：試験項目にマウントによる共有がない。** [設計書:213](C:/Works/info-hive-dev/docs/plans/wiki-query-two-wikis-2026-11-16.md:213) 以降の列挙では、上記の反例が残ったまま試験を通過できる。
+- **軽微：PDF の未確認事項が実装上は確認可能なまま残っている。** [設計書:282](C:/Works/info-hive-dev/docs/plans/wiki-query-two-wikis-2026-11-16.md:282) の疑問に対して、rag はすでにパスを解決し、入力経路による許否も実装している。「解決したパスを渡せばよい」という扱いでは、その区別が失われる。
+
+## 検証した事実
+
+| 確かめた主張 | 結果 |
+| --- | --- |
+| 前回のファイルシンボリックリンクが今回も検査対象から漏れる | **食い違い。** 今回の仕様では明示的な検出対象 |
+| 通常ディレクトリとして見える共有経路を検索がたどる | **一致。** 実際の走査・本文収集関数でモック検証 |
+| キャッシュのディレクトリを共有すると他方に書く | **一致。** 実際の書き込み関数でモック検証 |
+| rag は解決済み UNC を渡しても元のドライブ入力と同様に受け付ける | **食い違い。** 実際の検証関数で受付と拒否を確認 |
+| `publish_exclusive()` が `os.link()` を使うため、正常終了後も必ずハードリンクが残る | **食い違い。** POSIX では直後に一時名を削除する（[wiki_session.py:1218](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_session.py:1218)） |
+| MCP と CLI が共通の走査を使う | **一致** |
+| MCP のグラフ問い合わせは DB を読み取り専用で開く | **一致** |
+
+`wiki_links.py` と `wiki_roots.py` は未実装なので、`disjoint` は仕様からの判定である。実 OS の bind mount と実ネットワーク共有を使った試験は行っていない。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 通常のシンボリックリンク、ジャンクション、通常ファイルのハードリンクについては、今回の検査仕様から前回と同じ見落としを導けなかった。
+- マウントなどの別名経路がない木では、安定した識別子で親を比較する入れ子判定は崩せなかった。
+- 保存とグラフ再抽出の禁止、スコープごとの登録解決、`key_collision` の区別には、新しい破綻を確認できなかった。
+- 古い MCP 本文、検査後の配置変更、外部 raw のスコープについては、第 5 節で保証外として明記されているため、今回の欠陥には数えていない。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 09:23:33] 完了。session 01a1e1b5-e4e6-7ce1-a263-1e57d4c446a2  usage {"input_tokens": 1581262, "cached_input_tokens": 1475328, "cache_write_input_tokens": 0, "output_tokens": 11232, "reasoning_output_tokens": 3934}
