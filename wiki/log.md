@@ -164,3 +164,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-16] ingest | ADR-0027 に自動字幕の訂正と confidence を足した
    ページ: sources/youtubeの字幕の取り込みの設計-2026-11-15、concepts/敵対的レビューで設計を直す進め方 を更新
+
+## [2026-11-16] ingest | /wiki:query の確からしさと wiki 0.20.0 のリリース
+   ページ: sources/queryの確からしさとリリース-wiki-0.20.0（新規。concepts/リリースの確かめ方 を更新）
