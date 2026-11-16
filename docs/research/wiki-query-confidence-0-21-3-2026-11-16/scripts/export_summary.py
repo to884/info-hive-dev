@@ -40,7 +40,7 @@ J = {
  ("R03", "2"): {"got": "低", "path": "index", "reason_ok": "はい", "raise_fit": "はい", "kind": "match"},
  ("R03", "3"): {"got": "低", "path": "index", "reason_ok": "はい", "raise_fit": "はい", "kind": "match"},
  ("R04", "1"): {"got": "低", "path": "index", "reason_ok": "部分", "raise_fit": "はい", "kind": "match", "note": "料金表は MCP の query の前に Bash の cat で開いたのに、理由に「query の hybrid 検索の結果から開いた」と書いた"},
- ("R04", "2"): {"got": "なし", "path": "index", "reason_ok": "はい", "kind": "unregistered", "note": "現在の金額は wiki にないとして答えず、確からしさを付けなかった。旧料金は superseded として示した。事前の alt にない経路"},
+ ("R04", "2"): {"got": "なし", "path": "index", "reason_ok": "はい", "kind": "alt", "note": "現在の金額は wiki にないとして答えず、確からしさを付けなかった。旧料金は superseded として示した。事前に書いた alt（答えず、確からしさを付けない）に当たる"},
  ("R04", "3"): {"got": "低", "path": "search", "reason_ok": "はい", "raise_fit": "部分", "kind": "match", "note": "/wiki:lint の提案がない"},
  ("R05", "1"): {"got": "高", "path": "index", "reason_ok": "はい", "kind": "match"},
  ("R05", "2"): {"got": "高", "path": "index", "reason_ok": "はい", "kind": "match"},

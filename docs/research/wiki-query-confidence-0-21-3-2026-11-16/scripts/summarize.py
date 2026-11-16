@@ -121,9 +121,10 @@ def _kind(x: dict):
         normal = bool(mo and mo.group(1) == "hybrid") and "--no-embed" not in cmd and "--granularity page" not in cmd
         return ("cli", normal, _page_hits(res))
     if name in ("Grep", "Glob"):
-        hits = set() if any(res.strip().startswith(e) for e in EMPTY) else _page_hits(res)
+        empty = any(res.strip().startswith(e) for e in EMPTY)
+        hits = set() if empty else _page_hits(res)
         target = str(inp.get("path", ""))
-        if not hits and res.strip() and target.endswith(".md") and not any(target.endswith(n) for n in NOT_PAGES):
+        if not empty and not hits and res.strip() and target.endswith(".md") and not any(target.endswith(n) for n in NOT_PAGES):
             # 1 つのページを対象にした Grep が、パスを出さずに本文の行を返した
             hits = {Path(target).stem}
         return (name.lower(), False, hits)
