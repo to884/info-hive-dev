@@ -128,11 +128,19 @@ class IntegrationReviewTests(Base):
         index = self.write("indexes/topic.md", "# Topic\n")
         os.link(index, self.ext / "index-copy.md")
         self.write("index.md", "# Index\n\n- [[indexes/topic|Topic]]\n")
-        self.write("concepts/a.md", page("a"))
+        self.write("concepts/a.md", page("a", "[[indexes/topic]]").replace('tags: ["t"]', 'tags: ["t"]\nsources: ["[[indexes/topic]]"]'))
         c = core.Core(core.take_snapshot(self.wiki))
-        self.assertEqual(c.resolve("indexes/topic")["state"], "refused")
+        self.assertEqual(c.resolve("indexes/topic", articles=True)["state"], "refused")
+        self.assertEqual(c.resolve("indexes/topic")["state"], "unresolved")
         self.assertEqual(c.resolve("topic")["state"], "unresolved")
         self.assertIn('title="リンクなので読まない">Topic', c.render_index())
+        findings = wiki_lint.lint(wiki_lint.collect_pages(self.wiki), 100, 200, ["type"], False, 5,
+                                  index_entries=[], wiki_root=self.wiki)
+        self.assertEqual([f["to"] for f in findings["broken_links"]], ["indexes/topic"])
+        self.assertEqual([f["reason"] for f in findings["unresolved_sources"]], ["missing"])
+        directory = [{"path": "indexes/blocked", "kind": "junction"}]
+        self.assertIsNone(wiki_pages.refused_link("indexes/blocked/x", directory))
+        self.assertIsNotNone(wiki_pages.refused_link("indexes/blocked/x", directory, articles=True))
 
     def test_external_alias_never_resolves_through_a_forbidden_wiki_directory(self):
         self.write("outside/a.md", "OUTSIDE", base=self.ext)
