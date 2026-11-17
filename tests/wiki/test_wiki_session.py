@@ -437,9 +437,9 @@ class BasicFixtureTests(unittest.TestCase):
 
 class CliCase(unittest.TestCase):
     def setUp(self):
-        self.base = Path(tempfile.mkdtemp())
+        self.base = Path(tempfile.mkdtemp()).resolve()  # macOS の一時領域の別名を、書き手のリンク拒否と混同しない
         self.addCleanup(force_rmtree, self.base)
-        self.outside = Path(tempfile.mkdtemp())
+        self.outside = Path(tempfile.mkdtemp()).resolve()
         self.addCleanup(force_rmtree, self.outside)
         self.wiki, self.raw = make_wiki(self.base)
         self.transcript = self.outside / "5f1c2d3e-aaaa-4bbb-8ccc-0123456789ab.jsonl"

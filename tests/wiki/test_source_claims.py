@@ -10,6 +10,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import re
 import sys
 import tempfile
@@ -179,9 +180,10 @@ class ExamplePassesLintTests(unittest.TestCase):
         targets = sorted({link for row in tables(section)[0] for link in WIKILINK.findall(row[4])})
         self.assertEqual(targets, ["インボイス制度", "消費税", "軽減税率"])
         fm = ['type: "{}"', 'title: "{}"', 'tags: ["税制"]', "created: 2026-11-09", "updated: 2026-11-09"]
+        raw_sha = hashlib.sha256((self.wiki.parent / "raw/消費税の説明会-2025.md").read_bytes()).hexdigest()
         source = "\n".join([
             "---", fm[0].format("source"), fm[1].format("消費税の説明会 2025"), 'authors: ["税務署"]',
-            'raw: "raw/消費税の説明会-2025.md"', "ingested: 2026-11-09", *fm[2:], "---", "",
+            'raw: "raw/消費税の説明会-2025.md"', f'raw_sha256: "{raw_sha}"', "ingested: 2026-11-09", *fm[2:], "---", "",
             "# 消費税の説明会 2025", "", "## 主な主張", "", "軽減税率とインボイス制度の要点。", "",
             section.rstrip("\n"), "",
             "## 関係するページ", "", *[f"- [[{t}]]" for t in targets], "",
@@ -195,7 +197,8 @@ class ExamplePassesLintTests(unittest.TestCase):
             ]))
         pages = wiki_lint.collect_pages(self.wiki)
         findings = wiki_lint.lint(pages, 100, 200, list(wiki_lint.DEFAULT_REQUIRED_FM), False, 5,
-                                  index_entries=wiki_lint.collect_index_entries(self.wiki), allowed_tags=["税制"])
+                                  index_entries=wiki_lint.collect_index_entries(self.wiki), allowed_tags=["税制"],
+                                  raw_root=self.wiki.parent / "raw")
         # 提案（suggested_pages）のほかに、指摘が 1 件もない。表の wikilink も解決し、大きさも上限の内である。
         checked = [k for k, v in findings.items() if isinstance(v, list) and k != "suggested_pages"]
         self.assertIn("broken_links", checked)

@@ -115,7 +115,7 @@ BASIC = json3((0, "こんにちは"), (1200, "今日は 15 人が来た"), (6100
 
 class Workspace(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
+        self.tmp = Path(tempfile.mkdtemp()).resolve()  # macOS の /var -> /private/var は書き手の対象外の別名
         self.wiki = self.tmp / "wiki"
         self.raw = self.tmp / "raw"
         self.wiki.mkdir()
@@ -936,7 +936,7 @@ class VerifyTests(Workspace):
             self.write_page(f"sources/{composed}.md", self.page("b", "y"))
         except OSError:
             self.skipTest("このファイルシステムは、この名前を作れない")
-        if len([p for p in (self.wiki / "sources").iterdir() if p.suffix == ".md"]) == 2:
+        if not (self.wiki / "sources" / f"{decomposed}.md").samefile(self.wiki / "sources" / f"{composed}.md"):
             result = wc.check_wiki(self.wiki, {})
             self.assertIn("ambiguous_page_path", [f.code for f in result.findings])
         # 名前を正規化するファイルシステムでも確かめられるよう、一覧と読み込みを差し替えて同じ状態を作る。
