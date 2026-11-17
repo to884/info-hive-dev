@@ -97,6 +97,31 @@ class Base(unittest.TestCase):
         return path
 
 
+class AssetIntegrationTests(Base):
+    """ADR-0030 の図も、共通のリンク判定を使い、記事とは対象を分ける。"""
+
+    def test_regular_and_hardlinked_svg_are_assets(self):
+        a = self.write("assets/a.svg", "<svg/>")
+        os.link(a, self.wiki / "assets/b.svg")
+        found = wiki_pages.walk_assets(self.wiki)
+        self.assertEqual([f.rel for f in found.files], ["assets/a.svg", "assets/b.svg"])
+        self.assertEqual((found.unlistable, found.unknown), ([], []))
+
+    def test_linked_assets_directory_is_not_descended(self):
+        self.write("figures/a.svg", "<svg/>", base=self.ext)
+        if not junction(self.wiki / "assets", self.ext / "figures"):
+            self.skipTest("リンクを作れない")
+        with mock.patch.object(wiki_pages, "_list_dir", wraps=wiki_pages._list_dir) as listing:
+            self.assertEqual(wiki_pages.walk_assets(self.wiki).files, [])
+        self.assertEqual([os.fspath(c.args[0]) for c in listing.call_args_list], [str(self.wiki)])
+
+    def test_unverified_assets_directory_is_reported(self):
+        self.write("assets/a.svg", "<svg/>")
+        with mock.patch.object(wiki_pages, "_stat_entry", return_value=("denied", None)):
+            found = wiki_pages.walk_assets(self.wiki)
+        self.assertEqual((found.files, found.unknown), ([], ["assets"]))
+
+
 class LinkKindTests(Base):
     def test_kinds(self):
         a = self.write("a.md", "a")
@@ -1038,6 +1063,7 @@ class ReadSiteInventoryTests(unittest.TestCase):
     URL = "ファイルではなく URL を開く"
 
     SITES = {
+        ("wiki_codex.py", "workflow"): NOT_ARTICLE,  # 同梱の commands/*.md。wiki の記事ではない
         ("init_wiki.py", "copy_template"): NOT_ARTICLE,
         ("init_wiki.py", "detect_schema_gaps"): GATEWAY,
         ("wiki_browse_fs.py", "_check_marker"): NOT_ARTICLE,
