@@ -135,14 +135,37 @@ class IntegrationReviewTests(Base):
         with self.assertRaisesRegex(ValueError, "リンクなので読まない"):
             wiki_pages.read_user_bytes(alias / "concepts/a.md", self.wiki)
         self.assertEqual(wiki_pages.source_wiki_root(alias / "concepts", self.wiki), self.wiki)
+        view = self.tmp / "view"
+        if not junction(view, alias / "concepts"):
+            self.skipTest("リンクを作れない")
+        with self.assertRaisesRegex(ValueError, "リンクなので読まない"):
+            wiki_pages.read_user_bytes(view / "a.md", self.wiki)
+        self.assertEqual(wiki_pages.source_wiki_root(view, self.wiki), self.wiki)
 
     def test_refused_targets_match_without_reading_the_directory(self):
         warnings = [{"path": "concepts/jump", "kind": "junction"},
                     {"path": "concepts/secret.md", "kind": "hardlink"}]
         for target in ("concepts/jump/x", "concepts/jump/x.md#見出し|別名", "secret", "concepts/secret"):
             self.assertIsNotNone(wiki_pages.refused_link(target, warnings), target)
-        for target in ("x", "concepts/jumper/x", "other/secret"):
+        for target in ("x", "concepts/jump", "concepts/jumper/x", "other/secret"):
             self.assertIsNone(wiki_pages.refused_link(target, warnings), target)
+        # 読み取りの実パスとは分け、索引と同じ鍵で照合する。
+        physical = [{"path": "concepts/a\\b.md", "kind": "hardlink"}]
+        self.assertIsNotNone(wiki_pages.refused_link("concepts/a/b", physical))
+
+    def test_refused_sources_and_duplicate_slugs_do_not_become_missing_or_retargeted(self):
+        import wiki_browse_core as core
+        a = self.write("sources/s.md", page("s"))
+        os.link(a, self.ext / "s.md")
+        self.write("entities/s.md", page("other"))
+        self.write("concepts/a.md", page("a", "[[s]] [[entities/s]]").replace('tags: ["t"]', 'tags: ["t"]\nsources: ["[[s]]"]'))
+        findings = wiki_lint.lint(wiki_lint.collect_pages(self.wiki), 100, 200, ["type"], False, 5,
+                                  index_entries=[], wiki_root=self.wiki)
+        self.assertEqual(findings["unresolved_sources"], [])
+        c = core.Core(core.take_snapshot(self.wiki))
+        self.assertEqual(c.resolve("s")["state"], "refused")
+        self.assertEqual(c.resolve("entities/s")["state"], "resolved")
+        self.assertIn('title="リンクなので読まない">[[s]]', c.render_page("concepts/a"))
 
     def test_browse_and_lint_report_refusals_instead_of_missing_pages(self):
         import wiki_browse
