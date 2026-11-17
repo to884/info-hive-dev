@@ -143,13 +143,33 @@ def main() -> None:
     cli = shutil.which("codex")
     if not cli:
         parser.error("Codex CLI が PATH にない")
-    with tempfile.TemporaryDirectory(prefix="info-hive-codex-") as folder:
-        report = check(cli, Path(folder), args.marketplace, args.expected_version)
-    output = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
-    if args.out:
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(output, encoding="utf-8")
-    print(json.dumps({k: v for k, v in report.items() if k not in {"query", "stats"}}, ensure_ascii=False))
+    temporary = tempfile.TemporaryDirectory(prefix="info-hive-codex-")
+    folder = Path(temporary.name)
+    try:
+        report = check(cli, folder, args.marketplace, args.expected_version)
+        # 後片付けだけが失敗しても、完了した検証の証拠を失わない。
+        output = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
+        if args.out:
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.write_text(output, encoding="utf-8")
+        print(json.dumps({k: v for k, v in report.items() if k not in {"query", "stats"}}, ensure_ascii=False))
+    finally:
+        primary_error = sys.exc_info()[0] is not None
+        assert folder.resolve().parent == Path(tempfile.gettempdir()).resolve()
+        assert folder.name.startswith("info-hive-codex-")
+        # Windows では子の終了後も Git の一時ファイルが短時間開いていることがある。
+        deadline = time.monotonic() + 30
+        while True:
+            try:
+                temporary.cleanup()
+                break
+            except PermissionError as exc:
+                if time.monotonic() >= deadline:
+                    if not primary_error:
+                        raise
+                    print(f"一時ディレクトリを削除できなかった: {folder}: {exc}", file=sys.stderr)
+                    break  # 検証の元の例外を、後片付けの例外で上書きしない。
+                time.sleep(0.2)
 
 
 if __name__ == "__main__":
