@@ -2506,11 +2506,16 @@ class TranslationReviewContractTest(RawCheckCase):
                 self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
 
     def test_foreign_han_sentence_is_not_diluted_by_other_japanese_sentences(self):
-        for separator in ("。", "！", "？", ";", "\n"):
+        for separator in ("。", "！", "？", ";", "\n", ".", "．", "：", "…", "、", "——", " "):
             with self.subTest(separator=separator):
                 self.prepare("This article explains search. The system retrieves documents using existing links.\n")
                 self.write_raw("この記事では検索について説明します" + separator + "系统使用现有链接检索文档。\n", fm=FM_T)
                 self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_han_run_with_a_katakana_name_is_still_reviewed(self):
+        self.prepare("The system retrieves documents using existing links.\n")
+        self.write_raw("この記事では検索について詳しく説明します。系统使用ソフト现有链接检索文档。\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
 
     def test_real_japanese_heading_has_an_explicit_confirmation_path(self):
         self.prepare("# Overview\n")
