@@ -16,6 +16,7 @@ on:
       - tests/wiki/test_walk.py
       - tests/wiki/test_page_set.py
       - tests/wiki/test_wiki_lint.py
+      - tests/wiki/test_wiki_links.py
       - .github/workflows/wiki-walk.yml
 
 permissions:
@@ -73,3 +74,6 @@ jobs:
       - name: ページの集合と lint の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python ${{ matrix.python }} python -X utf8 -B -m unittest tests/wiki/test_page_set.py tests/wiki/test_wiki_lint.py -v
+      - name: 記事のリンク拒否の回帰試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python ${{ matrix.python }} python -X utf8 -B -m unittest tests/wiki/test_wiki_links.py -v
