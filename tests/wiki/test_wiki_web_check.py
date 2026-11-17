@@ -2512,6 +2512,13 @@ class TranslationReviewContractTest(RawCheckCase):
                 self.write_raw("この記事では検索について説明します" + separator + "系统使用现有链接检索文档。\n", fm=FM_T)
                 self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
 
+        # 漢字の連続の規則（8字以上）に頼らず、文の区切りそのものも固定する。
+        for separator in ("。", "！", "？", ";", "\n", ".", "．", "：", "…"):
+            with self.subTest(short_sentence_separator=separator):
+                self.prepare("This article explains search. The system searches.\n")
+                self.write_raw("この記事では検索について詳しく説明します" + separator + "系统检索。\n", fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
     def test_han_run_with_a_katakana_name_is_still_reviewed(self):
         self.prepare("The system retrieves documents using existing links.\n")
         self.write_raw("この記事では検索について詳しく説明します。系统使用ソフト现有链接检索文档。\n", fm=FM_T)
