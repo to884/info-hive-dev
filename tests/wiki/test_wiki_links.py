@@ -122,6 +122,54 @@ class AssetIntegrationTests(Base):
         self.assertEqual((found.files, found.unknown), ([], ["assets"]))
 
 
+class IntegrationReviewTests(Base):
+    def test_case_variant_root_still_checks_articles(self):
+        alias = self.wiki.with_name("WIKI")
+        try:
+            if not os.path.samefile(alias, self.wiki):
+                self.skipTest("大小文字を区別するファイルシステム")
+        except OSError:
+            self.skipTest("大小文字を区別するファイルシステム")
+        a = self.write("concepts/a.md", page("a"))
+        os.link(a, self.ext / "a.md")
+        with self.assertRaisesRegex(ValueError, "リンクなので読まない"):
+            wiki_pages.read_user_bytes(alias / "concepts/a.md", self.wiki)
+        self.assertEqual(wiki_pages.source_wiki_root(alias / "concepts", self.wiki), self.wiki)
+
+    def test_refused_targets_match_without_reading_the_directory(self):
+        warnings = [{"path": "concepts/jump", "kind": "junction"},
+                    {"path": "concepts/secret.md", "kind": "hardlink"}]
+        for target in ("concepts/jump/x", "concepts/jump/x.md#見出し|別名", "secret", "concepts/secret"):
+            self.assertIsNotNone(wiki_pages.refused_link(target, warnings), target)
+        for target in ("x", "concepts/jumper/x", "other/secret"):
+            self.assertIsNone(wiki_pages.refused_link(target, warnings), target)
+
+    def test_browse_and_lint_report_refusals_instead_of_missing_pages(self):
+        import wiki_browse
+        import wiki_browse_core as core
+        wiki_browse._load()
+        self.write("concepts/a.md", page("a", "[[secret]] [[concepts/jump/x]] [[missing]]"))
+        secret = self.write("concepts/secret.md", page("secret"))
+        os.link(secret, self.ext / "secret-copy.md")
+        self.write("store/x.md", page("x"), base=self.ext)
+        if not junction(self.wiki / "concepts/jump", self.ext / "store"):
+            self.skipTest("リンクを作れない")
+        found = wiki_lint.lint(wiki_lint.collect_pages(self.wiki), 100, 200, ["type"], False, 5,
+                               index_entries=[], wiki_root=self.wiki)
+        self.assertEqual([f["to"] for f in found["broken_links"]], ["missing"])
+        c = core.Core(core.take_snapshot(self.wiki))
+        self.assertEqual(c.unresolved(), [("concepts/a.md", "missing")])
+        self.assertEqual([r["state"] for r in c.links["concepts/a"]], ["refused", "refused", "unresolved"])
+        html = c.render_index()
+        self.assertIn("concepts/secret.md", html)
+        self.assertIn("link_kind: hardlink", html)
+        self.assertIn("リンクなので読まない", c.render_page("concepts/a"))
+        with mock.patch.dict(os.environ, {"INFO_HIVE_DATA_DIR": str(self.tmp / "data")}):
+            with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
+                report = wiki_browse.build(self.wiki, str(self.tmp / "site"), None)
+        self.assertEqual(report["link_warnings"], found["links"])
+
+
 class LinkKindTests(Base):
     def test_kinds(self):
         a = self.write("a.md", "a")
@@ -929,11 +977,13 @@ class ReviewFiveTests(Base):
                 with self.assertRaises(PermissionError):
                     wiki_evolve.evaluate(args, exp)
             contract.assert_not_called()
+            self.assertTrue(failures)
+            failures.clear()
             with mock.patch.object(loop, "contract") as contract:
                 with self.assertRaises(PermissionError):
                     loop.run(args, self.state)
             contract.assert_not_called()
-        self.assertEqual(len(failures), 2)
+        self.assertTrue(failures)
         self.assertFalse(list(exp.glob("inputs-*.json")))
         self.assertFalse((self.state / "run").exists())
 
@@ -951,7 +1001,8 @@ class ReviewFiveTests(Base):
                 def read_text(path, **kwargs):
                     return path.read_bytes().decode("utf-8")
             proxy = SimpleNamespace(path=SimpleNamespace(abspath=posixpath.abspath, normcase=posixpath.normcase,
-                                                         realpath=lambda path: str(path), join=posixpath.join),
+                                                         realpath=lambda path: str(path), join=posixpath.join,
+                                                         samefile=lambda a, b: str(a) == str(b)),
                                     fspath=os.fspath)
             linked = False
             def attributes(path):
@@ -992,7 +1043,8 @@ class ReviewFiveTests(Base):
                 reads.append(str(path))
                 return "ORIGINAL" if str(path) == requested else "DECOY"
         proxy = SimpleNamespace(path=SimpleNamespace(abspath=posixpath.abspath, normcase=posixpath.normcase,
-                                                     realpath=lambda path: str(path), join=posixpath.join),
+                                                     realpath=lambda path: str(path), join=posixpath.join,
+                                                         samefile=lambda a, b: str(a) == str(b)),
                                 fspath=os.fspath)
         linked = False
         def attributes(path):
