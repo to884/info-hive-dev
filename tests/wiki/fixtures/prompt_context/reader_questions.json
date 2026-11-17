@@ -1,0 +1,173 @@
+{
+  "description": "読む段（wiki:wiki-reader）のモデルとエフォートの測定（ADR-0031 の段階 0 の (f)）の問いと、実行の前に決めた正解の事実。採点は字句の照合。",
+  "wiki_commit": "faf9a6e10c82e92c8466dea56a4e8ec02491edfd",
+  "questions": [
+    {
+      "id": "r1-powershell",
+      "class": "R1",
+      "prompt": "PowerShell で Select-Object -First を使ったらスクリプトが途中で止まった。原因と避け方は？",
+      "candidates": ["concepts/powershellのパイプの打ち切り.md", "sources/powershell-select-first-stops-writer-2026-11-15.md"],
+      "must_read": ["concepts/powershellのパイプの打ち切り.md"],
+      "facts": ["-First", "-Last", "上流"],
+      "fact_sources": {
+        "-First": "concepts/powershellのパイプの打ち切り.md L14: `Select-Object -First N` でしぼると",
+        "-Last": "concepts/powershellのパイプの打ち切り.md L14: `Select-Object -Last N` にするか",
+        "上流": "concepts/powershellのパイプの打ち切り.md L14: N 行を受け取ったところで上流が止まり"
+      }
+    },
+    {
+      "id": "r1-pdfheader",
+      "class": "R1",
+      "prompt": "rag が受け付ける PDF のヘッダーの境界を確認して",
+      "candidates": ["concepts/pdfのヘッダーの条件.md", "sources/pdfのヘッダーの判定の修正-rag-0.5.1.md", "sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3.md"],
+      "must_read": ["concepts/pdfのヘッダーの条件.md"],
+      "facts": ["1024", "%PDF-", "0.5.1", "PDFium"],
+      "fact_sources": {
+        "1024": "concepts/pdfのヘッダーの条件.md L23: `data.find(b\"%PDF-\", 0, 1024 + 5)`",
+        "%PDF-": "concepts/pdfのヘッダーの条件.md L23: `%PDF-` の開始位置（0 始まり）が 0〜1024",
+        "0.5.1": "concepts/pdfのヘッダーの条件.md L38: | 0.5.1 以降 | `%PDF-` の前のバイトが 1024 バイト以下 |",
+        "PDFium": "concepts/pdfのヘッダーの条件.md L24: 上限は PDFium にそろえた"
+      }
+    },
+    {
+      "id": "r1-schema",
+      "class": "R1",
+      "prompt": "SCHEMA.md がないディレクトリを wiki とみなさない判定はどこで決めている？",
+      "candidates": ["concepts/初期化されたwikiの判定.md", "sources/初期化していないディレクトリの扱い-wiki-0.13.0.md"],
+      "must_read": ["concepts/初期化されたwikiの判定.md"],
+      "facts": ["wiki_initialized.py", "os.stat", "ADR-0019", "0.13.0"],
+      "fact_sources": {
+        "wiki_initialized.py": "concepts/初期化されたwikiの判定.md L12: scripts/wiki_initialized.py の 1 か所にある",
+        "os.stat": "concepts/初期化されたwikiの判定.md L17: 調べ方は `os.stat()` の 1 回ずつ",
+        "ADR-0019": "concepts/初期化されたwikiの判定.md L12: （ADR-0019）",
+        "0.13.0": "concepts/初期化されたwikiの判定.md L12: wiki 0.13.0 から"
+      }
+    },
+    {
+      "id": "r1-apply",
+      "class": "R1",
+      "prompt": "wiki_apply.py に書き込みを移す設計のロックの考え方",
+      "candidates": ["concepts/editとwriteの書き込みの競合.md", "sources/wikiの書く段の設計-2026-11-15.md"],
+      "must_read": ["sources/wikiの書く段の設計-2026-11-15.md"],
+      "facts": ["ADR-0023", "unlock", "日誌", "3 分"],
+      "fact_sources": {
+        "ADR-0023": "sources/wikiの書く段の設計-2026-11-15.md L12: wiki の書く段の設計の記録（ADR-0023）",
+        "unlock": "sources/wikiの書く段の設計-2026-11-15.md L21: 利用者が `unlock` で外す",
+        "日誌": "sources/wikiの書く段の設計-2026-11-15.md L31: 書く前に「前」と「後」の中身を日誌に書き",
+        "3 分": "sources/wikiの書く段の設計-2026-11-15.md L21: 待ちは 3 分で"
+      }
+    },
+    {
+      "id": "r1-rag051",
+      "class": "R1",
+      "prompt": "取り込み手順を rag 0.5.1 に合わせた変更で何が変わった？",
+      "candidates": ["sources/pdfのヘッダーの判定の修正-rag-0.5.1.md", "sources/取り込み手順の追従とリリース-wiki-0.11.1.md"],
+      "must_read": ["sources/取り込み手順の追従とリリース-wiki-0.11.1.md"],
+      "facts": ["ingest-workflow.md", "1024", "0.11.1", "%PDF-"],
+      "fact_sources": {
+        "ingest-workflow.md": "sources/取り込み手順の追従とリリース-wiki-0.11.1.md L18: wiki の `skills/info-hive/references/ingest-workflow.md` の 18 行目",
+        "1024": "sources/取り込み手順の追従とリリース-wiki-0.11.1.md L35: wiki だけを「前置きが 1024 バイト以下」に直した",
+        "0.11.1": "sources/取り込み手順の追従とリリース-wiki-0.11.1.md L19: 版を 0.11.1 にした",
+        "%PDF-": "sources/取り込み手順の追従とリリース-wiki-0.11.1.md L18: 先頭が `%PDF-` の通常のファイルだけを受け付け"
+      }
+    },
+    {
+      "id": "r2-wordcom",
+      "class": "R2",
+      "prompt": "Word の COM で PDF に書き出すときの引数の注意点は？",
+      "candidates": ["concepts/officeのcomでの書き出し.md", "sources/office-com-word-export-2026-11-15.md"],
+      "must_read": ["concepts/officeのcomでの書き出し.md"],
+      "facts": ["Documents.Open", "DisplayAlerts", "読み取り専用", "Start-Job"],
+      "fact_sources": {
+        "Documents.Open": "concepts/officeのcomでの書き出し.md L14: `Documents.Open` にパスだけを渡し",
+        "DisplayAlerts": "concepts/officeのcomでの書き出し.md L14: `DisplayAlerts` を 0 にし",
+        "読み取り専用": "concepts/officeのcomでの書き出し.md L18: 読み取り専用の引数を渡した `Documents.Open` は、300 秒で終わらなかった",
+        "Start-Job": "concepts/officeのcomでの書き出し.md L18: pwsh 7 の `Start-Job` で動かすと書き出せた"
+      }
+    },
+    {
+      "id": "r2-blind",
+      "class": "R2",
+      "prompt": "伏せた判定が採点した中身に結び付かなかった失敗",
+      "candidates": ["concepts/抽出の品質の測り方.md", "sources/blind-judge-binding-and-form-feed-2026-11-15.md"],
+      "must_read": ["sources/blind-judge-binding-and-form-feed-2026-11-15.md"],
+      "facts": ["manifest.json", "judge_digest", "U+000C", "SHA-256"],
+      "fact_sources": {
+        "manifest.json": "sources/blind-judge-binding-and-form-feed-2026-11-15.md L19: 写しの SHA-256 とダイジェストを `manifest.json` に書き",
+        "judge_digest": "sources/blind-judge-binding-and-form-feed-2026-11-15.md L19: 読んだダイジェストを `judge_digest` に書かせ",
+        "U+000C": "sources/blind-judge-binding-and-form-feed-2026-11-15.md L17: 改ページの文字（U+000C）が 5 個あるのに",
+        "SHA-256": "sources/blind-judge-binding-and-form-feed-2026-11-15.md L19: 写しの SHA-256 とダイジェストを"
+      }
+    },
+    {
+      "id": "r3-confidence",
+      "class": "R3",
+      "prompt": "query の確信度の規則は 0.20.0 から 0.24.0 までにどう変わった？版ごとに比べて",
+      "candidates": ["sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md", "sources/queryの確からしさとリリース-wiki-0.20.0.md", "sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md"],
+      "must_read": ["sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md", "sources/queryの確からしさとリリース-wiki-0.20.0.md", "sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md"],
+      "facts": ["手順 5b", "query-confidence.md", "33/33", "確からしさ"],
+      "fact_sources": {
+        "手順 5b": "sources/queryの確からしさとリリース-wiki-0.20.0.md L14: 正本は、プラグインの ... query-workflow.md の手順 5b である",
+        "query-confidence.md": "sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md L20: 決め方の本文を `skills/info-hive/references/query-confidence.md` に分けた",
+        "33/33": "sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md L43: ラベルの一致：24/33 から 33/33 に上がった",
+        "確からしさ": "sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md L14: 「確からしさ（confidence）」の名前を「確信度」に変え"
+      }
+    },
+    {
+      "id": "r3-haiku",
+      "class": "R3",
+      "prompt": "ingest の raw の段を Haiku にしてよいか、モデルの比較の結果から判断して",
+      "candidates": ["concepts/ingestに使うモデル.md", "sources/ingestのモデルの比較-2026-11-13.md"],
+      "must_read": ["concepts/ingestに使うモデル.md", "sources/ingestのモデルの比較-2026-11-13.md"],
+      "facts": ["Sonnet 5.5", "コードブロック", "リンク", "8 か所"],
+      "fact_sources": {
+        "Sonnet 5.5": "concepts/ingestに使うモデル.md L12: raw を作る段 ... を Claude Sonnet 5.5 で行う",
+        "コードブロック": "concepts/ingestに使うモデル.md L26: Haiku は、コードブロックの中身を変える、リンクを落とすなど",
+        "リンク": "concepts/ingestに使うモデル.md L26: リンクを落とすなど、raw の規則を破る",
+        "8 か所": "sources/ingestのモデルの比較-2026-11-13.md L26: 本文のリンクを落とした（SQLite で 8 か所）"
+      }
+    },
+    {
+      "id": "r3-extract",
+      "class": "R3",
+      "prompt": "MarkItDown と今の抽出の比較と、pdfminer の本文の揺れを合わせて、抽出の方式をどう選ぶべきか",
+      "candidates": ["concepts/pdfminerの本文の並びの揺れ.md", "sources/抽出の方式の比較-markitdown-2026-11-15.md"],
+      "must_read": ["concepts/pdfminerの本文の並びの揺れ.md", "sources/抽出の方式の比較-markitdown-2026-11-15.md"],
+      "facts": ["PDFium", "group_textboxes", "LAParams", "189 MiB"],
+      "fact_sources": {
+        "PDFium": "sources/抽出の方式の比較-markitdown-2026-11-15.md L26: rag の PDFium の抽出がもっとも良かった",
+        "group_textboxes": "concepts/pdfminerの本文の並びの揺れ.md L22: `pdfminer.layout.LTLayoutContainer.group_textboxes` は",
+        "LAParams": "concepts/pdfminerの本文の並びの揺れ.md L12: `LAParams` のレイアウトの解析を使うと",
+        "189 MiB": "sources/抽出の方式の比較-markitdown-2026-11-15.md L31: 依存は追加の依存を含めて 189 MiB"
+      }
+    },
+    {
+      "id": "r3-youtube",
+      "class": "R3",
+      "prompt": "YouTube の字幕の取り込みの設計と実装で、自動字幕の訂正の扱いはどう変わった？",
+      "candidates": ["sources/youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md", "sources/youtubeの字幕の取り込みの設計-2026-11-15.md"],
+      "must_read": ["sources/youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md", "sources/youtubeの字幕の取り込みの設計-2026-11-15.md"],
+      "facts": ["留保", "3%", "caption_corrections", "wiki_captions.py"],
+      "fact_sources": {
+        "留保": "sources/youtubeの字幕の取り込みの設計-2026-11-15.md L33: `〔留保 L123-1〕` を付ける",
+        "3%": "sources/youtubeの字幕の取り込みの設計-2026-11-15.md L34: 合計が字幕の行数の 3% 以上なら `low` にする",
+        "caption_corrections": "sources/youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md L24: lint と MCP の `lint` は `caption_corrections` を返す",
+        "wiki_captions.py": "sources/youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md L20: `wiki_captions.py`：raw の生成と読み取り、印と定義の照合、confidence の計算"
+      }
+    },
+    {
+      "id": "r0-memory",
+      "class": "R0",
+      "prompt": "エージェントのメモリの 4 層とドリーミングについてまとめて",
+      "candidates": ["concepts/エージェントのメモリの階層.md"],
+      "must_read": ["concepts/エージェントのメモリの階層.md"],
+      "facts": ["注入コンテキスト", "メモリ表現", "メモリノート", "トランスクリプト"],
+      "fact_sources": {
+        "注入コンテキスト": "concepts/エージェントのメモリの階層.md L18: | 注入コンテキスト | すべてのセッションの始まりに読み込むノート |",
+        "メモリ表現": "concepts/エージェントのメモリの階層.md L19: | メモリ表現 | wiki など、...",
+        "メモリノート": "concepts/エージェントのメモリの階層.md L20: | メモリノート | セッションの中で Claude が目立つと判断して書いたノート |",
+        "トランスクリプト": "concepts/エージェントのメモリの階層.md L21: | トランスクリプト | セッションの記録。検索できるイベントログ |"
+      }
+    }
+  ]
+}

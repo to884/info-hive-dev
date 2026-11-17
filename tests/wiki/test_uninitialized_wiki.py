@@ -499,6 +499,7 @@ class EntranceInventoryTests(unittest.TestCase):
         "wiki_graph_query.py": "ReaderEntryTests の graph-query",
         "wiki_lint.py": "ReaderEntryTests の lint",
         "wiki_mcp_server.py": "tests/wiki/test_mcp_server.py の UninitializedWikiTests",
+        "wiki_prompt_hook.py": "tests/wiki/test_prompt_hook.py の WikiRootTests.test_uninitialized_wiki_is_silent_and_untouched",
         "wiki_rawcheck.py": "tests/wiki/test_wiki_web_check.py の MainAndWorkDirTest.test_uninitialized_wiki_is_refused",
         "wiki_search.py": "ReaderEntryTests の search、search-cache、backlinks",
         "wiki_session.py": "ReaderEntryTests の session-*、tests/wiki/test_wiki_session.py",
@@ -587,7 +588,10 @@ class EntranceInventoryTests(unittest.TestCase):
     def test_reader_cases_cover_the_cli_entries(self):
         cases = ReaderEntryTests.cases(EntryCaseStub())
         tested = {Path(str(args[0])).name for args in cases.values()}
-        self.assertEqual(sorted(set(self.TAKES_WIKI) - tested - {"init_wiki.py", "wiki_mcp_server.py"}), [])
+        # プロンプトのフック（ADR-0031）は、初期化されていない wiki で理由を書いて止まるのではなく、黙って何もしない
+        # （止まると利用者の指示ごとに知らせが出る）。そのため ReaderEntryTests の形に入らず、別の試験で確かめる。
+        self.assertEqual(sorted(set(self.TAKES_WIKI) - tested
+                                - {"init_wiki.py", "wiki_mcp_server.py", "wiki_prompt_hook.py"}), [])
 
 
 class EntryCaseStub:
