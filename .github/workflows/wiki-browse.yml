@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Playwright 1.56.1 が対応する Ubuntu を使う。ubuntu-latest の 26.04 は依存の導入で失敗する。
+        # Playwright 1.56.1 は Ubuntu 26.04 に未対応のため、対応する 24.04 に固定する。
         os: [ubuntu-24.04, windows-latest]
         # 標準ライブラリの失敗の読み替えは版で違う（構造の直しの設計の 3.1、12）。下限の 3.12 と 3.14 で流す
         python: ['3.12', '3.14']
