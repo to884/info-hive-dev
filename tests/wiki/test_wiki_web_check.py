@@ -620,7 +620,7 @@ class ReviewCounterexample2Test(RawCheckCase):
         src = "# A\n\n- item\n  ![x](assets/a/1.png \"https://x.example/i.png\")\n  tail\n"
         out = ("# A\n\n- 項目\n  ![x](assets/a/1.png \"https://x.example/i.png\")\n  続き\n\n"
                "  > Claude Sonnet 5.5 補足: 図の説明である。\n")
-        result = self.check_with(src, out, images=["assets/a/1.png"], japanese=['項目  続き'])
+        result = self.check_with(src, out, images=["assets/a/1.png"], japanese=['項目\n\n続き'])
         self.assertTrue(result["ok"], result["errors"])
 
     def test_nested_second_caption_is_rejected(self):
@@ -744,7 +744,7 @@ class ReviewCounterexample4Test(RawCheckCase):
         self.setup_fetch(src)
         self.assertTrue(self.freeze()["ok"])
         self.write_raw("# A\n\n参照:  \n[x]: 有効\n", fm=FM_T)
-        result = self.check_japanese(['参照: [x]: 有効'])
+        result = self.check_japanese(['参照:\n[x]: 有効'])
         self.assertTrue(result["ok"], result["errors"])
 
     def test_first_ordered_item_can_be_removed(self):
@@ -2505,6 +2505,13 @@ class TranslationReviewContractTest(RawCheckCase):
                 self.write_raw(output or source, fm=FM_T)
                 self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
 
+    def test_foreign_han_sentence_is_not_diluted_by_other_japanese_sentences(self):
+        for separator in ("。", "！", "？", ";", "\n"):
+            with self.subTest(separator=separator):
+                self.prepare("This article explains search. The system retrieves documents using existing links.\n")
+                self.write_raw("この記事では検索について説明します" + separator + "系统使用现有链接检索文档。\n", fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
     def test_real_japanese_heading_has_an_explicit_confirmation_path(self):
         self.prepare("# Overview\n")
         self.write_raw("# 概要\n", fm=FM_T)
@@ -2516,7 +2523,7 @@ class TranslationReviewContractTest(RawCheckCase):
         self.assertEqual(data["translation"]["decisions"][0]["kind"], "japanese_text")
 
     def test_japanese_punctuation_alone_is_not_japanese_context(self):
-        for mark in ("・", "ー"):
+        for mark in ("・", "ー", "〇"):
             with self.subTest(mark=mark):
                 self.prepare(self.ENGLISH + "\n")
                 self.write_raw(mark + self.ENGLISH + "\n", fm=FM_T)
