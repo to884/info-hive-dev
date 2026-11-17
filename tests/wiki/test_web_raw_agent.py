@@ -235,13 +235,13 @@ FETCH_OUTPUT = json.dumps({"path": "raw/cqrs.md", "url": "https://martinfowler.c
                            "fetched_sha256": "b" * 64}, indent=2)
 # wiki_rawcheck.py check --finish --json が通ったときの出力（の一部）
 CHECK_OUTPUT = json.dumps({"stage": "check", "ok": True, "completed": True, "needs_translation": True,
-                           "translation": {"state": "checked", "checked_blocks": 1, "pending_reviews": 0, "reviewed_passages": 0, "reviewed_by": "", "retained": [], "basis": {"source_sha256": "a" * 64, "raw_sha256": "b" * 64}}, "language_override": None,
+                           "translation": {"state": "checked", "checked_blocks": 1, "pending_reviews": 0, "reviewed_passages": 0, "reviewed_by": "", "decisions": [], "basis": {"source_sha256": "a" * 64, "raw_sha256": "b" * 64}}, "language_override": None,
                            "translated_by": "Claude Sonnet 5.5",
                            "caption_names": ["Claude Sonnet 5.5"], "errors": [], "warnings": [], "work_dir_removed": True},
                           indent=2)
 # check --finish --accept-warnings で、警告が残ったまま写しを消したときの出力（の一部）
 ACCEPTED_OUTPUT = json.dumps({"stage": "check", "ok": True, "completed": True, "needs_translation": True,
-                              "translation": {"state": "checked", "checked_blocks": 1, "pending_reviews": 0, "reviewed_passages": 0, "reviewed_by": "", "retained": [], "basis": {"source_sha256": "a" * 64, "raw_sha256": "b" * 64}}, "language_override": None,
+                              "translation": {"state": "checked", "checked_blocks": 1, "pending_reviews": 0, "reviewed_passages": 0, "reviewed_by": "", "decisions": [], "basis": {"source_sha256": "a" * 64, "raw_sha256": "b" * 64}}, "language_override": None,
                               "translated_by": "Claude Sonnet 5.5",
                               "caption_names": ["Claude Sonnet 5.5"], "errors": [],
                               "warnings": [{"kind": "style", "line": None, "message": "文体が混ざっている"}],
@@ -793,7 +793,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
             with self.subTest(sep=hex(ord(sep))):
                 # 1. 警告の詳細に原文の行の区切りの文字が入った回の、警告の受け入れの違反を見逃さない
                 accepted = json.dumps({"stage": "check", "ok": True, "completed": True, "needs_translation": True,
-                                       "translation": {"state": "checked", "checked_blocks": 1, "pending_reviews": 0, "reviewed_passages": 0, "reviewed_by": "", "retained": [], "basis": {"source_sha256": "a" * 64, "raw_sha256": "b" * 64}}, "language_override": None,
+                                       "translation": {"state": "checked", "checked_blocks": 1, "pending_reviews": 0, "reviewed_passages": 0, "reviewed_by": "", "decisions": [], "basis": {"source_sha256": "a" * 64, "raw_sha256": "b" * 64}}, "language_override": None,
                                        "translated_by": "Claude Sonnet 5.5",
                                        "caption_names": ["Claude Sonnet 5.5"], "errors": [],
                                        "warnings": [{"kind": "missing_names", "line": 3,
@@ -1074,6 +1074,35 @@ class TranscriptCheckTest(unittest.TestCase):
         raw = "Command Query Responsibility Segregation の略である。"
         self.assertEqual(check_web_raw_agent.shares_text(summary, [raw], raw), [])
         self.assertTrue(check_web_raw_agent.shares_text(summary, [summary]))
+
+
+class TranslationCompletionReceiptTest(unittest.TestCase):
+    def reviewed_receipt(self):
+        value = json.loads(CHECK_OUTPUT)
+        decision = {"id": "c" * 64, "text": "Attention Is All You Need", "kind": "bibliography",
+                    "reason": "文献名の原語の書誌表記を保持する。", "line": 8}
+        value["translation"].update(reviewed_passages=1, reviewed_by="Claude Opus 5.5", decisions=[decision])
+        value["warnings"] = [{"kind": "translation_reviewed", "review_id": decision["id"],
+                              "message": "文献名の表記を確認した。"}]
+        return value
+
+    def test_agent_done_cannot_hide_accepted_reviews(self):
+        value = self.reviewed_receipt()
+        self.assertTrue(check_web_raw_agent.verified_completion(value))
+        self.assertFalse(check_web_raw_agent.verified_agent_completion(value))
+        self.assertTrue(check_web_raw_agent.verified_agent_completion(json.loads(CHECK_OUTPUT)))
+        value["warnings"] = []
+        self.assertFalse(check_web_raw_agent.verified_completion(value))
+
+    def test_invalid_review_receipts_fail_closed(self):
+        for change in (
+            lambda v: v["warnings"][0].update(review_id=[]),
+            lambda v: v["translation"]["decisions"][0].update(kind="prose"),
+            lambda v: v["warnings"].append(dict(v["warnings"][0])),
+        ):
+            value = self.reviewed_receipt()
+            change(value)
+            self.assertFalse(check_web_raw_agent.verified_completion(value))
 
 
 if __name__ == "__main__":
