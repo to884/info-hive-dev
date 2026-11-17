@@ -1,0 +1,16 @@
+{
+ "id": "r1-powershell",
+ "class": "R1",
+ "model": "sonnet",
+ "effort": "low",
+ "run": 2,
+ "model_used": "claude-sonnet-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/powershellのパイプの打ち切り.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md"
+ ],
+ "result": "## 答え\n`Select-Object -First N` は、N 行を受け取るとパイプラインの上流を止めると考えられる。そのため、出力のあとでファイルを書くスクリプトは、書き込みの前に止まる。ただし、これは wiki 上では仮説（status: hypothesis）で、確定した原因ではない。\n\n観測された例は次のとおり。\n- `uv run --script run_bench.py --metrics-only 2>&1 | Select-Object -First 1` を実行した。\n- 1 行目は正しく出た。\n- エラーは出なかった。\n- `results.json` は書き直されなかった。\n- そのため、止まったことに気づきにくい。\n\n避け方は次の 4 つ。\n1. ファイルを書くスクリプトには `-First` を付けない。\n2. 出力を短く見たいときは `Select-Object -Last N` にする。観測では `-Last` なら止まらず、`results.json` が書き直された。\n3. 出力をいったんファイルに書いてから読む。\n4. `-First` を付けるなら、スクリプトの側で書き込みを出力より先にする。実行のあとで、書くはずのファイルが更新されたかを確かめる。\n\n適用範囲は限られている。\n- 観測した環境は、PowerShell 7.6.9（Claude Code の PowerShell ツール）、uv 0.12.2、Python 3.12.13。\n- Bash の `head` で同じことが起きるかは確かめていない。\n- Windows PowerShell 5.1 でも確かめていない。\n\n## 根拠\n- [[powershellのパイプの打ち切り]]（concepts/powershellのパイプの打ち切り.md）: 「N 行を受け取ったところで上流が止まり、ファイルが書かれないことがある。」避け方として `-Last` かファイル経由を挙げている。原因は「仮説」と明記されている。\n- [[powershell-select-first-stops-writer-2026-11-15]]（sources/powershell-select-first-stops-writer-2026-11-15.md）: 観測の元の記録。`-First 1` では `versions.pdftotext` が古いままで、`-Last 1` で実行し直すと書き直された。スクリプトは、すべての行を出したあとに `results.json` を書く。\n\n## 開いたページ\n1. concepts/powershellのパイプの打ち切り.md\n2. sources/powershell-select-first-stops-writer-2026-11-15.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.0469405,
+ "duration_ms": 12347
+}

@@ -1,0 +1,16 @@
+{
+ "id": "r1-apply",
+ "class": "R1",
+ "model": "haiku",
+ "effort": "low",
+ "run": 2,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/editとwriteの書き込みの競合.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/wikiの書く段の設計-2026-11-15.md"
+ ],
+ "result": "## 答え\n\nwiki のページ、索引、ログへの書き込みは `wiki_apply.py` だけが行い、モデルは作業用のフォルダーに変更を用意するだけにする。ロックは wiki ごとに 1 つ持つ残るファイルで、待ちは 3 分、外すのは利用者の `unlock` である。書く前と後の中身を日誌に残し、日誌だけで済んだかを判定する。これは ADR-0023 で承認された設計だが、実装はまだない。\n\n## 根拠\n\n- [[wikiの書く段の設計-2026-11-15]]（`sources/wikiの書く段の設計-2026-11-15.md`）: 「書き手」は「`wiki_apply.py` だけにする。モデルは作業用のフォルダーに変更を用意し、wiki のファイルを直接書かない」と決めている。ロックは「wiki ごとの残るロックのファイル。3 分待って差分を置く。`unlock` で外す」。済んだかの判定は「書く前に『前』と『後』の中身を日誌に書き、日誌だけで決める。次にロックを取った書き手が前に進め、置けなければ戻す」。\n- 同ページの経緯 4: 待ちきれなかった差分は `.wiki-cache/apply-pending/` に置いて誤りにし、5 件以上で知らせる。日誌は 14 日残す。\n- 同ページの経緯 4: ロックは「プロジェクト（wiki）ごとに持ち、落ちても残るファイルにして」とある。ロックの場所を利用者の PC に 1 か所置く案は、崩れたため外された。\n- [[editとwriteの書き込みの競合]]（`concepts/editとwriteの書き込みの競合.md`）: 既存の守りは、古い内容のまま Write する競合を防ぐが、Edit も中では原子的でなく、数ミリ秒で重なった書き込みは黙って失われると試験で示している。このため、書き手を 1 つにする設計が必要になったと書かれている。実装が移るまでは、ここに書いた競合が残る。\n- 同ページの「使い方」の最後の項目: 承認した設計（ADR-0023）への案内に改めたと書かれている。\n\n## 開いたページ\n\n1. `concepts/editとwriteの書き込みの競合.md`\n2. `sources/wikiの書く段の設計-2026-11-15.md`\n\n## 関係のなかった候補\n\nなし\n\n## モデル\n\nHaiku 5.5（claude-haiku-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.00493885,
+ "duration_ms": 15461
+}

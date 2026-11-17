@@ -1,0 +1,16 @@
+{
+ "id": "r1-rag051",
+ "class": "R1",
+ "model": "sonnet",
+ "effort": "medium",
+ "run": 1,
+ "model_used": "claude-sonnet-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/取り込み手順の追従とリリース-wiki-0.11.1.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md"
+ ],
+ "result": "## 答え\nwiki 0.11.1 で、取り込み手順の文書（wiki の `skills/info-hive/references/ingest-workflow.md`）を、rag 0.5.1 の修正後の PDF の受け付け条件に合わせた。変わったのは、この文書の 18 行目の 1 箇所だけである。\n\n- **変更前**: 「拡張子が `.pdf` で先頭が `%PDF-` の通常のファイルだけを受け付け」と書いていた。\n- **変更後**: 「前置きが 1024 バイト以下」という書き方に直した。変更前後の全文は、開いたページには載っていない。\n\nrag 0.5.1 側の修正は次のとおり。\n\n- **変更前**: rag 0.5.0 の `read_pdf` は、ファイルの先頭がちょうど `%PDF-` でないと拒んでいた。\n- **変更後**: `%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。上限は PDFium にそろえた。\n\nwiki の側で変わった点は次のとおり。\n\n- `info-hive-wiki` の中で古い条件を書いていたのは、この 1 箇所だけだった。\n- 書き方は rag の README に合わせた。\n- 版は 0.11.1 にした。main がすでに 0.11.0 だったので、次のパッチにした。\n- Sol のレビューは「条件付きで採用可」だった。次の 2 点を直した。\n  - 版の条件がなかった。\n  - 境界の書き方が 1 バイト狭く読めた。\n- ヘッダーを確かめる段階が、登録ではなく処理であることも書いた。rag の main で確かめた。\n- wiki の CHANGELOG の末尾の比較リンクは v0.7.0 で止まったままで、`[0.11.1]` の行も足していない。\n\nその後の記述として、rag の README、CHANGELOG、v0.5.1 の GitHub リリースの本文は、まだ「先頭から 1024 バイト目までに」の書き方だった。これは 2026-11-13 に rag 0.5.2 でそろえた。\n\n## 根拠\n- [[取り込み手順の追従とリリース-wiki-0.11.1]]（sources/取り込み手順の追従とリリース-wiki-0.11.1.md）: 「`info-hive-wiki` の中で古い条件を書いていたのは、この 1 箇所だけだった。」\n- [[pdfのヘッダーの判定の修正-rag-0.5.1]]（sources/pdfのヘッダーの判定の修正-rag-0.5.1.md）: 「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けるように直した。」\n\n## 開いたページ\n1. sources/取り込み手順の追従とリリース-wiki-0.11.1.md\n2. sources/pdfのヘッダーの判定の修正-rag-0.5.1.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）",
+ "cost_usd": 0.0911273,
+ "duration_ms": 18818
+}

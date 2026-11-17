@@ -588,7 +588,7 @@ class EntranceInventoryTests(unittest.TestCase):
     def test_reader_cases_cover_the_cli_entries(self):
         cases = ReaderEntryTests.cases(EntryCaseStub())
         tested = {Path(str(args[0])).name for args in cases.values()}
-        # プロンプトのフック（ADR-0031）は、初期化されていない wiki で理由を書いて止まるのではなく、黙って何もしない
+        # プロンプトのフック（ADR-0032）は、初期化されていない wiki で理由を書いて止まるのではなく、黙って何もしない
         # （止まると利用者の指示ごとに知らせが出る）。そのため ReaderEntryTests の形に入らず、別の試験で確かめる。
         self.assertEqual(sorted(set(self.TAKES_WIKI) - tested
                                 - {"init_wiki.py", "wiki_mcp_server.py", "wiki_prompt_hook.py"}), [])

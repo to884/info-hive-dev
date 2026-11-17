@@ -1,0 +1,16 @@
+{
+ "id": "r2-wordcom",
+ "class": "R2",
+ "model": "opus",
+ "effort": "high",
+ "run": 2,
+ "model_used": "claude-opus-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/officeのcomでの書き出し.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/office-com-word-export-2026-11-15.md"
+ ],
+ "result": "## 答え\n`Documents.Open` には、ファイルのパスだけを渡してください。読み取り専用の引数は渡さないでください。\n\n- **読み取り専用の引数を渡すと止まった:** `Documents.Open(パス, $false, $true)` と読み取り専用で開くと、300 秒たっても終わらず、PDF もできませんでした。`/Automation -Embedding` の WINWORD.EXE も残りました。wiki では、画面に出ない確認を待ったまま止まったと推測しています（仮説で、確かめてはいません）。\n- **うまくいった組み合わせ:** `$w.DisplayAlerts = 0` にし、`$w.Documents.Open($path)` とパスだけを渡し、pwsh 7 で動かすと書き出せました。\n- **Windows PowerShell 5.1 では別の失敗があった:** パスだけを渡しても `Documents.Open` が null を返しました。原因は分かっていません。直前の試しで残った Word が影響した可能性もあります。\n- **wiki が示す手順の案:** `DisplayAlerts = 0` → `Documents.Open($path)` → 戻り値が null なら止める → `ExportAsFixedFormat($pdf, 17)` → `Close(0)` → `Quit()` の順です。全体を `Start-Job` と `Wait-Job -Timeout` で包み、止まったときは残った `/Automation -Embedding` の WINWORD.EXE を確かめます。\n\nwiki は確度を `status: \"hypothesis\"` としています。成功したのは 1 回の作業だけで、同じ条件でくり返してはいません。観測した環境は Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 です。`pwsh -File` で最後まで通るかも確かめていません。同じスクリプトで、PowerPoint と Excel は問題なく書き出せました。\n\n## 根拠\n- [[officeのcomでの書き出し]]（concepts/officeのcomでの書き出し.md）: 結論と手順の案、確度が書かれています。原文は「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」です。\n- [[office-com-word-export-2026-11-15]]（sources/office-com-word-export-2026-11-15.md）: 観測した事実が書かれています。原文は「`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。」です。Windows PowerShell 5.1 でパスだけを渡すと null が返ったことも、ここに書かれています。\n\n## 開いたページ\n1. concepts/officeのcomでの書き出し.md\n2. sources/office-com-word-export-2026-11-15.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nOpus 5.5（claude-opus-5-5）\n\n`✶ Insight ─────────────────────────────────────`\n- 2 つのページは、source（観測の記録）と concept（そこから導いた型と手順）の組です。concept の frontmatter の `sources:` が source を指し、source の「関係するページ」が concept を指しています。\n- この concept は `status: \"hypothesis\"` で、wiki の中で根拠の数と確度を分けて書いています。答えにもその確度を書き添えました。\n`─────────────────────────────────────────────────`\n\n使用した MCP サーバー: なし（wiki の MCP がまだつながっていなかったので、`Read` で読みました）\n使用した Agent Skills: なし",
+ "cost_usd": 0.1043864,
+ "duration_ms": 18700
+}

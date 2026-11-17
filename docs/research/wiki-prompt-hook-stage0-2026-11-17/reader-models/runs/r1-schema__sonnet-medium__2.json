@@ -1,0 +1,16 @@
+{
+ "id": "r1-schema",
+ "class": "R1",
+ "model": "sonnet",
+ "effort": "medium",
+ "run": 2,
+ "model_used": "claude-sonnet-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/初期化されたwikiの判定.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md"
+ ],
+ "result": "## 答え\n判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所で決めている。ルート直下の `SCHEMA.md` が通常のファイルなら初期化済みとみなす。なければ wiki として扱わない。決定の記録は ADR-0019 にある。ADR-0019 のページ自体は開いていないので、中身は確かめていない。\n\n- `SCHEMA.md` が通常のファイルであれば、リンクの場合は先が通常のファイルであれば、初期化済みと判定する。中身は読まない。調べ方は `os.stat()` の 1 回ずつである。\n- 結果は `check()` が返す。理由の種類と、調べたうえで決まったか（`certain`）を持つ。\n- 各入口は、この判定を呼ぶ側にすぎない。パスを解決して使う入口は、判定と解決を一度に行う `resolve()` を使う。\n- rag の `rag_config.py` だけは、同じ規則を自分でも持っている。規則を変えるときは両方をそろえる必要がある。\n\n## 根拠\n- [[初期化されたwikiの判定]]（concepts/初期化されたwikiの判定.md）: 「判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。」「rag の `rag_config.py` も同じ規則を自分で持つ。規則を変えるときは両方をそろえる。」\n- [[初期化していないディレクトリの扱い-wiki-0.13.0]]（sources/初期化していないディレクトリの扱い-wiki-0.13.0.md）: 判定を「ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた」。決定は ADR-0019（状態は提案）にある。`SCHEMA.md` を基準にした理由は、`init_wiki.py` が必ず作って上書きしないファイルだから。\n\n## 開いたページ\n1. wiki/concepts/初期化されたwikiの判定.md\n2. wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）",
+ "cost_usd": 0.062862,
+ "duration_ms": 14624
+}

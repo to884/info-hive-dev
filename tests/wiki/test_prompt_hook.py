@@ -1,4 +1,4 @@
-"""プロンプトのフック（ADR-0031）の試験。wiki_prompt_context.py と wiki_prompt_hook.py、hooks.json、wiki-reader。
+"""プロンプトのフック（ADR-0032）の試験。wiki_prompt_context.py と wiki_prompt_hook.py、hooks.json、wiki-reader。
 
 実行（標準ライブラリだけで動く）:
     python -X utf8 -m unittest tests/wiki/test_prompt_hook.py -v

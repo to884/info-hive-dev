@@ -1,0 +1,16 @@
+{
+ "id": "r1-schema",
+ "class": "R1",
+ "model": "sonnet",
+ "effort": "low",
+ "run": 1,
+ "model_used": "claude-sonnet-5-5",
+ "exit": 0,
+ "opened": [
+  "concepts/初期化されたwikiの判定.md",
+  "sources/初期化していないディレクトリの扱い-wiki-0.13.0.md"
+ ],
+ "result": "## 答え\n判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所で決めている。\n\n- ルートがディレクトリで、直下の `SCHEMA.md` が通常のファイルなら、初期化済みの wiki とみなす。`SCHEMA.md` がリンクなら、リンク先が通常のファイルであればよい。中身は読まない。\n- 結果は `check()` が返す。理由の種類と、調べたうえで決まったか（`certain`）を持つ。\n- 各入口はこの判定を呼ぶだけで、規則は自分で持たない。\n  - CLI は引数を読んだ直後に判定する。\n  - サブコマンドを持つ入口は、振り分けの前で判定する。\n  - MCP と閲覧のサーバーは、要求のたびに判定する。\n- 例外として、rag の `rag_config.py` は同じ規則を自分で持つ。規則を変えるときは両方をそろえる。\n- この方針は wiki 0.13.0 で入った（ADR-0019）。\n\n## 根拠\n- [[初期化されたwikiの判定]]（concepts/初期化されたwikiの判定.md）: 「判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。」判定の条件、入口ごとの判定の場所、rag の例外もこのページにある。\n- [[初期化していないディレクトリの扱い-wiki-0.13.0]]（sources/初期化していないディレクトリの扱い-wiki-0.13.0.md）: 「初期化された wiki の判定を、ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた」。経緯と ADR-0019 の位置づけが書かれている。\n\n## 開いたページ\n1. concepts/初期化されたwikiの判定.md\n2. sources/初期化していないディレクトリの扱い-wiki-0.13.0.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）",
+ "cost_usd": 0.1123053,
+ "duration_ms": 12783
+}

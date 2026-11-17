@@ -1,0 +1,16 @@
+{
+ "id": "r1-schema",
+ "class": "R1",
+ "model": "haiku",
+ "effort": "medium",
+ "run": 2,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/初期化されたwikiの判定.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md"
+ ],
+ "result": "## 答え\n判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所で決めている。ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル（リンクなら先が通常のファイル）なら初期化済みとみなす。中身は読まない。`SCHEMA.md` がない場合は未初期化として扱い、入口は何も書かずに止まって `/wiki:init` を案内する。判定は wiki を読み始める前、パスを解決する前に、渡されたとおりのパスで行う。\n\n## 根拠\n- [[初期化されたwikiの判定]]（concepts/初期化されたwikiの判定.md）: 「ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル（リンクなら、先が通常のファイル）であれば初期化済みである。中身は読まない。」、「判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。」\n- [[初期化されたwikiの判定]]（同上）: 判定の場所ごとの扱いとして、1 回で終わる CLI は引数を読んだ直後に判定し、未初期化なら終了コード 1 で止まる。MCP は索引のキャッシュを引く前に判定し、閲覧のサーバーは決まった未初期化なら 503 を返す。`wiki_fetch.py` はネットにつなぐ前に判定する。\n- [[初期化されたwikiの判定]]（同上）: 判定しないものとして、ライブラリの関数（`wiki_lint.lint()`、`collect_pages()`、`WikiIndex` など）と、評価のランナーが受け取る `wiki_root` を挙げている。\n- [[初期化していないディレクトリの扱い-wiki-0.13.0]]（sources/初期化していないディレクトリの扱い-wiki-0.13.0.md）: 「初期化された wiki の判定を、ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた」。判定は ADR-0019 にあり、状態は提案である。\n\n## 開いたページ\n1. wiki/concepts/初期化されたwikiの判定.md\n2. wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md\n\n## 関係のなかった候補\n- なし\n\n補足: 判定の実体（`wiki_initialized.py`）は wiki のページではないので開いていない。この答えは、ページに書かれた説明だけに基づく。\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.0037400000000000003,
+ "duration_ms": 15360
+}

@@ -1,0 +1,16 @@
+{
+ "id": "r1-schema",
+ "class": "R1",
+ "model": "haiku",
+ "effort": "medium",
+ "run": 1,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/初期化されたwikiの判定.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md"
+ ],
+ "result": "## 答え\n\n判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所で決めている。ルートがディレクトリで、直下の `SCHEMA.md` が通常のファイル（リンクなら、その先が通常のファイル）であれば初期化済みとする。`SCHEMA.md` がなければ未初期化として扱う。中身は読まない。（[[初期化された wiki の判定]]）\n\n入口は、この判定を呼ぶ位置が決まっている。1 回で終わる CLI は引数を読んだ直後、サブコマンドを持つ入口は振り分けの前、MCP と閲覧のサーバーは要求ごとに判定する。`wiki_fetch.py` は、ネットにつなぐ前に判定する。ライブラリの関数（`wiki_lint.lint()` など）と評価のランナーの `wiki_root` は判定しない。\n\n## 根拠\n\n- [[初期化された wiki の判定]]（`wiki/concepts/初期化されたwikiの判定.md`）:\n  - 「ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル（リンクなら、先が通常のファイル）であれば初期化済みである。中身は読まない。」\n  - 「判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。」\n  - 「ない、ディレクトリでない、`SCHEMA.md` がないか通常のファイルでないは「決まった」、アクセス権や循環するリンクで調べられないは「決まっていない」である。」\n  - 「rag の `rag_config.py` も同じ規則を自分で持つ。規則を変えるときは両方をそろえる。」\n- [[初期化していないディレクトリの扱い-wiki-0.13.0]]（`wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md`）:\n  - 「初期化された wiki の判定を、ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた」。決定は ADR-0019 にあり、設計は `docs/plans/wiki-uninitialized-root-2026-11-13.md` にある。\n  - 「`SCHEMA.md` のない `wiki/`（GitHub の wiki の写しなど）があると、それを wiki として扱っていた」のが修正の発端である。\n\n## 開いたページ\n1. `wiki/concepts/初期化されたwikiの判定.md`\n2. `wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md`\n\n## 関係のなかった候補\n- なし\n\nなお、`wiki_initialized.py` 本体は wiki の外（サブモジュール `info-hive-wiki`）にあるため、開いていない。上の答えは wiki の記述に基づく。コードと照らすなら、そのファイルを直接読む必要がある。\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）\n\n`✶ Insight ─────────────────────────────────────`\n- 判定を「`SCHEMA.md` の有無だけ」に絞り、中身を読まないのは、判定が軽く、ほかの入口でも同じ結果になるためである。\n- 「決まった未初期化」と「調べられない」を分けているので、閲覧のサーバーは一時的なアクセス権のエラーで古い内容を捨てずに済む。\n`─────────────────────────────────────────────────`\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.00384278,
+ "duration_ms": 16398
+}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""読む段（wiki:wiki-reader）のモデルとエフォートを比べる（ADR-0031 の段階 0 の (f)）。
+"""読む段（wiki:wiki-reader）のモデルとエフォートを比べる（ADR-0032 の段階 0 の (f)）。
 
 使い方:
     python tests/wiki/measure_reader_models.py run --out <dir> [--runs 2] [--workers 4] [--only <組>]

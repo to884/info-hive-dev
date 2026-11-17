@@ -1,0 +1,16 @@
+{
+ "id": "r2-wordcom",
+ "class": "R2",
+ "model": "fable",
+ "effort": "medium",
+ "run": 2,
+ "model_used": "claude-fable-5-2",
+ "exit": 0,
+ "opened": [
+  "concepts/officeのcomでの書き出し.md",
+  "sources/office-com-word-export-2026-11-15.md"
+ ],
+ "result": "## 答え\n\n`Documents.Open` にはパスだけを渡す。読み取り専用の引数は付けない。\n\n- **避ける引数**: `Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。`/Automation -Embedding` の WINWORD.EXE が残った。\n- **書き出せた条件**: pwsh 7 の `Start-Job` の中で `DisplayAlerts = 0` にし、パスだけを渡した。\n- **Windows PowerShell 5.1 では不可**: パスだけを渡しても `Documents.Open` が null を返した。\n- **手順の案**:\n  1. `$w.DisplayAlerts = 0`\n  2. `$w.Documents.Open($path)`\n  3. 戻り値が null なら止まる\n  4. `ExportAsFixedFormat($pdf, 17)`\n  5. `Close(0)`\n  6. `Quit()`\n  \n  全体を `Start-Job` と `Wait-Job -Timeout` で包み、残った WINWORD.EXE を確かめる。\n\n確かさには次の限りがある。\n\n- ページの status は `hypothesis` で、成功した例は 1 回の作業だけである。\n- 原因は仮説である。読み取り専用の引数で、画面に出ない確認を待ったまま止まったと考えられている。\n- null が返った原因は分かっていない。直前の試しの Word が残っていた影響の可能性もある。\n- 観測した環境は Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 だけである。\n- `pwsh -File` でスクリプト全体を最後まで通せるかは確かめていない。\n- PowerPoint と Excel には、この問題は出なかった。\n\n`ExportAsFixedFormat` の第 2 引数 `17` の意味や、`Documents.Open` のほかの引数についての注意は、wiki に書かれていない。\n\n## 根拠\n- [[officeのcomでの書き出し]]（concepts/officeのcomでの書き出し.md）: 「スクリプトから Word の COM で文書を開き、PDF に書き出すときは、`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」手順の案、仮説、適用範囲もこのページにある。\n- [[office-com-word-export-2026-11-15]]（sources/office-com-word-export-2026-11-15.md）: 「Windows PowerShell 5.1（`powershell -File`）で、`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。」pwsh 7 での成功と、5.1 で null が返った観測もこのページにある。\n\n## 開いたページ\n1. concepts/officeのcomでの書き出し.md\n2. sources/office-com-word-export-2026-11-15.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nFable 5.2（claude-fable-5-2）\n\n使用した MCP サーバー: plugin:wiki:wiki\n使用した Agent Skills: なし",
+ "cost_usd": 0.3207024,
+ "duration_ms": 15719
+}

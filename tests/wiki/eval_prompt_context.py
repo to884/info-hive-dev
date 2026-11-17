@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""プロンプトのフック（ADR-0031）のゲートを、評価のデータで測る。
+"""プロンプトのフック（ADR-0032）のゲートを、評価のデータで測る。
 
 使い方:
     python tests/wiki/eval_prompt_context.py [--split dev|test|all] [--show] [--gate] [--set NAME=VALUE ...]
@@ -7,7 +7,7 @@
 評価のデータは tests/wiki/fixtures/prompt_context/prompts.json にある。題材の wiki は、データに書いた
 コミットの wiki/ を git archive で一時ディレクトリに取り出して使う（wiki が育っても結果が変わらない）。
 --set は wiki_prompt_context の定数を、その回だけ書き換える（しきい値を探すため）。
---gate を付けると、合否の基準（ADR-0031）に届かないときに終了コード 1 で終わる。
+--gate を付けると、合否の基準（ADR-0032）に届かないときに終了コード 1 で終わる。
 
 git の履歴が要るので、手元の道具として使う（CI の浅い取得では動かない）。
 """
@@ -31,7 +31,7 @@ sys.path.insert(0, str(SCRIPTS))
 import wiki_initialized  # noqa: E402
 import wiki_prompt_context as context  # noqa: E402
 
-# 合否の基準（ADR-0031）
+# 合否の基準（ADR-0032）
 CRITERIA = {"N1_fire_max": 0.05, "N2_fire_max": 0.0, "N3_fire_max": 0.05, "precision_min": 0.8, "recall_min": 0.4}
 
 

@@ -1,0 +1,16 @@
+{
+ "id": "r2-blind",
+ "class": "R2",
+ "model": "haiku",
+ "effort": "medium",
+ "run": 1,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/抽出の品質の測り方.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md"
+ ],
+ "result": "## 答え\n\n伏せた判定は、採点した中身と結び付いていなかった。判定のファイルと出力をファイル名だけで対応させていたため、計測をやり直したあとに古い判定が新しい出力に付いて集計が通った。Sol の 2 回目のレビューが、写しと出力を同時に差し替えると古い判定でも集計が通ることを示した。\n\nあわせて、Sol は画面に見えない改ページの文字（U+000C）を読み飛ばし、「明示的なページ境界はない」として位置を 2 点にした。\n\n直し方は、写しごとの SHA-256 と一覧（`manifest.json`）を作り、Sol に読んだダイジェストを `judge_digest` として書かせて、集計でダイジェスト・写し・出力・対応表がすべて一致するときだけ集計すること。改ページの文字の数え方も依頼に書いた。やり直した判定では 4 つの PDF のすべてで 5 点になり、集計が通った。\n\n## 根拠\n\n- [[blind-judge-binding-and-form-feed-2026-11-15]]（`sources/blind-judge-binding-and-form-feed-2026-11-15.md`）: 「最初の判定で、Sol は、pdftotext と pdfminer の出力に改ページの文字（U+000C）が 5 個あるのに、「明示的なページ境界はない」として位置を 2 点にした。」\n- 同（同ファイル）: 「Sol の 2 回目のレビューが、写しと出力を同時に差し替えると古い判定で集計が通ることを、メモリ上で示した。」\n- 同（同ファイル）: 「判定のファイルに、採点した中身の識別子がなかった。」ただし、この節の見出しは「原因についての仮説」で、本文も「どちらも仮説」と書いている。\n- 同（同ファイル）: 「やり直した判定の `judge_digest` は `manifest.json` の値と一致し、集計が通った。pdftotext と pdfminer の位置は、4 つの PDF のすべてで 5 点になった。」\n- [[抽出の品質の測り方]]（`concepts/抽出の品質の測り方.md`）: 「判定のファイルと出力を、ファイル名だけで結び付けると、計測をやり直したあとに古い判定が新しい出力に付く。」（「判定を、採点した中身に結び付ける」の節）\n- 同（同ファイル）: 「3 回目のレビューを受けていない。」「ダイジェストは、モデルが一覧から書き写した値で、写しを実際に読んだことの証明ではない。」\n\n確かめていないこと（同じ 2 ページに書かれている）:\n- ダイジェストを入れたあとの版で、出力を変えると集計が止まることは確かめていない。\n- 判定は 1 回ずつで、点のぶれは測っていない。\n- 観測したのは 1 つのベンチマーク（Office で作った 15 の試料）だけ。\n\n## 開いたページ\n1. `concepts/抽出の品質の測り方.md`\n2. `sources/blind-judge-binding-and-form-feed-2026-11-15.md`\n\n## 関係のなかった候補\nなし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.00483538,
+ "duration_ms": 15418
+}

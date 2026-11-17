@@ -1,0 +1,16 @@
+{
+ "id": "r1-powershell",
+ "class": "R1",
+ "model": "haiku",
+ "effort": "medium",
+ "run": 1,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/powershellのパイプの打ち切り.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md"
+ ],
+ "result": "## 答え\n\n`Select-Object -First N` は、N 行を受け取った時点でパイプラインの上流を止める。最後にファイルを書くスクリプトの出力をこれでしぼると、ファイルを書く前にスクリプトが止まり、エラーも出ないまま古いファイルが残ることがある。wiki では、これは仮説として記録されている（status: hypothesis）。\n\n避け方は次のとおり。\n- 出力を短く見たいときは `Select-Object -Last N` を使う。実行を止めないので、ファイルが書かれる。\n- 出力をファイルに書いてから読む。\n- `-First` を付けるなら、ファイルの書き込みを出力より先に行う。\n- 実行のあとで、書かれるはずのファイル（例: `results.json`）が更新されたかを確かめる。\n\n## 根拠\n\n- [[powershellのパイプの打ち切り]]（`wiki/concepts/powershellのパイプの打ち切り.md`）: 「`Select-Object -First` は、上流のスクリプトを止める」。原因は「`Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止める」という仮説。避け方は「`Select-Object -Last N` にするか、出力をファイルに書いてから読む。実行のあとで、書くはずのファイルが変わったかを確かめる」。\n- [[powershell-select-first-stops-writer-2026-11-15]]（`wiki/sources/powershell-select-first-stops-writer-2026-11-15.md`）: 観測は `uv run --script scripts/run_bench.py --metrics-only 2>&1 | Select-Object -First 1` で、1 行目は出たが `results.json` は書き直されなかった。`Select-Object -Last 1` で実行し直すと書き直された。スクリプトはすべての行を出したあとに `results.json` を書く。結果は failure。\n\n適用範囲: PowerShell 7.6.9（Claude Code の PowerShell ツール）、uv 0.12.2、Python 3.12.13 で観測した。Bash の `head` で同じことが起きるかは確かめていない。Windows PowerShell 5.1 でも確かめていない。\n\n## 開いたページ\n1. `wiki/concepts/powershellのパイプの打ち切り.md`\n2. `wiki/sources/powershell-select-first-stops-writer-2026-11-15.md`\n\n## 関係のなかった候補\nなし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+ "cost_usd": 0.00467175,
+ "duration_ms": 16607
+}
