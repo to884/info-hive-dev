@@ -83,6 +83,9 @@ jobs:
       - name: サーバーの試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python ${{ matrix.python }} --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_browse_server.py -v
+      - name: 概要の読み取りと表示の試験（ADR-0033）
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python ${{ matrix.python }} --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_browse_overview.py -v
       - name: Playwright を入れる
         id: playwright
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
@@ -112,6 +115,12 @@ jobs:
         if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
         working-directory: tests/wiki/browse
         run: node startup.test.mjs
+      - name: 概要のブラウザ試験（静的版とサーバー、Chromium）
+        if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
+        working-directory: tests/wiki/browse
+        env:
+          OUT: ${{ runner.temp }}/overview-results.json
+        run: node overview.test.mjs
       - name: 結果を残す
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
@@ -121,4 +130,5 @@ jobs:
             ${{ runner.temp }}/browse-results.json
             ${{ runner.temp }}/findability-results.json
             ${{ runner.temp }}/figures-results.json
+            ${{ runner.temp }}/overview-results.json
           if-no-files-found: ignore

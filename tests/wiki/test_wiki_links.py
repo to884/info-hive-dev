@@ -1213,6 +1213,14 @@ class ReadSiteInventoryTests(unittest.TestCase):
     URL = "ファイルではなく URL を開く"
 
     SITES = {
+        ("wiki_overview.py", "_page_state"): GATEWAY,
+        ("wiki_overview.py", "_source"): GATEWAY,
+        ("wiki_overview.py", "_read"): NOT_ARTICLE,  # 概要・下書き。記事の読み取りは _source を通す
+        ("wiki_overview.py", "_request"): NOT_ARTICLE,
+        ("wiki_overview.py", "_work"): NOT_ARTICLE,
+        ("wiki_overview.py", "_copy_sha256"): NOT_ARTICLE,
+        ("wiki_overview.py", "prepare"): WRITE,
+        ("wiki_overview.py", "write"): WRITE,
         ("wiki_codex.py", "workflow"): NOT_ARTICLE,  # 同梱の commands/*.md。wiki の記事ではない
         ("init_wiki.py", "copy_template"): NOT_ARTICLE,
         ("init_wiki.py", "detect_schema_gaps"): GATEWAY,

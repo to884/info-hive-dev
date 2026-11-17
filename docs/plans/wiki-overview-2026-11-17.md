@@ -8,7 +8,7 @@
 | 関連 | ADR-0005（図は mermaid と svg）、ADR-0017（browse は wiki に書かない）、ADR-0020（raw はスクリプトが書く）、ADR-0023（書く段）、ADR-0029（リンクを置かない）、ADR-0030（browse は図を画像として見せる。提案）、[図の描画の設計](wiki-browse-figures-2026-11-17.md)（別のブランチ `feat/wiki-browse-figures`） |
 | 基準にした版 | 親 `b842236`、`info-hive-wiki` 0.25.2（`e8886d6`） |
 | 実装の基準 | 図の表示の変更が main に入ったことを確認し、段階 1 は `info-hive-wiki` 0.27.0（`485e530`）上に実装した。設計の承認時点からの確認結果は、[実装記録](../agent-runs/2026-11-17-wiki-overview/stage1-implementation.md)に記す |
-| 段階 2 | [browse の表示設計](wiki-browse-overview-2026-11-17.md) 第3版。Astra のレビューは採用可。作者の承認前で、未実装 |
+| 段階 2 | [browse の表示設計](wiki-browse-overview-2026-11-17.md) 第3版。Astra のレビューは採用可。2026年11月18日に作者の「続けて」を受けて実装へ進んだ |
 | 記録 | `docs/agent-runs/2026-11-17-wiki-overview/`（前の版は `design-v1.md`〜`design-v5.md`。6 回目の結果は `design-review-6-astra-native.md`）、試作 `poc/wiki-overview/` |
 
 この設計が扱うのは、概要を**作って wiki に置く側**（段 1）である。browse が概要を**読んで表示する側**（段 2）は、図の表示（ADR-0030）が `info-hive-wiki` の main に入ってから、別の設計として書く。段 2 がこの設計に求めることは 12 節に書く。
@@ -177,7 +177,7 @@ Windows の checkout で改行が CRLF に変わっても、ハッシュは変�
 | 3 | `format` が `2` でない | `broken`（`format`） |
 | 4 | `page` がない、または `page` の `<P>` がファイル名の `<P>` と違う | `broken`（`page_field`） |
 | 5 | `page_sha256` が 64 桁の小文字の 16 進でない、または `figures` がない | `broken`（`fields`） |
-| 6 | 8 節の図の規則（参照と図のフェンスの対応、svg の XML、大きさ）に合わない | `broken`（`figures`） |
+| 6 | 8 節の図の規則（参照と図のフェンスの対応、svg の XML、大きさ）、本文の保存規約（64 KiB、h3 以下、wikilink なし）、ヘッダーと本文の区切りに合わない | `broken`（`figures`） |
 | 7 | `PageState` が `unknown` | `page_unknown` |
 | 8 | `PageState` が `absent` | `orphan` |
 | 9 | `PageState` が `unreadable` | `page_unreadable` |
@@ -276,7 +276,7 @@ PyYAML の要らないスクリプトで、`python "${CLAUDE_PLUGIN_ROOT}/skills
 
 - `status "<WIKI_ROOT>"`: すべての概要の一覧と状態を返す。`{"overviews": [{"page", "sidecar", "orphan_id", "state", "detail"}…], "problems": […], "complete": <走査が完全か>}`。中身は lint の結果（10 節）と同じ関数で作る。
 - `remove "<WIKI_ROOT>"`: 要求のファイル（`"action": "remove"`）でページを決め、そのページのサイドカーを消す。ページの決め方は `prepare` と同じ。
-- `remove "<WIKI_ROOT>" --orphan=<P>`: 元のページがない概要のサイドカーを消す。`<P>` は `^[0-9a-f]{16}$` に合うときだけ受ける。走査が不完全なら、消さずにエラー `walk_incomplete`。`<P>` に当たるページが今あれば、消さずにエラー `not_orphan`。**判定は `PageState` だけで行い、サイドカーの中身は読まない。** サイドカーが壊れていても（6.5 の `broken`）、元のページがなければ消せる（5 回目のレビューの重大 1）。
+- `remove "<WIKI_ROOT>" --orphan=<P>`: 元のページがない概要のサイドカーを消す。`<P>` は `^[0-9a-f]{16}$` に合うときだけ受ける。走査が不完全なら、消さずにエラー `walk_incomplete`。`<P>` に当たるページが今あれば、消さずにエラー `not_orphan`。記事のリンクを拒んだ道がなければ、サイドカーの中身を読まず、壊れていても消せる（5 回目のレビューの重大 1）。ADR-0029 の導入後は、拒んだ道がある場合だけサイドカーの識別子と照合し、その道の裏にある記事を不在にしない。識別子を読めず不在を確かめられない場合も `not_orphan` で拒む。サイドカー自体がなければ `absent` を返す。
 - 元のページがあって概要が壊れているときは、`--refresh` で作り直すか、ページを指定する `remove` で消す。`prepare` は `broken` を `fresh` と扱わないので、`refresh` がなくても作り直せる。
 
 消すのはサイドカー 1 つだけである。消す前に 7.1 の経路の確かめを行う。出力は、消したら `{"status": "removed", "sidecar"}`、もともとなければ `{"status": "absent", "sidecar"}`（どちらも終了コード 0）。
@@ -368,7 +368,7 @@ PyYAML の要らないスクリプトで、`python "${CLAUDE_PLUGIN_ROOT}/skills
 | code | 条件 |
 | --- | --- |
 | `orphan` | 6.5 の `orphan`。`orphan_id`（`<P>`）とサイドカーの `page` を添える。`page_sha256` が一致する今のページがあれば、移す先の候補を添える |
-| `broken` | 6.5 の `broken`。`reason` に理由を添える。`<P>` に当たるページがなければ（走査が完全なとき）、`orphan_id` と `"page_absent": true` も添え、`remove --orphan` を案内する |
+| `broken` | 6.5 の `broken`。`reason` に理由を添える。`<P>` に当たるページがなく、リンクに隠れた記事でもないと確かめられれば、`orphan_id` と `"page_absent": true` も添え、`remove --orphan` を案内する |
 | `page_unknown` | 6.5 の `page_unknown` |
 | `page_unreadable` | 6.5 の `page_unreadable` |
 | `unknown_entry` | `assets/overview/` の直下に、名前が `<16 桁>.overview.md` の形のふつうのファイルのほかの項目がある（リンク、ディレクトリを含む）。リンクはたどらない |

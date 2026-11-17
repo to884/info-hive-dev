@@ -50,6 +50,7 @@ import wiki_browse  # noqa: E402
 import wiki_browse_fs as fs  # noqa: E402
 import wiki_lint  # noqa: E402
 import wiki_pages  # noqa: E402
+import wiki_overview  # noqa: E402
 
 wiki_browse._load()
 core = wiki_browse.core
@@ -154,12 +155,22 @@ def instrumented(inj):
     real_scandir, real_stat, real_id = os.scandir, os.stat, wiki_pages.win_file_id
     real_parser, real_fm, real_render = wiki_pages.new_parser, wiki_lint.parse_frontmatter_raw, core.Core.render_page
     in_layer = {"on": False}
+    in_overview = {"on": False}
+    real_overview_walk = wiki_overview.walk_sidecars
+
+    def overview_walk(root):
+        in_overview["on"] = True
+        try:
+            return real_overview_walk(root)
+        finally:
+            in_overview["on"] = False
 
     def scandir(path="."):
         if in_layer["on"]:
             return real_scandir(path)
-        it = inj.outer("w_scandir_open", os.fspath(path), real_scandir, path)
-        return _Scandir(it, inj, os.fspath(path))
+        target = ("overview:" if in_overview["on"] else "") + os.fspath(path)
+        it = inj.outer("w_scandir_open", target, real_scandir, path)
+        return _Scandir(it, inj, target)
 
     def stat_(path, *a, **k):
         if in_layer["on"]:
@@ -225,7 +236,8 @@ def instrumented(inj):
     for name in sweep.CALLS:
         setattr(Layer, name, layered(name))
     inj.__class__ = Layer
-    with mock.patch.object(os, "scandir", scandir), mock.patch.object(os, "stat", stat_), \
+    with mock.patch.object(wiki_overview, "walk_sidecars", overview_walk), \
+            mock.patch.object(os, "scandir", scandir), mock.patch.object(os, "stat", stat_), \
             mock.patch.object(wiki_pages, "win_file_id", file_id), \
             mock.patch.object(wiki_pages, "new_parser", new_parser), \
             mock.patch.object(wiki_lint, "parse_frontmatter_raw", frontmatter), \
@@ -306,6 +318,8 @@ def gen(sb):
 
 
 def role(name, target, sb, assets):
+    if isinstance(target, str) and target.startswith("overview:"):
+        return "overview_walk"
     if name in WALK_CALLS:
         return "walk"
     if name in PARSE_CALLS:
@@ -384,7 +398,14 @@ def sweep_read(out_state, modes, only_roles=None):
                 if not bs.world_same(s3, before_world, bs.world(s3), injected=True):
                     problems.append("書き出し先と領分の外が変わった" + label)
                 unknown = mode in ("denied", "zero", "blk")
-                if r == "walk":
+                if r == "overview_walk":
+                    # 概要の一覧不明は装飾だけの失敗。一度だけの障害は前後の走査の差で再試行し、
+                    # 正常な入力へ戻れば同じ世代になる。記事の集合の不明とは区別する（ADR-0033）。
+                    if rc == 0 and after != expected_new:
+                        problems.append("概要の走査の再試行後に違う世代を採った" + label)
+                    if rc != 0 and bs.tree(s3.out) != before_out:
+                        problems.append("概要の走査の失敗で、書き出し先が変わった" + label)
+                elif r == "walk":
                     if unknown and rc == 0:
                         problems.append("名前の集合が分からないのに、新しい世代を採った" + label)
                     if rc == 0 and after != expected_new:
