@@ -87,6 +87,10 @@ class RawTests(Base):
         self.assertEqual(self.resolve(str(target), url="https://other")[0].state, "missing")
         self.assertEqual(self.resolve(str(target), url=["https://new"])[0].state, "resolved")
         self.assertEqual(self.resolve(str(target), url=["https://new", "https://old"])[0].state, "unknown")
+        verified = self.resolve(str(target), url=["https://new", "https://old"],
+                                raw_sha256=hashlib.sha256(target.read_bytes()).hexdigest())[0]
+        self.assertEqual(verified.state, "resolved")
+        self.assertFalse(verified.version_unverified)
 
     def test_mismatch_is_distinguished_from_absence(self):
         target = self.write("a", "A", self.raw)
@@ -118,6 +122,8 @@ class RawTests(Base):
         found = wiki_lint.lint(wiki_lint.collect_pages(self.wiki), 100, 200, [], False, 5)
         self.assertEqual(found["summary"]["links"], len(found["links"]))
         self.assertIsNone(found["summary"]["links_wiki"])
+        self.assertIsNone(found["summary"]["links_unchecked_wiki"])
+        self.assertEqual(found["summary"]["links_unchecked_raw"], 0)
 
     def test_identity_absent_is_unverified_not_missing(self):
         for data in (b"plain text", b"\xff\x00", b"---\njust a horizontal line\n"):
@@ -141,6 +147,13 @@ class RawTests(Base):
         found = self.lint()
         self.assertEqual(len(found["raw_outside"]), 1)
         self.assertEqual(found["missing_raw"], [])
+
+    def test_outside_does_not_hide_other_candidates_version_mismatch(self):
+        self.write(".x/e.md", "A", self.tmp)
+        self.source_page(".x/e.md", raw_sha256="0" * 64)
+        found = self.lint()
+        self.assertEqual(found["raw_outside"][0]["mismatches"][0]["kind"], "version")
+        self.assertIn("raw_sha256 と一致しない", wiki_lint.render_text(found))
 
     def test_external_original_does_not_require_file_id(self):
         target = self.write("book.pdf", "PDF", self.ext)

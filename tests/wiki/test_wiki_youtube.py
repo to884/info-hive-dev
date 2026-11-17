@@ -1130,6 +1130,25 @@ class VerifyTests(Workspace):
         self.assertTrue(any("リンクなので読まない" in m for m in messages), messages)
         self.assertFalse(any("見つからない" in m for m in messages), messages)
 
+    def test_partial_evidence_keeps_refusal_after_filtering(self):
+        os.link(self.raw / "記事.md", self.tmp / "article-copy.md")
+        (self.raw / "other.md").write_text("訂正した語のない別の原本", encoding="utf-8")
+        refs = ["raw/記事.md", "raw/other.md"]
+        source = self.page("記事", "本文", raw=None, kind=None, confidence=None)
+        source = source.replace("created: 2026-11-16", "raw: " + json.dumps(refs, ensure_ascii=False) + "\ncreated: 2026-11-16")
+        self.write_page("sources/記事.md", source)
+        self.write_page("sources/動画.md", self.page("動画", "トヨダ〔訂正 L3-1〕の話", confidence="medium",
+            defs="- L3-1: 字幕 `トヨタ` を `トヨダ` に訂正（根拠 wiki_source:記事）"))
+        for text, has_witness in (("別の原本", False), (self.raw_text, False), ("トヨダ", True)):
+            (self.raw / "other.md").write_text(text, encoding="utf-8")
+            result = wc.check_wiki(self.wiki, raw_roots=[self.raw])
+            messages = [f.message for f in result.findings if f.code == "bad_definition"]
+            if has_witness:
+                self.assertEqual(messages, [])
+            else:
+                self.assertTrue(any("リンクなので読まない" in m for m in messages), messages)
+                self.assertFalse(any("見つからない" in m or "raw にない" in m for m in messages), messages)
+
     def test_verify_passes_raw_root_for_auxiliary_raw(self):
         from tests.wiki.test_wiki_links import junction
         external = self.tmp / "external"

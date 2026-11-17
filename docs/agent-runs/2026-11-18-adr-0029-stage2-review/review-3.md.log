@@ -1,0 +1,55 @@
+[ask-claude 08:36:15] claude-opus-5-5 に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\.codex\worktrees\adr0029-raw-links\info-hive-dev）
+## 判定
+
+**採用可**。第2回の軽微 8 件は、どれも再現の手順で閉じたことを確かめました。main との統合でも、概要の検査と raw の検査、`SERVER_FILES` の依存の両方が残っています。今回の直しが入れた欠陥に、重大なものはありません。残るのは度合い C〜D の軽微 4 件です。確信度は中です。
+
+## 致命的・重大な欠陥
+
+なし。
+
+第2回の軽微の閉鎖を、今のコードで判定しました。
+
+| 第2回の軽微 | 結果 | 判定 |
+| --- | --- | --- |
+| `..` のある根で、保存したあとに止まる | セッションと YouTube の `cmd_write` が、取得や保存より前に `absolute_user_path` で拒む（`wiki_session.py:1683-1688`、`wiki_youtube.py:541-546`。コードで確かめた） | 閉鎖 |
+| 訂正の根拠の拒否を「見つからない」と書く | 根拠のソースの raw が 1 つでハードリンクなら、`EvidenceUnavailable` が拒否の理由を `bad_definition` に載せる（`wiki_captions.py:954-957`、1200-1216） | 閉鎖（例外は下の軽微 2） |
+| 1 要素の配列の `url` で `missing` になる | `url: ["https://x"]` が `resolved` になった（実測） | 閉鎖 |
+| 版や身元が違う候補を、ファイルがないのと区別しない | 版の不一致だけのとき、`missing` に `mismatches=[version]` が付き、lint の文面も区別する（実測） | 閉鎖（例外は下の軽微 3） |
+| `commands/lint.md` に `raw_outside` の説明がない | 追記されている | 閉鎖 |
+| 根を渡さない lint で、件数と一覧が食い違う | `links=0`、`links_wiki=None`、`links_raw=0`。未検査は `None` で区別できる（実測） | 閉鎖 |
+| 根を省いた rag の原本の判定を知らせない | 根なしでは `scope_unverified=True` になり、lint の `raw_paths_unchecked` に `reason` 付きで出る（実測） | 閉鎖 |
+| 1 つの候補でも FileIdInfo を要求する | `win_file_id` が NoFileId を返す mock で、1 つの候補は `resolved` のままだった。根の別名で同じファイルが 2 候補に並ぶときは `unknown` になった（実測。設計どおり） | 閉鎖 |
+
+## 崩れる前提
+
+- **前提「`url` や `session_id` が複数の値なら、身元で決められない」**：版がそろっているページでは崩れます。`raw_sha256` が合っていても、`url` が 2 つの値を持つと、版の照合の前に `unknown` を返します（`wiki_raw.py:203-205`）。実測では、`url: ["https://x","https://y"]` と、合うハッシュの組み合わせで `unknown` でした。取り込みの手順は配列を書かないので、度合いは C です。
+- **前提「根を渡せば、外の原本の範囲は確かめた」**：過去の raw の根で崩れます。今の根を渡すと、記録のない過去の根にある rag の PDF（ハードリンク）は、`scope_unverified=False` のまま外の原本になりました（実測）。過去の根の記録は段階 3 の範囲なので、規範どおりです。ただし、警告が出ないことで、検査済みに見えます。
+
+## 見落としと軽微な問題
+
+1. **軽微（D、実測）：版の不一致と、隠し項目の候補が並ぶと `outside` になり、`mismatches` が lint から消える。** `raw: ".x/e.md"` で、wiki の側の候補が隠し項目として外れ、wiki の親の側の候補がハッシュの不一致になる配置で確かめました。`resolve_raw` は `outside` を返し、`mismatches` は `[version]` を持ちます。ところが、lint の `raw_outside` の項目には `candidates` と `reason` しかありません（`wiki_lint.py` の `raw_outside` の分岐）。
+2. **軽微（C、推論）：根拠のソースの raw が複数の値で、片方だけ読めるとき、拒否の理由が消える。** `other_raw_texts` は、読めた本文が 1 つでもあれば `EvidenceUnavailable` を出しません（1215 行）。実測では、`raw: ["raw/basis.md"(ハードリンク), "raw/ok.md"]` で、`raw_warnings` に `link` が出ました。訂正した語がリンクの側にしかなければ、指摘は「訂正した語が、ソース `slug` の raw にない」になると推論しました。読めた本文が動画の raw そのものだけのときも同じで、呼ぶ側のラムダが除いたあとに「見つからない（同じ raw は使えない）」になります。
+3. **軽微（文書）：新しい欄の説明が一部にしかない。** `commands/lint.md` には `links_wiki`、`mismatches`、`scope_unverified` の説明がありません（`lint-workflow.md` には各 1 か所あります）。`commands/ingest.md` の V8 の `raw_warnings` の説明にも、`scope_unverified` の状態がありません。
+4. **軽微（実測）：根を渡さない lint の `links_unchecked` に、wiki の側の未検査を区別する欄がない。** `links` には `links_wiki` と `links_raw` ができましたが、`links_unchecked` は raw の側の件数だけで、wiki の側が未検査かどうかは分かりません（`wiki_lint.py:778`）。
+
+## 検証した事実
+
+- **統合**：`git diff d761c62..HEAD` の `wiki_mcp_common.py` は、`wiki_overview.py` と `wiki_raw.py` の両方を `SERVER_FILES` に含みます。`wiki_lint.py:490-498` は、字幕の検査と概要の検査を両方行います。どちらも一致しました。
+- **版**：`plugin.json` は両ホストとも 0.33.0 です。CHANGELOG は [0.33.0] と [0.32.0] に分かれています。origin/main の先頭は `d761c62`、最新のタグは `v0.32.0` で、番号の衝突はありません。
+- **実際の wiki**：`--raw-root raw` で lint をかけると、`missing_raw` 0、`links_wiki` 0、`links_raw` 0、`raw_unknown` 0、`caption_corrections` 0、`overview_problems` 0 でした。`raw_version_unverified` は 60 件、`raw_paths_unchecked` は 47 件です。
+- **試験**：raw、YouTube、セッション、wiki のリンク、lint の 5 ファイルで 283 件を流し、エラーは 1 件、skip は 8 件でした。エラーは `test_wiki_links.IntegrationReviewTests.test_refused_sources_...` の `ModuleNotFoundError: No module named 'yaml'` で、手元に PyYAML がないためです。CI は `--with pyyaml==6.0.3` で走るので、今回の変更の欠陥ではありません。依頼元の「252 件、skip 7」の再現は、同じ依存の環境ではないので確かめられていません。
+
+## 崩せなかった点
+
+- `..` を含む根は、保存と取得の前に拒まれ、新しい raw が残りません。
+- 根拠のソースの raw が 1 つのリンクのとき、`bad_definition` の理由にリンクの拒否が残ります。
+- 1 つの候補には識別子を求めず、2 つの候補を 1 つにまとめるときだけ識別子を求めます。取れなければ `unknown` になり、黙って 1 つにはしません。
+- 外の原本の判定を根なしで行ったことは、lint にも字幕の `raw_warnings` にも出ます。
+- 第1回と第2回で確かめた、リンクを先に判定する順番、`missing` に落とさないこと、無関係な raw で取り込みを止めないことは、今回の差分でも崩れていません。
+
+---
+使用した MCP サーバー: なし
+使用した Agent Skills: なし
+
+推奨のモデルとエフォート：このレビューは Opus / high。残る軽微 4 件の直しと、リリースの手順（タグ、GitHub リリース、マーケットプレイスからの導入の確認）は Sonnet / medium で足ります。
+[ask-claude 08:42:08] 完了（claude-opus-5-5）。session a424f92a-d9d2-4fc0-b073-bbe7a7d3caf3  usage {"total_cost_usd": 7.452546400000003, "usage": {"input_tokens": 20, "cache_creation_input_tokens": 29776, "cache_read_input_tokens": 2405075, "output_tokens": 10785, "output_tokens_details": {"thinking_tokens": 2969}, "server_tool_use": {"web_search_requests": 0, "web_fetch_requests": 0}, "service_tier": "standard", "cache_creation": {"ephemeral_1h_input_tokens": 29776, "ephemeral_5m_input_tokens": 0}, "inference_geo": "global", "iterations": [{"input_tokens": 2, "output_tokens": 2987, "cache_read_input_tokens": 252033, "cache_creation_input_tokens": 676, "cache_creation": {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 676}, "type": "message"}], "speed": "standard", "fallback_credit": null}}
