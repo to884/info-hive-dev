@@ -122,6 +122,12 @@ jobs:
       - name: URL の取り込みの検査の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_wiki_web_check.py -v
+      - name: Playwright への切り替えの試験（ブラウザを起動しない）
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_wiki_fetch_browser.py -v
+      - name: 許可済みタブの読み取りと切断の試験（ブラウザに接続しない）
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: node tests/wiki/check_browser_session.cjs
       - name: コマンドの個別のヘルプの試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_help_command.py -v
