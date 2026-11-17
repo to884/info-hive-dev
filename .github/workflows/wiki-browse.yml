@@ -32,7 +32,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # ubuntu-latest は Ubuntu 26.04 に変わり、固定した版の Playwright が chromium を入れられない
+        # （"Playwright does not support chromium on ubuntu26.04-x64"）。対応する版に上げるまで 24.04 に固定する
+        os: [ubuntu-24.04, windows-latest]
         # 標準ライブラリの失敗の読み替えは版で違う（構造の直しの設計の 3.1、12）。下限の 3.12 と 3.14 で流す
         python: ['3.12', '3.14']
     runs-on: ${{ matrix.os }}
