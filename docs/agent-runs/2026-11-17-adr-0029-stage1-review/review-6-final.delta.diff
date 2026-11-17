@@ -1,0 +1,209 @@
+--- before/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py
++++ after/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py
+@@ -52,11 +52,17 @@
+ # ---------------------------------------------------------------------------
+ # ページの集合
+ # ---------------------------------------------------------------------------
+ 
+-def is_page_path(rel: "str | PurePosixPath") -> bool:
++def _relative_text(rel, native: bool) -> str:
++    """コマンドの区切りはそろえる。OS から得た名前は、その OS の文字のまま扱う。"""
++    text = str(rel)
++    return text if native and not NT else text.replace("\\", "/")
++
++
++def is_page_path(rel: "str | PurePosixPath", *, native: bool = False) -> bool:
+     """wiki のルートからの相対パス（/ 区切り）がページかを返す。"""
+-    parts = PurePosixPath(str(rel).replace("\\", "/")).parts
++    parts = PurePosixPath(_relative_text(rel, native)).parts
+     # 拡張子は大文字と小文字を区別しない。Windows の rglob("*.md") は Upper.MD も返し、0.8.0 までもページだった。
+     if not parts or not parts[-1].lower().endswith(".md") or any(part.startswith(".") for part in parts):
+         return False
+     if len(parts) == 1:
+@@ -461,22 +467,22 @@
+ 
+ TOP_ARTICLES = ("index.md", "log.md", "SCHEMA.md")
+ 
+ 
+-def is_article_path(rel: "str | PurePosixPath") -> bool:
++def is_article_path(rel: "str | PurePosixPath", *, native: bool = False) -> bool:
+     """wiki のルートからの相対パス（/ 区切り）が、wiki の側の記事かを、名前の規則だけで返す（ADR-0029 の作者の決定の 6）。
+ 
+     記事は、ページ（is_page_path）と、最上位の index.md、log.md、SCHEMA.md と、indexes の下の .md（どの要素も名前が
+     . で始まらないもの）である。リンクかどうかは定義に入れない。raw の記事は、source ページの raw: で決まる。
+     """
+-    parts = PurePosixPath(str(rel).replace("\\", "/")).parts
++    parts = PurePosixPath(_relative_text(rel, native)).parts
+     if not parts or any(part.startswith(".") for part in parts):
+         return False
+     if len(parts) == 1 and parts[0] in TOP_ARTICLES:
+         return True
+     if parts[0] == "indexes" and len(parts) > 1:
+         return parts[-1].lower().endswith(".md")
+-    return is_page_path(rel)
++    return is_page_path(rel, native=native)
+ 
+ 
+ class ArticlePath(NamedTuple):
+     """記事を読む口の結果。state は "ok"、"absent"（ない、ふつうのファイルでない）、"denied"（分からない）、
+@@ -485,23 +491,24 @@
+     path: "Path | None" = None
+     link: "tuple | None" = None
+ 
+ 
+-def article_path(wiki_root, rel, *, directory: bool = False) -> ArticlePath:
++def article_path(wiki_root, rel, *, directory: bool = False, native: bool = False) -> ArticlePath:
+     """記事を読む口（ADR-0029 の I2、I4）。根から rel までの道と rel そのものに、走査と同じ判定を当てる。
+ 
+     根そのものと、その祖先のリンクは許す。rel の要素ごとに os.lstat() を呼び、リンクに当たれば読まずに "link" を返す。
+     directory が真なら、記事を含みうるディレクトリまでの道を検査する。
++    native が真なら、POSIX のファイル名に含まれるバックスラッシュを区切りに変えない。
+     呼ぶ側は、"ok" のときだけ path を読むか降りる。拒んだことを「ない」に変えない。
+     """
+-    rel = str(rel).replace("\\", "/")
++    rel = _relative_text(rel, native)
+     if directory and not rel:
+         return ArticlePath("ok", Path(wiki_root))  # 起点そのもののリンクは許す
+     parts = rel.split("/")
+     # 根の外へ出る名前（絶対パス、ドライブ、..、空の要素）は、記事の名前ではない
+     if rel.startswith("/") or any(part in ("", ".", "..") or (NT and ":" in part) for part in parts):
+         return ArticlePath("not_article")
+-    if not is_article_path(rel + "/article.md" if directory else rel):
++    if not is_article_path(rel + "/article.md" if directory else rel, native=native):
+         return ArticlePath("not_article")
+     current = os.fspath(wiki_root)
+     st = None
+     for i, part in enumerate(parts):
+@@ -536,11 +543,11 @@
+         if found is not None:
+             root, rel = found
+             if directory and not rel:
+                 return Path(root)
+-            if not is_article_path(rel + "/article.md" if directory else rel):
++            if not is_article_path(rel + "/article.md" if directory else rel, native=True):
+                 return path
+-            opened = article_path(root, rel, directory=directory)
++            opened = article_path(root, rel, directory=directory, native=True)
+             if opened.state == "link":
+                 raise ValueError(f"リンクなので読まない: {opened.link[0]}（{opened.link[1]}）")
+             if opened.state == "denied":
+                 raise ValueError(f"調べられない: {rel}")
+--- before/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py
++++ after/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py
+@@ -111,9 +111,12 @@
+     """木のハッシュ。利用者の wiki 内の木には wiki_root を渡し、記事の読み取りを共通の口に通す。"""
+     root = wiki_pages.user_directory_path(wiki_pages.absolute_user_path(root), wiki_root)
+     require(root.is_dir() and not root.is_symlink(), f'通常のディレクトリではない: {root}')
+     result = {}
+-    for directory, dirs, files in os.walk(root, followlinks=False):
++    def unreadable(error):
++        # 一覧できない木を、空の木や完全な写しとして扱わない。CLI もこの例外を理由付きで伝える。
++        raise error
++    for directory, dirs, files in os.walk(root, followlinks=False, onerror=unreadable):
+         dirs[:] = sorted(d for d in dirs if d not in IGNORED)
+         for name in dirs:
+             wiki_pages.user_directory_path(Path(directory) / name, wiki_root)
+         for name in dirs + sorted(files):
+--- before/tests/wiki/test_wiki_links.py
++++ after/tests/wiki/test_wiki_links.py
+@@ -855,8 +855,100 @@
+     def test_case_conversion_does_not_change_relative_path_offsets(self):
+         root = self.tmp / "W\u0130"
+         found = wiki_pages._article_rel(root / "concepts/p.md", root)
+         self.assertEqual(found, (str(root), "concepts/p.md"))
++
++    def test_unlistable_root_and_subdirectory_never_become_empty_snapshots(self):
++        import wiki_evolve
++        root = self.ext / "input"
++        (root / "sub").mkdir(parents=True)
++        (root / "sub/p.md").write_text("data", encoding="utf-8")
++        scan = os.scandir
++        for blocked in (root, root / "sub"):
++            def denied(path):
++                if Path(path) == blocked:
++                    raise PermissionError(13, "denied", str(blocked))
++                return scan(path)
++            for copy in (False, True):
++                with self.subTest(blocked=str(blocked), copy=copy):
++                    dest = self.ext / "snapshot"
++                    with mock.patch.object(os, "scandir", side_effect=denied):
++                        with self.assertRaises(PermissionError) as error:
++                            if copy:
++                                wiki_evolve.copy_tree(root, dest, root)
++                            else:
++                                wiki_evolve.tree(root, root)
++                    self.assertEqual(error.exception.filename, str(blocked))
++                    self.assertFalse(dest.exists())
++
++    def test_both_corpus_entries_stop_before_contract_on_listing_error(self):
++        import wiki_evolve
++        import wiki_evolve_loop as loop
++        exp = self.proposal()
++        corpus = self.wiki / "concepts/corpus"
++        corpus.mkdir()
++        suite = self.tmp / "suite.json"
++        suite.write_text(json.dumps({"corpus": "wiki/concepts/corpus"}), encoding="utf-8")
++        scan = os.scandir
++        def denied(path):
++            if Path(path) == corpus:
++                raise PermissionError(13, "denied", str(corpus))
++            return scan(path)
++        args = SimpleNamespace(id="run", wiki=self.wiki, skill=self.skill, suite=suite)
++        with mock.patch.object(os, "scandir", side_effect=denied):
++            with mock.patch.object(wiki_evolve, "suite_contract") as contract:
++                with self.assertRaises(PermissionError):
++                    wiki_evolve.evaluate(args, exp)
++            contract.assert_not_called()
++            with mock.patch.object(loop, "contract") as contract:
++                with self.assertRaises(PermissionError):
++                    loop.run(args, self.state)
++            contract.assert_not_called()
++        self.assertFalse(list(exp.glob("inputs-*.json")))
++        self.assertFalse((self.state / "run").exists())
++
++    def test_native_posix_names_preserve_backslash_and_check_the_requested_file(self):
++        import posixpath
++        import stat
++        from pathlib import PurePosixPath
++        for relative in ("concepts/a\\b.md", "assets\\p.md"):
++            requested = "/W/" + relative
++            reads = []
++            class ModelPath(PurePosixPath):
++                def read_bytes(path):
++                    reads.append(str(path))
++                    return b"ORIGINAL" if str(path) == requested else b"DECOY"
++                def read_text(path, **kwargs):
++                    return path.read_bytes().decode("utf-8")
++            proxy = SimpleNamespace(path=SimpleNamespace(abspath=posixpath.abspath, normcase=posixpath.normcase,
++                                                         realpath=lambda path: str(path), join=posixpath.join),
++                                    fspath=os.fspath)
++            linked = False
++            def attributes(path):
++                return "ok", SimpleNamespace(st_mode=stat.S_IFREG if str(path).endswith(".md") else stat.S_IFDIR,
++                                              st_nlink=2 if linked and str(path) == requested else 1)
++            with mock.patch.object(wiki_pages, "os", proxy), mock.patch.object(wiki_pages, "Path", ModelPath), \
++                 mock.patch.object(wiki_pages, "NT", False), mock.patch.object(wiki_pages, "_stat_entry", side_effect=attributes):
++                with self.subTest(path=relative):
++                    self.assertEqual(wiki_pages.read_user_bytes(ModelPath(requested), ModelPath("/W")), b"ORIGINAL")
++                    self.assertEqual(wiki_pages.read_user_file(ModelPath(requested), ModelPath("/W")), "ORIGINAL")
++                    self.assertEqual(reads, [requested, requested])
++                    linked = True
++                    for reader in (wiki_pages.read_user_file, wiki_pages.read_user_bytes):
++                        with self.assertRaisesRegex(ValueError, "リンク"):
++                            reader(ModelPath(requested), ModelPath("/W"))
++                    self.assertEqual(reads, [requested, requested])
++
++    @unittest.skipIf(NT, "POSIX のファイル名のバックスラッシュを使う")
++    def test_posix_candidate_bytes_are_from_the_named_file(self):
++        import wiki_evolve
++        candidate = self.write("concepts/a\\b.md", "ORIGINAL")
++        self.write("concepts/a/b.md", "DECOY")
++        wiki_evolve.propose(self.args(candidate), self.state)
++        self.assertEqual((self.state / "sample/candidate/SKILL.md").read_bytes(), b"ORIGINAL")
++        os.link(candidate, self.ext / "copy.md")
++        with self.assertRaisesRegex(ValueError, "リンク"):
++            wiki_evolve.propose(self.args(candidate, id="linked"), self.state)
+ 
+ 
+ class ReadSiteInventoryTests(unittest.TestCase):
+     """スクリプトの中のファイルの読み取り（read_text、read_bytes、open）を、関数ごとに 1 度ずつ分類する。

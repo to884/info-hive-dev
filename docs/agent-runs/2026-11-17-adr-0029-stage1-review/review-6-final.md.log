@@ -1,0 +1,81 @@
+[ask-codex 23:14:16] gpt-6-astra に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-0029-impl\info-hive-wiki）
+## 判定
+
+**条件付きで採用可。確信度：中。** 直前の重大2件と対応する試験不足は閉鎖を確認し、今回の差分による新たな重大欠陥は確認できなかった。ただし、POSIX の特殊なファイル名について、走査と読む口の記事判定に軽微な不一致が残る。
+
+## 致命的・重大な欠陥
+
+なし。
+
+今回の確認は指定された差分と読み取りの境界に限定した。全機能の再検証を済ませたという判定ではない。
+
+## 崩れる前提
+
+**OS 上の名前は、すべての呼び出し元で `native=True` として扱われる。**
+
+`user_file_path()` では成立するが、`walk_pages()` は走査で得たディスク上の相対名を、既定のコマンド表記として分類する。POSIX のファイル名に `\` が含まれると、同じファイルの記事判定が一致しない。
+
+一覧取得の失敗を空の木に変えるという前回の反例は、現在の処理では再現しなかった。
+
+## 見落としと軽微な問題
+
+**軽微：走査で得た名前の分類に `native=True` が渡っていない。**
+
+POSIX で、wiki 直下に `assets\p.md` という通常ファイルを置く。`\` は名前に含まれる1文字であり、`assets/` ディレクトリではない。
+
+現在の判定は次のように食い違う。
+
+```text
+is_article_path("assets\p.md", native=True) → True
+walk_pages() の files                     → 含まれない
+```
+
+`walk_pages()` が `is_page_path(f.rel)` を既定値で呼び、名前を `assets/p.md` に変換して除外するためである。利用者指定ファイルの読む口では記事だが、ページ一覧では対象外になる。
+
+**確認方法：** POSIX 条件と走査結果をモック化し、上記の食い違いを確認した。実際の POSIX ファイルを作った検証ではない。
+
+根拠：
+
+- 表記を変換する条件：[wiki_pages.py:56](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:56)
+- 走査結果を既定値で分類する箇所：[wiki_pages.py:433](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:433)
+- 読む口では native として分類する箇所：[wiki_pages.py:547](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:547)
+
+この名前は既存のファイル名規約に違反するため、軽微とした。今回追加された試験も `assets\p.md` を扱うが、文字列・バイト列の入口だけを確認し、走査との一致は確認していない。[test_wiki_links.py:909](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_wiki_links.py:909)
+
+## 検証した事実
+
+直前の指摘は個別に次のとおり判定する。
+
+| 指摘 | 今回の判定 |
+|---|---|
+| 重大B：一覧取得失敗が空のコーパスになる | **閉鎖。** 根・途中のディレクトリ双方で、`tree`／`copy_tree` が元の `PermissionError` をそのまま送出した。コピー先の作成にも到達しなかった。 |
+| 重大D：POSIX のバックスラッシュ名で別ファイルを読む | **指摘した利用者指定ファイルの経路は閉鎖。** 文字列・バイト列とも指定した名前を読み、その名前がハードリンクなら本文を読まずに拒否した。 |
+| 軽微：一覧取得失敗の回帰試験不足 | **閉鎖。** 根・途中のディレクトリ、コピー先未作成、`evaluate`／`run` の契約検査前の停止を確認する試験が追加されている。 |
+
+一覧取得失敗の修正は [wiki_evolve.py:115](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:115)、コピー先作成より前の検査は [wiki_evolve.py:134](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:134) にある。CLI が `OSError` の理由を表示して終了する処理も確認した。[wiki_evolve.py:636](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:636)
+
+今回実行した検証は以下である。
+
+- 実際の `os.walk` に `os.scandir` の失敗を注入し、根・途中のディレクトリ × `tree`・`copy_tree` の4条件で、例外の同一性と失敗場所の保持を確認した。
+- `evaluate`／`run` の実際の事前検査経路をモックで動かし、同じ例外で停止し、契約検査の呼び出しが0回であることを確認した。
+- ファイル生成を省いた設定で、native の名前、途中の `..`、POSIX 条件のコロン、大小文字変換の既存テストメソッド4件を実行し、すべて通過した。
+- 回帰試験の現物を読み、依頼元の説明と照合した。[test_wiki_links.py:860](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_wiki_links.py:860)、[test_wiki_links.py:883](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_wiki_links.py:883)
+
+過去の確認と今回の確認は区別する。
+
+- **第5回の5件：** ディレクトリ候補・元コーパス、対象外入力の誤拒否、途中の `..`、indexes の呼び出しモデル、静的分類試験の限界について、前回の元の反例の閉鎖判定を維持する。今回すべてを再実行したわけではない。
+- **第6回最初の3件：** 根の別名と外向きリンク、部分コーパスの根、POSIX のコロンについて、前回の閉鎖判定を維持する。
+- **依頼元の163件と統合チェック2本：** 今回は再実行していない。POSIX の実ファイル、実リンク、実 ACL による再実測も行っていない。
+
+対象ファイル、利用者の wiki、原本は変更していない。
+
+## 崩せなかった点
+
+- 一覧取得の失敗を、空または完全なコピーとして受け取らせる経路。
+- 修正された文字列・バイト列の入口で、POSIX の `\` を別ディレクトリの区切りに変えて読ませる経路。
+- 指定した native 名のハードリンクを、デコイの通常ファイルに逃がして読ませる経路。
+- 今回の変更によって、途中の `..` の拒否やコロン名のリンク検査を迂回させる経路。
+
+使用した MCP サーバー：なし  
+使用した Agent Skills：なし
+[ask-codex 23:20:41] 完了。session 01a1e9b3-9ddf-7443-b3ec-f69e677fe115  usage {"input_tokens": 8860814, "cached_input_tokens": 8497664, "cache_write_input_tokens": 0, "output_tokens": 37635, "reasoning_output_tokens": 14878}
