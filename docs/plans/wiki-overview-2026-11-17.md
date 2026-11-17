@@ -8,6 +8,7 @@
 | 関連 | ADR-0005（図は mermaid と svg）、ADR-0017（browse は wiki に書かない）、ADR-0020（raw はスクリプトが書く）、ADR-0023（書く段）、ADR-0029（リンクを置かない）、ADR-0030（browse は図を画像として見せる。提案）、[図の描画の設計](wiki-browse-figures-2026-11-17.md)（別のブランチ `feat/wiki-browse-figures`） |
 | 基準にした版 | 親 `b842236`、`info-hive-wiki` 0.25.2（`e8886d6`） |
 | 実装の基準 | 図の表示の変更が main に入ったことを確認し、段階 1 は `info-hive-wiki` 0.27.0（`485e530`）上に実装した。設計の承認時点からの確認結果は、[実装記録](../agent-runs/2026-11-17-wiki-overview/stage1-implementation.md)に記す |
+| 段階 2 | [browse の表示設計](wiki-browse-overview-2026-11-17.md) 第3版。Astra のレビューは採用可。作者の承認前で、未実装 |
 | 記録 | `docs/agent-runs/2026-11-17-wiki-overview/`（前の版は `design-v1.md`〜`design-v5.md`。6 回目の結果は `design-review-6-astra-native.md`）、試作 `poc/wiki-overview/` |
 
 この設計が扱うのは、概要を**作って wiki に置く側**（段 1）である。browse が概要を**読んで表示する側**（段 2）は、図の表示（ADR-0030）が `info-hive-wiki` の main に入ってから、別の設計として書く。段 2 がこの設計に求めることは 12 節に書く。
