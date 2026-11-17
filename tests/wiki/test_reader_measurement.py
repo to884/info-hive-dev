@@ -381,6 +381,11 @@ class ProductDecisionTests(unittest.TestCase):
         self.assertEqual(actual, {cls: tuple(value) for cls, value in fixture["table"].items()})
         agent = (measurement.PLUGIN / "agents/wiki-reader.md").read_text(encoding="utf-8")
         normalized_agent = __import__("re").sub(r"^(model|effort):[^\n]*\n", "", agent, flags=__import__("re").M)
+        # リリース統合で重複したADR番号だけを振り直した。説明のその参照だけを測定時に戻して照合する。
+        adr = fixture["reader_description_adr"]
+        description = next(line for line in normalized_agent.splitlines() if line.startswith("description: "))
+        self.assertEqual(description.count(adr["current"]), 1)
+        normalized_agent = normalized_agent.replace(description, description.replace(adr["current"], adr["measured"], 1), 1)
         self.assertEqual(runtime.digest(normalized_agent.encode("utf-8")), fixture["reader_sha256_without_defaults"])
         model, effort = fixture["table"]["R1"]
         self.assertIn(f"\nmodel: {model}\n", agent)

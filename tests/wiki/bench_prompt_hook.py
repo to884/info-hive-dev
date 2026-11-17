@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""プロンプトのフック（ADR-0032）の段階 0 の測定。起動行の時間と終了コード、ページ数への伸びを測る。
+"""プロンプトのフック（ADR-0034）の段階 0 の測定。起動行の時間と終了コード、ページ数への伸びを測る。
 
 使い方:
     python tests/wiki/bench_prompt_hook.py launch [--runs 30] [--out <json>]

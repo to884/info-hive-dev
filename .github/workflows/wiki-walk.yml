@@ -4,7 +4,7 @@ name: Wiki walk
 # 対象のいちばん古い版（3.12）といちばん新しい版（3.14）で確かめる（ADR-0018）。設計は docs/plans/wiki-walk-excluded-dirs-2026-11-11.md にある。
 # - tests/wiki/test_walk.py: 木から計算した答え、今（0.10.1）の実装との照合、失敗を入れる探索と対照、口の一覧
 # - tests/wiki/test_page_set.py、test_wiki_lint.py: ページの集合と lint の今ある試験
-# - tests/wiki/test_prompt_hook.py: プロンプトのフック（ADR-0032）。走査に walk_pages を使い、入口の終了コードが OS に左右されないかを見る
+# - tests/wiki/test_prompt_hook.py: プロンプトのフック（ADR-0034）。走査に walk_pages を使い、入口の終了コードが OS に左右されないかを見る
 #
 # test_walk.py は、今の実装を info-hive-wiki のコミット 2756a4e から git で取り出すので、info-hive-wiki の履歴を
 # すべて取得する（fetch-depth: 0）。info-hive-wiki は、シークレット WIKI_READ_TOKEN の読み取り専用のトークンで取得する。
@@ -88,7 +88,7 @@ jobs:
       - name: 記事のリンク拒否の回帰試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python ${{ matrix.python }} --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_wiki_links.py -v
-      # プロンプトのフック（ADR-0032）。入口が、どの OS でも、どんな入力でも終了コード 0 で終わることを確かめる。
+      # プロンプトのフック（ADR-0034）。入口が、どの OS でも、どんな入力でも終了コード 0 で終わることを確かめる。
       # 実際の wiki での評価（EvaluationGateTests）は、浅い取得では評価のコミットがないので飛ぶ。
       - name: プロンプトのフックの試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}

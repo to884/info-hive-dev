@@ -1,6 +1,6 @@
 # プロンプトのフックで wiki の候補を知らせる計画（2026-11-17）
 
-決定は [ADR-0032](../adr/0032-wiki-prompt-hook-suggests-candidate-pages.md)（提案）、測定は [段階 0 の記録](../research/wiki-prompt-hook-stage0-2026-11-17.md)、仕組みの正本はプラグインの `skills/info-hive/references/prompt-context.md` にある。この文書は、作者が承認した計画と、段階 0 で変えたことを残す。
+決定は [ADR-0034](../adr/0034-wiki-prompt-hook-suggests-candidate-pages.md)、測定は [段階 0 の記録](../research/wiki-prompt-hook-stage0-2026-11-17.md)、仕組みの正本はプラグインの `skills/info-hive/references/prompt-context.md` にある。この文書は、作者が承認した計画と、段階 0 で変えたことを残す。
 
 ## 依頼と決めたこと
 
@@ -51,3 +51,7 @@
 3. `python tests/wiki/bench_prompt_hook.py launch` と `scale`。
 4. `claude --plugin-dir <worktree の info-hive-wiki> --debug-file <path>` で、`Hook UserPromptSubmit ... provided additionalContext` が出ること、エラーの知らせがないこと。`stream-json` の記録で、R1 の指示に対して Agent ツールが書いたとおりの `subagent_type`、`model`、`effort` で呼ばれること。
 5. デスクトップアプリで、指示のたびに窓が出ないこと（作者が目で確かめる）。
+
+## リリース時の統合（2026-11-18）
+
+0032はCodexの会話履歴、0033はページの概要が使用しているため、本件をADR-0034へ振り直した。ユーザーのマージとリリースの依頼に合わせて採用とした。過去の測定・レビュー・スナップショットに残るADR-0032は当時の本件の番号であり、改変しない。モデルの再測定は行わず、readerの説明にある番号だけの変更を試験で明示して、本文と選定値の一致を検査する。
