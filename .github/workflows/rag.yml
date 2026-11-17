@@ -4,6 +4,8 @@ name: RAG unit tests
 # - tests/rag/test_jobs.py: ジョブの台帳、登録、再開、取り消し
 # - tests/rag/test_indexes.py: 索引の統計と版
 # - tests/rag/test_extraction.py: PDF の抽出、OCR の切り替え、MCP サーバーの設定
+# - tests/contract/test_rag_contract.py: OCR の保存、page_report、古い rag との組み合わせ（ADR-0025 の契約の試験 3〜5）。
+#   wiki の wiki_pdf.py と、rag の v0.5.3 のタグの抽出を使うので、wiki も取り、rag はタグごと取る。
 # どれも偽の埋め込みを使うので、本物のモデルは取得しない。
 # 本物のモデルや OCR を使う tests/rag/verify_*.py は CI に入れない。
 #
@@ -17,6 +19,8 @@ on:
     paths:
       - info-hive-rag
       - tests/rag/**
+      - tests/contract/**
+      - info-hive-wiki
       - poc/poc_data.py
       - .github/workflows/rag.yml
 
@@ -41,20 +45,30 @@ jobs:
       DEPS: >-
         --index https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match
         --with torch==2.8.0+cpu --with sentence-transformers==5.7.0 --with transformers==5.22.1
-        --with numpy==2.5.4 --with mcp==1.30.0 --with lancedb==0.29.2 --with pypdfium2>=5,<6
+        --with numpy==2.5.4 --with mcp==1.30.0 --with lancedb==0.29.2 --with pypdfium2==5.15.2 --with pdfminer.six==20260107
         --with sudachipy>=0.6,<0.8 --with sudachidict-core --with pyyaml>=6,<7 --with filelock>=3,<5
-        --with psutil>=7,<8 --with pillow>=11,<14 --with onnxruntime==1.31.1 --with reportlab
+        --with psutil>=7,<8 --with pillow>=11,<14 --with onnxruntime==1.31.1 --with reportlab --with pypdf==6.1.3
     steps:
       - uses: actions/checkout@v4
       - name: info-hive-rag の参照を調べる
         id: rag
-        run: echo "sha=$(git ls-tree HEAD info-hive-rag | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "sha=$(git ls-tree HEAD info-hive-rag | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+          echo "wiki=$(git ls-tree HEAD info-hive-wiki | awk '{print $3}')" >> "$GITHUB_OUTPUT"
       - id: checkout-rag
         uses: actions/checkout@v4
         with:
           repository: to884/info-hive-rag
           ref: ${{ steps.rag.outputs.sha }}
           path: info-hive-rag
+          fetch-depth: 0
+          fetch-tags: true
+      - id: checkout-wiki
+        uses: actions/checkout@v4
+        with:
+          repository: to884/info-hive-wiki
+          ref: ${{ steps.rag.outputs.wiki }}
+          path: info-hive-wiki
       - uses: astral-sh/setup-uv@v6
       - name: 試験の作業場所を作る
         run: |
@@ -75,3 +89,11 @@ jobs:
       - name: 抽出と設定の試験
         if: ${{ !cancelled() && steps.checkout-rag.outcome == 'success' }}
         run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/rag/test_extraction.py -v
+      - name: rag の契約の試験
+        if: ${{ !cancelled() && steps.checkout-rag.outcome == 'success' && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/contract/test_rag_contract.py -v
+      # OCR の確信度と確認（ADR-0025 の試験 8）。本物の NDLOCR-Lite での確率の受け取りは、
+      # tests/rag/verify_ocr_confidence.py を手元の OCR の環境で動かして確かめる（CI では読み込めない）
+      - name: OCR の確信度と確認の契約の試験
+        if: ${{ !cancelled() && steps.checkout-rag.outcome == 'success' }}
+        run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/contract/test_rag_review.py -v

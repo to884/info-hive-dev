@@ -1,0 +1,70 @@
+[ask-codex 14:43:19] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr0025-stage2）
+## 判定
+
+**却下。確信度：高。** 検索による飢餓は解消しているが、追加確認で再受付され続ける作り直しが、別文書の作り直しを永久に待たせる。取消し・失敗・方針変更なしに、性質 1 を破る。
+
+## 致命的・重大な欠陥
+
+### 【重大】`rerun` で先頭に戻り続けるジョブが、別文書の確認反映を阻む
+
+**再現手順**
+
+1. 同じ wiki に PDF A・B を取り込み、両方の公開確認版を 0 にする。
+2. A の確認版 1 を受理して J_A を登録し、その後、B の確認版 1 を受理して J_B を登録する。
+3. J_A の `rebuild_reviewed` が正常に戻った直後、`Jobs.finish` の前に、別接続から A の次の確認を受理する。
+4. 処理中の J_A に `rerun=1` が付き、`finish` は同じジョブを `queued` に戻す。
+5. J_A の各実行で手順 3 を繰り返す。
+
+`claim` は作成日時の古いジョブを選ぶ。再受付では作成日時が変わらないため、常に J_A が選ばれ、J_B に順番が回らない。**検索要求がなくても成立する。**
+
+実際の `Ledger.decide`、`Jobs`、`next_work`、`process_job`、`Engine.rebuild_reviewed` を使用し、取り込み本体とファイル操作を代替した実行結果：
+
+```text
+                       A       B
+作り直しの実行回数    1000      0
+ジョブの状態          queued   queued
+台帳の確認版          1001      1
+公開した確認版        1000      0
+```
+
+同じ割込み順を続ける限り、B は反映されない。A への追加確認を止めると B も進むことを確認した。
+
+**根拠**
+
+- [rag_jobs.py:296](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_jobs.py:296)：`ORDER BY created_at LIMIT 1` で選択する。
+- [rag_jobs.py:112](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_jobs.py:112)：処理中の追加確認で担当版を更新し、`rerun=1` を付ける。
+- [rag_jobs.py:331](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_jobs.py:331)：再受付で `created_at` を変えない。
+- [rag_worker.py:231](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_worker.py:231)：作り直しから戻って完了を書くまでに、上記の割込みが成立する。
+- [rag_worker.py:181](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_worker.py:181)：検索制限後も同じ `claim` を呼ぶ。
+
+内側の「100 回で失敗」の制限は、この反例を止めない。各 `rebuild_reviewed` は正常終了し、その後に追加確認を入れている。
+
+## 崩れる前提
+
+- **ジョブを定期的に取得すれば、すべての待機ジョブに順番が回る。** 古いジョブが `rerun` で再受付され続けると成立しない。
+- **作成日時順は再受付を含めても公平である。** 新しい確認の処理が、以前の作成日時を引き継いで、既に待っている別文書を追い越す。
+
+継続的な要求を許す条件は、8 回目の検索による飢餓の反例と同様に置いた。追加確認が有限で、その後静止する場合の永久停止は示していない。
+
+## 見落としと軽微な問題
+
+[test_rag_review.py:657](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/tests/contract/test_rag_review.py:657) の追加試験は、待機中の作り直しが 1 件だけである。検索からジョブへの切替えは検証するが、再受付されるジョブと別の待機ジョブとの競合を通らない。
+
+## 検証した事実
+
+- **一致：** 検索が続いていても、10 件の検索後にジョブが選ばれた。
+- **食い違い：** 上記の追加確認の操作順では、B の受理済み確認が反映されない。
+- **一致：** 取消し後の遅れた `finish(deferred)` は、担当版を失わせなかった。
+- **一致：** 復旧後、旧 owner の完了更新は拒否された。空文字列の失敗理由も `failed` になった。
+- **一致：** AST 集計で契約試験は 36 件、ジョブ試験は 33 件。
+- **確かめられず：** 既存試験一式の成功。検証環境は Python 3.14.6 で、必要な外部依存がない。動的検証にはメモリー上の SQLite と代替処理を用いた。
+- リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 性質 2：取消し・失敗済みの担当版を、同じ版の登録要求や遅れた完了だけで復活させる経路。
+- 性質 3：未公開 generation の行を検索結果へ混入させる経路。検索と公開は同じ書込みロックを使用し、検索条件も公開 generation に限定されている。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 14:51:35] 完了。session 01a1e2e1-a249-7af2-a540-7ee914079c66  usage {"input_tokens": 2172911, "cached_input_tokens": 2024448, "cache_write_input_tokens": 0, "output_tokens": 11622, "reasoning_output_tokens": 4331}

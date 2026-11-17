@@ -1,0 +1,87 @@
+[ask-codex 13:25:29] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr0025-stage2）
+## 判定
+
+**却下。確信度：高。** 古い設定を保持する再試行ジョブが新しい確認を受け持ち、未反映のまま完了して、自動再登録も明示的な再試行もできなくなる経路を再現した。4 回目の重大な指摘 2 つは、今回の修正後には再現しなかった。
+
+## 致命的・重大な欠陥
+
+### 1. 【重大】古い設定の再試行ジョブに新しい確認が合流すると、`deferred` の完了記録が反映を止める
+
+**再現手順**
+
+1. 設定 A で PDF を取り込み、確認版 1 の作り直しジョブ J を登録する。
+2. 公開開始前に J をキャンセルする。
+3. 設定 B に変更し、同じ PDF を取り込み直す。確認版 1 が設定 B の索引に反映される。
+4. J を `retry_job` で待機に戻す。J の保存済み設定は A のままである。
+5. J の実行開始前に、設定 B で確認版 2 を受け付ける。`register_rebuild` は J の担当版を 2 に上げるが、設定は更新しない。
+6. J を実行する。設定 A と公開中の索引 B が食い違うため、作り直しは `deferred` を返す。ジョブは正常完了として記録される。
+
+実際の `Jobs`、`Engine.rebuild_reviewed`、`Engine.ingest_pdf`、`process_job` を、メモリー上の SQLite と代替のファイル操作で実行した結果：
+
+```text
+新しい確認が同じ J に合流 = True
+J の設定                  = A
+J.status                  = completed
+J.result.status           = deferred
+J.review_version          = 2
+公開版                    = 1
+版 2 の再登録             = None
+完了した J の retry 後    = completed
+次の claim                = None
+```
+
+版 2 を未反映として渡した `reconcile_rebuilds` も、登録結果は空になった。
+
+この時点では、**現在の設定 B と公開中の索引 B は一致している**。設定変更後の取り込み直しを待つという説明では、この停滞を説明できない。新しく受け付けた確認が、過去のジョブの設定と完了記録に閉じ込められる。
+
+**根拠**
+
+- [rag_jobs.py:108](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_jobs.py:108)：既存ジョブへの合流では担当版だけを更新し、`config` は更新しない。
+- [rag_worker.py:134](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_worker.py:134)：実行にはジョブ保存時の設定を使う。
+- [rag_index.py:535](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_index.py:535)：指紋が異なる作り直しは `deferred` を返す。
+- [rag_jobs.py:306](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_jobs.py:306)：`deferred` でもエラーがなければ完了になる。
+- [rag_jobs.py:105](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_jobs.py:105)：完了した J の担当版によって再登録を拒否する。
+- [rag_jobs.py:345](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_jobs.py:345)：`retry` は完了済みジョブを待機に戻さない。
+
+## 崩れる前提
+
+- **待機中の作り直しジョブは、新しく受け付けた確認にも適切な設定を持つ。** 設定変更前のキャンセル・失敗ジョブを再試行すると崩れる。
+- **版を受け持って正常完了したジョブがあれば、その版の再登録は不要である。** `deferred` は公開を伴わずに正常完了する。
+- **`deferred` が返ったときは、現在の設定でも取り込み直しが必要である。** 古いジョブ設定と現在の設定が異なる場合、現在の索引は既に現在の設定と一致しうる。
+
+## 見落としと軽微な問題
+
+- **【軽微】本文パスを現在の公開版に差し替えても、`result.review` は古い版のまま残る。** 保存済み結果が版 1、現在の公開版が版 2 の状態を与え、実際の `Jobs.status` で次の応答を再現した。
+
+  ```text
+  result.extracted_markdown                 = 版 2 の本文
+  result.review.published_version           = 1
+  result.page_report.review.published_version = 2
+  ```
+
+  [rag_jobs.py:162](C:/Works/info-hive-dev/.claude/worktrees/adr0025-stage2/info-hive-rag/scripts/rag_jobs.py:162) は `page_report` と本文パスを更新するが、`result.review` を更新しない。ADR 193 行の「当てた確認の版を一緒に返す」という規定に対し、本文に付随する版番号が一意になっていない。
+
+- **【軽微】29 件の契約試験には、`deferred` の完了と再登録を組み合わせた試験がない。** 全試験を読み、`deferred` を扱う記述がないことを確認した。今回追加された同版再登録と `rerun` の試験だけでは、重大指摘 1 の経路を検出しない。
+
+## 検証した事実
+
+| 主張 | 結果 |
+|---|---|
+| 同じ版の遅れた登録で、キャンセル済みジョブが復活しない | **一致。** 再登録は `None`、`rebuild_for` は元のキャンセル済みジョブを返し、`claim` も空だった。 |
+| `rerun` 後の待機ジョブを取り消せる | **一致。** `publication_started=0` となり、取り消しが受理された。 |
+| 作り直し・取り込みの再試行で公開開始の印を戻す | **一致。** 両方の実際の SQL 経路で確認した。 |
+| 公開開始済みの実行中ジョブは取り消せない | **一致。** `begin_publication` 後の取り消しは拒否された。 |
+| 契約試験は 29 件ある | **一致。** AST で試験メソッド数を確認した。 |
+| 依頼元が挙げた試験一式が成功する | **確かめられず。** この環境には必要な依存パッケージがない。 |
+
+動的検証は Python 3.14.6 とメモリー上の SQLite で行った。ファイル操作、ロック、索引の方針取得などは代替しており、Python 3.12、実 OCR、LanceDB を使った統合再現は行っていない。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- 4 回目の「同じ版の遅れた登録によるキャンセル済みジョブの復活」は崩せなかった。
+- 4 回目の「`rerun`・再試行後に公開開始の印が残る」は崩せなかった。
+- 今回の印のリセットによって、公開中の実行を取り消せるようになる経路は見つからなかった。リセットは `finish` による待機への遷移と、失敗・キャンセル済みジョブの再試行に限定されている。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 13:35:02] 完了。session 01a1e29a-5d47-7893-99b5-6192f1669032  usage {"input_tokens": 2814714, "cached_input_tokens": 2645120, "cache_write_input_tokens": 0, "output_tokens": 14146, "reasoning_output_tokens": 5570}

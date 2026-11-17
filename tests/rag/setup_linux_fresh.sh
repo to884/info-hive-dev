@@ -40,7 +40,7 @@ uv venv --python 3.12 "$venv"
 uv pip install --python "$venv/bin/python" \
   --index https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match \
   'torch==2.8.0+cpu' 'sentence-transformers==5.7.0' 'transformers==5.22.1' \
-  'numpy==2.5.4' 'mcp==1.30.0' 'lancedb==0.29.2' 'pypdfium2>=5,<6' \
+  'numpy==2.5.4' 'mcp==1.30.0' 'lancedb==0.29.2' 'pypdfium2==5.15.2' 'pdfminer.six==20260107' \
   'sudachipy>=0.6,<0.8' sudachidict-core 'pyyaml>=6,<7' 'filelock>=3,<5' \
   'psutil>=7,<8' 'pillow>=11,<14' 'onnxruntime==1.31.1' reportlab
 if [[ ! -d "$models/$model" && -d "$model_source/$model" ]]; then

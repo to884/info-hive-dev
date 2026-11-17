@@ -44,7 +44,7 @@ printf '%s\n' "フォントの先読み: $((SECONDS - fonts_started)) 秒"
   printf 'rag_commit=%s\n' "$(git -C info-hive-rag rev-parse HEAD 2>/dev/null || git.exe -C "$(wslpath -w info-hive-rag)" rev-parse HEAD)"
   printf 'linux_root=%s\n' "$linux_root"
   printf 'kernel=%s\n' "$(uname -r)"
-  "$linux_python" -c 'import sys; from importlib.metadata import version; print("python=" + sys.version.split()[0]); [print(f"{name}={version(name)}") for name in ("torch", "transformers", "sentence-transformers", "pypdfium2", "lancedb", "mcp", "onnxruntime")]'
+  "$linux_python" -c 'import sys; from importlib.metadata import version; print("python=" + sys.version.split()[0]); [print(f"{name}={version(name)}") for name in ("torch", "transformers", "sentence-transformers", "pypdfium2", "pdfminer.six", "lancedb", "mcp", "onnxruntime")]'
   uv --version
 } > "$RAG_TEST_OUTPUT/environment.txt" 2>&1 || true
 run() {

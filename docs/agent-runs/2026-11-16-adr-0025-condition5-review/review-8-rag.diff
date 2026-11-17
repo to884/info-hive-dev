@@ -1,0 +1,254 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 0a8fe1f..e7307e1 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -24,7 +24,7 @@
+ - `status` に、今の OCR の設定（`settings` の `ocr_mode` と `ocr_dpi`）を足しました。
+ 
+ - OCR の確信度を数えるようにしました（ADR-0025）。NDLOCR-Lite の認識器（PARSeq）の出力に softmax をかけ、文字ごとと行の読み終わりの記号の確率を受け取り、行の確信度をその最小値にします。認識した本文が空の行は「読めなかった行」として 0 にします。NDLOCR-Lite のファイルは変えていません。確率は OCR の結果と一緒に保存し、0.5 以前の OCR の結果（移した結果）は「確信度が不明」になります。行の確信度は、行の印の材料の 1 つです（次の項）。
+-- OCR の行に、誤っている見込みの高い行の印を付けるようにしました（ADR-0025 の「行の印」）。行の確信度が閾値（設定の `ocr_confidence_threshold`。既定は 0.3）より低い行、行の画像を少しぼかして読み直すと本文が変わる行、ページを別の解像度（`ocr_dpi` の 4/3 倍）で読み直した本文と違い確信度が 0.9 未満の行に、印が付きます。OCR は 1 ページあたり、描画と検出と読みをもう 1 回行うので、およそ 2 倍の時間がかかります。印の付いた行があるページが、確認の要るページです。閾値は索引の方針の指紋に入れないので、変えても取り込み直しは要りません。
++- OCR の行に、誤っている見込みの高い行の印を付けるようにしました（ADR-0025 の「行の印」）。行の確信度が閾値（設定の `ocr_confidence_threshold`。既定は 0.3）より低い行、行の画像を少しぼかして読み直すと本文が変わる行、ページを別の解像度（`ocr_dpi` の 4/3 倍）で読み直した本文と違い確信度が 0.9 未満の行、横書きの行を別の認識器（RapidOCR の日本語の認識モデル）で読むと英数字か記号が足されるか置き換わる行に、印が付きます。OCR は 1 ページあたり、描画と検出と読みをもう 1 回行い、行ごとに読みを 2 回足すので、およそ 2〜3 倍の時間がかかります。OCR の環境に `rapidocr==3.10.0` が加わります。印の付いた行があるページが、確認の要るページです。閾値は索引の方針の指紋に入れないので、変えても取り込み直しは要りません。
+ - 確認の要るページを、wiki ごとに確かめられるようにしました。MCP のツール `ocr_page_detail` は、OCR の本文、印の付いた行（印の理由と 2 つ目の読み）、今の確認の結果と台帳の版を返します。`decide_ocr_pages` は、「そのまま使う」「直す」「却下する」を受け付け、その wiki の本文と索引を作り直すジョブを登録します。確認の結果は wiki の作業領域の `reviews.sqlite` に置き、同じ PDF を使うほかの wiki と、共有の抽出の結果は変えません。直したページは直した本文で、却下したページは索引から外して作り直します。もとにした台帳の版か、確かめた OCR の本文が今と違えば受け付けません。
+ - 確認の結果を当てた索引は、新しい版の行をすべて書いてから公開を切りかえます。作り直しが途中で止まっても、検索は前の版を返します。作り直しの処理中に受け付けた確認も、続けて反映します。確認の結果は、抽出の版や設定を変えて取り込み直しても残り、OCR をやり直して本文が変わったページは確認待ちに戻ります。
+ - `page_report` に、印の付いた行があるページ（`ocr_flagged`）、印が不明のページ（`ocr_unknown_flags`）、確認の状態ごとのページ（確認待ち、そのまま使う、直した、却下した、古くなった、反映待ち）と、台帳の確認の版、公開した確認の版を足しました。`status` は確認待ちのページの数を、検索の結果は確認待ちと反映待ちの印を返します。
+diff --git a/scripts/rag_ocr.py b/scripts/rag_ocr.py
+index 54e102d..1dc3298 100644
+--- a/scripts/rag_ocr.py
++++ b/scripts/rag_ocr.py
+@@ -1,6 +1,6 @@
+ # /// script
+ # requires-python = ">=3.12,<3.13"
+-# dependencies = ["ndlocr-lite @ git+https://github.com/ndl-lab/ndlocr-lite@e57f7c6bd9cfb3de5f12f008e71ad2122bd44bfd"]
++# dependencies = ["ndlocr-lite @ git+https://github.com/ndl-lab/ndlocr-lite@e57f7c6bd9cfb3de5f12f008e71ad2122bd44bfd", "rapidocr==3.10.0"]
+ # ///
+ """NDLOCR-Lite を初回の OCR 時に取得して CPU で実行する。"""
+ 
+@@ -42,6 +42,7 @@ def serve(threads: int,device: str='cpu'):
+     models=None
+     evidence=None
+     blurred={}
++    rapids={}
+     blur_wanted=[False]
+     class BoundedRecognizer:
+         def __init__(self,model,gate): self.model,self.gate=model,gate
+@@ -82,7 +83,8 @@ def serve(threads: int,device: str='cpu'):
+                             evidence[name]={'cuda_node_events':cuda_events,'profile':str(path),'providers':model.session.get_providers()}
+                     gate=threading.BoundedSemaphore(threads)
+                     # 文字ごとの確率も受け取る（ADR-0025）。セッションを作り直したあとで包む
+-                    from rag_ocr_confidence import ConfidentRecognizer, blur_text
++                    from rag_ocr_confidence import ConfidentRecognizer, blur_text, rapid_reader
++                    rapid=rapid_reader()
+                     models=(detector,*[BoundedRecognizer(ConfidentRecognizer(model),gate) for model in recognizers])
+                     # 行の印の「ぼかした読み」（ADR-0025）。process_cascade のあとに、行の画像ごとに読む。
+                     # NDLOCR-Lite のファイルは変えず、モジュールの関数を包む
+@@ -90,9 +92,11 @@ def serve(threads: int,device: str='cpu'):
+                     def cascade(alllineobj,recognizer30,recognizer50,recognizer100,is_cascade=True):
+                         results=original_cascade(alllineobj,recognizer30,recognizer50,recognizer100,is_cascade=is_cascade)
+                         blurred.clear()
++                        rapids.clear()
+                         if blur_wanted[0]:
+                             for lineobj in alllineobj:
+                                 blurred[lineobj.idx]=blur_text(recognizer100,lineobj.npimg)
++                                rapids[lineobj.idx]=rapid(lineobj.npimg)
+                         return results
+                     ocr.process_cascade=cascade
+                 image=Path(request['image'])
+@@ -100,17 +104,19 @@ def serve(threads: int,device: str='cpu'):
+                 with Image.open(image) as original:
+                     pixels=np.array(original.convert('RGB'))
+                 result=ocr._run_ocr_on_image_array(*models,image.name,pixels,str(image.parent),save_viz=False)
+-            from rag_ocr_confidence import BLUR_REVISION, CONFIDENCE_REVISION, line_records
++            from rag_ocr_confidence import BLUR_REVISION, CONFIDENCE_REVISION, RAPID_REVISION, line_records
+             records=line_records(result['json_lines'])
+             if blur_wanted[0]:
+                 for index,record in enumerate(records):
+                     record['blur_text']=blurred.get(index)
++                    record['rapid_text']=rapids.get(index)
+             answer={'ok':True,'text':result['text'].strip(),'line_count':result['line_count'],
+                     'vertical_line_count':result['vertical_line_count'],'pid':os.getpid(),'device':device,
+                     # 行ごとの本文、文字と終わりの記号の確率、行の確信度、検出器の confidence（ADR-0025）
+                     'lines':records,'confidence_revision':CONFIDENCE_REVISION}
+             if blur_wanted[0]:
+                 answer['blur_revision']=BLUR_REVISION
++                answer['rapid_revision']=RAPID_REVISION
+             if evidence:
+                 answer['gpu_execution']=evidence
+                 evidence=None
+diff --git a/scripts/rag_ocr_confidence.py b/scripts/rag_ocr_confidence.py
+index c091b91..76c57a0 100644
+--- a/scripts/rag_ocr_confidence.py
++++ b/scripts/rag_ocr_confidence.py
+@@ -86,6 +86,27 @@ def blur_text(recognizer100, image) -> str:
+     return text
+ 
+ 
++# 行の印の「別の認識器の読み」（ADR-0025 の「行の印」）。認識器か読み方を変えたら上げる
++RAPID_REVISION = "rapidocr-3.10.0-ja-v1"
++
++
++def rapid_reader():
++    """RapidOCR の日本語の認識モデル（認識だけ、検出なし）で行の画像を読む関数を返す。"""
++    from rapidocr import LangRec, RapidOCR
++
++    engine = RapidOCR(params={"Rec.lang_type": LangRec.JAPAN})
++
++    def read(image) -> str | None:
++        if image is None or image.size == 0:
++            return ""
++        if image.shape[0] > image.shape[1]:
++            return None  # 縦書きの行は読まない（横書き向けの認識器）
++        result = engine(image, use_det=False, use_cls=False, use_rec=True)
++        return "".join(result.txts or [])
++
++    return read
++
++
+ def line_records(json_lines: list[dict]) -> list[dict]:
+     """NDLOCR-Lite の json_lines から、保存する行の記録を作る。
+ 
+diff --git a/scripts/rag_ocr_flags.py b/scripts/rag_ocr_flags.py
+index 5fd582d..fbc247f 100644
+--- a/scripts/rag_ocr_flags.py
++++ b/scripts/rag_ocr_flags.py
+@@ -1,11 +1,15 @@
+ """OCR の行の印（ADR-0025 の「行の印」）。2 つ目の読みと比べて、誤っている見込みの高い行に印を付ける。
+ 
+-印の理由は 3 つある。
++印の理由は 4 つある。
+ - "low": 行の確信度が閾値（ocr_confidence_threshold）より低い。閾値は設定で変わるので、保存せず、数えるときに決める。
+ - "blur": 行の画像を少しぼかして読み直した本文（OCR の環境の rag_ocr が返す blur_text）が、採った本文と違う。
+ - "alt": ページを別の解像度で描き直し、検出から読み直した本文が、採った本文と違い、かつ行の確信度が 0.9 未満。
++- "rapid": 横書きの行の画像を、別の認識器（RapidOCR の日本語の認識モデル）で読んだ本文（rapid_text）が、採った本文に
++  ない英数字か記号を足すか置き換えた。NDLOCR-Lite の 3 つの認識器がそろって落とす文字（ローマ数字、注の番号など）を捕える。
++  RapidOCR が文字を落としただけの違い（RapidOCR の文字の一覧にない記号）、見た目の同じ文字の違い、取り違えやすい英数字
++  どうし（O と 0 と o、l と 1 と I と |）の入れ替えは数えない（RapidOCR 自身がよく読み違える）。
+ 
+-"blur" と "alt" は、OCR したときに決まるので、OCR の結果と一緒に保存する（static_flags）。
++"blur"、"alt"、"rapid" は、OCR したときに決まるので、OCR の結果と一緒に保存する（static_flags）。
+ 本文の比べ方と、行の対応と、読む順は、承認の条件 5 の測定（docs/research/adr-0025-condition5-2026-11-16/scripts/score.py）と
+ 同じにする。依存は標準ライブラリだけにする。
+ """
+@@ -15,7 +19,7 @@ from __future__ import annotations
+ import unicodedata
+ 
+ # 印の決め方を変えたら上げる（保存した印は、版が違えば「不明」として扱う）
+-OCR_FLAG_REVISION = "flags-v1"
++OCR_FLAG_REVISION = "flags-v2"
+ # 別の解像度の食い違いを印にするのは、行の確信度がこの値より低いときだけ
+ ALT_CONFIDENCE_LIMIT = 0.9
+ # 見た目の同じ記号をそろえる表（測定と同じ）
+@@ -24,6 +28,13 @@ SAME = {**{c: "-" for c in "\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uff0d"},
+         "\uff65": "\u30fb", "\u00b7": "\u30fb", "\u25cb": "\u3007"}
+ 
+ 
++# 2 つの認識器の読みを比べるときだけ、見た目の同じ文字をそろえる（カタカナと漢字、長音とダッシュ）
++LOOKALIKE = {"卜": "ト", "口": "ロ", "力": "カ", "工": "エ", "夕": "タ", "二": "ニ", "八": "ハ", "才": "オ",
++             "一": "ー", "-": "ー", "へ": "ヘ", "べ": "ベ", "ぺ": "ペ", "り": "リ"}
++# 取り違えやすい英数字の組。この組の中だけの 1 文字ずつの入れ替えは、"rapid" の印にしない
++AMBIGUOUS = (frozenset("O0o"), frozenset("l1I|"))
++
++
+ def alt_dpi(ocr_dpi: int) -> int:
+     """読み直しに使う解像度（ocr_dpi の 4/3 倍。既定の 150 なら 200）。"""
+     return round(ocr_dpi * 4 / 3)
+@@ -103,8 +114,31 @@ def alt_texts(lines: list[dict], alt_lines: list[dict], scale: float) -> list[st
+     return result
+ 
+ 
++def skeleton(text: str) -> str:
++    """2 つの認識器の読みを比べる形。normalize のあと、見た目の同じ文字をそろえる。"""
++    return "".join(LOOKALIKE.get(c, c) for c in normalize(text))
++
++
++def rapid_added(text: str, rapid_text: str) -> bool:
++    """別の認識器の読みが、採った本文にない英数字か記号を足すか置き換えたか（"rapid" の印の決まり）。"""
++    import difflib
++
++    a, b = skeleton(text), skeleton(rapid_text)
++    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
++        if tag in ("equal", "delete"):
++            continue
++        old, new = a[i1:i2], b[j1:j2]
++        if tag == "replace" and len(old) == len(new) and all(
++                any(x in group and y in group for group in AMBIGUOUS) for x, y in zip(old, new)):
++            continue
++        if any((c.isascii() and c.isalnum()) or not c.isalnum() for c in new + old):
++            return True
++    return False
++
++
+ def static_flags(line: dict) -> list[str]:
+-    """OCR したときに決まる印の理由（"blur"、"alt"）。line は blur_text と alt_text を持つ。"""
++    """OCR したときに決まる印の理由（"blur"、"alt"、"rapid"）。line は blur_text、alt_text、rapid_text を持つ
++    （rapid_text は、縦書きの行では None）。"""
+     reasons = []
+     text = normalize(line.get("text", ""))
+     if line.get("blur_text") is not None and normalize(line["blur_text"]) != text:
+@@ -113,6 +147,8 @@ def static_flags(line: dict) -> list[str]:
+     if (line.get("alt_text") is not None and normalize(line["alt_text"]) != text
+             and confidence is not None and confidence < ALT_CONFIDENCE_LIMIT):
+         reasons.append("alt")
++    if line.get("rapid_text") is not None and rapid_added(line.get("text", ""), line["rapid_text"]):
++        reasons.append("rapid")
+     return reasons
+ 
+ 
+diff --git a/scripts/rag_pdf.py b/scripts/rag_pdf.py
+index 2c83ef3..a0078b9 100644
+--- a/scripts/rag_pdf.py
++++ b/scripts/rag_pdf.py
+@@ -58,8 +58,8 @@ def ocr_page(page, config: Config, work: Path, client=None) -> dict:
+             result = {"text": response["text"], "line_count": response.get("line_count"),
+                       "lines": response.get("lines"), "confidence_revision": response.get("confidence_revision")}
+             lines = response.get("lines")
+-            if lines is None or response.get("blur_revision") is None:
+-                return result  # 行の記録かぼかした読みがない（印は不明になる）
++            if lines is None or response.get("blur_revision") is None or response.get("rapid_revision") is None:
++                return result  # 行の記録か、ぼかした読みか、別の認識器の読みがない（印は不明になる）
+             dpi = alt_dpi(config.ocr_dpi)
+             second = folder / "page-alt.png"
+             _render(page, dpi, second)
+@@ -72,7 +72,7 @@ def ocr_page(page, config: Config, work: Path, client=None) -> dict:
+                 line["flags"] = static_flags(line)
+                 marked.append(line)
+             result.update(lines=marked, flag_revision=OCR_FLAG_REVISION, blur_revision=response["blur_revision"],
+-                          alt_render=render_identity(dpi))
++                          rapid_revision=response["rapid_revision"], alt_render=render_identity(dpi))
+             return result
+         env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8",
+                "UV_CACHE_DIR": str(config.uv_cache_dir)}
+@@ -198,7 +198,7 @@ def confidence_record(response: dict) -> dict | None:
+     record = {"revision": OCR_CONFIDENCE_REVISION, "lines": lines}
+     if response.get("flag_revision") == OCR_FLAG_REVISION:
+         record.update(flag_revision=OCR_FLAG_REVISION, blur_revision=response.get("blur_revision"),
+-                      alt_render=response.get("alt_render"))
++                      rapid_revision=response.get("rapid_revision"), alt_render=response.get("alt_render"))
+     return record
+ 
+ 
+diff --git a/scripts/rag_review.py b/scripts/rag_review.py
+index e1789d1..b43f364 100644
+--- a/scripts/rag_review.py
++++ b/scripts/rag_review.py
+@@ -315,6 +315,7 @@ def page_detail(config, wiki: str, doc_id: str, page: int) -> dict:
+             if reasons:
+                 lines.append({"line": number, "text": line["text"], "reasons": reasons,
+                               "blur_text": line.get("blur_text"), "alt_text": line.get("alt_text"),
++                              "rapid_text": line.get("rapid_text"),
+                               "confidence": line["confidence"], "box": line.get("box"), "vertical": line.get("vertical")})
+     snapshot = Ledger(folder).snapshot(doc_id, int(page), published)
+     return {"page": int(page), "ocr_text": entry["text"], "ocr_sha256": entry["ocr_sha256"],
+diff --git a/scripts/rag_server.py b/scripts/rag_server.py
+index 1e75bbe..ac50663 100644
+--- a/scripts/rag_server.py
++++ b/scripts/rag_server.py
+@@ -156,7 +156,8 @@ async def job_status(wiki_root: str, job_id: str, wait_seconds: int = 0, page_re
+ def ocr_page_detail(wiki_root: str, job_id: str, page: int) -> dict:
+     """完了した取り込みのジョブの、OCR したページの詳しいことを返す（ADR-0025）。OCR の本文、その SHA-256、
+     印の付いた行（flagged_lines。行の番号、本文、印の理由 reasons（low: 確信度が閾値より低い、blur: ぼかした読みと違う、
+-    alt: 別の解像度の読みと違い確信度が 0.9 未満）、ぼかした読み blur_text、別の解像度の読み alt_text、確信度、ページの中の位置）、
++    alt: 別の解像度の読みと違い確信度が 0.9 未満、rapid: 別の認識器の読みが英数字か記号を足すか置き換えた）、
++    ぼかした読み blur_text、別の解像度の読み alt_text、別の認識器の読み rapid_text、確信度、ページの中の位置）、
+     今の確認の結果と履歴、台帳の確認の版、公開した確認の版。
+     OCR の本文は共有の抽出の結果から返すので、直したり却下したりしたあとでも、元の OCR の本文が分かる。"""
+     from rag_review import page_detail
