@@ -61,7 +61,7 @@
 
 Chromium は、その回で最初に起動したブラウザで、ほかの回（115〜187 ms）より準備が遅かった。応答は `no-store` なので、Mermaid のあるページを開くたびに 2.85 MB を取り直す。
 
-1 回目の流しでは、Chrome の gantt が 1 度だけ「不正な応答」で失敗し、コンソールに `<rect> attribute width: A negative value` が出た。同じ Chrome で gantt だけを描き直した試し（`debug_gantt.mjs`）と、その後の 2 回の流しでは再現しなかった。原因は分かっていない。
+1 回目の流しでは、Chrome の gantt が 1 度だけ「不正な応答」で失敗し、コンソールに `<rect> attribute width: A negative value` が出た。同じ Chrome で gantt だけを描き直した試し（1 回目の方式の枠を使う使い捨てのスクリプト。2 回目の方式では枠が残らないので、リポジトリから外した）と、その後の 2 回の流しでは再現しなかった。原因は分かっていない。
 
 ## file:// の方式
 

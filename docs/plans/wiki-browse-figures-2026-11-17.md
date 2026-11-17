@@ -4,7 +4,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 2 版目（案）。1 版目は Sol の設計のレビュー（[design-review-1.md](../agent-runs/2026-11-17-wiki-browse-figures/design-review-1.md)）で却下された（致命 1、重大 3）。2 節の前提を改め、2 回目の PoC で確かめた |
+| 状態 | 3 版目。1 版目は Sol の設計のレビュー（[design-review-1.md](../agent-runs/2026-11-17-wiki-browse-figures/design-review-1.md)）で却下された（致命 1、重大 3）。2 版目で前提を改めて 2 回目の PoC で確かめ、2 回目のレビュー（[design-review-2.md](../agent-runs/2026-11-17-wiki-browse-figures/design-review-2.md)）で「条件付きで採用可」になった。3 版目は、その重大 2 件（枠の寿命）と軽微 5 件を直した（2 節） |
 | 対象 | `info-hive-wiki` の `skills/info-hive/scripts/`（`wiki_pages.py`、`wiki_browse_fs.py`、`wiki_browse_core.py`、`wiki_browse.py`、`wiki_lint.py`、`browse_assets/`）、開発リポジトリの `tests/wiki/` |
 | 決定 | [ADR-0030](../adr/0030-wiki-browse-shows-figures-as-images.md)（提案） |
 | 試作と結果 | `poc/browse-figures/`、[PoC の記録](../research/wiki-browse-figures-poc-2026-11-17.md) |
@@ -34,6 +34,15 @@ Mermaid は、描いた SVG に `<style>` 要素と `style` 属性を入れ、CS
 | 走査のときにリンクでなければ、リンクの先を読まない | 読む間だけリンクに替えて戻すと、2 回の走査は同じになる | 守る範囲を書き直す（6.1）。止めるのは木に置かれたリンクで、読む間に替える同時の書き手は対象にしない |
 
 軽微な指摘のうち、lint の `missing_assets` が文字参照（`&amp;`）を解かずに探すずれは、lint を直してそろえる（6.4）。試験の「枠の違反 0 件」は、外の画像を使う図を除く（10.2）。PoC の既定の手順と SHA-256 の照合は直した。
+
+2 回目のレビュー（[design-review-2.md](../agent-runs/2026-11-17-wiki-browse-figures/design-review-2.md)）は「条件付きで採用可」だった。枠から秘密を取り出す道は見つからなかった。残った重大 2 件は、枠の寿命の管理の欠けである。
+
+| 2 版目の前提 | 崩した反例 | 3 版目の形 |
+| --- | --- | --- |
+| 古い世代の結果を捨てれば、古い描画も止まる | 描画の途中で配色を変えると、前の描画の枠が残り、同時に動く枠が 4、6 と増える | 描画を 1 つの「回」として持つ。新しい回を始めるときは、前の回の枠とタイマーをすべて消す。同時に生きている枠は、どの時点でも 2 つまで（7.4） |
+| 型と `seq` の合う知らせなら、処理しても負荷は限られる | 侵害された枠が正しい形の `result` を送り続けると、親が毎回符号化して画像を差し替える | 枠とのやり取りを使い切りにする。`ready` を 1 回受けて送り、`result` を 1 回受けたら、すぐに枠を消して受け取りをやめる（7.4） |
+
+軽微な指摘は次のように直した。時間切れも警告にする。描き直しの成功と失敗で、図の表示を「画像」か「警告」のどちらか 1 つの状態にそろえる。`encodeURIComponent` が例外を出す SVG は失敗にする。試験の「枠の文書を直接開いてもスクリプトが動かない」は、`sandbox allow-scripts` と矛盾するので、「直接開いた枠も、トークンの付いたパスと `data/*.js` を読めない」に改めた（10.2）。`/_frame/` の下でリダイレクトを返さないことを、CSP のパスの照合の前提として書いた（7.2）。6.1 の守る範囲は、wiki に書ける者と browse を実行する者が同じ利用者であることを前提として明記した。
 
 ## 3. 作者が決めたこと
 
@@ -65,7 +74,7 @@ PoC で、`file://` では 5 つのブラウザすべてが sandbox の枠に隣
 
 - `wiki_pages.walk_assets(wiki_root) -> Walk` を足す。`wiki/assets/` の直下だけを見て、名前の末尾が `.svg`（大文字と小文字を区別しない）で、`.` で始まらない、ふつうのファイルを `MdFile` で返す。OS の呼び出しは `walk_markdown` と同じ口（`read_os`、`_list_dir`、`_stat_entry`、`_is_junction`）を通す。
 - `assets` そのものがシンボリックリンクかジャンクションなら、たどらない（何も返さない）。ファイルのシンボリックリンクも返さない。ハードリンクは見分けない。
-- 守る範囲: 止めるのは、走査の時点で木に置かれたリンクである（利用者が `assets` を別の場所へ向けた、など）。読む間だけリンクに替えて戻す同時の書き手は、対象にしない。その書き手は wiki に直接バイト列を置けるので、リンクを止めても守れるものが増えない。ページの読み取りも同じ前提で、2 回の走査は「読んでいるあいだに変わった」ことを見つけるためのものである。
+- 守る範囲: 止めるのは、走査の時点で木に置かれたリンクである（利用者が `assets` を別の場所へ向けた、など）。読む間だけリンクに替えて戻す同時の書き手は、対象にしない。前提は、wiki に書ける者と browse を実行する者が同じ利用者であることである（ADR-0001 のローカルだけのサーバーと同じ前提）。その書き手は、リンクの先のバイト列を自分で読んで wiki に置けるので、リンクを止めても守れるものが増えない。ほかの利用者が書ける共有のディレクトリを wiki にする使い方は、この前提の外である。ページの読み取りも同じ前提で、2 回の走査は「読んでいるあいだに変わった」ことを見つけるためのものである。
 - `assets` がないなら空、一覧を作れないなら `unlistable`、種類を調べられない項目は `unknown` に入れる。`walk_inputs` は今と同じく、知らせがあれば全体を採らない。
 - `walk_inputs` は、ページ、索引、オントロジーのあとに `("asset", rel, size, mtime_ns)` を足す。svg のない wiki では、入力の一覧と印が今と同じになる。
 
@@ -143,7 +152,8 @@ lint の `missing_assets` は、参照先を Markdown のエスケープを外�
 | 自分の図のソースを外へ送る | 攻撃者がすでに知っているものなので、新しく漏れるものはない |
 | 好きな SVG と題を親へ返す | 図を書いた人は、正しい図でも好きな文字を描ける。画像はページの本文と同じく、信頼しない内容として見せる。親は SVG を DOM に入れず `<img>` の `data:` にだけ使い（画像の svg ではスクリプトが動かない）、題は 200 字で切って `setAttribute` で `alt` に入れる |
 | 自分を別の URL へ移す | 親の CSP の `frame-src 'self'` が、ほかのオリジンへの移動を止める。同じオリジンのトークンの付いたパスは、トークンを知らないので指せない |
-| 応答しない、知らせを送り続ける | 親は 20 秒で枠を消す。型と `seq` の合わない知らせを捨てる |
+| 応答しない | 親は 20 秒で枠を消し、警告を出す |
+| 知らせを送り続ける | やり取りは使い切りである。親は `ready` を 1 回、`result` を 1 回だけ受け、`result` を受けたらすぐに枠を消して受け取りをやめる。2 回目からの知らせは処理しない |
 
 ### 7.2 同梱物と配り方
 
@@ -157,7 +167,7 @@ lint の `missing_assets` は、参照先を Markdown のエスケープを外�
 | `figures.js` | 親の側の処理（7.4） |
 
 - 中核に `FRAME_ASSETS = ("mermaid-frame.html", "mermaid-frame.js", "mermaid.tiny.js")` と `FRAME_VERSION`（例 `mermaid-12.3.0-1`）を置く。`FRAME_VERSION` は、3 つのどれかを変えたら上げる（`browse_assets/README.md` の写し直す手順に書き、試験が README の SHA-256 と組で確かめる）。
-- サーバーは、`/_frame/<FRAME_VERSION>/<FRAME_ASSETS の名前>` を、トークンなしで返す。Host の確かめ（`127.0.0.1:<ポート>`）、GET と HEAD だけ、は今と同じに当てる。ほかの名前や版は 404。`Cache-Control: private, max-age=86400` を付ける（URL にトークンがないので、ディスクのキャッシュに残してよい。版がパスにあるので、更新したら別の URL になる）。
+- サーバーは、`/_frame/<FRAME_VERSION>/<FRAME_ASSETS の名前>` を、トークンなしで返す。Host の確かめ（`127.0.0.1:<ポート>`）、GET と HEAD だけ、は今と同じに当てる。ほかの名前や版は 404。`/_frame/` の下では、どの応答もリダイレクト（3xx）にしない。CSP の照合は、リダイレクトのあとではパスを見ないので、パスで限った `script-src` は、リダイレクトがないことを前提にしている。`Cache-Control: private, max-age=86400` を付ける（URL にトークンがないので、ディスクのキャッシュに残してよい。版がパスにあるので、更新したら別の URL になる）。
 - ADR-0001 は「起動ごとのトークン」を条件にしている。`/_frame/` は、その例外として ADR-0030 に書く。返すのは同梱の固定のファイルだけで、wiki の中身と状態を返さない。
 - `ASSETS`（`assets/<名前>` で配るもの）には `figures.js` だけを足す。枠の 3 つは `ASSETS` に入れず、静的の書き出しに書かない。`load_assets` は枠の 3 つも読む（サーバーが配るため）。
 - `scan_machine_info` は、同梱物を調べない。生成器の同梱物は入力の中身を含まない。
@@ -186,21 +196,21 @@ lint の `missing_assets` は、参照先を Markdown のエスケープを外�
 
 1. `location.protocol` が `http:` でも `https:` でもなければ、何もしない（静的の書き出し）。
 2. `#_body pre > code.language-mermaid` がなければ、何もしない。枠も `mermaid.tiny.js` も読まない。
-3. 図を順に描く。同時に動かす枠は 2 つまでにする。図 1 つにつき、見えない `<iframe class="fig-frame" sandbox="allow-scripts" title="図の描画" aria-hidden="true" tabindex="-1" width="1200" height="800">` を `<body>` の末尾に作る。`src` は `location.origin + "/_frame/<FRAME_VERSION>/mermaid-frame.html"`（`FRAME_VERSION` は `figures.js` の定数。試験が中核の値と一致を確かめる）。大きさは属性で決める（`style` を使わない）。画面の外に置くのは `style.css` の `.fig-frame` の役目である。
-4. 枠の `ready` を待ち（20 秒で打ち切る）、その図のソースと配色を `render` の知らせで送る。宛先のオリジンは `"*"` にする（枠は不透明なオリジンで、名前で指せない。送るのはその図のソースと配色だけである）。`done` か時間切れで、枠を消す。
-5. 枠からの知らせは、`event.source` がその枠の `contentWindow` のものだけを受ける。`seq` が今の描画のものでなければ結果を使わない。`result` は、`svg` が `<svg` で始まる 5 MB 以下の文字で、`w` と `h` が 0 より大きく 20,000 以下の数のときだけ使う。
-6. 描けた図は、`<pre>` の前に入れ物と画像を置き、`<pre>` を Accordion に移す（8 節）。画像の `src` は `data:image/svg+xml;charset=utf-8,<encodeURIComponent した svg>`、`alt` は枠が返した題（200 字まで）か「図」、`width` と `height` は属性で付ける。SVG のマークアップを DOM に入れない。
-7. 描けなかった図と時間切れの図は、`<pre>` の前に警告（8 節）を置き、コードを開いたまま残す。
-8. 配色が変わったら、全図を描き直す。`<html>` の `data-theme` の MutationObserver と、`matchMedia("(prefers-color-scheme: dark)")` の change で拾い、トークンを読み直して前と違うときだけ描く。描き直しも図ごとに新しい枠で行う。
+3. 描画は「回」として持つ。回は、配色、図の待ち行列、生きている枠の一覧、タイマーを持つ。新しい回を始めるときは、前の回を止める（生きている枠をすべて消し、タイマーを止め、受け取りをやめ、待ち行列を空にする）。同時に生きている枠は、どの時点でも 2 つまでである。
+4. 回は、待ち行列の図を順に描く。図 1 つにつき、見えない `<iframe class="fig-frame" sandbox="allow-scripts" title="図の描画" aria-hidden="true" tabindex="-1" width="1200" height="800">` を `<body>` の末尾に作る。`src` は `location.origin + "/_frame/<FRAME_VERSION>/mermaid-frame.html"`（`FRAME_VERSION` は `figures.js` の定数。試験が中核の値と一致を確かめる）。大きさは属性で決める（`style` を使わない）。画面の外に置くのは `style.css` の `.fig-frame` の役目である。
+5. 枠とのやり取りは使い切りである。枠ごとの状態を「準備待ち」「描画待ち」「終わり」の 3 つにする。`event.source` がその枠の `contentWindow` の知らせだけを受け、準備待ちで `ready` を受けたら、その図のソースと配色を `render` で送って描画待ちにする。描画待ちで `result` を受けたら、すぐに終わりにする。終わりにするときは、枠を消し、受け取りをやめ、タイマーを止める。20 秒たっても終わりにならなければ、時間切れとして終わりにする。宛先のオリジンは `"*"` にする（枠は不透明なオリジンで、名前で指せない。送るのはその図のソースと配色だけである）。
+6. `result` は、`svg` が `<svg` で始まる 5 MB 以下の文字で、`w` と `h` が 0 より大きく 20,000 以下の数で、`encodeURIComponent` が例外を出さないときだけ成功とする。それ以外と時間切れは失敗とする。
+7. 図の表示は、「コード」（初めの状態）、「画像」、「警告」のどれか 1 つにする。成功なら画像にする。`<pre>` の前に入れ物と画像を置き、`<pre>` を閉じた Accordion に移し、警告があれば消す（8 節）。画像の `src` は `data:image/svg+xml;charset=utf-8,<encodeURIComponent した svg>`、`alt` は枠が返した題（200 字まで）か「図」、`width` と `height` は属性で付ける。SVG のマークアップを DOM に入れない。失敗なら警告にする。入れ物と画像があれば消し、`<pre>` を元の場所に戻し、`<pre>` の前に警告を置く。描き直しの失敗で、前の配色の画像を残さない。
+8. 配色が変わったら、新しい回で全図を描き直す。`<html>` の `data-theme` の MutationObserver と、`matchMedia("(prefers-color-scheme: dark)")` の change で拾い、トークンを読み直して前の回と違うときだけ始める。
 9. 触るのは、自分で作った要素（入れ物、画像、Accordion、警告、枠）の属性と、`<pre>` の置き場所だけである。要素の `style` には触らない（`el.style.x = …` も、`style` 属性を作り、`[style]` 0 件の試験を崩すので使わない）。
 
 ### 7.5 枠の側（`mermaid-frame.js`）
 
-- 親（`window.parent`）からの `render` だけを受ける。描き終えたら `result` と `done` を返す。読み込みのあとに `ready` を返す。
+- 親（`window.parent`）からの最初の `render` だけを受ける。描き終えたら `result` を 1 回返す。読み込みのあとに `ready` を 1 回返す。
 - `mermaid.initialize` の設定は、`startOnLoad: false`、`securityLevel: "strict"`、`suppressErrorRendering: true`、`htmlLabels: false`、`flowchart.htmlLabels: false`、`theme: "base"`、`themeVariables`（親が送った値）、`fontFamily`、`secure` に既定の 6 つと `theme`、`themeVariables`、`themeCSS`、`fontFamily`、`htmlLabels`、`darkMode`、`look` を足したもの。PoC で、図の側の `%%{init}%%` がこれらを変えられないことを確かめた。
 - 描いた SVG は、枠の中の入れ物に入れて `viewBox` から `width` と `height` を決め、根の `style` を外し、`XMLSerializer` で文字にして返す。`<title>` があれば、その文字を題として返す。
 - 失敗（構文の誤り、tiny にない図、外の画像を読めない図）は、`result` の `ok: false` で返す。理由の文字は 300 字で切る。親は理由を画面に出さない。
-- `done` には、枠の中で数えた CSP の違反を添える（試験が使う）。
+- `result` には、枠の中で数えた CSP の違反を添える（試験が使う。違反のイベントは非同期に届くので、描き終えてから 100 ms 待って数える）。親はこの値を画面に出さない。
 
 ## 8. デザイン（fluent2-html-replica）
 
@@ -264,7 +274,8 @@ lint の `missing_assets` は、参照先を Markdown のエスケープを外�
 `tests/wiki/browse/figures.test.mjs` を新しく作る（`MODES` と `BROWSERS` は既存と同じ。CI は Chromium）。試験用の wiki に、図の種類ごとのフェンス、壊れたフェンス、tiny にない図（mindmap）、外の画像を使う図、svg の参照（ある、ない、png）、図のないページを置く。
 
 - サーバーの方式: 図の数と描けた数、`naturalWidth > 0`、画像の中のスタイルが効いていること（決まった位置の画素の色が配色ごとの期待の色）、親の CSP の違反 0 件、枠の CSP の違反 0 件（外の画像を使う図の `img-src` を除く）、`[style]` 0 件、ID の重複 0 件、外への要求 0 件、描き終えたあとに iframe が残らない、図のないページに iframe がない、配色を変えると `src` が変わる、警告とコードが残る。
-- 枠を閉じ込めていること: 試験が作った枠の中から、トークンの付いたページ、`nav.js`、`data/search.js` を `<script>` と `fetch` で読めない。枠の `document.referrer` が空。枠の文書を直接開いてもスクリプトが動かない（ヘッダーの `sandbox`）。svg を直接開いてもスクリプトが動かない。
+- 枠を閉じ込めていること: 試験が作った枠の中からも、枠の文書を直接開いたページからも、トークンの付いたページ、`nav.js`、`data/search.js` を `<script>` と `fetch` で読めない。枠の `document.referrer` が空。`/_frame/` の下のどのパスも 3xx を返さない。svg を直接開いてもスクリプトが動かない。
+- 枠の寿命: 描画の途中で配色を 2 回変えても、生きている枠が 2 つを超えない（`MutationObserver` で iframe の数を見張る）。枠が `result` を 2 回送っても、画像の `src` は 1 回しか変わらない（試験用の枠の文書で確かめる）。応答しない枠は 20 秒で消え、警告が出る。初めに成功した図が描き直しで失敗すると、画像が消えて警告が出る。
 - 静的の方式: iframe がない、`mermaid.tiny.js` を要求しない、コードが今と同じに出る、svg の `naturalWidth > 0`。
 - 既存の `browse.test.mjs` と `findability.test.mjs` は変えない。既存のコーパスには mermaid も svg もないので、結果は変わらないはずである。
 - CI（`.github/workflows/wiki-browse.yml`）に `figures.test.mjs` を足す。
