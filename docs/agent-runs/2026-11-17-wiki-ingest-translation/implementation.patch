@@ -1,81 +1,98 @@
-# Plugin: to884/info-hive-wiki
-diff --git a/.claude-plugin/plugin.json b/.claude-plugin/plugin.json
+diff --git a/info-hive-wiki/.claude-plugin/plugin.json b/info-hive-wiki/.claude-plugin/plugin.json
 index c2a8cb3..ecd4cc4 100644
---- a/.claude-plugin/plugin.json
-+++ b/.claude-plugin/plugin.json
+--- a/info-hive-wiki/.claude-plugin/plugin.json
++++ b/info-hive-wiki/.claude-plugin/plugin.json
 @@ -3 +3 @@
 -  "version": "0.29.0",
 +  "version": "0.29.1",
-diff --git a/.codex-plugin/plugin.json b/.codex-plugin/plugin.json
+diff --git a/info-hive-wiki/.codex-plugin/plugin.json b/info-hive-wiki/.codex-plugin/plugin.json
 index 5ac9418..e7f7da2 100644
---- a/.codex-plugin/plugin.json
-+++ b/.codex-plugin/plugin.json
+--- a/info-hive-wiki/.codex-plugin/plugin.json
++++ b/info-hive-wiki/.codex-plugin/plugin.json
 @@ -3 +3 @@
 -  "version": "0.29.0",
 +  "version": "0.29.1",
-diff --git a/CHANGELOG.md b/CHANGELOG.md
-index 7c1f3dc..ce4dbfb 100644
---- a/CHANGELOG.md
-+++ b/CHANGELOG.md
+diff --git a/info-hive-wiki/CHANGELOG.md b/info-hive-wiki/CHANGELOG.md
+index 7c1f3dc..db03949 100644
+--- a/info-hive-wiki/CHANGELOG.md
++++ b/info-hive-wiki/CHANGELOG.md
 @@ -8,0 +9,7 @@
-+## [0.29.1] - 2026-11-17
++## [0.29.1] - 2026-11-18
 +
 +### Fixed
 +
-+- Web の取り込みで、翻訳が必要な raw を `--language-override keep` で翻訳不要として完了にできる問題を修正した。翻訳者名だけを入れて本文を残す場合や、一部の段落だけを訳す場合も、長い未翻訳の文章をブロックごとの検査でエラーにする。`--accept-warnings` では通らず、比較用の写しを残す。
-+- raw の検査結果に `translation` と `completed` を追加した。構造の検査が通ったことと raw の段の完了を区別し、完了の報告では実際の検査結果を確認する。原文の保存と日本語の要約で翻訳を代替しないよう、Claude Code と Codex の手順をそろえた。言語の検査は訳の意味や完全性を保証しない。
++- Web の取り込みで、翻訳が必要な raw を `--language-override keep` で翻訳不要として完了にできる問題を修正した。翻訳者名だけを入れて本文を残す場合や、同じ段落の一部だけを訳す場合、中国語をほぼ残した場合や、キリル文字・ハングルなどの文章を丸ごと残した場合も、外国語の文や節の残存を検査でエラーにする。名前、表示文字列、原語の併記、短い説明と見分けられない句は、具体的な保持の理由が必要な警告にする。`--accept-warnings` では通らず、比較用の写しを残す。
++- raw の検査結果に `translation` と `completed` を追加した。構造の検査が通ったことと raw の段の完了を区別し、完了の報告では実際の検査結果を確認する。コードや画像だけの入力は `no_prose` として区別する。原文の保存と日本語の要約で翻訳を代替しないよう、Claude Code と Codex の手順をそろえた。警告を受理する場合も、理由を記録し、raw の検査を完了してから wiki の更新に進む。言語の検査は訳の意味や完全性を保証しない。
 +
-diff --git a/agents/web-raw.md b/agents/web-raw.md
+diff --git a/info-hive-wiki/agents/web-raw.md b/info-hive-wiki/agents/web-raw.md
 index b2d5f6e..d3ac4d1 100644
---- a/agents/web-raw.md
-+++ b/agents/web-raw.md
+--- a/info-hive-wiki/agents/web-raw.md
++++ b/info-hive-wiki/agents/web-raw.md
 @@ -27,0 +28,3 @@ color: cyan
 +- 翻訳が必要な raw を原文のまま保存して終えない。`--language-override keep` で翻訳必須の判定を解除してはならない。日本語の raw を作れなければ `failed`（`kind: other`）で理由を返し、完了とは報告しない。
 +- `fetch.json`、`fetched.md`、`cleaned.md`、`removed.json` を手作業で作ったり書き換えたりしない。
 +- `done` は W8 の JSON が `completed: true` のときだけ返す。報告の `check` に実際の検査結果を写し、フォルダーの消失や `ok` だけで判断しない。
-diff --git a/commands/ingest.md b/commands/ingest.md
-index 63172dd..a4df3f5 100644
---- a/commands/ingest.md
-+++ b/commands/ingest.md
+diff --git a/info-hive-wiki/commands/ingest.md b/info-hive-wiki/commands/ingest.md
+index 63172dd..e09ce6a 100644
+--- a/info-hive-wiki/commands/ingest.md
++++ b/info-hive-wiki/commands/ingest.md
 @@ -43 +43 @@ argument-description: "取り込むソース。ファイルのパス、URL、ま
 -- **W9.** このファイルが `<RAW_ROOT>` の原本になる。ここから上の手順 3 に進み、このファイルを読んで取り込む（raw をエージェントが作ったときは、まだ読んでいないので必ず読む。自分で訳して全文を読んだなら、読み直さなくてよい）。人と話し合わないまとめての取り込みでは、上の手順 4 の話し合いを飛ばす。ソースの要約ページの `raw` には `"raw/<スラッグ>.md"`、`url` には URL を書く。log の段では、`web-raw.md` の「呼び出す側の手順」の 8 のとおりに、raw の段の分担をサブ行に書く。エージェントが警告を残して返したときは、理由をサブ行に書いてから、作業用の写しを消す（同じ手順の 5）。保存したあとの raw のファイルは、ほかの原本と同じく書き換えない。訳の誤りは、取り直して別版にする。
-+- **W9.** W8 の実際の JSON の `completed: true` と、翻訳した場合の `translation.state: checked`（もともと翻訳不要なら `not_required`）を確認する。`ok` や作業用の写しの消失だけでは完了と扱わない。翻訳が必要な raw を日本語にできなければ、理由を伝え、未完了で止まる。このファイルが `<RAW_ROOT>` の原本になる。ここから上の手順 3 に進み、このファイルを読んで取り込む（raw をエージェントが作ったときは、まだ読んでいないので必ず読む。自分で訳して全文を読んだなら、読み直さなくてよい）。人と話し合わないまとめての取り込みでは、上の手順 4 の話し合いを飛ばす。ソースの要約ページの `raw` には `"raw/<スラッグ>.md"`、`url` には URL を書く。log の段では、`web-raw.md` の「呼び出す側の手順」の 8 のとおりに、raw の段の分担をサブ行に書く。エージェントが警告を残して返したときは、理由をサブ行に書いてから、作業用の写しを消す（同じ手順の 5）。保存したあとの raw のファイルは、ほかの原本と同じく書き換えない。訳の誤りは、取り直して別版にする。
-diff --git a/skills/info-hive/SKILL.md b/skills/info-hive/SKILL.md
++- **W9.** W8 の実際の JSON の `completed: true` と、`translation.state: checked`（文章を検査した場合）か `no_prose`（文章がなく `checked_blocks: 0`）か `not_required`（もともと翻訳不要の場合）を確認する。`ok` や作業用の写しの消失だけでは完了と扱わない。翻訳が必要な raw を日本語にできなければ、理由を伝え、未完了で止まる。このファイルが `<RAW_ROOT>` の原本になる。ここから上の手順 3 に進み、このファイルを読んで取り込む（raw をエージェントが作ったときは、まだ読んでいないので必ず読む。自分で訳して全文を読んだなら、読み直さなくてよい）。人と話し合わないまとめての取り込みでは、上の手順 4 の話し合いを飛ばす。ソースの要約ページの `raw` には `"raw/<スラッグ>.md"`、`url` には URL を書く。log の段では、`web-raw.md` の「呼び出す側の手順」の 8 のとおりに、raw の段の分担をサブ行に書く。受理した警告の理由は、W9 より前に `prepare` の記録を残して検査を完了する（同じ手順の 5）。取り込みの記録にもその理由または準備の記録への参照を書く。保存したあとの raw のファイルは、ほかの原本と同じく書き換えない。訳の誤りは、取り直して別版にする。
+diff --git a/info-hive-wiki/skills/info-hive/SKILL.md b/info-hive-wiki/skills/info-hive/SKILL.md
 index ab485bd..585278b 100644
---- a/skills/info-hive/SKILL.md
-+++ b/skills/info-hive/SKILL.md
+--- a/info-hive-wiki/skills/info-hive/SKILL.md
++++ b/info-hive-wiki/skills/info-hive/SKILL.md
 @@ -180,0 +181,2 @@ PDF を取り込み、`rag` MCP サーバーが使える場合は、先に `refe
 +Web の取り込みでは、日本語以外の本文を日本語の raw にしてから後段へ進む。原文の保存と日本語の要約で代替して完了にはしない。W8 の実際の JSON の `completed: true` と、`needs_translation`、`translation.state` を確認する。`ok`、翻訳者名、作業用の写しの消失だけでは完了の根拠にならない。翻訳を実行できなければ、その理由と未完了であることを伝える。
 +
-diff --git a/skills/info-hive/references/codex.md b/skills/info-hive/references/codex.md
+diff --git a/info-hive-wiki/skills/info-hive/assets/log.md.template b/info-hive-wiki/skills/info-hive/assets/log.md.template
+index cb60407..c7db29a 100644
+--- a/info-hive-wiki/skills/info-hive/assets/log.md.template
++++ b/info-hive-wiki/skills/info-hive/assets/log.md.template
+@@ -5,0 +6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
++- `prepare`: Web raw の警告を確認し、受理する理由を記録した。取り込みの完了は示さず、途中でやめた場合も準備の履歴として残す。
+diff --git a/info-hive-wiki/skills/info-hive/references/codex.md b/info-hive-wiki/skills/info-hive/references/codex.md
 index 1fd20be..939bb11 100644
---- a/skills/info-hive/references/codex.md
-+++ b/skills/info-hive/references/codex.md
+--- a/info-hive-wiki/skills/info-hive/references/codex.md
++++ b/info-hive-wiki/skills/info-hive/references/codex.md
 @@ -31 +31 @@ Codex のプラグインは `.codex-plugin/plugin.json` からスキルと MCP
 -- Web の raw は `references/web-raw.md` の W1〜W8 を自分で行う。Claude CLI や Sonnet のエージェントを呼ばない。翻訳者と補足には、自分に示された実際のモデル名を書く。分からなければ推測しない。
 +- Web の raw は `references/web-raw.md` の W1〜W8 を自分で行う。翻訳が必要なら日本語の raw を作り、W8 の JSON の `completed: true` を確認してから後段へ進む。原文の保存と日本語要約で代替せず、進められない場合は理由と未完了の状態を伝える。Claude CLI や Sonnet のエージェントを呼ばない。翻訳者と補足には、自分に示された実際のモデル名を書く。分からなければ推測しない。
-diff --git a/skills/info-hive/references/ingest-workflow.md b/skills/info-hive/references/ingest-workflow.md
-index ab6819f..ba0d8e0 100644
---- a/skills/info-hive/references/ingest-workflow.md
-+++ b/skills/info-hive/references/ingest-workflow.md
+diff --git a/info-hive-wiki/skills/info-hive/references/ingest-workflow.md b/info-hive-wiki/skills/info-hive/references/ingest-workflow.md
+index ab6819f..0c5c36c 100644
+--- a/info-hive-wiki/skills/info-hive/references/ingest-workflow.md
++++ b/info-hive-wiki/skills/info-hive/references/ingest-workflow.md
+@@ -66 +66 @@ python "<skill-root>/scripts/wiki_rawcheck.py" freeze --wiki wiki --raw-root raw
+-python "<skill-root>/scripts/wiki_rawcheck.py" check --wiki wiki --raw-root raw --slug "<スラッグ>" --finish
++python "<skill-root>/scripts/wiki_rawcheck.py" check --wiki wiki --raw-root raw --slug "<スラッグ>" --finish --json
+@@ -114 +114 @@ python "<skill-root>/scripts/wiki_fetch.py" "<URL>" --wiki wiki --raw-root raw -
+-`check` の警告は、止めずに出力に並べる。原文にない英字か記号（`<>` の追加など。日本語の文でふつうに使う略語の `PC`、`OS`、`IT`、`AI`、`ID`、`CPU`、`GPU`、`SNS`、`URL`、`Web` は数えない）、訳文にない固有の名前（文の途中で大文字で始まる語、CamelCase の語、すべて大文字の語。月と曜日の名前と、図の出典の定型の語（`Created` など）は数えない）、です・ます調とである調の混在、極端に短い訳である。直すか、直さない理由を `log.md` の取り込みの行のサブ行に書く。「訳文にない名前」は、人名、製品名、地名、手法や検定の名前なら英語表記に戻す（`マイク・タイソン` → `Mike Tyson`、`マクネマー検定` → `McNemar 検定`）。日本語に訳すのがふつうの一般の語（`Domain Model`、`Boolean` など）を訳したものなら、警告の出たブロックで原語を括弧で添える（`ドメインモデル（Domain Model）`）。警告はブロックごとに調べるので、括弧は警告の出たブロックごとに添える。警告で見つからないもの（同じ種類の段落の入れ替え、ブロックの中の文の訳し落とし、原文にない内容の追加のうち英字や記号を含まないもの）は、検査では分からない。
++`check` の警告は、止めずに出力に並べる。原文にない英字か記号（`<>` の追加など。日本語の文でふつうに使う略語の `PC`、`OS`、`IT`、`AI`、`ID`、`CPU`、`GPU`、`SNS`、`URL`、`Web` は数えない）、訳文にない固有の名前（文の途中で大文字で始まる語、CamelCase の語、すべて大文字の語。月と曜日の名前と、図の出典の定型の語（`Created` など）は数えない）、です・ます調とである調の混在、極端に短い訳である。直すか、W9 より前に `log.md` の `prepare` の記録に警告ごとの理由を書く。「訳文にない名前」は、人名、製品名、地名、手法や検定の名前なら英語表記に戻す（`マイク・タイソン` → `Mike Tyson`、`マクネマー検定` → `McNemar 検定`）。日本語に訳すのがふつうの一般の語（`Domain Model`、`Boolean` など）を訳したものなら、警告の出たブロックで原語を括弧で添える（`ドメインモデル（Domain Model）`）。警告はブロックごとに調べるので、括弧は警告の出たブロックごとに添える。警告で見つからないもの（同じ種類の段落の入れ替え、ブロックの中の文の訳し落とし、原文にない内容の追加のうち英字や記号を含まないもの）は、検査では分からない。
+@@ -116 +116 @@ python "<skill-root>/scripts/wiki_fetch.py" "<URL>" --wiki wiki --raw-root raw -
+-`check --finish` は、誤りも警告もなければ作業用の写しを消す。誤りか警告があれば消さないので、最初から付けて実行してよい。写しは再検査の基準なので、警告を直したあとも、もう一度 `check` を実行できる。直さない警告は、理由を `log.md` に書いてから `--finish --accept-warnings` を付けて実行すると、写しが消える。作業用の写しを消すときは、途中の段がリンクかジャンクションでないこと、wiki の中にあることを確かめる。
++`check --finish` は、誤りも警告もなければ作業用の写しを消す。誤りか警告があれば消さないので、最初から付けて実行してよい。写しは再検査の基準なので、警告を直したあとも、もう一度 `check` を実行できる。直さない警告は、W9 より前に `log.md` の `prepare` の記録に理由を書いてから `--finish --accept-warnings --json` を付けて実行する。実際の JSON の `completed: true` と翻訳の状態を確かめるまで後段へ進まない。具体的な手順は `references/web-raw.md` の「呼び出す側の手順」に従う。作業用の写しを消すときは、途中の段がリンクかジャンクションでないこと、wiki の中にあることを確かめる。
 @@ -127 +127 @@ python "<skill-root>/scripts/wiki_fetch.py" "<URL>" --wiki wiki --raw-root raw -
 -訳すかどうかは、`wiki_fetch.py` の出力の `needs_translation` で決める。`source_lang` が空のとき、または `source_lang`（`ja` で始まるか）と `ja_ratio`（0.5 以上か）が食い違うときは `ja_ratio` で決め、そうでなければ `source_lang` で決めたものである。判定が誤っていると考えたら、`check` に `--language-override translate`（または `keep`）と `--reason "<理由>"` を付ける。訳すページは本文を日本語に訳し、ファイルの本文を訳文で置き換える。原文は残さない。
 +訳すかどうかは、`wiki_fetch.py` の出力の `needs_translation` で決める。`source_lang` が空のとき、または `source_lang`（`ja` で始まるか）と `ja_ratio`（0.5 以上か）が食い違うときは `ja_ratio` で決め、そうでなければ `source_lang` で決めたものである。翻訳を追加する場合は、`check` に `--language-override translate` と `--reason "<理由>"` を付ける。`keep` で翻訳必須の判定を解除して完了にはできない。訳すページは本文を日本語に訳し、ファイルの本文を訳文で置き換える。原文は残さない。日本語の raw を作れなければ未完了で止まり、英語の保存と日本語の要約で代替して完了と報告しない。原文の再現性、費用、時間、エージェントが判断した制約は、翻訳を省略して完了とする理由にはならない。
 @@ -129 +129 @@ python "<skill-root>/scripts/wiki_fetch.py" "<URL>" --wiki wiki --raw-root raw -
 -- 段落ごとに訳す。段落を統合したり、分けたり、要約したりしない。長いページは、下の「長いページの訳し方」に従う。作業用のファイル（訳文の断片、書き戻すスクリプトなど）を作るなら、作業用のフォルダー `<WIKI_ROOT>/.wiki-cache/ingest/<スラッグ>/` の中に置く（`check --finish` で消える）。そのフォルダーの `fetched.md`、`fetch.json`、`cleaned.md`、`removed.json` は書き換えない。
 +- 段落ごとに訳す。段落を統合したり、分けたり、要約したりしない。長いページは、下の「長いページの訳し方」に従う。作業用のファイル（訳文の断片、書き戻すスクリプトなど）を作るなら、作業用のフォルダー `<WIKI_ROOT>/.wiki-cache/ingest/<スラッグ>/` の中に置く（`check --finish` で消える）。そのフォルダーの `fetched.md`、`fetch.json`、`cleaned.md`、`removed.json` は手作業で作ったり書き換えたりしない。比較元をなくした場合は検査済みと扱わず、取得器からの再取得を含め、比較元を確保する方法を確認する。
-diff --git a/skills/info-hive/references/web-raw.md b/skills/info-hive/references/web-raw.md
-index 6366bb6..1852f7f 100644
---- a/skills/info-hive/references/web-raw.md
-+++ b/skills/info-hive/references/web-raw.md
+@@ -442 +442 @@ wiki に任意のグラフ層がある場合は、ページの更新を終えた
+-`wiki/log.md` に、`## [YYYY-MM-DD] ingest | <ソースの題名>` の形の行を1行追記する（`## [2026-11-03] ingest | インボイス制度の手引き`）。操作名の `ingest` は英語のまま書き、説明は日本語で書く。必要なら、更新したページを並べたサブ行を加える。サブ行は 3 文字の空白で字下げし、日本語で書く。グラフ層を更新した場合は、2つ目のサブ行 `   グラフ: ノード +N、型付きエッジ +M` を加える。Web ページの取り込みでは、raw の段の分担と、受け入れた警告の理由もサブ行に書く（`references/web-raw.md` の「呼び出す側の手順」）。`wiki_pdf.py` で PDF を読んだときは、抽出の識別（`--json` の `extraction`）をサブ行に書く（`   抽出: extract-v2、stable-order-v1、pdfminer.six 20260107（detect_vertical）、pypdfium2 5.15.2`）。ログは単純な unix のツール（`grep "^## \[" log.md | tail -10`）で解析するので、行頭の書式が重要である。
++`wiki/log.md` に、`## [YYYY-MM-DD] ingest | <ソースの題名>` の形の行を1行追記する（`## [2026-11-03] ingest | インボイス制度の手引き`）。操作名の `ingest` は英語のまま書き、説明は日本語で書く。必要なら、更新したページを並べたサブ行を加える。サブ行は 3 文字の空白で字下げし、日本語で書く。グラフ層を更新した場合は、2つ目のサブ行 `   グラフ: ノード +N、型付きエッジ +M` を加える。Web ページの取り込みでは、raw の段の分担と、W9 より前に `prepare` の記録で受理した警告の理由（または準備の記録への参照）もサブ行に書く（`references/web-raw.md` の「呼び出す側の手順」）。`wiki_pdf.py` で PDF を読んだときは、抽出の識別（`--json` の `extraction`）をサブ行に書く（`   抽出: extract-v2、stable-order-v1、pdfminer.six 20260107（detect_vertical）、pypdfium2 5.15.2`）。ログは単純な unix のツール（`grep "^## \[" log.md | tail -10`）で解析するので、行頭の書式が重要である。
+diff --git a/info-hive-wiki/skills/info-hive/references/web-raw.md b/info-hive-wiki/skills/info-hive/references/web-raw.md
+index 6366bb6..64117a0 100644
+--- a/info-hive-wiki/skills/info-hive/references/web-raw.md
++++ b/info-hive-wiki/skills/info-hive/references/web-raw.md
 @@ -10,0 +11,10 @@
 +## 翻訳と完了の条件
 +
 +取得の `needs_translation: true` は、日本語の raw を作る必要があるという意味である。原文の再現性、費用、時間、エージェント自身が判断した制約を理由に、原文保存と日本語の要約へ置き換えて完了としてはならない。翻訳できなければ未完了で止まり、自分で実行している場合は理由を伝える。エージェントとして動いている場合は `failed`（`error.kind: other`）で返す。
 +
-+W8 の `ok: true` は検査でエラーがなかったという意味で、raw の段の完了とは異なる。`completed: true` は、必要な検査と警告の受理を終え、`--finish` が成功した場合だけ返る。`translation.state` は、翻訳の検査を通した `checked`、もともと翻訳不要の `not_required`、検査で誤りがある `incomplete` のいずれかである。`completed` と `translation` のない旧形式の結果を、完了と読み替えない。
++W8 の `ok: true` は検査でエラーがなかったという意味で、raw の段の完了とは異なる。`completed: true` は、必要な検査と警告の受理を終え、`--finish` が成功した場合だけ返る。`translation.state` は、検査対象の文字があるブロックを照合した `checked`、コードと画像などだけで検査対象の文章がない `no_prose`、もともと翻訳不要の `not_required`、検査で誤りがある `incomplete` のいずれかである。`checked_blocks` はコード・画像・URL を除く文字があるブロックを照合した数で、1 語の名前も含む。翻訳の操作回数や、言語を判別できた数ではない。`checked` では 1 以上、`no_prose` では 0 になる。`incomplete` の原因には、翻訳以外の構造やメタデータの誤りも含むので、`errors` を読む。`completed` と `translation` のない旧形式の結果を、完了と読み替えない。
 +
-+翻訳の検査は、コード・画像・インラインのコードを除く文章をブロックごとに対応付ける。20 文字以上・4 語以上の英語の丸残し、長い外国語の文章の未変更、訳文の大半が外国語のままのものをエラーにする。保持する名前を除いた文章で判定し、図の補足は本文に数えない。短い語や名前は対象外であり、訳の意味や完全性を保証しない。訳文は読み直し、要約してしまった箇所や訳し落としがあれば直す。
++翻訳の検査は、コード・画像・インラインのコードを除く文章をブロックごとに対応付け、外国語の文や節が残っていないかを調べる。段落の一部だけを訳した場合も調べ、中国語の文を丸ごと残したり、かなを少しだけ入れた近似コピーも検出する。図の補足は本文に数えず、日本語の文字数の割合だけで翻訳済みと判断しない。残った文の照合は Unicode の単語も使い、ラテン文字と漢字以外の文章も調べる。名前、UI の表示、エラーメッセージ、値の列挙、原語の併記と区別が付かない句は `translation_uncertain` の警告にする。文末のない短い説明もこの確認が必要で、翻訳済みと自動で扱わない。原文と文脈を読み、その文字列を保持する具体的な理由を、警告ごとに記録する。文章の訳し忘れなら訳し、原文の再現性などの一般的な理由で警告を一括受理しない。検査はすべての言語や短い句を判別できず、訳の意味や完全性を保証しない。訳文は読み直し、要約してしまった箇所や訳し落としがあれば直す。
 +
 +比較用の `fetch.json`、`fetched.md`、`cleaned.md`、`removed.json` は、取得器と検査器が管理する。手作業で作ったり、翻訳必須の判定を変えるために書き換えたりしない。比較元がない既存の raw から、検査済みという記録を作ってはならない。
 +
@@ -85,8 +102,11 @@ index 6366bb6..1852f7f 100644
 @@ -35,2 +45,2 @@
 -   - `done`: raw ができ、`check --finish` で作業用の写しが消えている。`raw` のファイルがあり、frontmatter の `url` が依頼の `url` と同じで、作業用のフォルダー `<WIKI_ROOT>/.wiki-cache/ingest/<スラッグ>/` がないことを確かめる。合わなければ、報告をユーザーに見せて止まる。合えば 6 に進む。
 -   - `warnings`: raw はできたが、エージェントが直さなかった警告が残っていて、作業用の写しがある。`python "<skill-root>/scripts/wiki_rawcheck.py" check --wiki "<WIKI_ROOT>" --raw-root "<RAW_ROOT>" --slug "<スラッグ>" --json` を、報告の `language_override` があればその `--language-override` と `--reason` を付けて実行し、誤りがなく、警告の `kind`・`line`・`message` の並びが報告の `warnings` と同じであることを確かめる。理由の案（`proposed_reason`）を読み、受け入れられないもの（人名をカタカナにした、など）があれば、`conditions` にその直し方を足して、3 に戻る。受け入れるなら 6 に進み、log の段で、取り込みの行のサブ行に警告ごとの理由を書いてから、同じ引数に `--finish --accept-warnings` を足して実行し、作業用の写しが消えたことを確かめる。
-+   - `done`: 報告の `check` が実行した W8 の JSON で、`completed: true`、`ok: true`、`translation.state` が `checked`（翻訳した場合）か `not_required`（もともと翻訳不要の場合）であることを確かめる。`needs_translation: true` なのに翻訳がない、必須の翻訳を `keep` で外した、`check` がない、`completed` が false のどれかなら、完了と扱わず止まる。フォルダーの消失や `ok` だけを根拠にしてはならない。raw ができ、`check --finish` で作業用の写しが消えている。`raw` のファイルがあり、frontmatter の `url` が依頼の `url` と同じで、作業用のフォルダー `<WIKI_ROOT>/.wiki-cache/ingest/<スラッグ>/` がないことを確かめる。合わなければ、報告をユーザーに見せて止まる。合えば 6 に進む。
-+   - `warnings`: 報告の `check` は実行した検査の JSON で、`completed: false`、`ok: true`、`translation.state` は `checked` か `not_required` でなければならない。raw はできたが、エージェントが直さなかった警告が残っていて、作業用の写しがある。`python "<skill-root>/scripts/wiki_rawcheck.py" check --wiki "<WIKI_ROOT>" --raw-root "<RAW_ROOT>" --slug "<スラッグ>" --json` を、報告の `language_override` があればその `--language-override` と `--reason` を付けて実行し、誤りがなく、警告の `kind`・`line`・`message` の並びが報告の `warnings` と同じであることを確かめる。理由の案（`proposed_reason`）を読み、受け入れられないもの（人名をカタカナにした、など）があれば、`conditions` にその直し方を足して、3 に戻る。受け入れるなら 6 に進み、log の段で、取り込みの行のサブ行に警告ごとの理由を書いてから、同じ引数に `--finish --accept-warnings` を足して実行し、作業用の写しが消えたことを確かめる。
++   - `done`: 報告の `check` が実行した W8 の JSON で、`completed: true`、`ok: true`、`translation.state` が `checked`（文章の検査あり）か `no_prose`（文章がなく `checked_blocks: 0`）か `not_required`（もともと翻訳不要の場合）であることを確かめる。文章があるのに必要な翻訳がない、必須の翻訳を `keep` で外した、`check` がない、`completed` が false のどれかなら、完了と扱わず止まる。フォルダーの消失や `ok` だけを根拠にしてはならない。raw ができ、`check --finish` で作業用の写しが消えている。`raw` のファイルがあり、frontmatter の `url` が依頼の `url` と同じで、作業用のフォルダー `<WIKI_ROOT>/.wiki-cache/ingest/<スラッグ>/` がないことを確かめる。合わなければ、報告をユーザーに見せて止まる。合えば 6 に進む。
++   - `warnings`: 報告の `check` は実行した検査の JSON で、`completed: false`、`ok: true`、`translation.state` は `checked` か `no_prose` か `not_required` でなければならない。raw はできたが、エージェントが直さなかった警告が残っていて、作業用の写しがある。`python "<skill-root>/scripts/wiki_rawcheck.py" check --wiki "<WIKI_ROOT>" --raw-root "<RAW_ROOT>" --slug "<スラッグ>" --json` を、報告の `language_override` があればその `--language-override` と `--reason` を付けて実行し、誤りがなく、警告の `kind`・`line`・`message` の並びが報告の `warnings` と同じであることを確かめる。理由の案（`proposed_reason`）を読み、受け入れられないもの（人名をカタカナにした、など）があれば、`conditions` にその直し方を足して、3 に戻る。受け入れるなら、W9 より前に `log.md` に `## [YYYY-MM-DD] prepare | Web raw の警告の確認: <題名>` を追記し、そのサブ行に警告ごとの理由を書く。この記録は raw の確認であり、取り込みの完了は示さない。同じ引数に `--finish --accept-warnings` を足して実行し、実際の JSON が `completed: true`、`ok: true`、上の `done` と同じ翻訳の状態を示すことを確かめてから 6 に進む。写しの消失だけで判断しない。
+@@ -49 +59 @@
+-8. log の段で、取り込みの行のサブ行に、raw の段の分担を書く。エージェントに任せたときは「raw: `wiki:web-raw` に任せた（報告したモデル: Claude Sonnet 5.5）。訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5」、`wiki:web-raw` がなく自分で作ったときは「raw: 自分のモデル（Claude Opus 5.5）で作った（`wiki:web-raw` がなかった）。訳: …、補足: …」と書く。訳と補足の名前は、raw の `translated_by` と補足の表示名から取る（訳していなければ「訳: なし」、画像がなければ「補足: なし」）。これらはモデルが自分で書いた名前であり、記録の目安である。
++8. log の段で、取り込みの行のサブ行に、raw の段の分担と、5 で受理した警告の理由（または準備の記録への参照）を書く。エージェントに任せたときは「raw: `wiki:web-raw` に任せた（報告したモデル: Claude Sonnet 5.5）。訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5」、`wiki:web-raw` がなく自分で作ったときは「raw: 自分のモデル（Claude Opus 5.5）で作った（`wiki:web-raw` がなかった）。訳: …、補足: …」と書く。訳と補足の名前は、raw の `translated_by` と補足の表示名から取る（訳していなければ「訳: なし」、画像がなければ「補足: なし」）。これらはモデルが自分で書いた名前であり、記録の目安である。
 @@ -68,0 +79 @@
 +  "check": {"stage": "check", "ok": true, "needs_translation": true, "translated_by": "Claude Sonnet 5.5", "language_override": null, "translation": {"state": "checked", "checked_blocks": 12}, "completed": true, "errors": [], "warnings": [], "work_dir_removed": true},
 @@ -78,2 +89,2 @@
@@ -111,112 +131,175 @@ index 6366bb6..1852f7f 100644
 @@ -124 +136 @@
 -- **W6.** W2 の出力の `needs_translation` が `true` なら、本文を段落ごとに日本語に訳し、ファイルの本文を訳文で置き換える。判定は、`source_lang`（`<html lang>`）を優先し、空か本文と食い違うときは `ja_ratio`（かなと漢字の割合）で決めたものである。依頼に `language` があれば、それに従う（W8 で `--language-override` と `--reason` を付ける）。見出しの文言は訳し、段落の数と並び、見出しの階層、コードブロック、インラインのコード、リンク先、画像の行、表とリストの形、識別子、固有名詞（人名、製品名、地名、手法や検定の名前）の英語表記は変えない（カタカナにしない）。日本語に訳すのがふつうの一般の語（`Domain Model`、`Boolean` など）を訳すときは、原語を括弧で添える（`ドメインモデル（Domain Model）`）。表のセルの訳文の中の `|` は `\|` と書く。原文にない内容を、自分の知識で補わない。長いページは、`references/ingest-workflow.md` の「長いページの訳し方」に従い、ブロック（段落、見出し、リストの項目、表のセル）ごとに訳し、コードブロックと画像の行には手を付けずに残して、組み立てた訳文で raw を置き換える。作業用のファイル（訳文の断片、書き戻すスクリプトなど）を作るなら、作業用のフォルダー `<WIKI_ROOT>/.wiki-cache/ingest/<スラッグ>/` の中に置く（W8 の `--finish` で消える）。そのフォルダーの `fetched.md`、`fetch.json`、`cleaned.md`、`removed.json` は書き換えない。訳し終えたら、frontmatter の `translated_by: ""` に自分の表示名を `str_replace` で入れる。表示名は、システムの指示に書かれた自分のモデル名を `"Claude Fable 5.1"` の形で書く。分からなければ推測しない（ユーザーに聞く。エージェントなら `failed`、`model_unknown`）。日本語のページは訳さず、本文を 1 文字も変えず、`translated_by` は `""` のままにする。
 +- **W6.** W2 の出力の `needs_translation` が `true` なら、本文を段落ごとに日本語に訳し、ファイルの本文を訳文で置き換える。判定は、`source_lang`（`<html lang>`）を優先し、空か本文と食い違うときは `ja_ratio`（かなと漢字の割合）で決めたものである。依頼の `language: translate` は翻訳を追加する指定である。`keep` でも、取得で翻訳が必要と判定された入力を翻訳不要にはできない。見出しの文言は訳し、段落の数と並び、見出しの階層、コードブロック、インラインのコード、リンク先、画像の行、表とリストの形、識別子、固有名詞（人名、製品名、地名、手法や検定の名前）の英語表記は変えない（カタカナにしない）。日本語に訳すのがふつうの一般の語（`Domain Model`、`Boolean` など）を訳すときは、原語を括弧で添える（`ドメインモデル（Domain Model）`）。表のセルの訳文の中の `|` は `\|` と書く。原文にない内容を、自分の知識で補わない。長いページは、`references/ingest-workflow.md` の「長いページの訳し方」に従い、ブロック（段落、見出し、リストの項目、表のセル）ごとに訳し、コードブロックと画像の行には手を付けずに残して、組み立てた訳文で raw を置き換える。作業用のファイル（訳文の断片、書き戻すスクリプトなど）を作るなら、作業用のフォルダー `<WIKI_ROOT>/.wiki-cache/ingest/<スラッグ>/` の中に置く（W8 の `--finish` で消える）。そのフォルダーの `fetched.md`、`fetch.json`、`cleaned.md`、`removed.json` は書き換えない。訳し終えたら、frontmatter の `translated_by: ""` に自分の表示名を `str_replace` で入れる。表示名は、システムの指示に書かれた自分のモデル名を `"Claude Fable 5.1"` の形で書く。分からなければ推測しない（ユーザーに聞く。エージェントなら `failed`、`model_unknown`）。日本語のページは訳さず、本文を 1 文字も変えず、`translated_by` は `""` のままにする。
-@@ -126 +138 @@
+@@ -126,2 +138,2 @@
 -- **W8.** `python "<skill-root>/scripts/wiki_rawcheck.py" check --wiki "<WIKI_ROOT>" --raw-root "<RAW_ROOT>" --slug "<スラッグ>" --finish --json` を実行する（`--json` は外さない。訳と補足の表示名（`translated_by`、`caption_names`）と、写しを消したか（`work_dir_removed`）が、機械で読める形で記録に残る）。補足を除いた raw を、W5 で固定した内容とブロックごとに照らす。結果は、出力の `ok`、`errors`、`warnings` と、`work_dir_removed` か `work_dir_kept` で読む。`--finish` は、誤りも警告もなければ作業用の写しを消す。誤りか警告があれば消さない（写しは再検査の基準なので）。誤りがあれば直して、もう一度実行する。リンクの誤りは、足りないリンクと増えたリンクの URL を示す。警告（原文にない英字や記号、訳文にない固有の名前、文体の混在、極端に短い訳）は、直してもう一度実行する。「訳文にない名前」は、固有名詞なら英語表記に戻し、一般の語を訳したものなら、警告の出たブロックで原語を括弧で添えて直す。「原文にない英字か記号」は、原文にない内容を足していないかを確かめる（日本語の文でふつうに使う略語の `PC`、`OS` などは数えない）。判定を覆して訳す（または訳さない）ときは、`--language-override translate`（または `keep`）と `--reason "<理由>"` を付ける。
-+- **W8.** `python "<skill-root>/scripts/wiki_rawcheck.py" check --wiki "<WIKI_ROOT>" --raw-root "<RAW_ROOT>" --slug "<スラッグ>" --finish --json` を実行する（`--json` は外さない。訳と補足の表示名（`translated_by`、`caption_names`）と、写しを消したか（`work_dir_removed`）が、機械で読める形で記録に残る）。補足を除いた raw を、W5 で固定した内容とブロックごとに照らす。結果は、出力の `ok`、`errors`、`warnings`、`needs_translation`、`translation`、`completed` と、`work_dir_removed` か `work_dir_kept` で読む。`completed: true` だけが raw の段の完了を示す。検査だけの成功や未受理の警告では false のままになる。`--finish` は、誤りも警告もなければ作業用の写しを消す。誤りか警告があれば消さない（写しは再検査の基準なので）。誤りがあれば直して、もう一度実行する。リンクの誤りは、足りないリンクと増えたリンクの URL を示す。警告（原文にない英字や記号、訳文にない固有の名前、文体の混在、極端に短い訳）は、直してもう一度実行する。「訳文にない名前」は、固有名詞なら英語表記に戻し、一般の語を訳したものなら、警告の出たブロックで原語を括弧で添えて直す。「原文にない英字か記号」は、原文にない内容を足していないかを確かめる（日本語の文でふつうに使う略語の `PC`、`OS` などは数えない）。翻訳を追加するときは `--language-override translate` と `--reason "<理由>"` を付ける。`keep` は翻訳必須の判定を解除できない。`untranslated` と `translation_required` はエラーであり、警告の受理では通らない。
-diff --git a/skills/info-hive/scripts/wiki_rawcheck.py b/skills/info-hive/scripts/wiki_rawcheck.py
-index e089034..cbd34da 100644
---- a/skills/info-hive/scripts/wiki_rawcheck.py
-+++ b/skills/info-hive/scripts/wiki_rawcheck.py
+-  - 直さない警告が残ったとき: エージェントは `--accept-warnings` を付けない。出力の `warnings` の警告と理由の案を、`warnings` の報告で返す（作業用の写しは残る。呼び出す側が log に理由を書いてから受け入れる）。自分で W1〜W8 を行っているときは、直さない理由を `log.md` の取り込みの行のサブ行に書いてから、同じ引数に `--accept-warnings` を足してもう一度実行する（写しが消える）。
++- **W8.** `python "<skill-root>/scripts/wiki_rawcheck.py" check --wiki "<WIKI_ROOT>" --raw-root "<RAW_ROOT>" --slug "<スラッグ>" --finish --json` を実行する（`--json` は外さない。訳と補足の表示名（`translated_by`、`caption_names`）と、写しを消したか（`work_dir_removed`）が、機械で読める形で記録に残る）。補足を除いた raw を、W5 で固定した内容とブロックごとに照らす。結果は、出力の `ok`、`errors`、`warnings`、`needs_translation`、`translation`、`completed` と、`work_dir_removed` か `work_dir_kept` で読む。`completed: true` だけが raw の段の完了を示す。検査だけの成功や未受理の警告では false のままになる。`--finish` は、誤りも警告もなければ作業用の写しを消す。誤りか警告があれば消さない（写しは再検査の基準なので）。誤りがあれば直して、もう一度実行する。リンクの誤りは、足りないリンクと増えたリンクの URL を示す。警告（原文にない英字や記号、訳文にない固有の名前、文体の混在、極端に短い訳）は、直してもう一度実行する。「訳文にない名前」は、固有名詞なら英語表記に戻し、一般の語を訳したものなら、警告の出たブロックで原語を括弧で添えて直す。「原文にない英字か記号」は、原文にない内容を足していないかを確かめる（日本語の文でふつうに使う略語の `PC`、`OS` などは数えない）。翻訳を追加するときは `--language-override translate` と `--reason "<理由>"` を付ける。`keep` は翻訳必須の判定を解除できない。`untranslated` と `translation_required` はエラーであり、警告の受理では通らない。`translation_html` は HTML ブロック内の文章を検査できないというエラーなので、取得と抽出の内容を見直し、検査済みと扱わない。引用の文章も日本語に訳す。コードと固有名詞の英語表記は保持する。
++  - 直さない警告が残ったとき: エージェントは `--accept-warnings` を付けない。出力の `warnings` の警告と理由の案を、`warnings` の報告で返す（作業用の写しは残る。呼び出す側が log に理由を書いてから受け入れる）。自分で W1〜W8 を行っているときも、上の呼び出す側の手順 5 と同じ `prepare` の記録に警告ごとの理由を書いてから、同じ引数に `--accept-warnings` を足してもう一度実行する。実際の JSON の `completed: true` と翻訳の状態を確かめるまで W9 に進まない。
+diff --git a/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py b/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py
+index e089034..54605e5 100644
+--- a/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py
++++ b/info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py
 @@ -14,0 +15,2 @@ wiki_rawcheck.py — Web ページの raw を、取得した直後の内容と
 +            翻訳が必要な入力を keep で完了にはできない。長い未翻訳の文章はエラーとする。
 +            JSON の completed が真になるのは、検査を通して --finish が成功したときだけである。
 @@ -42,0 +45 @@ import sys
 +import unicodedata
-@@ -917,0 +921,45 @@ def names_of(text: str, title_case_ok: bool = True) -> list[str]:
-+def translation_prose(text: str, protected: list[str]) -> str:
-+    """言語の簡易検査から、保持すべき固有名詞と URL を除く。構造はパーサーで別に検査する。"""
-+    text = re.sub(r"https?://\S+", " ", text)
-+    for word in sorted(set(protected), key=len, reverse=True):
-+        text = re.sub(r"(?<!\w)" + re.escape(word) + r"(?!\w)", " ", text)
-+    return text
+@@ -917,0 +921,98 @@ def names_of(text: str, title_case_ok: bool = True) -> list[str]:
++LATIN_WORD_RE = re.compile(r"[A-Za-z\u00c0-\u024f]+(?:[’'][A-Za-z\u00c0-\u024f]+)?")
++UNICODE_WORD_RE = re.compile(r"[^\W\d_]+(?:[’'][^\W\d_]+)?")
++KANA_RE = re.compile(r"[\u3040-\u30ff]")
++HAN_RE = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]")
++GRAMMAR_WORDS = {word.casefold() for word in FUNCTION_WORDS} | {"how", "what", "which", "because", "than"}
 +
 +
-+def translation_block(source: str, output: str, title_case_ok: bool) -> tuple[bool, bool]:
-+    """（検査対象か、未翻訳の疑いがあるか）。短い名前やコードだけのブロックは対象外。
++def translation_text(text: str) -> str:
++    """URL は訳す文章ではない。コードと画像は呼び出す側のパーサーが除いている。"""
++    return re.sub(r"https?://\S+", " ", text)
 +
-+    20 文字以上の英字か、かなを含まない 20 文字以上の文章を調べる。英語は 4 語以上を要する。
-+    日本語の文字が文章の文字の 2 割に届かない出力と、変化のない外国語の文章を止める。
-+    訳の意味や完全性を保証する検査ではない。元から日本語の文章と保持する名前は残してよい。
++
++def normalized_prose(text: str) -> str:
++    return "".join(c for c in unicodedata.normalize("NFKC", text).casefold() if c.isalnum())
++
++
++def plain_latin_prose(text: str) -> bool:
++    """名前の綴りを推定して削らず、文章に見られる語と文末を材料にする。"""
++    words = LATIN_WORD_RE.findall(text)
++    lower_content = [w for w in words if w.islower() and w.casefold() not in GRAMMAR_WORDS]
++    grammar = sum(w.casefold() in GRAMMAR_WORDS for w in words)
++    sentence = bool(re.search(r"[.!?]", text))
++    pronoun = bool(words and words[0].casefold() in {"we", "you", "they", "he", "she", "this", "these", "those", "it"})
++    return len(lower_content) >= 2 or (len(words) >= 4 and grammar >= 2 and (sentence or pronoun))
++
++
++def prose_units(text: str) -> list[str]:
++    """段落の途中を残す場合も見る。小数点では分けず、文末と節の区切りで分ける。"""
++    parts = re.split(r"((?<![0-9])[.!?。！？;；]+|[.!?。！？;；]+(?![0-9]))", text)
++    return [(parts[i] + (parts[i + 1] if i + 1 < len(parts) else "")).strip()
++            for i in range(0, len(parts), 2) if parts[i].strip()]
++
++
++def translation_block(source: str, output: str, node_type: str) -> tuple[bool, str | None]:
++    """（文章を調べたか、誤りか確認を要する警告）。比率で翻訳済みとは推定しない。
++
++    長い外国語の出力と、原文の文・節の残存を調べる。見出しやセルの名前は日本語の文字数で
++    判定しない。変更のない名前らしい句は確認の警告とし、根拠を残して受理できる。
 +    """
-+    # 長い全大文字の文章を、すべて略語とみなして検査対象から消してはならない。
-+    protected = [word for word in names_of(source, title_case_ok)
-+                 if not word.isupper() or len(word) < 6 or word in JAPANESE_ABBREVIATIONS]
-+    src = translation_prose(source, protected)
-+    out = translation_prose(output, protected)
-+    same = lambda text: re.sub(r"\s+", "", unicodedata.normalize("NFKC", text)).casefold()
-+    # 日本語と英語が同じ段落にある場合も、長い英語部分の丸残しを全体の割合で隠さない。
-+    foreign_runs = re.split(r"[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]+", src)
-+    if any(len(re.findall(r"[A-Za-z]", run)) >= 20 and len(re.findall(r"[A-Za-z]+", run)) >= 4
-+           and same(run) in same(out) for run in foreign_runs):
-+        return True, True
++    src, out = translation_text(source), translation_text(output)
++    if not src.strip() and not out.strip():
++        return False, None
++    src_norm, out_norm = normalized_prose(src), normalized_prose(out)
 +
-+    def counts(text: str) -> tuple[int, int, int]:
-+        letters = [c for c in text if c.isalpha()]
-+        japanese = sum(bool(re.fullmatch(r"[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]", c)) for c in letters)
-+        latin = sum(c.isascii() for c in letters)
-+        return len(letters), japanese, latin
++    def possible_name(text: str) -> bool:
++        content = [w for w in LATIN_WORD_RE.findall(text) if w.casefold() not in GRAMMAR_WORDS]
++        return bool(content) and all(w[:1].isupper() for w in content)
 +
-+    total, japanese, latin = counts(src)
-+    kana = bool(re.search(r"[\u3040-\u30ff]", src))
-+    if total < 20 or (kana and japanese / total >= 0.2):
-+        return False, False
-+    if latin >= total / 2 and len(re.findall(r"[A-Za-z]+", src)) < 4:
-+        return False, False
-+    if kana and latin < total / 2:
-+        return False, False
-+    out_total, out_japanese, _ = counts(out)
-+    return True, same(src) in same(out) or not out_total or out_japanese / out_total < 0.2
++    named_phrase = possible_name(out) and not re.search(r"[!?]|\.(?:\s|$)", out)
++    uncertain = False
++    # 出力全体が外国語の文なら止める。句や値だけでは、表示名・識別子との区別は付かない。
++    if plain_latin_prose(out) and not KANA_RE.search(out) and not HAN_RE.search(out) and not named_phrase:
++        if len(UNICODE_WORD_RE.findall(out)) >= 4 and re.search(r"[.!?;]\s*$", out):
++            return True, "untranslated"
++        uncertain = True
++    # 日本語の中の外国語の句は、原語の併記や表示文字列でもある。文の残存とは別に確認する。
++    for run in re.split(r"[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]+", out):
++        if (len(LATIN_WORD_RE.findall(run)) >= 4 and len(re.findall(r"[A-Za-z]", run)) >= 20
++                and plain_latin_prose(run) and not (named_phrase and possible_name(run))):
++            uncertain = True
++    out_units = prose_units(out)
++    source_units = prose_units(src)
++    # ラテン文字以外も、原文の文が残っていれば調べる。名前らしい句は確認の警告にする。
++    for unit in source_units:
++        words = UNICODE_WORD_RE.findall(unit)
++        if (KANA_RE.search(unit) or HAN_RE.search(unit) or len(words) < 4
++                or sum(c.isalpha() for c in unit) < 20):
++            continue
++        if normalized_prose(unit) in out_norm:
++            if not re.search(r"[.!?。！？;；]\s*$", unit):
++                uncertain = True
++            else:
++                return True, "untranslated"
++    # 漢字を日本語の証拠にしない。中国語の文の丸残しと、かなを少しだけ入れた近似コピーを見る。
++    for unit in source_units:
++        han = len(HAN_RE.findall(unit))
++        if han < 8 or KANA_RE.search(unit):
++            continue
++        unit_norm = normalized_prose(unit)
++        copied = unit_norm in out_norm
++        near = any(len(KANA_RE.findall(candidate)) <= 2
++                   and difflib.SequenceMatcher(None, unit_norm, normalized_prose(candidate), autojunk=False).ratio() >= 0.85
++                   for candidate in out_units)
++        if copied or near:
++            if node_type in ("heading", "th", "td") or (han < 20 and len(source_units) == 1):
++                uncertain = True
++            else:
++                return True, "untranslated"
++    # 製品名・論文名か、訳し忘れた短い句かは、見出しの大文字や文字数だけでは確定しない。
++    if src_norm and src_norm == out_norm and not KANA_RE.search(src):
++        words = UNICODE_WORD_RE.findall(src)
++        identifier = ((len(words) <= 1 and sum(c.isalpha() for c in src) < 20)
++                      or (len(words) == 2 and all(w[:1].isupper() for w in words)))
++        if not identifier and (words or HAN_RE.search(src)):
++            uncertain = True
++    return True, "translation_uncertain" if uncertain else None
 +
 +
-@@ -919 +967 @@ def compare(a: Node, b: Node, translate: bool, errors: list[dict], warnings: lis
+@@ -919 +1020 @@ def compare(a: Node, b: Node, translate: bool, errors: list[dict], warnings: lis
 -            path: str = "") -> None:
 +            path: str = "", translation: Counter | None = None) -> None:
-@@ -958,0 +1007,7 @@ def compare(a: Node, b: Node, translate: bool, errors: list[dict], warnings: lis
-+            checked, untranslated = translation_block(src_text, out_text, a.type not in ("heading", "th", "td"))
+@@ -958,0 +1060,11 @@ def compare(a: Node, b: Node, translate: bool, errors: list[dict], warnings: lis
++            checked, translation_issue = translation_block(src_text, out_text, a.type)
 +            if checked and translation is not None:
 +                translation["checked_blocks"] += 1
-+            if untranslated:
++            if translation_issue == "untranslated":
 +                errors.append({"kind": "untranslated", **detail,
-+                               "message": "文章が未翻訳か、訳文の大半が外国語のまま。"
-+                               "本文を日本語に訳す。翻訳者名や図の補足だけでは完了にできない"})
-@@ -977 +1032 @@ def compare(a: Node, b: Node, translate: bool, errors: list[dict], warnings: lis
++                               "message": "外国語の文章が残っている。文や節を日本語に訳す。"
++                               "翻訳者名や図の補足だけでは完了にできない"})
++            elif translation_issue:
++                warnings.append({"kind": translation_issue, **detail,
++                                 "message": "原文のままの句がある。固有名詞として保持したのか、訳し忘れたのかを確認し、"
++                                 "保持する場合は理由をログに残す"})
+@@ -977 +1089 @@ def compare(a: Node, b: Node, translate: bool, errors: list[dict], warnings: lis
 -        compare(ca, cb, translate, errors, warnings, style)
 +        compare(ca, cb, translate, errors, warnings, style, translation=translation)
-@@ -991 +1046,4 @@ def check(wiki: Path, raw_root: Path, slug: str, override: str | None, reason: s
+@@ -991 +1103,4 @@ def check(wiki: Path, raw_root: Path, slug: str, override: str | None, reason: s
 -    translate = bool(fetch.get("needs_translation"))
 +    required = fetch.get("needs_translation")
 +    if not isinstance(required, bool):
 +        raise ValueError("fetch.json の needs_translation が真偽値ではない。翻訳不要とみなして続けない")
 +    translate = required
-@@ -994,2 +1051,0 @@ def check(wiki: Path, raw_root: Path, slug: str, override: str | None, reason: s
+@@ -994,2 +1108,0 @@ def check(wiki: Path, raw_root: Path, slug: str, override: str | None, reason: s
 -    elif override == "keep":
 -        translate = False
-@@ -1000,0 +1057,4 @@ def check(wiki: Path, raw_root: Path, slug: str, override: str | None, reason: s
+@@ -1000,0 +1114,4 @@ def check(wiki: Path, raw_root: Path, slug: str, override: str | None, reason: s
 +    if override == "keep" and required:
 +        errors.append({"kind": "translation_required",
 +                       "message": "翻訳が必要な入力を --language-override keep で完了にできない。"
 +                       "日本語の raw を作れなければ未完了として止まり、比較用の写しを残す"})
-@@ -1041 +1101,2 @@ def check(wiki: Path, raw_root: Path, slug: str, override: str | None, reason: s
+@@ -1022,0 +1140,4 @@ def check(wiki: Path, raw_root: Path, slug: str, override: str | None, reason: s
++    if translate and any(n.type == "html_block" for tree in (src_tree, out_tree) for n in walk(tree)):
++        errors.append({"kind": "translation_html",
++                       "message": "HTML ブロックは文章の翻訳を検査できない。未検査のまま完了にはしない。"
++                       "比較元を含めて Markdown として取得し直す。コードフェンスの中の HTML はそのまま保持できる"})
+@@ -1041 +1162,2 @@ def check(wiki: Path, raw_root: Path, slug: str, override: str | None, reason: s
 -    compare(src_tree, out_tree, translate, errors, warnings, style)
 +    translation: Counter = Counter()
 +    compare(src_tree, out_tree, translate, errors, warnings, style, translation=translation)
-@@ -1050,0 +1112,3 @@ def check(wiki: Path, raw_root: Path, slug: str, override: str | None, reason: s
-+              "translation": {"state": "incomplete" if errors else "checked" if translate else "not_required",
+@@ -1050,0 +1173,4 @@ def check(wiki: Path, raw_root: Path, slug: str, override: str | None, reason: s
++              "translation": {"state": ("incomplete" if errors else "not_required" if not translate
++                                        else "checked" if translation["checked_blocks"] else "no_prose"),
 +                              "checked_blocks": translation["checked_blocks"]},
 +              "completed": False,
-@@ -1112 +1176 @@ def main(argv: list[str] | None = None) -> int:
+@@ -1112 +1238 @@ def main(argv: list[str] | None = None) -> int:
 -                           help="訳すかどうかの判定（fetch.json の needs_translation）を覆す")
 +                           help="translate は翻訳を追加する。keep で翻訳必須の判定を解除することはできない")
-@@ -1144,0 +1209 @@ def main(argv: list[str] | None = None) -> int:
+@@ -1144,0 +1271 @@ def main(argv: list[str] | None = None) -> int:
 +                    result["completed"] = result["work_dir_removed"]
-
-# Parent tests: to884/info-hive-dev
 diff --git a/tests/wiki/check_web_raw_agent.py b/tests/wiki/check_web_raw_agent.py
-index 07ee1a9..ca993e0 100644
+index 07ee1a9..9e009a4 100644
 --- a/tests/wiki/check_web_raw_agent.py
 +++ b/tests/wiki/check_web_raw_agent.py
-@@ -502,0 +503,21 @@ def ran(tools: list[dict], results: dict[str, dict], out_re: re.Pattern) -> list
+@@ -502,0 +503,23 @@ def ran(tools: list[dict], results: dict[str, dict], out_re: re.Pattern) -> list
 +def verified_completion(value: dict) -> bool:
 +    """W8 の完了と翻訳の検査を確認する。旧形式や写しの消失だけから完了を推定しない。"""
 +    required = value.get("needs_translation")
@@ -232,22 +315,24 @@ index 07ee1a9..ca993e0 100644
 +    override = value.get("language_override")
 +    if required and isinstance(override, dict) and override.get("value") == "keep":
 +        return False
++    state = translation.get("state")
++    valid_state = ((state == "checked" and blocks > 0) or (state == "no_prose" and blocks == 0)) if required else state == "not_required"
 +    return (value.get("stage") == "check" and value.get("ok") is True
 +            and value.get("completed") is True and value.get("work_dir_removed") is True
 +            and value.get("errors") == []
-+            and translation.get("state") == ("checked" if required else "not_required"))
++            and valid_state)
 +
 +
-@@ -633,0 +655,4 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
+@@ -633,0 +657,4 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
 +    unverified = [{"actor": r["actor"], "command": r["command"], "result": r["json"]}
 +                  for r in agent_runs + main_runs if r["removed"] and r["json"] is not None
 +                  and not verified_completion(r["json"])]
 +    check("写しを消したすべての JSON に、完了と翻訳の検査結果がある", not unverified, unverified)
-@@ -640 +665 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
+@@ -640 +667 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
 -    if final is not None and final["json"] is not None:
 +    if final is not None and final["json"] is not None and verified_completion(final["json"]):
 diff --git a/tests/wiki/test_web_raw_agent.py b/tests/wiki/test_web_raw_agent.py
-index 86dea9a..d20ba6b 100644
+index 86dea9a..64efade 100644
 --- a/tests/wiki/test_web_raw_agent.py
 +++ b/tests/wiki/test_web_raw_agent.py
 @@ -113,0 +114,2 @@ class ReferenceTest(unittest.TestCase):
@@ -265,7 +350,7 @@ index 86dea9a..d20ba6b 100644
 +ACCEPTED_OUTPUT = json.dumps({"stage": "check", "ok": True, "completed": True, "needs_translation": True,
 +                              "translation": {"state": "checked", "checked_blocks": 1}, "language_override": None,
 +                              "translated_by": "Claude Sonnet 5.5",
-@@ -438,0 +446,37 @@ class SyntheticTranscriptTest(unittest.TestCase):
+@@ -438,0 +446,38 @@ class SyntheticTranscriptTest(unittest.TestCase):
 +    def test_w8_requires_completion_and_translation_evidence(self):
 +        main, agents = self.good()
 +        cases = {
@@ -279,6 +364,7 @@ index 86dea9a..d20ba6b 100644
 +            "no_translator": {"translated_by": ""},
 +            "non_string_translator": {"translated_by": ["Model"]},
 +            "non_integer_block_count": {"translation": {"state": "checked", "checked_blocks": True}},
++            "checked_zero": {"translation": {"state": "checked", "checked_blocks": 0}},
 +        }
 +        for name, changes in cases.items():
 +            with self.subTest(name=name):
@@ -303,16 +389,16 @@ index 86dea9a..d20ba6b 100644
 +        report = self.write(main, [(agents[0][0], records)])
 +        self.assertIn("写しを消したすべての JSON に、完了と翻訳の検査結果がある", self.failed(report))
 +
-@@ -746 +790,3 @@ class SyntheticTranscriptTest(unittest.TestCase):
+@@ -746 +791,3 @@ class SyntheticTranscriptTest(unittest.TestCase):
 -                accepted = json.dumps({"stage": "check", "ok": True, "translated_by": "Claude Sonnet 5.5",
 +                accepted = json.dumps({"stage": "check", "ok": True, "completed": True, "needs_translation": True,
 +                                       "translation": {"state": "checked", "checked_blocks": 1}, "language_override": None,
 +                                       "translated_by": "Claude Sonnet 5.5",
 diff --git a/tests/wiki/test_wiki_web_check.py b/tests/wiki/test_wiki_web_check.py
-index e045d53..dd5638e 100644
+index e045d53..46c6804 100644
 --- a/tests/wiki/test_wiki_web_check.py
 +++ b/tests/wiki/test_wiki_web_check.py
-@@ -2050,0 +2051,143 @@ class ResumeBeforeFetchTest(FetchCase):
+@@ -2050,0 +2051,276 @@ class ResumeBeforeFetchTest(FetchCase):
 +class TranslationCompletionTest(RawCheckCase):
 +    """翻訳を省略して W8 を完了にした事例の回帰試験。ネットには接続しない。"""
 +
@@ -320,6 +406,7 @@ index e045d53..dd5638e 100644
 +    JAPANESE = "エンジンは既存のリンクを検索し、回答を作る前に出典の文書を読む。"
 +
 +    def prepare(self, body=None, *, images=(), required=True):
++        self.wd.mkdir(parents=True, exist_ok=True)
 +        self.setup_fetch(body or ("# Graph\n\n" + self.ENGLISH + "\n"),
 +                         images=images, needs_translation=required)
 +        self.assertTrue(self.freeze()["ok"])
@@ -356,7 +443,7 @@ index e045d53..dd5638e 100644
 +        self.write_raw("# Graph\n\n" + self.JAPANESE + "\n\n" + self.ENGLISH + "\n", fm=FM_T)
 +        result = self.run_check("--finish", "--accept-warnings")
 +        self.assert_incomplete(result, "untranslated")
-+        self.assertEqual(result[1]["translation"]["checked_blocks"], 2)
++        self.assertEqual(result[1]["translation"]["checked_blocks"], 3)
 +        self.assertEqual(sum(x["kind"] == "untranslated" for x in result[1]["errors"]), 1)
 +
 +    def test_caption_does_not_count_as_body_translation(self):
@@ -413,13 +500,145 @@ index e045d53..dd5638e 100644
 +        code, data = self.run_check()
 +        self.assertEqual(code, 0, data)
 +        self.assertFalse(data["completed"])
-+        self.assertEqual(data["translation"], {"state": "checked", "checked_blocks": 1})
++        self.assertEqual(data["translation"], {"state": "checked", "checked_blocks": 5})
 +        self.assertTrue(self.wd.exists())
 +        code, data = self.run_check("--finish")
 +        self.assertEqual(code, 0, data)
 +        self.assertTrue(data["completed"])
 +        self.assertTrue(data["work_dir_removed"])
 +        self.assertFalse(self.wd.exists())
++
++    def test_product_names_in_translated_headings_and_cells(self):
++        cases = [
++            ("# Introduction to Apache Kafka\n", "# Apache Kafka 入門\n"),
++            ("# Getting Started with Apache Kafka Streams\n", "# Apache Kafka Streams 入門\n"),
++            ("## Apache Kafka versus RabbitMQ Streams\n", "## Apache Kafka と RabbitMQ Streams\n"),
++            ("## What is Amazon Elastic Kubernetes Service\n", "## Amazon Elastic Kubernetes Service とは\n"),
++            ("| Supported on Linux, macOS and Windows |\n| --- |\n",
++             "| Linux、macOS、Windows で対応 |\n| --- |\n"),
++        ]
++        for source, output in cases:
++            with self.subTest(source=source):
++                self.prepare(source)
++                self.write_raw(output, fm=FM_T)
++                code, result = self.run_check("--finish", "--accept-warnings")
++                self.assertEqual(code, 0, result)
++                self.assertTrue(result["completed"])
++
++    def test_unchanged_names_are_reviewable_not_hard_errors(self):
++        for body in ("## Attention Is All You Need\n", "## We Need To Talk About Kevin\n",
++                     "| Microsoft Azure Cosmos Database |\n| --- |\n"):
++            with self.subTest(body=body):
++                self.prepare(body)
++                self.write_raw(body, fm=FM_T)
++                code, result = self.run_check("--finish")
++                self.assertEqual(code, 0, result)
++                self.assertFalse(result["completed"])
++                self.assertIn("translation_uncertain", {w["kind"] for w in result["warnings"]})
++                code, result = self.run_check("--finish", "--accept-warnings")
++                self.assertEqual(code, 0, result)
++                self.assertTrue(result["completed"])
++
++    def test_unchanged_sentences_in_other_scripts_are_not_translation(self):
++        for body in (
++            "Система выполняет поиск документов и использует существующие связи для получения ответа на вопрос пользователя.",
++            "이 시스템은 문서를 검색하고 기존 연결을 사용하여 사용자의 질문에 대한 답변을 생성합니다.",
++        ):
++            for prefix in ("", "システムは文書を検索する。 "):
++                with self.subTest(body=body, prefix=prefix):
++                    self.prepare(body + "\n")
++                    self.write_raw(prefix + body + "\n", fm=FM_T)
++                    self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
++
++    def test_a_translated_prefix_does_not_cover_later_sentences(self):
++        sentences = [
++            "The agent searches document links before generating an answer.",
++            "The database stores all pages and their explicit relationships.",
++            "The reader verifies every citation before it releases the final response.",
++            "The system refuses the question when the corpus contains no supporting path.",
++            "The checker compares the evidence with all of the returned claims.",
++            "The evaluation includes real questions collected from the users.",
++        ]
++        for prefix in (1, 3, 5):
++            with self.subTest(prefix=prefix):
++                self.prepare("# A\n\n" + " ".join(sentences) + "\n")
++                self.write_raw("# A\n\n" + self.JAPANESE * prefix + " ".join(sentences[prefix:]) + "\n", fm=FM_T)
++                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
++
++    def test_interleaved_original_sentences_do_not_count_as_translation(self):
++        self.prepare("# A\n\n" + self.ENGLISH + " " + self.ENGLISH + "\n")
++        self.write_raw("# A\n\n" + self.JAPANESE + self.ENGLISH + self.JAPANESE + self.ENGLISH + "\n", fm=FM_T)
++        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
++
++    def test_chinese_with_one_character_changed_is_not_translation(self):
++        body = "这是一个使用已有文档之间的链接来查找相关资料并在回答之前检查引用的系统。"
++        self.prepare("# A\n\n" + body + "\n")
++        self.write_raw("# A\n\n" + body.replace("的", "の", 1) + "\n", fm=FM_T)
++        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
++
++    def test_chinese_second_sentence_must_also_be_translated(self):
++        first = "系统使用文档之间的显式链接建立知识图谱。"
++        second = "查询时需要检查相关证据并给出文档引用。"
++        self.prepare("# A\n\n" + first + second + "\n")
++        self.write_raw("# A\n\nシステムは文書間の明示的なリンクからグラフを作る。" + second + "\n", fm=FM_T)
++        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
++
++    def test_title_cased_sentence_is_not_a_name(self):
++        body = "We Use Apache Kafka And Redis For Fast Event Delivery Across All Regions Today."
++        self.prepare("# A\n\n" + body + "\n")
++        self.write_raw("# A\n\n" + body + "\n", fm=FM_T)
++        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
++
++    def test_short_phrases_require_review_before_completion(self):
++        body = "- Fixed crash on startup\n- Faster cold boot\n- New config loader\n"
++        self.prepare(body)
++        self.write_raw(body, fm=FM_T)
++        code, result = self.run_check("--finish")
++        self.assertEqual(code, 0, result)
++        self.assertFalse(result["completed"])
++        self.assertIn("translation_uncertain", {w["kind"] for w in result["warnings"]})
++        self.assertTrue(self.wd.exists())
++
++    def test_retained_labels_names_terms_and_values_are_reviewable(self):
++        cases = [
++            ("If the log says Permission denied while opening the configuration file, check ownership.\n",
++             "ログに Permission denied while opening the configuration file と出たら、所有者を確かめる。\n"),
++            ("Click Save all changes and continue to finish.\n", "Save all changes and continue をクリックして終える。\n"),
++            ("- Libraries used: numpy, scipy, pandas, matplotlib.\n", "- 使ったライブラリ: numpy、scipy、pandas、matplotlib。\n"),
++            ("The paper Language models are few-shot learners introduced GPT-3.\n",
++             "論文 Language models are few-shot learners は GPT-3 を発表した。\n"),
++            ("Follow the principle of least privilege.\n", "最小権限の原則（principle of least privilege）に従う。\n"),
++            ("| fast, safe | linux, darwin, windows |\n| --- | --- |\n",
++             "| fast, safe | linux, darwin, windows |\n| --- | --- |\n"),
++        ]
++        for source, output in cases:
++            with self.subTest(source=source):
++                self.prepare(source)
++                self.write_raw(output, fm=FM_T)
++                code, result = self.run_check("--finish")
++                self.assertEqual(code, 0, result)
++                self.assertFalse(result["completed"])
++                self.assertTrue(result["warnings"])
++                code, result = self.run_check("--finish", "--accept-warnings")
++                self.assertEqual(code, 0, result)
++                self.assertTrue(result["completed"])
++
++    def test_code_only_input_reports_no_prose_instead_of_checked_zero(self):
++        body = "```python\nprint('The engine reads the source documents before producing the final answer.')\n```\n"
++        self.prepare(body)
++        self.write_raw(body, fm=FM_T)
++        code, result = self.run_check("--finish")
++        self.assertEqual(code, 0, result)
++        self.assertEqual(result["translation"], {"state": "no_prose", "checked_blocks": 0})
++        self.assertTrue(result["completed"])
++
++    def test_html_blocks_cannot_silently_report_no_prose(self):
++        body = "<div>" + self.ENGLISH + "</div>\n"
++        for html, kind in ((False, "untranslated"), (True, "translation_html")):
++            with self.subTest(html=html), mock.patch.dict(wiki_rawcheck._PARSER.options, {"html": html}):
++                self.prepare(body)
++                self.write_raw(body, fm=FM_T)
++                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), kind)
 +
 +    def test_missing_or_non_boolean_requirement_is_not_optional(self):
 +        for value in (None, "false", 0, 1, [], {}):
