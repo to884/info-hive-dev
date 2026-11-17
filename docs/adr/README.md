@@ -36,5 +36,6 @@ info-hive の設計で決めたことと、その理由を残す。1 つの判�
 | [0030](0030-wiki-browse-shows-figures-as-images.md) | `/wiki:browse` は図を画像として見せ、Mermaid はサーバーの方式でだけ sandbox の枠で描く | 承認 | 2026年11月17日 |
 | [0031](0031-wiki-codex-plugin.md) | wiki のスキルと MCP を Codex のプラグインとして配布し、操作手順は Claude Code と共用する | 採用 | 2026年11月17日 |
 | [0032](0032-codex-session-history.md) | Codex の会話履歴を読み取り API で取り込み、依頼を含むターンを除いて範囲を固定し、既存の伏せ字と承認後の保存処理を共用する | 採用 | 2026年11月17日 |
+| [0033](0033-wiki-page-overview-lives-in-a-sidecar.md) | ページの概要は、図を埋め込んだ 1 つのサイドカーに置き、`wiki_overview.py` だけが書く | 承認 | 2026-11-17 |
 
 各 ADR には、状態、決定日、決定者、関連を表で書き、続けて背景、決定、理由、検討した選択肢、影響、参照を書く。判断を変えるときは元の ADR を書き換えず、新しい ADR を書いて、元の ADR の状態を「置き換え済み」にする。

@@ -344,8 +344,9 @@ class UnreadableExcludedDirTest(TempWiki):
         with self.denied():
             # assets/ は図の svg の入力（ADR-0030）。一覧を作れないことは、大きさのない asset_dir の項目で表し、
             # 閲覧は止めない（図の描画の設計の 6.1）
-            self.assertEqual([e[:4] for e in core.input_list(self.wiki)][-1], ("asset_dir", "assets", None, None))
-            self.assertEqual([e[0] for e in core.input_list(self.wiki)], ["page", "asset_dir"])
+            self.assertIn(("asset_dir", "assets", None, None), core.input_list(self.wiki))
+            self.assertIn(("overview_dir", "assets/overview", None, "unreadable"), core.input_list(self.wiki))
+            self.assertEqual([e[0] for e in core.input_list(self.wiki)], ["page", "asset_dir", "overview_dir"])
             report = self.build(self.base / "site")
             # stop と動いているかの確かめの最初の手順も、入力でない場所に触れない
             state, _rec = fs.probe_server(self.wiki, wiki_browse.browse_dir(), wiki_browse._state_dir(self.wiki),

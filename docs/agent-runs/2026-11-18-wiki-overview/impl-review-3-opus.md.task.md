@@ -1,0 +1,8 @@
+前回は採用可。残った軽微1〜3への最終修正だけを短く再確認してほしい。前回確かめた箇所やブラウザ/全試験は繰り返さず、編集/委任/fetchはしない。今回の対象の作業ツリーは固定する。
+
+1. 規定名のハードリンクをSidecarWalk.filesに残してunsafe=Trueとする。CLIも以前どおりbroken/unreadableを返す。browseの四つ組のmtime属性にunsafe:<mtime>を記録し、既知の拒否は読まずf.error=unsafeにする。manifestのunreadable_overviewsにも含む。nlink1への回復で印が消えるのでsize/mtime不変でも署名が変わる。回帰試験でstatus,browse,manifest,recoveryを確認。
+2. remove --orphanはリンクがあってもsidecar absentなら元どおりabsentを返す。実ハードリンクのあるwikiでの回帰試験を追加。
+3. 壊れて識別子を読めない孤立概要は、拒否した道があれば不在と断定できないため拒む方針を保持。保存設計7.6とbroken所見の条件を更新。commands/overview.mdとSCHEMAのPage overviews節で、対応と不要であることを人が確認した場合に限りサイドカーだけを手で削除する復旧手順を記載。手で本文や図を編集して直すこととは区別。
+4. brokenと衝突が重なるときのdetail優先は、壊れている状態を先に返す元の優先順位を保つ。元の記事側の衝突診断は既に別途ある。
+
+前回までの159件は失敗0、Python3.14の71件失敗0、強化した5ブラウザ20ケース失敗0、local Codex導入/MCP統計検索成功。今回の変更の狭い試験は実行中。採否と今回の変更による重大な欠陥があるかを簡潔に報告。

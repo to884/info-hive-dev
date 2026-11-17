@@ -36,7 +36,7 @@ sys.path.insert(0, str(SCRIPTS))
 import wiki_help  # noqa: E402
 import wiki_pages  # noqa: E402
 
-EXPECTED = ["init", "ingest", "query", "lint", "stats", "graph", "browse", "learn", "evolve", "upgrade", "help"]
+EXPECTED = ["init", "ingest", "query", "lint", "stats", "graph", "browse", "overview", "learn", "evolve", "upgrade", "help"]
 # commands/help.md がシェルに渡す名前を確かめる正規表現。help.md の文と同じ文字列であること。
 SHELL_SAFE = r"^[A-Za-z0-9][A-Za-z0-9-]*$"
 BASE = "https://github.com/owner/repo/blob/v1.2.3"

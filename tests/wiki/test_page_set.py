@@ -117,6 +117,16 @@ class PageSetTests(Wiki):
         self.assertIn("concepts/Upper.MD", found)
         self.assertEqual(wiki_stats.compute_stats(self.wiki)["pages"], len(PAGES) + 1)
 
+    def test_overview_sidecars_and_drafts_are_not_pages(self):
+        self.write("assets/overview/0123456789abcdef.overview.md", page("概要だけの語句", "[[存在しないページ]]"))
+        self.write(".wiki-cache/overview/work/0123456789abcdef/draft/overview.md", page("下書きだけの語句"))
+        expected = sorted(PAGES)
+        self.assertEqual(sorted(p["rel_path"] for p in wiki_lint.collect_pages(self.wiki)), expected)
+        self.assertEqual(sorted(p["rel_path"] for p in self.quiet(wiki_search.collect_pages, self.wiki)), expected)
+        self.assertEqual(wiki_stats.compute_stats(self.wiki)["pages"], len(expected))
+        if wiki_graph_extract is not None:
+            self.assertEqual(sorted(p["rel_path"] for p in wiki_graph_extract.collect_pages(self.wiki)), expected)
+
     def test_lint_search_stats_graph_agree(self):
         expected = sorted(PAGES)
         lint_set = sorted(p["rel_path"] for p in wiki_lint.collect_pages(self.wiki))

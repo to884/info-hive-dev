@@ -769,7 +769,7 @@ class QuickSweepTest(unittest.TestCase):
             import browse_read_sweep as rs
         except ImportError as e:      # 中核は同梱の markdown-it を読み込む。PyYAML は要らない
             self.skipTest(f"読む側の探索を読み込めない: {e}")
-        runs, problems = rs.sweep_read("absent", ("denied", "raise"), only_roles=("walk", "read:", "assets", "parse"))
+        runs, problems = rs.sweep_read("absent", ("denied", "raise"), only_roles=("walk", "read:", "assets", "parse", "overview_walk"))
         self.assertGreater(runs, 0)
         self.assertEqual(problems[:3], [])
 

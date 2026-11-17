@@ -101,6 +101,9 @@ jobs:
       - name: lint の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_wiki_lint.py -v
+      - name: ページの概要の保存と状態の試験（ADR-0033）
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 python -X utf8 -B -m unittest tests/wiki/test_wiki_overview.py tests/wiki/test_overview_measurement.py -v
       - name: 初期化していない wiki の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_uninitialized_wiki.py -v

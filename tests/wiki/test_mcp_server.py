@@ -447,7 +447,22 @@ class ScriptToolTests(ServerCase):
         return [json.loads(line)["id"] for line in lines if line.strip()]
 
     def test_lint_matches_cli(self):
+        # 概要の所見も CLI と同じになる。初期化済みのコーパスに、古い概要と壊れた孤立概要を置く。
+        import wiki_overview
+        import wiki_pages
+        record = wiki_pages.walk_pages(self.wiki).files[0]
+        request = wiki_overview.begin(self.wiki)["request_path"]
+        Path(request).write_bytes(json.dumps({"format": 2, "action": "create", "id": wiki_overview.page_id(record.rel)},
+                                            ensure_ascii=False).encode("utf-8"))
+        ready = wiki_overview.prepare(self.wiki)
+        (Path(ready["draft_dir"]) / "overview.md").write_bytes("### 概要\n\n試験の概要。\n".encode("utf-8"))
+        wiki_overview.write(self.wiki, ready["work_id"])
+        source = self.wiki / record.rel
+        source.write_bytes(source.read_bytes() + "\n変更した本文。\n".encode("utf-8"))
+        (self.wiki / "assets/overview/0000000000000000.overview.md").write_bytes(b"broken")
         result = self.call("lint", suggest_pages=True)
+        self.assertEqual(len(result["overview_stale"]), 1)
+        self.assertEqual(result["overview_problems"][0]["code"], "broken")
         graph = result.pop("graph")
         self.assertEqual(result, run_cli(SCRIPTS / "wiki_lint.py", self.wiki.resolve(), "--json", "--suggest-pages"))
         # オントロジーがない wiki では、CLI の 3 つの入口と同じ文面で disabled を返す。

@@ -1,0 +1,63 @@
+[ask-claude 07:48:06] claude-opus-5-5 に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-overview\info-hive-wiki）
+## 判定
+
+**採用可。** 確信度は中〜高。
+
+依頼された軽微1〜3の修正は、一時 wiki で実測したとおり主張どおりに動いた。今回の変更で入った致命的・重大な欠陥はない。
+
+## 致命的・重大な欠陥
+
+なし
+
+## 崩れる前提
+
+- **「broken で `orphan_id` が付いた概要は、`remove --orphan` で消せる」は崩れる。**
+  - 規定の名前のサイドカーがハードリンクで、元ページがなく、wiki にリンクがない場合に起きる。
+  - status は `broken/unreadable` で、`orphan_id` が付く。所見の文は「概要は壊れており、元のページもない。remove --orphan で削除できる。」になる（`inspect_wiki` のコードから）。
+  - 実際の `remove --orphan` は `unsafe_path` で拒む（実測）。
+  - これは段階1からの挙動で、HEAD でも同じ経路である。今回の差分で入ったものではない。
+
+## 見落としと軽微な問題
+
+1. **【軽微・既存】ハードリンクの孤立概要で、案内と実際の動きが食い違う。** 上の前提のとおりで、保存設計 371 行の「`remove --orphan` を案内する」にも同じ穴がある。
+2. **【軽微】手で削除する手順に、所見からたどり着けない。** 壊れて識別子を読めず、wiki に読まなかった記事のリンクがある概要が対象である。
+   - lint の所見は「概要を読めない。元のページがあれば作り直すか削除する」のままである。
+   - `commands/overview.md` と SCHEMA に足した手で削除する手順を、所見は指していない。
+   - 動きの誤りではなく、案内が届かない問題である。
+3. **【軽微】SCHEMA.md.template の変更は既存の wiki に届かない（推論）。** 新しい段落は、既存の wiki では `/wiki:upgrade` を通すまで反映されない。
+
+## 検証した事実
+
+一時 wiki で実測した結果は次のとおり。
+
+- **規定の名前のハードリンク**
+  - status は `[('broken','unreadable')]` で、所見も `broken/unreadable` だった。主張と一致した。
+  - browse は `broken` を描き、`transient` は `[]`、manifest の `unreadable_overviews` は 1 だった。主張と一致した。
+  - 入力の四つ組は `('overview', …, 310, 'unsafe:<mtime>')` だった。
+  - リンクを外すと、大きさと更新時刻はそのままでも署名が変わり、`fresh` に戻った。主張と一致した。
+- **リンクのある wiki で、存在しない概要を `remove --orphan`**：`{'status': 'absent'}` を返した。主張と一致した。
+- **リンクのある wiki で、ハードリンクの孤立概要を `remove --orphan`**：`not_orphan` で拒み、概要は残った。
+- **保存設計 279 行と 371 行**
+  - 279 行：リンクがなければ中身を読まずに消せる。拒んだ道があれば識別子と照合し、読めなければ `not_orphan`。サイドカーがなければ `absent`。
+  - 371 行：broken に `orphan_id` を付けるのは、リンクに隠れた記事でもないと確かめられた場合だけ。
+  - どちらも新しい規則にそろっていた。
+  - コードの `orphan_id = key if page.kind == "absent"` も、`missing_page_state` の結果に従っている。一致した。
+- **四つ組の4つ目の値（更新時刻の位置）**：ここに文字列を入れても、数として扱う読み手はない。
+  - 使うのは `signature_of`（文字列にしてハッシュ）、`_machine_needles`、`take_snapshot` の `startswith("unsafe:")` だけである（grep で確認）。
+- **broken と衝突が重なるとき**：破損の `detail` を優先し、記事側の `id_collision` 診断は別に出る。元の優先順位どおりで、一致した。
+
+## 崩せなかった点
+
+- **確かめと読み取りの間の差し替え**
+  - 走査では nlink が 1 で、読み取りの直前に 2 になった場合：読み取りが `unsafe_path` で拒み、2回目の走査で印が付くので `InputsChanged` になる（コードから）。
+  - 逆に、拒否を transient に誤って入れて再構築を繰り返す経路も見つからなかった。
+- **`remove --orphan` の fail-closed**：リンクがあり、識別子を読めないときは、消さずに拒む。消してはならない概要を消す経路は見つからなかった。
+- **規定の名前の不正な項目（ディレクトリ、リンク）**：browse は `broken` を出し、status は `unknown_entry` を出す。表示設計4節の「未作成とせず、概要を読めないと表示する」と、HEAD の status の所見の両方に合っている。
+
+**推奨モデルとエフォート：** 残りの軽微1と2（所見と案内の文を直す）は Sonnet、low で足りる。
+
+`✶ Insight ─────────────────────────────────────`
+- 既知の拒否を「読み取りの失敗」ではなく「入力の属性」（`unsafe:<mtime>`）として署名に入れた。そのため、大きさと更新時刻が変わらない回復も検出でき、無駄な再試行もしない。
+- fail-closed にした操作では、拒んだあとに利用者が取れる道を、所見の文から示す必要がある。その道が別の文書にしかないと、操作は安全でも利用者は先へ進めない。
+`─────────────────────────────────────────────────`
+[ask-claude 07:49:16] 完了（claude-opus-5-5）。session 3ff5bf50-36b7-4b2a-9f1b-44e59b224c4c  usage {"total_cost_usd": 7.166824399999999, "usage": {"input_tokens": 6, "cache_creation_input_tokens": 37679, "cache_read_input_tokens": 783523, "output_tokens": 5070, "output_tokens_details": {"thinking_tokens": 1658}, "server_tool_use": {"web_search_requests": 0, "web_fetch_requests": 0}, "service_tier": "standard", "cache_creation": {"ephemeral_1h_input_tokens": 37679, "ephemeral_5m_input_tokens": 0}, "inference_geo": "global", "iterations": [{"input_tokens": 2, "output_tokens": 2258, "cache_read_input_tokens": 274521, "cache_creation_input_tokens": 2461, "cache_creation": {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 2461}, "type": "message"}], "speed": "standard", "fallback_credit": null}}

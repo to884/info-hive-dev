@@ -4,6 +4,11 @@
 
 | ファイル | 中身 |
 | --- | --- |
+| `test_wiki_overview.py` | 概要の生成前の準備、下書きと埋め込み SVG の検査、保存と新しさ、元ページの消失と読み取り失敗、再試行、孤立概要の削除、経路の検査、子プロセスを置き換え前後で止めたときの状態（ADR-0033）。標準ライブラリと同梱の Markdown 解析器だけで動く |
+| `test_browse_overview.py` | 概要と元ページを同じ写しから表示すること、衝突時の扱い、保存の64 KiBと空白の境界、HTTPと静的SVGの一致、概要だけの更新、読み取り失敗と回復 |
+| `browse/overview.test.mjs` | 概要の開閉、SVGとMermaid、明暗配色、320px、CSPと外部通信、静的版とサーバーの実ブラウザ試験。`BROWSERS` で5つのブラウザを選べる |
+| `test_overview_measurement.py` | 測定用ログの呼び出しと結果を照合し、Read の失敗、check の拒否、結果の欠落を成功に数えないこと。LLM は起動しない |
+| `measure_overview_command.py` | Sonnet 5.5 で `/wiki:overview` を3回流す手動測定。`--runs` と `--out` を指定できる。Claude の利用枠を使うため、CI と通常の unittest からは呼ばない |
 | `test_wiki_index.py` | 検索の基盤（`wiki_index.py`）の試験。差分の更新、途中で止まったときのそろえ直し、Tantivy の commit のやり直し、fingerprint が変わったときの作り直し、書き手のロック、`index_chunks` の世代。MCP の `query` の結果の `tags` と `sources` が、値を 1 つだけ書いた frontmatter でも文字の配列になること（wiki 0.12.1）。`title` が値なしや配列のページがあっても索引が止まらず、`query` と `list_index` の題名が文字になること（wiki 0.12.2）。`type` と `updated` を配列や値なしで書いたページでも、`query` の結果がそれを文字か `null` で返し、`type` と `since` の絞り込みがその値で比べること |
 | `test_mcp_server.py` | サーバーと中継の試験。トークンと Host ヘッダー、127.0.0.1 だけで待ち受けること、中継を 4 つ同時に起動してもサーバーが 1 つ、中継の終了後もサーバーが残ること、サーバーが止まった後や呼び出しの途中で止まったときの接続し直し、版の違うサーバーの入れ替え、要求がないときの停止。ツール `lint`、`stats`、`graph` が CLI の `--json` と同じ結果を返すこと |
 | `test_uninitialized_wiki.py` | 初期化していないディレクトリを wiki として扱わないこと（ADR-0019、wiki 0.13.0。設計は `docs/plans/wiki-uninitialized-root-2026-11-13.md`）。判定（`wiki_initialized.problem()`）の表の各行、wiki のパスを受け取る CLI の入口が、`SCHEMA.md` のないディレクトリ、ないパス、ファイルを断って理由と `/wiki:init` を示し、基準のディレクトリ（wiki、raw、データの場所）の木を変えないこと、`SCHEMA.md` を置くと断らないこと。Web ページの取得がネットより先に確かめ、raw のルートを作らないこと、経験の記録とアップグレードの扱い。入口をファイルから機械的に数え、どれも判定を使い、試験されていること。コマンドの文章とスキルの指示。PyYAML が要る。MCP のツールと閲覧のサーバーの分は、`test_mcp_server.py` の `UninitializedWikiTests` と `test_browse_server.py` の `test_schema_removed_while_serving_is_503` にある |

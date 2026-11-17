@@ -218,8 +218,8 @@ class TemplateScriptPathTests(unittest.TestCase):
             with self.subTest(example=example):
                 self.assertIn(" --wiki wiki/ ", example)
 
-    def test_upgrade_markers_unchanged(self):
-        self.assertEqual([m["marker"] for m in init_wiki.SCHEMA_SECTION_MARKERS], MARKERS_0_9_0)
+    def test_upgrade_markers_preserve_old_order_and_add_overviews(self):
+        self.assertEqual([m["marker"] for m in init_wiki.SCHEMA_SECTION_MARKERS], MARKERS_0_9_0 + ["## Page overviews"])
         self.assertEqual(init_wiki.detect_schema_gaps(ASSETS / "SCHEMA.md.template"), [])
 
 

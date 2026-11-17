@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, "..", "..", "..");
-const SCRIPT = join(REPO, "info-hive-wiki", "skills", "info-hive", "scripts", "wiki_browse.py");
+const SCRIPT = process.env.BROWSE_SCRIPT || join(REPO, "info-hive-wiki", "skills", "info-hive", "scripts", "wiki_browse.py");
 const LIMIT_MS = Number(process.env.LIMIT_MS || 5000);
 const PAGES = Number(process.env.PAGES || 1000);
 

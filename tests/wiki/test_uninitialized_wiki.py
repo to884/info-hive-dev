@@ -215,12 +215,21 @@ class EntryCase(unittest.TestCase):
             "id": "uninit-check", "task": "確かめ", "verification": "試験", "model": "m", "tools": "t",
             "scope": "試験", "outcome": "success", "actions": ["動かした"]}, ensure_ascii=False))
 
+    def diagnostic(self, done):
+        if any(str(arg).endswith("wiki_overview.py") for arg in done.args):
+            result = json.loads(done.stdout)
+            self.assertEqual(result["status"], "error")
+            self.assertEqual(result["code"], "not_initialized")
+            self.assertEqual(done.stderr, "")
+            return result["message"]
+        return done.stderr
+
     def assert_refused(self, args, stdin=None, cwd=None, hint=INIT):
         before = snapshot(self.base)
         done = run(args, cwd or self.base, self.env, stdin)
         after = snapshot(self.base)
         self.assertEqual(done.returncode, 1, f"{args}\n{done.stdout[-2000:]}\n{done.stderr[-2000:]}")
-        self.assertIn(hint, done.stderr, done.stderr)
+        self.assertIn(hint, self.diagnostic(done))
         self.assertNotIn("Traceback", done.stderr)
         self.assertEqual(after, before, f"{args} が書いた: {sorted(set(after) ^ set(before))}")
         return done
@@ -241,6 +250,7 @@ class ReaderEntryTests(EntryCase):
         return {
             "lint": [SCRIPTS / "wiki_lint.py", w, "--json"],
             "stats": [SCRIPTS / "wiki_stats.py", w, "--json"],
+            "overview-status": [SCRIPTS / "wiki_overview.py", "status", w],
             "search": [SCRIPTS / "wiki_search.py", "目印", "--wiki", w, "--json", "--no-embed"],
             "search-cache": [SCRIPTS / "wiki_search.py", "目印", "--wiki", w, "--cache", "--json", "--no-embed"],
             "backlinks": [SCRIPTS / "wiki_search.py", "", "--wiki", w, "--backlinks", "目印のページ"],
@@ -302,13 +312,13 @@ class ReaderEntryTests(EntryCase):
             pass
         for name, args in self.cases(through).items():
             with self.subTest(entry=name):
-                self.assertIn("wiki のディレクトリが見つからない", self.assert_refused(args).stderr)
+                self.assertIn("wiki のディレクトリが見つからない", self.diagnostic(self.assert_refused(args)))
 
     def test_entries_refuse_and_write_nothing(self):
         for name, args in self.cases().items():
             with self.subTest(entry=name):
                 done = self.assert_refused(args)
-                self.assertIn(REFUSED, done.stderr)
+                self.assertIn(REFUSED, self.diagnostic(done))
 
     def test_default_wiki_is_checked(self):
         """wiki を省くと ./wiki を使う。その ./wiki も確かめる。"""
@@ -321,7 +331,7 @@ class ReaderEntryTests(EntryCase):
         for name, args in self.cases().items():
             with self.subTest(entry=name):
                 done = self.assert_refused(args)
-                self.assertIn("wiki のディレクトリが見つからない", done.stderr)
+                self.assertIn("wiki のディレクトリが見つからない", self.diagnostic(done))
 
     def test_file_as_wiki_shows_hint(self):
         """ディレクトリでないものを渡しても、同じ判定の文と案内で止まる。"""
@@ -329,7 +339,7 @@ class ReaderEntryTests(EntryCase):
         write(self.wiki, "ファイル\n")
         for name, args in self.cases().items():
             with self.subTest(entry=name):
-                self.assertIn("ディレクトリではない", self.assert_refused(args).stderr)
+                self.assertIn("ディレクトリではない", self.diagnostic(self.assert_refused(args)))
 
     def test_browse_core_answers_no_wiki(self):
         request = json.dumps({"op": "manifest", "wiki": str(self.wiki)}, ensure_ascii=False) + "\n"
@@ -341,7 +351,7 @@ class ReaderEntryTests(EntryCase):
     def test_initialized_wiki_is_accepted(self):
         """同じ呼び出しが、SCHEMA.md を置くと断られない（lint、stats、search は成功する）。"""
         cases = self.cases()
-        for name in ("lint", "stats", "search", "search-cache"):
+        for name in ("lint", "stats", "search", "search-cache", "overview-status"):
             with self.subTest(entry=name):
                 done = self.accepted(cases[name])
                 self.assertEqual(done.returncode, 0, done.stderr[-2000:])
@@ -493,6 +503,7 @@ class EntranceInventoryTests(unittest.TestCase):
         "wiki_search.py": "ReaderEntryTests の search、search-cache、backlinks",
         "wiki_session.py": "ReaderEntryTests の session-*、tests/wiki/test_wiki_session.py",
         "wiki_stats.py": "ReaderEntryTests の stats",
+        "wiki_overview.py": "ReaderEntryTests の overview-status、tests/wiki/test_wiki_overview.py",
         "wiki_youtube.py": "ReaderEntryTests の youtube-*、tests/wiki/test_wiki_youtube.py",
     }
     RUNNERS = {

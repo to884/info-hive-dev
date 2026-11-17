@@ -1,0 +1,13 @@
+段階2の実装レビュー1の指摘を修正した。前のセッションを使い、以下の修正と関連する新しい欠陥だけを敵対的に再確認してほしい。対象の作業ツリーはこの依頼中は固定する。編集や委任、git fetch、全試験の再実行はしない。狭い反例は実行可。
+
+1. 重大1: PageIndexに読まなかったリンクを保存し、共有のmissing_page_stateでサイドカーの識別子と拒否パスを直接NFC照合する。ディレクトリ境界または.md除去の一致ではpage_unreadable。CLI/status/browse共通。remove --orphanは元ページ不在を確かめられなければnot_orphan、概要と下書きを残す。リンクが無ければ壊れた概要の本文は読まずに消せる。ADR-0033と設計にもこの境界を追記。
+2. hardlink側: walk_sidecarsがnlink!=1をoverview_entryとして記録し、既知の拒否をtransientにしない。nlinkが1へ戻ると入力の種類が変わるため同じsize/mtimeでも署名変化。安全性検査が読み取り時に失敗した場合はunsafe、真のOS障害のみtransient。
+3. too_largeの重複排除。存在しない概要へのcollision診断の除去と診断1件化。不正な概要には無条件の再生成案内を出さない。描かない記事の概要SVGを出力しない。古い「将来のbrowse」を修正。
+4. 前回差分取得後の変更: wiki_pages.page_text/normalized_text_sha256を共用してBOMを一度だけ除く。二重BOM+CRLFの回帰試験追加済み。SERVER_FILESにwiki_fetch/wiki_rawcheck/wiki_youtube_urlの依存3ファイルを追加。
+5. 試験: tests/wiki/test_browse_overview.pyへ実ハードリンク、実ディレクトリリンク、削除拒否と概要不変、nlink回復、サイズ診断、概要lstat/open障害、非描画記事の図を追加。browserは配色変更前後でMermaidのsrcが変わって枠が無くなるまで待ち、手書きSVGの地がrgb(255,255,255)のままであることを確認。
+
+判断: Assetsやassetsリンクへの警告は保持する。概要が無いことを調べるためにリンクを降りることはできない。sweepの全網羅とは主張せず、今回のlstat/open境界を専用試験で追加した。SVG SHA衝突は現実的でなくてもpure関数をmockしてfail-closedを確かめる。
+
+起動性能は既存mainでもホスト変動で本文中央値5.315秒。修正後を単独で測った最終実行は本文2.873秒、索引3.467秒で既存5秒基準を通過。性能の閾値は変更していない。
+
+判定、残る致命的/重大、採らなかった軽微指摘の判断を簡潔に報告。
