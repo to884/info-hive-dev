@@ -298,7 +298,7 @@ def link_dir(link: Path, target: Path) -> bool:
 
 
 class SignatureTest(TempWiki):
-    def test_linked_indexes_dir_is_watched(self):
+    def test_linked_indexes_dir_is_refused_and_reported(self):
         write(self.wiki, "a.md", page("# A"))
         split = self.base / "split-indexes"
         write(split, "contents.md", "# OLD_NAV\n\n- [[a]]\n")
@@ -306,9 +306,10 @@ class SignatureTest(TempWiki):
             self.skipTest("ディレクトリのリンクを作れない")
         before = core.signature(self.wiki)
         c = build_core(self.wiki)
-        self.assertIn("OLD_NAV", c.render_data("nav.js"))
+        self.assertNotIn("OLD_NAV", c.render_data("nav.js"))
+        self.assertTrue(any(d.get("kind") == "link" and d.get("path") == "indexes" for d in c.diagnostics))
         write(split, "contents.md", "# NEW_NAV_LONGER\n\n- [[a]]\n")
-        self.assertNotEqual(core.signature(self.wiki), before)
+        self.assertEqual(core.signature(self.wiki), before)
 
     def test_link_loop_terminates_and_skipped_dirs_are_ignored(self):
         write(self.wiki, "concepts/a.md", page("# A"))
@@ -2164,6 +2165,76 @@ class FigureSvgTest(TempWiki):
         self.assertEqual([f["target"] for f in found], ["../assets/a\\&amp;b.svg"])
         c = build_core(self.wiki)
         self.assertIn('<img class="fui-Image"', c.render(c.out_name["concepts/r"]))
+
+
+class MermaidAssetsTest(TempWiki):
+    """Mermaid の同梱物と、ページの読み込み（ADR-0030、図の描画の設計の 7.2、7.3）。"""
+    ASSET_DIR = SCRIPTS / "browse_assets"
+
+    def test_tiny_matches_record(self):
+        data = (self.ASSET_DIR / "mermaid.tiny.js").read_bytes()
+        readme = (self.ASSET_DIR / "README.md").read_text(encoding="utf-8")
+        self.assertIn(hashlib.sha256(data).hexdigest(), readme)
+        self.assertIn(f"{len(data):,} バイト", readme)
+        self.assertIn(f"`{core.FRAME_VERSION}`", readme)
+        attrs = (ROOT / "info-hive-wiki" / ".gitattributes").read_text(encoding="utf-8")
+        self.assertIn("skills/info-hive/scripts/browse_assets/mermaid.tiny.js -text", attrs)
+
+    def test_frame_version_matches_figures_js(self):
+        js = (self.ASSET_DIR / "figures.js").read_text(encoding="utf-8")
+        self.assertIn(f'var FRAME_VERSION = "{core.FRAME_VERSION}";', js)
+
+    def test_frame_document_has_no_inline_code_or_meta_csp(self):
+        import re
+        doc = (self.ASSET_DIR / "mermaid-frame.html").read_text(encoding="utf-8")
+        self.assertNotIn("Content-Security-Policy", doc)     # <meta> を置くと WebKit が 'self' で止める
+        self.assertNotIn("style", doc)
+        self.assertEqual(re.findall(r"<script[^>]*>", doc),
+                         ['<script src="mermaid.tiny.js">', '<script src="mermaid-frame.js">'])
+        self.assertEqual(re.findall(r"<script[^>]*>([^<]*)</script>", doc), ["", ""])
+        self.assertEqual(sorted(core.load_frame_assets()), sorted(core.FRAME_ASSETS))
+
+    def test_license_notice_is_in_frame_script(self):
+        js = (self.ASSET_DIR / "mermaid-frame.js").read_text(encoding="utf-8")
+        self.assertIn("MIT ライセンス、Copyright (c) 2014 - 2022 Knut Sveidqvist", js)
+        self.assertTrue((self.ASSET_DIR / "licenses" / "mermaid.LICENSE").is_file())
+        self.assertTrue((self.ASSET_DIR / "licenses" / "mermaid.THIRD-PARTY-NOTICES.txt").is_file())
+
+    def test_frame_csp(self):
+        csp = core.frame_csp(41234)
+        self.assertIn(f"script-src http://127.0.0.1:41234/_frame/{core.FRAME_VERSION}/;", csp)
+        self.assertNotIn("'self'", csp)
+        self.assertIn("default-src 'none'", csp)
+        self.assertIn("style-src 'unsafe-inline'", csp)
+        self.assertTrue(csp.endswith("sandbox allow-scripts"))
+        self.assertIn("frame-src 'self'", core.CSP)
+        self.assertNotIn("unsafe", core.CSP)
+
+    def test_build_has_figures_js_but_not_the_frame(self):
+        write(self.wiki, "a.md", page("# A\n\n```mermaid\nflowchart LR\n  a --> b\n```\n"))
+        out = Path(self.build()["out"])
+        self.assertEqual((out / "assets" / "figures.js").read_bytes(), (self.ASSET_DIR / "figures.js").read_bytes())
+        for name in core.FRAME_ASSETS:
+            self.assertFalse(list(out.rglob(name)), name)
+        html_text = (out / "a.html").read_text(encoding="utf-8")
+        self.assertIn('<script src="assets/figures.js"></script>', html_text)
+        self.assertLess(html_text.index("assets/app.js"), html_text.index("assets/figures.js"))
+        self.assertIn('<code class="language-mermaid">', html_text)     # 静的版ではコードのまま
+        self.assertIn("frame-src &#x27;self&#x27;", html_text.replace("'", "&#x27;"))
+
+    def test_assets_are_not_scanned_for_machine_info(self):
+        # 同梱物は入力の中身を含まないので、公開の前の検査で調べない（図の描画の設計の 7.2）
+        write(self.wiki, "a.md", page("# A"))
+        seen = []
+        real = core.scan_machine_info
+
+        def spy(files, needles, tokens):
+            seen.extend(files)
+            return real(files, needles, tokens)
+        with mock.patch.object(core, "scan_machine_info", spy):
+            self.build()
+        self.assertIn("a.html", seen)
+        self.assertFalse([n for n in seen if n in core.ASSETS])
 
 
 class UnlistableAssetsTest(TempWiki):

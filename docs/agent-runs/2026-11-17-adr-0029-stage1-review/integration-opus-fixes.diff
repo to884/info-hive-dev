@@ -1,0 +1,179 @@
+diff --git a/skills/info-hive/scripts/wiki_browse.py b/skills/info-hive/scripts/wiki_browse.py
+index 710d365..70c6949 100644
+--- a/skills/info-hive/scripts/wiki_browse.py
++++ b/skills/info-hive/scripts/wiki_browse.py
+@@ -192,7 +192,8 @@ def build(root: PurePath, out_arg: "str | None", raw: "str | None", scope: "str
+         warnings.append(f"この入力を読めない。ない Wiki と同じに描き、「読めない」と示した（{kind}: {rel}）")
+ 
+     report = {"wiki": root.as_posix(), "out": PurePath(out).as_posix(), "generation": c.generation,
+-              "pages": len(c.drawn), "raw": raw, "warnings": list(warnings), "diagnostics": len(c.diagnostics)}
++              "pages": len(c.drawn), "raw": raw, "warnings": list(warnings), "diagnostics": len(c.diagnostics),
++              "link_warnings": list(c.link_warnings)}
+     fs.WARNINGS.clear()
+     for message in warnings:
+         fs.warn(message)
+diff --git a/skills/info-hive/scripts/wiki_browse_core.py b/skills/info-hive/scripts/wiki_browse_core.py
+index 45a5a91..6430ae8 100644
+--- a/skills/info-hive/scripts/wiki_browse_core.py
++++ b/skills/info-hive/scripts/wiki_browse_core.py
+@@ -809,6 +809,8 @@ class Core:
+         self._render_lock = threading.Lock()
+         self._build_pages()
+         self._build_assets()
++        self.link_warnings = [{"path": rel, "kind": kind} for entry, rel, _size, kind in snapshot.entries
++                              if entry == "link"]
+         # 走査がリンクなので読まなかった記事と記事までの道（ADR-0029）。黙って消さず、診断に出す
+         for kind, rel, _size, link_kind in snapshot.entries:
+             if kind == "link":
+@@ -945,6 +947,9 @@ class Core:
+         """wikilink の行き先を解決する（設計の 3.3）。"""
+         disks = wiki_pages.link_candidates(target, self.pages_by_path, self.pages_by_slug)
+         if not disks:
++            refused = wiki_pages.refused_link(target, self.link_warnings)
++            if refused is not None:
++                return {"state": "refused", "target": target, "path": refused["path"], "link_kind": refused["kind"]}
+             return {"state": "unresolved", "target": target}
+         pid = self.resolve_disks(disks)
+         if pid is None:
+@@ -1018,7 +1023,11 @@ class Core:
+             for r in found:
+                 where = {"page": pid} if drawn else {"page": None, "source_page": pid}
+                 if r["state"] != "resolved":
+-                    self.diagnostics.append({"kind": r["state"], **where, "target": r["target"]})
++                    if r["state"] == "refused":
++                        self.diagnostics.append({"kind": "link", **where, "target": r["target"],
++                                                 "path": r["path"], "link_kind": r["link_kind"]})
++                    else:
++                        self.diagnostics.append({"kind": r["state"], **where, "target": r["target"]})
+                 elif r.get("missing_heading"):
+                     self.diagnostics.append({"kind": "missing_heading", **where, "target": r["target"]})
+ 
+@@ -1370,7 +1379,7 @@ class Core:
+                     self.page_groups[pid].update(x["id"] for x in trail)
+                     if pid not in self.index_summary and it.get("after"):
+                         self.index_summary[pid] = it["after"]
+-                elif it["state"] in ("unresolved", "ambiguous"):
++                elif it["state"] in ("unresolved", "ambiguous", "refused"):
+                     self.index_unresolved.append(([x["title"] for x in trail if x["title"]], it))
+             for ch in g["children"]:
+                 rec(ch, trail)
+@@ -1415,6 +1424,8 @@ class Core:
+             return f'<a class="{cls}" href="{html.escape(href)}">{label}</a>'
+         if r["state"] == "ambiguous":
+             return f'<span class="wl wl-ambiguous" title="行き先を 1 つに決められない">{label}</span>'
++        if r["state"] == "refused":
++            return f'<span class="wl wl-unresolved" title="リンクなので読まない">{label}</span>'
+         return f'<span class="wl wl-unresolved" title="ページがない">{label}</span>'
+ 
+     def _transform_inline(self, children, path: str, counter: list, file: str) -> list:
+@@ -1611,7 +1622,7 @@ class Core:
+         lis = []
+         for d in items:
+             parts = [d["kind"]]
+-            for key in ("target", "reason", "output", "node_id", "predicate", "object", "source", "source_page"):
++            for key in ("target", "path", "link_kind", "reason", "output", "node_id", "predicate", "object", "source", "source_page"):
+                 if d.get(key):
+                     parts.append(f"{key}: {d[key]}")
+             lis.append(f"<li>{html.escape(' / '.join(map(str, parts)))}</li>")
+@@ -1772,10 +1783,8 @@ class Core:
+             return ""
+         lis = []
+         for trail, it in self.index_unresolved:
+-            title = "ページがない" if it["state"] == "unresolved" else "行き先を 1 つに決められない"
+             where = f'<span class="fui-Caption1 state">（{html.escape(" › ".join(trail))}）</span>' if trail else ""
+-            lis.append(f'<li><span class="wl wl-{it["state"]}" title="{title}">{html.escape(it["label"])}</span>'
+-                       f"{where}</li>")
++            lis.append(f'<li>{self._link_html("index.html", it)}{where}</li>')
+         return ('<section id="_index_unresolved"><h2 class="fui-Subtitle2">ページに決まらない Index の行</h2>'
+                 f'<ul>{"".join(lis)}</ul></section>\n')
+ 
+diff --git a/skills/info-hive/scripts/wiki_lint.py b/skills/info-hive/scripts/wiki_lint.py
+index cf20ea1..c2bcc9c 100644
+--- a/skills/info-hive/scripts/wiki_lint.py
++++ b/skills/info-hive/scripts/wiki_lint.py
+@@ -92,6 +92,7 @@ from wiki_pages import (  # noqa: E402
+     WIKILINK_RE,
+     case_only_duplicates,
+     clean_link_target,
++    refused_link,
+     extract_wikilinks,
+     build_page_index,
+     classify_source_ref,
+@@ -484,20 +485,12 @@ def lint(pages: list[dict], soft_cap: int, hard_cap: int, required_fm: list[str]
+ 
+     # 記事と記事までの道のリンク（ADR-0029）。走査はリンクの記事を読まないので、ページの集合に入らない。
+     # そのページへの wikilink は、リンク切れではなく、ここで挙げる（拒んだことを「ない」に変えない。I4）。
+-    refused_by_path, refused_slugs = {}, set()
+     if wiki_root is not None:
+         report = link_report(Path(wiki_root))
+         findings["links"] = report["links"]
+         findings["links_unchecked"] = report["unchecked"]
+         # どの読む側の結果にも、同じ名前の欄で知らせる（MCP の query、get_page などと同じ形）
+         findings["link_warnings"] = list(report["links"])
+-        for item in report["links"]:
+-            rel = item["path"]
+-            if rel.lower().endswith(".md") and is_page_path(rel, native=True):
+-                stem = posix_rel(rel)[:-3]
+-                slug = nfc(PurePosixPath(stem).name)
+-                refused_by_path[stem] = slug
+-                refused_slugs.add(slug)
+ 
+     # YouTube の字幕の訂正と留保（ADR-0027）。ページは照合のモジュールが読み直す（印の行の番号をファイルの
+     # 行で示すため）。動画の raw を持たない wiki では、印のあるページだけを見る。
+@@ -589,7 +582,7 @@ def lint(pages: list[dict], soft_cap: int, hard_cap: int, required_fm: list[str]
+ 
+         # リンク切れ。リンクなので読まなかったページを指すものは、links で挙げるので、ここでは数えない
+         for link in p["links"]:
+-            if resolve_link(link, by_path, by_slug) is None and resolve_link(link, refused_by_path, refused_slugs) is None:
++            if resolve_link(link, by_path, by_slug) is None and refused_link(link, findings["links"]) is None:
+                 findings["broken_links"].append({
+                     "from": p["slug"],
+                     "from_path": p["rel_path"],
+diff --git a/skills/info-hive/scripts/wiki_pages.py b/skills/info-hive/scripts/wiki_pages.py
+index eb04f30..64a9bbc 100644
+--- a/skills/info-hive/scripts/wiki_pages.py
++++ b/skills/info-hive/scripts/wiki_pages.py
+@@ -609,6 +609,14 @@ def _article_rel(path, wiki_root, *, directory: bool = False) -> "tuple[str, str
+             rel = relative(resolved, root)
+             if rel is not None:
+                 return root, "/".join(([rel] if rel else []) + list(parts[size:]))
++            # 大小文字を区別しない POSIX の根も、綴りではなく実体で認識する。
++            # 祖先を上から調べ、根に届いたところで止めるので、その下のリンクは解決しない。
++            try:
++                same_root = os.path.samefile(resolved, root)
++            except OSError:
++                same_root = False
++            if same_root:
++                return root, "/".join(parts[size:])
+     return None
+ 
+ 
+@@ -1033,6 +1041,28 @@ def resolve_link(link: str, by_path: dict, by_slug) -> "str | None":
+     return target if target in by_slug else None
+ 
+ 
++def refused_link(link: str, warnings: list) -> "dict | None":
++    """読まなかった記事か、その途中の道を指す wikilink なら、その知らせを返す。
++
++    降りなかったディレクトリの下のスラッグは推測しない。パスを指定したときだけ、
++    要素の境界で照合する。lint と閲覧が、拒否をリンク切れに読み替えないために共用する。
++    """
++    lookup = link_lookup(link)
++    if lookup is None:
++        return None
++    kind, target = lookup
++    for item in warnings:
++        rel = nfc(item["path"])
++        if kind == "path" and target.startswith(rel + "/"):
++            return item
++        if rel.lower().endswith(".md") and is_page_path(rel, native=True):
++            stem = rel[:-3]
++            expected = stem if kind == "path" else PurePosixPath(stem).name
++            if target == expected:
++                return item
++    return None
++
++
+ # ---------------------------------------------------------------------------
+ # 大文字と小文字だけが違うパス
+ # ---------------------------------------------------------------------------

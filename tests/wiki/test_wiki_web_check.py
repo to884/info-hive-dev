@@ -290,8 +290,24 @@ class RawCheckCase(unittest.TestCase):
         self.assertEqual(code, 0 if result["ok"] else 1)
         return result
 
+    def check_japanese(self, expected: list[str], override=None) -> dict:
+        """構造などを調べる既存の正例で、既知の日本語だけを明示して確認する。"""
+        return review_japanese_fixture(self, self.wiki, self.raw, "a", expected, override)
+
     def kinds(self, result: dict) -> list[str]:
         return sorted({e["kind"] for e in result["errors"]})
+
+
+def review_japanese_fixture(test, wiki, raw, slug, expected, override=None):
+    _, result = wiki_rawcheck.check(wiki, raw, slug, override, "試験" if override else None)
+    pending = [e for e in result["errors"] if e["kind"] == "translation_review_required"]
+    test.assertCountEqual([e["text"] for e in pending], expected)
+    record = {"translation_review": 1, **result["translation"]["basis"], "reviewed_by": "テストの確認者",
+              "decisions": [{"id": e["review_id"], "text": e["text"], "kind": "japanese_text",
+                             "reason": "この正例の日本語の訳を原文と照合して確認した。"} for e in pending]}
+    (wiki_rawcheck.work_dir(wiki, slug) / "translation-review.json").write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
+    _, checked = wiki_rawcheck.check(wiki, raw, slug, override, "試験" if override else None, translation_review=True)
+    return checked
 
 
 SRC = """# A
@@ -423,9 +439,9 @@ class CheckTest(RawCheckCase):
 
     def test_good_translation_passes(self):
         self.write_raw(GOOD, fm=FM_T)
-        result = self.check()
+        result = self.check_japanese(['題名', '項目 1', '項目 2', '(未取得)'])
         self.assertTrue(result["ok"], result["errors"])
-        self.assertEqual(result["warnings"], [])
+        self.assertEqual([w for w in result["warnings"] if w["kind"] != "translation_reviewed"], [])
 
     def test_errors(self):
         # （名前、raw、frontmatter、出るはずの誤りの種類）
@@ -452,15 +468,15 @@ class CheckTest(RawCheckCase):
     def test_warnings_and_controls(self):
         body = GOOD.replace("Greenwich の町は地名である。", "グリニッジの町は地名である。<> を使う。")
         self.write_raw(body, fm=FM_T)
-        result = self.check()
+        result = self.check_japanese(['題名', '項目 1', '項目 2', '(未取得)'])
         self.assertTrue(result["ok"], result["errors"])
-        kinds = sorted({w["kind"] for w in result["warnings"]})
+        kinds = sorted({w["kind"] for w in result["warnings"] if w["kind"] != "translation_reviewed"})
         self.assertEqual(kinds, ["missing_names", "new_tokens"])
         # 名前を文の先頭に移しただけなら、警告しない（対照）。
         self.write_raw(GOOD.replace("モデルは `run(x)` を使い、[文書](https://x.example/d)を参照する。Greenwich の町は地名である。",
                                     "Greenwich は地名である。モデルは `run(x)` を使い、[文書](https://x.example/d)を参照する。"),
                        fm=FM_T)
-        self.assertEqual(self.check()["warnings"], [])
+        self.assertEqual([w for w in self.check_japanese(['題名', '項目 1', '項目 2', '(未取得)'])["warnings"] if w["kind"] != "translation_reviewed"], [])
 
     def test_render_indents_lines_inside_values(self):
         """文字の出力で、値の中の改行のあとの行を字下げする（13 回目のレビュー）。
@@ -499,11 +515,11 @@ class ReviewCounterexampleTest(RawCheckCase):
         self.write_raw(out)
         return self.freeze()
 
-    def check_with(self, src: str, out: str, images=(), fm=FM_T) -> dict:
+    def check_with(self, src: str, out: str, images=(), fm=FM_T, japanese=None) -> dict:
         self.setup_fetch(src, images=images)
         self.assertTrue(self.freeze()["ok"])
         self.write_raw(out, fm=fm)
-        return self.check()
+        return self.check_japanese(japanese) if japanese is not None else self.check()
 
     def test_code_in_list_item_is_protected(self):
         src = "# A\n\n- item\n  ```\n  SELECT 1; -- rationale\n  ```\n"
@@ -528,7 +544,7 @@ class ReviewCounterexampleTest(RawCheckCase):
     def test_caption_on_list_continuation_image(self):
         src = "# A\n\n- item\n  ![x](assets/a/1.png)\n"
         out = "# A\n\n- 項目\n  ![x](assets/a/1.png)\n\n  > Claude Sonnet 5.5 補足: 図の説明である。\n"
-        result = self.check_with(src, out, images=["assets/a/1.png"])
+        result = self.check_with(src, out, images=["assets/a/1.png"], japanese=['項目'])
         self.assertTrue(result["ok"], result["errors"])
 
     def test_image_with_escaped_bracket_in_alt(self):
@@ -582,11 +598,11 @@ class ReviewCounterexampleTest(RawCheckCase):
 class ReviewCounterexample2Test(RawCheckCase):
     """実装の 2 回目のレビュー（impl-review-2.md）の反例。"""
 
-    def check_with(self, src: str, out: str, images=(), fm=FM_T, needs_translation=True) -> dict:
+    def check_with(self, src: str, out: str, images=(), fm=FM_T, needs_translation=True, japanese=None) -> dict:
         self.setup_fetch(src, images=images, needs_translation=needs_translation)
         self.assertTrue(self.freeze()["ok"])
         self.write_raw(out, fm=fm)
-        return self.check()
+        return self.check_japanese(japanese) if japanese is not None else self.check()
 
     def test_japanese_image_path(self):
         rel = "assets/日本語/日本語-01.png"
@@ -604,7 +620,7 @@ class ReviewCounterexample2Test(RawCheckCase):
         src = "# A\n\n- item\n  ![x](assets/a/1.png \"https://x.example/i.png\")\n  tail\n"
         out = ("# A\n\n- 項目\n  ![x](assets/a/1.png \"https://x.example/i.png\")\n  続き\n\n"
                "  > Claude Sonnet 5.5 補足: 図の説明である。\n")
-        result = self.check_with(src, out, images=["assets/a/1.png"])
+        result = self.check_with(src, out, images=["assets/a/1.png"], japanese=['項目\n\n続き'])
         self.assertTrue(result["ok"], result["errors"])
 
     def test_nested_second_caption_is_rejected(self):
@@ -653,12 +669,12 @@ class ReviewCounterexample2Test(RawCheckCase):
 class ReviewCounterexample3Test(RawCheckCase):
     """実装の 3 回目のレビュー（impl-review-3.md）の反例。"""
 
-    def check_with(self, src: str, out: str, images=(), fm=FM, needs_translation=False) -> dict:
+    def check_with(self, src: str, out: str, images=(), fm=FM, needs_translation=False, japanese=None) -> dict:
         self.setup_fetch(src, images=images, needs_translation=needs_translation)
         result = self.freeze()
         self.assertTrue(result["ok"], result["errors"])
         self.write_raw(out, fm=fm)
-        return self.check()
+        return self.check_japanese(japanese) if japanese is not None else self.check()
 
     def test_percent_in_image_path(self):
         rel = "assets/a%20b/a%20b-01.png"
@@ -728,7 +744,7 @@ class ReviewCounterexample4Test(RawCheckCase):
         self.setup_fetch(src)
         self.assertTrue(self.freeze()["ok"])
         self.write_raw("# A\n\n参照:  \n[x]: 有効\n", fm=FM_T)
-        result = self.check()
+        result = self.check_japanese(['参照:\n[x]: 有効'])
         self.assertTrue(result["ok"], result["errors"])
 
     def test_first_ordered_item_can_be_removed(self):
@@ -955,7 +971,7 @@ class ReviewCounterexample8Test(RawCheckCase):
                 result = self.freeze()
                 self.assertTrue(result["ok"], result["errors"])
                 self.write_raw(translated, fm=FM_T)
-                result = self.check()
+                result = self.check_japanese(["本文一。", "本文二。"] if "Body one" in src else ["一。", "二。"])
                 self.assertTrue(result["ok"], result["errors"])
 
     def test_list_items_keep_their_structure(self):
@@ -1145,8 +1161,8 @@ class FetchCounterexample8Test(FetchCase):
                 self.assertEqual(code, 1)
                 self.assertIn(kind, {e["kind"] for e in result["errors"]})
         self.write_raw(base)
-        code, result = wiki_rawcheck.check(self.wiki, self.raw, "page", None, None)
-        self.assertEqual(code, 0, result["errors"])
+        result = review_japanese_fixture(self, self.wiki, self.raw, "page", ["本文の訳。"])
+        self.assertTrue(result["ok"], result["errors"])
 
     def test_noise_between_lists_from_the_fetcher(self):
         _, text, _ = self.build(html_page(f"<p>{LONG}</p>"
@@ -1214,9 +1230,9 @@ class ReviewCounterexample9Test(RawCheckCase):
         self.setup_fetch(src)
         self.assertTrue(self.freeze()["ok"])
         self.write_raw("# A\n\n1. 一。\n999. 二。\n", fm=FM_T)
-        self.assertIn("structure", self.kinds(self.check()))
+        self.assertIn("structure", self.kinds(self.check_japanese(['一。', '二。'])))
         self.write_raw("# A\n\n1. 一。\n2. 二。\n", fm=FM_T)
-        result = self.check()
+        result = self.check_japanese(['一。', '二。'])
         self.assertTrue(result["ok"], result["errors"])
 
 
@@ -1428,7 +1444,7 @@ class UntranslatedTest(RawCheckCase):
         self.write_raw(self.BODY + "\n> Claude Sonnet 5.5 補足: 図の説明である。\n",
                        fm=FM.replace('translated_by: ""', 'translated_by: "Claude Sonnet 5.5"'))
         self.assertIn("translated_by", self.kinds(self.check()))
-        result = self.check(override="translate")
+        result = self.check_japanese(["題名"], override="translate")
         self.assertTrue(result["ok"], result["errors"])
         self.assertEqual(result["language_override"]["value"], "translate")
 
@@ -2046,6 +2062,485 @@ class ResumeBeforeFetchTest(FetchCase):
                 self.assertEqual(stub.requested, [PAGE_URL])
                 self.assertTrue(result["unchanged"])
                 self.assertFalse(result["work_dir"])
+
+
+class TranslationCompletionTest(RawCheckCase):
+    """翻訳を省略して W8 を完了にした事例の回帰試験。ネットには接続しない。"""
+
+    ENGLISH = "The engine searches existing links and reads the source documents before producing an answer."
+    JAPANESE = "エンジンは既存のリンクを検索し、回答を作る前に出典の文書を読む。"
+
+    def prepare(self, body=None, *, images=(), required=True):
+        self.wd.mkdir(parents=True, exist_ok=True)
+        self.setup_fetch(body or ("# Graph\n\n" + self.ENGLISH + "\n"),
+                         images=images, needs_translation=required)
+        self.assertTrue(self.freeze()["ok"])
+
+    def run_check(self, *options):
+        out = io.StringIO()
+        argv = ["check", "--wiki", str(self.wiki), "--raw-root", str(self.raw), "--slug", "a", "--json", *options]
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            code = wiki_rawcheck.main(argv)
+        return code, json.loads(out.getvalue()) if out.getvalue() else {}
+
+    def record_retained(self, kind="proper_name", reason="原文と文脈を確認し、固有の名前の英語表記を保持する。"):
+        _, data = self.run_check()
+        pending = [e for e in data["errors"] if e["kind"] == "translation_review_required"]
+        record = {"translation_review": 1, **data["translation"]["basis"], "reviewed_by": "Claude Opus 5.5",
+                  "decisions": [{"id": e["review_id"], "text": e["text"], "kind": kind, "reason": reason} for e in pending]}
+        (self.wd / "translation-review.json").write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
+        return record
+
+    def finish_names(self, kind="proper_name", reason="原文と文脈を確認し、固有の名前の英語表記を保持する。"):
+        self.record_retained(kind, reason)
+        return self.run_check("--translation-review", "--finish", "--accept-warnings")
+
+    def assert_incomplete(self, result, kind):
+        code, data = result
+        self.assertEqual(code, 1, data)
+        self.assertIn(kind, self.kinds(data), data)
+        self.assertFalse(data["completed"])
+        self.assertEqual(data["work_dir_kept"], "errors")
+        self.assertEqual(data["translation"]["state"], "incomplete")
+        self.assertTrue((self.wd / "cleaned.md").is_file())
+
+    def test_keep_cannot_remove_translation_requirement(self):
+        self.prepare()
+        self.assert_incomplete(self.run_check("--language-override", "keep", "--reason", "原文を保存する",
+                                             "--finish", "--accept-warnings"), "translation_required")
+        self.assertTrue(self.check(override="keep")["needs_translation"])
+
+    def test_translator_name_alone_cannot_finish(self):
+        self.prepare()
+        self.write_raw("# Graph\n\n" + self.ENGLISH + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_one_translated_paragraph_does_not_cover_another(self):
+        self.prepare("# Graph\n\n" + self.ENGLISH + "\n\n" + self.ENGLISH + "\n")
+        self.write_raw("# Graph\n\n" + self.JAPANESE + "\n\n" + self.ENGLISH + "\n", fm=FM_T)
+        result = self.run_check("--finish", "--accept-warnings")
+        self.assert_incomplete(result, "translation_review_required")
+        self.assertEqual(result[1]["translation"]["checked_blocks"], 3)
+        self.assertEqual(sum(x["kind"] == "translation_review_required" for x in result[1]["errors"]), 1)
+
+    def test_caption_does_not_count_as_body_translation(self):
+        image = '![i](assets/a/1.png "https://x.example/i.png")\n'
+        self.prepare("# Graph\n\n" + self.ENGLISH + "\n\n" + image, images=["assets/a/1.png"])
+        self.write_raw("# Graph\n\n" + self.ENGLISH + "\n\n" + image
+                       + "\n> Claude Sonnet 5.5 補足: 図の説明である。\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_small_japanese_addition_is_not_translation(self):
+        self.prepare()
+        self.write_raw("# Graph\n\n" + self.ENGLISH + " 訳。\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_english_rewording_is_not_japanese_translation(self):
+        self.prepare()
+        self.write_raw("# Graph\n\nThe system retrieves pages and checks their links before it generates answers.\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_all_caps_prose_is_not_a_list_of_protected_names(self):
+        body = self.ENGLISH.upper()
+        self.prepare("# Graph\n\n" + body + "\n")
+        self.write_raw("# Graph\n\n" + body + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_japanese_in_the_same_paragraph_does_not_hide_copied_english(self):
+        japanese = "この文書では既存のリンクを使う検索方式を説明し、根拠を示して回答する方法を扱う。"
+        self.prepare("# Graph\n\n" + japanese + self.ENGLISH + "\n")
+        self.write_raw("# Graph\n\n" + japanese + self.ENGLISH + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_headings_lists_quotes_and_table_cells_are_checked(self):
+        for body in ("## " + self.ENGLISH + "\n", "- " + self.ENGLISH + "\n",
+                     "> " + self.ENGLISH + "\n", "| text |\n| --- |\n| " + self.ENGLISH + " |\n"):
+            with self.subTest(body=body):
+                self.prepare("# Graph\n\n" + body)
+                self.write_raw("# Graph\n\n" + body, fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_unchanged_long_chinese_prose_is_not_translation(self):
+        body = "这是一个使用已有文档之间的链接来查找相关资料并在回答之前检查引用的系统。"
+        for tail in ("", "日本語の訳である。"):
+            with self.subTest(tail=tail):
+                self.prepare("# Graph\n\n" + body + "\n")
+                self.write_raw("# Graph\n\n" + body + tail + "\n", fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_names_code_and_japanese_prose_can_be_kept(self):
+        source = ("# Graph\n\nDuckDB\n\n[Alan Turing](https://x.example/a)\n\n"
+                  "既存の日本語の説明である。\n\n`" + self.ENGLISH + "`\n\n```python\n"
+                  + "print('" + self.ENGLISH + "')\n```\n\n" + self.ENGLISH + "\n")
+        self.prepare(source)
+        self.write_raw(source.rsplit(self.ENGLISH, 1)[0] + self.JAPANESE + "\n", fm=FM_T)
+        self.record_retained()
+        code, data = self.run_check("--translation-review")
+        self.assertEqual(code, 0, data)
+        self.assertFalse(data["completed"])
+        self.assertEqual(data["translation"]["checked_blocks"], 5)
+        self.assertTrue(self.wd.exists())
+        code, data = self.run_check("--translation-review", "--finish", "--accept-warnings")
+        self.assertEqual(code, 0, data)
+        self.assertTrue(data["completed"])
+        self.assertTrue(data["work_dir_removed"])
+        self.assertFalse(self.wd.exists())
+
+    def test_product_names_in_translated_headings_and_cells(self):
+        cases = [
+            ("# Introduction to Apache Kafka\n", "# Apache Kafka 入門\n"),
+            ("# Getting Started with Apache Kafka Streams\n", "# Apache Kafka Streams 入門\n"),
+            ("## Apache Kafka versus RabbitMQ Streams\n", "## Apache Kafka と RabbitMQ Streams\n"),
+            ("## What is Amazon Elastic Kubernetes Service\n", "## Amazon Elastic Kubernetes Service とは\n"),
+            ("| Supported on Linux, macOS and Windows |\n| --- |\n",
+             "| Linux、macOS、Windows で対応 |\n| --- |\n"),
+        ]
+        for source, output in cases:
+            with self.subTest(source=source):
+                self.prepare(source)
+                self.write_raw(output, fm=FM_T)
+                code, result = self.finish_names()
+                self.assertEqual(code, 0, result)
+                self.assertTrue(result["completed"])
+
+    def test_unchanged_names_require_scoped_review(self):
+        for body in ("## Attention Is All You Need\n", "## We Need To Talk About Kevin\n",
+                     "| Microsoft Azure Cosmos Database |\n| --- |\n"):
+            with self.subTest(body=body):
+                self.prepare(body)
+                self.write_raw(body, fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+                self.record_retained()
+                code, result = self.run_check("--translation-review", "--finish")
+                self.assertEqual(code, 0, result)
+                self.assertFalse(result["completed"])
+                self.assertEqual(result["translation"]["pending_reviews"], 0)
+                self.assertIn("translation_reviewed", {w["kind"] for w in result["warnings"]})
+                code, result = self.run_check("--translation-review", "--finish", "--accept-warnings")
+                self.assertEqual(code, 0, result)
+                self.assertTrue(result["completed"])
+
+    def test_unchanged_sentences_in_other_scripts_are_not_translation(self):
+        for body in (
+            "Система выполняет поиск документов и использует существующие связи для получения ответа на вопрос пользователя.",
+            "이 시스템은 문서를 검색하고 기존 연결을 사용하여 사용자의 질문에 대한 답변을 생성합니다.",
+        ):
+            for prefix in ("", "システムは文書を検索する。 "):
+                with self.subTest(body=body, prefix=prefix):
+                    self.prepare(body + "\n")
+                    self.write_raw(prefix + body + "\n", fm=FM_T)
+                    self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_a_translated_prefix_does_not_cover_later_sentences(self):
+        sentences = [
+            "The agent searches document links before generating an answer.",
+            "The database stores all pages and their explicit relationships.",
+            "The reader verifies every citation before it releases the final response.",
+            "The system refuses the question when the corpus contains no supporting path.",
+            "The checker compares the evidence with all of the returned claims.",
+            "The evaluation includes real questions collected from the users.",
+        ]
+        for prefix in (1, 3, 5):
+            with self.subTest(prefix=prefix):
+                self.prepare("# A\n\n" + " ".join(sentences) + "\n")
+                self.write_raw("# A\n\n" + self.JAPANESE * prefix + " ".join(sentences[prefix:]) + "\n", fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_interleaved_original_sentences_do_not_count_as_translation(self):
+        self.prepare("# A\n\n" + self.ENGLISH + " " + self.ENGLISH + "\n")
+        self.write_raw("# A\n\n" + self.JAPANESE + self.ENGLISH + self.JAPANESE + self.ENGLISH + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_chinese_with_one_character_changed_is_not_translation(self):
+        body = "这是一个使用已有文档之间的链接来查找相关资料并在回答之前检查引用的系统。"
+        self.prepare("# A\n\n" + body + "\n")
+        self.write_raw("# A\n\n" + body.replace("的", "の", 1) + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_chinese_second_sentence_must_also_be_translated(self):
+        first = "系统使用文档之间的显式链接建立知识图谱。"
+        second = "查询时需要检查相关证据并给出文档引用。"
+        self.prepare("# A\n\n" + first + second + "\n")
+        self.write_raw("# A\n\nシステムは文書間の明示的なリンクからグラフを作る。" + second + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_title_cased_sentence_is_not_a_name(self):
+        body = "We Use Apache Kafka And Redis For Fast Event Delivery Across All Regions Today."
+        self.prepare("# A\n\n" + body + "\n")
+        self.write_raw("# A\n\n" + body + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_short_phrases_require_review_before_completion(self):
+        body = "- Fixed crash on startup\n- Faster cold boot\n- New config loader\n"
+        self.prepare(body)
+        self.write_raw(body, fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_retained_labels_names_terms_and_values_are_reviewable(self):
+        cases = [
+            ("If the log says Permission denied while opening the configuration file, check ownership.\n",
+             "ログに Permission denied while opening the configuration file と出たら、所有者を確かめる。\n"),
+            ("Click Save all changes and continue to finish.\n", "Save all changes and continue をクリックして終える。\n"),
+            ("- Libraries used: numpy, scipy, pandas, matplotlib.\n", "- 使ったライブラリ: numpy、scipy、pandas、matplotlib。\n"),
+            ("The paper Language models are few-shot learners introduced GPT-3.\n",
+             "論文 Language models are few-shot learners は GPT-3 を発表した。\n"),
+            ("Follow the principle of least privilege.\n", "最小権限の原則（principle of least privilege）に従う。\n"),
+            ("| fast, safe | linux, darwin, windows |\n| --- | --- |\n",
+             "| fast, safe | linux, darwin, windows |\n| --- | --- |\n"),
+        ]
+        for (source, output), kind in zip(cases, ("error_message", "ui_text", "identifier", "bibliography", "term", "identifier")):
+            with self.subTest(source=source):
+                self.prepare(source)
+                self.write_raw(output, fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+                self.record_retained(kind, "原文の表示文字列・名称・原語の併記を確認し、表記を保持する。")
+                code, result = self.run_check("--translation-review", "--finish")
+                self.assertEqual(code, 0, result)
+                self.assertFalse(result["completed"])
+                self.assertTrue(result["warnings"])
+                code, result = self.run_check("--translation-review", "--finish", "--accept-warnings")
+                self.assertEqual(code, 0, result)
+                self.assertTrue(result["completed"])
+
+    def test_code_only_input_reports_no_prose_instead_of_checked_zero(self):
+        body = "```python\nprint('The engine reads the source documents before producing the final answer.')\n```\n"
+        self.prepare(body)
+        self.write_raw(body, fm=FM_T)
+        code, result = self.run_check("--finish")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["translation"]["state"], "no_prose")
+        self.assertEqual(result["translation"]["checked_blocks"], 0)
+        self.assertTrue(result["completed"])
+
+    def test_html_blocks_cannot_silently_report_no_prose(self):
+        body = "<div>" + self.ENGLISH + "</div>\n"
+        for html, kind in ((False, "translation_review_required"), (True, "translation_html")):
+            with self.subTest(html=html), mock.patch.dict(wiki_rawcheck._PARSER.options, {"html": html}):
+                self.prepare(body)
+                self.write_raw(body, fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), kind)
+
+    def test_missing_or_non_boolean_requirement_is_not_optional(self):
+        for value in (None, "false", 0, 1, [], {}):
+            with self.subTest(value=value):
+                self.prepare()
+                fetch = self.wd / "fetch.json"
+                data = json.loads(fetch.read_text(encoding="utf-8"))
+                if value is None:
+                    data.pop("needs_translation")
+                else:
+                    data["needs_translation"] = value
+                fetch.write_text(json.dumps(data), encoding="utf-8")
+                code, data = self.run_check("--finish", "--accept-warnings")
+                self.assertEqual(code, 1)
+                self.assertFalse(data.get("completed", False))
+                self.assertTrue((self.wd / "cleaned.md").is_file())
+
+    def test_japanese_original_completes_without_a_translator(self):
+        self.prepare("# 題名\n\nもともと日本語で書かれた本文である。\n", required=False)
+        code, data = self.run_check("--finish")
+        self.assertEqual(code, 0, data)
+        self.assertTrue(data["completed"])
+        self.assertEqual(data["translation"]["state"], "not_required")
+
+    def test_warnings_alone_are_not_a_completed_result(self):
+        self.prepare("# Graph\n\nThe town of Greenwich is old.\n")
+        self.write_raw("# Graph\n\nグリニッジの町は古い。\n", fm=FM_T)
+        code, data = self.run_check("--finish")
+        self.assertEqual(code, 0, data)
+        self.assertFalse(data["completed"])
+        self.assertEqual(data["work_dir_kept"], "warnings")
+        code, data = self.run_check("--finish", "--accept-warnings")
+        self.assertEqual(code, 0, data)
+        self.assertTrue(data["completed"])
+
+
+
+
+class TranslationReviewContractTest(RawCheckCase):
+    """保持の判断を、現在の本文と対象ごとの記録なしに通さない。"""
+
+    ENGLISH = TranslationCompletionTest.ENGLISH
+    JAPANESE = TranslationCompletionTest.JAPANESE
+    prepare = TranslationCompletionTest.prepare
+    run_check = TranslationCompletionTest.run_check
+    assert_incomplete = TranslationCompletionTest.assert_incomplete
+    record_retained = TranslationCompletionTest.record_retained
+
+    def name_fixture(self):
+        body = "## Attention Is All You Need\n"
+        self.prepare(body)
+        self.write_raw(body, fm=FM_T)
+        return self.record_retained("bibliography", "文献の題名であり、書誌情報の原語の表記を保持する。")
+
+    def save_record(self, record):
+        (self.wd / "translation-review.json").write_text(json.dumps(record, ensure_ascii=False), encoding="utf-8")
+
+    def test_record_is_not_applied_without_explicit_flag(self):
+        self.name_fixture()
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+        code, data = self.run_check("--translation-review", "--finish")
+        self.assertEqual(code, 0, data)
+        self.assertFalse(data["completed"])
+        self.assertEqual(data["translation"]["reviewed_passages"], 1)
+        self.assertEqual(data["translation"]["pending_reviews"], 0)
+        code, data = self.run_check("--translation-review", "--finish", "--accept-warnings")
+        self.assertEqual(code, 0, data)
+        self.assertTrue(data["completed"])
+        self.assertEqual(data["translation"]["reviewed_by"], "Claude Opus 5.5")
+        self.assertEqual(len(data["translation"]["decisions"]), 1)
+
+    def test_missing_file_is_an_error_not_warning_acceptance(self):
+        self.name_fixture()
+        (self.wd / "translation-review.json").unlink()
+        self.assert_incomplete(self.run_check("--translation-review", "--finish", "--accept-warnings"), "translation_review_invalid")
+
+    def test_malformed_records_cannot_complete(self):
+        changes = [
+            lambda r: r.update(translation_review=True),
+            lambda r: r.pop("source_sha256"),
+            lambda r: r.update(raw_sha256="0" * 64),
+            lambda r: r.update(reviewed_by=" "),
+            lambda r: r.update(decisions={}),
+            lambda r: r["decisions"][0].update(reason=" "),
+            lambda r: r["decisions"][0].update(text="一部だけ"),
+            lambda r: r["decisions"][0].update(kind="prose"),
+            lambda r: r["decisions"][0].update(id="0" * 64),
+            lambda r: r["decisions"].append(dict(r["decisions"][0])),
+        ]
+        for change in changes:
+            with self.subTest(change=change):
+                record = self.name_fixture()
+                change(record)
+                self.save_record(record)
+                self.assert_incomplete(self.run_check("--translation-review", "--finish", "--accept-warnings"), "translation_review_invalid")
+
+    def test_current_raw_and_source_hashes_are_required(self):
+        for path_name in ("raw", "source"):
+            with self.subTest(path=path_name):
+                self.name_fixture()
+                path = self.raw / "a.md" if path_name == "raw" else self.wd / "cleaned.md"
+                path.write_text(path.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+                self.assert_incomplete(self.run_check("--translation-review", "--finish", "--accept-warnings"), "translation_review_invalid")
+
+    def test_partial_review_leaves_another_block_unresolved(self):
+        body = "Attention Is All You Need\n\nMicrosoft Azure Cosmos Database\n"
+        self.prepare(body)
+        self.write_raw(body, fm=FM_T)
+        record = self.record_retained()
+        self.assertEqual(len(record["decisions"]), 2)
+        record["decisions"] = record["decisions"][:1]
+        self.save_record(record)
+        result = self.run_check("--translation-review", "--finish", "--accept-warnings")
+        self.assert_incomplete(result, "translation_review_required")
+        self.assertEqual(result[1]["translation"]["pending_reviews"], 1)
+
+    def test_same_table_values_have_distinct_review_ids(self):
+        body = "| fast, safe | fast, safe |\n| --- | --- |\n"
+        self.prepare(body)
+        self.write_raw(body, fm=FM_T)
+        record = self.record_retained("identifier", "表の値を識別子として保持する。")
+        self.assertEqual(len(record["decisions"]), 2)
+        self.assertEqual(len({x["id"] for x in record["decisions"]}), 2)
+
+    def test_near_copies_and_other_sentence_endings_do_not_bypass_review(self):
+        cases = [
+            ("Эта система использует ссылки между документами и проверяет доказательства перед ответом.",
+             "システムは文書を検索する。 Эта система использует ссылки между документами и проверяет доказательства перед отчётом."),
+            ("이 시스템은 문서 사이의 링크를 사용하여 답변을 생성합니다. 증거를 확인합니다.",
+             "이 시스템은 문서 사이의 링크를 사용하여 답변을 생성한다. 증거를 확인한다."),
+            ("Το σύστημα χρησιμοποιεί συνδέσμους μεταξύ εγγράφων και ελέγχει τα στοιχεία πριν απαντήσει.",
+             "Το σύστημα χρησιμοποιεί συνδέσμους μεταξύ εγγράφων και ελέγχει τα στοιχεία πριν."),
+            ("यह प्रणाली दस्तावेजों के बीच संबंधों का उपयोग करके उत्तर तैयार करती है।", None),
+            ("هل يستخدم هذا النظام الروابط بين المستندات للتحقق من الأدلة قبل الإجابة؟", None),
+            ("ระบบนี้ใช้การเชื่อมโยงระหว่างเอกสารเพื่อตรวจสอบหลักฐานก่อนตอบคำถาม", None),
+            ("The agent searches document links before generating an answer...", None),
+            ("The agent searches document links before generating an answer:", None),
+            ("The agent searches document links before generating an answer. The database stores all pages and their explicit relationships.",
+             "エージェントは searches document links before generating an answer. データベースは stores all pages and their explicit relationships."),
+        ]
+        for source, output in cases:
+            with self.subTest(source=source):
+                self.prepare(source + "\n")
+                self.write_raw((output or source) + "\n", fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_full_sentence_titles_messages_and_quotations_have_review_path(self):
+        cases = [
+            ("- Vaswani, A., et al. Attention Is All You Need. NeurIPS 2017.\n",
+             "- Vaswani, A. ほか「Attention Is All You Need」NeurIPS 2017 で発表。\n", "bibliography"),
+            ("The app displays: Unable to connect to the server. Check your network connection and try again.\n",
+             "アプリには「Unable to connect to the server. Check your network connection and try again.」と表示される。\n", "error_message"),
+            ("> Stay hungry, stay foolish forever.\n", "> Stay hungry, stay foolish forever.（ハングリーであれ、愚かであれ）\n", "quotation"),
+        ]
+        for source, output, kind in cases:
+            with self.subTest(kind=kind):
+                self.prepare(source)
+                self.write_raw(output, fm=FM_T)
+                self.record_retained(kind, "文献の題名または原語を併記した表示文・引用として、原文の表記を保持する。")
+                code, data = self.run_check("--translation-review", "--finish", "--accept-warnings")
+                self.assertEqual(code, 0, data)
+                self.assertTrue(data["completed"])
+
+    def test_prose_retention_requires_japanese_in_the_same_block(self):
+        self.prepare(self.ENGLISH + "\n")
+        self.write_raw(self.ENGLISH + "\n", fm=FM_T)
+        self.record_retained("quotation", "原語を併記する引用として保持する。")
+        self.assert_incomplete(self.run_check("--translation-review", "--finish", "--accept-warnings"), "translation_review_invalid")
+
+
+    def test_short_changed_and_wrong_target_language_han_needs_review(self):
+        cases = [
+            ("# 系统概述\n\n- 查询相关文档\n\n| 检索文档 | 使用链接查找 |\n| --- | --- |\n", None),
+            ("系统检索文档。然后检查引用。最后生成答案。结果非常可靠。\n", None),
+            ("检查引用の系统。\n", None),
+            ("检查引用の系统。\n", "檢查引用の系統。\n"),
+            (self.ENGLISH + "\n", "该引擎在生成答案之前会搜索现有链接并阅读源文档。\n"),
+            ("系统使用现有链接检索文档。\n", "系統根據既有關係查詢資料。\n"),
+            ("\U00020000\U00020001\n", None),
+        ]
+        for source, output in cases:
+            with self.subTest(source=source):
+                self.prepare(source)
+                self.write_raw(output or source, fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_foreign_han_sentence_is_not_diluted_by_other_japanese_sentences(self):
+        for separator in ("。", "！", "？", ";", "\n", ".", "．", "：", "…", "、", "——", " "):
+            with self.subTest(separator=separator):
+                self.prepare("This article explains search. The system retrieves documents using existing links.\n")
+                self.write_raw("この記事では検索について説明します" + separator + "系统使用现有链接检索文档。\n", fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+        # 漢字の連続の規則（8字以上）に頼らず、文の区切りそのものも固定する。
+        for separator in ("。", "！", "？", ";", "\n", ".", "．", "：", "…"):
+            with self.subTest(short_sentence_separator=separator):
+                self.prepare("This article explains search. The system searches.\n")
+                self.write_raw("この記事では検索について詳しく説明します" + separator + "系统检索。\n", fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_han_run_with_a_katakana_name_is_still_reviewed(self):
+        self.prepare("The system retrieves documents using existing links.\n")
+        self.write_raw("この記事では検索について詳しく説明します。系统使用ソフト现有链接检索文档。\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
+
+    def test_real_japanese_heading_has_an_explicit_confirmation_path(self):
+        self.prepare("# Overview\n")
+        self.write_raw("# 概要\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish"), "translation_review_required")
+        self.record_retained("japanese_text", "概要は日本語に訳した見出しであり、中国語の原文の保持ではない。")
+        code, data = self.run_check("--translation-review", "--finish", "--accept-warnings")
+        self.assertEqual(code, 0, data)
+        self.assertTrue(data["completed"])
+        self.assertEqual(data["translation"]["decisions"][0]["kind"], "japanese_text")
+
+    def test_japanese_punctuation_alone_is_not_japanese_context(self):
+        for mark in ("・", "ー", "〇"):
+            with self.subTest(mark=mark):
+                self.prepare(self.ENGLISH + "\n")
+                self.write_raw(mark + self.ENGLISH + "\n", fm=FM_T)
+                self.record_retained("quotation", "引用の原語を併記する。")
+                self.assert_incomplete(self.run_check("--translation-review", "--finish", "--accept-warnings"), "translation_review_invalid")
 
 
 if __name__ == "__main__":

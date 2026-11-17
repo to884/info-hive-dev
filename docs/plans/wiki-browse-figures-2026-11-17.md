@@ -6,7 +6,7 @@
 | --- | --- |
 | 状態 | 3 版目。1 版目は Sol の設計のレビュー（[design-review-1.md](../agent-runs/2026-11-17-wiki-browse-figures/design-review-1.md)）で却下された（致命 1、重大 3）。2 版目で前提を改めて 2 回目の PoC で確かめ、2 回目のレビュー（[design-review-2.md](../agent-runs/2026-11-17-wiki-browse-figures/design-review-2.md)）で「条件付きで採用可」になった。3 版目は、その重大 2 件（枠の寿命）と軽微 5 件を直した（2 節） |
 | 対象 | `info-hive-wiki` の `skills/info-hive/scripts/`（`wiki_pages.py`、`wiki_browse_fs.py`、`wiki_browse_core.py`、`wiki_browse.py`、`wiki_lint.py`、`browse_assets/`）、開発リポジトリの `tests/wiki/` |
-| 決定 | [ADR-0030](../adr/0030-wiki-browse-shows-figures-as-images.md)（提案） |
+| 決定 | [ADR-0030](../adr/0030-wiki-browse-shows-figures-as-images.md)（2026年11月17日に承認） |
 | 試作と結果 | `poc/browse-figures/`、[PoC の記録](../research/wiki-browse-figures-poc-2026-11-17.md) |
 | 基準の版 | info-hive-wiki 0.25.2（`e8886d6`） |
 
@@ -283,7 +283,7 @@ lint の `missing_assets` は、参照先を Markdown のエスケープを外�
 
 ## 11. 限界
 
-- 静的の書き出しでは Mermaid を描かない。
+- 静的の書き出しでは Mermaid を描かない。静的の書き出しを、browse のサーバーでない普通の HTTP サーバーで開くと、`figures.js` は動くが `/_frame/` がないので、Mermaid の図は 20 秒後に警告とコードになる（実装のレビューの 3 回目の指摘。書き出しを HTTP で配るのは想定の外である）。
 - 図の中の文字は選べず、ページ内の検索に当たらず、図の中のリンクは効かない。ADR-0005 の「補足」の引用が文字の側を受け持つ。
 - tiny にない図（マインドマップ、アーキテクチャ図、KaTeX、`layout: elk`）と、外の画像を使う図は描けない。コードと警告が出る。
 - 図ごとに Mermaid を読み直すので、図の多いページでは描き終えるまでが長い。PoC では 13 個で 1.8〜3.4 秒だった（最初の図は 0.25〜0.5 秒。その回で最初に起動したブラウザは 1.9 秒）。

@@ -1,0 +1,101 @@
+## 判定
+
+**却下。確信度：高。** 記事以外の入力を拒む退行と、リンクの記事を検査せずに読む経路が残っている。第4回の元の重大4件は限定した反例では閉じているが、段階1の I1・I2 を満たしていない。
+
+## 致命的・重大な欠陥
+
+1. **重大・発生度 D：ディレクトリ候補では、リンクの記事を検査せずに読む。**
+
+   次の配置で `wiki_evolve.py propose` に `--candidate W/concepts/candidate` を渡す。
+
+   ```text
+   W/concepts/candidate/SKILL.md  通常ファイル
+   W/concepts/candidate/p.md      ハードリンク
+   W/concepts/evidence.md         通常の根拠ページ
+   ```
+
+   ディレクトリ分岐は `SKILL.md` の存在しか確認しない。その後の `copy_tree()` → `tree()` は、シンボリックリンクだけを拒み、`p.md` を `read_bytes()` する。記事としての検査も通知もない。
+
+   **モック実測：** 実際の `propose()` と `tree()` を動かし、書き込みを無効化して読み取り地点で停止した。読み取りは `SKILL.md`、`p.md` に到達し、`article_path()` の呼び出しは根拠ページの1回だけ、通知は空だった。
+
+   同じ未保護の `tree()` には、`wiki_evolve.py evaluate` の元コーパスも入る。スイートの `corpus` を利用者の wiki にした場合、評価ループ側に追加した事前検査は、この別の入口には適用されない。こちらはコード経路の確認であり、評価全体は実行していない。
+
+   根拠：[wiki_evolve.py:212](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:212)、同ファイルの241行、109〜132行、368〜387行。設計は、wiki 内にスキルを置く配置を認めたうえで規則への従属を要求している（設計書49行、137行）。書き手の移行ではなく、現在の読み取りの欠陥である。
+
+2. **重大・発生度 B：「wiki 配下」と「記事」を混同し、対象外の入力で処理が止まる。**
+
+   二つの入口で、同じ対象範囲の取り違えがある。
+
+   - **単一候補：** `--candidate W/assets/candidate.md` が通常ファイルでも拒否される。`_article_rel()` は wiki 内なら値を返すが、`article_path()` は `not_article` を返す。`propose()` は `ok` だけを許すため、「リンクか調べられない」と誤って報告する。`.txt` の候補も同様。
+   - **コーパス：** 通常の記事だけを持つ wiki に、記事ではない `assets/image.png` のハードリンクがあると、評価ループが止まる。`find_links(..., articles_only=True)` は raw ディレクトリ用の絞り込みで、除外するのはドットで始まる名前だけである。
+
+   **モック実測：** 単一候補は `read_bytes()` の呼び出し0回で拒否された。同じ条件の通常記事と wiki 外の候補は読み取りに進んだ。コーパスでは `is_article_path("assets/image.png") == False` にもかかわらず、そのファイルが `links` に入り、`contract()` より前に停止した。
+
+   前ターンの単一候補の指摘は、今回、現物のコードと実行で再確認した。依頼元による一時ディレクトリでの実測とも一致する。
+
+   根拠：[wiki_evolve.py:220](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:220)、[wiki_evolve_loop.py:512](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve_loop.py:512)、[wiki_links.py:112](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_links.py:112)。ADR の I1（52行）と食い違う。設計書118行は、`find_links()` を「wiki の根の全体には当てない」と明記している。
+
+3. **重大・発生度 D：途中の `..` を畳み、検査するパスと入力の意味を変える。**
+
+   POSIX で次の配置を考える。
+
+   ```text
+   /W/concepts/jump → /W/other/deep       ディレクトリのシンボリックリンク
+   /W/concepts/candidate.md               通常ファイル
+   /W/other/candidate.md                  ハードリンク
+   ```
+
+   入力を `/W/concepts/jump/../candidate.md` とすると、`_article_rel()` は最初の `abspath()` で `jump/..` を消し、`concepts/candidate.md` を検査対象にする。
+
+   - `read_user_file()` は、検査後のパスを読むので、指定した入力とは別の本文を返す。
+   - `propose()` は検査後も元の `args.candidate.read_bytes()` を使うため、POSIX の解決では `/W/other/candidate.md` のハードリンクを読む。
+
+   **確認範囲：** POSIX のパス関数を使ったモックで、所属判定が `('/W', 'concepts/candidate.md')` になり、`read_user_file()` が別の本文を返すことを確認した。実リンクを配置した POSIX 上での終端読み取りは未実測であり、後者の結果はコードとパス解決規則からの推論である。
+
+   根拠：[wiki_pages.py:548](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:548)、同ファイル535〜538行、`wiki_evolve.py` 220〜223行。ADR の47行は、この食い違いを理由として途中の `..` を文字で畳まないよう明記している。
+
+## 崩れる前提
+
+- **wiki 内のファイルなら記事である。** `assets/`、ドットで始まる名前、非 Markdown ファイルで崩れる。
+- **`articles_only=True` は wiki の記事集合を表す。** 実装は raw ディレクトリ用であり、wiki の除外規則とは異なる。
+- **`tree()` が読むものはスキルか作業用コピーで、利用者の記事ではない。** wiki 内のディレクトリ候補と、コピー前の評価コーパスで崩れる。
+- **`abspath()` は入力の意味を保ったまま絶対化する。** POSIX の途中のリンクと `..` の組み合わせで崩れる。
+- **関数内に読む口が一つあれば、全読み取りを保護できる。** `propose()` のディレクトリ分岐が反例になる。
+
+## 見落としと軽微な問題
+
+- **軽微：第4回の `expected_calls()` の指摘は閉じていない。**  
+  `indexes` が通常ファイルのハードリンクである場合、修正後の `model_index()` は正しく空を返す。しかし `expected_calls()` はタプルを見て早期終了する。実装は `scandir(indexes)` も呼ぶ。モック実測では、期待値が `lstat` 2回、実装はそれに `scandir` 1回を加えた呼び出しになった。  
+  根拠：[test_walk.py:422](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_walk.py:422)、`wiki_pages.py` の `walk_index_files()`。
+
+- **軽微：分類試験の通過は、分類の正しさを保証しない。**  
+  `tree()` は依然として `NOT_ARTICLE`、`propose()` は関数全体で `GATEWAY` とされる。試験は読む口の呼び出し名が関数内に存在することだけを確認するため、重大1の経路を検出しない。また、コーパスの回帰試験はソース中の文字列の順序だけを検査し、リンク拒否を実行していない。  
+  根拠：[test_wiki_links.py:565](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_wiki_links.py:565)、同ファイル615〜617行、718〜729行。
+
+## 検証した事実
+
+今回は指定された6ファイル、ADR、設計書、第4回報告、事前照合記録、親の対象差分を現物で読んだ。前ターンの添付差分だけの部分レビューとは区別する。
+
+第4回の閉鎖状況は次のとおり。
+
+| 第4回の指摘 | 今回の判定 |
+|---|---|
+| 重大1：根の別名で所属判定を迂回 | **元の反例は閉鎖。** 根の別名と実体側の両方向をモックで確認し、読み取り前に拒否。ただし今回の重大3は残る |
+| 重大2：字幕入力と単一候補の直接読み取り | **元の反例は閉鎖。** 字幕入力と単一候補のハードリンクを読み取り前に拒否。ただしディレクトリ分岐と誤拒否は別途残る |
+| 重大3：評価ループのコピー前のコーパス読み取り | **元の `run()` の反例は閉鎖。** 記事のハードリンクで `contract()` より前に停止。別入口の `evaluate()` は重大1に記載 |
+| 重大4：CLI の大小文字で警告消失 | **閉鎖。** 実在するスクリプトの大文字表記を別プロセスに渡し、CLI の警告出力を確認。MCP・閲覧の名前では蓄積されない |
+| 軽微1：索引モデルのハードリンク扱い | **一部未閉鎖。** 結果モデルは修正済み、呼び出しモデルは不一致 |
+| 軽微2：`Path.open()` の検出漏れ | **閉鎖。** 属性呼び出しの `open` が検出対象に入り、`sha256_file()` も分類されている |
+
+`ReadSiteInventoryTests`、`ServerFilesTests`、`PortTests` の計 **6試験は通過**した。上記の欠陥は、この通過と両立する。
+
+検証は読み取りと書き込みを伴わないモックで行った。リポジトリのファイルは変更していない。実リンクを作る統合試験と全試験の再実行は行っていない。Git 差分の再取得は `Not a git repository` で失敗したため、差分は提供版を使い、根拠の行番号は現物で確認した。
+
+## 崩せなかった点
+
+- 現在の静的 import の到達範囲では、遅延 import を含む `SERVER_FILES` の不足は崩せなかった。
+- `link_kind()` の名前の代理ビットとハードリンク数の判定条件そのものは崩せなかった。
+- 第4回で挙げた、根の別名、字幕入力、単一候補、評価ループの通常の記事パス、CLI の大小文字という元の反例は、今回の限定した検証では再現しなかった。
+
+使用した MCP サーバー：なし  
+使用した Agent Skills：なし

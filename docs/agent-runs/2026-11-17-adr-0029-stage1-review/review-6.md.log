@@ -1,0 +1,133 @@
+[ask-codex 22:30:24] gpt-6-astra に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-0029-impl\info-hive-wiki）
+## 判定
+
+**却下。確信度：高。** wiki の記事を検査対象外に落とし、リンク先を通知なしで読む経路が残っている。以下の3件は競合状態を必要とせず、段階1の I2・I4 に反する。
+
+## 致命的・重大な欠陥
+
+### 1. 重大・発生度 D：CLI が根の元の綴りを捨てるため、根の別名と配下のジャンクションを組み合わせると検査を迂回する
+
+次の配置を考える。
+
+```text
+C:/review/view                    → C:/review/store（wiki の根のジャンクション）
+C:/review/store/SCHEMA.md         通常ファイル
+C:/review/store/concepts/jump     → C:/review/outside（配下のジャンクション）
+C:/review/outside/p.md            通常ファイル
+```
+
+`--wiki C:/review/view` と、単一ファイル候補 `--candidate C:/review/view/concepts/jump/p.md` を `propose` に渡す。ほかのスキル、根拠、引数は有効なものとする。
+
+CLI は `args.wiki` を `C:/review/store` に置き換える。その後の `_article_rel()` では、入力の元の綴りは `store` の下に一致せず、親を解決した綴りは `outside/p.md` になるため、こちらも一致しない。結果として「wiki 外」と判断し、元のパスをそのまま読む。
+
+**モック検証：** 実際の `main → propose → read_user_bytes` を通し、読み取り直前で停止させた。読み取り先は `C:\review\view\concepts\jump\p.md`、通知は空だった。同じ入力でも、共通関数に元の根 `view` を渡す対照では `concepts/jump（junction）` として拒否された。実ジャンクションを作った検証ではない。
+
+根拠：
+
+- 根の綴りを置き換える：[wiki_evolve.py:600](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:600)
+- 元の候補を読み取り関数へ渡す：[wiki_evolve.py:223](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:223)
+- 所属判定で入力の親全体を解決する：[wiki_pages.py:582](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:582)
+- 所属しなければ無検査で元のパスを返す：[wiki_pages.py:545](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:545)
+
+任意の未知の別名を持ち出した反例ではない。利用者が `--wiki` に明示した、許可されている根の別名で発生する。
+
+### 2. 重大・発生度 D：コーパスを新しい wiki の根として扱い、元の wiki の記事を対象外にする
+
+初期化済み wiki を `W` とし、次の配置にする。
+
+```text
+W/SCHEMA.md
+W/concepts/suite.json                 corpus に "corpus" を指定
+W/concepts/corpus/assets/p.md         ハードリンク
+```
+
+`W/concepts/corpus` は入力コーパスのディレクトリであり、別の初期化済み wiki ではない。
+
+`p.md` は `W` から見ると `concepts/corpus/assets/p.md` なので記事である。しかし処理は、コーパス自身を `wiki_root` として渡す。すると相対名が `assets/p.md` になり、記事から除外される。
+
+このため、次の両方がハードリンクを読む。
+
+- `evaluate` の元コーパスの `copy_tree`
+- 評価ループ `run` の `test_keys` 作成。test 課題の `sources` に `assets/p.md` を指定すれば到達する
+
+**モック検証：** `is_article_path("concepts/corpus/assets/p.md")` は真、`is_article_path("assets/p.md")` は偽。事前検査は通過し、実際の `evaluate` と `run` の該当経路で読み取りに到達した。通知は空だった。対照として `tree` に本来の根 `W` を渡すと、同じファイルをハードリンクとして拒否した。ファイル属性と周辺処理をモック化し、書き込みは実行していない。
+
+根拠：
+
+- `args.wiki` を保持していてもコーパスの検査には使わない：[wiki_evolve.py:368](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:368)
+- コピーの検査基準をコーパス自身にする：[wiki_evolve.py:388](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:388)
+- ループの事前検査と `test_keys` も同じ基準：[wiki_evolve_loop.py:511](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve_loop.py:511)
+
+前回の「元コーパスを読む口が保護されている」という主張は、コーパスと wiki の根が一致する場合にしか成立していない。
+
+### 3. 重大・発生度 D：POSIX の `:` を含む記事が、拒否ではなく無検査読み取りに流れる
+
+POSIX 上で `/W/concepts/a:b.md` をハードリンクにし、`read_user_bytes(path, W)` または `read_user_file(path, W)` に渡す。
+
+この名前について、記事の定義と読む口の判断が食い違う。
+
+```text
+is_article_path("concepts/a:b.md") → True
+article_path(W, "concepts/a:b.md") → not_article
+user_file_path(...)               → 元のパスを返す
+```
+
+`article_path()` は `:` を含む要素を属性取得前に `not_article` にする。呼び出し側はそれを対象外入力として扱うため、ハードリンクを読む。
+
+**モック検証：** POSIX のパス処理を使う条件で、本文読み取り1回、`lstat` 相当の呼び出し0回、通知0件を確認した。POSIX 実機でのリンク作成試験ではない。
+
+根拠：
+
+- 記事の名前の定義：[wiki_pages.py:465](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:465)
+- `:` を `not_article` にする分岐：[wiki_pages.py:498](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:498)
+- `not_article` を読み取り可能として通す分岐：[wiki_pages.py:535](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:535)
+
+この名前は[ファイル名規約](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/references/page-conventions.md:101)には違反する。そのため発生度は D とした。ただし、記事の定義と走査はこの既存ファイルを記事として扱っており、命名違反によってリンクの読み取り禁止が解除される根拠はない。
+
+## 崩れる前提
+
+- **共通関数には根の元の綴りが届く。** CLI の初期化判定で解決済みパスに置換されると崩れる。配下のリンクが外へ出る場合、親の `realpath` でも所属を復元できない。
+- **コーパス自身を根にすれば元の記事判定も保存される。** コーパスが既存 wiki の部分木なら崩れる。`assets` などの最上位除外名の意味が変わる。
+- **`not_article` は記事定義の対象外だけを意味する。** `article_path` の入力検証でも同じ状態を返すため崩れる。呼び出し側では、その区別がないまま読み取りを許可する。
+- **`wiki_root` を渡したことを検証すれば保護を確認できる。** 渡した根が誤っていても関数呼び出しは成立するため、引数の有無だけでは確認できない。
+
+## 見落としと軽微な問題
+
+**軽微：追加した回帰試験の組合せが、上記の欠陥を区別できない。**
+
+- 根の別名の試験は、CLI が根を解決した後に、別名配下の途中のリンクが外へ出る組合せを通していない。[test_wiki_links.py:541](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_wiki_links.py:541)
+- 元コーパスの試験は `corpus == wiki` の配置なので、`args.wiki` と `corpus` の取り違えが観測できない。[test_wiki_links.py:686](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_wiki_links.py:686)
+- 引き渡しを欠く対照はあるが、異なる根を渡す対照ではない。[test_wiki_links.py:636](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_wiki_links.py:636)
+
+静的な分類表の問題を解消したことと、実際の所属判定を網羅したことは別である。
+
+## 検証した事実
+
+第5回の各指摘の閉鎖状況は次のとおり。
+
+| 前回の指摘 | 今回の照合結果 |
+|---|---|
+| 重大1：ディレクトリ候補・元コーパスの未保護の `tree` | **元の反例は閉鎖、保証全体は未閉鎖。** 候補では `args.wiki` が渡り、元コーパスにも検査が加わった。ただし本報告の重大2が残る。 |
+| 重大2：記事でない assets 等まで拒否 | **元の反例は閉鎖。** `assets/candidate.md`、通常の `.txt`、隠し項目下の入力が記事の属性検査を受けず、バイト列をそのまま返すことをモックで確認した。 |
+| 重大3：途中の `..` を畳んで別のパスを検査 | **閉鎖。** 文字列・バイト列の両入口で、`abspath` に到達する前に拒否することをモックで確認した。 |
+| 軽微1：indexes のハードリンクの `expected_calls` | **閉鎖。** `lstat(index.md)`、`lstat(indexes)`、`scandir(indexes)` をモデル化し、その木がエラー注入の探索対象にも入っている。 |
+| 軽微2：読む口の名前だけで保護済みとする試験 | **元の指摘は閉鎖。** 分類表を静的棚卸しと明記し、実行経路の試験と、引数を欠かす対照を追加している。ただし上記の組合せは未検出。 |
+
+そのほかの確認結果：
+
+- 指定された実装、試験、ADR、設計11版、第5回最終報告、precheck、親の試験差分を照合した。入力ハッシュ記録と現物の不一致はなかった。
+- 書き込みを伴わない棚卸し・依存閉包・OS 呼び出し分類・初期化入口の **10件の unittest は通過**した。
+- `SERVER_FILES` の遅延 import を含む依存閉包試験は通過した。
+- 依頼元の「151件・統合チェック2本」は再実行していない。今回の反例はモックによる制御経路の検証であり、実リンクを作った統合実測とは区別する。
+- リポジトリ、利用者の wiki、原本は変更していない。
+
+## 崩せなかった点
+
+- 元の根が共通関数まで保持されている場合、根そのもののリンクを許し、配下のリンクを拒む経路。
+- `..` を絶対化前に拒む、今回追加された入口の処理。
+- 正しい wiki の根を渡した場合の、記事と `assets/` 等の対象外入力の区別。
+- `link_kind()` のシンボリックリンク、ジャンクション、名前代理タグ、通常ファイルのリンク数による分類。今回調べた分岐では反例を得られなかった。
+
+使用した MCP サーバー：なし  
+使用した Agent Skills：なし
+[ask-codex 22:45:23] 完了。session 01a1e9b3-9ddf-7443-b3ec-f69e677fe115  usage {"input_tokens": 5154908, "cached_input_tokens": 4919040, "cache_write_input_tokens": 0, "output_tokens": 15517, "reasoning_output_tokens": 5473}

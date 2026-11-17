@@ -5,7 +5,7 @@
 - コード、コマンド、パス、識別子は原文のまま書く。
 
 ## リポジトリの役割
-- このリポジトリ（`info-hive-dev`）は、info-hive の Claude Code プラグインを開発するためのリポジトリである。プラグインは複数作る。
+- このリポジトリ（`info-hive-dev`）は、info-hive の Claude Code と Codex 向けのプラグインを開発するためのリポジトリである。プラグインは複数作る。
 - 次のリポジトリを、それぞれ独立した Git リポジトリとして、このリポジトリのサブモジュールに置く。
   - `info-hive-wiki`（`to884/info-hive-wiki`）: プラグイン `wiki` の本体
   - `info-hive-rag`（`to884/info-hive-rag`）: プラグイン `rag` の本体
@@ -42,6 +42,9 @@
 - プラグイン名は `wiki`、スキル名は `info-hive` である。コマンドは `/wiki:<名前>` の形で起動する。
 - マーケットプレイス名 `info-hive` の定義は、`info-hive-marketplace/.claude-plugin/marketplace.json` にある。`info-hive-wiki` にはマーケットプレイスの定義を置かない。
 - スキルの本体は `info-hive-wiki/skills/info-hive/` にある。コマンドからは `${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/...` で参照する。
+- Codex の定義は `info-hive-wiki/.codex-plugin/plugin.json` に置く。MCP の起動は `cwd: "."` とプラグイン内の相対パスで指定する。Codex CLI 0.166.0 の互換形式は `${CLAUDE_PLUGIN_ROOT}` を展開しない。操作は `$wiki:info-hive <操作> <引数>` で呼び、`wiki_codex.py` が `commands/*.md` の正本を表示する（ADR-0031）。
+- Codex 用の配布カタログは `info-hive-marketplace/.agents/plugins/marketplace.json`、手元で試すカタログは親リポジトリの `.agents/plugins/marketplace.json` にある。後者は `wiki@info-hive-dev` として導入する。Codex の配布先は `source: "url"` と Git の HTTPS URL で指定する（Claude Code 用の `source: "github"` は使えない）。rag の Codex 対応は宣言しない。
+- Codex の会話は `$wiki:info-hive ingest session` と `session:<ID>` で取り込む。`wiki_session.py` は `--transcript codex:<ID>` を `wiki_codex_session.py` に渡し、Codex の読み取り API から会話を得る。現在の会話は `locate --host codex --current` で特定し、依頼を含むターンの手前に範囲を固定する。未加工の会話は一時ファイルに書き出さず、既存の伏せ字と承認後の保存処理を共用する（ADR-0032）。
 - 手元で試すときは、`claude --plugin-dir <info-hive-wiki の絶対パス>` で起動する。マーケットプレイスから `wiki@info-hive` を入れていても、`--plugin-dir` の側が優先され、その MCP のサーバーが使われる（Claude Code 2.1.316 で確かめた）。
 
 ### 日本語と機械が読む文字列
@@ -55,12 +58,12 @@
 
 ### リリース
 - この指示でいう「公開」は、Claude Code プラグイン、skills.sh ディレクトリのスキル、GitHub リリースの公開だけを指す。npm への公開は、ユーザーが明示的に求めない限り含めない。
-- ユーザーに見えるプラグインやスキルの変更は、マージ前に SemVer のバージョンを決める。バージョンは `info-hive-wiki/.claude-plugin/plugin.json` と `info-hive-wiki/CHANGELOG.md` をまとめて更新する。マーケットプレイスの項目にはバージョンを書かないので、`info-hive-marketplace` は直さない。スキルには独自のバージョンがなく、プラグインのバージョンを引き継ぐ。
+- ユーザーに見えるプラグインやスキルの変更は、マージ前に SemVer のバージョンを決める。バージョンは `info-hive-wiki/.claude-plugin/plugin.json`、`info-hive-wiki/.codex-plugin/plugin.json`、`info-hive-wiki/CHANGELOG.md` をまとめて更新する。マーケットプレイスの項目にはバージョンを書かないので、`info-hive-marketplace` は直さない。スキルには独自のバージョンがなく、プラグインのバージョンを引き継ぐ。
 - マーケットプレイスは `info-hive-wiki` の main を配る。`plugin.json` の `version` を上げたコミットが main に入ると、利用者に更新が届く。
 - リリースのコミットが `info-hive-wiki` の `main` に入り、`vX.Y.Z` のタグが push され、GitHub リリースが作成され、マーケットプレイスからの導入を確かめるまでは、リリースの完了を報告しない。
 
 ### Browse UI constraints
-The /wiki:browse page runs under a strict CSP (ADR-0010). Do not use inline style attributes or inline scripts. Use classes and token-based CSS.
+The /wiki:browse page runs under a strict CSP (ADR-0010). Do not use inline style attributes or inline scripts. Use classes and token-based CSS. The CSP is chosen per response (page, figure frame, svg) in ADR-0030; only the Mermaid frame document may use `style-src 'unsafe-inline'`.
 
 ## rag プラグイン（info-hive-rag）の開発
 

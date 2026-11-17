@@ -15,6 +15,7 @@ name: Wiki MCP server
 #   標準ライブラリと同梱の markdown-it-py だけ）
 # - tests/wiki/test_wiki_session.py: Claude Code のセッションの取り込み（wiki_session.py）。抜き出しの性質と対照、
 #   ディスクの走査、縛り、raw の排他と読み取り専用と verify、scan（標準ライブラリと同梱の markdown-it-py だけ）
+# - tests/wiki/test_codex_session.py: Codex の履歴 API の境界、形式別の取得、範囲の固定、共通の伏せ字と保存、Claude 互換
 # - tests/wiki/test_graph_duplicate_slugs.py: 同じスラッグと同じノード ID のページのグラフの抽出（PyYAML が要る）
 # - tests/wiki/test_graph_lint_edge_refs.py: グラフの lint が contradicts と supersedes のエッジの ID を認めること（PyYAML が要る）
 # - tests/wiki/test_graph_frontmatter_values.py: グラフの抽出が読む frontmatter の値が lint と同じこと（PyYAML が要る）
@@ -109,12 +110,24 @@ jobs:
       - name: ひな形のスクリプトのパスの試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_template_script_paths.py -v
+      - name: Codex のプラグインと共通の操作手順の試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 python -X utf8 -B -m unittest tests/wiki/test_codex_plugin.py -v
+      - name: Codex の会話履歴の取り込みの試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 python -X utf8 -B -m unittest tests/wiki/test_codex_session.py -v
       - name: Web ページの取得の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_wiki_fetch.py -v
       - name: URL の取り込みの検査の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_wiki_web_check.py -v
+      - name: Playwright への切り替えの試験（ブラウザを起動しない）
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_wiki_fetch_browser.py -v
+      - name: 許可済みタブの読み取りと切断の試験（ブラウザに接続しない）
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: node tests/wiki/check_browser_session.cjs
       - name: コマンドの個別のヘルプの試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_help_command.py -v

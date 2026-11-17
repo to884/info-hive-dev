@@ -92,7 +92,7 @@ ADR-0002 の「作る順序」を次のように改める。どの方式に決�
 4. 選んだ方式のアダプタを作る。最初は構成 B のサーバーとする
 5. 検索、全体のグラフ、RAG のデータ源を足す
 
-mermaid と `wiki/assets/` の svg の表示は、ADR-0005 のとおり第 1 段階に含めない。
+mermaid と `wiki/assets/` の svg の表示は、ADR-0005 のとおり第 1 段階に含めない（2026-11-17 追記: ADR-0030 で足した。mermaid はサーバーの方式でだけ描き、そのために iframe と `postMessage` を、classic な `<script src>` で読む `figures.js` が使う）。
 
 ## 理由
 

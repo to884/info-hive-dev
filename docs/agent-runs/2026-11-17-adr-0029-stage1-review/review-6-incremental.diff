@@ -1,0 +1,466 @@
+--- review-5 snapshot diff
++++ review-6 snapshot diff
+@@ -1,9 +1,9 @@
+ diff --git a/CHANGELOG.md b/CHANGELOG.md
+-index eff9322..4204b81 100644
++index eff9322..be7c7c5 100644
+ --- a/CHANGELOG.md
+ +++ b/CHANGELOG.md
+-@@ -6,6 +6,28 @@
++@@ -6,6 +6,29 @@
+  
+  ## [Unreleased]
+  
+ +### Changed
+@@ -17,8 +17,9 @@
+ +  - MCP の `get_page` は、リンクのディレクトリの下をパスで引くと「リンクなので読まない」を、権限などで調べられないと「調べられない」を返す。スラッグで引いて見つからないときは、リンクなので読まなかった場所を誤りの文に添える。
+ +  - 一覧を作ったあと、降りる前にディレクトリがリンクに置き換えられても、その下を読まない（降りる前に確かめ直す）。確かめてから一覧を作るまでの間の置き換えは防げない。
+ +  - 知らせは、拒んだその場（走査と記事を読む口）で集める。CLI はプロセスの終わりに標準エラーへまとめて出し（同じものは 1 度だけ）、MCP のツールは呼び出しごとに、結果の `link_warnings`（読まなかったもの）と `unverified`（権限などで調べられなかったもの）か、誤りの文に付ける。どのスクリプトから読んでも、知らせが届く。
+ +  - `/wiki:upgrade` は、`SCHEMA.md` がリンクか、リンクかを調べられないとき、不足を調べず、「追いついている」とは言わない。評価ループ（`wiki_evolve_loop.py`）は、書く先の記事（観察のソース、パターンのページ、索引、ログ）のどれかがリンクなら、どれも読まず、書かない。
+++  - 利用者が渡すファイルは、wiki 内かと記事かを分けて判定し、文字列とバイト列の読み取りを同じ検査に通す。スキルのディレクトリの候補や元のコーパスを写す際にも、記事のリンクを読まない。記事でない `assets/` や通常の候補は、記事のリンクの規則では拒まない。途中に `..` を含む入力は所属を決めず、`..` を含まないパスを求める。
+ +  - プラグインは、リンクを置き換えない。直し方の目安を `references/lint-workflow.md` の「記事のリンクの直し方」に書いた。
+ +
+ +### Added
+ +
+@@ -284,25 +285,103 @@
+          except OSError:
+              page_body = row.get("snippet", "")
+          candidates.append({"rel_path": row["rel_path"], "title": row["title"], "search_rank": rank, "text": page_body})
+ diff --git a/skills/info-hive/scripts/wiki_evolve.py b/skills/info-hive/scripts/wiki_evolve.py
+-index d651d8d..c19daff 100644
++index d651d8d..5556fbe 100644
+ --- a/skills/info-hive/scripts/wiki_evolve.py
+ +++ b/skills/info-hive/scripts/wiki_evolve.py
+-@@ -215,14 +215,24 @@ def propose(args, state):
++@@ -38,6 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
++ from wiki_text import localize_argparse, normalize_quote  # noqa: E402
++ import wiki_initialized  # noqa: E402
++ import wiki_workspace  # noqa: E402
+++import wiki_pages  # noqa: E402
++ 
++ IGNORED = {'.git', '__pycache__', '.wiki-cache', '.evolution', 'node_modules', '.wiki-evolve-lock'}
++ # wiki を使わない操作。ほかの操作はどれも、振り分けの前に wiki の判定を通る。
++@@ -49,8 +50,8 @@ def require(condition, message):
++         raise ValueError(message)
++ 
++ 
++-def read_json(path):
++-    return json.loads(Path(path).read_text(encoding='utf-8'))
+++def read_json(path, wiki_root=None):
+++    return json.loads(wiki_pages.read_user_file(path, wiki_root, encoding='utf-8'))
++ 
++ 
++ def encode(value):
++@@ -106,7 +107,9 @@ def atomic(path, data, mode=None):
++         Path(name).unlink(missing_ok=True)
++ 
++ 
++-def tree(root):
+++def tree(root, wiki_root=None):
+++    """木のハッシュ。利用者の wiki 内の木には wiki_root を渡し、記事の読み取りを共通の口に通す。"""
+++    root = wiki_pages.absolute_user_path(root)
++     require(root.is_dir() and not root.is_symlink(), f'通常のディレクトリではない: {root}')
++     result = {}
++     for directory, dirs, files in os.walk(root, followlinks=False):
++@@ -118,18 +121,19 @@ def tree(root):
++             path = Path(directory) / name
++             require(path.is_file(), f'通常のファイルではない: {path}')
++             result[path.relative_to(root).as_posix()] = {
++-                'sha256': digest(path.read_bytes()), 'mode': path.stat().st_mode & 0o777,
+++                'sha256': digest(wiki_pages.read_user_bytes(path, wiki_root)), 'mode': path.stat().st_mode & 0o777,
++             }
++     return result
++ 
++ 
++-def copy_tree(source, dest):
++-    files = tree(source)
+++def copy_tree(source, dest, wiki_root=None):
+++    source = wiki_pages.absolute_user_path(source)
+++    files = tree(source, wiki_root)
++     dest.mkdir(parents=True, exist_ok=True)
++     for name in files:
++         target = dest / name
++         target.parent.mkdir(parents=True, exist_ok=True)
++-        shutil.copy2(source / name, target)
+++        shutil.copy2(wiki_pages.user_file_path(source / name, wiki_root), target)
++     return files
++ 
++ 
++@@ -167,7 +171,7 @@ def manifest(exp):
++ 
++ 
++ def capture(args):
++-    record = read_json(args.record)
+++    record = read_json(args.record, getattr(args, 'wiki', None))
++     slug(record.get('id'))
++     for key in ('task', 'verification', 'model', 'tools', 'scope'):
++         require(isinstance(record.get(key), str) and record[key].strip(), f'{key} がない')
++@@ -201,34 +205,39 @@ def capture(args):
++ def propose(args, state):
++     exp = state / slug(args.id)
++     require(not exp.exists(), 'この実験の ID はすでにある。新しい ID を使う')
++-    source = args.skill.resolve()
++-    directory = args.candidate.is_dir()
+++    source = wiki_pages.absolute_user_path(args.skill)
+++    candidate = wiki_pages.absolute_user_path(args.candidate)
+++    directory = candidate.is_dir()
++     require(directory or args.target, 'ファイル単位の提案には --target が必要である')
++     require(not args.skill.is_symlink(), 'スキルをシンボリックリンクにはできない')
++     require(source.is_dir() or directory, '新しいスキルには候補のディレクトリが必要である')
++-    require(not source.is_relative_to(state.resolve()), 'インストール先を実験の記録の中にはできない')
+++    require(not source.resolve().is_relative_to(state.resolve()), 'インストール先を実験の記録の中にはできない')
++     if source.exists():
++-        require((source / 'SKILL.md').is_file() or not tree(source), 'スキルのディレクトリには SKILL.md が必要である（空のディレクトリならよい）')
+++        require((source / 'SKILL.md').is_file() or not tree(source, args.wiki), 'スキルのディレクトリには SKILL.md が必要である（空のディレクトリならよい）')
++     if directory:
++-        require((args.candidate / 'SKILL.md').is_file(), '候補に SKILL.md がない')
+++        require((candidate / 'SKILL.md').is_file(), '候補に SKILL.md がない')
++     else:
+          target = inside(source, args.target)
+          require(target.is_file(), '--target には、このスキルにある既存のファイルを指定する')
+          # 候補は渡されたバイト列のまま写す。文字として読み書きすると、Windows では改行が CRLF に変わる。
+-+        # 候補が wiki の中の記事なら、記事を読む口で確かめてから読む（info-hive-dev の ADR-0029）
+-+        import wiki_pages
+-+        require(wiki_pages._article_rel(args.candidate, args.wiki) is None
+-+                or wiki_pages.article_path(*wiki_pages._article_rel(args.candidate, args.wiki)).state == 'ok',
+-+                f'候補が wiki の中の記事で、リンクか調べられないので読まない: {args.candidate}')
+-         after = args.candidate.read_bytes()
++-        after = args.candidate.read_bytes()
+++        after = wiki_pages.read_user_bytes(candidate, args.wiki)
+          require(after.decode('utf-8').strip(), '候補が空である')
+      require(args.reason.strip(), '提案の理由（--reason）が空である')
+      evidence = {}
+-+    import wiki_pages
+      for name in args.evidence:
+          path = inside(args.wiki, name)
+          require(path.suffix == '.md' and path.is_file(), '根拠には、wiki にある既存の Markdown のページを指定する')
+ -        evidence[name] = path.read_text(encoding='utf-8')
+@@ -313,13 +392,109 @@
+ +        evidence[name] = opened.path.read_text(encoding='utf-8')
+      require(evidence, '根拠のページが少なくとも 1 つ必要である')
+      with tempfile.TemporaryDirectory(prefix='.staging-', dir=state) as tmp:
+          staging = Path(tmp) / 'experiment'
++         (staging / 'baseline').mkdir(parents=True)
++-        baseline = copy_tree(source, staging / 'baseline') if source.exists() else {}
++-        copy_tree(args.candidate if directory else source, staging / 'candidate')
+++        baseline = copy_tree(source, staging / 'baseline', args.wiki) if source.exists() else {}
+++        copy_tree(candidate if directory else source, staging / 'candidate', args.wiki)
++         if not directory:
++             (staging / 'candidate' / args.target).write_bytes(after)
++         require(tree(staging / 'candidate') != baseline, '候補がベースラインと同じである')
++@@ -356,14 +365,16 @@ def run_runner(argv, request, cwd, timeout):
++ 
++ 
++ def evaluate(args, exp):
+++    wiki_root = getattr(args, 'wiki', None)
++     value = manifest(exp)
++     require(not list(exp.glob('evaluation-*.json')) and not list(exp.glob('inputs-*.json')),
++             '評価はすでに記録されたか、始まっている。新しく試すときは新しい提案を作る')
++     require(not (exp / 'transition.json').exists(), '適用した実験は評価できない')
++-    suite_path = args.suite.resolve()
++-    suite = read_json(suite_path)
+++    suite_path = wiki_pages.user_file_path(args.suite, wiki_root).resolve()
+++    suite = read_json(suite_path, wiki_root)
++     corpus = (suite_path.parent / relative(suite['corpus'])).resolve()
++-    runner = read_json(args.runner)
+++    wiki_pages.require_readable_articles(corpus)
+++    runner = read_json(args.runner, wiki_root)
++     require(isinstance(runner, list) and runner and all(isinstance(x, str) and x for x in runner),
++             'ランナーのファイルには、空でない argv の JSON 配列を書く（シェルは使わない）')
++     finite(args.timeout, 'timeout')
++@@ -374,7 +385,7 @@ def evaluate(args, exp):
++     event(exp, 'inputs', {'suite': suite, 'model': args.model, 'tools': args.tools,
++                           'runner': runner, 'repeats': args.repeats, 'timeout': args.timeout,
++                           'proposal_sha256': digest((exp / 'proposal.json').read_bytes())})
++-    corpus_hash = copy_tree(corpus, exp / 'corpus')
+++    corpus_hash = copy_tree(corpus, exp / 'corpus', corpus)
++     # 実行のたびに、アーカイブした入力の新しいコピーを渡す。
++     with tempfile.TemporaryDirectory(prefix='wiki-evaluation-') as tmp:
++         workspace = Path(tmp)
++@@ -434,7 +445,7 @@ def evaluate(args, exp):
++             raise
++ 
++ 
++-def transition(exp, rollback=False):
+++def transition(exp, rollback=False, wiki_root=None):
++     value = manifest(exp)
++     source = Path(value['skill'])
++     source.mkdir(parents=True, exist_ok=True)
++@@ -444,12 +455,12 @@ def transition(exp, rollback=False):
++     except FileExistsError:
++         raise ValueError(f'スキルを別の処理が使用中である。そのプロセスが終了しているなら、確かめてから {lock} を削除する')
++     try:
++-        return promote(exp, value, rollback)
+++        return promote(exp, value, rollback, wiki_root)
++     finally:
++         lock.rmdir()
++ 
++ 
++-def promote(exp, value, rollback):
+++def promote(exp, value, rollback, wiki_root=None):
++     source = Path(value['skill'])
++     records = list(exp.glob('evaluation-*.json'))
++     require(len(records) == 1, '完了した評価が必要である')
++@@ -465,7 +476,7 @@ def promote(exp, value, rollback):
++     else:
++         require(current['status'] in ('proposed', 'applying', 'accepted'), 'ロールバックした実験は再び適用できない')
++         before, after, pending, done = 'baseline', 'candidate', 'applying', 'accepted'
++-    actual = tree(source)
+++    actual = tree(source, wiki_root)
++     if current['status'] in (pending, done) and actual == value[after]:
++         atomic(journal, encode({'status': done}).encode())
++         return {'id': value['id'], 'status': done}
++@@ -486,7 +497,7 @@ def promote(exp, value, rollback):
++             atomic(target, (exp / after / name).read_bytes(), value[after][name]['mode'])
++         else:
++             target.unlink(missing_ok=True)
++-    require(tree(source) == value[after], '切り替えたあとのスキルがスナップショットと一致しない')
+++    require(tree(source, wiki_root) == value[after], '切り替えたあとのスキルがスナップショットと一致しない')
++     atomic(journal, encode({'status': done}).encode())
++     event(exp, done, {'skill': str(source)})
++     return {'id': value['id'], 'status': done}
++@@ -612,7 +623,7 @@ def main():
++                         result = {'proposal': manifest(exp), 'inputs': [read_json(p) for p in exp.glob('inputs-*.json')], 'diff': (exp / 'change.diff').read_text(encoding='utf-8'),
++                                   'evaluations': [read_json(p) for p in exp.glob('evaluation-*.json')]}
++                     else:
++-                        result = transition(exp, rollback=args.action == 'rollback')
+++                        result = transition(exp, rollback=args.action == 'rollback', wiki_root=args.wiki)
++         print(encode(result), end='')
++         if args.action == 'evaluate' and result.get('status') == 'rejected':
++             return 2
+ diff --git a/skills/info-hive/scripts/wiki_evolve_loop.py b/skills/info-hive/scripts/wiki_evolve_loop.py
+-index 5b56428..12a8e7b 100644
++index 5b56428..274f54f 100644
+ --- a/skills/info-hive/scripts/wiki_evolve_loop.py
+ +++ b/skills/info-hive/scripts/wiki_evolve_loop.py
+-@@ -417,6 +417,18 @@ def consolidate(rows, patterns, history, calls, workspace, iteration):
++@@ -21,6 +21,7 @@ from wiki_evolve import (atomic, copy_tree, digest, encode, event, finite, insid
++                          propose, read_json, require, run_runner, slug, tree, capture)
++ from wiki_text import format_fm_value, format_frontmatter, localize_argparse, quote_in_text
++ import wiki_initialized
+++import wiki_pages
++ 
++ 
++ def contract(suite, corpus):
++@@ -417,6 +418,18 @@ def consolidate(rows, patterns, history, calls, workspace, iteration):
+  
+  def publish_learning(args, rows, patterns, iteration):
+      """観測できる学習の raw の証拠と、検索できる通常のソースとコンセプトのページ。"""
+ +    import wiki_pages
+@@ -336,21 +511,48 @@
+ +        require(opened.state in ('ok', 'absent'), f'{name} はリンクか、調べられないので、学習の記録を書かない（{opened.state}）')
+      raw = getattr(args, 'raw', None) or args.wiki.parent / 'raw'
+      raw.mkdir(parents=True, exist_ok=True)
+      today = time.strftime('%Y-%m-%d')
+-@@ -494,6 +506,12 @@ def run(args, state):
+-     suite_path = args.suite.resolve()
+-     suite = read_json(suite_path)
++@@ -489,19 +502,21 @@ def run(args, state):
++     require(not archive.exists(), 'この実行の ID はすでにある。最終テストを使ったあとの実行は、完了したものも中断したものも再開できない')
++     require(not args.skill.is_symlink() and not args.skill.resolve().is_relative_to(state.resolve()),
++             'スキルには、実験の記録の外にある作業用のディレクトリを指定する')
++-    require(not args.skill.exists() or (args.skill / 'SKILL.md').is_file() or not tree(args.skill),
+++    wiki_pages.absolute_user_path(args.skill)
+++    require(not args.skill.exists() or (args.skill / 'SKILL.md').is_file() or not tree(args.skill, args.wiki),
++             'スキルのディレクトリには SKILL.md が必要である（空のディレクトリならよい）')
++-    suite_path = args.suite.resolve()
++-    suite = read_json(suite_path)
+++    suite_path = wiki_pages.user_file_path(args.suite, args.wiki).resolve()
+++    suite = read_json(suite_path, args.wiki)
+      corpus = inside(suite_path.parent, suite['corpus'])
+-+    # コーパスは読む前に、記事の名前の中のリンク（ハードリンクを含む）がないことを確かめる（info-hive-dev の ADR-0029。
+-+    # 利用者の wiki をコーパスに指定しても、リンクの記事を読まない）
+-+    import wiki_links
+-+    found = wiki_links.find_links(corpus, origin=corpus, articles_only=True)
+-+    require(not found['links'] and not found['unchecked'],
+-+            f"コーパスにリンクか、調べられない項目がある: {[r for r, _k in found['links']] + found['unchecked']}")
+++    wiki_pages.require_readable_articles(corpus)
+      tasks = contract(suite, corpus)
+      consumed_path = state / 'consumed-tests.json'
+      consumed = read_json(consumed_path) if consumed_path.exists() else {}
++     test_keys = [digest(encode({'question': t['question'], 'rubric': t['rubric'],
++-                  'sources': {name: inside(corpus, name).read_text(encoding='utf-8-sig') for name in t['sources']}}).encode())
+++                  'sources': {name: wiki_pages.read_user_file(inside(corpus, name), corpus) for name in t['sources']}}).encode())
++                  for t in tasks if t['split'] == 'test']
++     require(not any(key in consumed for key in test_keys), '最終テストの課題はすでに使われた。新しい最終テスト用の課題を用意する')
++-    config = read_json(args.config)
+++    config = read_json(args.config, args.wiki)
++     slug(args.id + '-selected')
++     require(type(config.get('iterations')) is int and config['iterations'] > 0, 'iterations は正の整数にする')
++     require(type(config.get('repeats')) is int and config['repeats'] > 0, 'repeats は正の整数にする')
++@@ -513,10 +528,10 @@ def run(args, state):
++     for script in Path(__file__).parent.glob('wiki_evolve*.py'):
++         shutil.copy2(script, runtime / script.name)
++     atomic(archive / 'runtime-hashes.json', encode(tree(runtime)).encode())
++-    corpus_hash = copy_tree(corpus, archive / 'corpus')
+++    corpus_hash = copy_tree(corpus, archive / 'corpus', corpus)
++     initial = archive / 'baseline'
++     if args.skill.exists():
++-        copy_tree(args.skill, initial)
+++        copy_tree(args.skill, initial, args.wiki)
++     else:
++         initial.mkdir()
++     copy_tree(initial, archive / 'best')
+ diff --git a/skills/info-hive/scripts/wiki_graph_lint.py b/skills/info-hive/scripts/wiki_graph_lint.py
+ index 6d2c909..76e3997 100644
+ --- a/skills/info-hive/scripts/wiki_graph_lint.py
+ +++ b/skills/info-hive/scripts/wiki_graph_lint.py
+@@ -766,9 +968,9 @@
+                  raise FileNotFoundError(f"ページが見つからない: {page}")
+              return found
+          return await offload(run)
+ diff --git a/skills/info-hive/scripts/wiki_pages.py b/skills/info-hive/scripts/wiki_pages.py
+-index 842bf77..7bcb976 100644
++index 842bf77..77f9e29 100644
+ --- a/skills/info-hive/scripts/wiki_pages.py
+ +++ b/skills/info-hive/scripts/wiki_pages.py
+ @@ -7,18 +7,23 @@ lint、検索（とそれを使う MCP の索引）、グラフ、統計、判
+  
+@@ -956,14 +1158,14 @@
+  
+  def _stat_entry(path: str):
+ -    """(状態, stat の結果)。.md の項目と最上位の index.md がふつうのファイルかどうかを調べる os.stat()。
+ +    """(状態, stat の結果)。.md の項目と、最上位の記事（index.md、log.md、SCHEMA.md）を調べる os.lstat()。
+- 
+--    Windows の os.stat() は、属性の取得がエラー 1、50、87 で失敗すると、S_IFBLK の成功に読み替える。一覧に載る項目が
+++
+ +    リンクをたどらない。リンクかどうか（wiki_links.link_kind）と、ふつうのファイルかどうかと、ハードリンクの
+ +    リンクの数（st_nlink。Windows の DirEntry.stat() ではいつも 0 なので、この呼び出しでしか分からない）を、
+ +    1 回の呼び出しで決める。
+-+
++ 
++-    Windows の os.stat() は、属性の取得がエラー 1、50、87 で失敗すると、S_IFBLK の成功に読み替える。一覧に載る項目が
+ +    Windows の os.lstat() は、属性の取得がエラー 1、50、87 で失敗すると、S_IFBLK の成功に読み替える。一覧に載る項目が
+      ボリュームや物理ディスクであることはないので、Windows で S_IFBLK が返ったら「分からない」にする。POSIX の S_IFBLK は
+      本物のデバイスのファイルなので、ふつうのファイルでない（今と同じ）。
+      """
+@@ -983,14 +1185,10 @@
+ -        return state, None
+ -    if not any(value[1]):
+ -        return "denied", None
+ -    return "ok", value
+-+def _entry_lstat(entry):
+-+    """(状態, stat の結果)。一覧の項目の、リンクをたどらない属性。Windows では一覧の情報（再解析のタグと属性）から
+-+    答え、OS を呼ばない。POSIX では lstat を 1 回呼ぶ。st_nlink は使わない（Windows では 0 になる）。"""
+-+    return read_os(entry.stat, follow_symlinks=False)
+- 
+- 
++-
++-
+ -def _chain_identities(chain: tuple):
+ -    """(状態, 識別子の並び)。chain の各ディレクトリの識別子を、起点から順に取る。"""
+ -    found = []
+ -    for path in chain:
+@@ -998,10 +1196,14 @@
+ -        if state != "ok":
+ -            return state, None
+ -        found.append(one)
+ -    return "ok", tuple(found)
+--
+--
+++def _entry_lstat(entry):
+++    """(状態, stat の結果)。一覧の項目の、リンクをたどらない属性。Windows では一覧の情報（再解析のタグと属性）から
+++    答え、OS を呼ばない。POSIX では lstat を 1 回呼ぶ。st_nlink は使わない（Windows では 0 になる）。"""
+++    return read_os(entry.stat, follow_symlinks=False)
++ 
++ 
+ -def _is_junction(entry):
+ -    """(状態, ジャンクションか)。DirEntry.is_junction()（3.12 から）は、Windows では一覧の情報（再解析のタグ）から答え、
+ -    OS を呼ばない。Windows のほかでは、いつも偽を返す。"""
+ -    return read_os(entry.is_junction)
+@@ -1057,9 +1259,9 @@
+ +                continue
+          state, entries = read_os(_list_dir, directory)
+          if state == "absent":
+              continue
+-@@ -258,72 +368,211 @@ def walk_markdown(start, prefix: str = "", skip_top: bool = False, visited: "lis
++@@ -258,72 +368,245 @@ def walk_markdown(start, prefix: str = "", skip_top: bool = False, visited: "lis
+              rel = pre + name
+              if skip_top and pre == prefix and name in SKIP_TOP_LEVEL_DIRS:
+                  continue  # 名前だけで決める。リンクかどうかも、ディレクトリかどうかも調べない
+ -            is_link = is_dir = junction = False
+@@ -1248,14 +1450,19 @@
+ +        return ArticlePath("absent")
+ +    return ArticlePath("ok", Path(current))
+ +
+ +
+-+def read_user_file(path, wiki_root=None, encoding: str = "utf-8-sig") -> str:
+-+    """利用者が渡したファイルを読む。wiki の根の下にあれば記事を読む口を通し、リンクなら読まない（ADR-0029 の I2）。
+-+
+-+    wiki の外のファイルは、そのまま読む。根の下かは、パスの文字のうえで比べる（解決しない）。拒んだら ValueError。
+-+    """
+++def absolute_user_path(path) -> Path:
+++    """利用者のパスを、意味を変えずに絶対化する。途中の .. は解決する前に拒む（ADR-0029）。"""
+++    if ".." in Path(path).parts:
+++        raise ValueError(f".. を含むパスの所属は決められない。.. を含まないパスを指定する: {path}")
+++    return Path(os.path.abspath(os.fspath(path)))
+++
+++
+++def user_file_path(path, wiki_root=None) -> Path:
+++    """入力が wiki の記事なら、読む口で検査した同じパスを返す。記事でない入力は規則の対象外。"""
+ +    path = Path(path)
+++    absolute_user_path(path)  # 所属を調べない場合も、検査後と読み取り時で意味が変わる名前を受け取らない
+ +    if wiki_root is not None:
+ +        found = _article_rel(path, wiki_root)
+ +        if found is not None:
+ +            root, rel = found
+@@ -1264,11 +1471,40 @@
+ +                raise ValueError(f"リンクなので読まない: {opened.link[0]}（{opened.link[1]}）")
+ +            if opened.state == "denied":
+ +                raise ValueError(f"調べられない: {rel}")
+ +            if opened.state == "ok":
+-+                return opened.path.read_text(encoding=encoding)
+++                return opened.path
+++            if opened.state == "absent":
+++                raise FileNotFoundError(f"記事がないか、通常のファイルでない: {rel}")
+ +            # 記事でない名前（raw/ の下など）は、段階 2 の raw の規則に任せ、そのまま読む
+-+    return path.read_text(encoding=encoding)
+++    return path
+++
+++
+++def read_user_file(path, wiki_root=None, encoding: str = "utf-8-sig") -> str:
+++    """記事かどうかを判定し、記事ならリンクを拒んでから本文を読む。"""
+++    return user_file_path(path, wiki_root).read_text(encoding=encoding)
+++
+++
+++def read_user_bytes(path, wiki_root=None) -> bytes:
+++    """read_user_file と同じ規則で、改行や BOM を変えずに読む。"""
+++    return user_file_path(path, wiki_root).read_bytes()
+++
+++
+++def require_readable_articles(wiki_root) -> None:
+++    """wiki の記事と記事までの道だけを調べ、リンクや未確認があれば、完全性を要する読み取りを止める。"""
+++    walks = (walk_pages(wiki_root), walk_index_files(wiki_root))
+++    problems = link_warnings(*walks)
+++    for walk in walks:
+++        problems.extend({"path": rel, "kind": kind} for kind, rels in
+++                        (("unlistable", walk.unlistable), ("unknown", walk.unknown)) for rel in rels)
+++    for name in ("log.md", "SCHEMA.md"):
+++        opened = article_path(wiki_root, name)
+++        if opened.state == "link":
+++            problems.append({"path": opened.link[0], "kind": opened.link[1]})
+++        elif opened.state == "denied":
+++            problems.append({"path": name, "kind": "unknown"})
+++    if problems:
+++        raise ValueError("記事をすべて読めないので処理を止める: " + "; ".join(notice_lines(problems)))
+ +
+ +
+ +def _article_rel(path, wiki_root) -> "tuple[str, str] | None":
+ +    """path が wiki の中なら (比べた根, 根からの / 区切りの相対パス)。外なら None。
+@@ -1276,14 +1512,14 @@
+ +    根は、渡された綴りと、解決したもの（根そのものはリンクでもよい）の両方で比べる。path の側は、ファイルの名前を
+ +    解決せず（ファイルのリンクをたどらない）、親のディレクトリだけを解決したものと、綴りのままのものの両方で比べる。
+ +    大文字と小文字の扱いは os.path.normcase に任せる。
+ +    """
+-+    given = os.path.abspath(os.fspath(path))
+++    given = os.fspath(absolute_user_path(path))
+ +    try:
+ +        parent_resolved = os.path.join(os.path.realpath(os.path.dirname(given)), os.path.basename(given))
+ +    except OSError:
+ +        parent_resolved = given
+-+    roots = [os.path.abspath(os.fspath(wiki_root))]
+++    roots = [os.fspath(absolute_user_path(wiki_root))]
+ +    try:
+ +        roots.append(os.path.realpath(roots[0]))
+ +    except OSError:
+ +        pass
