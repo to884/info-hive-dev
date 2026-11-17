@@ -1,0 +1,157 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 8665552..d6c271a 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,14 @@
+ 
+ ## [Unreleased]
+ 
++### Changed
++
++- `/wiki:browse` のナビゲーションの木で、索引の見出しのグループの直下に並んでいたページを、ページの最初のタグごとのグループにまとめた（info-hive-dev の `docs/plans/wiki-browse-tag-groups-2026-11-16.md`）。木は「コンセプト › 取り込み › ページ」の形になり、タグのないページは「タグなし」のグループに入る。
++  - タグの段は、ページの項目を持つすべてのグループに挟む。索引の見出しのグループ、分割した索引のグループ、「索引にないページ」の種類のグループのどれも同じである。
++  - 最初のタグは、frontmatter の `tags` の空でない最初の値（NFC）で、索引のページの一覧の行に出るタグと同じである。大文字と小文字は区別する。
++  - タグのグループは、索引の行の順でタグが初めて現れた順に並び、「タグなし」は最後に置く。未解決と曖昧の索引の行と、分割した索引への行は、元のグループに残る。
++  - 索引のページの一覧の既定の並び（索引の順）と、行の階層（`fx-path`）が変わる。階層のいちばん下にタグのグループの名前が付く。左の木のタグのグループの行を押すと、そのタグのページに絞れる（`#group=_gt<番号>`）。
++
+ ## [0.21.1] - 2026-11-16
+ 
+ ### Fixed
+diff --git a/commands/browse.md b/commands/browse.md
+index 96e6aca..1b25f2f 100644
+--- a/commands/browse.md
++++ b/commands/browse.md
+@@ -4,7 +4,7 @@ argument-hint: "[slug] | --stop"
+ argument-description: "slug を付けると、そのページを開く（`[[slug]]` と同じ規則で探す。見つからなければ索引を開く）。`--stop` を付けると、動いている閲覧のサーバーを止める。"
+ ---
+ 
+-wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。配色は OS に合わせるほか、サイドバーの「配色」でライトとダークを選べる。閲覧はいつも読むだけで、wiki のファイルを作ったり書き換えたりしない。未解決リンクをクリックしても、ページはできない。
++wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類と、その下でページの最初のタグごとにまとめたグループ）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。配色は OS に合わせるほか、サイドバーの「配色」でライトとダークを選べる。閲覧はいつも読むだけで、wiki のファイルを作ったり書き換えたりしない。未解決リンクをクリックしても、ページはできない。
+ 
+ 引数: $ARGUMENTS
+ 
+diff --git a/docs/commands.md b/docs/commands.md
+index 168f30a..dd4f002 100644
+--- a/docs/commands.md
++++ b/docs/commands.md
+@@ -110,7 +110,7 @@ wiki の型付きグラフ層をコンパイル、lint、またはクエリす
+ 
+ ## `/wiki:browse [slug]`
+ 
+-wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。配色は OS に合わせるほか、サイドバーの「配色」でライトとダークを選べる。必要なときだけ 127.0.0.1 で待ち受けるサーバーを起動し、操作がない状態が 30 分続くと終わる。閲覧は読むだけで、wiki のファイルを変えない。
++wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類と、その下でページの最初のタグごとにまとめたグループ）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。配色は OS に合わせるほか、サイドバーの「配色」でライトとダークを選べる。必要なときだけ 127.0.0.1 で待ち受けるサーバーを起動し、操作がない状態が 30 分続くと終わる。閲覧は読むだけで、wiki のファイルを変えない。
+ 
+ ```bash
+ /wiki:browse
+diff --git a/skills/info-hive/scripts/wiki_browse_core.py b/skills/info-hive/scripts/wiki_browse_core.py
+index 230d41e..8295e96 100644
+--- a/skills/info-hive/scripts/wiki_browse_core.py
++++ b/skills/info-hive/scripts/wiki_browse_core.py
+@@ -511,6 +511,8 @@ ICON_ERROR = ('<svg class="fui-Icon" width="20" height="20" viewBox="0 0 20 20"
+ TYPE_LABELS = {"source": "ソース", "entity": "エンティティ", "concept": "コンセプト", "synthesis": "シンセシス"}
+ SUMMARY_SEPARATORS = ":：—–-"
+ GROUP_ID_RE = re.compile(r"_g[0-9a-z]+\Z")
++TAG_GROUP_ID_RE = re.compile(r"_gt[0-9]+\Z")
++NO_TAG_LABEL = "タグなし"
+ TYPE_CLASS_RE = re.compile(r"[a-z][a-z0-9_-]*\Z")
+ LEAD_LIMIT = 120
+ 
+@@ -578,6 +580,21 @@ def _check_tree(top: list) -> None:
+         raise NavInvariantError("グループの ID が重なる")
+     if not all(GROUP_ID_RE.match(i) for i in ids):
+         raise NavInvariantError("グループの ID の形が違う")
++    # タグでまとめる設計の 2.4: ページの項目を持つのはタグのグループだけで、タグのグループは子を持たず、
++    # 同じ親の下のタグのグループどうしは、同じページを持たない
++    for g in _walk(top):
++        is_tag = bool(TAG_GROUP_ID_RE.match(g["id"]))
++        if is_tag and (g["children"] or any(it["state"] != "resolved" for it in g["items"])):
++            raise NavInvariantError("タグのグループが、子のグループかページでない項目を持つ")
++        if not is_tag and any(it["state"] == "resolved" for it in g["items"]):
++            raise NavInvariantError("タグのグループでないグループが、ページの項目を持つ")
++        seen = set()
++        for ch in g["children"]:
++            if TAG_GROUP_ID_RE.match(ch["id"]):
++                pids = {it["id"] for it in ch["items"] if it["state"] == "resolved"}
++                if pids & seen:
++                    raise NavInvariantError("同じページが、同じ親の 2 つのタグのグループに入っている")
++                seen |= pids
+     shown = set(ids)
+     titles = {g["id"]: g["title"] for g in _walk(top)}
+     for g in _walk(top):
+@@ -951,7 +968,10 @@ class Core:
+         self._page_listing()
+ 
+     def _nav_stage_two(self, file_groups: list, rest_groups: list) -> list:
+-        """木の 2 つ目の段（探しやすさの設計の 2.1 の N2〜N8）。新しい ID は作らない。"""
++        """木の 2 つ目の段（探しやすさの設計の 2.1 の N2〜N7）、3 つ目の段（N9）、件数（N8）。
++
++        2 つ目の段は新しい ID を作らない。ID を作るのは 3 つ目の段（`_gt` の番号）だけである。
++        """
+         listed_before = _page_ids([g for _f, g in file_groups])
+         by_id = {g["id"]: g for _f, g in file_groups}
+         index_g = next((g for f, g in file_groups if f.rel == "index.md"), None)
+@@ -1008,6 +1028,7 @@ class Core:
+             for x in _walk([g]):
+                 x["origin"], x["summary"] = "", ""
+             top.append(g)
++        self._nav_tag_stage(top)                                     # N9: 件数（N8）より前に当てる
+ 
+         def count(g):                                                # N8
+             ids = {it["id"] for it in g["items"] if it["state"] == "resolved"}
+@@ -1021,6 +1042,56 @@ class Core:
+         _check_tree(top)
+         return top
+ 
++    def _nav_tag_stage(self, top: list) -> None:
++        """木の 3 つ目の段 N9（タグでまとめる設計の 2 節）。
++
++        ページの項目を自分の項目に持つグループのすべてで、ページの項目を、ページの最初のタグごとの子のグループ
++        （タグのないページは「タグなし」）に移す。ページでない項目は元のグループに残す。タグのグループは、
++        元のグループの項目の並びでタグが初めて現れた順に、元の子のグループより前に並べ、「タグなし」を最後に置く。
++        ID は `_gt` と、木を深さ優先でたどって（親、子の順）作った順の番号で、タグの文字を入れない。
++        """
++        before = {g["id"]: [it["id"] for it in g["items"] if it["state"] == "resolved"] for g in _walk(top)}
++        listed = _page_ids(top)
++        first_tag = {}
++        counter = [0]
++
++        def tag_of(pid):
++            if pid not in first_tag:
++                tags = self.page_tags(pid)
++                first_tag[pid] = tags[0] if tags else None
++            return first_tag[pid]
++
++        def apply(g):
++            original_children = g["children"]
++            pages = [it for it in g["items"] if it["state"] == "resolved"]
++            if pages:
++                buckets = {}           # 最初のタグ（なければ None）-> 項目。dict は入れた順を保つ
++                for it in pages:
++                    buckets.setdefault(tag_of(it["id"]), []).append(it)
++                keys = [k for k in buckets if k is not None] + ([None] if None in buckets else [])
++                made = []
++                for k in keys:
++                    counter[0] += 1
++                    made.append({"id": f"_gt{counter[0]}", "title": NO_TAG_LABEL if k is None else k,
++                                 "summary": "", "origin": "tag", "items": buckets[k], "children": []})
++                g["items"] = [it for it in g["items"] if it["state"] != "resolved"]
++                g["children"] = made + original_children
++            for ch in original_children:
++                apply(ch)
++
++        for g in top:
++            apply(g)
++        # 2.4 の性質のうち、N9 の前の木と比べるもの。形だけで決まるものは _check_tree() が確かめる
++        if _page_ids(top) != listed:
++            raise NavInvariantError("3 つ目の段で、木に載ったページが変わった")
++        by_id = {g["id"]: g for g in _walk(top)}
++        for gid, pids in before.items():
++            tag_children = [ch for ch in by_id[gid]["children"] if ch.get("origin") == "tag"]
++            for pid in pids:
++                holders = [ch for ch in tag_children if any(it.get("id") == pid for it in ch["items"])]
++                if len(holders) != 1 or holders[0]["title"] != (tag_of(pid) or NO_TAG_LABEL):
++                    raise NavInvariantError("ページが、最初のタグのグループのちょうど 1 つに入っていない")
++
+     def _page_listing(self) -> None:
+         """索引のページの一覧と検索の索引に使う、ページごとの並び、グループ、階層、索引の行の要約（4.1、4.2）。"""
+         self.page_order = []          # 索引の順（木を深さ優先でたどり、ページが最初に現れた順）

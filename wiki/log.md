@@ -210,5 +210,38 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 ## [2026-11-16] update | ADR-0029（wiki と raw の記事にリンクを置かない）の承認を記録した
    ページ: sources/2つのwikiを引く問い合わせの設計-2026-11-16 を更新
 
+## [2026-11-16] ingest | YouTube の取り込みを使い捨ての wiki で試した結果と wiki 0.23.2 のリリース
+   ページ: sources/youtubeの取り込みの試しと直しとリリース-wiki-0.23.2（新規）。sources/youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0、concepts/敵対的レビューで設計を直す進め方 を更新
+
+## [2026-11-16] update | /wiki:query の回答の「確からしさ」を「確信度」に名前を変えた
+   ページ: 確からしさを扱う 11 ページ（index を含む）の地の文と title を「確信度」にした。ページ名（スラッグ）、リンク、当時の版の決まった 1 行などの字句、この log の過去の行は変えていない
+
+## [2026-11-16] ingest | /wiki:query の回答の「確からしさ」を「確信度」に変えた wiki 0.24.0 のリリース
+   ページ: sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0（新規）。concepts/リリースの確かめ方 を更新
+
+## [2026-11-16] ingest | browse の木をタグでまとめ、左のペインを Tree にした wiki 0.25.0 のリリース
+   ページ: sources/browseのタグの段とTreeのリリース-wiki-0.25.0（新規）。concepts/browseのデザインシステム、concepts/browseの画面の確かめ方、index を更新
+
+## [2026-11-16] ingest | browse の同梱の fluent2.css をスキルの 0.1.5 に写し直した wiki 0.25.1 のリリース
+   ページ: sources/browseの同梱のfluent2のcssの更新-wiki-0.25.1（新規）。index を更新
+
+## [2026-11-16] ingest | The components of agent memory（Anthropic）
+   ページ: sources/components-of-agent-memory、concepts/エージェントのメモリの階層（新規）。concepts/editとwriteの書き込みの競合、concepts/エージェントに守らせる決まりの書き方、index を更新
+   raw: `wiki:web-raw` に任せた（報告したモデル: Claude Sonnet 5.5）。訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5
+   グラフ: ノード +2、型付きエッジ +0
+
+## [2026-11-16] ingest | Dreaming with a dynamic workflow（Claude の cookbook）
+   ページ: sources/managed-agents-cma-dreaming-with-a-dynamic-workflow（新規）。concepts/editとwriteの書き込みの競合、concepts/エージェントのメモリの階層、sources/components-of-agent-memory、index を更新
+   raw: `wiki:web-raw` に任せた（報告したモデル: Claude Sonnet 5.5）。訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5
+   グラフ: ノード +1、型付きエッジ +0
+
+## [2026-11-16] ingest | Knowledge wiki with a dynamic workflow（claude-quickstarts）
+   ページ: sources/claude-quickstarts-managed-agents-knowledge-wiki（新規）。concepts/editとwriteの書き込みの競合、concepts/エージェントのメモリの階層、sources/managed-agents-cma-dreaming-with-a-dynamic-workflow、index を更新
+   raw: `wiki:web-raw` に任せた（報告したモデル: Claude Sonnet 5.5）。訳: Claude Sonnet 5.5、補足: Claude Sonnet 5.5。README だけで、ファイルの一覧の表は 1 段落につぶれて英語のまま残った
+   グラフ: ノード +1、型付きエッジ +0
+
+## [2026-11-17] ingest | browse の種類とグループの絞り込みの直しと wiki 0.25.2 のリリース
+   ページ: sources/browseの種類とグループの絞り込みの直しとリリース-wiki-0.25.2（新規）。index を更新
+
 ## [2026-11-17] update | 2 つの wiki を引く問い合わせの設計の 18 版目（ADR-0029 に合わせ、4 体の見直しで読み手に確かめを移し、レビューを止めた）
    ページ: sources/2つのwikiを引く問い合わせの設計-2026-11-16、concepts/2つのwikiの分離の確かめ方、concepts/敵対的レビューで設計を直す進め方 を更新

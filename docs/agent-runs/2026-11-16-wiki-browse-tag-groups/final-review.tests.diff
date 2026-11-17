@@ -1,0 +1,739 @@
+diff --git a/docs/plans/wiki-browse-findability-2026-11-13.md b/docs/plans/wiki-browse-findability-2026-11-13.md
+index df67276..1ad2a0f 100644
+--- a/docs/plans/wiki-browse-findability-2026-11-13.md
++++ b/docs/plans/wiki-browse-findability-2026-11-13.md
+@@ -21,7 +21,7 @@
+ | 同 | 4 つの試作（A 分類の木、B 絞り込める一覧、C 検索が主役、D は A と B の組み合わせ）から、D を選んだ。左のペインは A の木、索引のページの本文は B の一覧にする |
+ | 同 | 索引のページでは、左の木をグループの名前と件数までに畳む。ページの名前が左右に二重に出ないようにするためである |
+ | 2026年11月14日（5 回目のレビューのあと） | レビューを止める条件を付ける。**失敗も競合も入れない正しい使い方で、設計の約束を破る反例**（分類 A）が出なければ、残りの指摘は限界（11）に書いて、作者の承認に回す。参照の実装や試作だけの欠陥で、設計の文が正しいもの（分類 B）と、表現や試験の網羅の指摘（分類 C）は、止める理由にしない。構造の直しの設計と同じ条件である |
+-| 2026年11月14日（7 回目のレビューのあと） | 7 版目を承認した。木の 2 段目より下は、索引のファイルの見出しで決まり、記事のタグや種類では決めないことを確かめた。木の深さに上限は設けない |
++| 2026年11月14日（7 回目のレビューのあと） | 7 版目を承認した。木の 2 段目より下は、索引のファイルの見出しで決まり、記事のタグや種類では決めないことを確かめた。木の深さに上限は設けない（2026年11月16日に改めた。ページの項目を持つグループの下に、ページの最初のタグのグループを挟む。[タグでまとめる設計](wiki-browse-tag-groups-2026-11-16.md)） |
+ | 2026年11月14日（承認のあと） | 画面を Fluent 2 にする。この設計の画面の部品は、[Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)の 4 節の部品で描く（F1）。ライト、ダーク、OS に合わせる、を選べる配色の切り替えを足す。プロジェクトの wiki の札は中立の色にし、木の字下げは 4 段目で止める |
+ 
+ ## 今の画面で探しにくいところ
+@@ -103,7 +103,7 @@
+ 
+ ### 2.1 木を組む規則
+ 
+-今の `Core._nav()` を、次のように直す。木は、2 つの段で作る。1 つ目の段は、今の `Core._nav()` が組む木そのものである（N1）。索引の解析（同じパーサー、コードの中の `[[…]]` を拾わない、Setext の見出し、番号つきのリスト）、項目を段落の最初の wikilink で決めること、リンクの解決（`[[a.md]]`、ディレクトリを省いたスラッグ、見出しへのリンク）、frontmatter の読み方（`canonical_meta()`。日本語のキーも読む）は、どれも変えない。1 つ目の段で変えるのは、索引のファイルのグループの ID の作り方だけである（2.2）。2 つ目の段で、組んだ木を畳み、並べ直す（N2〜N8）。見出しの位置に頼る例外の規則は置かない。1 版目は「最初の h1」「最初の見出しより前」という位置で例外を決めたので、2 つの例外の境目に入る項目の所属が決まらなかった（1 回目のレビューの重大 2）。
++今の `Core._nav()` を、次のように直す。木は、2 つの段で作る。1 つ目の段は、今の `Core._nav()` が組む木そのものである（N1）。索引の解析（同じパーサー、コードの中の `[[…]]` を拾わない、Setext の見出し、番号つきのリスト）、項目を段落の最初の wikilink で決めること、リンクの解決（`[[a.md]]`、ディレクトリを省いたスラッグ、見出しへのリンク）、frontmatter の読み方（`canonical_meta()`。日本語のキーも読む）は、どれも変えない。1 つ目の段で変えるのは、索引のファイルのグループの ID の作り方だけである（2.2）。2 つ目の段で、組んだ木を畳み、並べ直す（N2〜N8）。2026年11月16日の改訂で、2 つ目の段のあとに 3 つ目の段（N9。ページを最初のタグのグループにまとめる）を足し、N8 の件数は N9 のあとに数えるようにした。規則は[タグでまとめる設計](wiki-browse-tag-groups-2026-11-16.md)の 2 節にある。見出しの位置に頼る例外の規則は置かない。1 版目は「最初の h1」「最初の見出しより前」という位置で例外を決めたので、2 つの例外の境目に入る項目の所属が決まらなかった（1 回目のレビューの重大 2）。
+ 
+ | | 規則 | 今 |
+ | --- | --- | --- |
+@@ -189,7 +189,7 @@ window.WIKI_NAV = {
+ 
+ ## 3. サイドバー（左のペイン）
+ 
+-部品のマークアップと見た目は、[Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)の 4 節の表に従う。`#_nav` は `nav.fui-NavDrawer`、グループは `details.fui-NavCategory`、ページは `a.fui-NavSubItem` である。この節の class（`tree`、`tree-filter`、`is-current`、`drawer` など）は、Fluent の class と並べて付ける。
++部品のマークアップと見た目は、[Fluent 2 の設計](wiki-browse-fluent2-2026-11-14.md)の 4 節の表に従う。`#_nav` は `nav.fui-NavDrawer`、グループは `details.fui-NavCategory`、ページは `a.fui-NavSubItem` である（2026年11月16日に改めた。木は Fluent 2 の Tree で描き、グループは `div.fui-TreeItem`、ページは `a.fui-TreeItem` になった。開閉、今の項目、キーボードの操作は[左のペインの木の設計](wiki-browse-tree-2026-11-16.md)の 2 節による。この節の、索引のページの絞り込みの規則は変わらない。3.1 の記事のページの木は、同じ日の作者の決定で、索引のページと同じくグループの名前と件数だけにし、ページの項目、今のページの項目の強調、「一覧」のリンクをなくした。今のページを持つグループに印を付け、その祖先を開く。左のペインの木の設計の 9 節）。この節の class（`tree`、`tree-filter`、`is-current`、`drawer` など）は、Fluent の class と並べて付ける。
+ 
+ ### 3.1 記事のページ
+ 
+diff --git a/docs/plans/wiki-browse-fluent2-2026-11-14.md b/docs/plans/wiki-browse-fluent2-2026-11-14.md
+index dde59c6..b4c562d 100644
+--- a/docs/plans/wiki-browse-fluent2-2026-11-14.md
++++ b/docs/plans/wiki-browse-fluent2-2026-11-14.md
+@@ -19,6 +19,7 @@
+ | 同 | ライト、ダーク、OS に合わせる、を選べる配色の切り替えを足す |
+ | 同 | 必要ならプラグインのコードを変えてよい。実装はスキル `fluent2-html-replica` の場所に依存しない。要るファイルは写し、プラグインが自分で持つ |
+ | 同（試作を見たあと） | 試作の見た目で進める。プロジェクトの wiki の札は、中立の色（Badge の informative）にする。ユーザースコープの wiki の札は brand の色にする。木の字下げは 4 段目で止める |
++| 2026年11月16日 | 左のペインの木を、Nav の部品の入れ子から Fluent 2 の Tree に改め、見た目を Fluent 2 のサイトの左のペインに合わせる。4 節の表のうち、ナビの列の地、`#_nav` の地、記事のページの木、木の深い段、今のページ、グループの件数、「一覧」、未解決と曖昧の項目、索引のページの左の木の行は、[左のペインの木の設計](wiki-browse-tree-2026-11-16.md)に置き換わった。4.2 の 2 つ目の規則（地が状態で変わる要素の文字に brand の色を使わない）は、左のペインの木と索引へのリンクについて改め、地と文字を組で brand のトークンにする（左のペインの木の設計の 1 節。比は同じく 4.5:1 以上を試験で守る） |
+ 
+ ## 2 回目のレビューで崩れた前提
+ 
+diff --git a/tests/wiki/browse/findability.test.mjs b/tests/wiki/browse/findability.test.mjs
+index 07e8247..4670b11 100644
+--- a/tests/wiki/browse/findability.test.mjs
++++ b/tests/wiki/browse/findability.test.mjs
+@@ -43,6 +43,9 @@ put("SCHEMA.md", "# スキーマ\n");
+ put("index.md", ["# 索引", "- [[bm25]]: 索引の行の要約", "## 第一", "- [[two]]", "## 第二", "- [[two]]", "- [[strasse]]",
+   "- [[indexes/x]]: 分割の索引", "- [[ない]]", ""].join("\n"));
+ put("indexes/x.md", "# X の索引\n- [[istanbul]]\n- [[abc]]\n");
++// 深い段（左のペインの木の設計の 2.3）: h1〜h6 の見出し。最初の見出しの前にも項目を置き、N3 で畳まれないようにする。
++// abc の木は、ファイル（1）› D1〜D6（2〜7）› タグなし（8）› abc（9）の 9 段になる
++put("indexes/deep.md", ["- [[abc]]", "# D1", "## D2", "### D3", "#### D4", "##### D5", "###### D6", "- [[abc]]", ""].join("\n"));
+ put("concepts/bm25.md", pg({ type: "concept", title: "BM25", tags: ["検索", "ランキング"], updated: "2026-04-18" },
+   "# BM25\n\n語の頻度で点数を付ける。[[未作成のページ]] はまだない。\n\n## 語の頻度\n\n本文。"));
+ put("concepts/two.md", pg({ type: "concept", title: "ΟΣ", updated: "2026-05-01" }, "# ΟΣ\n\n二つのグループに載る。[[bm25]] を見る。"));
+@@ -133,10 +136,12 @@ const INIT = `(() => {
+   };
+ })();`;
+ 
+-const CONTRAST = ["#_body p", "#_body h2", "#_scope .fui-Badge", ".fui-NavSubItem", ".fui-NavSubItem.is-current",
+-  ".fui-NavCategoryItem .tree-name", ".tree-count", "#_meta th", ".t-concept", ".t-entity", ".t-source",
+-  ".t-synthesis", ".t-other", ".fui-NavItem.is-current", ".fui-Tag__primaryText", ".ix-summary", ".ix-title", ".fx-path", "#_backlinks a", ".sr-title", ".sr-meta",
+-  ".chips .fui-ToggleButton", "#_theme", "#_body .wl-unresolved",
++// 左の木は Tree の部品（左のペインの木の設計の 2、6）。葉の名前、今の項目、枝の名前、件数のバッジ、索引のページのグループの葉
++const CONTRAST = ["#_body p", "#_body h2", "#_scope .fui-Badge",
++  ".tree .fui-TreeItem.is-current .fui-TreeItemLayout__main", ".tree-group .tree-name", ".tree .tree-count",
++  ".tree-index .tree-name", ".nav-home", "#_meta th", ".t-concept", ".t-entity", ".t-source",
++  ".t-synthesis", ".t-other", ".fui-Tag__primaryText", ".ix-summary", ".ix-title", ".fx-path", "#_backlinks a", ".sr-title", ".sr-meta",
++  ".chips .fui-ToggleButton", ".theme-label", "#_body .wl-unresolved",
+   // 記事のページの部品（F2）
+   "#_body h1", "#_body h3", "#_body h4", "#_body a", "#_body .wl-ambiguous", "#_body .wl-missing-heading",
+   "#_body code", "#_body pre code", "#_body blockquote p", "#_body th", "#_body td",
+@@ -158,7 +163,8 @@ async function contrastOf(page) {
+ // 読むだけの入れ物（#_main の表の行と一覧の行）は、ポインターと押下の前後で地が変わらないことも、すべてで比べる
+ // （比が 4.5 を保っても、地を変えれば 4.2 の 1 つ目の規則に外れる。実装の 1 回目のレビューの C）
+ async function stateContrast(page) {
+-  const sel = "#_main tr, #_main li, #_nav li, a, summary, button, .fui-NavItem, .fui-NavSubItem, .fui-Select";
++  // 木の行（.fui-TreeItemLayout）にポインターを置き、行の中の文字（名前と件数のバッジ）を測る
++  const sel = "#_main tr, #_main li, a, summary, button, .fui-NavItem, .fui-TreeItemLayout, .fui-Select";
+   const n = await page.locator(sel).count();
+   let min = 99, where = "";
+   const changed = [];
+@@ -173,10 +179,12 @@ async function stateContrast(page) {
+     const [r1, bg1] = await loc.evaluate(async (e) => { await window.__settled(); return [window.__textRatio(e), getComputedStyle(e).backgroundColor]; });
+     await page.mouse.down();
+     const [r2, bg2] = await loc.evaluate(async (e) => { await window.__settled(); return [window.__textRatio(e), getComputedStyle(e).backgroundColor]; });
++    // 押したままポインターを外した状態（:active が残り、:hover が外れる）も測る（実装の 1 回目のレビューの 3）
+     await page.mouse.move(0, 0);
++    const [r3, bg3] = await loc.evaluate(async (e) => { await window.__settled(); return [window.__textRatio(e), getComputedStyle(e).backgroundColor]; });
+     await page.mouse.up();
+-    if (readOnly && (bg1 !== bg0 || bg2 !== bg0)) changed.push(`${await loc.evaluate(name)} ${bg0}→${bg1}/${bg2}`);
+-    const r = Math.min(r1, r2);
++    if (readOnly && (bg1 !== bg0 || bg2 !== bg0 || bg3 !== bg0)) changed.push(`${await loc.evaluate(name)} ${bg0}→${bg1}/${bg2}/${bg3}`);
++    const r = Math.min(r1, r2, r3);
+     if (r < min) { min = r; where = await loc.evaluate(name); }
+   }
+   return { min, where, changed };
+@@ -216,13 +224,30 @@ async function articleChecks(browser, base, tag) {
+   const requests = [];
+   page.on("request", (r) => requests.push(r.url()));
+   await page.goto(url(base, "concepts/two.html"));
+-  // 2 つのグループに載ったページ: 2 つのグループがどちらも開き、どちらの項目にも aria-current がある
++  // 記事のページの木も、グループの名前と件数だけを描き、記事の題名は描かない（左のペインの木の設計の 9 節）
++  // 2 つのグループに載ったページ: 今のページを持つ 2 つのグループ（どちらも「タグなし」）に印が付き、その祖先が開く
+   const tree = await page.evaluate(() => ({
+-    current: document.querySelectorAll('.fui-NavSubItem[aria-current="page"]').length,
+-    open: Array.from(document.querySelectorAll("details.tree-group[open] > summary .tree-name"), (n) => n.textContent),
++    pages: document.querySelectorAll(".tree a.tree-page").length,
++    current: Array.from(document.querySelectorAll('.tree .fui-TreeItem.is-current[aria-current="true"]'), (i) => ({
++      name: i.querySelector(":scope > .fui-TreeItemLayout .tree-name").textContent,
++      parent: i.parentElement.closest(".fui-TreeItem")?.querySelector(":scope > .fui-TreeItemLayout .tree-name").textContent,
++      open: i.parentElement.closest(".fui-TreeItem")?.getAttribute("aria-expanded") })),
+   }));
+-  check(tree.current === 2, `${tag}: 2 つのグループの今のページの印が ${tree.current} 個`);
+-  check(tree.open.includes("第一") && tree.open.includes("第二"), `${tag}: 今のページのグループが開いていない: ${tree.open}`);
++  check(tree.pages === 0, `${tag}: 記事のページの木に記事の題名が ${tree.pages} 個ある`);
++  check(tree.current.length === 2 && tree.current.every((c) => c.name === "タグなし" && c.open === "true")
++    && tree.current.map((c) => c.parent).sort().join() === "第一,第二", `${tag}: 今のページのグループの印が違う: ${JSON.stringify(tree.current)}`);
++  {
++    const p2 = await context.newPage();
++    await p2.goto(url(base, "concepts/bm25.html"));
++    const t2 = await p2.evaluate(() => {
++      const c = document.querySelector(".tree .fui-TreeItem.is-current");
++      return { name: c?.querySelector(":scope > .fui-TreeItemLayout .tree-name").textContent,
++               parent: c?.parentElement.closest(".fui-TreeItem")?.querySelector(":scope > .fui-TreeItemLayout .tree-name").textContent };
++    });
++    // bm25 の最初のタグは「検索」。「Index」の下の「検索」のグループに印が付く
++    check(t2.name === "検索" && t2.parent === "Index", `${tag}: bm25 の今のページのグループが違う: ${JSON.stringify(t2)}`);
++    await p2.close();
++  }
+   // 後からの読み込み: フォーカスの前に search.js を読まない
+   check(!requests.some((u) => u.includes("search.js")), `${tag}: フォーカスの前に search.js を読んだ`);
+   await page.focus("#_q");
+@@ -261,6 +286,177 @@ async function articleChecks(browser, base, tag) {
+   await context.close();
+ }
+ 
++// 左の木（Fluent 2 の Tree。左のペインの木の設計の 2、4、6）
++async function treeChecks(browser, base, tag) {
++  const shape = () => {
++    const root = document.querySelector('.tree .fui-Tree[role="tree"]');
++    const items = Array.from(document.querySelectorAll(".tree .fui-TreeItem"));
++    const level = (i) => Number(i.getAttribute("aria-level"));
++    return {
++      root: !!root && !!root.getAttribute("aria-label"),
++      roles: items.filter((i) => i.getAttribute("role") !== "treeitem").length,
++      badLevel: items.filter((i) => { const p = i.parentElement.closest(".fui-TreeItem"); return level(i) !== (p ? level(p) + 1 : 1); }).length,
++      badExpanded: items.filter((i) => i.hasAttribute("aria-expanded") !== !!i.querySelector(":scope > .fui-Tree")).length,
++      noLayout: items.filter((i) => !i.querySelector(":scope > .fui-TreeItemLayout > .fui-TreeItemLayout__main")).length,
++      tab0: items.filter((i) => i.getAttribute("tabindex") === "0").length,
++      underline: items.filter((i) => i.tagName === "A" && getComputedStyle(i).textDecorationLine !== "none").length,
++      deep: items.filter((i) => level(i) >= 5 && !i.classList.contains("tree-deep")).length,
++    };
++  };
++  const tab0 = (page) => page.evaluate(() => document.querySelectorAll('.tree .fui-TreeItem[tabindex="0"]').length);
++  const active = (page) => page.evaluate(() => {
++    const a = document.activeElement;
++    return { cls: a ? a.className : "", text: a ? (a.querySelector(":scope > .fui-TreeItemLayout > .fui-TreeItemLayout__main") || a).textContent : "",
++             current: !!(a && a.classList && a.classList.contains("is-current")), expanded: a ? a.getAttribute("aria-expanded") : null };
++  });
++
++  // 記事のページ
++  {
++    const { context, page, errors } = await newPage(browser);
++    await page.goto(url(base, "concepts/bm25.html"));
++    const s = await page.evaluate(shape);
++    check(s.root && s.roles === 0 && s.badLevel === 0 && s.badExpanded === 0 && s.noLayout === 0 && s.tab0 === 1 && s.underline === 0 && s.deep === 0,
++      `${tag}: 記事のページの木の作りが違う: ${JSON.stringify(s)}`);
++    // 見た目: ペインの地はページと同じ。枝は semibold。件数は CounterBadge で、title に件数の文がある
++    const look = await page.evaluate(() => {
++      const nav = document.getElementById("_nav");
++      const badge = document.querySelector(".tree-group .tree-count");
++      return { navBg: getComputedStyle(nav).backgroundColor, homeBg: getComputedStyle(document.querySelector(".nav-home")).backgroundColor,
++               weight: getComputedStyle(document.querySelector(".tree-group > .fui-TreeItemLayout > .fui-TreeItemLayout__main")).fontWeight,
++               badge: !!badge && badge.classList.contains("fui-CounterBadge") && /^\d+ ページ$/.test(badge.title) && badge.getAttribute("aria-hidden") === "true",
++               label: /（\d+ ページ）$/.test(document.querySelector(".tree-group").getAttribute("aria-label") || "") };
++    });
++    check(look.navBg === "rgba(0, 0, 0, 0)" && look.homeBg === "rgba(0, 0, 0, 0)" && Number(look.weight) >= 600 && look.badge && look.label,
++      `${tag}: 木の見た目が違う: ${JSON.stringify(look)}`);
++    // バッジは名前のすぐ隣（作者の決定）。字下げは Fluent 2 のサイトの形: 1 段目と 2 段目の名前がそろい、3 段目は 1 段深い（6.1）
++    const place = await page.evaluate(() => {
++      // 3 段目を見えるようにするため、すべての枝を開く（測ったあとで読み直す）
++      document.querySelectorAll(".tree-group[aria-expanded]").forEach((b) => b.setAttribute("aria-expanded", "true"));
++      const main = (i) => i.querySelector(":scope > .fui-TreeItemLayout > .fui-TreeItemLayout__main").getBoundingClientRect();
++      const lay = document.querySelector(".tree-group > .fui-TreeItemLayout");
++      const gap = lay.querySelector(".tree-count").getBoundingClientRect().left - lay.querySelector(".fui-TreeItemLayout__main").getBoundingClientRect().right;
++      const at = (n) => Array.from(document.querySelectorAll(`.tree .fui-TreeItem[aria-level="${n}"]`)).find((i) => i.offsetParent !== null);
++      const [l1, l2, l3] = [at(1), at(2), at(3)].map((i) => i && Math.round(main(i).left));
++      return { gap: Math.round(gap), l1, l2, l3 };
++    });
++    check(place.gap >= 0 && place.gap <= 12 && place.l1 === place.l2 && place.l3 - place.l2 >= 16 && place.l3 - place.l2 <= 20,
++      `${tag}: バッジの位置か字下げが違う: ${JSON.stringify(place)}`);
++    await page.reload();
++    await page.waitForFunction(() => window.__browse && window.__browse.navLoaded);
++    // Tab で木に入ると、今のページの項目にフォーカスがある
++    await page.focus("#_q");
++    for (let k = 0; k < 4 && !(await page.evaluate(() => !!document.activeElement.closest(".tree"))); k++) { await page.keyboard.press("Tab"); }
++    let a = await active(page);
++    check(a.current, `${tag}: Tab で木に入ると今のページの項目にない: ${JSON.stringify(a)}`);
++    // ← で親の枝に移り、もう一度 ← で閉じ、→ で開き、→ で最初の子に移る
++    await page.keyboard.press("ArrowLeft");
++    a = await active(page);
++    check(a.cls.includes("tree-group") && a.expanded === "true", `${tag}: ← で親の枝に移らない: ${JSON.stringify(a)}`);
++    await page.evaluate(() => { document.activeElement.dataset.testBranch = "1"; });
++    await page.keyboard.press("ArrowLeft");
++    check((await active(page)).expanded === "false", `${tag}: ← で枝が閉じない`);
++    await page.keyboard.press("ArrowRight");
++    check((await active(page)).expanded === "true", `${tag}: → で枝が開かない`);
++    await page.keyboard.press("ArrowRight");
++    check(await page.evaluate(() => {
++      const b = document.querySelector('[data-test-branch="1"]');
++      return document.activeElement === b.querySelector(":scope > .fui-Tree > .fui-TreeItem");
++    }), `${tag}: → で最初の子に移らない`);
++    check(await tab0(page) === 1, `${tag}: 矢印キーのあと、tabindex="0" の項目が 1 つでない`);
++    // バッジにポインターを置いても、バッジは隠れず title を持つ（6.3）
++    await page.locator(".tree-group > .fui-TreeItemLayout .tree-count").first().hover();
++    const onBadge = await page.evaluate(() => {
++      const b = document.querySelector(".tree-group > .fui-TreeItemLayout .tree-count");
++      return { shown: b.offsetParent !== null, hovered: b.matches(":hover"), title: b.title };
++    });
++    check(onBadge.shown && onBadge.hovered && /^\d+ ページ$/.test(onBadge.title), `${tag}: バッジにポインターを置き続けられない: ${JSON.stringify(onBadge)}`);
++    // 記事のページの枝のシェブロンを押すと開閉だけをする
++    const before = await page.evaluate(() => document.querySelector(".tree-group").getAttribute("aria-expanded"));
++    await page.locator(".tree-group > .fui-TreeItemLayout .fui-TreeItemLayout__expandIcon").first().click();
++    const after = await page.evaluate(() => [document.querySelector(".tree-group").getAttribute("aria-expanded"), location.pathname]);
++    check(before !== after[0] && after[1].endsWith("/bm25.html"), `${tag}: 記事のページの枝のシェブロンで開閉しないか、ページが移る`);
++    await page.locator(".tree-group > .fui-TreeItemLayout .fui-TreeItemLayout__expandIcon").first().click();
++    // 枝の名前を押すと、Index のページがそのグループに絞られて開く（9 節）
++    const bid = await page.evaluate(() => document.querySelector(".tree-group").getAttribute("data-group"));
++    await Promise.all([page.waitForURL((u) => u.pathname.endsWith("/index.html")),
++                       page.locator(".tree-group > .fui-TreeItemLayout .tree-name").first().click()]);
++    await page.waitForFunction(() => window.__browse && window.__browse.navLoaded);
++    check(await page.evaluate((id) => location.hash === "#group=" + id && document.querySelector(".tree .fui-TreeItem.is-current")?.getAttribute("data-group") === id, bid),
++      `${tag}: 記事のページの枝の名前で、Index のページがそのグループに絞られない`);
++    // キーボード: 枝で Enter を押しても、葉（子のないグループ）で Enter を押しても、Index のページがそのグループに絞られて開く
++    for (const which of ["branch", "leaf"]) {
++      await page.goto(url(base, "concepts/bm25.html"));
++      await page.waitForFunction(() => window.__browse && window.__browse.navLoaded);
++      const gid = await page.evaluate((w) => {
++        const el = w === "branch" ? document.querySelector(".tree-group") : document.querySelector(".tree a.tree-index.is-current");
++        el.focus();
++        return el.getAttribute("data-group");
++      }, which);
++      await Promise.all([page.waitForURL((u) => u.pathname.endsWith("/index.html")), page.keyboard.press("Enter")]);
++      await page.waitForFunction(() => window.__browse && window.__browse.navLoaded);
++      check(await page.evaluate((id) => location.hash === "#group=" + id, gid), `${tag}: ${which} の Enter で Index のページがそのグループに絞られない`);
++    }
++    // 深い段: abc のページでは 8 段まで開く。4 段目より深い項目の名前の左端は、4 段目の項目と同じ位置にある（2.3）
++    await page.goto(url(base, "concepts/abc.html"));
++    const deep = await page.evaluate(() => {
++      const items = Array.from(document.querySelectorAll(".tree .fui-TreeItem")).filter((i) => Number(i.getAttribute("aria-level")) >= 4 && i.offsetParent !== null);
++      const left = (i) => Math.round(i.querySelector(":scope > .fui-TreeItemLayout > .fui-TreeItemLayout__main").getBoundingClientRect().left);
++      const levels = items.map((i) => Number(i.getAttribute("aria-level")));
++      return { max: Math.max(0, ...levels), lefts: [...new Set(items.map(left))],
++               untagged: items.filter((i) => Number(i.getAttribute("aria-level")) >= 5 && !i.classList.contains("tree-deep")).length };
++    });
++    check(deep.max >= 8 && deep.lefts.length === 1 && deep.untagged === 0,
++      `${tag}: 4 段目より深い項目の字下げが 4 段目と同じでない: ${JSON.stringify(deep)}`);
++    check(errors.length === 0, `${tag}: 木の操作でコンソールのエラー: ${errors.slice(0, 3)}`);
++    const health = await page.evaluate(() => window.__health());
++    check(health.style === 0 && health.dupIds.length === 0 && health.csp.length === 0, `${tag}: 木の操作のあとの [style]、ID、CSP: ${JSON.stringify(health)}`);
++    await context.close();
++  }
++
++  // 索引のページ
++  {
++    const { context, page, errors } = await newPage(browser);
++    await page.goto(url(base, "index.html"));
++    const s = await page.evaluate(shape);
++    check(s.root && s.roles === 0 && s.badLevel === 0 && s.badExpanded === 0 && s.noLayout === 0 && s.tab0 === 1 && s.underline === 0,
++      `${tag}: 索引のページの木の作りが違う: ${JSON.stringify(s)}`);
++    // 深さ 1 の枝は開いている
++    check(await page.evaluate(() => Array.from(document.querySelectorAll('.tree-group[aria-level="1"]')).every((b) => b.getAttribute("aria-expanded") === "true")),
++      `${tag}: 索引のページで深さ 1 の枝が開いていない`);
++    // 枝の名前を押すと絞られ、シェブロンを押すと開閉だけをする
++    const b = page.locator('.tree-group[aria-level="1"]').first();
++    const bid = await b.getAttribute("data-group");
++    await b.locator(":scope > .fui-TreeItemLayout .tree-name").click();
++    await page.waitForTimeout(100);
++    check(await page.evaluate((id) => location.hash === "#group=" + id, bid), `${tag}: 索引のページの枝の名前を押しても絞られない`);
++    await b.locator(":scope > .fui-TreeItemLayout .fui-TreeItemLayout__expandIcon").click();
++    await page.waitForTimeout(100);
++    check((await b.getAttribute("aria-expanded")) === "false" && await page.evaluate((id) => location.hash === "#group=" + id, bid),
++      `${tag}: シェブロンを押したときに閉じないか、絞り込みが変わる`);
++    await b.locator(":scope > .fui-TreeItemLayout .fui-TreeItemLayout__expandIcon").click();
++    // Enter で枝を選ぶと絞られる
++    await page.evaluate(() => { location.hash = ""; });
++    await page.waitForTimeout(100);
++    await b.focus();
++    await page.keyboard.press("Enter");
++    await page.waitForTimeout(100);
++    check(await page.evaluate((id) => location.hash === "#group=" + id, bid), `${tag}: 索引のページの枝で Enter を押しても絞られない`);
++    // ローヴィング: 葉を押したあと、Tab で木の外に出て Shift+Tab で戻ると、押した葉に戻る
++    const leaf = page.locator("a.tree-index").first();
++    const leafId = await leaf.getAttribute("data-group");
++    await leaf.click();
++    await page.waitForTimeout(100);
++    check(await tab0(page) === 1, `${tag}: 葉を押したあと、tabindex="0" の項目が 1 つでない`);
++    await page.keyboard.press("Tab");
++    check(await page.evaluate(() => !document.activeElement.closest(".tree")), `${tag}: Tab で木の外に出ない`);
++    await page.keyboard.press("Shift+Tab");
++    check(await page.evaluate((id) => document.activeElement.getAttribute("data-group") === id, leafId),
++      `${tag}: Shift+Tab で押した葉に戻らない`);
++    check(errors.length === 0, `${tag}: 索引のページの木の操作でコンソールのエラー: ${errors.slice(0, 3)}`);
++    await context.close();
++  }
++}
++
+ async function indexChecks(browser, base, tag) {
+   const { context, page, errors } = await newPage(browser);
+   await page.goto(url(base, "index.html"));
+@@ -287,6 +483,34 @@ async function indexChecks(browser, base, tag) {
+   await page.evaluate((id) => { location.hash = "#group=" + id + "garbage"; }, firstId);
+   await page.waitForTimeout(100);
+   check((await page.textContent("#_count")) === `${total} 件`, `${tag}: 知らない ID で絞った`);
++  // タグのグループ（N9）でも絞れる。「索引」の下の「検索」には bm25 だけが載る。左の木の行に印が付く
++  const tagGroup = await page.evaluate(() => {
++    const walk = (gs, parent) => {
++      for (const g of gs) {
++        if (g.title === "検索" && parent === "Index") return { id: g.id, children: g.children.length };
++        const r = walk(g.children, g.title); if (r) return r;
++      }
++      return null;
++    };
++    return walk(window.WIKI_NAV.groups, null);
++  });
++  check(tagGroup && /^_gt[0-9]+$/.test(tagGroup.id) && tagGroup.children === 0, `${tag}: タグのグループの形が違う: ${JSON.stringify(tagGroup)}`);
++  if (tagGroup) {
++    // 左の木のタグのグループの行を押す（断片を直に書かず、行のリンクが正しいグループを指すことも確かめる）
++    const row = page.locator(`#_navbody a[href="#group=${tagGroup.id}"]`);
++    check(await row.count() === 1 && (await row.textContent()).includes("検索"), `${tag}: 左の木にタグのグループの行がない`);
++    await row.click();
++    await page.waitForTimeout(100);
++    check(await page.evaluate(() => location.hash) === "#group=" + tagGroup.id, `${tag}: 行を押しても断片が変わらない`);
++    const shown = await page.evaluate(() => Array.from(document.querySelectorAll("#_index .fx-row:not([hidden]) .ix-title"), (a) => a.textContent));
++    const mark = await page.evaluate(() => document.querySelector('#_navbody [aria-current="true"]')?.textContent || "");
++    check(shown.join() === "BM25", `${tag}: タグのグループで絞った行が違う: ${shown}`);
++    check(mark.includes("検索"), `${tag}: 左の木のタグのグループの行に印がない: ${mark}`);
++    const path = await page.evaluate(() => document.querySelector('#_index .fx-row[data-id="concepts/bm25"] .fx-path')?.textContent);
++    check(path === "Index › 検索", `${tag}: bm25 の階層が「Index › 検索」でない: ${path}`);
++    await page.evaluate(() => { location.hash = ""; });
++    await page.waitForTimeout(100);
++  }
+   // 壊れた断片（%）でも、例外にならず、前の絞り込みを外す（2 回目の実装のレビューの A）
+   await page.evaluate((id) => { location.hash = "#group=" + id; }, firstId);
+   await page.waitForTimeout(100);
+@@ -412,6 +636,20 @@ async function layoutChecks(browser, base, tag) {
+       check(r.drawer === open, `${tag}: 幅 ${width} の ${rel} で「メニュー」の開閉が違う`);
+       check(!r.main && !r.page, `${tag}: 幅 ${width} の ${rel} で横にはみ出す`);
+       check(r.over.length === 0, `${tag}: 幅 ${width} の ${rel} で #_main の右端を越える要素: ${r.over}`);
++      if (rel === "concepts/long.html") {
++        // N9: long は 200 文字のタグを持つ。今のページのタグのグループの名前が、開いた木の中で #_nav からはみ出さない
++        const nav = await page.evaluate(() => {
++          document.querySelector("details.drawer").open = true;
++          const box = document.getElementById("_nav");
++          const right = box.getBoundingClientRect().right + 1;
++          const name = document.querySelector(".tree .fui-TreeItem.is-current > .fui-TreeItemLayout .tree-name");
++          return { found: !!name, long: name ? name.textContent.length : 0,
++                   over: name ? name.getBoundingClientRect().right > right : true,
++                   scroll: box.scrollWidth > box.clientWidth + 1 };
++        });
++        check(nav.found && nav.long === 200 && !nav.over && !nav.scroll,
++          `${tag}: 幅 ${width} で長いタグのグループの名前が #_nav からはみ出す: ${JSON.stringify(nav)}`);
++      }
+       if (rel === "concepts/rel.html") {
+         check(r.scroll && r.scroll.inside, `${tag}: 幅 ${width} で関係表の入れ物が #_main からはみ出す`);
+         if (width <= 600) {
+@@ -531,7 +769,7 @@ async function colorChecks(browser, base, tag) {
+         await page.waitForFunction(() => window.__browse.searchLoaded);
+       } else if (rel !== "index.html") {
+         // 木のすべてのグループを開き、ポインターと押下の状態を測れるようにする
+-        await page.evaluate(() => document.querySelectorAll("details.tree-group").forEach((d) => { d.open = true; }));
++        await page.evaluate(() => document.querySelectorAll(".tree-group[aria-expanded]").forEach((d) => { d.setAttribute("aria-expanded", "true"); }));
+       }
+       const c = await contrastOf(page);
+       const low = Object.entries(c).filter(([, v]) => v < 4.5);
+@@ -549,12 +787,12 @@ async function colorChecks(browser, base, tag) {
+   // 強制カラー: 今のページの項目に輪郭がある
+   const { context, page } = await newPage(browser, { forced: true });
+   await page.goto(url(base, "concepts/bm25.html"));
+-  const outline = await page.evaluate(() => getComputedStyle(document.querySelector(".fui-NavSubItem.is-current")).outlineStyle);
++  const outline = await page.evaluate(() => getComputedStyle(document.querySelector(".tree .fui-TreeItem.is-current > .fui-TreeItemLayout")).outlineStyle);
+   check(outline !== "none", `${tag}: 強制カラーで今のページの印がない`);
+   await page.goto(url(base, "index.html"));
+   await page.evaluate(() => { location.hash = "#group=" + window.WIKI_NAV.groups[0].id; });
+   await page.waitForTimeout(100);
+-  const groupOutline = await page.evaluate(() => getComputedStyle(document.querySelector(".fui-NavItem.is-current")).outlineStyle);
++  const groupOutline = await page.evaluate(() => getComputedStyle(document.querySelector(".tree .fui-TreeItem.is-current > .fui-TreeItemLayout")).outlineStyle);
+   check(groupOutline !== "none", `${tag}: 強制カラーで絞っているグループの印がない`);
+   await context.close();
+ }
+@@ -564,16 +802,38 @@ async function themeChecks(browser, base, tag, restart) {
+   await context.addInitScript(INIT);
+   const page = await context.newPage();
+   await page.goto(url(base, "concepts/bm25.html"));
+-  check((await page.getAttribute("html", "data-theme")) === "auto", `${tag}: 既定の配色が auto でない`);
+-  await page.selectOption("#_theme", "dark");
++  // 配色のトグル（左のペインの木の設計の 7 節）。既定は auto で、明るい OS ではオフ
++  check((await page.getAttribute("html", "data-theme")) === "auto" && !(await page.isChecked("#_theme")),
++    `${tag}: 既定の配色が auto でないか、明るい OS でトグルがオフでない`);
++  check((await page.getAttribute("#_theme", "role")) === "switch" && (await page.getAttribute("#_theme", "aria-label")).includes("テーマ")
++    && (await page.textContent(".theme-label")) === "テーマ", `${tag}: トグルの role か名前が違う`);
++  await page.click("#_theme");
++  check((await page.getAttribute("html", "data-theme")) === "dark", `${tag}: トグルをオンにしても dark にならない`);
+   await page.goto(url(base, "index.html"));
+-  check((await page.getAttribute("html", "data-theme")) === "dark", `${tag}: 選んだ配色がページを移ると消える`);
++  check((await page.getAttribute("html", "data-theme")) === "dark" && await page.isChecked("#_theme"), `${tag}: 選んだ配色がページを移ると消える`);
+   if (restart) {
+     base = await restart();
+     await page.goto(url(base, "index.html"));
+     check((await page.getAttribute("html", "data-theme")) === "dark", `${tag}: サーバーを起動し直すと選んだ配色が消える`);
+   }
++  // もう一度オフにすると、OS と同じ見た目なので auto（OS に合わせる）に戻り、ページを移っても auto のまま
++  await page.click("#_theme");
++  await page.goto(url(base, "concepts/bm25.html"));
++  check((await page.getAttribute("html", "data-theme")) === "auto" && !(await page.isChecked("#_theme")),
++    `${tag}: OS と同じ見た目に戻しても auto にならない`);
++  // auto の間に OS の配色が暗くなると、トグルがオンになる
++  await page.emulateMedia({ colorScheme: "dark" });
++  await page.waitForTimeout(100);
++  check(await page.isChecked("#_theme"), `${tag}: auto の間に OS の配色が変わっても、トグルが合わない`);
+   await context.close();
++  // 暗い OS では、既定でオン
++  {
++    const c3 = await browser.newContext({ colorScheme: "dark" });
++    const p3 = await c3.newPage();
++    await p3.goto(url(base, "concepts/bm25.html"));
++    check((await p3.getAttribute("html", "data-theme")) === "auto" && await p3.isChecked("#_theme"), `${tag}: 暗い OS で既定のトグルがオンでない`);
++    await c3.close();
++  }
+   // 保存先が例外を出す
+   const c2 = await browser.newContext({ colorScheme: "light" });
+   await c2.addInitScript(() => {
+@@ -584,7 +844,7 @@ async function themeChecks(browser, base, tag, restart) {
+   const errors = [];
+   p2.on("pageerror", (e) => errors.push(String(e)));
+   await p2.goto(url(base, "concepts/bm25.html"));
+-  await p2.selectOption("#_theme", "dark");
++  await p2.click("#_theme");
+   const chosen = await p2.getAttribute("html", "data-theme");
+   await p2.reload();
+   const after = await p2.getAttribute("html", "data-theme");
+@@ -617,6 +877,7 @@ try {
+       try {
+         await articleChecks(browser, base, tag);
+         await indexChecks(browser, base, tag);
++        await treeChecks(browser, base, tag);
+         await loadingChecks(browser, base, tag);
+         await layoutChecks(browser, base, tag);
+         await articlePartsChecks(browser, base, tag);
+diff --git a/tests/wiki/browse_nav/nav_model.py b/tests/wiki/browse_nav/nav_model.py
+index 4c9dea7..5e581c6 100644
+--- a/tests/wiki/browse_nav/nav_model.py
++++ b/tests/wiki/browse_nav/nav_model.py
+@@ -131,7 +131,7 @@ def build(root: Path) -> list:
+             x["origin"] = origin
+             x.setdefault("summary", "")
+         if g is index_g:
+-            g["title"] = "索引"                      # N2
++            g["title"] = "Index"                      # N2
+         if not g["items"] and len(g["children"]) == 1:   # N3: 1 度だけ畳む
+             child = g["children"][0]
+             g["items"], g["children"] = child["items"], child["children"]
+@@ -143,7 +143,7 @@ def build(root: Path) -> list:
+     top = []
+     if index_g is not None:                           # N4
+         if index_g["items"]:
+-            top.append({**index_g, "title": "索引", "children": []})
++            top.append({**index_g, "title": "Index", "children": []})
+         top.extend(index_g["children"])
+     order, summaries = [], {}                         # N5: 順と要約は、グループの ID で決める
+     if index_g is not None:
+@@ -174,12 +174,14 @@ def build(root: Path) -> list:
+     top = prune(top)
+     assert page_ids(top) == listed_before, "2 つ目の段で、索引に載ったページが変わった"
+     for g in rest:                                     # N7: 今のグループと ID を使い、名前だけを変える
++        g["title"] = "Index にないページ"             # 画面の名前（左のペインの木の設計の 8 節）
+         g["origin"], g["summary"] = "", ""
+         for sub in g["children"]:
+             t = str(c.page(sub["items"][0]["id"])["meta"].get("type") or "")
+             sub["title"] = TYPE_LABELS.get(t, t or "種類なし")
+             sub["origin"], sub["summary"] = "", ""
+         top.append(g)
++    tag_stage(top, c)                                  # N9: 件数（N8）より前に当てる
+ 
+     def count(g):                                      # N8
+         ids = {it["id"] for it in g["items"] if it["state"] == "resolved"}
+@@ -194,6 +196,67 @@ def build(root: Path) -> list:
+     return top
+ 
+ 
++NO_TAG = "タグなし"
++
++
++def first_tag(c, pid: str) -> "str | None":
++    """ページの最初のタグ（タグでまとめる設計の N9-2）。frontmatter の読み方（ref_values と NFC）だけを共有する。"""
++    tags = [unicodedata.normalize("NFC", t) for t in wiki_pages.ref_values(c.page(pid)["meta"].get("tags"))]
++    return tags[0] if tags else None
++
++
++def tag_stage(top: list, c) -> None:
++    """3 つ目の段 N9。ページの項目を持つグループごとに、ページの項目を最初のタグのグループに移す。
++
++    ID は `_gt` と、木を深さ優先でたどって（親、子の順）タグのグループを作った順の番号。
++    """
++    before = {g["id"]: [it["id"] for it in g["items"] if it["state"] == "resolved"] for g in walk(top)}
++    listed = page_ids(top)
++    counter = [0]
++
++    def apply(g):
++        original_children = g["children"]
++        pages = [it for it in g["items"] if it["state"] == "resolved"]
++        if pages:
++            buckets, order = {}, []
++            for it in pages:
++                key = first_tag(c, it["id"])
++                if key not in buckets:
++                    buckets[key] = []
++                    order.append(key)
++                buckets[key].append(it)
++            keys = [k for k in order if k is not None] + ([None] if None in buckets else [])
++            made = []
++            for k in keys:
++                counter[0] += 1
++                made.append({"id": f"_gt{counter[0]}", "title": NO_TAG if k is None else k, "summary": "",
++                             "origin": "tag", "items": buckets[k], "children": []})
++            g["items"] = [it for it in g["items"] if it["state"] != "resolved"]
++            g["children"] = made + original_children
++        for ch in original_children:
++            apply(ch)
++
++    for g in top:
++        apply(g)
++    # 2.4 の 3 つの性質
++    assert page_ids(top) == listed, "N9 で、木に載ったページが変わった"
++    by_id = {g["id"]: g for g in walk(top)}
++    for gid, pids in before.items():
++        g = by_id[gid]
++        assert not any(it["state"] == "resolved" for it in g["items"]), f"N9 のあとも、ページの項目が残る: {gid}"
++        holders = {}
++        for ch in g["children"]:
++            if ch.get("origin") == "tag":
++                for pid in {it["id"] for it in ch["items"]}:
++                    holders.setdefault(pid, []).append(ch["title"])
++        for pid in set(pids):
++            assert len(holders.get(pid, [])) == 1, f"ページがちょうど 1 つのタグのグループにない: {pid}"
++            assert holders[pid][0] == (first_tag(c, pid) or NO_TAG), f"タグのグループの名前が違う: {pid}"
++    for g in walk(top):
++        if g.get("origin") == "tag":
++            assert not g["children"] and all(it["state"] == "resolved" for it in g["items"]), "タグのグループの形が違う"
++
++
+ def data_groups(top: list) -> dict:
+     """4.1 の data-groups。ページごとに、そのページを項目に持つグループと祖先のグループの ID。"""
+     out = {}
+@@ -256,8 +319,11 @@ def render(top: list) -> list:
+     return out
+ 
+ 
+-def page(slug: str, type_: str, title: str = "") -> str:
+-    return f'---\ntype: "{type_}"\ntitle: "{title or slug}"\n---\n\n# {title or slug}\n\n本文。\n'
++def page(slug: str, spec, title: str = "") -> str:
++    """ページの本文。spec は種類の文字か、(種類, frontmatter の tags の行) の組。tags の行は書いたまま入れる。"""
++    type_, tags_line = (spec, None) if isinstance(spec, str) else spec
++    extra = f"{tags_line}\n" if tags_line is not None else ""
++    return f'---\ntype: "{type_}"\ntitle: "{title or slug}"\n{extra}---\n\n# {title or slug}\n\n本文。\n'
+ 
+ 
+ # 設計書の当てはめの例と、レビューの反例。値が bytes のファイルは、そのまま書く（読めない索引の再現）。
+@@ -308,6 +374,34 @@ CASES = [
+     ("グループへの行の別名（5 回目のレビューの軽微）",
+      {"index.md": "- [[a]]\n- [[indexes/x|User alias]]\n", "indexes/x.md": "---\ntitle: Custom\n---\n- [[b]]\n"},
+      {"a": "concept", "b": "concept"}),
++    # タグでまとめる設計（2026年11月16日）の 2.5 の例。`# Wiki` の h1 は N3 で畳まれ、`##` の見出しが最上位に並ぶ
++    ("タグ: 基本",
++     {"index.md": "# Wiki\n## コンセプト\n- [[a]]\n- [[b]]\n- [[c]]\n- [[d]]\n## ソース\n- [[s]]\n"},
++     {"a": ("concept", "tags: [検索, bm25]"), "b": ("concept", "tags: [取り込み]"), "c": "concept",
++      "d": ("concept", "tags: 検索"), "s": "source"}),
++    ("タグ: 項目と見出しの子",
++     {"index.md": "# Wiki\n## 章\n- [[a]]\n- [[nope]]\n### 節\n- [[b]]\n## 付録\n- [[c]]\n"},
++     {"a": ("concept", "tags: [x]"), "b": ("concept", "tags: [y]"), "c": "concept"}),
++    ("タグ: グループへの項目", {"index.md": "- [[a]]\n- [[indexes/x]]\n", "indexes/x.md": "# X\n- [[b]]\n"},
++     {"a": "concept", "b": ("concept", "tags: [t]")}),
++    ("タグ: 同じページが 2 つのグループ",
++     {"index.md": "# Wiki\n## 第一\n- [[a]]\n## 第二\n- [[a]]\n- [[b]]\n"},
++     {"a": ("concept", "tags: [t]"), "b": "concept"}),
++    ("タグ: 同じグループに同じページが 2 回",
++     {"index.md": "# Wiki\n## G\n- [[a]]\n- [[a#a]]\n## H\n- [[b]]\n"},
++     {"a": ("concept", "tags: [t]"), "b": "concept"}),
++    ("タグ: 索引にないページ", {}, {"a": ("concept", "tags: [t]"), "b": "concept", "c": ("source", "tags: [t]")}),
++    ("タグ: NFC で同じになるタグ", {"index.md": "# Wiki\n## G\n- [[a]]\n- [[b]]\n## H\n- [[c]]\n"},
++     {"a": ("concept", "tags: [cafe\u0301]"), "b": ("concept", "tags: [caf\u00e9]"), "c": "concept"}),
++    ("タグ: 大文字と小文字", {"index.md": "# Wiki\n## G\n- [[a]]\n- [[b]]\n## H\n- [[c]]\n"},
++     {"a": ("concept", "tags: [Windows]"), "b": ("concept", "tags: [windows]"), "c": "concept"}),
++    ("タグ: 「タグなし」という値のタグ", {"index.md": "# Wiki\n## G\n- [[a]]\n- [[b]]\n## H\n- [[c]]\n"},
++     {"a": ("concept", "tags: [タグなし]"), "b": "concept", "c": "concept"}),
++    ("タグ: 値のない tags と空の要素", {"index.md": "# Wiki\n## G\n- [[a]]\n- [[b]]\n- [[c]]\n## H\n- [[d]]\n"},
++     {"a": ("concept", "tags:"), "b": ("concept", 'tags: ["", "  ", t]'), "c": ("concept", "tags: []"),
++      "d": "concept"}),
++    ("タグ: 空白と記号を含むタグ", {"index.md": "# Wiki\n## G\n- [[a]]\n## H\n- [[b]]\n"},
++     {"a": ("concept", 'tags: ["research note <b>\\"x\\""]'), "b": "concept"}),
+ ]
+ 
+ 
+diff --git a/tests/wiki/test_browse.py b/tests/wiki/test_browse.py
+index 83e6207..83b7afc 100644
+--- a/tests/wiki/test_browse.py
++++ b/tests/wiki/test_browse.py
+@@ -548,26 +548,34 @@ class RenderTest(TempWiki):
+         groups = nav["groups"]
+         # N4: index.md のグループは木のいちばん上に置かない。自分の項目は「索引」のグループに、見出しのグループは上に並ぶ
+         top = groups[0]
+-        self.assertEqual(top["title"], "索引")
+-        self.assertEqual(top["items"][0]["path"], "pre.html")
+-        self.assertEqual(top["items"][0]["id"], "pre")
++        self.assertEqual(top["title"], "Index")
++        # N9: ページの項目は、最初のタグのグループ（タグがなければ「タグなし」）に移る
++        self.assertEqual(top["items"], [])
++        self.assertEqual([g["title"] for g in top["children"]], ["タグなし"])
++        self.assertEqual(top["children"][0]["items"][0]["path"], "pre.html")
++        self.assertEqual(top["children"][0]["items"][0]["id"], "pre")
+         concepts = groups[1]["children"][0]
+         self.assertEqual(groups[1]["title"], "上")
+         self.assertEqual(concepts["title"], "概念")
+-        # N6: グループへの項目の名前は、行き先のグループの名前
++        # N6: グループへの項目の名前は、行き先のグループの名前。N9-5: ページでない項目は元のグループに残る
+         states = [(i["state"], i["label"]) for i in concepts["items"]]
+-        self.assertEqual(states, [("resolved", "a"), ("resolved", "b"), ("unresolved", "missing"),
+-                                  ("group", "人物")])
++        self.assertEqual(states, [("unresolved", "missing"), ("group", "人物")])
++        self.assertEqual([(i["state"], i["label"]) for g in concepts["children"] for i in g["items"]],
++                         [("resolved", "a"), ("resolved", "b")])
+         people = groups[2]
+         self.assertEqual(people["title"], "人物")
+         self.assertTrue(people["id"].startswith("_gf"))
+         self.assertEqual(people["count"], 1)
+         self.assertEqual(concepts["count"], 2)
+         rest = groups[-1]
+-        self.assertEqual(rest["title"], "索引にないページ")
++        self.assertEqual(rest["title"], "Index にないページ")
+         # N7: 種類の子のグループの名前は日本語にする
+         self.assertEqual([g["title"] for g in rest["children"]], ["コンセプト"])
+-        self.assertEqual([i["path"] for g in rest["children"] for i in g["items"]], ["lone.html"])
++        self.assertEqual([i["path"] for g in rest["children"] for t in g["children"] for i in t["items"]],
++                         ["lone.html"])
++        for g in core._walk(c.nav_groups):
++            if g.get("origin") == "tag":
++                self.assertRegex(g["id"], r"\A_gt[0-9]+\Z")
+ 
+ 
+ # ---------------------------------------------------------------------------
+@@ -1423,7 +1431,7 @@ class ScopeTest(TempWiki):
+                     self.assertLess(html.index('<nav id="_nav"'), html.index('id="_scope"'))
+                     self.assertLess(html.index('id="_scope"'), html.index("<noscript>"))
+                 self.assertIn(f"<title>{title}</title>", c.render_page("a"))
+-                self.assertIn(f"<title>索引 · {title.split(' · ')[1]}</title>", c.render_index())
++                self.assertIn(f"<title>Index · {title.split(' · ')[1]}</title>", c.render_index())
+                 # データのファイル（世代だけで食い違いを確かめる）は、スコープで変わらない。
+                 for name in core.DATA_FILES:
+                     self.assertEqual(c.render_data(name), plain.render_data(name))
+@@ -1548,6 +1556,43 @@ class NavTreeTest(TempWiki):
+             core._check_tree([{"id": "_g1", "title": "A", "children": [],
+                                "items": [{"state": "group", "group": "_g9", "label": "X"}]}])
+ 
++    def test_broken_tag_stage_invariant_fails_the_build(self):
++        """タグでまとめる設計の 2.4。形で決まる性質が崩れた木を拒む。"""
++        page = {"state": "resolved", "id": "a", "label": "a"}
++
++        def tag(gid, items, children=()):
++            return {"id": gid, "title": "t", "items": items, "children": list(children)}
++
++        # タグのグループでないグループが、ページの項目を持つ
++        with self.assertRaises(core.NavInvariantError):
++            core._check_tree([{"id": "_g1", "title": "A", "items": [page], "children": []}])
++        # タグのグループが子を持つ
++        with self.assertRaises(core.NavInvariantError):
++            core._check_tree([{"id": "_g1", "title": "A", "items": [],
++                               "children": [tag("_gt1", [page], [tag("_gt2", [page])])]}])
++        # タグのグループが、ページでない項目を持つ
++        with self.assertRaises(core.NavInvariantError):
++            core._check_tree([{"id": "_g1", "title": "A", "items": [],
++                               "children": [tag("_gt1", [{"state": "unresolved", "label": "x"}])]}])
++        # 同じページが、同じ親の 2 つのタグのグループに入る
++        with self.assertRaises(core.NavInvariantError):
++            core._check_tree([{"id": "_g1", "title": "A", "items": [],
++                               "children": [tag("_gt1", [page]), tag("_gt2", [page])]}])
++        core._check_tree([{"id": "_g1", "title": "A", "items": [], "children": [tag("_gt1", [page])]}])
++
++    def test_tag_stage_rejects_a_changed_page_set(self):
++        """N9 の前の木と比べる性質。ページの集合が変わると、組み立てを失敗にする。"""
++        write(self.wiki, "index.md", "# Wiki\n## G\n- [[a]]\n## H\n- [[b]]\n")
++        for name in ("a", "b"):
++            write(self.wiki, f"concepts/{name}.md", page(f"# {name}", type="concept", tags=["t"]))
++        c = build_core(self.wiki)
++        top = [{"id": "_g1", "title": "G", "items": [{"state": "resolved", "id": "concepts/a", "label": "a"}],
++                "children": []}]
++        # N9 の前とあとで、木に載ったページの集合が違って見えると、組み立てを失敗にする
++        with mock.patch.object(core, "_page_ids", side_effect=[{"concepts/a"}, {"concepts/b"}]):
++            with self.assertRaises(core.NavInvariantError):
++                c._nav_tag_stage(top)
++
+ 
+ class SummaryTest(TempWiki):
+     """4.2 の要約の順: frontmatter、索引の行、本文の冒頭、なし。"""
+@@ -1628,7 +1673,7 @@ class IndexPageTest(TempWiki):
+         write(self.wiki, "concepts/a.md", page("# A", title="A", type="concept", tags=["t1", "t2"], updated="2026-04-18"))
+         write(self.wiki, "b.md", page("# B", type="__proto__"))
+         index = build_core(self.wiki).render_index()
+-        self.assertIn('<h1 class="fui-Title2">索引</h1>', index)
++        self.assertIn('<h1 class="fui-Title2">Index</h1>', index)
+         self.assertIn('<a class="ix-title" href="concepts/a.html">A</a>', index)
+         self.assertIn('class="badge fui-Badge t-concept"', index)
+         self.assertIn('class="badge fui-Badge t-other"', index)
+@@ -1636,7 +1681,9 @@ class IndexPageTest(TempWiki):
+         self.assertIn('<time class="fui-Caption1" datetime="2026-04-18">2026-04-18</time>', index)
+         self.assertIn('<p class="ix-summary">要約 A</p>', index)
+         self.assertIn('<span class="fui-Tag__primaryText">t2</span>', index)
+-        self.assertIn('<div class="fx-path fui-Caption1">コンセプト</div>', index)
++        # N9: 階層のいちばん下は、最初のタグのグループ（タグがなければ「タグなし」）
++        self.assertIn('<div class="fx-path fui-Caption1">コンセプト › t1</div>', index)
++        self.assertIn('<div class="fx-path fui-Caption1">Index にないページ › __proto__ › タグなし</div>', index)
+         self.assertIn('id="_index_unresolved"', index)
+         self.assertIn('<span class="wl wl-unresolved" title="ページがない">missing</span>', index)
+         self.assertIn('id="_filters"', index)
+diff --git a/tests/wiki/test_browse_server.py b/tests/wiki/test_browse_server.py
+index 742ec5e..768fd3e 100644
+--- a/tests/wiki/test_browse_server.py
++++ b/tests/wiki/test_browse_server.py
+@@ -1025,7 +1025,7 @@ class ProcessTest(Base):
+         self.assertEqual((ra["reused"], ra["scope"]), (False, "project"))
+         self.assertNotIn("scope_name", ra)
+         self.assertIn('<p id="_scope" class="scope scope-project">', self.screen(ra))
+-        self.assertIn("<title>索引 · プロジェクト</title>", self.screen(ra))
++        self.assertIn("<title>Index · プロジェクト</title>", self.screen(ra))
+         # 使い回したときは、今回の指定ではなく、ページを描くサーバーが操作の口で答えたスコープを書く。
+         # 記録のファイルは画面を描かないので、記録にスコープを書き足しても使わない。
+         record = self.state_dir() / "server.json"

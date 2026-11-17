@@ -43,6 +43,9 @@ put("SCHEMA.md", "# スキーマ\n");
 put("index.md", ["# 索引", "- [[bm25]]: 索引の行の要約", "## 第一", "- [[two]]", "## 第二", "- [[two]]", "- [[strasse]]",
   "- [[indexes/x]]: 分割の索引", "- [[ない]]", ""].join("\n"));
 put("indexes/x.md", "# X の索引\n- [[istanbul]]\n- [[abc]]\n");
+// 深い段（左のペインの木の設計の 2.3）: h1〜h6 の見出し。最初の見出しの前にも項目を置き、N3 で畳まれないようにする。
+// abc の木は、ファイル（1）› D1〜D6（2〜7）› タグなし（8）› abc（9）の 9 段になる
+put("indexes/deep.md", ["- [[abc]]", "# D1", "## D2", "### D3", "#### D4", "##### D5", "###### D6", "- [[abc]]", ""].join("\n"));
 put("concepts/bm25.md", pg({ type: "concept", title: "BM25", tags: ["検索", "ランキング"], updated: "2026-04-18" },
   "# BM25\n\n語の頻度で点数を付ける。[[未作成のページ]] はまだない。\n\n## 語の頻度\n\n本文。"));
 put("concepts/two.md", pg({ type: "concept", title: "ΟΣ", updated: "2026-05-01" }, "# ΟΣ\n\n二つのグループに載る。[[bm25]] を見る。"));
@@ -133,10 +136,12 @@ const INIT = `(() => {
   };
 })();`;
 
-const CONTRAST = ["#_body p", "#_body h2", "#_scope .fui-Badge", ".fui-NavSubItem", ".fui-NavSubItem.is-current",
-  ".fui-NavCategoryItem .tree-name", ".tree-count", "#_meta th", ".t-concept", ".t-entity", ".t-source",
-  ".t-synthesis", ".t-other", ".fui-NavItem.is-current", ".fui-Tag__primaryText", ".ix-summary", ".ix-title", ".fx-path", "#_backlinks a", ".sr-title", ".sr-meta",
-  ".chips .fui-ToggleButton", "#_theme", "#_body .wl-unresolved",
+// 左の木は Tree の部品（左のペインの木の設計の 2、6）。葉の名前、今の項目、枝の名前、件数のバッジ、索引のページのグループの葉
+const CONTRAST = ["#_body p", "#_body h2", "#_scope .fui-Badge",
+  ".tree .fui-TreeItem.is-current .fui-TreeItemLayout__main", ".tree-group .tree-name", ".tree .tree-count",
+  ".tree-index .tree-name", ".nav-home", "#_meta th", ".t-concept", ".t-entity", ".t-source",
+  ".t-synthesis", ".t-other", ".fui-Tag__primaryText", ".ix-summary", ".ix-title", ".fx-path", "#_backlinks a", ".sr-title", ".sr-meta",
+  ".chips .fui-ToggleButton", ".theme-label", "#_body .wl-unresolved",
   // 記事のページの部品（F2）
   "#_body h1", "#_body h3", "#_body h4", "#_body a", "#_body .wl-ambiguous", "#_body .wl-missing-heading",
   "#_body code", "#_body pre code", "#_body blockquote p", "#_body th", "#_body td",
@@ -158,7 +163,8 @@ async function contrastOf(page) {
 // 読むだけの入れ物（#_main の表の行と一覧の行）は、ポインターと押下の前後で地が変わらないことも、すべてで比べる
 // （比が 4.5 を保っても、地を変えれば 4.2 の 1 つ目の規則に外れる。実装の 1 回目のレビューの C）
 async function stateContrast(page) {
-  const sel = "#_main tr, #_main li, #_nav li, a, summary, button, .fui-NavItem, .fui-NavSubItem, .fui-Select";
+  // 木の行（.fui-TreeItemLayout）にポインターを置き、行の中の文字（名前と件数のバッジ）を測る
+  const sel = "#_main tr, #_main li, a, summary, button, .fui-NavItem, .fui-TreeItemLayout, .fui-Select";
   const n = await page.locator(sel).count();
   let min = 99, where = "";
   const changed = [];
@@ -173,10 +179,12 @@ async function stateContrast(page) {
     const [r1, bg1] = await loc.evaluate(async (e) => { await window.__settled(); return [window.__textRatio(e), getComputedStyle(e).backgroundColor]; });
     await page.mouse.down();
     const [r2, bg2] = await loc.evaluate(async (e) => { await window.__settled(); return [window.__textRatio(e), getComputedStyle(e).backgroundColor]; });
+    // 押したままポインターを外した状態（:active が残り、:hover が外れる）も測る（実装の 1 回目のレビューの 3）
     await page.mouse.move(0, 0);
+    const [r3, bg3] = await loc.evaluate(async (e) => { await window.__settled(); return [window.__textRatio(e), getComputedStyle(e).backgroundColor]; });
     await page.mouse.up();
-    if (readOnly && (bg1 !== bg0 || bg2 !== bg0)) changed.push(`${await loc.evaluate(name)} ${bg0}→${bg1}/${bg2}`);
-    const r = Math.min(r1, r2);
+    if (readOnly && (bg1 !== bg0 || bg2 !== bg0 || bg3 !== bg0)) changed.push(`${await loc.evaluate(name)} ${bg0}→${bg1}/${bg2}/${bg3}`);
+    const r = Math.min(r1, r2, r3);
     if (r < min) { min = r; where = await loc.evaluate(name); }
   }
   return { min, where, changed };
@@ -216,13 +224,30 @@ async function articleChecks(browser, base, tag) {
   const requests = [];
   page.on("request", (r) => requests.push(r.url()));
   await page.goto(url(base, "concepts/two.html"));
-  // 2 つのグループに載ったページ: 2 つのグループがどちらも開き、どちらの項目にも aria-current がある
+  // 記事のページの木も、グループの名前と件数だけを描き、記事の題名は描かない（左のペインの木の設計の 9 節）
+  // 2 つのグループに載ったページ: 今のページを持つ 2 つのグループ（どちらも「タグなし」）に印が付き、その祖先が開く
   const tree = await page.evaluate(() => ({
-    current: document.querySelectorAll('.fui-NavSubItem[aria-current="page"]').length,
-    open: Array.from(document.querySelectorAll("details.tree-group[open] > summary .tree-name"), (n) => n.textContent),
+    pages: document.querySelectorAll(".tree a.tree-page").length,
+    current: Array.from(document.querySelectorAll('.tree .fui-TreeItem.is-current[aria-current="true"]'), (i) => ({
+      name: i.querySelector(":scope > .fui-TreeItemLayout .tree-name").textContent,
+      parent: i.parentElement.closest(".fui-TreeItem")?.querySelector(":scope > .fui-TreeItemLayout .tree-name").textContent,
+      open: i.parentElement.closest(".fui-TreeItem")?.getAttribute("aria-expanded") })),
   }));
-  check(tree.current === 2, `${tag}: 2 つのグループの今のページの印が ${tree.current} 個`);
-  check(tree.open.includes("第一") && tree.open.includes("第二"), `${tag}: 今のページのグループが開いていない: ${tree.open}`);
+  check(tree.pages === 0, `${tag}: 記事のページの木に記事の題名が ${tree.pages} 個ある`);
+  check(tree.current.length === 2 && tree.current.every((c) => c.name === "タグなし" && c.open === "true")
+    && tree.current.map((c) => c.parent).sort().join() === "第一,第二", `${tag}: 今のページのグループの印が違う: ${JSON.stringify(tree.current)}`);
+  {
+    const p2 = await context.newPage();
+    await p2.goto(url(base, "concepts/bm25.html"));
+    const t2 = await p2.evaluate(() => {
+      const c = document.querySelector(".tree .fui-TreeItem.is-current");
+      return { name: c?.querySelector(":scope > .fui-TreeItemLayout .tree-name").textContent,
+               parent: c?.parentElement.closest(".fui-TreeItem")?.querySelector(":scope > .fui-TreeItemLayout .tree-name").textContent };
+    });
+    // bm25 の最初のタグは「検索」。「Index」の下の「検索」のグループに印が付く
+    check(t2.name === "検索" && t2.parent === "Index", `${tag}: bm25 の今のページのグループが違う: ${JSON.stringify(t2)}`);
+    await p2.close();
+  }
   // 後からの読み込み: フォーカスの前に search.js を読まない
   check(!requests.some((u) => u.includes("search.js")), `${tag}: フォーカスの前に search.js を読んだ`);
   await page.focus("#_q");
@@ -261,6 +286,181 @@ async function articleChecks(browser, base, tag) {
   await context.close();
 }
 
+// 左の木（Fluent 2 の Tree。左のペインの木の設計の 2、4、6）
+async function treeChecks(browser, base, tag) {
+  const shape = () => {
+    const root = document.querySelector('.tree .fui-Tree[role="tree"]');
+    const items = Array.from(document.querySelectorAll(".tree .fui-TreeItem"));
+    const level = (i) => Number(i.getAttribute("aria-level"));
+    return {
+      root: !!root && !!root.getAttribute("aria-label"),
+      roles: items.filter((i) => i.getAttribute("role") !== "treeitem").length,
+      badLevel: items.filter((i) => { const p = i.parentElement.closest(".fui-TreeItem"); return level(i) !== (p ? level(p) + 1 : 1); }).length,
+      badExpanded: items.filter((i) => i.hasAttribute("aria-expanded") !== !!i.querySelector(":scope > .fui-Tree")).length,
+      noLayout: items.filter((i) => !i.querySelector(":scope > .fui-TreeItemLayout > .fui-TreeItemLayout__main")).length,
+      tab0: items.filter((i) => i.getAttribute("tabindex") === "0").length,
+      underline: items.filter((i) => i.tagName === "A" && getComputedStyle(i).textDecorationLine !== "none").length,
+      deep: items.filter((i) => level(i) >= 5 && !i.classList.contains("tree-deep")).length,
+    };
+  };
+  const tab0 = (page) => page.evaluate(() => document.querySelectorAll('.tree .fui-TreeItem[tabindex="0"]').length);
+  const active = (page) => page.evaluate(() => {
+    const a = document.activeElement;
+    return { cls: a ? a.className : "", text: a ? (a.querySelector(":scope > .fui-TreeItemLayout > .fui-TreeItemLayout__main") || a).textContent : "",
+             current: !!(a && a.classList && a.classList.contains("is-current")), expanded: a ? a.getAttribute("aria-expanded") : null };
+  });
+
+  // 記事のページ
+  {
+    const { context, page, errors } = await newPage(browser);
+    await page.goto(url(base, "concepts/bm25.html"));
+    const s = await page.evaluate(shape);
+    check(s.root && s.roles === 0 && s.badLevel === 0 && s.badExpanded === 0 && s.noLayout === 0 && s.tab0 === 1 && s.underline === 0 && s.deep === 0,
+      `${tag}: 記事のページの木の作りが違う: ${JSON.stringify(s)}`);
+    // 見た目: ペインの地はページと同じ。枝は semibold。件数は CounterBadge で、title に件数の文がある
+    const look = await page.evaluate(() => {
+      const nav = document.getElementById("_nav");
+      const badge = document.querySelector(".tree-group .tree-count");
+      return { navBg: getComputedStyle(nav).backgroundColor, homeBg: getComputedStyle(document.querySelector(".nav-home")).backgroundColor,
+               weight: getComputedStyle(document.querySelector(".tree-group > .fui-TreeItemLayout > .fui-TreeItemLayout__main")).fontWeight,
+               badge: !!badge && badge.classList.contains("fui-CounterBadge") && /^\d+ ページ$/.test(badge.title) && badge.getAttribute("aria-hidden") === "true",
+               label: /（\d+ ページ）$/.test(document.querySelector(".tree-group").getAttribute("aria-label") || "") };
+    });
+    check(look.navBg === "rgba(0, 0, 0, 0)" && look.homeBg === "rgba(0, 0, 0, 0)" && Number(look.weight) >= 600 && look.badge && look.label,
+      `${tag}: 木の見た目が違う: ${JSON.stringify(look)}`);
+    // バッジは名前のすぐ隣（作者の決定）。字下げは Fluent 2 のサイトの形: 1 段目と 2 段目の名前がそろい、3 段目は 1 段深い（6.1）
+    const place = await page.evaluate(() => {
+      // 3 段目を見えるようにするため、すべての枝を開く（測ったあとで読み直す）
+      document.querySelectorAll(".tree-group[aria-expanded]").forEach((b) => b.setAttribute("aria-expanded", "true"));
+      const main = (i) => i.querySelector(":scope > .fui-TreeItemLayout > .fui-TreeItemLayout__main").getBoundingClientRect();
+      const lay = document.querySelector(".tree-group > .fui-TreeItemLayout");
+      const gap = lay.querySelector(".tree-count").getBoundingClientRect().left - lay.querySelector(".fui-TreeItemLayout__main").getBoundingClientRect().right;
+      const at = (n) => Array.from(document.querySelectorAll(`.tree .fui-TreeItem[aria-level="${n}"]`)).find((i) => i.offsetParent !== null);
+      const [l1, l2, l3] = [at(1), at(2), at(3)].map((i) => i && Math.round(main(i).left));
+      return { gap: Math.round(gap), l1, l2, l3 };
+    });
+    check(place.gap >= 0 && place.gap <= 12 && place.l1 === place.l2 && place.l3 - place.l2 >= 16 && place.l3 - place.l2 <= 20,
+      `${tag}: バッジの位置か字下げが違う: ${JSON.stringify(place)}`);
+    await page.reload();
+    await page.waitForFunction(() => window.__browse && window.__browse.navLoaded);
+    // Tab で木に入ると、今のページの項目にフォーカスがある
+    await page.focus("#_q");
+    for (let k = 0; k < 4 && !(await page.evaluate(() => !!document.activeElement.closest(".tree"))); k++) { await page.keyboard.press("Tab"); }
+    let a = await active(page);
+    check(a.current, `${tag}: Tab で木に入ると今のページの項目にない: ${JSON.stringify(a)}`);
+    // ← で親の枝に移り、もう一度 ← で閉じ、→ で開き、→ で最初の子に移る
+    await page.keyboard.press("ArrowLeft");
+    a = await active(page);
+    check(a.cls.includes("tree-group") && a.expanded === "true", `${tag}: ← で親の枝に移らない: ${JSON.stringify(a)}`);
+    await page.evaluate(() => { document.activeElement.dataset.testBranch = "1"; });
+    await page.keyboard.press("ArrowLeft");
+    check((await active(page)).expanded === "false", `${tag}: ← で枝が閉じない`);
+    await page.keyboard.press("ArrowRight");
+    check((await active(page)).expanded === "true", `${tag}: → で枝が開かない`);
+    await page.keyboard.press("ArrowRight");
+    check(await page.evaluate(() => {
+      const b = document.querySelector('[data-test-branch="1"]');
+      return document.activeElement === b.querySelector(":scope > .fui-Tree > .fui-TreeItem");
+    }), `${tag}: → で最初の子に移らない`);
+    check(await tab0(page) === 1, `${tag}: 矢印キーのあと、tabindex="0" の項目が 1 つでない`);
+    // バッジにポインターを置いても、バッジは隠れず title を持つ（6.3）
+    await page.locator(".tree-group > .fui-TreeItemLayout .tree-count").first().hover();
+    const onBadge = await page.evaluate(() => {
+      const b = document.querySelector(".tree-group > .fui-TreeItemLayout .tree-count");
+      return { shown: b.offsetParent !== null, hovered: b.matches(":hover"), title: b.title };
+    });
+    check(onBadge.shown && onBadge.hovered && /^\d+ ページ$/.test(onBadge.title), `${tag}: バッジにポインターを置き続けられない: ${JSON.stringify(onBadge)}`);
+    // 記事のページの枝のシェブロンを押すと開閉だけをする
+    const before = await page.evaluate(() => document.querySelector(".tree-group").getAttribute("aria-expanded"));
+    await page.locator(".tree-group > .fui-TreeItemLayout .fui-TreeItemLayout__expandIcon").first().click();
+    const after = await page.evaluate(() => [document.querySelector(".tree-group").getAttribute("aria-expanded"), location.pathname]);
+    check(before !== after[0] && after[1].endsWith("/bm25.html"), `${tag}: 記事のページの枝のシェブロンで開閉しないか、ページが移る`);
+    await page.locator(".tree-group > .fui-TreeItemLayout .fui-TreeItemLayout__expandIcon").first().click();
+    // 枝の名前を押すと、Index のページがそのグループに絞られて開く（9 節）
+    const bid = await page.evaluate(() => document.querySelector(".tree-group").getAttribute("data-group"));
+    await Promise.all([page.waitForURL((u) => u.pathname.endsWith("/index.html")),
+                       page.locator(".tree-group > .fui-TreeItemLayout .tree-name").first().click()]);
+    await page.waitForFunction(() => window.__browse && window.__browse.navLoaded);
+    check(await page.evaluate((id) => location.hash === "#group=" + id && document.querySelector(".tree .fui-TreeItem.is-current")?.getAttribute("data-group") === id, bid),
+      `${tag}: 記事のページの枝の名前で、Index のページがそのグループに絞られない`);
+    // キーボード: 枝で Enter を押しても、葉（子のないグループ）で Enter を押しても、Index のページがそのグループに絞られて開く
+    for (const which of ["branch", "leaf"]) {
+      await page.goto(url(base, "concepts/bm25.html"));
+      await page.waitForFunction(() => window.__browse && window.__browse.navLoaded);
+      const gid = await page.evaluate((w) => {
+        const el = w === "branch" ? document.querySelector(".tree-group") : document.querySelector(".tree a.tree-index.is-current");
+        el.focus();
+        return el.getAttribute("data-group");
+      }, which);
+      await Promise.all([page.waitForURL((u) => u.pathname.endsWith("/index.html")), page.keyboard.press("Enter")]);
+      await page.waitForFunction(() => window.__browse && window.__browse.navLoaded);
+      check(await page.evaluate((id) => location.hash === "#group=" + id, gid), `${tag}: ${which} の Enter で Index のページがそのグループに絞られない`);
+    }
+    // 深い段: abc のページでは 8 段まで開く。4 段目より深い項目の名前の左端は、4 段目の項目と同じ位置にある（2.3）
+    await page.goto(url(base, "concepts/abc.html"));
+    const deep = await page.evaluate(() => {
+      const items = Array.from(document.querySelectorAll(".tree .fui-TreeItem")).filter((i) => Number(i.getAttribute("aria-level")) >= 4 && i.offsetParent !== null);
+      const left = (i) => Math.round(i.querySelector(":scope > .fui-TreeItemLayout > .fui-TreeItemLayout__main").getBoundingClientRect().left);
+      const levels = items.map((i) => Number(i.getAttribute("aria-level")));
+      return { max: Math.max(0, ...levels), lefts: [...new Set(items.map(left))],
+               untagged: items.filter((i) => Number(i.getAttribute("aria-level")) >= 5 && !i.classList.contains("tree-deep")).length };
+    });
+    check(deep.max >= 8 && deep.lefts.length === 1 && deep.untagged === 0,
+      `${tag}: 4 段目より深い項目の字下げが 4 段目と同じでない: ${JSON.stringify(deep)}`);
+    check(errors.length === 0, `${tag}: 木の操作でコンソールのエラー: ${errors.slice(0, 3)}`);
+    const health = await page.evaluate(() => window.__health());
+    check(health.style === 0 && health.dupIds.length === 0 && health.csp.length === 0, `${tag}: 木の操作のあとの [style]、ID、CSP: ${JSON.stringify(health)}`);
+    await context.close();
+  }
+
+  // 索引のページ
+  {
+    const { context, page, errors } = await newPage(browser);
+    await page.goto(url(base, "index.html"));
+    const s = await page.evaluate(shape);
+    check(s.root && s.roles === 0 && s.badLevel === 0 && s.badExpanded === 0 && s.noLayout === 0 && s.tab0 === 1 && s.underline === 0,
+      `${tag}: 索引のページの木の作りが違う: ${JSON.stringify(s)}`);
+    // 深さ 1 の枝は開いている
+    check(await page.evaluate(() => Array.from(document.querySelectorAll('.tree-group[aria-level="1"]')).every((b) => b.getAttribute("aria-expanded") === "true")),
+      `${tag}: 索引のページで深さ 1 の枝が開いていない`);
+    // 枝の名前を押すと絞られ、シェブロンを押すと開閉だけをする
+    const b = page.locator('.tree-group[aria-level="1"]').first();
+    const bid = await b.getAttribute("data-group");
+    await b.locator(":scope > .fui-TreeItemLayout .tree-name").click();
+    await page.waitForTimeout(100);
+    check(await page.evaluate((id) => location.hash === "#group=" + id, bid), `${tag}: 索引のページの枝の名前を押しても絞られない`);
+    await b.locator(":scope > .fui-TreeItemLayout .fui-TreeItemLayout__expandIcon").click();
+    await page.waitForTimeout(100);
+    check((await b.getAttribute("aria-expanded")) === "false" && await page.evaluate((id) => location.hash === "#group=" + id, bid),
+      `${tag}: シェブロンを押したときに閉じないか、絞り込みが変わる`);
+    await b.locator(":scope > .fui-TreeItemLayout .fui-TreeItemLayout__expandIcon").click();
+    // Enter で枝を選ぶと絞られる
+    await page.evaluate(() => { location.hash = ""; });
+    await page.waitForTimeout(100);
+    await b.focus();
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(100);
+    check(await page.evaluate((id) => location.hash === "#group=" + id, bid), `${tag}: 索引のページの枝で Enter を押しても絞られない`);
+    // ローヴィング: 葉を押したあと、Tab の入口はその葉になる。木の後ろの入力欄から Shift+Tab で戻ると、押した葉に入り、
+    // そこから Tab で木の外に出る。マウスで押した直後のリンクからの Tab の動きはブラウザで違う（WebKit は動かない）ので、
+    // 入口はキーボードで木に入る操作で確かめる
+    const leaf = page.locator("a.tree-index").first();
+    const leafId = await leaf.getAttribute("data-group");
+    await leaf.click();
+    await page.waitForTimeout(100);
+    check(await tab0(page) === 1 && await page.evaluate((id) => document.querySelector('.tree [tabindex="0"]').getAttribute("data-group") === id, leafId),
+      `${tag}: 葉を押したあと、Tab の入口が押した葉でない`);
+    await page.focus("#_filters input");
+    await page.keyboard.press("Shift+Tab");
+    check(await page.evaluate((id) => document.activeElement.getAttribute("data-group") === id, leafId),
+      `${tag}: Shift+Tab で押した葉に戻らない`);
+    await page.keyboard.press("Tab");
+    check(await page.evaluate(() => !document.activeElement.closest(".tree")), `${tag}: Tab で木の外に出ない`);
+    check(errors.length === 0, `${tag}: 索引のページの木の操作でコンソールのエラー: ${errors.slice(0, 3)}`);
+    await context.close();
+  }
+}
+
 async function indexChecks(browser, base, tag) {
   const { context, page, errors } = await newPage(browser);
   await page.goto(url(base, "index.html"));
@@ -287,6 +487,99 @@ async function indexChecks(browser, base, tag) {
   await page.evaluate((id) => { location.hash = "#group=" + id + "garbage"; }, firstId);
   await page.waitForTimeout(100);
   check((await page.textContent("#_count")) === `${total} 件`, `${tag}: 知らない ID で絞った`);
+  // タグのグループ（N9）でも絞れる。「索引」の下の「検索」には bm25 だけが載る。左の木の行に印が付く
+  const tagGroup = await page.evaluate(() => {
+    const walk = (gs, parent) => {
+      for (const g of gs) {
+        if (g.title === "検索" && parent === "Index") return { id: g.id, children: g.children.length };
+        const r = walk(g.children, g.title); if (r) return r;
+      }
+      return null;
+    };
+    return walk(window.WIKI_NAV.groups, null);
+  });
+  check(tagGroup && /^_gt[0-9]+$/.test(tagGroup.id) && tagGroup.children === 0, `${tag}: タグのグループの形が違う: ${JSON.stringify(tagGroup)}`);
+  if (tagGroup) {
+    // 左の木のタグのグループの行を押す（断片を直に書かず、行のリンクが正しいグループを指すことも確かめる）
+    const row = page.locator(`#_navbody a[href="#group=${tagGroup.id}"]`);
+    check(await row.count() === 1 && (await row.textContent()).includes("検索"), `${tag}: 左の木にタグのグループの行がない`);
+    await row.click();
+    await page.waitForTimeout(100);
+    check(await page.evaluate(() => location.hash) === "#group=" + tagGroup.id, `${tag}: 行を押しても断片が変わらない`);
+    const shown = await page.evaluate(() => Array.from(document.querySelectorAll("#_index .fx-row:not([hidden]) .ix-title"), (a) => a.textContent));
+    const mark = await page.evaluate(() => document.querySelector('#_navbody [aria-current="true"]')?.textContent || "");
+    check(shown.join() === "BM25", `${tag}: タグのグループで絞った行が違う: ${shown}`);
+    check(mark.includes("検索"), `${tag}: 左の木のタグのグループの行に印がない: ${mark}`);
+    const path = await page.evaluate(() => document.querySelector('#_index .fx-row[data-id="concepts/bm25"] .fx-path')?.textContent);
+    check(path === "Index › 検索", `${tag}: bm25 の階層が「Index › 検索」でない: ${path}`);
+    await page.evaluate(() => { location.hash = ""; });
+    await page.waitForTimeout(100);
+  }
+  // 種類とグループは、あとから選んだほうだけが効く（種類とグループの設計の 2 節、3 節）
+  {
+    const pressed = () => page.evaluate(() => document.querySelector('.chips .fui-ToggleButton[aria-pressed="true"]')?.textContent);
+    const state = () => page.evaluate(() => ({ hash: location.hash, chip: !document.querySelector(".group-chip").hidden,
+      current: document.querySelector(".tree .fui-TreeItem.is-current")?.getAttribute("data-group") ?? null }));
+    // グループを選んでから種類を押すと、グループが外れ、種類だけで絞る
+    await page.evaluate((id) => { location.hash = "#group=" + id; }, firstId);
+    await page.waitForTimeout(100);
+    await page.click(".chips .fui-ToggleButton:text-is('エンティティ')");
+    let s = await state();
+    check(s.hash === "" && !s.chip && s.current === "" && (await page.textContent("#_count")) === `${total} 件中 1 件`,
+      `${tag}: グループを選んだまま種類を押しても、グループが外れない: ${JSON.stringify(s)}`);
+    // 種類を押してから左の木でグループの行を押すと、種類が「すべて」に戻り、グループだけで絞る
+    const groupRow = (id) => page.locator(`.tree .fui-TreeItem[data-group="${id}"] > .fui-TreeItemLayout .tree-name`);
+    await groupRow(firstId).click();
+    await page.waitForTimeout(100);
+    check((await pressed()) === "すべて" && (await page.textContent("#_count")) === `${total} 件中 1 件`,
+      `${tag}: 種類を押してからグループを選んでも、種類が「すべて」に戻らない: ${await pressed()}`);
+    // 検索語とタグは、グループを選んでも、種類を押してグループを外しても、絞り込みに効いたまま残る（実装のレビューの 1、2）。
+    // 「エンティティ」だけなら 1 件（İstanbul）なので、検索語かタグが効いていれば 0 件になる
+    await page.click(".chips .fui-ToggleButton:text-is('すべて')");
+    await page.evaluate(() => { location.hash = ""; });
+    await page.waitForTimeout(100);
+    for (const [what, set, reset] of [
+      ["検索語", () => page.fill("#_filters input", "zzzz"), () => page.fill("#_filters input", "")],
+      ["タグ", () => page.selectOption(".tag-select select", { label: "検索（1）" }), () => page.selectOption(".tag-select select", { index: 0 })],
+    ]) {
+      await set();
+      await groupRow(firstId).click();
+      await page.waitForTimeout(100);
+      await page.click(".chips .fui-ToggleButton:text-is('エンティティ')");
+      const r = await page.evaluate(() => ({ hash: location.hash, shown: document.querySelectorAll("#_index .fx-row:not([hidden])").length,
+        q: document.querySelector("#_filters input").value, tag: document.querySelector(".tag-select select").selectedIndex }));
+      check(r.hash === "" && r.shown === 0 && (what === "検索語" ? r.q === "zzzz" : r.tag > 0),
+        `${tag}: グループを選んで種類を押すと、${what}の絞り込みが効かなくなる: ${JSON.stringify(r)}`);
+      await reset();
+      await page.click(".chips .fui-ToggleButton:text-is('すべて')");
+    }
+    // 履歴: グループの行を 2 つ続けて押し、種類を押してから戻ると、1 つ目のグループに戻り、種類は「すべて」（5 節の限界）
+    const secondId = await page.evaluate(() => {
+      const walk = (gs) => { for (const g of gs) { if (g.title === "第二") return g.id; const r = walk(g.children); if (r) return r; } return null; };
+      return walk(window.WIKI_NAV.groups);
+    });
+    await page.click(".chips .fui-ToggleButton:text-is('すべて')");
+    await groupRow(firstId).click();
+    await page.waitForTimeout(100);
+    await groupRow(secondId).click();
+    await page.waitForTimeout(100);
+    await page.click(".chips .fui-ToggleButton:text-is('エンティティ')");
+    await page.goBack();
+    await page.waitForTimeout(200);
+    check(await page.evaluate((id) => location.hash === "#group=" + id, firstId) && (await pressed()) === "すべて"
+      && (await page.textContent("#_count")) === `${total} 件中 1 件`,
+      `${tag}: 履歴を戻ったときの絞り込みが違う: ${await page.evaluate(() => location.hash)} ${await pressed()}`);
+    // 種類を選んでから「すべてのページ」を押しても、種類は残る
+    await page.click(".chips .fui-ToggleButton:text-is('エンティティ')");
+    await page.click(".tree a.tree-all");
+    await page.waitForTimeout(100);
+    check((await pressed()) === "エンティティ" && (await page.textContent("#_count")) === `${total} 件中 1 件`,
+      `${tag}: 「すべてのページ」を押すと、選んだ種類が消える: ${await pressed()}`);
+    await page.click(".chips .fui-ToggleButton:text-is('すべて')");
+    const h = await page.evaluate(() => window.__health());
+    check(h.style === 0 && h.dupIds.length === 0 && h.csp.length === 0 && h.errors.length === 0,
+      `${tag}: 種類とグループの操作のあとの [style]、ID、CSP、画面のエラー: ${JSON.stringify(h)}`);
+  }
   // 壊れた断片（%）でも、例外にならず、前の絞り込みを外す（2 回目の実装のレビューの A）
   await page.evaluate((id) => { location.hash = "#group=" + id; }, firstId);
   await page.waitForTimeout(100);
@@ -412,6 +705,20 @@ async function layoutChecks(browser, base, tag) {
       check(r.drawer === open, `${tag}: 幅 ${width} の ${rel} で「メニュー」の開閉が違う`);
       check(!r.main && !r.page, `${tag}: 幅 ${width} の ${rel} で横にはみ出す`);
       check(r.over.length === 0, `${tag}: 幅 ${width} の ${rel} で #_main の右端を越える要素: ${r.over}`);
+      if (rel === "concepts/long.html") {
+        // N9: long は 200 文字のタグを持つ。今のページのタグのグループの名前が、開いた木の中で #_nav からはみ出さない
+        const nav = await page.evaluate(() => {
+          document.querySelector("details.drawer").open = true;
+          const box = document.getElementById("_nav");
+          const right = box.getBoundingClientRect().right + 1;
+          const name = document.querySelector(".tree .fui-TreeItem.is-current > .fui-TreeItemLayout .tree-name");
+          return { found: !!name, long: name ? name.textContent.length : 0,
+                   over: name ? name.getBoundingClientRect().right > right : true,
+                   scroll: box.scrollWidth > box.clientWidth + 1 };
+        });
+        check(nav.found && nav.long === 200 && !nav.over && !nav.scroll,
+          `${tag}: 幅 ${width} で長いタグのグループの名前が #_nav からはみ出す: ${JSON.stringify(nav)}`);
+      }
       if (rel === "concepts/rel.html") {
         check(r.scroll && r.scroll.inside, `${tag}: 幅 ${width} で関係表の入れ物が #_main からはみ出す`);
         if (width <= 600) {
@@ -531,7 +838,7 @@ async function colorChecks(browser, base, tag) {
         await page.waitForFunction(() => window.__browse.searchLoaded);
       } else if (rel !== "index.html") {
         // 木のすべてのグループを開き、ポインターと押下の状態を測れるようにする
-        await page.evaluate(() => document.querySelectorAll("details.tree-group").forEach((d) => { d.open = true; }));
+        await page.evaluate(() => document.querySelectorAll(".tree-group[aria-expanded]").forEach((d) => { d.setAttribute("aria-expanded", "true"); }));
       }
       const c = await contrastOf(page);
       const low = Object.entries(c).filter(([, v]) => v < 4.5);
@@ -549,12 +856,20 @@ async function colorChecks(browser, base, tag) {
   // 強制カラー: 今のページの項目に輪郭がある
   const { context, page } = await newPage(browser, { forced: true });
   await page.goto(url(base, "concepts/bm25.html"));
-  const outline = await page.evaluate(() => getComputedStyle(document.querySelector(".fui-NavSubItem.is-current")).outlineStyle);
+  const outline = await page.evaluate(() => getComputedStyle(document.querySelector(".tree .fui-TreeItem.is-current > .fui-TreeItemLayout")).outlineStyle);
+  // 強制カラーで、トグルの枠とつまみが見える（枠の線があり、つまみが塗られている。最終のレビューの 3）
+  const tg = await page.evaluate(() => {
+    const track = getComputedStyle(document.querySelector(".theme-track"));
+    const knob = getComputedStyle(document.querySelector(".theme-knob"));
+    return { border: track.borderTopStyle, bw: parseFloat(track.borderTopWidth), knob: knob.backgroundColor };
+  });
+  check(tg.border === "solid" && tg.bw > 0 && tg.knob !== "rgba(0, 0, 0, 0)" && tg.knob !== "transparent",
+    `${tag}: 強制カラーでトグルの枠かつまみが見えない: ${JSON.stringify(tg)}`);
   check(outline !== "none", `${tag}: 強制カラーで今のページの印がない`);
   await page.goto(url(base, "index.html"));
   await page.evaluate(() => { location.hash = "#group=" + window.WIKI_NAV.groups[0].id; });
   await page.waitForTimeout(100);
-  const groupOutline = await page.evaluate(() => getComputedStyle(document.querySelector(".fui-NavItem.is-current")).outlineStyle);
+  const groupOutline = await page.evaluate(() => getComputedStyle(document.querySelector(".tree .fui-TreeItem.is-current > .fui-TreeItemLayout")).outlineStyle);
   check(groupOutline !== "none", `${tag}: 強制カラーで絞っているグループの印がない`);
   await context.close();
 }
@@ -564,16 +879,48 @@ async function themeChecks(browser, base, tag, restart) {
   await context.addInitScript(INIT);
   const page = await context.newPage();
   await page.goto(url(base, "concepts/bm25.html"));
-  check((await page.getAttribute("html", "data-theme")) === "auto", `${tag}: 既定の配色が auto でない`);
-  await page.selectOption("#_theme", "dark");
+  // 配色のトグル（左のペインの木の設計の 7 節）。既定は auto で、明るい OS ではオフ
+  check((await page.getAttribute("html", "data-theme")) === "auto" && !(await page.isChecked("#_theme")),
+    `${tag}: 既定の配色が auto でないか、明るい OS でトグルがオフでない`);
+  check((await page.getAttribute("#_theme", "role")) === "switch" && (await page.getAttribute("#_theme", "aria-label")).includes("テーマ")
+    && (await page.textContent(".theme-label")) === "テーマ", `${tag}: トグルの role か名前が違う`);
+  await page.click("#_theme");
+  check((await page.getAttribute("html", "data-theme")) === "dark", `${tag}: トグルをオンにしても dark にならない`);
   await page.goto(url(base, "index.html"));
-  check((await page.getAttribute("html", "data-theme")) === "dark", `${tag}: 選んだ配色がページを移ると消える`);
+  check((await page.getAttribute("html", "data-theme")) === "dark" && await page.isChecked("#_theme"), `${tag}: 選んだ配色がページを移ると消える`);
   if (restart) {
     base = await restart();
     await page.goto(url(base, "index.html"));
     check((await page.getAttribute("html", "data-theme")) === "dark", `${tag}: サーバーを起動し直すと選んだ配色が消える`);
   }
+  // もう一度オフにすると、OS と同じ見た目なので auto（OS に合わせる）に戻り、ページを移っても auto のまま
+  await page.click("#_theme");
+  await page.goto(url(base, "concepts/bm25.html"));
+  check((await page.getAttribute("html", "data-theme")) === "auto" && !(await page.isChecked("#_theme")),
+    `${tag}: OS と同じ見た目に戻しても auto にならない`);
+  // auto の間に OS の配色が暗くなると、トグルがオンになる
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.waitForTimeout(100);
+  check(await page.isChecked("#_theme"), `${tag}: auto の間に OS の配色が変わっても、トグルが合わない`);
   await context.close();
+  // 暗い OS では、既定でオン。Space キーでオフにすると light が保存され、ページを移っても light のまま。
+  // もう一度 Space でオンに戻すと、OS と同じ見た目なので auto に戻る（最終のレビューの 2、3）
+  {
+    const c3 = await browser.newContext({ colorScheme: "dark" });
+    const p3 = await c3.newPage();
+    await p3.goto(url(base, "concepts/bm25.html"));
+    check((await p3.getAttribute("html", "data-theme")) === "auto" && await p3.isChecked("#_theme"), `${tag}: 暗い OS で既定のトグルがオンでない`);
+    await p3.focus("#_theme");
+    await p3.keyboard.press("Space");
+    check((await p3.getAttribute("html", "data-theme")) === "light" && !(await p3.isChecked("#_theme")), `${tag}: 暗い OS で Space でオフにしても light にならない`);
+    await p3.goto(url(base, "index.html"));
+    check((await p3.getAttribute("html", "data-theme")) === "light", `${tag}: 暗い OS で選んだ light がページを移ると消える`);
+    await p3.focus("#_theme");
+    await p3.keyboard.press("Space");
+    await p3.goto(url(base, "concepts/bm25.html"));
+    check((await p3.getAttribute("html", "data-theme")) === "auto" && await p3.isChecked("#_theme"), `${tag}: 暗い OS でオンに戻しても auto にならない`);
+    await c3.close();
+  }
   // 保存先が例外を出す
   const c2 = await browser.newContext({ colorScheme: "light" });
   await c2.addInitScript(() => {
@@ -584,7 +931,7 @@ async function themeChecks(browser, base, tag, restart) {
   const errors = [];
   p2.on("pageerror", (e) => errors.push(String(e)));
   await p2.goto(url(base, "concepts/bm25.html"));
-  await p2.selectOption("#_theme", "dark");
+  await p2.click("#_theme");
   const chosen = await p2.getAttribute("html", "data-theme");
   await p2.reload();
   const after = await p2.getAttribute("html", "data-theme");
@@ -617,6 +964,7 @@ try {
       try {
         await articleChecks(browser, base, tag);
         await indexChecks(browser, base, tag);
+        await treeChecks(browser, base, tag);
         await loadingChecks(browser, base, tag);
         await layoutChecks(browser, base, tag);
         await articlePartsChecks(browser, base, tag);

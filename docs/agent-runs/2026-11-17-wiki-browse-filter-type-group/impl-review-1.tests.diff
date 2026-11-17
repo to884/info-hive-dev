@@ -1,0 +1,65 @@
+diff --git a/tests/wiki/browse/findability.test.mjs b/tests/wiki/browse/findability.test.mjs
+index be82d67..dffdcc4 100644
+--- a/tests/wiki/browse/findability.test.mjs
++++ b/tests/wiki/browse/findability.test.mjs
+@@ -515,6 +515,60 @@ async function indexChecks(browser, base, tag) {
+     await page.evaluate(() => { location.hash = ""; });
+     await page.waitForTimeout(100);
+   }
++  // 種類とグループは、あとから選んだほうだけが効く（種類とグループの設計の 2 節、3 節）
++  {
++    const pressed = () => page.evaluate(() => document.querySelector('.chips .fui-ToggleButton[aria-pressed="true"]')?.textContent);
++    const state = () => page.evaluate(() => ({ hash: location.hash, chip: !document.querySelector(".group-chip").hidden,
++      current: document.querySelector(".tree .fui-TreeItem.is-current")?.getAttribute("data-group") ?? null }));
++    // グループを選んでから種類を押すと、グループが外れ、種類だけで絞る
++    await page.evaluate((id) => { location.hash = "#group=" + id; }, firstId);
++    await page.waitForTimeout(100);
++    await page.click(".chips .fui-ToggleButton:text-is('エンティティ')");
++    let s = await state();
++    check(s.hash === "" && !s.chip && s.current === "" && (await page.textContent("#_count")) === `${total} 件中 1 件`,
++      `${tag}: グループを選んだまま種類を押しても、グループが外れない: ${JSON.stringify(s)}`);
++    // 種類を押してから左の木でグループの行を押すと、種類が「すべて」に戻り、グループだけで絞る
++    const groupRow = (id) => page.locator(`.tree .fui-TreeItem[data-group="${id}"] > .fui-TreeItemLayout .tree-name`);
++    await groupRow(firstId).click();
++    await page.waitForTimeout(100);
++    check((await pressed()) === "すべて" && (await page.textContent("#_count")) === `${total} 件中 1 件`,
++      `${tag}: 種類を押してからグループを選んでも、種類が「すべて」に戻らない: ${await pressed()}`);
++    // 検索語とタグは、グループを外しても残る
++    await page.fill("#_filters input", "zzzz");
++    await page.selectOption(".tag-select select", { label: "toString（1）" });
++    await page.click(".chips .fui-ToggleButton:text-is('エンティティ')");
++    const kept = await page.evaluate(() => ({ q: document.querySelector("#_filters input").value,
++      tag: document.querySelector(".tag-select select").selectedOptions[0].textContent, hash: location.hash }));
++    check(kept.q === "zzzz" && kept.tag === "toString（1）" && kept.hash === "", `${tag}: 種類を押すと、検索語かタグまで消える: ${JSON.stringify(kept)}`);
++    await page.fill("#_filters input", "");
++    await page.selectOption(".tag-select select", { index: 0 });
++    // 履歴: グループの行を 2 つ続けて押し、種類を押してから戻ると、1 つ目のグループに戻り、種類は「すべて」（5 節の限界）
++    const secondId = await page.evaluate(() => {
++      const walk = (gs) => { for (const g of gs) { if (g.title === "第二") return g.id; const r = walk(g.children); if (r) return r; } return null; };
++      return walk(window.WIKI_NAV.groups);
++    });
++    await page.click(".chips .fui-ToggleButton:text-is('すべて')");
++    await groupRow(firstId).click();
++    await page.waitForTimeout(100);
++    await groupRow(secondId).click();
++    await page.waitForTimeout(100);
++    await page.click(".chips .fui-ToggleButton:text-is('エンティティ')");
++    await page.goBack();
++    await page.waitForTimeout(200);
++    check(await page.evaluate((id) => location.hash === "#group=" + id, firstId) && (await pressed()) === "すべて"
++      && (await page.textContent("#_count")) === `${total} 件中 1 件`,
++      `${tag}: 履歴を戻ったときの絞り込みが違う: ${await page.evaluate(() => location.hash)} ${await pressed()}`);
++    // 種類を選んでから「すべてのページ」を押しても、種類は残る
++    await page.click(".chips .fui-ToggleButton:text-is('エンティティ')");
++    await page.click(".tree a.tree-all");
++    await page.waitForTimeout(100);
++    check((await pressed()) === "エンティティ" && (await page.textContent("#_count")) === `${total} 件中 1 件`,
++      `${tag}: 「すべてのページ」を押すと、選んだ種類が消える: ${await pressed()}`);
++    await page.click(".chips .fui-ToggleButton:text-is('すべて')");
++    const h = await page.evaluate(() => window.__health());
++    check(h.style === 0 && h.dupIds.length === 0 && h.csp.length === 0 && h.errors.length === 0,
++      `${tag}: 種類とグループの操作のあとの [style]、ID、CSP、画面のエラー: ${JSON.stringify(h)}`);
++  }
+   // 壊れた断片（%）でも、例外にならず、前の絞り込みを外す（2 回目の実装のレビューの A）
+   await page.evaluate((id) => { location.hash = "#group=" + id; }, firstId);
+   await page.waitForTimeout(100);

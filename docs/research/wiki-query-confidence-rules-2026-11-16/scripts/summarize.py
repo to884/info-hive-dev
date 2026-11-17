@@ -1,14 +1,17 @@
 # stream-json の記録を要約する（モデル、道具の呼び出し、最終の回答、費用、確からしさの印）
 # 前回の測定の summarize.py を写し、次を足した
 # - 回答の終わりの決まった 1 行（**確からしさ（confidence）: X**）と、結論のそばの「（確からしさ: X）」を分けて数える
+# - 回答の名前が「確からしさ」から「確信度」に変わった。決まった 1 行と結論の文末の印は、両方の名前を読む。
+#   新しい名前はエッジの confidence にも使うので、字句だけでは回答の印と見分けられない。
+#   そのため広い抽出（ANY）は前の名前だけを読み、新しい名前の崩れた書き方は回答を読んで判断する
 # - query-confidence.md を開いたか、グラフに問い合わせたか、検索の mode・warning・index.state、CLI の検索の引数
 import json
 import re
 import sys
 from pathlib import Path
 
-FINAL = re.compile(r"\*\*確からしさ（confidence）: (高|中|低)\*\*")
-INLINE = re.compile(r"（確からしさ[:：]\s*(高|中|低)）")
+FINAL = re.compile(r"\*\*(?:確信度|確からしさ)（confidence）: (高|中|低)\*\*")
+INLINE = re.compile(r"（(?:確信度|確からしさ)[:：]\s*(高|中|低)）")
 ANY = re.compile(r"確からしさ[^\n]{0,20}?[:：]\s*\**\s*(高|中|低)")
 
 
