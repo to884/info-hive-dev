@@ -11,7 +11,7 @@ updated: 2026-11-17
 
 # browse に svg と Mermaid の図を出した wiki 0.26.0 と 0.27.0 のリリース
 
-`/wiki:browse` に、`wiki/assets/` の svg（0.26.0）と本文の mermaid（0.27.0）を図として出した記録である。ADR-0005 が「将来の作業」にしていた表示で、決定は ADR-0030（提案）、設計は `docs/plans/wiki-browse-figures-2026-11-17.md`、PoC の記録は `docs/research/wiki-browse-figures-poc-2026-11-17.md`、レビューの記録は `docs/agent-runs/2026-11-17-wiki-browse-figures/` にある。
+`/wiki:browse` に、`wiki/assets/` の svg（0.26.0）と本文の mermaid（0.27.0）を図として出した記録である。ADR-0005 が「将来の作業」にしていた表示で、決定は ADR-0030（2026年11月17日に承認）、設計は `docs/plans/wiki-browse-figures-2026-11-17.md`、PoC の記録は `docs/research/wiki-browse-figures-poc-2026-11-17.md`、レビューの記録は `docs/agent-runs/2026-11-17-wiki-browse-figures/` にある。
 
 ## 作者が決めたこと
 

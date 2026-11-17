@@ -6,7 +6,7 @@
 | --- | --- |
 | 状態 | 3 版目。1 版目は Sol の設計のレビュー（[design-review-1.md](../agent-runs/2026-11-17-wiki-browse-figures/design-review-1.md)）で却下された（致命 1、重大 3）。2 版目で前提を改めて 2 回目の PoC で確かめ、2 回目のレビュー（[design-review-2.md](../agent-runs/2026-11-17-wiki-browse-figures/design-review-2.md)）で「条件付きで採用可」になった。3 版目は、その重大 2 件（枠の寿命）と軽微 5 件を直した（2 節） |
 | 対象 | `info-hive-wiki` の `skills/info-hive/scripts/`（`wiki_pages.py`、`wiki_browse_fs.py`、`wiki_browse_core.py`、`wiki_browse.py`、`wiki_lint.py`、`browse_assets/`）、開発リポジトリの `tests/wiki/` |
-| 決定 | [ADR-0030](../adr/0030-wiki-browse-shows-figures-as-images.md)（提案） |
+| 決定 | [ADR-0030](../adr/0030-wiki-browse-shows-figures-as-images.md)（2026年11月17日に承認） |
 | 試作と結果 | `poc/browse-figures/`、[PoC の記録](../research/wiki-browse-figures-poc-2026-11-17.md) |
 | 基準の版 | info-hive-wiki 0.25.2（`e8886d6`） |
 
