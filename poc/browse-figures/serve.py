@@ -22,6 +22,9 @@ TYPES = {
 
 
 def policy(name: str, origin: str) -> str:
+    if name == "_frame/mermaid-frame.html":
+        # 2 回目の PoC: スクリプトは /_frame/ の下だけから読む（配信元のほかのファイルを読ませない）
+        return CSP_FRAME_HEADER.replace("script-src 'self'", f"script-src {origin}/_frame/")
     if name.startswith("mermaid-frame") and name.endswith(".html"):
         # WebKit は、sandbox で不透明になった文書の 'self' を配信元に一致させない。配信元を書き足す
         return CSP_FRAME_HEADER.replace("script-src 'self'", f"script-src 'self' {origin}")
@@ -45,9 +48,11 @@ class Handler(BaseHTTPRequestHandler):
         if self.headers.get("Host") != f"127.0.0.1:{port}":
             return self._deny(421)
         name = urllib.parse.unquote(urllib.parse.urlsplit(self.path).path.lstrip("/"), errors="strict")
-        if "/" in name or "\\" in name or name in ("", ".", ".."):
+        parts = name.split("/")
+        if not (len(parts) == 1 or (len(parts) == 2 and parts[0] == "_frame")) \
+                or any(p in ("", ".", "..") or "\\" in p for p in parts):
             return self._deny(404)
-        target = SITE / name
+        target = SITE.joinpath(*parts)
         ext = target.suffix.lower()
         if ext not in TYPES or not target.is_file():
             return self._deny(404)
@@ -57,7 +62,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Content-Security-Policy", policy(name, f"http://127.0.0.1:{port}"))
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Cache-Control", "no-store")
+        # /_frame/ の下はトークンを含まない固定の同梱物なので、キャッシュを許す（2 回目の PoC）
+        self.send_header("Cache-Control", "private, max-age=3600" if name.startswith("_frame/") else "no-store")
         self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
         if not head_only:

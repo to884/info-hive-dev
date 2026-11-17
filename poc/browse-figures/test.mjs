@@ -125,9 +125,30 @@ async function runOne(browserName, mode, server) {
     const f = window.__figs || {};
     const res = {};
     for (const [k, v] of Object.entries(f.results || {})) res[k] = { ok: v.ok, error: v.error, foreignObject: v.foreignObject, title: v.title, length: v.length };
-    return { state: f.state, tReady: f.tReady, tFirst: f.tFirst, tDone: f.tDone, frameViolations: f.frameViolations, missing: f.theme && f.theme.missing, results: res };
+    return { state: f.state, tReady: f.tReady, tFirst: f.tFirst, tDone: f.tDone, frameViolations: f.frameViolations,
+             frames: f.frames, missing: f.theme && f.theme.missing, results: res };
   });
   r.figs = figs;
+  // 2 回目の PoC: /_frame/ の枠が、配信元のほかのスクリプト（wiki の中身に当たる secret.js）を読めないこと
+  if (mode === "server") {
+    await page.evaluate((u) => new Promise((res) => {
+      const f = document.createElement("iframe");
+      f.id = "probe-frame"; f.className = "fig-frame"; f.setAttribute("sandbox", "allow-scripts");
+      f.onload = res; f.src = u + "_frame/mermaid-frame.html"; document.body.appendChild(f);
+    }), server.url);
+    const fr = page.frames().find((f) => f.url().includes("/_frame/"));
+    r.secret = fr ? await fr.evaluate((u) => new Promise((res) => {
+      const s = document.createElement("script");
+      s.src = u + "secret.js";
+      s.onload = () => res("読めた: " + window.SECRET);
+      s.onerror = () => res("止まった");
+      document.head.appendChild(s);
+      setTimeout(() => res("時間切れ"), 3000);
+    }), server.url) : "枠がない";
+    r.secretFetch = fr ? await fr.evaluate((u) => fetch(u + "secret.js").then(() => "読めた", () => "止まった"), server.url) : "枠がない";
+    r.frameOrigin = fr ? await fr.evaluate(() => [String(location.origin), location.pathname, document.referrer]) : null;
+    await page.evaluate(() => document.getElementById("probe-frame").remove());
+  }
   const dom = await page.evaluate(() => {
     const ids = [...document.querySelectorAll("[id]")].map((e) => e.id);
     const imgs = [...document.querySelectorAll("img.fig-img")].map((i) => ({ fig: i.closest("figure").getAttribute("data-fig"), w: i.naturalWidth, h: i.naturalHeight, alt: i.alt }));
@@ -236,6 +257,8 @@ function verdict(r) {
   return {
     browser: r.browser, mode: r.mode, version: r.version,
     gate1_frameLoaded: r.figs.tReady != null,
+    framesCreated: r.figs.frames, framesLeft: r.dom.frames,
+    secret: (r.secret || "-") + " / " + (r.secretFetch || "-"),
     rendered: okIds.join(","), failed: ngIds.join(","),
     frameViolations: (r.figs.frameViolations || []).length + "/" + r.frameViolationsProbe.length,
     parentViolations: r.dom.parentViolations.length,

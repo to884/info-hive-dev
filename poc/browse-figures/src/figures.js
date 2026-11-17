@@ -1,21 +1,24 @@
-/* 図の描画の PoC の親の側。配布対象ではない。
+/* 図の描画の PoC の親の側（2 回目）。配布対象ではない。
  *
- * - #_body の pre > code.language-mermaid があるときだけ、見えない sandbox の枠を 1 つ作る。
- * - 枠に図のソースと Fluent のトークンから作った配色を送り、SVG の文字列を受け取る。
+ * - http(s) のページで、#_body の pre > code.language-mermaid があるときだけ動く。
+ * - 図 1 つにつき、トークンのない /_frame/ の下の枠を 1 つ作り、その図のソースと配色だけを送る。
+ *   描き終えたら枠を消す。枠は、攻撃者自身が書いた図のほかに何も知らない。
  * - SVG は DOM に入れず、data: の <img> にして出す。要素の style には触らない。
  * - 配色が変わったら描き直す。
  * - 試験のために、状態を window.__figs に置く。
  */
 (function () {
   "use strict";
-  var codes = document.querySelectorAll("#_body pre > code.language-mermaid");
   var state = { state: "none", seq: 0, t0: performance.now(), tReady: null, tFirst: null, tDone: null,
-                results: {}, frameViolations: null, renders: 0, theme: null };
+                results: {}, frameViolations: [], renders: 0, frames: 0, theme: null };
   window.__figs = state;
+  if (location.protocol !== "http:" && location.protocol !== "https:") return;
+  var codes = document.querySelectorAll("#_body pre > code.language-mermaid");
   if (!codes.length) return;
 
-  var frameName = /[?&]frame=file(&|$)/.test(location.search) ? "mermaid-frame-file.html"
-    : /[?&]frame=nometa(&|$)/.test(location.search) ? "mermaid-frame-nometa.html" : "mermaid-frame.html";
+  var FRAME_URL = location.origin + "/_frame/mermaid-frame.html";
+  var CONCURRENCY = 2;
+  var READY_TIMEOUT = 20000;
   var items = [];
   for (var i = 0; i < codes.length; i++) {
     var pre = codes[i].parentNode;
@@ -84,30 +87,6 @@
     return { vars: vars, missing: missing, key: JSON.stringify(vars) };
   }
 
-  var frame = document.createElement("iframe");
-  frame.className = "fig-frame";
-  frame.setAttribute("sandbox", "allow-scripts");
-  frame.setAttribute("title", "図の描画");
-  frame.setAttribute("aria-hidden", "true");
-  frame.setAttribute("tabindex", "-1");
-  frame.src = frameName;
-  var ready = false;
-  var current = null;
-
-  function send() {
-    if (!ready) return;
-    var theme = readTheme();
-    if (current && current.key === theme.key) return;
-    current = theme;
-    state.theme = theme;
-    state.seq += 1;
-    state.state = "rendering";
-    frame.contentWindow.postMessage({
-      type: "render", seq: state.seq, theme: theme.vars,
-      items: items.map(function (it) { return { id: it.id, source: it.source }; })
-    }, "*");
-  }
-
   var NS = "http://www.w3.org/2000/svg";
   function chevron() {
     var span = document.createElement("span");
@@ -150,7 +129,7 @@
       it.pre.parentNode.insertBefore(it.details, it.pre);
       panel.appendChild(it.pre);
     }
-    it.img.setAttribute("alt", msg.title || "図");
+    it.img.setAttribute("alt", typeof msg.title === "string" && msg.title ? msg.title.slice(0, 200) : "図");
     it.img.setAttribute("width", String(Math.round(msg.w)));
     it.img.setAttribute("height", String(Math.round(msg.h)));
     it.img.setAttribute("src", "data:image/svg+xml;charset=utf-8," + encodeURIComponent(msg.svg));
@@ -170,48 +149,93 @@
     it.pre.parentNode.insertBefore(it.bar, it.pre);
   }
 
-  var byId = {};
-  items.forEach(function (it) { byId[it.id] = it; });
-
-  window.addEventListener("message", function (e) {
-    if (e.source !== frame.contentWindow) return;
-    var d = e.data;
-    if (!d || typeof d.type !== "string") return;
-    if (d.type === "ready") {
-      ready = true;
-      state.tReady = performance.now() - state.t0;
-      send();
-      return;
-    }
-    if (d.seq !== state.seq) return;
-    if (d.type === "result") {
-      var it = byId[d.id];
-      if (!it) return;
-      var ok = d.ok === true && typeof d.svg === "string" && d.svg.slice(0, 4) === "<svg" &&
-        isFinite(d.w) && isFinite(d.h) && d.w > 0 && d.h > 0 && d.w <= 20000 && d.h <= 20000;
-      state.results[it.poc] = { ok: ok, error: ok ? null : String(d.error || "不正な応答").slice(0, 300),
-                                foreignObject: !!d.foreignObject, title: d.title || null, length: ok ? d.svg.length : 0,
-                                svg: ok ? d.svg : null };
-      if (ok) {
-        place(it, d);
-        if (state.tFirst === null) state.tFirst = performance.now() - state.t0;
-      } else {
-        fail(it);
+  // 図 1 つを、新しい枠で描く。終わったら（成功、失敗、時間切れ）枠を消して resolve する
+  function renderOne(it, theme, seq) {
+    return new Promise(function (resolve) {
+      var frame = document.createElement("iframe");
+      frame.className = "fig-frame";
+      frame.setAttribute("sandbox", "allow-scripts");
+      frame.setAttribute("title", "図の描画");
+      frame.setAttribute("aria-hidden", "true");
+      frame.setAttribute("tabindex", "-1");
+      frame.setAttribute("width", "1200");
+      frame.setAttribute("height", "800");
+      var finished = false;
+      var timer = setTimeout(function () { finish(); }, READY_TIMEOUT);
+      function finish() {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        window.removeEventListener("message", onMessage);
+        frame.remove();
+        resolve();
       }
-    } else if (d.type === "done") {
-      state.frameViolations = d.violations;
+      function onMessage(e) {
+        if (e.source !== frame.contentWindow) return;
+        var d = e.data;
+        if (!d || typeof d.type !== "string") return;
+        if (d.type === "ready") {
+          if (state.tReady === null) state.tReady = performance.now() - state.t0;
+          frame.contentWindow.postMessage({ type: "render", seq: seq, theme: theme.vars,
+                                            items: [{ id: it.id, source: it.source }] }, "*");
+          return;
+        }
+        if (d.seq !== seq) return;
+        if (d.type === "result" && d.id === it.id && seq === state.seq) {
+          var ok = d.ok === true && typeof d.svg === "string" && d.svg.slice(0, 4) === "<svg" && d.svg.length <= 5e6 &&
+            isFinite(d.w) && isFinite(d.h) && d.w > 0 && d.h > 0 && d.w <= 20000 && d.h <= 20000;
+          state.results[it.poc] = { ok: ok, error: ok ? null : String(d.error || "不正な応答").slice(0, 300),
+                                    foreignObject: !!d.foreignObject, title: d.title || null, length: ok ? d.svg.length : 0,
+                                    svg: ok ? d.svg : null };
+          if (ok) {
+            place(it, d);
+            if (state.tFirst === null) state.tFirst = performance.now() - state.t0;
+          } else {
+            fail(it);
+          }
+        } else if (d.type === "done") {
+          if (Array.isArray(d.violations)) state.frameViolations = state.frameViolations.concat(d.violations.slice(0, 20));
+          finish();
+        }
+      }
+      window.addEventListener("message", onMessage);
+      state.frames += 1;
+      frame.src = FRAME_URL;
+      document.body.appendChild(frame);
+    });
+  }
+
+  var current = null;
+  function run() {
+    var theme = readTheme();
+    if (current && current.key === theme.key) return;
+    current = theme;
+    state.theme = theme;
+    state.seq += 1;
+    var seq = state.seq;
+    state.state = "rendering";
+    var queue = items.slice();
+    function worker() {
+      if (seq !== state.seq) return Promise.resolve();
+      var it = queue.shift();
+      if (!it) return Promise.resolve();
+      return renderOne(it, theme, seq).then(worker);
+    }
+    var workers = [];
+    for (var w = 0; w < CONCURRENCY; w++) workers.push(worker());
+    Promise.all(workers).then(function () {
+      if (seq !== state.seq) return;
       state.renders += 1;
       state.tDone = performance.now() - state.t0;
       state.state = "done";
-    }
-  });
+    });
+  }
 
-  new MutationObserver(function () { send(); })
-    .observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  new MutationObserver(run).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   if (window.matchMedia) {
     var mq = window.matchMedia("(prefers-color-scheme: dark)");
-    if (mq.addEventListener) mq.addEventListener("change", send);
+    if (mq.addEventListener) mq.addEventListener("change", run);
   }
   state.state = "loading";
-  document.body.appendChild(frame);
+  run();
 })();

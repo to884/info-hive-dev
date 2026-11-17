@@ -17,7 +17,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SITE = HERE / "site"
 FLUENT = HERE.parents[1] / "info-hive-wiki" / "skills" / "info-hive" / "scripts" / "browse_assets" / "fluent2.css"
-TINY_SHA256 = None  # 初回は表示だけ。README に記録したら固定する
+TINY_SHA256 = "c41f5236091b83f524c4940f97a16b2b14a76f21ff84aea4fd6b66421d8a2a9a"  # @mermaid-js/tiny 12.3.0
 
 CSP_PAGE = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
             "frame-src 'self'; base-uri 'none'; form-action 'none'")
@@ -134,11 +134,12 @@ def main() -> int:
     data = tiny.read_bytes()
     digest = hashlib.sha256(data).hexdigest()
     print(f"mermaid.tiny.js: {len(data)} バイト、SHA-256 {digest}")
-    if TINY_SHA256 and digest != TINY_SHA256:
+    if digest != TINY_SHA256:
         print("SHA-256 が記録と違う", file=sys.stderr)
         return 1
-    SITE.mkdir(exist_ok=True)
+    (SITE / "_frame").mkdir(parents=True, exist_ok=True)
     (SITE / "mermaid.tiny.js").write_bytes(data)
+    (SITE / "_frame" / "mermaid.tiny.js").write_bytes(data)
     shutil.copyfile(FLUENT, SITE / "fluent2.css")
 
     blocks = []
@@ -157,12 +158,16 @@ def main() -> int:
         "mermaid-frame-file.html": frame(CSP_FRAME_META_FILE),
         # <meta> の CSP を持たない枠。サーバーのヘッダーの CSP だけで守る（WebKit の 'self' のため）
         "mermaid-frame-nometa.html": frame(None),
+        # 2 回目の PoC: トークンのない /_frame/ の下に置く枠（_frame/ に書く）
+        "_frame/mermaid-frame.html": frame(None),
+        "secret.js": "window.SECRET = 'wiki の中身';\n",
         "fig.svg": SVG_TEXT,
     }
     for name, text in out.items():
         (SITE / name).write_bytes(text.encode("utf-8"))
     for src in sorted((HERE / "src").iterdir()):
         shutil.copyfile(src, SITE / src.name)
+    shutil.copyfile(HERE / "src" / "mermaid-frame.js", SITE / "_frame" / "mermaid-frame.js")
     print(f"書いた: {SITE}")
     return 0
 

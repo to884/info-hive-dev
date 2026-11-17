@@ -23,7 +23,8 @@
 ```bash
 python -X utf8 setup.py <mermaid.tiny.js のパス>
 node test.mjs
-FRAME=file MODES=file node test.mjs
 ```
 
-環境変数 `BROWSERS`（既定は 5 つ）と `MODES`（既定は `server,file`）で絞れる。`FRAME=file` は、`file://` の枠の CSP に `file:` を足した版を使う。
+環境変数 `BROWSERS`（既定は 5 つ）と `MODES`（既定は `server,file`）で絞れる。`FRAME` は結果のファイルの名前に付く印である。
+
+今の `src/figures.js` は 2 回目の方式（図ごとの枠を、トークンのない `/_frame/` から読む）である。1 回目の方式（1 つの枠を共有し、枠の文書をページと同じ場所から読む）は、コミット `ad526cd` の `src/figures.js` にある。`setup.py` が書く `mermaid-frame*.html` の 3 つは、1 回目の比べ（`<meta>` の有無と `file:`）の名残である。
