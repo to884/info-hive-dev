@@ -914,8 +914,13 @@ class ReviewFiveTests(Base):
         suite = self.tmp / "suite.json"
         suite.write_text(json.dumps({"corpus": "wiki/concepts/corpus"}), encoding="utf-8")
         scan = os.scandir
+        # suite の親は解決済みのパスになる。macOS の /var と /private/var など、
+        # 一時ディレクトリの別名でも、同じ実体への走査に障害を入れる。
+        blocked = corpus.resolve()
+        failures = []
         def denied(path):
-            if Path(path) == corpus:
+            if Path(path).resolve() == blocked:
+                failures.append(path)
                 raise PermissionError(13, "denied", str(corpus))
             return scan(path)
         args = SimpleNamespace(id="run", wiki=self.wiki, skill=self.skill, suite=suite)
@@ -928,6 +933,7 @@ class ReviewFiveTests(Base):
                 with self.assertRaises(PermissionError):
                     loop.run(args, self.state)
             contract.assert_not_called()
+        self.assertEqual(len(failures), 2)
         self.assertFalse(list(exp.glob("inputs-*.json")))
         self.assertFalse((self.state / "run").exists())
 
