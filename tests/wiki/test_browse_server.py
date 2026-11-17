@@ -842,6 +842,116 @@ class RebuildTest(InProcess):
         self.assertFalse(hasattr(self.app.state.current, "recorder"))
 
 
+SVG = b'<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><script>x()</script></svg>\n'
+
+
+class SvgServeTest(InProcess):
+    """図の svg を配る（図の描画の設計の 6.5）。"""
+
+    def setUp(self):
+        super().setUp()
+        self._retry = mock.patch.object(wiki_browse, "RETRY_INTERVAL", 0.3)
+        self._retry.start()
+        (self.wiki / "assets").mkdir()
+        (self.wiki / "assets" / "a-01.svg").write_bytes(SVG)
+        write(self.wiki, "concepts/f.md", "# F\n\n![図](../assets/a-01.svg)\n")
+
+    def tearDown(self):
+        self._retry.stop()
+        super().tearDown()
+
+    def svg_name(self) -> str:
+        return core.Core(core.take_snapshot(self.wiki)).asset_out["assets/a-01.svg"]
+
+    def test_svg_is_served_with_sandbox_csp(self):
+        body = self.get("concepts/f.html")[1]
+        name = self.svg_name()
+        self.assertIn(f'src="../{name}"', body)
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=20)
+        try:
+            conn.putrequest("GET", self.prefix + name, skip_host=True, skip_accept_encoding=True)
+            conn.putheader("Host", f"127.0.0.1:{self.port}")
+            conn.endheaders()
+            res = conn.getresponse()
+            data, headers = res.read(), dict(res.getheaders())
+        finally:
+            conn.close()
+        self.assertEqual(res.status, 200)
+        self.assertEqual(data, SVG)
+        self.assertEqual(headers["Content-Type"], "image/svg+xml")
+        self.assertEqual(headers["Content-Security-Policy"], core.CSP_SVG)
+        self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
+        self.assertEqual(headers["Cache-Control"], "no-store")
+        code, _b, headers = self.get(name, "HEAD")
+        self.assertEqual((code, headers["Content-Length"]), (200, str(len(SVG))))
+        # ページの応答の CSP は今までと同じ
+        self.assertEqual(self.get("concepts/f.html")[2]["Content-Security-Policy"], core.CSP)
+
+    def test_unknown_svg_name_is_404(self):
+        self.assertEqual(self.get("assets/wiki/0000000000000000.svg")[0], 404)
+        self.assertEqual(self.get("assets/wiki/../app.js")[0], 404)
+
+    def test_svg_change_is_served_on_next_request(self):
+        name = self.svg_name()
+        self.assertEqual(self.get(name)[0], 200)
+        bigger = SVG.replace(b"x()", b"y(); z()")
+        (self.wiki / "assets" / "a-01.svg").write_bytes(bigger)
+        self.assertEqual(self.get(name)[1].encode("utf-8"), bigger)
+
+
+class FrameServeTest(InProcess):
+    """Mermaid の図の枠の同梱物を、トークンなしの /_frame/<版>/ から配る（図の描画の設計の 7.2、7.3）。"""
+
+    def setUp(self):
+        super().setUp()
+        self.app.frame_assets = core.load_frame_assets()
+        self.base = f"/{core.FRAME_PREFIX}/{core.FRAME_VERSION}/"
+
+    def raw(self, method: str, path: str) -> tuple:
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=20)
+        try:
+            conn.putrequest(method, path, skip_host=True, skip_accept_encoding=True)
+            conn.putheader("Host", f"127.0.0.1:{self.port}")
+            conn.endheaders()
+            res = conn.getresponse()
+            return res.status, res.read(), dict(res.getheaders())
+        finally:
+            conn.close()
+
+    def test_frame_files_are_served_without_token(self):
+        for name in core.FRAME_ASSETS:
+            code, body, headers = self.raw("GET", self.base + name)
+            self.assertEqual(code, 200, name)
+            self.assertEqual(body, (SCRIPTS / "browse_assets" / name).read_bytes(), name)
+            self.assertEqual(headers["Cache-Control"], "private, max-age=86400", name)
+            self.assertEqual(headers["X-Content-Type-Options"], "nosniff", name)
+            if name.endswith(".html"):
+                self.assertTrue(headers["Content-Type"].startswith("text/html"))
+                self.assertEqual(headers["Content-Security-Policy"], core.frame_csp(self.port))
+            else:
+                self.assertTrue(headers["Content-Type"].startswith("text/javascript"))
+                self.assertEqual(headers["Content-Security-Policy"], core.CSP)
+        code, _b, headers = self.raw("HEAD", self.base + "mermaid-frame.html")
+        self.assertEqual((code, headers["Content-Length"]), (200, str(len(self.app.frame_assets["mermaid-frame.html"]))))
+
+    def test_other_paths_are_404_and_never_redirect(self):
+        for path in (f"/{core.FRAME_PREFIX}/mermaid-0.0.0-0/mermaid.tiny.js", self.base + "app.js",
+                     self.base + "style.css", self.base + "../mermaid.tiny.js", self.base + "%2e%2e/x",
+                     f"/{core.FRAME_PREFIX}/{core.FRAME_VERSION}", f"/{core.FRAME_PREFIX}/{core.FRAME_VERSION}/",
+                     self.base + "mermaid-frame.html/x", f"/{core.FRAME_PREFIX}/{core.FRAME_VERSION}/data/search.js"):
+            code, _b, headers = self.raw("GET", path)
+            self.assertEqual(code, 404, path)
+            self.assertNotIn("Location", headers, path)
+        self.assertEqual(self.raw("POST", self.base + "mermaid-frame.html")[0], 405)
+        code, _b, _h = request(self.port, "GET", self.base + "mermaid-frame.html", host="localhost")
+        self.assertEqual(code, 421)
+
+    def test_page_csp_allows_only_same_origin_frames(self):
+        _code, _body, headers = self.get("concepts/a.html")
+        self.assertEqual(headers["Content-Security-Policy"], core.CSP)
+        self.assertIn("frame-src 'self'", headers["Content-Security-Policy"])
+
+
 class ServeScopeTest(Base):
     """serve の出力の scope と、そのサーバーが描くスコープ（BrowseState.scope）の一致。
 

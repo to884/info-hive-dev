@@ -60,7 +60,7 @@
 - リリースのコミットが `info-hive-wiki` の `main` に入り、`vX.Y.Z` のタグが push され、GitHub リリースが作成され、マーケットプレイスからの導入を確かめるまでは、リリースの完了を報告しない。
 
 ### Browse UI constraints
-The /wiki:browse page runs under a strict CSP (ADR-0010). Do not use inline style attributes or inline scripts. Use classes and token-based CSS.
+The /wiki:browse page runs under a strict CSP (ADR-0010). Do not use inline style attributes or inline scripts. Use classes and token-based CSS. The CSP is chosen per response (page, figure frame, svg) in ADR-0030; only the Mermaid frame document may use `style-src 'unsafe-inline'`.
 
 ## rag プラグイン（info-hive-rag）の開発
 

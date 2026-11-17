@@ -1,0 +1,631 @@
+diff --git a/commands/browse.md b/commands/browse.md
+index 461da0e..532acf7 100644
+--- a/commands/browse.md
++++ b/commands/browse.md
+@@ -4,7 +4,7 @@ argument-hint: "[slug] | --stop"
+ argument-description: "slug を付けると、そのページを開く（`[[slug]]` と同じ規則で探す。見つからなければ索引を開く）。`--stop` を付けると、動いている閲覧のサーバーを止める。"
+ ---
+ 
+-wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類と、その下でページの最初のタグごとにまとめたグループ）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。配色は最初は OS に合わせ、サイドバーの「テーマ」のトグルでライトとダークを切り替えられる。閲覧はいつも読むだけで、wiki のファイルを作ったり書き換えたりしない。未解決リンクをクリックしても、ページはできない。
++wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類と、その下でページの最初のタグごとにまとめたグループ）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。本文の `![説明](../assets/<名前>.svg)` は、`wiki/assets/` の直下の svg を図として表示する。配色は最初は OS に合わせ、サイドバーの「テーマ」のトグルでライトとダークを切り替えられる。閲覧はいつも読むだけで、wiki のファイルを作ったり書き換えたりしない。未解決リンクをクリックしても、ページはできない。
+ 
+ 引数: $ARGUMENTS
+ 
+diff --git a/docs/commands.md b/docs/commands.md
+index 44c345a..7c09185 100644
+--- a/docs/commands.md
++++ b/docs/commands.md
+@@ -126,6 +126,8 @@ wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引
+ 
+ サイドバーの先頭とタブの題名に、wiki のスコープ（ユーザースコープか、プロジェクトか）を出す。スコープは、その wiki が指示や設定で何として登録されているかで、コマンドが決める。グローバルなエージェントの指示がユーザースコープの wiki として指す wiki はユーザースコープ、プロジェクトの指示がそのプロジェクトの wiki として指す wiki と現在のプロジェクトの `wiki/` はプロジェクトとし、作業領域の設定で見つけた wiki は設定の `kind` に従う。手がかりがないか、食い違えば、スコープを出さない。スコープを wiki の場所から推し量ることはしない。
+ 
++本文の `![説明](../assets/<名前>.svg)` は、`wiki/assets/` の直下の svg を図として表示する。表示するのは、UTF-8 で書かれた 2 MiB までの、リンクでない svg である。図は画像として出すので、svg の中のスクリプトは動かない。手書きの svg は色を決め打ちしていることが多いので、暗い配色でも図の地は明るいままにする。参照先がない svg と、表示できない svg は、説明の文字だけを出し、ページの「診断」に載せる。
++
+ slug を付けると、`[[slug]]` と同じ規則でページを探して開く。リンクの判定は lint と同じで、未解決リンクの一覧は lint の「リンク切れの wikilink」と一致する。ページを開いたときに Markdown を HTML に変換するので、ページを編集して再読み込みすれば、新しい内容が出る。URL には起動ごとのトークンが入り、ほかのページや、同じ PC のほかの利用者からは開けない。
+ 
+ 持ち出せる静的の HTML は、`wiki_browse.py build <WIKI_ROOT> --out <書き出し先>` で書き出せる。書き出し先は wiki の外の空のディレクトリにする。
+diff --git a/skills/info-hive/references/page-conventions.md b/skills/info-hive/references/page-conventions.md
+index e27d615..0570afb 100644
+--- a/skills/info-hive/references/page-conventions.md
++++ b/skills/info-hive/references/page-conventions.md
+@@ -168,6 +168,7 @@ flowchart LR
+ - **説明を添える。** 図表の直後に `> <モデルの表示名> 補足: ` で始まる引用ブロックを置き、図表を見なくても内容が分かるように書く。取り込んだ画像の補足と同じ形である。検索は図の中身を文章として拾えないので、この説明が索引に入る。表示名は推測しない。
+ - **図の中の文字は日本語にする。** 識別子だけ英語のままにする。
+ - **svg の参照はページからの相対パスで書く。** 知識ページは `wiki/<種類>/` にあるので、`wiki/assets/` の svg は `../assets/<ページのスラッグ>-NN.svg` で指す。`assets/...` と書くと `wiki/<種類>/assets/` を指し、GitHub、VS Code、Obsidian で表示されない。lint は参照先をページの位置から解決し、見つからなければ `missing_assets` として指摘する。
++- **svg は UTF-8 で書き、`wiki/assets/` の直下に置く。** `/wiki:browse` が図として表示するのは、`wiki/assets/` の直下の、UTF-8 の、2 MiB までの、リンクでない svg である。下位のディレクトリに置いた svg と、ほかの符号化の svg は、説明の文字だけになる。
+ - **画像の参照は標準の `![説明](パス)` で書く。** Obsidian の埋め込み `![[x.svg]]` は wikilink として扱われ、リンク切れとして指摘される。
+ - **png などのラスター画像は使わない。** 差分が読めず、モデルが描き直せない。
+ - **Web ページから取り込んだ画像は `wiki/` に写さない。** `raw/assets/` に保存した画像（svg を含む）は信頼しない入力として扱い、知識ページの図は自分で描く。
+diff --git a/skills/info-hive/scripts/browse_assets/style.css b/skills/info-hive/scripts/browse_assets/style.css
+index 23d5b67..1968281 100644
+--- a/skills/info-hive/scripts/browse_assets/style.css
++++ b/skills/info-hive/scripts/browse_assets/style.css
+@@ -276,6 +276,14 @@ pre {
+   padding: var(--spacingVerticalM) var(--spacingHorizontalM); border-radius: var(--borderRadiusMedium); line-height: 1.6;
+ }
+ pre code { background: none; padding: 0; font-size: var(--fontSizeBase300); overflow-wrap: normal; }
++/* 図（ADR-0030）。入れ物は Fluent の Card、画像は Image で、色、角、影は fluent2.css に任せる。ここは配置だけを決める。
++   入れ物の幅は中身に合わせ、大きな図は幅に合わせて縮める（図の描画の設計の 8）。Card の flex と fit-content の組では、
++   WebKit が読み込む前の画像の幅 0 のまま組むので、inline-block にする */
++#_body .wiki-fig {
++  display: inline-block; vertical-align: top; max-width: 100%; box-sizing: border-box;
++  margin-block: var(--spacingVerticalM); overflow-x: auto;
++}
++#_body .wiki-fig > img { display: block; max-width: 100%; height: auto; }
+ /* 本文の表は、今と同じく display: block で横に送る */
+ #_body table {
+   border-collapse: collapse; display: block; overflow-x: auto; max-width: 100%;
+diff --git a/skills/info-hive/scripts/wiki_browse.py b/skills/info-hive/scripts/wiki_browse.py
+index 95f43af..4a7764e 100644
+--- a/skills/info-hive/scripts/wiki_browse.py
++++ b/skills/info-hive/scripts/wiki_browse.py
+@@ -389,13 +389,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
+         if app.verbose:
+             say(f"{self.command} {getattr(self, '_kind', '-')} {code}")
+ 
+-    def _send(self, code: int, body: bytes, ctype: str = "text/plain; charset=utf-8", extra: "dict | None" = None):
++    def _send(self, code: int, body: bytes, ctype: str = "text/plain; charset=utf-8", extra: "dict | None" = None,
++              csp: "str | None" = None, cache: "str | None" = None):
++        # CSP は応答の種類ごとに選ぶ（図の描画の設計の 6.5、7.3）。CSP は重なって効くので、1 つの応答に 1 つだけ付ける
+         self.send_response(code)
+         self.send_header("Content-Type", ctype)
+         self.send_header("Content-Length", str(len(body)))
+-        self.send_header("Content-Security-Policy", core.CSP)
++        self.send_header("Content-Security-Policy", csp or core.CSP)
+         self.send_header("X-Content-Type-Options", "nosniff")
+-        self.send_header("Cache-Control", "no-store")
++        self.send_header("Cache-Control", cache or "no-store")
+         self.send_header("Referrer-Policy", "no-referrer")
+         for k, v in (extra or {}).items():
+             self.send_header(k, v)
+@@ -493,6 +495,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
+                     '<body><p>ページが見つからない。Wiki が更新されたかもしれない。</p>'
+                     f'<p><a href="{html.escape(core.rel_href(name, index))}">Index へ</a></p></body></html>\n')
+             return self._send(404, body.encode("utf-8"), "text/html; charset=utf-8")
++        svg = c.asset_bytes(name)
++        if svg is not None:
++            # 図の svg。CSP の sandbox で、直接開かれても中のスクリプトを動かさない（図の描画の設計の 6.5）
++            return self._send(200, svg, "image/svg+xml", csp=core.CSP_SVG)
+         reason = None if stale is None else ("組み立てに失敗した" if stale == "failed" else "組み立てている")
+         text = c.render(name, app.state.raw, generated_at=getattr(c, "generated_at", ""), stale=reason)
+         ctype = "text/javascript; charset=utf-8" if name.endswith(".js") else "text/html; charset=utf-8"
+diff --git a/skills/info-hive/scripts/wiki_browse_core.py b/skills/info-hive/scripts/wiki_browse_core.py
+index 9af45e6..1343b97 100644
+--- a/skills/info-hive/scripts/wiki_browse_core.py
++++ b/skills/info-hive/scripts/wiki_browse_core.py
+@@ -21,6 +21,7 @@ import html
+ import io
+ import json
+ import os
++import posixpath
+ import re
+ import string
+ import sys
+@@ -45,10 +46,15 @@ except (ImportError, SystemExit):
+     wiki_graph_extract = None
+ 
+ PROTOCOL_VERSION = 2   # 探しやすさの設計の 2.3、6（nav.js の形とグループの並びが変わった）
+-CORE_VERSION = "browse-core-2"
++CORE_VERSION = "browse-core-3"   # 3: 図の svg を出す（図の描画の設計の 9）
+ NAME_LIMIT = 200
+ CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+        "base-uri 'none'; form-action 'none'")
++# 図の svg の応答（図の描画の設計の 6.5）。直接開かれても、中のスクリプトを動かさない
++CSP_SVG = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
++# 図の svg（ADR-0030）。wiki/assets/ の直下の、UTF-8 の、この大きさまでのものを読む
++ASSET_MAX_BYTES = 2 * 1024 * 1024
++ASSET_OUT_DIR = "assets/wiki"
+ # アイコンがないことを宣言する。宣言がないと、製品の Chrome と Edge はサーバーの /favicon.ico を要求し、
+ # 404 になってコンソールにエラーが出る（Playwright に同梱の Chromium は要求しない）。data: は CSP の img-src が許す
+ ICON_LINK = '<link rel="icon" href="data:,">'
+@@ -88,12 +94,13 @@ class NameCollision(Exception):
+ @dataclass
+ class InputFile:
+     """内容の 1 つの入力。Path と絶対パスを持たない（設計の 8）。"""
+-    kind: str            # "page"、"index"、"ontology"
++    kind: str            # "page"、"index"、"ontology"、"asset"（図の svg）
+     disk_rel: str        # ディスク上の綴りの / 区切りの相対パス
+     rel: str             # NFC にそろえた / 区切りの相対パス
+     text: "str | None" = None
+-    error: "str | None" = None   # "os"（読めない）か "decode"（UTF-8 でない）
++    error: "str | None" = None   # "os"（読めない）、"decode"（UTF-8 でない）、"too_large"（svg が上限を超えた）
+     sha: "str | None" = None
++    data: "bytes | None" = None  # 図の svg の、読んだままのバイト列（BOM と改行を保つ）
+ 
+     @property
+     def stem(self) -> str:
+@@ -154,6 +161,83 @@ class Snapshot:
+         return [f for f in self.inputs if f.kind == kind]
+ 
+ 
++_XML_ENCODING_RE = re.compile(r"""\A\s*<\?xml\b[^>]*?\bencoding\s*=\s*["']([^"']*)["']""")
++
++
++def is_utf8_svg(data: bytes) -> bool:
++    """svg のバイト列が UTF-8（BOM はあってもよい）で読め、XML の宣言が別の符号化を名乗っていなければ真。
++
++    公開の前の検査（scan_machine_info）は UTF-8 で読むので、ほかの符号化の svg を出力に書くと、中の絶対パスと
++    トークンを見つけられない（図の描画の設計の 6.2）。
++    """
++    try:
++        text = data.decode("utf-8-sig")
++    except UnicodeDecodeError:
++        return False
++    m = _XML_ENCODING_RE.match(text)
++    return m is None or m.group(1).strip().lower() in ("utf-8", "utf8")
++
++
++_SVG_ROOT_RE = re.compile(r"<svg\b([^>]*)>", re.S)
++_SVG_ATTR_RE = re.compile(r"""\b(width|height|viewBox)\s*=\s*["']([^"']*)["']""")
++_SVG_LENGTH_RE = re.compile(r"\s*([0-9]+(?:\.[0-9]+)?)\s*(?:px)?\s*")
++
++
++def svg_size(data: bytes) -> "tuple | None":
++    """svg の根の要素の width と height（なければ viewBox）から、表示の大きさ (幅, 高さ) を整数で返す。
++
++    分からなければ None。<img> の width と height の属性にして、読み込む前から入れ物の幅を決める（WebKit は、幅を
++    中身で決める入れ物の中の画像を、読み込んだあとに組み直さない）。単位は px か、単位なしだけを読む。
++    """
++    try:
++        text = data.decode("utf-8-sig", errors="strict")
++    except UnicodeDecodeError:
++        return None
++    m = _SVG_ROOT_RE.search(text[:65536])
++    if m is None:
++        return None
++    attrs = {k: v for k, v in _SVG_ATTR_RE.findall(m.group(1))}
++    w = _SVG_LENGTH_RE.fullmatch(attrs.get("width", ""))
++    h = _SVG_LENGTH_RE.fullmatch(attrs.get("height", ""))
++    if w and h:
++        size = (float(w.group(1)), float(h.group(1)))
++    else:
++        parts = re.split(r"[\s,]+", attrs.get("viewBox", "").strip())
++        try:
++            nums = [float(p) for p in parts] if len(parts) == 4 else []
++        except ValueError:
++            nums = []
++        if not nums:
++            return None
++        size = (nums[2], nums[3])
++    if not all(0 < v <= 20000 for v in size):
++        return None
++    return round(size[0]) or 1, round(size[1]) or 1
++
++
++def _read_asset(root, f: InputFile, size) -> None:
++    """図の svg を読み、f の data、sha、error を決める。上限は読む口が強制する（図の描画の設計の 6.2）。"""
++    if size is None:
++        f.error = "os"
++        return
++    if size > ASSET_MAX_BYTES:
++        f.error = "too_large"
++        return
++    try:
++        data = fs.read_input_capped(root, f.disk_rel, ASSET_MAX_BYTES)
++    except fs.TooLarge:
++        f.error = "too_large"
++        return
++    except (fs.Unknown, fs.Absent):
++        f.error = "os"
++        return
++    f.sha = hashlib.sha256(data).hexdigest()
++    if not is_utf8_svg(data):
++        f.error = "decode"
++        return
++    f.data = data
++
++
+ def take_snapshot(root, entries=None) -> Snapshot:
+     """入力の一覧を作り、入力を読み、もう 1 度一覧を作る。2 回が同じときだけ、写しを採る（設計の 4.2）。
+ 
+@@ -167,20 +251,23 @@ def take_snapshot(root, entries=None) -> Snapshot:
+     gen = hashlib.sha256(CORE_VERSION.encode("utf-8"))
+     for kind, rel_disk, size, _mtime in first:
+         f = InputFile(kind=kind, disk_rel=rel_disk, rel=posix_rel(rel_disk))
+-        data = None
+-        if size is not None:
+-            try:
+-                data = fs.read_input(root, rel_disk)
+-            except (fs.Unknown, fs.Absent):
+-                data = None
+-        if data is None:
+-            f.error = "os"
++        if kind in ("asset", "asset_dir"):
++            _read_asset(root, f, size)     # asset_dir（assets/ の一覧を作れない）は大きさがなく、読めない入力になる
+         else:
+-            f.sha = hashlib.sha256(data).hexdigest()
+-            try:
+-                f.text = read_text_like_lint(data)
+-            except UnicodeDecodeError:
+-                f.error = "decode"
++            data = None
++            if size is not None:
++                try:
++                    data = fs.read_input(root, rel_disk)
++                except (fs.Unknown, fs.Absent):
++                    data = None
++            if data is None:
++                f.error = "os"
++            else:
++                f.sha = hashlib.sha256(data).hexdigest()
++                try:
++                    f.text = read_text_like_lint(data)
++                except UnicodeDecodeError:
++                    f.error = "decode"
+         if f.error is not None:
+             unreadable.append((kind, f.rel))
+         if f.error == "os":
+@@ -436,6 +523,36 @@ def inline_text(children) -> str:
+     return "".join(out)
+ 
+ 
++_URL_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*:")
++
++
++def figure_target(page_disk_rel: str, src: str) -> "str | None":
++    """本文の画像の参照（markdown-it の src）を、図の svg の NFC の相対パス（assets/<名前>.svg）に解く。
++
++    図の svg の形でなければ None。ファイルがあるかは見ない。lint の missing_assets と同じ順で、文字の上だけで解く
++    （図の描画の設計の 6.4）。markdown-it の src は、文字参照を解き、パーセントエンコードしたものである。
++    """
++    src = (src or "").strip()
++    if not src or src.startswith(("/", "\\", "#")) or _URL_SCHEME_RE.match(src):
++        return None
++    rel = src.split("#", 1)[0].split("?", 1)[0]
++    try:
++        rel = urllib.parse.unquote(rel, encoding="utf-8", errors="strict")
++    except UnicodeDecodeError:
++        return None
++    if not rel or "\0" in rel or "\\" in rel:
++        return None
++    base = posixpath.dirname(page_disk_rel.replace("\\", "/"))
++    joined = posixpath.normpath(posixpath.join(base, rel))
++    if joined == ".." or joined.startswith("../") or joined.startswith("/"):
++        return None
++    joined = nfc(joined)
++    parts = joined.split("/")
++    if len(parts) != 2 or parts[0] != wiki_pages.ASSETS_DIR or not wiki_pages._is_figure_name(parts[1]):
++        return None
++    return joined
++
++
+ def assign_heading_ids(tokens) -> list:
+     """見出しに ID を付け、(鍵, ID, 表示の文字) の並びを返す。ID は鍵に、重なれば連番を付けたもの。"""
+     used = set()
+@@ -625,6 +742,7 @@ class Core:
+         self.unreadable_ontology = [rel for kind, rel in unreadable if kind == "ontology"]
+         self._render_lock = threading.Lock()
+         self._build_pages()
++        self._build_assets()
+         self.out_name = assign_names(sorted(self.drawn), name_limit)
+         self.name_to_id = {name: pid for pid, name in self.out_name.items()}
+         for pid in sorted(self.drawn):
+@@ -680,6 +798,65 @@ class Core:
+         self.pages_by_path, self.pages_by_slug = wiki_pages.build_page_index(
+             list(self.pages.values()), lambda p: p["disk_rel_path"])
+ 
++    def _build_assets(self) -> None:
++        """図の svg の表（図の描画の設計の 6.2、6.3）。NFC で同じ綴りになる svg は、どれも描かない。"""
++        by_rel = defaultdict(list)
++        for f in self.snapshot.by_kind("asset"):
++            by_rel[f.rel].append(f)
++        self.assets = {}          # NFC の相対パス -> InputFile（描けるもの）
++        self.asset_state = {}     # NFC の相対パス -> "ok"、"unreadable"
++        self.asset_out = {}       # NFC の相対パス -> 出力の名前
++        # assets/ の一覧を作れなかった。どの svg があるかが分からないので、見つからない参照も「読めない」にする
++        self.assets_unlistable = bool(self.snapshot.by_kind("asset_dir"))
++        if self.assets_unlistable:
++            self.diagnostics.append({"kind": "assets_unlistable", "target": wiki_pages.ASSETS_DIR})
++        for rel, files in sorted(by_rel.items()):
++            if len(files) > 1:
++                self.asset_state[rel] = "unreadable"
++                self.diagnostics.append({"kind": "asset_collision", "target": rel,
++                                         "files": sorted(f.disk_rel for f in files)})
++                continue
++            f = files[0]
++            if f.data is None:
++                self.asset_state[rel] = "unreadable"
++                continue
++            self.assets[rel] = f
++            self.asset_state[rel] = "ok"
++            self.asset_out[rel] = f"{ASSET_OUT_DIR}/{short_hash(f.disk_rel, 16)}.svg"
++        self.asset_by_out = {name: rel for rel, name in self.asset_out.items()}
++
++    def figure_state(self, page_disk_rel: str, src: str) -> tuple:
++        """本文の画像の参照の状態。(状態, 行き先) を返す。状態は "ok"、"missing"、"unreadable"、"other"。
++
++        "other" は、図の svg の形でない参照（外の URL、png、assets の外など）で、今までどおり代替テキストにする。
++        """
++        target = figure_target(page_disk_rel, src)
++        if target is None:
++            return "other", None
++        return self.asset_state.get(target, "unreadable" if self.assets_unlistable else "missing"), target
++
++    def asset_bytes(self, name: str) -> "bytes | None":
++        """図の svg の出力の名前から、配るバイト列。知らない名前なら None。"""
++        rel = self.asset_by_out.get(name)
++        return None if rel is None else self.assets[rel].data
++
++    def _figure_html(self, path: str, page_disk_rel: str, image) -> "str | None":
++        """本文の画像を、図の svg として描く HTML。図の svg でないか、描けないなら None。"""
++        state, target = self.figure_state(page_disk_rel, image.attrs.get("src", ""))
++        if state != "ok":
++            return None
++        src = rel_href(path, self.asset_out[target])
++        alt = html.escape(image.content, quote=True)
++        # 大きさが分からない svg は、置き換え要素の既定の大きさ（300×150）にする。Firefox は、大きさのない svg の
++        # 画像に固有の幅を持たせず、幅を中身で決める入れ物の中で幅 0 にする
++        width, height = svg_size(self.assets[target].data) or (300, 150)
++        # 入れ物は段落の中に置くので <span> にする。data-theme="light" で、手書きの svg の地を明るい配色に保つ
++        # （図の描画の設計の 8）。リンクで包まない（静的版で svg を直接開くと、中のスクリプトが動く）。
++        # 大きさは width と height の属性で渡す（svg_size）。loading="lazy" は付けない。WebKit は、幅を中身で決める
++        # 入れ物の中の画像を、読み込む前の幅 0 のまま残す
++        return (f'<span class="wiki-fig fui-Card" data-fig="svg" data-theme="light">'
++                f'<img class="fui-Image" src="{html.escape(src)}" alt="{alt}" width="{width}" height="{height}"></span>')
++
+     def page(self, pid: str) -> dict:
+         return self.pages[self.drawn[pid]]
+ 
+@@ -759,6 +936,11 @@ class Core:
+                                 r = self.resolve(target)
+                                 r["label"] = (m.group(2) or m.group(1)).strip()
+                                 found.append(r)
++                        elif drawn and child.type == "image":
++                            state, target = self.figure_state(disk, child.attrs.get("src", ""))
++                            if state in ("missing", "unreadable"):
++                                self.diagnostics.append({"kind": "missing_asset" if state == "missing"
++                                                         else "asset_unreadable", "page": pid, "target": target})
+             if drawn:
+                 self.links[pid] = found
+             else:
+@@ -1151,7 +1333,7 @@ class Core:
+         return sorted(self.out_name.values())
+ 
+     def knows(self, name: str) -> bool:
+-        return name in self.name_to_id or name in ("index.html", *DATA_FILES)
++        return name in self.name_to_id or name in ("index.html", *DATA_FILES) or name in self.asset_by_out
+ 
+     def _link_html(self, path: str, r: dict) -> str:
+         label = html.escape(r["label"])
+@@ -1166,6 +1348,8 @@ class Core:
+         return f'<span class="wl wl-unresolved" title="ページがない">{label}</span>'
+ 
+     def _transform_inline(self, children, path: str, counter: list, file: str) -> list:
++        """本文の inline の字句を描く形に替える。path はページの出力の名前、file はページのディスク上の相対パス
++        （図の svg の参照を解く基準。図の描画の設計の 6.4）。"""
+         out = []
+         i = 0
+         while i < len(children):
+@@ -1202,7 +1386,11 @@ class Core:
+                 i = j + 1
+                 continue
+             if c.type == "image":
+-                out.append(Token("text", "", 0, content=c.content))
++                figure = self._figure_html(path, file, c)
++                if figure is None:
++                    out.append(Token("text", "", 0, content=c.content))
++                else:
++                    out.append(Token("html_inline", "", 0, content=figure))
+                 i += 1
+                 continue
+             if c.type == "text" and "[[" in c.content and wiki_pages.WIKILINK_FULL_RE.search(c.content):
+@@ -1240,7 +1428,7 @@ class Core:
+                 if m:
+                     tok.attrSet("class", f"ta-{m.group(1)}")
+             if tok.type == "inline" and tok.children:
+-                tok.children = self._transform_inline(tok.children, path, counter, path)
++                tok.children = self._transform_inline(tok.children, path, counter, self.drawn[pid])
+         rendered = self.parser.renderer.render(tokens, self.parser.options, {})
+         self._body_cache[pid] = rendered
+         return rendered
+@@ -1636,6 +1824,8 @@ class Core:
+         out = {}
+         for name in self.page_names():
+             out[name] = self.render(name, raw_mode)
++        for name, rel in self.asset_by_out.items():
++            out[name] = self.assets[rel].data     # 図の svg は、読んだバイト列のまま書く
+         out["index.html"] = self.render_index()
+         for name in DATA_FILES:
+             out[name] = self.render_data(name, generated_at)
+diff --git a/skills/info-hive/scripts/wiki_browse_fs.py b/skills/info-hive/scripts/wiki_browse_fs.py
+index 99eb21e..eb910d5 100644
+--- a/skills/info-hive/scripts/wiki_browse_fs.py
++++ b/skills/info-hive/scripts/wiki_browse_fs.py
+@@ -51,6 +51,10 @@ class Absent(Exception):
+     """ない。"""
+ 
+ 
++class TooLarge(Exception):
++    """読む上限を超えた（図の svg。図の描画の設計の 6.2）。"""
++
++
+ class Stop(Exception):
+     """何も変えずに止まり、利用者に知らせる。"""
+ 
+@@ -505,6 +509,24 @@ def read_file(path) -> bytes:
+         _close(fd)
+ 
+ 
++def read_file_capped(path, limit: int) -> bytes:
++    """ファイルの中身を limit バイトまで読む。超えれば TooLarge、ないなら Absent、読めなければ Unknown。"""
++    fd = x("open_read", path)
++    try:
++        chunks = []
++        total = 0
++        while True:
++            chunk = x("read", fd, min(1 << 20, limit + 1 - total))
++            if not chunk:
++                return b"".join(chunks)
++            chunks.append(chunk)
++            total += len(chunk)
++            if total > limit:
++                raise TooLarge(f"{limit} バイトを超えた")
++    finally:
++        _close(fd)
++
++
+ def create_file(path, data: bytes, mode: int = 0o644) -> None:
+     """排他で作る。今あるファイルは開かない。短い書き込みは、書き終わるまで続ける。"""
+     fd = w("open_excl", path, mode)
+@@ -1423,10 +1445,12 @@ def walk_inputs(root):
+     try:
+         pages = wiki_pages.walk_pages(root)
+         indexes = wiki_pages.walk_index_files(root)
++        assets = wiki_pages.walk_assets(root)
+     except OSError as e:
+         return [], f"Wiki をたどれない（{type(e).__name__}）"
+     if "drop_unlistable" not in MUTANTS:
+-        if pages.unlistable or indexes.unlistable:
++        # walk_assets の "." は、ルートの一覧を作れなかったこと。ページの集合も分からないので、全体を採らない
++        if pages.unlistable or indexes.unlistable or "." in assets.unlistable:
+             return [], "一覧を作れないディレクトリがある"
+         if pages.unknown or indexes.unknown:
+             return [], "種類を調べられない項目がある"
+@@ -1447,6 +1471,16 @@ def walk_inputs(root):
+                 st = None
+         if st is not None and stat.S_ISREG(st.st_mode):
+             entries.append(("ontology", onto, st.st_size, st.st_mtime_ns))
++    # 図の svg（ADR-0030）は最後に足す。svg のない Wiki の一覧と印は、今までと同じになる。
++    # svg は飾りなので、assets/ の一覧を作れなくても閲覧は止めない（入力でない最上位のディレクトリと同じ）。
++    # 一覧を作れないことは、大きさのない "asset_dir" の項目で表す。写しはそれを読めない入力にし、一覧を
++    # 作れるようになれば印が変わって作り直す。種類を調べられない svg は、大きさのない "asset" の項目にする
++    # （オントロジーと同じ扱い。図の描画の設計の 6.1）。
++    if wiki_pages.ASSETS_DIR in assets.unlistable or wiki_pages.ASSETS_DIR in assets.unknown:
++        entries.append(("asset_dir", wiki_pages.ASSETS_DIR, None, None))
++    found = [("asset", f.rel, f.size, f.mtime_ns) for f in assets.files]
++    found += [("asset", rel, None, None) for rel in assets.unknown if rel != wiki_pages.ASSETS_DIR]
++    entries += sorted(found, key=lambda e: wiki_pages._sort_key(e[1]))
+     return entries, None
+ 
+ 
+@@ -1455,6 +1489,15 @@ def read_input(root, rel) -> bytes:
+     return read_file(os.path.join(os.fspath(root), *rel.split("/")))
+ 
+ 
++def read_input_capped(root, rel, limit: int) -> bytes:
++    """入力の中身を、limit バイトまで読む。超えれば TooLarge（図の描画の設計の 6.2）。
++
++    走査で見た大きさではなく、読む口が上限を強制する。走査と読み取りのあいだに大きくなっても、limit + 1 バイトより
++    先は読まない。
++    """
++    return read_file_capped(os.path.join(os.fspath(root), *rel.split("/")), limit)
++
++
+ def resolve(path) -> str:
+     """解いたパス（公開の前の検査で、Wiki の外の入力を探すため）。分からなければ Unknown、ないなら Absent。"""
+     return x("realpath", os.fspath(path))
+diff --git a/skills/info-hive/scripts/wiki_lint.py b/skills/info-hive/scripts/wiki_lint.py
+index a81fd28..cfb615d 100644
+--- a/skills/info-hive/scripts/wiki_lint.py
++++ b/skills/info-hive/scripts/wiki_lint.py
+@@ -48,6 +48,7 @@ YouTube の動画のソースの、字幕の訂正と留保の印と定義、con
+ """
+ 
+ import argparse
++import html
+ import json
+ import os
+ import re
+@@ -105,6 +106,8 @@ from wiki_pages import (  # noqa: E402
+ 
+ 
+ MD_ESCAPE_RE = re.compile(r"\\([!-/:-@\[-`{-~])")
++# 画像の参照先の文字参照（&amp;、&#38;、&#x26;）。直前が \ のものは、エスケープした & なので含めない。
++CHAR_REF_RE = re.compile(r"(?<!\\)&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[A-Za-z][A-Za-z0-9]{1,31});")
+ URL_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]*:")
+ # Windows のドライブから始まる絶対パス（C:/Books/x.pdf、C:\Books\x.pdf）。URL_SCHEME_RE にも合うので先に見る。
+ DRIVE_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]")
+@@ -274,7 +277,10 @@ def missing_assets(body: str, md_path: Path, wiki_root: Path) -> list[dict]:
+             if not target or URL_SCHEME_RE.match(target) or target.startswith(("/", "#", "\\")):
+                 continue
+             # Markdown の escape（\( など）を外してから、パーセントエンコードを戻す。
+-            rel = MD_ESCAPE_RE.sub(r"\1", target.split("#", 1)[0].split("?", 1)[0])
++            # 文字参照（&amp; など）も、Markdown の決まりどおりに解く。閲覧（markdown-it）が解く参照先とそろえる
++            # （図の描画の設計の 6.4）。\ でエスケープした & は文字参照にしない。
++            rel = CHAR_REF_RE.sub(lambda c: html.unescape(c.group(0)), target.split("#", 1)[0].split("?", 1)[0])
++            rel = MD_ESCAPE_RE.sub(r"\1", rel)
+             rel = urllib.parse.unquote(rel)
+             if not rel:
+                 continue
+diff --git a/skills/info-hive/scripts/wiki_pages.py b/skills/info-hive/scripts/wiki_pages.py
+index 842bf77..1a0cf3f 100644
+--- a/skills/info-hive/scripts/wiki_pages.py
++++ b/skills/info-hive/scripts/wiki_pages.py
+@@ -326,6 +326,77 @@ def walk_index_files(wiki_root) -> Walk:
+     return Walk(files + below.files, below.unlistable, unknown + below.unknown)
+ 
+ 
++ASSETS_DIR = "assets"
++
++
++def _is_figure_name(name: str) -> bool:
++    """閲覧が図として読む svg の名前か（ADR-0030）。"""
++    return name.lower().endswith(".svg") and not name.startswith(".")
++
++
++def walk_assets(wiki_root) -> Walk:
++    """wiki/assets/ の直下の svg（閲覧が図として出すもの。ADR-0030）と、知らせ。
++
++    - assets そのものがシンボリックリンクかジャンクションなら、たどらない（何も返さない）。wiki の外の実体を、
++      閲覧の出力に写さないためである。ファイルのシンボリックリンクも返さない。ハードリンクは見分けない。
++    - 名前の末尾が .svg（大文字と小文字を区別しない）で、. で始まらない、ふつうのファイルだけを返す。
++      下位のディレクトリには降りない。
++    - 守るのは、走査の時点で木に置かれたリンクである。読む間だけリンクに替えて戻す同時の書き手は対象にしない
++      （図の描画の設計の 6.1）。
++    OS の呼び出しは、walk_markdown と同じ口（_list_dir、DirEntry の is_symlink と is_dir、_is_junction、
++    _stat_entry）だけを使う。
++    """
++    root = os.fspath(wiki_root)
++    files, unlistable, unknown = [], [], []
++    state, entries = read_os(_list_dir, root)
++    if state == "denied":
++        return Walk([], ["."], [])
++    top = next((e for e in entries or [] if e.name == ASSETS_DIR), None)
++    if top is None:
++        return Walk([], [], [])
++    state, is_link = read_os(top.is_symlink)
++    if state == "ok" and not is_link:
++        state, is_dir = read_os(top.is_dir)
++        if state == "ok" and is_dir:
++            state, is_link = _is_junction(top)
++        elif state == "ok":
++            return Walk([], [], [])        # assets がディレクトリでない
++    if state == "absent":
++        return Walk([], [], [])
++    if state == "denied":
++        return Walk([], [], [ASSETS_DIR])
++    if is_link:
++        return Walk([], [], [])            # assets がリンクかジャンクション。たどらない
++    state, children = read_os(_list_dir, top.path)
++    if state == "absent":
++        return Walk([], [], [])
++    if state == "denied":
++        return Walk([], [ASSETS_DIR], [])
++    for entry in children:
++        name = entry.name
++        if not _is_figure_name(name):
++            continue
++        rel = f"{ASSETS_DIR}/{name}"
++        state, link = read_os(entry.is_symlink)
++        if state == "absent":
++            continue
++        if state == "denied":
++            unknown.append(rel)
++            continue
++        if link:
++            continue                       # ファイルのシンボリックリンク。読まない
++        state, st = _stat_entry(entry.path)
++        if state == "absent":
++            continue
++        if state == "denied":
++            unknown.append(rel)
++            continue
++        if stat.S_ISREG(st.st_mode):
++            files.append(MdFile(rel, st.st_size, st.st_mtime_ns))
++    files.sort(key=lambda f: _sort_key(f.rel))
++    return Walk(files, unlistable, sorted(unknown, key=_sort_key))
++
++
+ def iter_page_files(wiki_root: Path) -> list[Path]:
+     """ページのファイルを、NFC の / 区切りの相対パスの順に返す（知らせは捨てる。知らせを見るなら walk_pages）。"""
+     wiki_root = Path(wiki_root)

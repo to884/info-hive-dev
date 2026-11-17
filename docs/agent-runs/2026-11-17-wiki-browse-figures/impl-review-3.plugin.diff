@@ -1,0 +1,1969 @@
+diff --git a/.gitattributes b/.gitattributes
+index 9ea1c7e..3cd8c48 100644
+--- a/.gitattributes
++++ b/.gitattributes
+@@ -17,3 +17,6 @@
+ 
+ # 知識ページの図（wiki/assets/*.svg）は文字のファイルとして差分を取る。* の行と同じく LF にそろえる。
+ *.svg text eol=lf
++
++# 閲覧（browse）に同梱した Mermaid の束。npm の tarball のバイト列のまま持つ（README の SHA-256 と照らす）
++skills/info-hive/scripts/browse_assets/mermaid.tiny.js -text -diff
+diff --git a/README.md b/README.md
+index d7f7f2f..fc79307 100644
+--- a/README.md
++++ b/README.md
+@@ -155,7 +155,7 @@ Claude はインデックスを読んで候補のページを見つけ、それ
+ | `/wiki:lint` | 構造と内容の健全性をチェックする。`wiki/graph/ontology.yaml` があればグラフの lint も実行する。 |
+ | `/wiki:stats` | wiki の規模、リンク密度、スケーリングのどの閾値に達しているかを表示する。 |
+ | `/wiki:graph <action>` | コンパイル済みのグラフ層に対して `extract` / `lint` / `neighbors` / `edges` / `path` / `facts` を実行する。 |
+-| `/wiki:browse [slug]` | wiki をブラウザで閲覧する。分類とタグの木、検索、全ページの一覧の絞り込み、配色の切り替えを持つ。必要なときだけ 127.0.0.1 のサーバーを起動する。`--stop` で止める。 |
++| `/wiki:browse [slug]` | wiki をブラウザで閲覧する。分類とタグの木、検索、全ページの一覧の絞り込み、配色の切り替え、mermaid と svg の図の表示を持つ。必要なときだけ 127.0.0.1 のサーバーを起動する。`--stop` で止める。 |
+ | `/wiki:learn <task artifacts>` | 検証済みの経験を記録し、根拠にリンクした再利用できるパターンにまとめる。 |
+ | `/wiki:evolve <goal or action>` | スキルの改善案を作成・評価・確認・適用し、ロールバックする。すべての試行の結果を残す。 |
+ | `/wiki:upgrade` | 既存の wiki を現在のプラグインのバージョンにアップグレードする（冪等なファイル操作と、手順を追った SCHEMA.md のマージ）。 |
+@@ -277,6 +277,8 @@ MIT。移植元の著作権表示（Praney Behl）を含む [LICENSE](./LICENSE)
+ 
+ 閲覧（`/wiki:browse`）の画面は、Fluent 2 の Web 版のデザインを React を使わない CSS で再現した `fluent2.css`（スキル fluent2-html-replica の同梱のファイル、MIT ライセンス）を、書き換えずに `skills/info-hive/scripts/browse_assets/` に同梱して描く。元になった Fluent UI と Fluent UI System Icons（どちらも MIT ライセンス、Copyright (c) Microsoft Corporation）の表示は [browse_assets/licenses/](./skills/info-hive/scripts/browse_assets/licenses/) に、取得元と版は [browse_assets/README.md](./skills/info-hive/scripts/browse_assets/README.md) にある。info-hive は Microsoft の製品ではなく、Microsoft の提携、推薦、承認を受けたものでもない。Fluent、Microsoft、Segoe は Microsoft Corporation の商標である。書体は同梱しない。
+ 
++閲覧は、本文の mermaid を描くために、Mermaid の束（`@mermaid-js/tiny` 12.3.0、MIT ライセンス、Copyright (c) 2014 - 2022 Knut Sveidqvist）を、書き換えずに `skills/info-hive/scripts/browse_assets/mermaid.tiny.js` に同梱する。束に含まれる依存（DOMPurify、d3、Lodash など）の表示は [browse_assets/licenses/](./skills/info-hive/scripts/browse_assets/licenses/) に、取得元と版は [browse_assets/README.md](./skills/info-hive/scripts/browse_assets/README.md) にある。
++
+ ## コントリビュート
+ 
+ Issue と PR を歓迎する。スキル本体は `skills/info-hive/`、スラッシュコマンドは `commands/` にある。[CONTRIBUTING.md](./CONTRIBUTING.md) を参照。PR を出す前に、同梱のスクリプトを小さなテスト用の wiki に対して実行し、何も壊れていないことを確かめてほしい。
+diff --git a/commands/browse.md b/commands/browse.md
+index 532acf7..a6ce78b 100644
+--- a/commands/browse.md
++++ b/commands/browse.md
+@@ -4,7 +4,7 @@ argument-hint: "[slug] | --stop"
+ argument-description: "slug を付けると、そのページを開く（`[[slug]]` と同じ規則で探す。見つからなければ索引を開く）。`--stop` を付けると、動いている閲覧のサーバーを止める。"
+ ---
+ 
+-wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類と、その下でページの最初のタグごとにまとめたグループ）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。本文の `![説明](../assets/<名前>.svg)` は、`wiki/assets/` の直下の svg を図として表示する。配色は最初は OS に合わせ、サイドバーの「テーマ」のトグルでライトとダークを切り替えられる。閲覧はいつも読むだけで、wiki のファイルを作ったり書き換えたりしない。未解決リンクをクリックしても、ページはできない。
++wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引の分類と、その下でページの最初のタグごとにまとめたグループ）、題名、タグ、見出し、要約の検索、索引のページの全ページの一覧と絞り込み、メタ欄、被リンク、ページごとの関係表、未解決リンクの表示を持つ。本文の `![説明](../assets/<名前>.svg)` は、`wiki/assets/` の直下の svg を図として表示する。本文の ```` ```mermaid ```` は、サーバーで開いたときに図として描き、コードは図の下で開ける（静的の書き出しでは、コードのまま出る）。配色は最初は OS に合わせ、サイドバーの「テーマ」のトグルでライトとダークを切り替えられる。閲覧はいつも読むだけで、wiki のファイルを作ったり書き換えたりしない。未解決リンクをクリックしても、ページはできない。
+ 
+ 引数: $ARGUMENTS
+ 
+diff --git a/docs/commands.md b/docs/commands.md
+index 7c09185..4c27117 100644
+--- a/docs/commands.md
++++ b/docs/commands.md
+@@ -128,6 +128,8 @@ wiki を、Fluent 2 のデザインの HTML で閲覧する。左の木（索引
+ 
+ 本文の `![説明](../assets/<名前>.svg)` は、`wiki/assets/` の直下の svg を図として表示する。表示するのは、UTF-8 で書かれた 2 MiB までの、リンクでない svg である。図は画像として出すので、svg の中のスクリプトは動かない。手書きの svg は色を決め打ちしていることが多いので、暗い配色でも図の地は明るいままにする。参照先がない svg と、表示できない svg は、説明の文字だけを出し、ページの「診断」に載せる。
+ 
++本文の ```` ```mermaid ```` は、サーバーで開いたときに、同梱した Mermaid（`@mermaid-js/tiny` 12.3.0）で図として描く。図の色と書体は画面の配色に合わせ、配色を切り替えると描き直す。元のコードは、図の下の「図のコード」で開ける。図は、ページから切り離した見えない枠の中で 1 つずつ描き、画像として出す。図のソースに Mermaid の欠陥を突く内容があっても、ページ、ほかの図、wiki のデータには届かない。マインドマップ、アーキテクチャ図、KaTeX の数式、`layout: elk` は同梱した版にないので描けず、構文の誤りがある図とともに、警告とコードを出す。静的の書き出し（`build`）では、ブラウザが枠の中でスクリプトを読ませないので、Mermaid はコードのまま出す。
++
+ slug を付けると、`[[slug]]` と同じ規則でページを探して開く。リンクの判定は lint と同じで、未解決リンクの一覧は lint の「リンク切れの wikilink」と一致する。ページを開いたときに Markdown を HTML に変換するので、ページを編集して再読み込みすれば、新しい内容が出る。URL には起動ごとのトークンが入り、ほかのページや、同じ PC のほかの利用者からは開けない。
+ 
+ 持ち出せる静的の HTML は、`wiki_browse.py build <WIKI_ROOT> --out <書き出し先>` で書き出せる。書き出し先は wiki の外の空のディレクトリにする。
+diff --git a/skills/info-hive/references/page-conventions.md b/skills/info-hive/references/page-conventions.md
+index 0570afb..6ce25e3 100644
+--- a/skills/info-hive/references/page-conventions.md
++++ b/skills/info-hive/references/page-conventions.md
+@@ -168,6 +168,7 @@ flowchart LR
+ - **説明を添える。** 図表の直後に `> <モデルの表示名> 補足: ` で始まる引用ブロックを置き、図表を見なくても内容が分かるように書く。取り込んだ画像の補足と同じ形である。検索は図の中身を文章として拾えないので、この説明が索引に入る。表示名は推測しない。
+ - **図の中の文字は日本語にする。** 識別子だけ英語のままにする。
+ - **svg の参照はページからの相対パスで書く。** 知識ページは `wiki/<種類>/` にあるので、`wiki/assets/` の svg は `../assets/<ページのスラッグ>-NN.svg` で指す。`assets/...` と書くと `wiki/<種類>/assets/` を指し、GitHub、VS Code、Obsidian で表示されない。lint は参照先をページの位置から解決し、見つからなければ `missing_assets` として指摘する。
++- **mermaid は、同梱した版が描ける図の種類で書く。** `/wiki:browse` は、サーバーで開いたときに mermaid を図として描く。同梱した `@mermaid-js/tiny` は、マインドマップ、アーキテクチャ図、KaTeX の数式、`layout: elk` を描けず、コードのまま出す。流れ、順序、状態、関係、時系列は、flowchart、sequenceDiagram、stateDiagram-v2、classDiagram、erDiagram、gantt、timeline で書く。図の側の `%%{init}%%` で色や書体を変えても、閲覧は画面の配色を使う。
+ - **svg は UTF-8 で書き、`wiki/assets/` の直下に置く。** `/wiki:browse` が図として表示するのは、`wiki/assets/` の直下の、UTF-8 の、2 MiB までの、リンクでない svg である。下位のディレクトリに置いた svg と、ほかの符号化の svg は、説明の文字だけになる。
+ - **画像の参照は標準の `![説明](パス)` で書く。** Obsidian の埋め込み `![[x.svg]]` は wikilink として扱われ、リンク切れとして指摘される。
+ - **png などのラスター画像は使わない。** 差分が読めず、モデルが描き直せない。
+diff --git a/skills/info-hive/scripts/browse_assets/README.md b/skills/info-hive/scripts/browse_assets/README.md
+index a09c289..79a57fd 100644
+--- a/skills/info-hive/scripts/browse_assets/README.md
++++ b/skills/info-hive/scripts/browse_assets/README.md
+@@ -7,6 +7,9 @@
+ | `style.css` | 閲覧の画面の独自の CSS |
+ | `app.js` | ナビゲーションを組み立て、データの世代を確かめるスクリプト |
+ | `fluent2.css` | Fluent 2 の Web 版のデザインを、React を使わない CSS で再現したもの（非公式）。下の「同梱した Fluent 2 の CSS」を参照 |
++| `figures.js` | 本文の Mermaid のフェンスを図として描くスクリプト（親の側）。サーバーの方式でだけ動く（ADR-0030） |
++| `mermaid-frame.html`、`mermaid-frame.js` | Mermaid を動かす sandbox の枠の文書と、その中のスクリプト。サーバーがトークンのない `/_frame/<版>/` から配り、静的の書き出しには入れない |
++| `mermaid.tiny.js` | Mermaid の束。下の「同梱した Mermaid」を参照 |
+ | `licenses/` | 同梱したファイルのライセンスの文書。閲覧の出力には含めない |
+ 
+ ## 同梱した Fluent 2 の CSS
+@@ -33,3 +36,26 @@
+ 2. スキルの `assets/fluent2.css` を、このディレクトリの `fluent2.css` に写す。`LICENSE` と `THIRD-PARTY-NOTICES.txt` も、`licenses/` の同じ名前のファイルに写す。
+ 3. 上の表の基準の版、大きさ、SHA-256、写した日を書き換える。
+ 4. 開発リポジトリの閲覧の試験（`tests/wiki/test_browse*.py` と `tests/wiki/browse/`）を流し、明るい配色と暗い配色の画面を確かめる。
++
++## 同梱した Mermaid
++
++`mermaid.tiny.js` は、npm の `@mermaid-js/tiny` 12.3.0 の `dist/mermaid.tiny.js` を、中身を書き換えずに写したものである。Mermaid の全部入りの束（`mermaid.min.js`）は、elkjs（EPL-2.0 OR GPL-3.0-or-later）を含むので使わない。tiny は、マインドマップ、アーキテクチャ図、KaTeX の数式、`layout: elk` を含まず、それらの図は描けずにコードのまま出る。
++
++| 項目 | 値 |
++| --- | --- |
++| 写した元 | `https://registry.npmjs.org/@mermaid-js/tiny/-/tiny-12.3.0.tgz` の `package/dist/mermaid.tiny.js`（tarball の integrity は `sha512-90BO2kQvmQWj9YjBX2IsLHCw61rN69dPTn5wFfDu+b9aT7qtzfzTA3wpKWeaRAKK85refSo9How5EOeY39DWfA==`。レジストリの公表値と一致した） |
++| 大きさ | 2,852,578 バイト |
++| SHA-256 | `c41f5236091b83f524c4940f97a16b2b14a76f21ff84aea4fd6b66421d8a2a9a` |
++| 枠の版（`FRAME_VERSION`） | `mermaid-12.3.0-1` |
++| 写した日 | 2026年11月17日 |
++| ライセンス | MIT（[licenses/mermaid.LICENSE](licenses/mermaid.LICENSE)）。束に含まれる依存の表示は [licenses/mermaid.THIRD-PARTY-NOTICES.txt](licenses/mermaid.THIRD-PARTY-NOTICES.txt) にある。Mermaid の MIT の表示は、閲覧の出力に必ず入る `mermaid-frame.js` の先頭のコメントにもある |
++
++- `.gitattributes` で、`mermaid.tiny.js` を `-text` にしている。改行の変換を受けず、上の SHA-256 のまま持つ。
++- 枠の 3 つのファイル（`mermaid-frame.html`、`mermaid-frame.js`、`mermaid.tiny.js`）は、サーバーが `/_frame/<枠の版>/` から、キャッシュを許して配る。どれかを変えたら、枠の版を上げる。枠の版は、`wiki_browse_core.py` の `FRAME_VERSION`、`figures.js` の `FRAME_VERSION`、この表の 3 か所にあり、試験が一致を確かめる。
++
++### Mermaid を写し直すとき
++
++1. `npm pack @mermaid-js/tiny@<版>` で tarball を取り、integrity をレジストリの公表値と照らす。全部入りの束に替えるときは、束の中の依存のライセンス（とくに elkjs）を確かめる。
++2. `package/dist/mermaid.tiny.js` を `mermaid.tiny.js` に、`package/LICENSE` を `licenses/mermaid.LICENSE` に写す。`licenses/mermaid.THIRD-PARTY-NOTICES.txt` は、その版の package.json の依存のライセンスの文書から作り直す。
++3. 上の表の版、integrity、大きさ、SHA-256、写した日を書き換え、枠の版を上げる（3 か所）。
++4. 開発リポジトリの閲覧の試験（`tests/wiki/test_browse*.py` と `tests/wiki/browse/figures.test.mjs`）を、5 つのブラウザで流す。
+diff --git a/skills/info-hive/scripts/browse_assets/figures.js b/skills/info-hive/scripts/browse_assets/figures.js
+new file mode 100644
+index 0000000..54dec43
+--- /dev/null
++++ b/skills/info-hive/scripts/browse_assets/figures.js
+@@ -0,0 +1,286 @@
++/* 閲覧（browse）の図の描画（ADR-0030、図の描画の設計の 7.4）。
++ *
++ * 本文の ```mermaid のフェンス（<pre><code class="language-mermaid">）を、図として描く。
++ * - サーバーの方式（http と https）でだけ動く。静的の書き出し（file://）では何もしない。ブラウザは、sandbox の枠に
++ *   隣のファイルのスクリプトを読ませない（PoC）。
++ * - 図 1 つにつき、見えない sandbox の枠（トークンのない /_frame/<版>/ の文書）を 1 つ作り、その図のソースと配色だけを
++ *   送る。枠が返す SVG の文字列は DOM に入れず、data: の <img> にして出す。描き終えたら枠を消す。
++ * - 描画は「回」として持つ。新しい回（配色が変わったとき）を始めるときは、前の回の枠をすべて消す。同時に生きている
++ *   枠は、どの時点でも 2 つまでである。
++ * - 枠とのやり取りは使い切りである。ready を 1 回受けて送り、result を 1 回受けたら、すぐに枠を消して受け取りをやめる。
++ * - 触るのは、自分で作った要素（入れ物、画像、Accordion、警告、枠）の属性と、<pre> の置き場所だけである。要素の
++ *   style には触らない（el.style.x = ... も、style 属性を作るので使わない）。
++ * - 見た目は fluent2.css の部品（Card、Image、Accordion、MessageBar）とトークンで組む。
++ */
++(function () {
++  "use strict";
++  if (location.protocol !== "http:" && location.protocol !== "https:") return;
++  var body = document.getElementById("_body");
++  if (!body) return;
++  var codes = body.querySelectorAll("pre > code.language-mermaid");
++  if (!codes.length) return;
++
++  // 中核の FRAME_VERSION と同じ値（試験が一致を確かめる）
++  var FRAME_VERSION = "mermaid-12.3.0-1";
++  var FRAME_URL = location.origin + "/_frame/" + FRAME_VERSION + "/mermaid-frame.html";
++  var CONCURRENCY = 2;
++  var TIMEOUT_MS = 20000;
++  var MAX_SVG = 5000000;
++  var MAX_SIDE = 20000;
++  var NS = "http://www.w3.org/2000/svg";
++  // MessageBar の警告のアイコン（Fluent UI System Icons の WarningFilled、20px。MIT。中核の ICON_WARNING と同じ形）
++  var WARNING_PATH = "M7.37 3.56a3 3 0 0 1 5.26 0l5.5 10A3 3 0 0 1 15.5 18h-11a3 3 0 0 1-2.63-4.44z" +
++    "M10 12.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5m0-6.25a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V7a.5.5 0 0 0-.5-.5";
++  // Accordion の山形のアイコン（Fluent UI System Icons の ChevronRightRegular、20px。MIT）
++  var CHEVRON_PATH = "M7.65 4.15c.2-.2.5-.2.7 0l5.49 5.46c.21.22.21.57 0 .78l-5.49 5.47a.5.5 0 0 1-.7-.71L12.8 10 7.65 4.85a.5.5 0 0 1 0-.7";
++
++  // Fluent のトークン（fluent2.css の CSS 変数）から、Mermaid の base テーマの変数を作る（図の描画の設計の 8）
++  var TOKENS = {
++    background: "--colorNeutralBackground1",
++    edgeLabelBackground: "--colorNeutralBackground1",
++    primaryColor: "--colorBrandBackground2",
++    mainBkg: "--colorBrandBackground2",
++    primaryBorderColor: "--colorBrandStroke1",
++    nodeBorder: "--colorBrandStroke1",
++    primaryTextColor: "--colorNeutralForeground1",
++    secondaryTextColor: "--colorNeutralForeground1",
++    tertiaryTextColor: "--colorNeutralForeground1",
++    textColor: "--colorNeutralForeground1",
++    titleColor: "--colorNeutralForeground1",
++    noteTextColor: "--colorNeutralForeground1",
++    secondaryColor: "--colorNeutralBackground3",
++    secondaryBorderColor: "--colorNeutralStroke1",
++    noteBorderColor: "--colorNeutralStroke1",
++    tertiaryColor: "--colorNeutralBackground2",
++    clusterBkg: "--colorNeutralBackground2",
++    tertiaryBorderColor: "--colorNeutralStroke2",
++    clusterBorder: "--colorNeutralStroke2",
++    lineColor: "--colorNeutralForeground2",
++    noteBkgColor: "--colorPaletteYellowBackground1"
++  };
++
++  function hex(value) {
++    var v = (value || "").trim();
++    var m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(v);
++    if (m) {
++      var h = m[1];
++      return "#" + (h.length === 3 ? h.replace(/./g, "$&$&") : h).toLowerCase();
++    }
++    m = /^rgba?\(\s*(\d+)[ ,]+(\d+)[ ,]+(\d+)/i.exec(v);
++    if (m) {
++      return "#" + [m[1], m[2], m[3]].map(function (n) {
++        var s = Math.max(0, Math.min(255, +n)).toString(16);
++        return s.length < 2 ? "0" + s : s;
++      }).join("");
++    }
++    return null;
++  }
++
++  function luminance(h) {
++    var n = parseInt(h.slice(1), 16);
++    return (0.2126 * (n >> 16 & 255) + 0.7152 * (n >> 8 & 255) + 0.0722 * (n & 255)) / 255;
++  }
++
++  function readTheme() {
++    var cs = getComputedStyle(document.documentElement);
++    var vars = {};
++    Object.keys(TOKENS).forEach(function (k) {
++      var h = hex(cs.getPropertyValue(TOKENS[k]));
++      if (h) vars[k] = h;
++    });
++    vars.fontFamily = cs.getPropertyValue("--fontFamilyBase").trim() || "sans-serif";
++    vars.fontSize = cs.getPropertyValue("--fontSizeBase300").trim() || "14px";
++    vars.darkMode = vars.background ? luminance(vars.background) < 0.5 : false;
++    return { vars: vars, key: JSON.stringify(vars) };
++  }
++
++  function icon(d) {
++    var svg = document.createElementNS(NS, "svg");
++    svg.setAttribute("class", "fui-Icon");
++    svg.setAttribute("width", "20");
++    svg.setAttribute("height", "20");
++    svg.setAttribute("viewBox", "0 0 20 20");
++    svg.setAttribute("fill", "currentColor");
++    svg.setAttribute("aria-hidden", "true");
++    svg.setAttribute("focusable", "false");
++    var path = document.createElementNS(NS, "path");
++    path.setAttribute("d", d);
++    svg.appendChild(path);
++    return svg;
++  }
++
++  var items = [];
++  for (var i = 0; i < codes.length; i++) {
++    var pre = codes[i].parentNode;
++    items.push({ index: i, pre: pre, parent: pre.parentNode, next: pre.nextSibling, source: codes[i].textContent,
++                 view: "code", figure: null, img: null, details: null, panel: null, bar: null });
++  }
++
++  // 図の表示を「コード」「画像」「警告」のどれか 1 つにする（図の描画の設計の 7.4 の 7）
++  function restoreCode(it) {
++    if (it.figure) { it.figure.remove(); it.figure = null; it.img = null; }
++    if (it.details) { it.details.remove(); it.details = null; it.panel = null; }
++    if (it.bar) { it.bar.remove(); it.bar = null; }
++    if (it.pre.parentNode !== it.parent) it.parent.insertBefore(it.pre, it.next && it.next.parentNode === it.parent ? it.next : null);
++    it.view = "code";
++  }
++
++  function showImage(it, url, msg) {
++    if (it.view !== "image") {
++      restoreCode(it);
++      it.figure = document.createElement("figure");
++      it.figure.className = "wiki-fig fui-Card";
++      it.figure.setAttribute("data-fig", "mermaid");
++      it.img = document.createElement("img");
++      it.img.className = "fui-Image";
++      it.figure.appendChild(it.img);
++      it.details = document.createElement("details");
++      it.details.className = "fui-AccordionItem wiki-fig-source";
++      var summary = document.createElement("summary");
++      summary.className = "fui-AccordionHeader__button";
++      var chevron = document.createElement("span");
++      chevron.className = "fui-AccordionHeader__expandIcon";
++      chevron.setAttribute("aria-hidden", "true");
++      chevron.appendChild(icon(CHEVRON_PATH));
++      summary.appendChild(chevron);
++      summary.appendChild(document.createTextNode("図のコード"));
++      it.panel = document.createElement("div");
++      it.panel.className = "fui-AccordionPanel";
++      it.details.appendChild(summary);
++      it.details.appendChild(it.panel);
++      it.parent.insertBefore(it.figure, it.pre);
++      it.parent.insertBefore(it.details, it.pre);
++      it.panel.appendChild(it.pre);
++      it.view = "image";
++    }
++    it.img.setAttribute("alt", typeof msg.title === "string" && msg.title ? msg.title.slice(0, 200) : "図");
++    it.img.setAttribute("width", String(Math.max(1, Math.round(msg.w))));
++    it.img.setAttribute("height", String(Math.max(1, Math.round(msg.h))));
++    it.img.setAttribute("src", url);
++  }
++
++  var barSeq = 0;
++  function showWarning(it) {
++    if (it.view === "warning") return;
++    restoreCode(it);
++    barSeq += 1;
++    var id = "_figwarn" + barSeq;
++    it.bar = document.createElement("div");
++    it.bar.className = "wiki-fig-error fui-MessageBar";
++    it.bar.setAttribute("role", "group");
++    it.bar.setAttribute("aria-labelledby", id);
++    it.bar.setAttribute("data-intent", "warning");
++    it.bar.setAttribute("data-layout", "singleline");
++    var ic = document.createElement("div");
++    ic.className = "fui-MessageBar__icon";
++    ic.setAttribute("aria-hidden", "true");
++    ic.appendChild(icon(WARNING_PATH));
++    var text = document.createElement("div");
++    text.className = "fui-MessageBarBody";
++    text.id = id;
++    text.textContent = "図を描けなかった。コードを表示している。";
++    it.bar.appendChild(ic);
++    it.bar.appendChild(text);
++    it.parent.insertBefore(it.bar, it.pre);
++    it.view = "warning";
++  }
++
++  // 枠の結果を確かめ、画像の URL を作る。使えなければ null
++  function imageUrl(d) {
++    if (d.ok !== true || typeof d.svg !== "string" || d.svg.length > MAX_SVG || d.svg.slice(0, 4) !== "<svg") return null;
++    if (typeof d.w !== "number" || typeof d.h !== "number" || !(d.w > 0 && d.h > 0 && d.w <= MAX_SIDE && d.h <= MAX_SIDE)) return null;
++    try {
++      return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(d.svg);
++    } catch (e) {
++      return null;     // 対になっていないサロゲートなど
++    }
++  }
++
++  // 1 つの回。stop() で、生きている枠をすべて消し、受け取りをやめる
++  function Run(theme) {
++    this.theme = theme;
++    this.queue = items.slice();
++    this.live = [];
++    this.stopped = false;
++  }
++
++  Run.prototype.stop = function () {
++    this.stopped = true;
++    this.queue = [];
++    this.live.slice().forEach(function (f) { f.finish(null); });
++  };
++
++  Run.prototype.start = function () {
++    for (var n = 0; n < CONCURRENCY; n++) this.next();
++  };
++
++  Run.prototype.next = function () {
++    if (this.stopped) return;
++    var it = this.queue.shift();
++    if (!it) return;
++    this.open(it);
++  };
++
++  // 図 1 つの枠。状態は "wait-ready"、"wait-result"、"done" の 3 つ
++  Run.prototype.open = function (it) {
++    var run = this;
++    var frame = document.createElement("iframe");
++    var state = "wait-ready";
++    var timer = null;
++    var handle = { finish: finish };
++
++    function finish(result) {
++      if (state === "done") return;
++      state = "done";
++      clearTimeout(timer);
++      window.removeEventListener("message", onMessage);
++      frame.remove();
++      run.live.splice(run.live.indexOf(handle), 1);
++      if (run.stopped) return;
++      var url = result ? imageUrl(result) : null;
++      if (url) showImage(it, url, result); else showWarning(it);
++      run.next();
++    }
++
++    function onMessage(e) {
++      if (e.source !== frame.contentWindow || state === "done") return;
++      var d = e.data;
++      if (!d || typeof d !== "object") return;
++      if (state === "wait-ready" && d.type === "ready") {
++        state = "wait-result";
++        frame.contentWindow.postMessage({ type: "render", source: it.source, theme: run.theme.vars }, "*");
++      } else if (state === "wait-result" && d.type === "result") {
++        finish(d);
++      }
++    }
++
++    frame.className = "fig-frame";
++    frame.setAttribute("sandbox", "allow-scripts");
++    frame.setAttribute("title", "図の描画");
++    frame.setAttribute("aria-hidden", "true");
++    frame.setAttribute("tabindex", "-1");
++    frame.setAttribute("width", "1200");
++    frame.setAttribute("height", "800");
++    window.addEventListener("message", onMessage);
++    run.live.push(handle);
++    timer = setTimeout(function () { finish(null); }, TIMEOUT_MS);
++    frame.src = FRAME_URL;
++    document.body.appendChild(frame);
++  };
++
++  var current = null;
++  function render() {
++    var theme = readTheme();
++    if (current && current.theme.key === theme.key) return;
++    if (current) current.stop();
++    current = new Run(theme);
++    current.start();
++  }
++
++  new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
++  if (window.matchMedia) {
++    var mq = window.matchMedia("(prefers-color-scheme: dark)");
++    if (mq.addEventListener) mq.addEventListener("change", render);
++  }
++  render();
++})();
+diff --git a/skills/info-hive/scripts/browse_assets/licenses/mermaid.LICENSE b/skills/info-hive/scripts/browse_assets/licenses/mermaid.LICENSE
+new file mode 100644
+index 0000000..2e5daeb
+--- /dev/null
++++ b/skills/info-hive/scripts/browse_assets/licenses/mermaid.LICENSE
+@@ -0,0 +1,21 @@
++The MIT License (MIT)
++
++Copyright (c) 2014 - 2022 Knut Sveidqvist
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
+diff --git a/skills/info-hive/scripts/browse_assets/licenses/mermaid.THIRD-PARTY-NOTICES.txt b/skills/info-hive/scripts/browse_assets/licenses/mermaid.THIRD-PARTY-NOTICES.txt
+new file mode 100644
+index 0000000..1afc3a6
+--- /dev/null
++++ b/skills/info-hive/scripts/browse_assets/licenses/mermaid.THIRD-PARTY-NOTICES.txt
+@@ -0,0 +1,1240 @@
++Mermaid（@mermaid-js/tiny 12.3.0）の束（mermaid.tiny.js）に含まれる第三者のソフトウェアの表示
++
++mermaid.tiny.js は、Mermaid（MIT ライセンス、mermaid-js.LICENSE）と、その依存を 1 つのファイルにまとめたもので
++ある。ここには、mermaid 12.3.0 の package.json が宣言する直接の依存のうち tiny の束に入りうるものについて、
++npm のレジストリから取得したそれぞれの版のライセンスの文書を写した。版は、宣言の範囲にあてはまる版
++（2026年11月17日の時点）である。束を作るときに実際に使われた版と、依存の依存は、ここに含まれていない。
++束の中には、DOMPurify、regenerator-runtime、Lodash のライセンスの表示がコメントとして残っている。
++
++==============================================================================
++@braintree/sanitize-url 7.1.2（MIT）
++https://www.npmjs.com/package/@braintree/sanitize-url
++
++MIT License
++
++Copyright (c) 2017 Braintree
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
++==============================================================================
++@iconify/utils 3.1.7（MIT）
++https://www.npmjs.com/package/@iconify/utils
++
++MIT License
++
++Copyright (c) 2021-PRESENT Vjacheslav Trushkin
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
++==============================================================================
++@mermaid-js/parser 2.0.1（MIT）
++https://www.npmjs.com/package/@mermaid-js/parser
++
++The MIT License (MIT)
++
++Copyright (c) 2023 Yokozuna59
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
++==============================================================================
++@upsetjs/venn.js 2.0.0（MIT）
++https://www.npmjs.com/package/@upsetjs/venn.js
++
++MIT License
++
++Copyright (c) 2013 Ben Frederickson
++Copyright (c) 2021 Samuel Gratzl
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
++==============================================================================
++chevrotain 13.2.0（Apache-2.0）
++https://www.npmjs.com/package/chevrotain
++
++                                 Apache License
++                           Version 2.0, January 2004
++                        http://www.apache.org/licenses/
++
++   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
++
++   1. Definitions.
++
++      "License" shall mean the terms and conditions for use, reproduction,
++      and distribution as defined by Sections 1 through 9 of this document.
++
++      "Licensor" shall mean the copyright owner or entity authorized by
++      the copyright owner that is granting the License.
++
++      "Legal Entity" shall mean the union of the acting entity and all
++      other entities that control, are controlled by, or are under common
++      control with that entity. For the purposes of this definition,
++      "control" means (i) the power, direct or indirect, to cause the
++      direction or management of such entity, whether by contract or
++      otherwise, or (ii) ownership of fifty percent (50%) or more of the
++      outstanding shares, or (iii) beneficial ownership of such entity.
++
++      "You" (or "Your") shall mean an individual or Legal Entity
++      exercising permissions granted by this License.
++
++      "Source" form shall mean the preferred form for making modifications,
++      including but not limited to software source code, documentation
++      source, and configuration files.
++
++      "Object" form shall mean any form resulting from mechanical
++      transformation or translation of a Source form, including but
++      not limited to compiled object code, generated documentation,
++      and conversions to other media types.
++
++      "Work" shall mean the work of authorship, whether in Source or
++      Object form, made available under the License, as indicated by a
++      copyright notice that is included in or attached to the work
++      (an example is provided in the Appendix below).
++
++      "Derivative Works" shall mean any work, whether in Source or Object
++      form, that is based on (or derived from) the Work and for which the
++      editorial revisions, annotations, elaborations, or other modifications
++      represent, as a whole, an original work of authorship. For the purposes
++      of this License, Derivative Works shall not include works that remain
++      separable from, or merely link (or bind by name) to the interfaces of,
++      the Work and Derivative Works thereof.
++
++      "Contribution" shall mean any work of authorship, including
++      the original version of the Work and any modifications or additions
++      to that Work or Derivative Works thereof, that is intentionally
++      submitted to Licensor for inclusion in the Work by the copyright owner
++      or by an individual or Legal Entity authorized to submit on behalf of
++      the copyright owner. For the purposes of this definition, "submitted"
++      means any form of electronic, verbal, or written communication sent
++      to the Licensor or its representatives, including but not limited to
++      communication on electronic mailing lists, source code control systems,
++      and issue tracking systems that are managed by, or on behalf of, the
++      Licensor for the purpose of discussing and improving the Work, but
++      excluding communication that is conspicuously marked or otherwise
++      designated in writing by the copyright owner as "Not a Contribution."
++
++      "Contributor" shall mean Licensor and any individual or Legal Entity
++      on behalf of whom a Contribution has been received by Licensor and
++      subsequently incorporated within the Work.
++
++   2. Grant of Copyright License. Subject to the terms and conditions of
++      this License, each Contributor hereby grants to You a perpetual,
++      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
++      copyright license to reproduce, prepare Derivative Works of,
++      publicly display, publicly perform, sublicense, and distribute the
++      Work and such Derivative Works in Source or Object form.
++
++   3. Grant of Patent License. Subject to the terms and conditions of
++      this License, each Contributor hereby grants to You a perpetual,
++      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
++      (except as stated in this section) patent license to make, have made,
++      use, offer to sell, sell, import, and otherwise transfer the Work,
++      where such license applies only to those patent claims licensable
++      by such Contributor that are necessarily infringed by their
++      Contribution(s) alone or by combination of their Contribution(s)
++      with the Work to which such Contribution(s) was submitted. If You
++      institute patent litigation against any entity (including a
++      cross-claim or counterclaim in a lawsuit) alleging that the Work
++      or a Contribution incorporated within the Work constitutes direct
++      or contributory patent infringement, then any patent licenses
++      granted to You under this License for that Work shall terminate
++      as of the date such litigation is filed.
++
++   4. Redistribution. You may reproduce and distribute copies of the
++      Work or Derivative Works thereof in any medium, with or without
++      modifications, and in Source or Object form, provided that You
++      meet the following conditions:
++
++      (a) You must give any other recipients of the Work or
++          Derivative Works a copy of this License; and
++
++      (b) You must cause any modified files to carry prominent notices
++          stating that You changed the files; and
++
++      (c) You must retain, in the Source form of any Derivative Works
++          that You distribute, all copyright, patent, trademark, and
++          attribution notices from the Source form of the Work,
++          excluding those notices that do not pertain to any part of
++          the Derivative Works; and
++
++      (d) If the Work includes a "NOTICE" text file as part of its
++          distribution, then any Derivative Works that You distribute must
++          include a readable copy of the attribution notices contained
++          within such NOTICE file, excluding those notices that do not
++          pertain to any part of the Derivative Works, in at least one
++          of the following places: within a NOTICE text file distributed
++          as part of the Derivative Works; within the Source form or
++          documentation, if provided along with the Derivative Works; or,
++          within a display generated by the Derivative Works, if and
++          wherever such third-party notices normally appear. The contents
++          of the NOTICE file are for informational purposes only and
++          do not modify the License. You may add Your own attribution
++          notices within Derivative Works that You distribute, alongside
++          or as an addendum to the NOTICE text from the Work, provided
++          that such additional attribution notices cannot be construed
++          as modifying the License.
++
++      You may add Your own copyright statement to Your modifications and
++      may provide additional or different license terms and conditions
++      for use, reproduction, or distribution of Your modifications, or
++      for any such Derivative Works as a whole, provided Your use,
++      reproduction, and distribution of the Work otherwise complies with
++      the conditions stated in this License.
++
++   5. Submission of Contributions. Unless You explicitly state otherwise,
++      any Contribution intentionally submitted for inclusion in the Work
++      by You to the Licensor shall be under the terms and conditions of
++      this License, without any additional terms or conditions.
++      Notwithstanding the above, nothing herein shall supersede or modify
++      the terms of any separate license agreement you may have executed
++      with Licensor regarding such Contributions.
++
++   6. Trademarks. This License does not grant permission to use the trade
++      names, trademarks, service marks, or product names of the Licensor,
++      except as required for reasonable and customary use in describing the
++      origin of the Work and reproducing the content of the NOTICE file.
++
++   7. Disclaimer of Warranty. Unless required by applicable law or
++      agreed to in writing, Licensor provides the Work (and each
++      Contributor provides its Contributions) on an "AS IS" BASIS,
++      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
++      implied, including, without limitation, any warranties or conditions
++      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
++      PARTICULAR PURPOSE. You are solely responsible for determining the
++      appropriateness of using or redistributing the Work and assume any
++      risks associated with Your exercise of permissions under this License.
++
++   8. Limitation of Liability. In no event and under no legal theory,
++      whether in tort (including negligence), contract, or otherwise,
++      unless required by applicable law (such as deliberate and grossly
++      negligent acts) or agreed to in writing, shall any Contributor be
++      liable to You for damages, including any direct, indirect, special,
++      incidental, or consequential damages of any character arising as a
++      result of this License or out of the use or inability to use the
++      Work (including but not limited to damages for loss of goodwill,
++      work stoppage, computer failure or malfunction, or any and all
++      other commercial damages or losses), even if such Contributor
++      has been advised of the possibility of such damages.
++
++   9. Accepting Warranty or Additional Liability. While redistributing
++      the Work or Derivative Works thereof, You may choose to offer,
++      and charge a fee for, acceptance of support, warranty, indemnity,
++      or other liability obligations and/or rights consistent with this
++      License. However, in accepting such obligations, You may act only
++      on Your own behalf and on Your sole responsibility, not on behalf
++      of any other Contributor, and only if You agree to indemnify,
++      defend, and hold each Contributor harmless for any liability
++      incurred by, or claims asserted against, such Contributor by reason
++      of your accepting any such warranty or additional liability.
++
++   END OF TERMS AND CONDITIONS
++
++   APPENDIX: How to apply the Apache License to your work.
++
++      To apply the Apache License to your work, attach the following
++      boilerplate notice, with the fields enclosed by brackets "[]"
++      replaced with your own identifying information. (Don't include
++      the brackets!)  The text should be enclosed in the appropriate
++      comment syntax for the file format. We also recommend that a
++      file or class name and description of purpose be included on the
++      same "printed page" as the copyright notice for easier
++      identification within third-party archives.
++
++   Copyright [yyyy] [name of copyright owner]
++
++   Licensed under the Apache License, Version 2.0 (the "License");
++   you may not use this file except in compliance with the License.
++   You may obtain a copy of the License at
++
++       http://www.apache.org/licenses/LICENSE-2.0
++
++   Unless required by applicable law or agreed to in writing, software
++   distributed under the License is distributed on an "AS IS" BASIS,
++   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++   See the License for the specific language governing permissions and
++   limitations under the License.
++
++==============================================================================
++d3 7.9.0（ISC）
++https://www.npmjs.com/package/d3
++
++Copyright 2010-2023 Mike Bostock
++
++Permission to use, copy, modify, and/or distribute this software for any purpose
++with or without fee is hereby granted, provided that the above copyright notice
++and this permission notice appear in all copies.
++
++THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
++REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
++FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
++INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS
++OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
++TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
++THIS SOFTWARE.
++
++==============================================================================
++d3-sankey 0.12.3（BSD-3-Clause）
++https://www.npmjs.com/package/d3-sankey
++
++Copyright 2015, Mike Bostock
++All rights reserved.
++
++Redistribution and use in source and binary forms, with or without modification,
++are permitted provided that the following conditions are met:
++
++* Redistributions of source code must retain the above copyright notice, this
++  list of conditions and the following disclaimer.
++
++* Redistributions in binary form must reproduce the above copyright notice,
++  this list of conditions and the following disclaimer in the documentation
++  and/or other materials provided with the distribution.
++
++* Neither the name of the author nor the names of contributors may be used to
++  endorse or promote products derived from this software without specific prior
++  written permission.
++
++THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
++ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
++WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
++DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
++ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
++(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
++LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
++ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
++(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
++SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
++
++==============================================================================
++dagre-d3-es 7.0.14（MIT）
++https://www.npmjs.com/package/dagre-d3-es
++
++Original dagre-d3 copyright: Copyright (c) 2013 Chris Pettitt
++Original dagre copyright: Copyright (c) 2012-2014 Chris Pettitt
++Original graphlib copyright: Copyright (c) 2012-2014 Chris Pettitt
++
++Copyright (c) 2022-2024 Thibaut Lassalle, David Newell, Alois Klink, Sidharth Vinod and dagre-es contributors
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++THE SOFTWARE.
++
++==============================================================================
++dayjs 1.11.21（MIT）
++https://www.npmjs.com/package/dayjs
++
++MIT License
++
++Copyright (c) 2018-present, iamkun
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
++==============================================================================
++dompurify 3.4.17（MPL-2.0 OR Apache-2.0）
++https://www.npmjs.com/package/dompurify
++
++--- LICENSE ---
++                                 Apache License
++                           Version 2.0, January 2004
++                        http://www.apache.org/licenses/
++
++   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
++
++   1. Definitions.
++
++      "License" shall mean the terms and conditions for use, reproduction,
++      and distribution as defined by Sections 1 through 9 of this document.
++
++      "Licensor" shall mean the copyright owner or entity authorized by
++      the copyright owner that is granting the License.
++
++      "Legal Entity" shall mean the union of the acting entity and all
++      other entities that control, are controlled by, or are under common
++      control with that entity. For the purposes of this definition,
++      "control" means (i) the power, direct or indirect, to cause the
++      direction or management of such entity, whether by contract or
++      otherwise, or (ii) ownership of fifty percent (50%) or more of the
++      outstanding shares, or (iii) beneficial ownership of such entity.
++
++      "You" (or "Your") shall mean an individual or Legal Entity
++      exercising permissions granted by this License.
++
++      "Source" form shall mean the preferred form for making modifications,
++      including but not limited to software source code, documentation
++      source, and configuration files.
++
++      "Object" form shall mean any form resulting from mechanical
++      transformation or translation of a Source form, including but
++      not limited to compiled object code, generated documentation,
++      and conversions to other media types.
++
++      "Work" shall mean the work of authorship, whether in Source or
++      Object form, made available under the License, as indicated by a
++      copyright notice that is included in or attached to the work
++      (an example is provided in the Appendix below).
++
++      "Derivative Works" shall mean any work, whether in Source or Object
++      form, that is based on (or derived from) the Work and for which the
++      editorial revisions, annotations, elaborations, or other modifications
++      represent, as a whole, an original work of authorship. For the purposes
++      of this License, Derivative Works shall not include works that remain
++      separable from, or merely link (or bind by name) to the interfaces of,
++      the Work and Derivative Works thereof.
++
++      "Contribution" shall mean any work of authorship, including
++      the original version of the Work and any modifications or additions
++      to that Work or Derivative Works thereof, that is intentionally
++      submitted to Licensor for inclusion in the Work by the copyright owner
++      or by an individual or Legal Entity authorized to submit on behalf of
++      the copyright owner. For the purposes of this definition, "submitted"
++      means any form of electronic, verbal, or written communication sent
++      to the Licensor or its representatives, including but not limited to
++      communication on electronic mailing lists, source code control systems,
++      and issue tracking systems that are managed by, or on behalf of, the
++      Licensor for the purpose of discussing and improving the Work, but
++      excluding communication that is conspicuously marked or otherwise
++      designated in writing by the copyright owner as "Not a Contribution."
++
++      "Contributor" shall mean Licensor and any individual or Legal Entity
++      on behalf of whom a Contribution has been received by Licensor and
++      subsequently incorporated within the Work.
++
++   2. Grant of Copyright License. Subject to the terms and conditions of
++      this License, each Contributor hereby grants to You a perpetual,
++      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
++      copyright license to reproduce, prepare Derivative Works of,
++      publicly display, publicly perform, sublicense, and distribute the
++      Work and such Derivative Works in Source or Object form.
++
++   3. Grant of Patent License. Subject to the terms and conditions of
++      this License, each Contributor hereby grants to You a perpetual,
++      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
++      (except as stated in this section) patent license to make, have made,
++      use, offer to sell, sell, import, and otherwise transfer the Work,
++      where such license applies only to those patent claims licensable
++      by such Contributor that are necessarily infringed by their
++      Contribution(s) alone or by combination of their Contribution(s)
++      with the Work to which such Contribution(s) was submitted. If You
++      institute patent litigation against any entity (including a
++      cross-claim or counterclaim in a lawsuit) alleging that the Work
++      or a Contribution incorporated within the Work constitutes direct
++      or contributory patent infringement, then any patent licenses
++      granted to You under this License for that Work shall terminate
++      as of the date such litigation is filed.
++
++   4. Redistribution. You may reproduce and distribute copies of the
++      Work or Derivative Works thereof in any medium, with or without
++      modifications, and in Source or Object form, provided that You
++      meet the following conditions:
++
++      (a) You must give any other recipients of the Work or
++          Derivative Works a copy of this License; and
++
++      (b) You must cause any modified files to carry prominent notices
++          stating that You changed the files; and
++
++      (c) You must retain, in the Source form of any Derivative Works
++          that You distribute, all copyright, patent, trademark, and
++          attribution notices from the Source form of the Work,
++          excluding those notices that do not pertain to any part of
++          the Derivative Works; and
++
++      (d) If the Work includes a "NOTICE" text file as part of its
++          distribution, then any Derivative Works that You distribute must
++          include a readable copy of the attribution notices contained
++          within such NOTICE file, excluding those notices that do not
++          pertain to any part of the Derivative Works, in at least one
++          of the following places: within a NOTICE text file distributed
++          as part of the Derivative Works; within the Source form or
++          documentation, if provided along with the Derivative Works; or,
++          within a display generated by the Derivative Works, if and
++          wherever such third-party notices normally appear. The contents
++          of the NOTICE file are for informational purposes only and
++          do not modify the License. You may add Your own attribution
++          notices within Derivative Works that You distribute, alongside
++          or as an addendum to the NOTICE text from the Work, provided
++          that such additional attribution notices cannot be construed
++          as modifying the License.
++
++      You may add Your own copyright statement to Your modifications and
++      may provide additional or different license terms and conditions
++      for use, reproduction, or distribution of Your modifications, or
++      for any such Derivative Works as a whole, provided Your use,
++      reproduction, and distribution of the Work otherwise complies with
++      the conditions stated in this License.
++
++   5. Submission of Contributions. Unless You explicitly state otherwise,
++      any Contribution intentionally submitted for inclusion in the Work
++      by You to the Licensor shall be under the terms and conditions of
++      this License, without any additional terms or conditions.
++      Notwithstanding the above, nothing herein shall supersede or modify
++      the terms of any separate license agreement you may have executed
++      with Licensor regarding such Contributions.
++
++   6. Trademarks. This License does not grant permission to use the trade
++      names, trademarks, service marks, or product names of the Licensor,
++      except as required for reasonable and customary use in describing the
++      origin of the Work and reproducing the content of the NOTICE file.
++
++   7. Disclaimer of Warranty. Unless required by applicable law or
++      agreed to in writing, Licensor provides the Work (and each
++      Contributor provides its Contributions) on an "AS IS" BASIS,
++      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
++      implied, including, without limitation, any warranties or conditions
++      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
++      PARTICULAR PURPOSE. You are solely responsible for determining the
++      appropriateness of using or redistributing the Work and assume any
++      risks associated with Your exercise of permissions under this License.
++
++   8. Limitation of Liability. In no event and under no legal theory,
++      whether in tort (including negligence), contract, or otherwise,
++      unless required by applicable law (such as deliberate and grossly
++      negligent acts) or agreed to in writing, shall any Contributor be
++      liable to You for damages, including any direct, indirect, special,
++      incidental, or consequential damages of any character arising as a
++      result of this License or out of the use or inability to use the
++      Work (including but not limited to damages for loss of goodwill,
++      work stoppage, computer failure or malfunction, or any and all
++      other commercial damages or losses), even if such Contributor
++      has been advised of the possibility of such damages.
++
++   9. Accepting Warranty or Additional Liability. While redistributing
++      the Work or Derivative Works thereof, You may choose to offer,
++      and charge a fee for, acceptance of support, warranty, indemnity,
++      or other liability obligations and/or rights consistent with this
++      License. However, in accepting such obligations, You may act only
++      on Your own behalf and on Your sole responsibility, not on behalf
++      of any other Contributor, and only if You agree to indemnify,
++      defend, and hold each Contributor harmless for any liability
++      incurred by, or claims asserted against, such Contributor by reason
++      of your accepting any such warranty or additional liability.
++
++   END OF TERMS AND CONDITIONS
++
++   APPENDIX: How to apply the Apache License to your work.
++
++      To apply the Apache License to your work, attach the following
++      boilerplate notice, with the fields enclosed by brackets "[]"
++      replaced with your own identifying information. (Don't include
++      the brackets!)  The text should be enclosed in the appropriate
++      comment syntax for the file format. We also recommend that a
++      file or class name and description of purpose be included on the
++      same "printed page" as the copyright notice for easier
++      identification within third-party archives.
++
++   Copyright [yyyy] [name of copyright owner]
++
++   Licensed under the Apache License, Version 2.0 (the "License");
++   you may not use this file except in compliance with the License.
++   You may obtain a copy of the License at
++
++       http://www.apache.org/licenses/LICENSE-2.0
++
++   Unless required by applicable law or agreed to in writing, software
++   distributed under the License is distributed on an "AS IS" BASIS,
++   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++   See the License for the specific language governing permissions and
++   limitations under the License.
++
++--- LICENSE-MPL ---
++Mozilla Public License Version 2.0
++==================================
++
++1. Definitions
++--------------
++
++1.1. "Contributor"
++    means each individual or legal entity that creates, contributes to
++    the creation of, or owns Covered Software.
++
++1.2. "Contributor Version"
++    means the combination of the Contributions of others (if any) used
++    by a Contributor and that particular Contributor's Contribution.
++
++1.3. "Contribution"
++    means Covered Software of a particular Contributor.
++
++1.4. "Covered Software"
++    means Source Code Form to which the initial Contributor has attached
++    the notice in Exhibit A, the Executable Form of such Source Code
++    Form, and Modifications of such Source Code Form, in each case
++    including portions thereof.
++
++1.5. "Incompatible With Secondary Licenses"
++    means
++
++    (a) that the initial Contributor has attached the notice described
++        in Exhibit B to the Covered Software; or
++
++    (b) that the Covered Software was made available under the terms of
++        version 1.1 or earlier of the License, but not also under the
++        terms of a Secondary License.
++
++1.6. "Executable Form"
++    means any form of the work other than Source Code Form.
++
++1.7. "Larger Work"
++    means a work that combines Covered Software with other material, in 
++    a separate file or files, that is not Covered Software.
++
++1.8. "License"
++    means this document.
++
++1.9. "Licensable"
++    means having the right to grant, to the maximum extent possible,
++    whether at the time of the initial grant or subsequently, any and
++    all of the rights conveyed by this License.
++
++1.10. "Modifications"
++    means any of the following:
++
++    (a) any file in Source Code Form that results from an addition to,
++        deletion from, or modification of the contents of Covered
++        Software; or
++
++    (b) any new file in Source Code Form that contains any Covered
++        Software.
++
++1.11. "Patent Claims" of a Contributor
++    means any patent claim(s), including without limitation, method,
++    process, and apparatus claims, in any patent Licensable by such
++    Contributor that would be infringed, but for the grant of the
++    License, by the making, using, selling, offering for sale, having
++    made, import, or transfer of either its Contributions or its
++    Contributor Version.
++
++1.12. "Secondary License"
++    means either the GNU General Public License, Version 2.0, the GNU
++    Lesser General Public License, Version 2.1, the GNU Affero General
++    Public License, Version 3.0, or any later versions of those
++    licenses.
++
++1.13. "Source Code Form"
++    means the form of the work preferred for making modifications.
++
++1.14. "You" (or "Your")
++    means an individual or a legal entity exercising rights under this
++    License. For legal entities, "You" includes any entity that
++    controls, is controlled by, or is under common control with You. For
++    purposes of this definition, "control" means (a) the power, direct
++    or indirect, to cause the direction or management of such entity,
++    whether by contract or otherwise, or (b) ownership of more than
++    fifty percent (50%) of the outstanding shares or beneficial
++    ownership of such entity.
++
++2. License Grants and Conditions
++--------------------------------
++
++2.1. Grants
++
++Each Contributor hereby grants You a world-wide, royalty-free,
++non-exclusive license:
++
++(a) under intellectual property rights (other than patent or trademark)
++    Licensable by such Contributor to use, reproduce, make available,
++    modify, display, perform, distribute, and otherwise exploit its
++    Contributions, either on an unmodified basis, with Modifications, or
++    as part of a Larger Work; and
++
++(b) under Patent Claims of such Contributor to make, use, sell, offer
++    for sale, have made, import, and otherwise transfer either its
++    Contributions or its Contributor Version.
++
++2.2. Effective Date
++
++The licenses granted in Section 2.1 with respect to any Contribution
++become effective for each Contribution on the date the Contributor first
++distributes such Contribution.
++
++2.3. Limitations on Grant Scope
++
++The licenses granted in this Section 2 are the only rights granted under
++this License. No additional rights or licenses will be implied from the
++distribution or licensing of Covered Software under this License.
++Notwithstanding Section 2.1(b) above, no patent license is granted by a
++Contributor:
++
++(a) for any code that a Contributor has removed from Covered Software;
++    or
++
++(b) for infringements caused by: (i) Your and any other third party's
++    modifications of Covered Software, or (ii) the combination of its
++    Contributions with other software (except as part of its Contributor
++    Version); or
++
++(c) under Patent Claims infringed by Covered Software in the absence of
++    its Contributions.
++
++This License does not grant any rights in the trademarks, service marks,
++or logos of any Contributor (except as may be necessary to comply with
++the notice requirements in Section 3.4).
++
++2.4. Subsequent Licenses
++
++No Contributor makes additional grants as a result of Your choice to
++distribute the Covered Software under a subsequent version of this
++License (see Section 10.2) or under the terms of a Secondary License (if
++permitted under the terms of Section 3.3).
++
++2.5. Representation
++
++Each Contributor represents that the Contributor believes its
++Contributions are its original creation(s) or it has sufficient rights
++to grant the rights to its Contributions conveyed by this License.
++
++2.6. Fair Use
++
++This License is not intended to limit any rights You have under
++applicable copyright doctrines of fair use, fair dealing, or other
++equivalents.
++
++2.7. Conditions
++
++Sections 3.1, 3.2, 3.3, and 3.4 are conditions of the licenses granted
++in Section 2.1.
++
++3. Responsibilities
++-------------------
++
++3.1. Distribution of Source Form
++
++All distribution of Covered Software in Source Code Form, including any
++Modifications that You create or to which You contribute, must be under
++the terms of this License. You must inform recipients that the Source
++Code Form of the Covered Software is governed by the terms of this
++License, and how they can obtain a copy of this License. You may not
++attempt to alter or restrict the recipients' rights in the Source Code
++Form.
++
++3.2. Distribution of Executable Form
++
++If You distribute Covered Software in Executable Form then:
++
++(a) such Covered Software must also be made available in Source Code
++    Form, as described in Section 3.1, and You must inform recipients of
++    the Executable Form how they can obtain a copy of such Source Code
++    Form by reasonable means in a timely manner, at a charge no more
++    than the cost of distribution to the recipient; and
++
++(b) You may distribute such Executable Form under the terms of this
++    License, or sublicense it under different terms, provided that the
++    license for the Executable Form does not attempt to limit or alter
++    the recipients' rights in the Source Code Form under this License.
++
++3.3. Distribution of a Larger Work
++
++You may create and distribute a Larger Work under terms of Your choice,
++provided that You also comply with the requirements of this License for
++the Covered Software. If the Larger Work is a combination of Covered
++Software with a work governed by one or more Secondary Licenses, and the
++Covered Software is not Incompatible With Secondary Licenses, this
++License permits You to additionally distribute such Covered Software
++under the terms of such Secondary License(s), so that the recipient of
++the Larger Work may, at their option, further distribute the Covered
++Software under the terms of either this License or such Secondary
++License(s).
++
++3.4. Notices
++
++You may not remove or alter the substance of any license notices
++(including copyright notices, patent notices, disclaimers of warranty,
++or limitations of liability) contained within the Source Code Form of
++the Covered Software, except that You may alter any license notices to
++the extent required to remedy known factual inaccuracies.
++
++3.5. Application of Additional Terms
++
++You may choose to offer, and to charge a fee for, warranty, support,
++indemnity or liability obligations to one or more recipients of Covered
++Software. However, You may do so only on Your own behalf, and not on
++behalf of any Contributor. You must make it absolutely clear that any
++such warranty, support, indemnity, or liability obligation is offered by
++You alone, and You hereby agree to indemnify every Contributor for any
++liability incurred by such Contributor as a result of warranty, support,
++indemnity or liability terms You offer. You may include additional
++disclaimers of warranty and limitations of liability specific to any
++jurisdiction.
++
++4. Inability to Comply Due to Statute or Regulation
++---------------------------------------------------
++
++If it is impossible for You to comply with any of the terms of this
++License with respect to some or all of the Covered Software due to
++statute, judicial order, or regulation then You must: (a) comply with
++the terms of this License to the maximum extent possible; and (b)
++describe the limitations and the code they affect. Such description must
++be placed in a text file included with all distributions of the Covered
++Software under this License. Except to the extent prohibited by statute
++or regulation, such description must be sufficiently detailed for a
++recipient of ordinary skill to be able to understand it.
++
++5. Termination
++--------------
++
++5.1. The rights granted under this License will terminate automatically
++if You fail to comply with any of its terms. However, if You become
++compliant, then the rights granted under this License from a particular
++Contributor are reinstated (a) provisionally, unless and until such
++Contributor explicitly and finally terminates Your grants, and (b) on an
++ongoing basis, if such Contributor fails to notify You of the
++non-compliance by some reasonable means prior to 60 days after You have
++come back into compliance. Moreover, Your grants from a particular
++Contributor are reinstated on an ongoing basis if such Contributor
++notifies You of the non-compliance by some reasonable means, this is the
++first time You have received notice of non-compliance with this License
++from such Contributor, and You become compliant prior to 30 days after
++Your receipt of the notice.
++
++5.2. If You initiate litigation against any entity by asserting a patent
++infringement claim (excluding declaratory judgment actions,
++counter-claims, and cross-claims) alleging that a Contributor Version
++directly or indirectly infringes any patent, then the rights granted to
++You by any and all Contributors for the Covered Software under Section
++2.1 of this License shall terminate.
++
++5.3. In the event of termination under Sections 5.1 or 5.2 above, all
++end user license agreements (excluding distributors and resellers) which
++have been validly granted by You or Your distributors under this License
++prior to termination shall survive termination.
++
++************************************************************************
++*                                                                      *
++*  6. Disclaimer of Warranty                                           *
++*  -------------------------                                           *
++*                                                                      *
++*  Covered Software is provided under this License on an "as is"       *
++*  basis, without warranty of any kind, either expressed, implied, or  *
++*  statutory, including, without limitation, warranties that the       *
++*  Covered Software is free of defects, merchantable, fit for a        *
++*  particular purpose or non-infringing. The entire risk as to the     *
++*  quality and performance of the Covered Software is with You.        *
++*  Should any Covered Software prove defective in any respect, You     *
++*  (not any Contributor) assume the cost of any necessary servicing,   *
++*  repair, or correction. This disclaimer of warranty constitutes an   *
++*  essential part of this License. No use of any Covered Software is   *
++*  authorized under this License except under this disclaimer.         *
++*                                                                      *
++************************************************************************
++
++************************************************************************
++*                                                                      *
++*  7. Limitation of Liability                                          *
++*  --------------------------                                          *
++*                                                                      *
++*  Under no circumstances and under no legal theory, whether tort      *
++*  (including negligence), contract, or otherwise, shall any           *
++*  Contributor, or anyone who distributes Covered Software as          *
++*  permitted above, be liable to You for any direct, indirect,         *
++*  special, incidental, or consequential damages of any character      *
++*  including, without limitation, damages for lost profits, loss of    *
++*  goodwill, work stoppage, computer failure or malfunction, or any    *
++*  and all other commercial damages or losses, even if such party      *
++*  shall have been informed of the possibility of such damages. This   *
++*  limitation of liability shall not apply to liability for death or   *
++*  personal injury resulting from such party's negligence to the       *
++*  extent applicable law prohibits such limitation. Some               *
++*  jurisdictions do not allow the exclusion or limitation of           *
++*  incidental or consequential damages, so this exclusion and          *
++*  limitation may not apply to You.                                    *
++*                                                                      *
++************************************************************************
++
++8. Litigation
++-------------
++
++Any litigation relating to this License may be brought only in the
++courts of a jurisdiction where the defendant maintains its principal
++place of business and such litigation shall be governed by laws of that
++jurisdiction, without reference to its conflict-of-law provisions.
++Nothing in this Section shall prevent a party's ability to bring
++cross-claims or counter-claims.
++
++9. Miscellaneous
++----------------
++
++This License represents the complete agreement concerning the subject
++matter hereof. If any provision of this License is held to be
++unenforceable, such provision shall be reformed only to the extent
++necessary to make it enforceable. Any law or regulation which provides
++that the language of a contract shall be construed against the drafter
++shall not be used to construe this License against a Contributor.
++
++10. Versions of the License
++---------------------------
++
++10.1. New Versions
++
++Mozilla Foundation is the license steward. Except as provided in Section
++10.3, no one other than the license steward has the right to modify or
++publish new versions of this License. Each version will be given a
++distinguishing version number.
++
++10.2. Effect of New Versions
++
++You may distribute the Covered Software under the terms of the version
++of the License under which You originally received the Covered Software,
++or under the terms of any subsequent version published by the license
++steward.
++
++10.3. Modified Versions
++
++If you create software not governed by this License, and you want to
++create a new license for such software, you may create and use a
++modified version of this License if you rename the license and remove
++any references to the name of the license steward (except to note that
++such modified license differs from this License).
++
++10.4. Distributing Source Code Form that is Incompatible With Secondary
++Licenses
++
++If You choose to distribute Source Code Form that is Incompatible With
++Secondary Licenses under the terms of this version of the License, the
++notice described in Exhibit B of this License must be attached.
++
++Exhibit A - Source Code Form License Notice
++-------------------------------------------
++
++  This Source Code Form is subject to the terms of the Mozilla Public
++  License, v. 2.0. If a copy of the MPL was not distributed with this
++  file, You can obtain one at http://mozilla.org/MPL/2.0/.
++
++If it is not possible or desirable to put the notice in a particular
++file, then You may include the notice in a location (such as a LICENSE
++file in a relevant directory) where a recipient would be likely to look
++for such a notice.
++
++You may add additional accurate notices of copyright ownership.
++
++Exhibit B - "Incompatible With Secondary Licenses" Notice
++---------------------------------------------------------
++
++  This Source Code Form is "Incompatible With Secondary Licenses", as
++  defined by the Mozilla Public License, v. 2.0.
++
++==============================================================================
++es-toolkit 1.45.1（MIT）
++https://www.npmjs.com/package/es-toolkit
++
++MIT License
++
++Copyright (c) 2024 Viva Republica, Inc
++
++Copyright OpenJS Foundation and other contributors
++
++Parts of the test suite and compatibility layer in `es-toolkit/compat` are derived from Lodash (https://github.com/lodash/lodash) by the OpenJS Foundation (https://openjsf.org/) and Underscore.js by Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors (http://underscorejs.org/)
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
++==============================================================================
++khroma 2.1.0（MIT）
++https://www.npmjs.com/package/khroma
++
++The MIT License (MIT)
++
++Copyright (c) 2019-present Fabio Spampinato, Andrew Maney
++
++Permission is hereby granted, free of charge, to any person obtaining a
++copy of this software and associated documentation files (the "Software"),
++to deal in the Software without restriction, including without limitation
++the rights to use, copy, modify, merge, publish, distribute, sublicense,
++and/or sell copies of the Software, and to permit persons to whom the
++Software is furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++DEALINGS IN THE SOFTWARE.
++
++==============================================================================
++lodash-es 4.18.1（MIT）
++https://www.npmjs.com/package/lodash-es
++
++Copyright OpenJS Foundation and other contributors <https://openjsf.org/>
++
++Based on Underscore.js, copyright Jeremy Ashkenas,
++DocumentCloud and Investigative Reporters & Editors <http://underscorejs.org/>
++
++This software consists of voluntary contributions made by many
++individuals. For exact contribution history, see the revision history
++available at https://github.com/lodash/lodash
++
++The following license applies to all parts of this software except as
++documented below:
++
++====
++
++Permission is hereby granted, free of charge, to any person obtaining
++a copy of this software and associated documentation files (the
++"Software"), to deal in the Software without restriction, including
++without limitation the rights to use, copy, modify, merge, publish,
++distribute, sublicense, and/or sell copies of the Software, and to
++permit persons to whom the Software is furnished to do so, subject to
++the following conditions:
++
++The above copyright notice and this permission notice shall be
++included in all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
++MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
++LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
++OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
++WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
++
++====
++
++Copyright and related rights for sample code are waived via CC0. Sample
++code is defined as all source code displayed within the prose of the
++documentation.
++
++CC0: http://creativecommons.org/publicdomain/zero/1.0/
++
++====
++
++Files located in the node_modules and vendor directories are externally
++maintained libraries used by this software which have their own
++licenses; we recommend you read them, as their terms may differ from the
++terms above.
++
++==============================================================================
++marked 16.3.0（MIT）
++https://www.npmjs.com/package/marked
++
++# License information
++
++## Contribution License Agreement
++
++If you contribute code to this project, you are implicitly allowing your code
++to be distributed under the MIT license. You are also implicitly verifying that
++all code is your original work. `</legalese>`
++
++## Marked
++
++Copyright (c) 2018+, MarkedJS (https://github.com/markedjs/)
++Copyright (c) 2011-2018, Christopher Jeffrey (https://github.com/chjj/)
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in
++all copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
++THE SOFTWARE.
++
++## Markdown
++
++Copyright © 2004, John Gruber
++http://daringfireball.net/
++All rights reserved.
++
++Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
++
++* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
++* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
++* Neither the name “Markdown” nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
++
++This software is provided by the copyright holders and contributors “as is” and any express or implied warranties, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose are disclaimed. In no event shall the copyright owner or contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this software, even if advised of the possibility of such damage.
++
++==============================================================================
++roughjs 4.6.6（MIT）
++https://www.npmjs.com/package/roughjs
++
++MIT License
++
++Copyright (c) 2019 Preet Shihn
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
++==============================================================================
++stylis 4.3.6（MIT）
++https://www.npmjs.com/package/stylis
++
++MIT License
++
++Copyright (c) 2016-present Sultan Tarimo
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
++==============================================================================
++ts-dedent 2.2.0（MIT）
++https://www.npmjs.com/package/ts-dedent
++
++MIT License
++
++Copyright (c) 2018 Tamino Martinius
++
++Permission is hereby granted, free of charge, to any person obtaining a copy
++of this software and associated documentation files (the "Software"), to deal
++in the Software without restriction, including without limitation the rights
++to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
++copies of the Software, and to permit persons to whom the Software is
++furnished to do so, subject to the following conditions:
++
++The above copyright notice and this permission notice shall be included in all
++copies or substantial portions of the Software.
++
++THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
++AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
++OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
++SOFTWARE.
++
+diff --git a/skills/info-hive/scripts/browse_assets/mermaid-frame.html b/skills/info-hive/scripts/browse_assets/mermaid-frame.html
+new file mode 100644
+index 0000000..aaf8d1a
+--- /dev/null
++++ b/skills/info-hive/scripts/browse_assets/mermaid-frame.html
+@@ -0,0 +1,11 @@
++<!doctype html>
++<html lang="ja">
++<head>
++<meta charset="utf-8">
++<title>図の描画</title>
++</head>
++<body>
++<script src="mermaid.tiny.js"></script>
++<script src="mermaid-frame.js"></script>
++</body>
++</html>
+diff --git a/skills/info-hive/scripts/browse_assets/mermaid-frame.js b/skills/info-hive/scripts/browse_assets/mermaid-frame.js
+new file mode 100644
+index 0000000..0aad5f6
+--- /dev/null
++++ b/skills/info-hive/scripts/browse_assets/mermaid-frame.js
+@@ -0,0 +1,93 @@
++/* 閲覧（browse）の図の描画の枠の側（ADR-0030、図の描画の設計の 7.5）。
++ *
++ * Mermaid（@mermaid-js/tiny 12.3.0、MIT ライセンス、Copyright (c) 2014 - 2022 Knut Sveidqvist）を、sandbox の枠
++ * （不透明なオリジン）の中で動かす。束の中の第三者の表示は browse_assets/licenses/ にある。
++ *
++ * - 親（window.parent）からの最初の render だけを受け、1 つの図を描いて、result を 1 回返す。読み込みのあとに ready を
++ *   1 回返す。親の DOM には触れない。
++ * - securityLevel は strict、htmlLabels は使わない。図の側（%%{init}%% など）から、見た目と安全に関わる設定を変え
++ *   させない（secure）。
++ * - result には、枠の中で数えた CSP の違反を添える（試験が使う。親は画面に出さない）。
++ */
++(function () {
++  "use strict";
++  var violations = [];
++  document.addEventListener("securitypolicyviolation", function (e) {
++    violations.push(String(e.violatedDirective) + " " + String(e.blockedURI || ""));
++  });
++  var parentWin = window.parent;
++  var used = false;
++
++  function post(message) { parentWin.postMessage(message, "*"); }
++
++  // 図の側から変えられない設定。Mermaid の既定の secure に足す
++  var SECURE = ["secure", "securityLevel", "startOnLoad", "maxTextSize", "suppressErrorRendering", "maxEdges",
++                "theme", "themeVariables", "themeCSS", "fontFamily", "htmlLabels", "darkMode", "look"];
++
++  function config(vars) {
++    return {
++      startOnLoad: false,
++      securityLevel: "strict",
++      suppressErrorRendering: true,
++      htmlLabels: false,
++      flowchart: { htmlLabels: false },
++      theme: "base",
++      themeVariables: vars,
++      fontFamily: vars.fontFamily,
++      secure: SECURE
++    };
++  }
++
++  // 描いた SVG を、画像として使える文字にする。大きさは viewBox から決め、根の style を外す
++  function normalize(text) {
++    var host = document.createElement("div");
++    document.body.appendChild(host);
++    try {
++      host.innerHTML = text;
++      var svg = host.querySelector("svg");
++      if (!svg) throw new Error("svg がない");
++      var vb = (svg.getAttribute("viewBox") || "").trim().split(/[\s,]+/).map(Number);
++      var box = vb.length === 4 && vb[2] > 0 && vb[3] > 0 ? { width: vb[2], height: vb[3] } : svg.getBBox();
++      svg.setAttribute("width", String(box.width));
++      svg.setAttribute("height", String(box.height));
++      svg.removeAttribute("style");
++      var title = svg.querySelector("title");
++      return { svg: new XMLSerializer().serializeToString(svg), w: box.width, h: box.height,
++               title: title ? title.textContent : null };
++    } finally {
++      host.remove();
++    }
++  }
++
++  function finish(message) {
++    // 違反のイベントは非同期に届くので、少し待ってから数える
++    setTimeout(function () {
++      message.type = "result";
++      message.violations = violations.slice(0, 20);
++      post(message);
++    }, 100);
++  }
++
++  window.addEventListener("message", function (e) {
++    if (e.source !== parentWin || used) return;
++    var d = e.data;
++    if (!d || d.type !== "render" || typeof d.source !== "string") return;
++    used = true;
++    try {
++      mermaid.initialize(config(d.theme && typeof d.theme === "object" ? d.theme : {}));
++    } catch (err) {
++      finish({ ok: false, error: String(err && err.message || err).slice(0, 300) });
++      return;
++    }
++    mermaid.render("fig", d.source).then(function (r) {
++      var n = normalize(r.svg);
++      finish({ ok: true, svg: n.svg, w: n.w, h: n.h, title: n.title });
++    }, function (err) {
++      finish({ ok: false, error: String(err && err.message || err).slice(0, 300) });
++    }).catch(function (err) {
++      finish({ ok: false, error: String(err && err.message || err).slice(0, 300) });
++    });
++  });
++
++  post({ type: typeof mermaid === "undefined" ? "load-error" : "ready" });
++})();
+diff --git a/skills/info-hive/scripts/browse_assets/style.css b/skills/info-hive/scripts/browse_assets/style.css
+index 1968281..617b452 100644
+--- a/skills/info-hive/scripts/browse_assets/style.css
++++ b/skills/info-hive/scripts/browse_assets/style.css
+@@ -281,9 +281,14 @@ pre code { background: none; padding: 0; font-size: var(--fontSizeBase300); over
+    WebKit が読み込む前の画像の幅 0 のまま組むので、inline-block にする */
+ #_body .wiki-fig {
+   display: inline-block; vertical-align: top; max-width: 100%; box-sizing: border-box;
+-  margin-block: var(--spacingVerticalM); overflow-x: auto;
++  margin-block: var(--spacingVerticalM); margin-inline: 0; overflow-x: auto;
+ }
+ #_body .wiki-fig > img { display: block; max-width: 100%; height: auto; }
++/* Mermaid の図のコード（Accordion）と、描けなかったときの警告（MessageBar）。figures.js が作る */
++#_body .wiki-fig-source { margin-block-end: var(--spacingVerticalL); }
++#_body .wiki-fig-error { margin-block: var(--spacingVerticalS); }
++/* Mermaid を描く見えない枠。幅と高さは属性で決め、画面の外に置く（display: none では文字の幅を測れない） */
++.fig-frame { position: absolute; inset-block-start: 0; inset-inline-start: -200vw; border: 0; }
+ /* 本文の表は、今と同じく display: block で横に送る */
+ #_body table {
+   border-collapse: collapse; display: block; overflow-x: auto; max-width: 100%;
+diff --git a/skills/info-hive/scripts/wiki_browse.py b/skills/info-hive/scripts/wiki_browse.py
+index 4a7764e..710d365 100644
+--- a/skills/info-hive/scripts/wiki_browse.py
++++ b/skills/info-hive/scripts/wiki_browse.py
+@@ -176,7 +176,8 @@ def build(root: PurePath, out_arg: "str | None", raw: "str | None", scope: "str
+     # 公開の前の検査（構造の直しの設計の 8）。見つかれば警告を出す。書き出しは止めない。
+     needles, unresolved = _machine_needles(root, snap)
+     tokens, unreadable_records = fs.server_tokens(bdir)
+-    findings = core.scan_machine_info(files, needles, tokens)
++    # 同梱の画面の部品は入力の中身を含まないので、調べない（図の描画の設計の 7.2）
++    findings = core.scan_machine_info({n: v for n, v in files.items() if n not in assets}, needles, tokens)
+     warnings = []
+     for name, what in findings:
+         warnings.append(f"この出力に、{'絶対パス' if what == 'path' else 'サーバーの操作のトークン'}がある"
+@@ -464,6 +465,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
+         # デコードしたあとで分け、`..`、`.`、空の要素、`\`、NUL を含めば拒む（設計の 8.1）。
+         if any(p in ("", ".", "..") or "\\" in p or "\0" in p for p in parts):
+             return self._text(404, "Not Found")
++        if len(parts) == 3 and parts[0] == core.FRAME_PREFIX:
++            # Mermaid の図の枠の同梱物。トークンなしで配る（ADR-0001 の例外。ADR-0030、図の描画の設計の 7.2）
++            self._kind = "frame"
++            if self.command not in ("GET", "HEAD"):
++                return self._text(405, "Method Not Allowed", {"Allow": "GET, HEAD"})
++            return self._frame(parts[1], parts[2])
+         if len(parts) >= 3 and _same(parts[0], app.control_token) and parts[1] == "control":
+             self._kind = "control"
+             return self._control(parts[2:])
+@@ -475,6 +482,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
+             return self._view("/".join(parts[3:]) or "index.html")
+         return self._text(404, "Not Found")
+ 
++    def _frame(self, version: str, name: str):
++        """/_frame/<版>/<名前> を返す。同梱の固定のファイルだけで、wiki の中身と状態を返さない。
++
++        URL にトークンを含まないので、キャッシュを許す。版がパスにあるので、同梱物を変えれば別の URL になる。
++        リダイレクトは返さない（枠の CSP の script-src はパスで限っていて、リダイレクトのあとはパスを見ない）。
++        """
++        app = self.server.app
++        body = app.frame_assets.get(name) if version == core.FRAME_VERSION else None
++        if body is None:
++            return self._text(404, "Not Found")
++        if name.endswith(".html"):
++            return self._send(200, body, "text/html; charset=utf-8", csp=core.frame_csp(app.port),
++                              cache="private, max-age=86400")
++        return self._send(200, body, "text/javascript; charset=utf-8", cache="private, max-age=86400")
++
+     def _view(self, name: str):
+         app = self.server.app
+         if name in core.ASSETS:
+@@ -563,12 +585,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
+ 
+ class App:
+     def __init__(self, root: PurePath, idle: float, verbose: bool = False, scope: "str | None" = None,
+-                 assets: "dict | None" = None):
++                 assets: "dict | None" = None, frame_assets: "dict | None" = None):
+         self.root = root
+         self.key = common.wiki_key(root)
+         self.idle = idle
+         self.verbose = verbose
+         self.assets = assets or {}
++        self.frame_assets = frame_assets or {}   # Mermaid の図の枠の同梱物（図の描画の設計の 7.2）
+         self.view_token = secrets.token_urlsafe(24)
+         self.control_token = secrets.token_urlsafe(24)
+         self.instance = secrets.token_hex(12)
+@@ -707,8 +730,9 @@ def serve(root: PurePath, page: "str | None", open_browser: bool, idle: float, v
+     if os.name == "nt" and os.environ.get(common.DATA_DIR_ENV, "").strip():
+         say("警告: INFO_HIVE_DATA_DIR を指定している。ほかの利用者が読める場所なら、サーバーの記録のトークンを読まれる")
+     assets = core.load_assets()
++    frame_assets = core.load_frame_assets()
+     owner = fs.owner_of(root)
+-    app = App(root, idle, verbose, scope, assets)
++    app = App(root, idle, verbose, scope, assets, frame_assets)
+ 
+     def make_record():
+         # ロックを取ったあとに待ち受けを始め、記録を置き換える（設計の 7.1）
+diff --git a/skills/info-hive/scripts/wiki_browse_core.py b/skills/info-hive/scripts/wiki_browse_core.py
+index 1c5233f..10930be 100644
+--- a/skills/info-hive/scripts/wiki_browse_core.py
++++ b/skills/info-hive/scripts/wiki_browse_core.py
+@@ -46,12 +46,29 @@ except (ImportError, SystemExit):
+     wiki_graph_extract = None
+ 
+ PROTOCOL_VERSION = 2   # 探しやすさの設計の 2.3、6（nav.js の形とグループの並びが変わった）
+-CORE_VERSION = "browse-core-3"   # 3: 図の svg を出す（図の描画の設計の 9）
++CORE_VERSION = "browse-core-4"   # 3: 図の svg を出す。4: Mermaid の図の枠（frame-src と figures.js。図の描画の設計の 9）
+ NAME_LIMIT = 200
+-CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
++# frame-src 'self' は、figures.js が作る Mermaid の図の枠のため（図の描画の設計の 7.3）
++CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-src 'self'; "
+        "base-uri 'none'; form-action 'none'")
++# Mermaid の図の枠（ADR-0030、図の描画の設計の 7.2）。サーバーだけが、トークンのない /_frame/<版>/ から配る。
++# 3 つのどれかを変えたら FRAME_VERSION を上げる（browse_assets/README.md と figures.js の定数も）
++FRAME_VERSION = "mermaid-12.3.0-1"
++FRAME_ASSETS = ("mermaid-frame.html", "mermaid-frame.js", "mermaid.tiny.js")
++FRAME_PREFIX = "_frame"
+ # 図の svg の応答（図の描画の設計の 6.5）。直接開かれても、中のスクリプトを動かさない
+ CSP_SVG = "default-src 'none'; style-src 'unsafe-inline'; sandbox"
++
++
++def frame_csp(port: int) -> str:
++    """Mermaid の図の枠の文書の CSP（図の描画の設計の 7.3）。応答のヘッダーだけに付ける（<meta> は置かない）。
++
++    script-src は /_frame/<版>/ だけに限る。'self' は使わない。WebKit は、sandbox で不透明になった文書の 'self' を
++    配信元に一致させない（PoC）。style-src 'unsafe-inline' は、Mermaid が描く途中で <style> と style 属性を使うため
++    で、この文書にだけ許す。sandbox allow-scripts は、枠の文書を直接開かれたときにも、不透明なオリジンにする。
++    """
++    return (f"default-src 'none'; script-src http://127.0.0.1:{int(port)}/{FRAME_PREFIX}/{FRAME_VERSION}/; "
++            "style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; sandbox allow-scripts")
+ # 図の svg（ADR-0030）。wiki/assets/ の直下の、UTF-8 の、この大きさまでのものを読む
+ ASSET_MAX_BYTES = 2 * 1024 * 1024
+ ASSET_OUT_DIR = "assets/wiki"
+@@ -60,7 +77,8 @@ ASSET_OUT_DIR = "assets/wiki"
+ ICON_LINK = '<link rel="icon" href="data:,">'
+ RAW_MODES = ("text", "link", "basename", "none")
+ # 画面の部品。fluent2.css は Fluent 2 の再現の CSS の同梱の写し（Fluent 2 の設計の 2）、theme.js は配色を描く前に決める
+-ASSETS = ("assets/app.js", "assets/style.css", "assets/fluent2.css", "assets/theme.js")
++# figures.js は Mermaid の図を描く（ADR-0030）。静的の書き出しでは何もしない
++ASSETS = ("assets/app.js", "assets/style.css", "assets/fluent2.css", "assets/theme.js", "assets/figures.js")
+ ASSET_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "browse_assets")
+ DATA_FILES = ("nav.js", "data/manifest.js", "data/diagnostics.js", "data/search.js")
+ EXTERNAL_SCHEMES = ("http", "https", "mailto")
+@@ -1643,8 +1661,10 @@ class Core:
+ 
+     def _tail(self, path: str, extra_data: tuple = ()) -> str:
+         prefix = root_prefix(path)
++        # figures.js は app.js と別のファイルにする。app.js は契約の版が違うときなどに途中で抜けるので、図の描画を
++        # それに縛らない（図の描画の設計の 7.4）
+         scripts = "".join(f'<script src="{prefix}{name}"></script>\n'
+-                          for name in ("nav.js", "data/manifest.js", *extra_data, "assets/app.js"))
++                          for name in ("nav.js", "data/manifest.js", *extra_data, "assets/app.js", "assets/figures.js"))
+         return f"</main>\n{scripts}</body>\n</html>\n"
+ 
+     def render_page(self, pid: str, raw_mode: str = "text", stale: "str | None" = None) -> str:
+@@ -1884,13 +1904,21 @@ def js_data(name: str, value) -> str:
+ 
+ 
+ def load_assets() -> dict:
+-    """同梱の画面の部品（app.js、style.css）を読む。serve と build の始めに 1 度だけ呼ぶ（設計の 3.3）。
++    """同梱の画面の部品（app.js、style.css など）を読む。serve と build の始めに 1 度だけ呼ぶ（設計の 3.3）。
+ 
+     読めなければ fs.Unknown か fs.Absent を送出する（呼ぶ側は起動しない）。
+     """
+     return {name: fs.read_file(os.path.join(ASSET_DIR, PurePosixPath(name).name)) for name in ASSETS}
+ 
+ 
++def load_frame_assets() -> dict:
++    """Mermaid の図の枠の同梱物を読む（図の描画の設計の 7.2）。serve の始めに 1 度だけ呼ぶ。静的の書き出しには入れない。
++
++    鍵は、同梱物の名前（FRAME_ASSETS）。読めなければ fs.Unknown か fs.Absent を送出する。
++    """
++    return {name: fs.read_file(os.path.join(ASSET_DIR, name)) for name in FRAME_ASSETS}
++
++
+ # ---------------------------------------------------------------------------
+ # 公開の前の検査（構造の直しの設計の 5、8）
+ # ---------------------------------------------------------------------------
