@@ -515,10 +515,12 @@ def verified_completion(value: dict) -> bool:
     override = value.get("language_override")
     if required and isinstance(override, dict) and override.get("value") == "keep":
         return False
+    state = translation.get("state")
+    valid_state = ((state == "checked" and blocks > 0) or (state == "no_prose" and blocks == 0)) if required else state == "not_required"
     return (value.get("stage") == "check" and value.get("ok") is True
             and value.get("completed") is True and value.get("work_dir_removed") is True
             and value.get("errors") == []
-            and translation.get("state") == ("checked" if required else "not_required"))
+            and valid_state)
 
 
 def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_model: str) -> dict:

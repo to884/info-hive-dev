@@ -2055,6 +2055,7 @@ class TranslationCompletionTest(RawCheckCase):
     JAPANESE = "エンジンは既存のリンクを検索し、回答を作る前に出典の文書を読む。"
 
     def prepare(self, body=None, *, images=(), required=True):
+        self.wd.mkdir(parents=True, exist_ok=True)
         self.setup_fetch(body or ("# Graph\n\n" + self.ENGLISH + "\n"),
                          images=images, needs_translation=required)
         self.assertTrue(self.freeze()["ok"])
@@ -2091,7 +2092,7 @@ class TranslationCompletionTest(RawCheckCase):
         self.write_raw("# Graph\n\n" + self.JAPANESE + "\n\n" + self.ENGLISH + "\n", fm=FM_T)
         result = self.run_check("--finish", "--accept-warnings")
         self.assert_incomplete(result, "untranslated")
-        self.assertEqual(result[1]["translation"]["checked_blocks"], 2)
+        self.assertEqual(result[1]["translation"]["checked_blocks"], 3)
         self.assertEqual(sum(x["kind"] == "untranslated" for x in result[1]["errors"]), 1)
 
     def test_caption_does_not_count_as_body_translation(self):
@@ -2148,13 +2149,145 @@ class TranslationCompletionTest(RawCheckCase):
         code, data = self.run_check()
         self.assertEqual(code, 0, data)
         self.assertFalse(data["completed"])
-        self.assertEqual(data["translation"], {"state": "checked", "checked_blocks": 1})
+        self.assertEqual(data["translation"], {"state": "checked", "checked_blocks": 5})
         self.assertTrue(self.wd.exists())
         code, data = self.run_check("--finish")
         self.assertEqual(code, 0, data)
         self.assertTrue(data["completed"])
         self.assertTrue(data["work_dir_removed"])
         self.assertFalse(self.wd.exists())
+
+    def test_product_names_in_translated_headings_and_cells(self):
+        cases = [
+            ("# Introduction to Apache Kafka\n", "# Apache Kafka 入門\n"),
+            ("# Getting Started with Apache Kafka Streams\n", "# Apache Kafka Streams 入門\n"),
+            ("## Apache Kafka versus RabbitMQ Streams\n", "## Apache Kafka と RabbitMQ Streams\n"),
+            ("## What is Amazon Elastic Kubernetes Service\n", "## Amazon Elastic Kubernetes Service とは\n"),
+            ("| Supported on Linux, macOS and Windows |\n| --- |\n",
+             "| Linux、macOS、Windows で対応 |\n| --- |\n"),
+        ]
+        for source, output in cases:
+            with self.subTest(source=source):
+                self.prepare(source)
+                self.write_raw(output, fm=FM_T)
+                code, result = self.run_check("--finish", "--accept-warnings")
+                self.assertEqual(code, 0, result)
+                self.assertTrue(result["completed"])
+
+    def test_unchanged_names_are_reviewable_not_hard_errors(self):
+        for body in ("## Attention Is All You Need\n", "## We Need To Talk About Kevin\n",
+                     "| Microsoft Azure Cosmos Database |\n| --- |\n"):
+            with self.subTest(body=body):
+                self.prepare(body)
+                self.write_raw(body, fm=FM_T)
+                code, result = self.run_check("--finish")
+                self.assertEqual(code, 0, result)
+                self.assertFalse(result["completed"])
+                self.assertIn("translation_uncertain", {w["kind"] for w in result["warnings"]})
+                code, result = self.run_check("--finish", "--accept-warnings")
+                self.assertEqual(code, 0, result)
+                self.assertTrue(result["completed"])
+
+    def test_unchanged_sentences_in_other_scripts_are_not_translation(self):
+        for body in (
+            "Система выполняет поиск документов и использует существующие связи для получения ответа на вопрос пользователя.",
+            "이 시스템은 문서를 검색하고 기존 연결을 사용하여 사용자의 질문에 대한 답변을 생성합니다.",
+        ):
+            for prefix in ("", "システムは文書を検索する。 "):
+                with self.subTest(body=body, prefix=prefix):
+                    self.prepare(body + "\n")
+                    self.write_raw(prefix + body + "\n", fm=FM_T)
+                    self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_a_translated_prefix_does_not_cover_later_sentences(self):
+        sentences = [
+            "The agent searches document links before generating an answer.",
+            "The database stores all pages and their explicit relationships.",
+            "The reader verifies every citation before it releases the final response.",
+            "The system refuses the question when the corpus contains no supporting path.",
+            "The checker compares the evidence with all of the returned claims.",
+            "The evaluation includes real questions collected from the users.",
+        ]
+        for prefix in (1, 3, 5):
+            with self.subTest(prefix=prefix):
+                self.prepare("# A\n\n" + " ".join(sentences) + "\n")
+                self.write_raw("# A\n\n" + self.JAPANESE * prefix + " ".join(sentences[prefix:]) + "\n", fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_interleaved_original_sentences_do_not_count_as_translation(self):
+        self.prepare("# A\n\n" + self.ENGLISH + " " + self.ENGLISH + "\n")
+        self.write_raw("# A\n\n" + self.JAPANESE + self.ENGLISH + self.JAPANESE + self.ENGLISH + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_chinese_with_one_character_changed_is_not_translation(self):
+        body = "这是一个使用已有文档之间的链接来查找相关资料并在回答之前检查引用的系统。"
+        self.prepare("# A\n\n" + body + "\n")
+        self.write_raw("# A\n\n" + body.replace("的", "の", 1) + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_chinese_second_sentence_must_also_be_translated(self):
+        first = "系统使用文档之间的显式链接建立知识图谱。"
+        second = "查询时需要检查相关证据并给出文档引用。"
+        self.prepare("# A\n\n" + first + second + "\n")
+        self.write_raw("# A\n\nシステムは文書間の明示的なリンクからグラフを作る。" + second + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_title_cased_sentence_is_not_a_name(self):
+        body = "We Use Apache Kafka And Redis For Fast Event Delivery Across All Regions Today."
+        self.prepare("# A\n\n" + body + "\n")
+        self.write_raw("# A\n\n" + body + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_short_phrases_require_review_before_completion(self):
+        body = "- Fixed crash on startup\n- Faster cold boot\n- New config loader\n"
+        self.prepare(body)
+        self.write_raw(body, fm=FM_T)
+        code, result = self.run_check("--finish")
+        self.assertEqual(code, 0, result)
+        self.assertFalse(result["completed"])
+        self.assertIn("translation_uncertain", {w["kind"] for w in result["warnings"]})
+        self.assertTrue(self.wd.exists())
+
+    def test_retained_labels_names_terms_and_values_are_reviewable(self):
+        cases = [
+            ("If the log says Permission denied while opening the configuration file, check ownership.\n",
+             "ログに Permission denied while opening the configuration file と出たら、所有者を確かめる。\n"),
+            ("Click Save all changes and continue to finish.\n", "Save all changes and continue をクリックして終える。\n"),
+            ("- Libraries used: numpy, scipy, pandas, matplotlib.\n", "- 使ったライブラリ: numpy、scipy、pandas、matplotlib。\n"),
+            ("The paper Language models are few-shot learners introduced GPT-3.\n",
+             "論文 Language models are few-shot learners は GPT-3 を発表した。\n"),
+            ("Follow the principle of least privilege.\n", "最小権限の原則（principle of least privilege）に従う。\n"),
+            ("| fast, safe | linux, darwin, windows |\n| --- | --- |\n",
+             "| fast, safe | linux, darwin, windows |\n| --- | --- |\n"),
+        ]
+        for source, output in cases:
+            with self.subTest(source=source):
+                self.prepare(source)
+                self.write_raw(output, fm=FM_T)
+                code, result = self.run_check("--finish")
+                self.assertEqual(code, 0, result)
+                self.assertFalse(result["completed"])
+                self.assertTrue(result["warnings"])
+                code, result = self.run_check("--finish", "--accept-warnings")
+                self.assertEqual(code, 0, result)
+                self.assertTrue(result["completed"])
+
+    def test_code_only_input_reports_no_prose_instead_of_checked_zero(self):
+        body = "```python\nprint('The engine reads the source documents before producing the final answer.')\n```\n"
+        self.prepare(body)
+        self.write_raw(body, fm=FM_T)
+        code, result = self.run_check("--finish")
+        self.assertEqual(code, 0, result)
+        self.assertEqual(result["translation"], {"state": "no_prose", "checked_blocks": 0})
+        self.assertTrue(result["completed"])
+
+    def test_html_blocks_cannot_silently_report_no_prose(self):
+        body = "<div>" + self.ENGLISH + "</div>\n"
+        for html, kind in ((False, "untranslated"), (True, "translation_html")):
+            with self.subTest(html=html), mock.patch.dict(wiki_rawcheck._PARSER.options, {"html": html}):
+                self.prepare(body)
+                self.write_raw(body, fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), kind)
 
     def test_missing_or_non_boolean_requirement_is_not_optional(self):
         for value in (None, "false", 0, 1, [], {}):

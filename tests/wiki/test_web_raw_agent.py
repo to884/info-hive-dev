@@ -456,6 +456,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
             "no_translator": {"translated_by": ""},
             "non_string_translator": {"translated_by": ["Model"]},
             "non_integer_block_count": {"translation": {"state": "checked", "checked_blocks": True}},
+            "checked_zero": {"translation": {"state": "checked", "checked_blocks": 0}},
         }
         for name, changes in cases.items():
             with self.subTest(name=name):
