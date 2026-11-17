@@ -10,10 +10,10 @@ import tempfile
 
 root = Path(__file__).resolve().parents[3]
 plugin = root / "info-hive-wiki"
-version = "0.33.0"
+version = "0.34.0"
 cli = shutil.which("claude")
 assert cli, "Claude CLI がない"
-with tempfile.TemporaryDirectory(prefix="wiki-0330-marketplace-") as tmp:
+with tempfile.TemporaryDirectory(prefix="wiki-0340-marketplace-") as tmp:
     base = Path(tmp)
     env = {**os.environ, "CLAUDE_CONFIG_DIR": str(base / "config"), "PYTHONUTF8": "1"}
     def run(args, cwd=base):

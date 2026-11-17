@@ -9,8 +9,8 @@ import tempfile
 import zipfile
 
 root = Path(__file__).resolve().parents[3]
-version = "0.33.0"
-with tempfile.TemporaryDirectory(prefix="wiki-0330-skills-") as tmp:
+version = "0.34.0"
+with tempfile.TemporaryDirectory(prefix="wiki-0340-skills-") as tmp:
     base = Path(tmp).resolve()
     result = subprocess.run([shutil.which("npx"), "--yes", "skills", "add", "to884/info-hive-wiki",
                              "--skill", "info-hive", "--agent", "codex", "--copy", "--yes", "--json"],

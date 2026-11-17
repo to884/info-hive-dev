@@ -1,0 +1,46 @@
+## 判定
+
+**採用可**。第3回の軽微 1〜4 と、複数の身元とハッシュが並ぶ場合は、どれも実測で閉じました。今回の差分で入った欠陥は見つかりませんでした。確信度は高です。
+
+## 致命的・重大な欠陥
+
+なし。
+
+閉鎖の判定：
+
+| 第3回の指摘 | 結果（実測） | 判定 |
+| --- | --- | --- |
+| 前提：複数の `url` と、そろったハッシュ | `url:["https://x","https://y"]` と合う `raw_sha256` で `resolved` になった。ハッシュが違えば `missing` になり、`mismatches=[version]` が付く。ハッシュの数が `raw:` と合わないときは、これまでどおり `unknown` | 閉鎖 |
+| 軽微 1：`outside` と版の不一致が並ぶと、不一致が lint から消える | 前回の配置 3c が `outside` で `mismatches=[version]` を持ち、lint の `raw_outside` の項目と文章にも載る（`wiki_lint.py:663-664`、860-861 行） | 閉鎖 |
+| 軽微 2：根拠のソースの raw が複数で、片方だけ読めるときに理由が消える | `EvidenceTexts.without()` は理由を保つ（`list(t)` は `['A','B']` のまま、`without('A')` は `['B']` と `problems=['p']`）。読めた本文に訂正した語がなく、拒んだ raw があれば、「確かめられない（理由）」を返す（`wiki_captions.py:968-976`） | 閉鎖 |
+| 軽微 3：文書に新しい欄の説明がない | `commands/lint.md:27` と `lint-workflow.md:160` に、`mismatches`、`scope_unverified`、側ごとの件数、記録のない過去の根の限界が書かれた。`commands/ingest.md` の V8 にも `scope_unverified` が足された | 閉鎖 |
+| 軽微 4：`links_unchecked` に側の区別がない | `links_unchecked_wiki` と `links_unchecked_raw` が分かれ、未検査の側は `null` になる（`wiki_lint.py:781-782`） | 閉鎖 |
+
+## 崩れる前提
+
+- **前提「拒んだ raw の理由は、bad_definition に出なくてもよい」**（作者の決定どおりで、欠陥ではありません）：読めた本文に訂正した語があれば、同じ slug の別の raw を拒んでいても、定義は通ります。拒んだ理由は `raw_warnings` にだけ残ります。依頼元の説明の「全部の raw がそろっていないだけでは止めない」と一致します。
+- **前提「`session_id` が複数の値でも、ハッシュがそろえばセッションの基準でよい」**：基準を決める条件が `if not sessions:`（リストの有無）になりました（`wiki_raw.py:250`）。そのため、複数の `session_id` とそろったハッシュでは、基準は wiki の親だけになり、身元の照合はしません。実測では `resolved` で、仕様の範囲内です。
+
+## 見落としと軽微な問題
+
+- **軽微（コード）：使われない例外が残る。** `other_raw_texts` は `EvidenceUnavailable` を出さなくなりました。それでも、`check_definition` の `except EvidenceUnavailable`（`wiki_captions.py:964-967`）と、クラスの定義（67-68 行）が残っています。動きには影響しません。
+
+## 検証した事実
+
+- **差分**：`git diff 8005b39..HEAD` は、コミット `558068b` の 1 つで、コードは 3 ファイル、文書は 3 ファイルでした。依頼元の説明と一致します。
+- **試験**：`tests/wiki/test_raw_links.py`、`test_wiki_youtube.py`、`test_wiki_lint.py` を流し、124 件が成功、skip 1 件でした。依頼元の報告と一致します。
+- **同じ動画の本文を除く処理**：`without()` は `t != text` で除きます。これまでの `t is not doc.text and t != doc.text` と同じ結果です。
+- **CI**：最新の差分の CI の結果は確かめていません。
+
+## 崩せなかった点
+
+- 拒んだ理由は、本文を絞ったあとも保たれます。
+- 版の不一致の理由は、`outside` と `missing` のどちらの状態でも、JSON と文章に残ります。
+- ハッシュがあるときは、使わない複数の身元で `unknown` になりません。ハッシュがないときの複数の身元は、`unknown` のままです。
+- 根を渡さない lint の件数は、側ごとに `null` と `0` を区別します。
+
+---
+使用した MCP サーバー: なし
+使用した Agent Skills: なし
+
+推奨のモデルとエフォート：このレビューは Opus / medium。次のリリースの手順（CI の確認、タグ、GitHub リリース、マーケットプレイスからの導入の確認）は Sonnet / medium で足ります。
