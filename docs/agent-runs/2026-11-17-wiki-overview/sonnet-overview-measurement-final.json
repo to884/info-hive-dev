@@ -1,0 +1,384 @@
+{
+  "requested_model": "sonnet",
+  "runs": [
+    {
+      "run": 1,
+      "status": "completed",
+      "exit_code": 0,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "checks": {
+        "guide_read": true,
+        "page_copy_read": true,
+        "begin_before_request_write": true,
+        "check_then_write": true,
+        "page_not_in_shell": true,
+        "no_direct_sidecar_write": true,
+        "final_success": true,
+        "sonnet_5_5": true,
+        "saved_fresh": true,
+        "source_preserved": true
+      },
+      "operations": [
+        "begin",
+        "prepare",
+        "check",
+        "write"
+      ],
+      "events": [
+        {
+          "tool": "Read",
+          "id": "toolu_01VASzd1r4yG9Brb14XK2FzV",
+          "position": 10,
+          "file_path": "<fixture>/wiki/SCHEMA.md",
+          "successful": true,
+          "result_position": 12
+        },
+        {
+          "tool": "Bash",
+          "id": "toolu_01Ez97VpvZDSU9XoM4NR4rZp",
+          "position": 13,
+          "command": "python \"<plugin>/skills/info-hive/scripts/wiki_overview.py\" begin \"<fixture>/wiki\"",
+          "successful": true,
+          "result_position": 14,
+          "result_statuses": [
+            "ready"
+          ]
+        },
+        {
+          "tool": "Write",
+          "id": "toolu_01XKp468Psyt4bQQ74HVMkeK",
+          "position": 15,
+          "file_path": "<fixture>\\wiki\\.wiki-cache\\overview\\request.json",
+          "successful": true,
+          "result_position": 16
+        },
+        {
+          "tool": "Bash",
+          "id": "toolu_011CipbhVA9TPeLDRghdqUkR",
+          "position": 17,
+          "command": "python \"<plugin>/skills/info-hive/scripts/wiki_overview.py\" prepare \"<fixture>/wiki\"",
+          "successful": true,
+          "result_position": 18,
+          "result_statuses": [
+            "ready"
+          ]
+        },
+        {
+          "tool": "Read",
+          "id": "toolu_012CbKJunFHBABLXyY3LmD4q",
+          "position": 19,
+          "file_path": "<plugin>/skills/info-hive/references/overview-workflow.md",
+          "successful": true,
+          "result_position": 20
+        },
+        {
+          "tool": "Read",
+          "id": "toolu_017PQiKYqFWmTQHPxg37hMZU",
+          "position": 21,
+          "file_path": "<fixture>\\wiki\\.wiki-cache\\overview\\work\\ee115cf9353fe66a\\page.md",
+          "successful": true,
+          "result_position": 22
+        },
+        {
+          "tool": "Write",
+          "id": "toolu_01QchsEpHaYQ2nCj9LN1EyAC",
+          "position": 29,
+          "file_path": "<fixture>\\wiki\\.wiki-cache\\overview\\work\\ee115cf9353fe66a\\draft\\flow.svg",
+          "successful": true,
+          "result_position": 30
+        },
+        {
+          "tool": "Write",
+          "id": "toolu_01NXfDarvFsipZJRrmDtEuCh",
+          "position": 31,
+          "file_path": "<fixture>\\wiki\\.wiki-cache\\overview\\work\\ee115cf9353fe66a\\draft\\overview.md",
+          "successful": true,
+          "result_position": 33
+        },
+        {
+          "tool": "Bash",
+          "id": "toolu_01DWJs5ockrFEPFqGWgecuAc",
+          "position": 35,
+          "command": "python \"<plugin>/skills/info-hive/scripts/wiki_overview.py\" check \"<fixture>/wiki\" --work=ee115cf9353fe66a",
+          "successful": true,
+          "result_position": 36,
+          "result_statuses": [
+            "ok"
+          ]
+        },
+        {
+          "tool": "Bash",
+          "id": "toolu_01FwpXYFPJ73pCPydaGs3ocT",
+          "position": 37,
+          "command": "python \"<plugin>/skills/info-hive/scripts/wiki_overview.py\" write \"<fixture>/wiki\" --work=ee115cf9353fe66a",
+          "successful": true,
+          "result_position": 38,
+          "result_statuses": [
+            "written"
+          ]
+        }
+      ],
+      "error": "",
+      "permission_denials": [],
+      "passed": true
+    },
+    {
+      "run": 2,
+      "status": "completed",
+      "exit_code": 0,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "checks": {
+        "guide_read": true,
+        "page_copy_read": true,
+        "begin_before_request_write": true,
+        "check_then_write": true,
+        "page_not_in_shell": true,
+        "no_direct_sidecar_write": true,
+        "final_success": true,
+        "sonnet_5_5": true,
+        "saved_fresh": true,
+        "source_preserved": true
+      },
+      "operations": [
+        "begin",
+        "prepare",
+        "check",
+        "write"
+      ],
+      "events": [
+        {
+          "tool": "Read",
+          "id": "toolu_016FnLZgNg6NQ8SMzf8fzfdR",
+          "position": 9,
+          "file_path": "<fixture>/wiki/SCHEMA.md",
+          "successful": true,
+          "result_position": 11
+        },
+        {
+          "tool": "Bash",
+          "id": "toolu_012mwPRXcUhg76aN6cEyhpXr",
+          "position": 12,
+          "command": "python \"<plugin>/skills/info-hive/scripts/wiki_overview.py\" begin \"<fixture>/wiki\"",
+          "successful": true,
+          "result_position": 13,
+          "result_statuses": [
+            "ready"
+          ]
+        },
+        {
+          "tool": "Write",
+          "id": "toolu_01GwYMQSTD5YEzFarfkDvPzM",
+          "position": 14,
+          "file_path": "<fixture>\\wiki\\.wiki-cache\\overview\\request.json",
+          "successful": true,
+          "result_position": 15
+        },
+        {
+          "tool": "Bash",
+          "id": "toolu_01EruaaTYiVC5fCS1okipvN1",
+          "position": 16,
+          "command": "python \"<plugin>/skills/info-hive/scripts/wiki_overview.py\" prepare \"<fixture>/wiki\"",
+          "successful": true,
+          "result_position": 17,
+          "result_statuses": [
+            "ready"
+          ]
+        },
+        {
+          "tool": "Read",
+          "id": "toolu_01C8d4QBwS9v7ebvT22j5w66",
+          "position": 18,
+          "file_path": "<plugin>/skills/info-hive/references/overview-workflow.md",
+          "successful": true,
+          "result_position": 19
+        },
+        {
+          "tool": "Read",
+          "id": "toolu_013sJs3rYydg9VKddNebhkC1",
+          "position": 20,
+          "file_path": "<fixture>\\wiki\\.wiki-cache\\overview\\work\\8ee0a3581521d1e2\\page.md",
+          "successful": true,
+          "result_position": 21
+        },
+        {
+          "tool": "Write",
+          "id": "toolu_01RNA8nZy21XbJZyXbjbn9VS",
+          "position": 25,
+          "file_path": "<fixture>\\wiki\\.wiki-cache\\overview\\work\\8ee0a3581521d1e2\\draft\\flow.svg",
+          "successful": true,
+          "result_position": 26
+        },
+        {
+          "tool": "Write",
+          "id": "toolu_012uPQ7YhiE4jCsB8zKVRmbs",
+          "position": 27,
+          "file_path": "<fixture>\\wiki\\.wiki-cache\\overview\\work\\8ee0a3581521d1e2\\draft\\overview.md",
+          "successful": true,
+          "result_position": 28
+        },
+        {
+          "tool": "Write",
+          "id": "toolu_01Vk7XWBWvQLqVdh91P7YmKe",
+          "position": 29,
+          "file_path": "<fixture>\\wiki\\.wiki-cache\\overview\\work\\8ee0a3581521d1e2\\draft\\roles.svg",
+          "successful": true,
+          "result_position": 30
+        },
+        {
+          "tool": "Bash",
+          "id": "toolu_01Vbh7u4zcoUcpeLazQ7ADC2",
+          "position": 35,
+          "command": "python \"<plugin>/skills/info-hive/scripts/wiki_overview.py\" check \"<fixture>/wiki\" --work=8ee0a3581521d1e2",
+          "successful": true,
+          "result_position": 37,
+          "result_statuses": [
+            "ok"
+          ]
+        },
+        {
+          "tool": "Bash",
+          "id": "toolu_01BkT59KfYB6hMQpjsBNfF7U",
+          "position": 38,
+          "command": "python \"<plugin>/skills/info-hive/scripts/wiki_overview.py\" write \"<fixture>/wiki\" --work=8ee0a3581521d1e2",
+          "successful": true,
+          "result_position": 39,
+          "result_statuses": [
+            "written"
+          ]
+        }
+      ],
+      "error": "",
+      "permission_denials": [],
+      "passed": true
+    },
+    {
+      "run": 3,
+      "status": "completed",
+      "exit_code": 0,
+      "models": [
+        "claude-sonnet-5-5"
+      ],
+      "checks": {
+        "guide_read": true,
+        "page_copy_read": true,
+        "begin_before_request_write": true,
+        "check_then_write": true,
+        "page_not_in_shell": true,
+        "no_direct_sidecar_write": true,
+        "final_success": true,
+        "sonnet_5_5": true,
+        "saved_fresh": true,
+        "source_preserved": true
+      },
+      "operations": [
+        "begin",
+        "prepare",
+        "check",
+        "write"
+      ],
+      "events": [
+        {
+          "tool": "Read",
+          "id": "toolu_01RTR6uGtPPtydEEtN6gUg3J",
+          "position": 9,
+          "file_path": "<fixture>/wiki/SCHEMA.md",
+          "successful": true,
+          "result_position": 11
+        },
+        {
+          "tool": "Bash",
+          "id": "toolu_01KHtkGmZUV2vE5ccpVmAXaH",
+          "position": 12,
+          "command": "python \"<plugin>/skills/info-hive/scripts/wiki_overview.py\" begin \"<fixture>/wiki\"",
+          "successful": true,
+          "result_position": 13,
+          "result_statuses": [
+            "ready"
+          ]
+        },
+        {
+          "tool": "Write",
+          "id": "toolu_01FELFdU3csCfXy5jcS8WWYV",
+          "position": 14,
+          "file_path": "<fixture>\\wiki\\.wiki-cache\\overview\\request.json",
+          "successful": true,
+          "result_position": 16
+        },
+        {
+          "tool": "Bash",
+          "id": "toolu_01KpcCgwoskPAHjVQzjkUqQv",
+          "position": 17,
+          "command": "python \"<plugin>/skills/info-hive/scripts/wiki_overview.py\" prepare \"<fixture>/wiki\"",
+          "successful": true,
+          "result_position": 18,
+          "result_statuses": [
+            "ready"
+          ]
+        },
+        {
+          "tool": "Read",
+          "id": "toolu_01PXUv575qE3HMLw3WnLaEQf",
+          "position": 19,
+          "file_path": "<plugin>/skills/info-hive/references/overview-workflow.md",
+          "successful": true,
+          "result_position": 20
+        },
+        {
+          "tool": "Read",
+          "id": "toolu_016QqWysawx6sxBw6HHNFhY8",
+          "position": 21,
+          "file_path": "<fixture>\\wiki\\.wiki-cache\\overview\\work\\146a8f581c1b9af5\\page.md",
+          "successful": true,
+          "result_position": 22
+        },
+        {
+          "tool": "Write",
+          "id": "toolu_01DewguTySHd6TWb3FPvMFMi",
+          "position": 46,
+          "file_path": "<fixture>\\wiki\\.wiki-cache\\overview\\work\\146a8f581c1b9af5\\draft\\flow.svg",
+          "successful": true,
+          "result_position": 47
+        },
+        {
+          "tool": "Write",
+          "id": "toolu_015tq4Vz7TQsMS1vQYNVzWcW",
+          "position": 48,
+          "file_path": "<fixture>\\wiki\\.wiki-cache\\overview\\work\\146a8f581c1b9af5\\draft\\overview.md",
+          "successful": true,
+          "result_position": 50
+        },
+        {
+          "tool": "Bash",
+          "id": "toolu_01Bgv4UhXdtaP4qLyix6kLgh",
+          "position": 54,
+          "command": "python \"<plugin>/skills/info-hive/scripts/wiki_overview.py\" check \"<fixture>/wiki\" --work=146a8f581c1b9af5",
+          "successful": true,
+          "result_position": 55,
+          "result_statuses": [
+            "ok"
+          ]
+        },
+        {
+          "tool": "Bash",
+          "id": "toolu_012LJd5eCHrt3MqkgMEwAFgG",
+          "position": 56,
+          "command": "python \"<plugin>/skills/info-hive/scripts/wiki_overview.py\" write \"<fixture>/wiki\" --work=146a8f581c1b9af5",
+          "successful": true,
+          "result_position": 57,
+          "result_statuses": [
+            "written"
+          ]
+        }
+      ],
+      "error": "",
+      "permission_denials": [],
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "complete": true
+}

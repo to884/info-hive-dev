@@ -341,7 +341,9 @@ class UnreadableExcludedDirTest(TempWiki):
         write(self.wiki, "raw/x.md", "raw\n")
         write(self.wiki, "assets/y.md", "asset\n")
         with self.denied():
-            self.assertEqual([e[0] for e in core.input_list(self.wiki)], ["page"])
+            # main の ADR-0030 の試験に合わせる。SVG の一覧が不明なことも入力の印に残す。
+            self.assertEqual([e[:4] for e in core.input_list(self.wiki)][-1], ("asset_dir", "assets", None, None))
+            self.assertEqual([e[0] for e in core.input_list(self.wiki)], ["page", "asset_dir"])
             report = self.build(self.base / "site")
             # stop と動いているかの確かめの最初の手順も、入力でない場所に触れない
             state, _rec = fs.probe_server(self.wiki, wiki_browse.browse_dir(), wiki_browse._state_dir(self.wiki),
