@@ -1,0 +1,84 @@
+[ask-codex 20:28:55] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\query-two-wikis-0029）
+## 判定
+
+**却下。確信度：高。** `Walk.links` の確認では接続済みMCPの実装を確認できず、また「開くものの集まり」には既存の読み取りが漏れている。13版の前提2・3を崩す反例が残る。
+
+## 致命的・重大な欠陥
+
+### 1. 重大・発生度 C：新しい補助が、ADR-0029実装前のMCPを通してしまう
+
+補助が確認するのは、CLIプロセスが読み込んだ `wiki_pages.Walk` である。**既に接続しているMCPサーバーが使う `Walk` とは別物**である。
+
+反例の手順：
+
+1. ADR-0029実装前のMCPに接続し、一度検索して旧モジュールを読み込ませる。AにはBのページを指すファイルのシンボリックリンクがある。
+2. 接続を維持したまま、`--plugin-dir` で指定した同じディレクトリを、ADR-0029と問い合わせの新実装へ更新する。
+3. 新しいCLIプロセスで補助を実行する。新しい `Walk.links` があるため前提確認を通過し、Aのリンクを除外して `disjoint` と警告を返せる。
+4. 接続済みMCPへ問い合わせる。旧サーバーはリンクを読み、Bの本文をAの結果として返せる。
+
+中継の `Upstream.session()` は、接続先が生きていれば既存セッションを返す。版を照合する `ensure_server()` は、再接続しない限り呼ばれない。見張りも生存確認だけである。
+
+実コードから `Upstream` を抽出し、接続先の生存確認だけを差し替えて実行した結果：
+
+```text
+OLD_SESSION_REUSED: True
+CHECKS: ['alive']
+VERSION_AFTER: before-ADR-0029
+```
+
+これは既出の `SERVER_FILES` 追加漏れとは異なる。**コードのハッシュが正しく変わっていても、照合自体に到達しない。** 更新を補助の実行前に済ませれば、第5節の「確かめたあとの変化」にも該当しない。
+
+根拠：[問い合わせ設計:158](C:/Works/info-hive-dev/.claude/worktrees/query-two-wikis-0029/docs/plans/wiki-query-two-wikis-2026-11-16.md:158)、[版の照合:110](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_relay.py:110)、[接続の再利用:234](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_relay.py:234)、[旧版のページ読み取り:943](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:943)。
+
+### 2. 重大・発生度 D：ディレクトリだけの比較では、MCP索引内部の共有を見逃す
+
+第4節が集めるMCP索引の識別子は `index/<wiki_key>/` のディレクトリである。その中で実際に開くファイルは列挙されていない。**親ディレクトリが別実体でも、子ファイルは共有できる。**
+
+反例：
+
+- A・Bの根、記事、キャッシュ、グラフはすべて別実体とする。
+- 両方のMCP索引を作り、埋め込みを完了させる。
+- 異なる索引ディレクトリにある `vectors.usearch` 同士だけをハードリンクにする。本文はその後変更しない。
+
+記述どおりの識別子集合では、索引ディレクトリの識別子は異なり、共有したファイルは集合に入らないため `disjoint` になる。
+
+ところが `Collection._open_usearch()` は、そのファイルを直接読み込む。Aの台帳のキーとBのベクトルのキーが一致すれば、Aの検索は**BのベクトルをAのセクションに対応付けて順位を作る**。記事の走査では防げない。本文と埋め込みに更新がなければ、ベクトルファイルへの書き込み拒否を待つだけでは、この読み取りも防げない。
+
+根拠：[比較対象の定義:194](C:/Works/info-hive-dev/.claude/worktrees/query-two-wikis-0029/docs/plans/wiki-query-two-wikis-2026-11-16.md:194)、[ベクトルの直接読み取り:444](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:444)、[キーによる検索結果の採用:702](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:702)。この配置での補助の判定と検索結果は、未実装の補助仕様と現行コードからの導出であり、実MCPでの通し試験はしていない。
+
+同じ漏れは `graph/ontology.yaml` にもある。A・Bの `graph/` とDBを別々に保ち、`ontology.yaml` だけをハードリンクにすれば、関係を問う手順が同じファイルの `node_types` を読むのに共有判定へ入らない。これは新しい読み取りの追加漏れではなく、**現行手順に既にある読み取りの漏れ**である。根拠：[コマンドのノードID決定:17](C:/Works/info-hive-dev/info-hive-wiki/commands/query.md:17)。
+
+## 崩れる前提
+
+| 暗黙の前提 | 崩れる条件 |
+|---|---|
+| 補助側の `Walk.links` があれば、MCPもリンクを拒む版である | 接続済みの旧サーバーを維持したままディスク上の実装を更新する |
+| MCP索引ディレクトリが別実体なら、その中の読み取りも分離する | `vectors.usearch` など、子ファイルだけを共有する |
+| 第4節の一覧は現在の問い合わせ手順を覆っている | `ontology.yaml` の参照、MCP索引内部の読み取りを行う |
+
+## 見落としと軽微な問題
+
+- **試験が欠陥1を検出しない。** 216行の試験は、補助へ渡すローカルの `wiki_pages` を旧版へ差し替えるだけである。「補助は新版、接続済みMCPは旧版」という組み合わせは通過する。
+- **試験が欠陥2を検出しない。** 215行はディレクトリ全体のリンクとCLIの `embeddings.sqlite` を扱うが、MCP索引内部のファイルだけの共有と `ontology.yaml` の共有を扱わない。224行の検査破壊試験も、この漏れを検出できない。[試験一覧:210](C:/Works/info-hive-dev/.claude/worktrees/query-two-wikis-0029/docs/plans/wiki-query-two-wikis-2026-11-16.md:210)。
+- **194行の「書くのは `search-index.json`」は誤り。** `embeddings.sqlite` にも書く。同じ文書の119行とも食い違う。[SQLiteの生成・更新:611](C:/Works/info-hive-dev/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:611)。
+
+## 検証した事実
+
+| 主張 | 結果 |
+|---|---|
+| 指定コードはv0.23.1、`955c15a`である | 一致。プラグイン定義とGitのHEADを確認 |
+| 現行 `Walk` に `links` がない | 一致。したがって、現行CLI実装そのものは予定の前提確認で拒める |
+| 中継が既存接続で版を確認する | 食い違い。確認するのは生存状態であり、抽出した実コードでも旧セッションを再利用した |
+| MCP索引はディレクトリ以外も開く | 一致。`ledger.sqlite`、`vectors.usearch`、Tantivy、`parse-cache.json` を確認 |
+| 更新後の走査・`article_path()`・`resolve_raw()` が実際に連携する | 確かめられず。ADR-0029の実装はまだない |
+
+ファイルは変更していない。
+
+## 崩せなかった点
+
+- 走査と記事を読む口の**両方がADR-0029実装後のものとして動く条件**では、既出のジャンクション、記事のシンボリックリンク、ハードリンクの反例を再成立させられなかった。実装上の確認は未実施である。
+- 拒んだ記事を警告として残して読み取りを続ける決定と、I4の間に、新たな仕様上の矛盾は見つからなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 20:50:04] 完了。session 01a1e41e-09e9-7023-b6cb-bc5eb8d4b9b0  usage {"input_tokens": 3098518, "cached_input_tokens": 2917504, "cache_write_input_tokens": 0, "output_tokens": 24024, "reasoning_output_tokens": 16202}
