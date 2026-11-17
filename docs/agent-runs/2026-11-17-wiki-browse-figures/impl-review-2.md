@@ -1,0 +1,76 @@
+## 判定
+
+**条件付きで採用可。確信度：中。** 前回の重大な文字コード検査の回避は再現しなかった。ただし、有効な UTF-8 SVG の誤除外と、lint による参照先の誤検出が残る。
+
+## 致命的・重大な欠陥
+
+なし。今回の検証では崩せなかった。
+
+## 崩れる前提
+
+- **「`<?xml` の直後が単語境界なら XML 宣言である」**  
+  `<?xml-stylesheet ...?>` も一致する。処理命令の内容を、文書の文字コード宣言として誤解する。
+
+- **「markdown-it と同じ `unescapeAll` を使えば、同じ参照先になる」**  
+  markdown-it は、その後に URL の正規化も行う。文字参照を解いた結果が先頭・末尾の空白になる場合、この処理の有無で結果が分かれる。
+
+## 見落としと軽微な問題
+
+**1. 軽微：処理命令の URL によって、有効な UTF-8 SVG が除外される**
+
+反例は、次の内容を UTF-8 で保存した SVG。
+
+```xml
+<?xml-stylesheet type="text/css" href="style.css?encoding='Shift_JIS'"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10">
+  <rect width="20" height="10"/>
+</svg>
+```
+
+`_XML_DECL_RE` の `xml\b` が `xml-stylesheet` に一致し、続く検索が URL 内の `encoding='Shift_JIS'` を拾う。その結果、`is_utf8_svg` は `False` を返す。
+
+実際の expat では、XML 宣言の通知はゼロ、処理命令の通知は `xml-stylesheet` の１件で、解析は成功した。入出力をメモリーに差し替えた `take_snapshot → Core` でも、`error="decode"`、出力 SVG なし、`asset_unreadable` になることを確認した。
+
+根拠：[wiki_browse_core.py:166](C:/Works/info-hive-dev/.claude/worktrees/browse-figures/info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py:166) の `_XML_DECL_RE` と、同ファイルの `is_utf8_svg`。
+
+**2. 軽微：空白の文字参照で、lint と browse の解決結果がまだ食い違う**
+
+`assets/a.svg` が存在する状態で、次を本文に書く。
+
+```markdown
+![図](../assets/a.svg&#32;)
+```
+
+実行結果：
+
+| 処理 | 結果 |
+|---|---|
+| markdown-it の `src` | `../assets/a.svg` |
+| `figure_target` | `assets/a.svg` |
+| `image_ref_path` | `../assets/a.svg `（末尾に空白） |
+| `missing_assets` | 存在する図を欠落として報告 |
+
+`&#32;../assets/a.svg`、末尾の `&#9;`、`&NewLine;` でも食い違った。`missing_assets` の誤検出は、ファイルの存在判定だけをメモリーに差し替えて確認した。
+
+原因は、markdown-it の `normalizeLink` が使う mdurl に `strip()` がある一方、`image_ref_path` は `unescapeAll` の後、その正規化を通らないこと。
+
+根拠：[wiki_lint.py:260](C:/Works/info-hive-dev/.claude/worktrees/browse-figures/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:260)、[mdurl/_parse.py:121](C:/Works/info-hive-dev/.claude/worktrees/browse-figures/info-hive-wiki/skills/info-hive/scripts/_vendor/mdurl/_parse.py:121)。対応記録の「同じ規則で解く」という説明は、この入力では成立しない。
+
+## 検証した事実
+
+- **一致：** BOM なし UTF-16 LE・BE、UTF-32 LE・BE の前回の反例は、すべて `is_utf8_svg == False` になった。
+- **一致：** コメント中の偽の `<svg>` と `data-width`・`data-height` の反例は、修正版では正しく `(800, 600)` になった。
+- **一致：** `&#38;`、`&#x26;`、`&quest;` の前回の参照先の反例は解消した。
+- **一致：** `FigureTargetTest` ４件が通過した。15 行の lint・browse 比較メソッドも、ファイルを作る `setUp` を呼ばずに実行して通過した。
+- **一致：** `figures.test.mjs` は、明暗で入れ物の背景色が同じことと、本文の背景色が変わることを比較するようになった。リンクの試験も３件に分離されている。
+- **確かめられず：** Playwright、実サーバー、実ファイルによる Windows のリンク試験は実行していない。ファイルを変更せず、読み取りとメモリー上の検証に限定した。
+
+## 崩せなかった点
+
+- DTD の開始で解析が止まり、確認した内部実体宣言・外部実体・外部 DTD の入力では、実体宣言や外部実体のコールバックへ進まなかった。
+- 約 1.9 MB のコメントや属性値を含む入力でも、サイズ判定の例外漏れは再現しなかった。
+- 正しい SVG 名前空間を付けた接頭辞付きの根要素では、幅と高さを取得できた。
+- UTF-8 と判定されながら XML パーサーが別の符号化で読む、新たな反例は確認できなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし

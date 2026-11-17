@@ -75,14 +75,14 @@ PoC で、`file://` では 5 つのブラウザすべてが sandbox の枠に隣
 - `wiki_pages.walk_assets(wiki_root) -> Walk` を足す。`wiki/assets/` の直下だけを見て、名前の末尾が `.svg`（大文字と小文字を区別しない）で、`.` で始まらない、ふつうのファイルを `MdFile` で返す。OS の呼び出しは `walk_markdown` と同じ口（`read_os`、`_list_dir`、`_stat_entry`、`_is_junction`）を通す。
 - `assets` そのものがシンボリックリンクかジャンクションなら、たどらない（何も返さない）。ファイルのシンボリックリンクも返さない。ハードリンクは見分けない。
 - 守る範囲: 止めるのは、走査の時点で木に置かれたリンクである（利用者が `assets` を別の場所へ向けた、など）。読む間だけリンクに替えて戻す同時の書き手は、対象にしない。前提は、wiki に書ける者と browse を実行する者が同じ利用者であることである（ADR-0001 のローカルだけのサーバーと同じ前提）。その書き手は、リンクの先のバイト列を自分で読んで wiki に置けるので、リンクを止めても守れるものが増えない。ほかの利用者が書ける共有のディレクトリを wiki にする使い方は、この前提の外である。ページの読み取りも同じ前提で、2 回の走査は「読んでいるあいだに変わった」ことを見つけるためのものである。
-- `assets` がないなら空、一覧を作れないなら `unlistable`、種類を調べられない項目は `unknown` に入れる。`walk_inputs` は今と同じく、知らせがあれば全体を採らない。
+- `assets` がないなら空、一覧を作れないなら `unlistable`、種類を調べられない項目は `unknown` に入れる。svg は飾りなので、`assets/` の一覧を作れなくても閲覧は止めない（実装で分かった。今までの試験 `UnreadableExcludedDirTest` が、入力でなかった `assets/` を読めなくても閲覧が止まらないことを守っている）。`walk_inputs` は、一覧を作れないことを大きさのない `("asset_dir", "assets", None, None)` の項目で表し、種類を調べられない svg を大きさのない `("asset", rel, None, None)` にする（オントロジーと同じ扱い）。写しはそれを読めない入力にし、中核は診断 `assets_unlistable` を足して、見つからない参照も「読めない」にする。一覧を作れるようになれば印が変わり、作り直す。ルートの一覧を作れないとき（`walk_assets` の `"."`）は、ページの集合も分からないので、今と同じく全体を採らない。
 - `walk_inputs` は、ページ、索引、オントロジーのあとに `("asset", rel, size, mtime_ns)` を足す。svg のない wiki では、入力の一覧と印が今と同じになる。
 
 ### 6.2 写し
 
 - `InputFile` に `data: bytes | None` を足す。`kind` の値に `"asset"` を足す。
 - `wiki_browse_fs.read_input_capped(root, rel, limit) -> bytes` を足す。`limit + 1` バイトまでしか読まず、超えたら `TooLarge` を送出する。`take_snapshot` は、`asset` をこれで読む（`ASSET_MAX_BYTES` は 2 MiB）。走査の大きさが上限を超えていれば、読まずに `too_large` にする。
-- `asset` は UTF-8（BOM はあってもよい）として読めなければならない。読めなければ `error = "decode"`。先頭の XML 宣言に `encoding` があり、その値が `utf-8` でなければ（大文字と小文字を区別しない）、これも `decode` にする。`data` は読んだバイト列のまま持つ（BOM と改行を保つ）。こうすると、公開の前の検査（`scan_machine_info`）が svg の中身を今と同じ読み方で調べられる。
+- `asset` は、XML として UTF-8 で読まれるものでなければならない（`is_utf8_svg`）。UTF-8（BOM はあってもよい）として読め、XML 1.0 で許される文字だけからなり、先頭の XML 宣言の `encoding` が `utf-8` のほかを名乗らないこと。そうでなければ `error = "decode"`。UTF-8 として読めるだけでは足りない。BOM のない UTF-16 の、ASCII の文字だけの XML は UTF-8 としても読めるが、そのとき文字の間に NUL が入るので、XML で許される文字の確かめで落ちる（実装の 1 回目のレビューの重大）。`data` は読んだバイト列のまま持つ（BOM と改行を保つ）。こうすると、公開の前の検査（`scan_machine_info`）が svg の中身を今と同じ読み方で調べられる。
 - 世代には、今と同じく種類、相対パス、sha（か読めない理由）が入る。
 - `Core.__init__` は、`_build_pages` のあとに `_build_assets()` を呼ぶ。`self.assets`（NFC の相対パス → `InputFile`）と、出力の名前の表 `self.asset_out`、`self.asset_by_out` を作る。NFC にして同じ綴りになる svg が 2 つあれば、どちらも描かず、診断 `asset_collision` を足す。
 
@@ -105,13 +105,13 @@ PoC で、`file://` では 5 つのブラウザすべてが sandbox の枠に隣
 3. `posixpath.normpath(<ページのディレクトリ>/<参照>)` が `..` で始まれば None。
 4. NFC にして、`assets/<1 つの要素>` で、末尾が `.svg`（大文字と小文字を区別しない）なら返す。
 
-lint の `missing_assets` は、参照先を Markdown のエスケープを外してから unquote するが、文字参照（`&amp;` など）を解かない。markdown-it は解く。`![a](../assets/a&amp;b.svg)` で、browse は `a&b.svg` を描き、lint は `a&amp;b.svg` がないと報告する。lint の側で、エスケープを外したあとに `html.unescape` を当ててそろえる。
+lint の `missing_assets` は、参照先を Markdown のエスケープを外してから unquote するが、文字参照（`&amp;` など）を解かない。markdown-it は解く。`![a](../assets/a&amp;b.svg)` で、browse は `a&b.svg` を描き、lint は `a&amp;b.svg` がないと報告する。lint の側で、markdown-it が `src` を作るのと同じ手順と関数（同梱の `unescapeAll` でエスケープと文字参照を解き、`normalizeLink` で前後の空白を落としてパーセントエンコードする。`wiki_pages.destination_src`）を通してから、`#` と `?` で切り、unquote する（`wiki_lint.image_ref_path`）。切ってから解くと、`&#38;` の `#` を区切りと取り違える（実装の 1 回目のレビューの軽微）。正規化を通さないと、`&#32;` の空白が残る（2 回目の軽微）。試験は、同じ参照先の表について、markdown-it の `src` から解いた結果と lint の結果が一致することを確かめる。
 
 `_transform_inline` の image の分岐は、次のように描く。
 
 | 参照 | 出力 |
 | --- | --- |
-| `figure_target` が返し、写しに読めるものがある | `html_inline` で `<span class="wiki-fig fui-Card" data-fig="svg" data-theme="light"><img class="fui-Image" src="…" alt="…" loading="lazy"></span>` を出す。`src` は `rel_href(ページの出力, svg の出力)`、`alt` は代替テキスト（`html.escape`） |
+| `figure_target` が返し、写しに読めるものがある | `html_inline` で `<span class="wiki-fig fui-Card" data-fig="svg" data-theme="light"><img class="fui-Image" src="…" alt="…"></span>` を出す。`src` は `rel_href(ページの出力, svg の出力)`、`alt` は代替テキスト（`html.escape`）。`<img>` には `width` と `height` の属性も付ける。値は svg の根の `width` と `height`（px か単位なし）、なければ `viewBox` から決め（`svg_size`）、分からなければ 300 と 150 にする。根の要素は、標準ライブラリの expat で開始タグまでだけを読んで決める（正規表現では、コメントの中の `<svg` や `data-width` を拾う）。DTD があれば読まずに、分からないとする。`loading="lazy"` は付けない（8 節） |
 | `figure_target` が返すが、ない、読めない、大きすぎる、綴りが重なる | 今と同じ代替テキスト。ページの診断に `missing_asset` か `asset_unreadable` を足す |
 | それ以外（外の URL、`data:`、png、`assets/` の外、下位のディレクトリ） | 今と同じ代替テキスト。診断は足さない（lint の領分） |
 
@@ -241,7 +241,8 @@ lint の `missing_assets` は、参照先を Markdown のエスケープを外�
 
 `style.css` に足すのは、配置だけである（トークンで書き、px と 16 進の色を書かない）。
 
-- `.wiki-fig`: `display: block; width: fit-content; max-width: 100%; margin-block: var(--spacingVerticalM); overflow-x: auto`。
+- `.wiki-fig`: `display: inline-block; vertical-align: top; max-width: 100%; margin-block: var(--spacingVerticalM); overflow-x: auto`。
+  - 実装で分かったこと: Card の `display: flex` と `width: fit-content` の組では、WebKit が読み込む前の画像の幅 0 のまま組み、読み込んだあとに組み直さない（`loading="lazy"` があると `file://` でも、なければサーバーで起きた）。Firefox は、根に大きさのない svg の画像を、幅を中身で決める入れ物の中で幅 0 にする。`inline-block` にし、画像の大きさを属性で渡して（6.4）、5 つのブラウザで直った。
 - `.wiki-fig > img`: `display: block; max-width: 100%; height: auto`。
 - `.wiki-fig-source`: `margin-block-end: var(--spacingVerticalL)`。
 - `.fig-frame`: `position: absolute; inset-block-start: 0; inset-inline-start: -200vw; border: 0`。
@@ -287,7 +288,7 @@ lint の `missing_assets` は、参照先を Markdown のエスケープを外�
 - tiny にない図（マインドマップ、アーキテクチャ図、KaTeX、`layout: elk`）と、外の画像を使う図は描けない。コードと警告が出る。
 - 図ごとに Mermaid を読み直すので、図の多いページでは描き終えるまでが長い。PoC では 13 個で 1.8〜3.4 秒だった（最初の図は 0.25〜0.5 秒。その回で最初に起動したブラウザは 1.9 秒）。
 - 起動のたびに同梱物（約 3.5 MB）を読んで常駐させる。
-- `wiki/assets/` の一覧を作れないと、入力の全体が採られず、閲覧が古い表示になる（今の決まりどおり）。
+- `wiki/assets/` の一覧を作れないと、図はすべて「読めない」になる（閲覧は止めない）。
 - 読む間だけ svg をリンクに替える同時の書き手は止めない（6.1）。
 - lint は Windows で大文字と小文字の違う参照を通すが、browse は写しの綴りと一致するものだけを描く。
 - 手書きの svg は配色に従わず、ハイコントラストでも色が変わらない。Mermaid の図も、ハイコントラストの色には従わない。
