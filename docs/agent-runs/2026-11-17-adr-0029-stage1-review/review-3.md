@@ -1,0 +1,96 @@
+## 判定
+
+**却下。確信度：高。** リンクの記事を直接読み、置き換える経路が残っている。また、検査を拒否した状態を正常扱いする経路と、実際の拒否を JSON に反映しない経路がある。
+
+## 致命的・重大な欠陥
+
+1. **重大・C：評価ループは、既存パターンのリンクを読んで置き換える。前回重大 1 の原因が残っている。**
+
+   `concepts/evolution-pattern-x.md` を外部ファイルへのシンボリックリンクにし、当該パターンを `publish_learning()` に渡す。459〜466 行は `article_path()` を通さず本文を読み、その本文を含む値を `atomic()` に渡す。今回追加した索引・ログの検査は、この処理の後である。
+
+   メモリ上の再現でも、リンク先を模した本文が読み取られ、置き換え用のデータへ混入した。その後で索引の検査を失敗させても、既にパターンの更新に到達していた。`atomic()` は `os.replace()` を使うため、リンクそのものの置き換えにもなる。
+
+   根拠：[既存パターンの読み取りと更新](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve_loop.py:459)、[後置された検査](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve_loop.py:467)、[atomic](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:95)。
+
+2. **重大・D：`shortlist` の入力に wiki のリンク記事を指定すると、その本文を読む。**
+
+   `wiki/concepts/p.md` をハードリンクにし、`shortlist wiki/concepts/p.md --wiki wiki` を実行する。候補ページには今回の検査が入ったが、入力ソースは 508 行で直接読む。
+
+   差し替えによる再現では、本文読み取りが 1 回、`article_path()` の呼び出しが 0 回だった。本文は検索クエリへ入り、通知の受け皿は空だった。`--wiki` の下にある記事を入力として指定するだけで、I2 の読み取り境界を迂回できる。
+
+   根拠：[cmd_shortlist](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_decide.py:506)。
+
+3. **重大・B：スキーマ検査を拒否しても、アップグレードは「現在のテンプレートに追いついている」と断定する。**
+
+   `SCHEMA.md` がハードリンクなら、新しい検査は警告を出して `[]` を返す。呼び出し元は、その値を「不足なし」と解釈する。書き込みを差し替えたアップグレード処理で、次の矛盾した出力を確認した。
+
+   ```text
+   stderr: SCHEMA.md はリンクなので読まない（hardlink）。スキーマの不足は調べていない
+   stdout: SCHEMA.md は現在のテンプレートに追いついている。手作業でマージするものはない。
+   ```
+
+   さらに Python 3.14.6 では、冒頭の `exists()` に相当する `os.stat()` を `PermissionError` にすると、リンク判定へ到達せず、警告なしで `[]` を返した。「調べられない」場合を知らせる修正も、この入口では効かない。
+
+   根拠：[detect_schema_gaps](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/init_wiki.py:114)、[空の結果を正常扱いする分岐](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/init_wiki.py:282)。
+
+4. **重大・D：Windows の判定不能を表す `S_IFBLK` を、`is_link()` と `check` は正常扱いする。**
+
+   走査の `_stat_entry()` は、Windows の `lstat()` が返す `S_IFBLK` を「調べられない」に変換する。一方、`wiki_links.is_link()` は同じ結果を `("ok", None)` とする。`find_links()` も、リンクと未確認の両方が空になる。
+
+   リポジトリの試験でも使われている `BLOCK_DEVICE` 相当の値を返す再現では、次の食い違いを確認した。
+
+   ```text
+   article_path(): denied
+   is_link():     ("ok", None)
+   find_links():  {"links": [], "unchecked": []}
+   ```
+
+   同じ条件でスキーマ検査は本文を読み、警告を出さなかった。実ファイルシステム上で当該状態を作る検証は未実施だが、走査が既に扱っている状態に対する分岐の不一致は確認できた。
+
+   根拠：[is_link](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_links.py:59)、[find_links](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_links.py:96)、[走査側の変換](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:264)。
+
+5. **重大・C：CLI 検索の JSON は、実際に収集したときの拒否を取り逃がす。**
+
+   `main()` は警告用に走査し、その後 `collect_pages()` が再度走査する。最初の走査の後で `a.md` がハードリンクになると、収集側は拒否するが、JSON は最初の走査から作った `args.link_warnings` を返す。
+
+   実際の二つの走査に異なる属性を返す再現結果は、次のとおりだった。
+
+   ```json
+   {"results": [], "link_warnings": []}
+   ```
+
+   同時に、受け皿には `{"path":"a.md","kind":"hardlink"}` が入っていた。終了時の標準エラーには出せるが、JSON の契約は満たしていない。`--json` の結果だけを処理する呼び出し元には、除外理由が届かない。
+
+   根拠：[二重の走査](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:1160)、[JSON の警告欄](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:856)。
+
+## 崩れる前提
+
+- **読む入口を移し終えた。** 評価ループの既存パターンと、`shortlist` の入力ソースで崩れる。
+- **警告して空の配列を返せば、未確認と正常を区別できる。** スキーマ検査の呼び出し元が、空の配列を「不足なし」と断定する。
+- **`read_os()` を共有すれば、属性取得の状態も統一される。** Windows の `S_IFBLK` の変換は `_stat_entry()` にしかない。
+- **走査が通知を受け皿へ入れれば、すべての出力へ届く。** CLI の JSON は受け皿を参照せず、先行する走査の結果を使う。
+
+## 見落としと軽微な問題
+
+- **軽微：プロセス共通の通知が増え続ける。** `_PROCESS_NOTICES` は追記するだけで、重複排除は出力時に行う。受け皿を開かず同じリンクを 1,000 回走査すると、同じ通知が 1,000 件残った。常駐閲覧は要求ごとに走査し、`capture_notices()` を使わない。[通知の蓄積](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:93)、[閲覧の再検査](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_browse.py:323)。
+
+- **軽微：`test_walk.py` の木の答えが、README のハードリンク除外を写していない。** `README.md` と木の外の別名をハードリンクにした表では、モデルは `("README.md", "hardlink")` を期待するが、実装は除外する。同じ木を模した一覧で食い違いを確認した。[model](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_walk.py:326)。
+
+- **軽微：評価ループの回帰試験は、処理を実行していない。** 新しい試験はソース文字列中で検査が最初の索引読み取りより前にあることだけを確認する。重大 1 の、検査より前にあるパターン読み取りを検出しない。[test_evolve_loop_guards_index_and_log](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_wiki_links.py:475)。
+
+## 検証した事実
+
+- 指定された実装・試験、親リポジトリの試験差分、ADR、設計、前回レビューを読んだ。
+- 上記の反例を、実装の読み込みまたは関数の抽出と、メモリ上の差し替えで確認した。
+- `ServerFilesTests` 2 件、`PortTests` 2 件が通過した。名前の代理ビットの判定試験も単独で通過した。
+- 読み取り専用環境のため、実リンクを作る統合試験は実行していない。ファイルは変更していない。
+
+## 崩せなかった点
+
+- 通常の入れ子と、別スレッドで開いた通知の受け皿は分離された。
+- MCP の `with_notices()` は、捕捉したリンクと判定不能を、それぞれ `link_warnings` と `unverified` に付けた。捕捉対象の例外にも通知を添えた。
+- `article_path()` は、検証した絶対パス、ドライブ指定、`..`、空要素、隠し項目を OS 呼び出し前に拒否した。
+- 通常のディレクトリを降りる直前にジャンクションへ変わった状態では、走査は子の一覧を取得しなかった。
+- 現在の静的 import をたどる範囲では、`SERVER_FILES` の不足は見つからなかった。
+
+使用した MCP サーバー：なし。使用した Agent Skills：なし。

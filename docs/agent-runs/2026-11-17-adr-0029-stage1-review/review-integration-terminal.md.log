@@ -1,0 +1,74 @@
+[ask-claude 00:47:08] claude-opus-5-5 に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-0029-impl）
+## 判定
+
+**条件付きで採用可**（確信度: 中〜高）
+
+今回の差分は、前回の 2 つの反例を閉じています（外のファイルの別名 `x.md` と `y.md`）。手元の Windows で、同じ種類の新しい迂回も、既存の読み取りの後退も見つかりませんでした。
+
+条件は軽微なものだけです。
+
+- **CHANGELOG の比較リンク:** main との競合を解いたときに、比較リンクの定義が古いまま残りました（`[0.31.0]` と `[0.30.0]` がなく、`[Unreleased]` は `v0.29.0` から比べている）。
+- **POSIX の確認:** POSIX での挙動は、CI での確認を待っています。
+
+## 致命的・重大な欠陥
+
+なし
+
+## 崩れる前提
+
+- **前提: 外の祖先と最後の要素の lstat は成功する**
+  - 崩れる条件: 最後の要素も lstat するようになったので、wiki の外の利用者のファイルでも、属性を取れなければ `ValueError("パスの所属を調べられない")` で止まります。
+  - 対象: Windows で `_stat_entry` が S_IFBLK を「分からない」に読み替える場合も含みます。属性の取得がエラー 1、50、87 になるファイルシステム、たとえば一部のネットワークや仮想ドライブです。
+  - 以前は、最後の要素を調べずに読んでいました。拒否する向きの変化で、迂回ではありません（推測、未実行）。
+- **前提: 根に届いたあとの残りに `..` はない**
+  - 崩れる条件: 外のファイルのシンボリックリンクの行き先が `wiki/concepts/../concepts/ok.md` のように、根の下に `..` を含むときです。
+  - POSIX では、`found()` が「所属を決められない」で拒否するはずです（コードを読んだ推論）。手元の Windows では、OS が作成時に行き先を正規化したとみられ、そのまま読めました。
+  - どちらの場合も読むのは正しい記事で、迂回ではありません。ただし、OS によって結果（拒否か読み取りか）が分かれます。
+
+## 見落としと軽微な問題
+
+1. **軽微: CHANGELOG の比較リンクの定義が、版に追いついていない**（確認済み）
+   - `info-hive-wiki/CHANGELOG.md` の見出しは `## [0.31.0] - 2026-11-18`（9 行）と `## [0.30.0] - 2026-11-18`（44 行）です。ところが、リンクの定義は `[Unreleased]: .../compare/v0.29.0...HEAD`（838 行）と `[0.29.0]`（839 行）だけで、`[0.31.0]` と `[0.30.0]` の定義がありません。
+   - 統合の前の `17c150a` には、`[Unreleased]: compare/v0.30.0...HEAD` と `[0.30.0]: compare/v0.29.0...v0.30.0` がありました。競合を解いたときに、main の側の定義（main 自身も `[0.30.0]` を欠いている）に置き換わったとみられます。
+   - コードの欠陥ではなく、リリースの記録の問題です。
+2. **軽微: 返すパスが変わった**（確認済み、後退ではない）
+   - 外のファイルの別名が wiki の普通の記事を指すと、`user_file_path` は入力のパスではなく、wiki の中の実際のパスを返すようになりました（`z.md` は `wiki\concepts\ok.md` を返した）。
+   - 読む内容は同じです。戻り値で名前や相対パスを作る呼び出し元は、`wiki_evolve.py:112`、`121`、`135`、`141`、`378` と `wiki_evolve_loop.py:508` です。どれもディレクトリのモード（もともと最後の要素を展開していた）か、記事でない suite の JSON（入力のパスのまま返る）か、読み取りにだけ使います。影響は見つかりませんでした。
+3. **残件（依頼元の記録どおり、今回の差分の範囲外）**
+   - 補助的な検索（`wiki_search.link_key`）と判定のレイヤー（`wiki_decide.py:567`）は、同名の参照を解決するときに拒否を見ません。
+   - `GraphPages` の属性は、リストを作り直すと消えます。
+   - どちらも、禁止した記事を読む迂回ではありません。
+
+## 検証した事実
+
+手元のプローブ（`terminal_probe.py`、Windows、Python 3.12、ファイルのシンボリックリンクを作成）の結果です。
+
+- **拒否すべきもの:**
+  - 外の `x.md` から `wiki/concepts/jump/a.md`（`jump` は外へのジャンクション）は、`リンクなので読まない: concepts/jump（junction）` で拒否した。一致。
+  - 外の `y.md` から、ハードリンクの記事 `concepts/h.md` は、`リンクなので読まない: concepts/h.md（hardlink）` で拒否した。一致。
+- **今までどおり読めるべきもの:**
+  - 外の別名から、普通の記事を読めた（`OK-ARTICLE`）。
+  - 外の別名から、記事でない `assets/n.md` を読めた（`ASSET`、入力のパスを返す）。
+  - 外の別名から、外の普通のファイルを読めた（`PLAIN-OUTSIDE`）。
+  - 外の別名の連鎖（`c1.md` から `c2.md`、さらに外のファイル）を読めた。
+  - 相対の `../wiki/...` を指す別名から、wiki の普通の記事を読めた。
+- **差分の内容:**
+  - `_article_rel` の `directory` 引数は削除され、最後の要素も常に展開します。`user_file_path` と `source_wiki_root` の呼び出しも合わせて変わりました。以前は、ディレクトリのモードだけが最後の要素を展開していたので、ディレクトリの挙動は変わりません。一致。
+  - `os.readlink` の `ValueError` も、日本語の `リンクの行き先を調べられない` にまとめています（差分の `except (OSError, ValueError)`）。一致。
+- **試験:** `IntegrationReviewTests` は 7 件が OK（skipped=1）でした。外のファイルの別名の試験 `test_external_file_aliases_inherit_the_wiki_checks` があります。
+- **版と main:**
+  - `plugin.json` の版は、Claude Code と Codex の両方で `0.31.0` です。
+  - origin の main は `8cdbb75` で、タグ `v0.30.0` はそのコミットを指します。今回の版が 0.31.0 であることと一致します。
+
+## 崩せなかった点
+
+- 最後の要素を展開しても、根に届いたあとのファイルは展開せず、`article_path` が lstat で検査します。根の下のファイルのリンクを読み飛ばす例は見つかりませんでした。
+- 外の別名が wiki の中のリンクのディレクトリを経由する経路と、拒否した記事そのものを指す経路は、ディレクトリとファイルのどちらの別名でも拒否しました。
+- 根の別名（ジャンクションの根）を経由する別名も、綴りの比較か `samefile` で根を認識し、残りを検査しました。
+- 外の普通のファイル、記事でない場所、別名の連鎖は、今までどおり読めます。既存の挙動の後退は見つかりませんでした。
+
+---
+使用した MCP サーバー: なし
+使用した Agent Skills: なし
+次の作業（CHANGELOG の比較リンクを直してリリース）に向くモデルとエフォート: Sonnet、low
+[ask-claude 00:49:11] 完了（claude-opus-5-5）。session b80a7cfc-5124-475e-a5d7-29e8b293e114  usage {"total_cost_usd": 3.453335599999999, "usage": {"input_tokens": 16, "cache_creation_input_tokens": 17022, "cache_read_input_tokens": 2261436, "output_tokens": 9855, "output_tokens_details": {"thinking_tokens": 4127}, "server_tool_use": {"web_search_requests": 0, "web_fetch_requests": 0}, "service_tier": "standard", "cache_creation": {"ephemeral_1h_input_tokens": 17022, "ephemeral_5m_input_tokens": 0}, "inference_geo": "global", "iterations": [{"input_tokens": 2, "output_tokens": 2924, "cache_read_input_tokens": 288945, "cache_creation_input_tokens": 717, "cache_creation": {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 717}, "type": "message"}], "speed": "standard", "fallback_credit": null}}

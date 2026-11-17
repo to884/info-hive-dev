@@ -1,0 +1,62 @@
+[ask-codex 23:30:30] gpt-6-astra に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-0029-impl\info-hive-wiki）
+## 判定
+
+**採用可。確信度：高。** 残っていた軽微な指摘は閉鎖を確認した。今回の差分と名前の受け渡しを調べた範囲では、新たな欠陥や読み取り境界の退行は崩せなかった。
+
+## 致命的・重大な欠陥
+
+なし。
+
+## 崩れる前提
+
+今回の差分に起因する反例は確認できなかった。
+
+前回崩れた「走査で取得した OS 上の名前と、読む口の記事判定が一致する」という前提は、`assets\p.md` を使った今回のモック検証では成立した。
+
+## 見落としと軽微な問題
+
+なし。
+
+前回の `walk_pages()` が `native=True` を渡していない指摘は閉鎖した。変更は現在の [wiki_pages.py:433](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:433) にあり、追加された試験も走査結果と文字列・バイト列の入口の一致を確認している。[test_wiki_links.py:928](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_wiki_links.py:928)
+
+## 検証した事実
+
+変更された6か所について、引数の出所と `native=True` の意味が一致することを現物で確認した。
+
+| 呼び出し元 | 渡される値 |
+|---|---|
+| `walk_pages`、統計 | 走査で取得したディスク上の相対名。[wiki_pages.py:433](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:433)、[wiki_stats.py:138](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_stats.py:138) |
+| lint の拒否記事の分類 | `link_report` が走査結果から保持した名前。[wiki_lint.py:486](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py:486) |
+| `propose` の根拠ページ | ファイルの `Path` を wiki の根から相対化した名前。[wiki_evolve.py:236](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:236) |
+| `get_page` の一致後 | 表示用の `rel_path` ではなく、収集した物理的な `path` から作った名前。[wiki_index.py:979](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:979) |
+| `list_index` の一覧 | 索引の走査で取得した名前。[wiki_index.py:1027](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:1027) |
+
+**今回実行した確認：**
+
+- ファイル生成を省いて、native 名の走査・読み取りと、根拠ページ・`get_page` の回帰テストメソッド2件を実行し、通過した。
+- POSIX のパス・属性を差し替えたモックで、通常ファイルは指定した名前から読み、ハードリンクなら本文を追加で読まず拒否することを確認した。
+- 統計の実関数に `assets\p.md` の走査結果を渡し、ページ数1、読み取り先 `/W/assets\p.md` を確認した。
+- 索引一覧の実関数に `indexes/a\b.md` と `indexes/a/b.md` を渡し、それぞれの名前に `ORIGINAL` と `DECOY` の題名が対応することを確認した。
+- lint の変更は、走査由来の名前の分類であることをコードで照合した。lint 全体の実行試験は今回行っていない。
+
+**過去の確認との区別：**
+
+| 過去の指摘 | 判定 |
+|---|---|
+| 第5回の5件：候補・元コーパスの未保護、対象外入力の誤拒否、途中の `..`、indexes の呼び出しモデル、静的分類試験の限界 | 過去に確認した元の反例の閉鎖判定を維持する。今回すべてを再実行したわけではない。 |
+| 第6回最初の3件：根の別名と外向きリンク、部分コーパスの根、POSIX のコロン | 過去の閉鎖判定を維持する。今回、その判定を覆す変更は確認しなかった。 |
+| 続報の2件：一覧取得失敗の黙殺、native 名の別ファイルへの変換と対応する試験不足 | 前回の閉鎖判定を維持する。今回、物理的な名前を渡す追加の呼び出し元も確認した。 |
+| 直前の軽微1件：走査と読む口の記事判定の不一致 | 今回のコード照合とモック実行で閉鎖を確認した。 |
+
+依頼元の164件の unittest と統合チェック2本は再実行していない。POSIX 実機のファイル・リンクによる検証も今回行っておらず、上記のモック検証とは区別する。対象ファイルは変更していない。
+
+## 崩せなかった点
+
+- POSIX の `\` を含む名前を、走査の分類だけで対象外に落とす経路。
+- 根拠ページと `get_page` の物理的な名前を、デコイの名前へ変換して読む経路。
+- 索引一覧で、ディスク上の名前と別ファイルの題名を組み合わせる経路。
+- 今回の受け渡し変更によって、リンク拒否や既存のコマンド表記の処理を迂回させる経路。
+
+使用した MCP サーバー：なし  
+使用した Agent Skills：なし
+[ask-codex 23:33:14] 完了。session 01a1e9b3-9ddf-7443-b3ec-f69e677fe115  usage {"input_tokens": 10007051, "cached_input_tokens": 9627136, "cache_write_input_tokens": 0, "output_tokens": 41535, "reasoning_output_tokens": 15998}

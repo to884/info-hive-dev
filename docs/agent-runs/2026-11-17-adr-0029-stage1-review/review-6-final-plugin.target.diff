@@ -1,0 +1,1700 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index eff9322..f2a7208 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -6,6 +6,31 @@
+ 
+ ## [Unreleased]
+ 
++### Changed
++
++- wiki と raw の記事にリンクを置かない規則（info-hive-dev の ADR-0029）の段階 1。ページの走査（`wiki_pages.walk_markdown()`）は、リンクに降りず、リンクの記事を読まない（`docs/plans/wiki-links-2026-11-16.md`）。
++  - 記事（ページ、最上位の `index.md`、`log.md`、`SCHEMA.md`、`indexes/` の下の索引）か、記事までの途中のディレクトリが、シンボリックリンク、ジャンクション、名前の代理のリパースポイント、ハードリンク（リンクの数が 2 以上）なら、検索、MCP の索引、lint、閲覧、統計、グラフのどれも読まない。0.25 までは、途中のジャンクションに降り、ファイルのシンボリックリンクとハードリンクのページを読んでいた。wiki の根そのものと、その祖先のリンクは許す。
++  - 名前が `.` で始まる項目の下は、どの深さでも記事でない。0.25 までは、利用者が名付けた `.` で始まるディレクトリ（`concepts/.NET/` や `.archive/`）の下の `.md` もページで、索引の側は `indexes/.private.md` のような名前も索引にしていた。これらのページは、検索、lint、閲覧、統計、グラフに出なくなる。知らせは出ない。残したいページは、`.` で始まらない名前のディレクトリに移す。
++  - 黙っては消さない。lint に新しい指摘 `links` と `links_unchecked` を足し、`summary` に `links`、`links_unchecked`、`links_raw`（raw の側はこの版では調べないので `null`）を足した。MCP の `query`、`get_page`、`list_index`、`lint`、`stats`、`graph` と、`wiki_search.py --json`、`wiki_stats.py --json` の結果に `link_warnings` を足した（CLI の検索は標準エラーにも出す）。`get_page` と、`list_index` の `name` でリンクの記事を引くと、「見つからない」ではなく「リンクなので読まない」のエラーを返す。閲覧は、診断（`WIKI_DIAGNOSTICS`）に種類 `link` で出す。
++  - 読まなかったページへの wikilink は、lint のリンク切れに挙げない（`links` で挙げる）。
++  - 走査の結果を通さずに記事を読んでいたところも、記事を読む口（`wiki_pages.article_path()`）を通す。`/wiki:upgrade` のスキーマの不足の検査（`SCHEMA.md` がリンクなら読まず、標準エラーで知らせる）、`/wiki:evolve` の根拠のページ、判定のレイヤーの候補のページである。CLI の統計、グラフの問い合わせ、グラフの lint も、読まなかったものを標準エラーで知らせる。
++  - MCP の `get_page` は、リンクのディレクトリの下をパスで引くと「リンクなので読まない」を、権限などで調べられないと「調べられない」を返す。スラッグで引いて見つからないときは、リンクなので読まなかった場所を誤りの文に添える。
++  - 一覧を作ったあと、降りる前にディレクトリがリンクに置き換えられても、その下を読まない（降りる前に確かめ直す）。確かめてから一覧を作るまでの間の置き換えは防げない。
++  - 知らせは、拒んだその場（走査と記事を読む口）で集める。CLI はプロセスの終わりに標準エラーへまとめて出し（同じものは 1 度だけ）、MCP のツールは呼び出しごとに、結果の `link_warnings`（読まなかったもの）と `unverified`（権限などで調べられなかったもの）か、誤りの文に付ける。どのスクリプトから読んでも、知らせが届く。
++  - `/wiki:upgrade` は、`SCHEMA.md` がリンクか、リンクかを調べられないとき、不足を調べず、「追いついている」とは言わない。評価ループ（`wiki_evolve_loop.py`）は、書く先の記事（観察のソース、パターンのページ、索引、ログ）のどれかがリンクなら、どれも読まず、書かない。
++  - 利用者が渡すファイルは、wiki 内かと記事かを分けて判定し、文字列とバイト列の読み取りを同じ検査に通す。スキルのディレクトリの候補や元のコーパスを写す際にも、記事のリンクを読まない。記事でない `assets/` や通常の候補は、記事のリンクの規則では拒まない。途中に `..` を含む入力は所属を決めず、`..` を含まないパスを求める。
++  - 根の別名を使った入力は、既知の根に届くまで祖先を解決し、根より下を解決せずに検査する。wiki の一部をコーパスにした場合も、元の wiki の記事の規則を引き継ぐ。ディレクトリにも、降りる前に同じリンクの検査を当てる。
++  - コーパスやスキルのディレクトリを一覧できなければ、空の木として続けず、その失敗を伝えて止める。OS 上の名前はコマンドの区切りの変換と分け、POSIX の名前に含まれるバックスラッシュを別のディレクトリへの区切りに変えない。
++  - プラグインは、リンクを置き換えない。直し方の目安を `references/lint-workflow.md` の「記事のリンクの直し方」に書いた。
++
++### Added
++
++- `scripts/wiki_links.py`。リンクの判定（`link_kind()`、`is_link()`、`find_links()`）と、CLI の `check`（渡したパスとその下のリンクを JSON で出す。何も書かない）。Windows では、再解析のタグの「名前の代理」のビットでリンクを決めるので、OneDrive のオンライン専用のファイルのような置き換えはリンクにならない。
++
++### Fixed
++
++- MCP のサーバーの版（`SERVER_FILES`）に、サーバーが関数の中で遅れて読み込む `wiki_captions.py`（lint の字幕の照合）、それが読み込む `wiki_browse_core.py` と `wiki_browse_fs.py`、`wiki_decide.py` が入っていなかった。これらだけを直したときに、接続し直しても古いサーバーが使われ続けていた。足りているかを確かめる試験を、info-hive-dev の `tests/wiki/test_wiki_links.py` に足した。
++
+ ## [0.25.2] - 2026-11-17
+ 
+ ### Fixed
+diff --git a/commands/lint.md b/commands/lint.md
+index e272c87..08d8459 100644
+--- a/commands/lint.md
++++ b/commands/lint.md
+@@ -10,7 +10,7 @@ argument-description: "`--suggest-pages` を付けると、独立したページ
+ 
+ 0. `<WIKI_ROOT>` は、ユーザーが明示したパス、もっとも近いプロジェクトの指示、グローバルなエージェントの指示の順に探し、どれにもなければ作業領域の設定（`.info-hive/workspace.json`）の `dirs.wiki`、それもなければ現在のプロジェクトの `wiki/` とする。指示が別の wiki を指定しているときに、`${PWD}/wiki` を前提にしてはならない。
+ 1. `<WIKI_ROOT>/SCHEMA.md` がなければ、初期化された wiki ではない（ほかの用途の `wiki/` のこともある）。MCP のツールもスクリプトも呼ばず、何も書かずに止まり、ユーザースコープの wiki なら `/wiki:init --user`、プロジェクトの wiki なら `/wiki:init` を提案する。別の場所の wiki に黙って切り替えたり、`SCHEMA.md` を自分で作ったりしてはならない。ツールやスクリプトが「初期化された wiki ではない」と返したときも同じにする。あれば、このセッションでまだ読んでいなければ、最初に `<WIKI_ROOT>/SCHEMA.md` を読む。追加の lint ルールが定義されていることがある。
+-2. 構造の lint をかける。MCP のツールと CLI の使い分けは、`info-hive` スキルの「MCP のツールと CLI の使い分け」に従う。wiki の MCP サーバーのツール `lint` が使える場合は、`wiki=<WIKI_ROOT の絶対パス>` を渡す（ツール名は接続に表示されたもの。Claude Code では `mcp__plugin_wiki_wiki__lint`）。ユーザーが求めた場合は `suggest_pages=true` を渡す。`SCHEMA.md` がページの大きさの上限や必須の frontmatter を既定と違う値に決めている場合は、`soft_cap`、`hard_cap`、`soft_char_cap`、`hard_char_cap`、`required_fm` にその値を渡す。`SCHEMA.md` の「タグの体系」にタグが並んでいれば、そのタグをすべて `allowed_tags` に配列で渡す（「構成の例」に挙げたタグも、この wiki で使っているなら含める）。体系がひな形のまま空なら、渡さない。渡さないとタグの検査はせず、`summary.unknown_tags` が `null` になる。ツールが使えない場合は、`python "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_lint.py" "<WIKI_ROOT>"` を実行する（`--suggest-pages`、`--soft-cap`、`--allowed-tags`（カンマ区切り）などの同じ意味の引数がある）。この検査は、孤立ページ、リンク切れの wikilink、大きすぎるページ（空白を除いて 10,000 文字か 100 行を超えると警告、25,000 文字か 200 行を超えると要分割）、frontmatter の欠落、更新の止まったページ、重複したスラッグ、大文字と小文字だけが違うページかディレクトリ（`case_only_duplicates`）、参照先のない画像（`missing_assets`）を検出する。コードブロックとインラインのコードの中の `[[...]]` は、リンクとして数えない。索引（`index.md` と `indexes/`）の見出しとそこに並ぶページの `type` の食い違い（`index_type_mismatch`）、ないページや source でないページを指す `sources:`（`unresolved_sources`）、原本のない source ページの `raw:`（`missing_raw`）、タグの体系にないタグ（`unknown_tags`）、YouTube の動画のソースの字幕の訂正と留保の印、定義、`confidence` の食い違い（`caption_corrections`）も検出する。ページの大きさには、コードフェンス（mermaid の図を含む）の中身と画像だけの行を数えない。日本語で書いた wiki に特有の誤りとして、frontmatter の全角の「：」、「、」で区切ったリスト、英語と日本語の別名の重複、`YYYY-MM-DD` でない日付、wikilink の中の全角の「｜」と「＃」、二重引用符で囲まれていない文字列の値も指摘する。
++2. 構造の lint をかける。MCP のツールと CLI の使い分けは、`info-hive` スキルの「MCP のツールと CLI の使い分け」に従う。wiki の MCP サーバーのツール `lint` が使える場合は、`wiki=<WIKI_ROOT の絶対パス>` を渡す（ツール名は接続に表示されたもの。Claude Code では `mcp__plugin_wiki_wiki__lint`）。ユーザーが求めた場合は `suggest_pages=true` を渡す。`SCHEMA.md` がページの大きさの上限や必須の frontmatter を既定と違う値に決めている場合は、`soft_cap`、`hard_cap`、`soft_char_cap`、`hard_char_cap`、`required_fm` にその値を渡す。`SCHEMA.md` の「タグの体系」にタグが並んでいれば、そのタグをすべて `allowed_tags` に配列で渡す（「構成の例」に挙げたタグも、この wiki で使っているなら含める）。体系がひな形のまま空なら、渡さない。渡さないとタグの検査はせず、`summary.unknown_tags` が `null` になる。ツールが使えない場合は、`python "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_lint.py" "<WIKI_ROOT>"` を実行する（`--suggest-pages`、`--soft-cap`、`--allowed-tags`（カンマ区切り）などの同じ意味の引数がある）。この検査は、孤立ページ、リンク切れの wikilink、大きすぎるページ（空白を除いて 10,000 文字か 100 行を超えると警告、25,000 文字か 200 行を超えると要分割）、frontmatter の欠落、更新の止まったページ、重複したスラッグ、大文字と小文字だけが違うページかディレクトリ（`case_only_duplicates`）、参照先のない画像（`missing_assets`）を検出する。コードブロックとインラインのコードの中の `[[...]]` は、リンクとして数えない。索引（`index.md` と `indexes/`）の見出しとそこに並ぶページの `type` の食い違い（`index_type_mismatch`）、ないページや source でないページを指す `sources:`（`unresolved_sources`）、原本のない source ページの `raw:`（`missing_raw`）、タグの体系にないタグ（`unknown_tags`）、YouTube の動画のソースの字幕の訂正と留保の印、定義、`confidence` の食い違い（`caption_corrections`）、記事か記事までの道のリンク（`links`。シンボリックリンク、ジャンクション、名前の代理のリパースポイント、ハードリンク。調べられなかったものは `links_unchecked`）も検出する。`links` は直さない。プラグインはリンクを置き換えず、警告として利用者に伝える（info-hive-dev の ADR-0029）。直し方の目安は `skills/info-hive/references/lint-workflow.md` の「記事のリンクの直し方」にある。ページの大きさには、コードフェンス（mermaid の図を含む）の中身と画像だけの行を数えない。日本語で書いた wiki に特有の誤りとして、frontmatter の全角の「：」、「、」で区切ったリスト、英語と日本語の別名の重複、`YYYY-MM-DD` でない日付、wikilink の中の全角の「｜」と「＃」、二重引用符で囲まれていない文字列の値も指摘する。
+ 2b. グラフの lint の結果も見る。ツールの `lint` は、`<WIKI_ROOT>/graph/ontology.yaml` があれば、グラフの lint の結果を `graph.findings` に入れて返す（`graph.state` が `checked`）。`disabled` はオントロジーがない wiki、`error` はオントロジーを読めないことを表す。CLI を使った場合と、判定レイヤーの `--decide` が要る場合は、オントロジーがあれば `uv run --script "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_graph_lint.py" "<WIKI_ROOT>"` も実行する。型付きエッジの検出結果（未知の述語、証拠の欠落、リンク切れの目的語の参照、エイリアスの衝突、読めなかった `graph:` と欄）も、構造の検出結果と同じように仕分ける。つまり、修正案を示し、黙って適用しない。承認された修正を適用したら、`uv run --script "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_graph_extract.py" "<WIKI_ROOT>"` の実行を提案する。
+ 3. 構造の検出結果をユーザーと一緒に1件ずつ確認し、それぞれに修正案を示す。黙って修正を適用してはならない。1件ずつ、またはまとめての承認を待つ。
+ 4. 内容の確認を行う。最近更新されたページと、もっとも多くリンクされているハブページを読む（ツールの `stats` の `most_linked` に上位 10 件がある。ツールが使えなければ `python "${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_search.py" "" --wiki "<WIKI_ROOT>" --top-linked 10` で見つけられる）。古いページとの矛盾、張られていない相互参照、多くのページで言及されているのに専用のページがないコンセプトを探す。
+diff --git a/skills/info-hive/SKILL.md b/skills/info-hive/SKILL.md
+index f838019..14bffaa 100644
+--- a/skills/info-hive/SKILL.md
++++ b/skills/info-hive/SKILL.md
+@@ -172,7 +172,7 @@ PDF を取り込み、`rag` MCP サーバーが使える場合は、先に `refe
+ 
+ ## lint のワークフロー（概要）
+ 
+-詳しい内容は `references/lint-workflow.md` にある。lint は、操作のたびではなく、一定の頻度（N 回の取り込みごと、または週1回）で行うのがよい。MCP のツール `lint`（使えなければ `python "<skill-root>/scripts/wiki_lint.py"`）は、構造上の問題を自動で見つける。孤立ページ、リンク切れの `[[wikilinks]]`、大きすぎるページ（文字数か行数で判定する）、frontmatter の欠落や形式の誤り（全角の「：」、「、」で区切ったリスト、`YYYY-MM-DD` でない日付など）、`updated` の日付が古いページである。`--suggest-pages` を付けると、多くのページに出てくるのに専用のページがない語（3文字以上のカタカナ語や漢字の複合語、大文字で始まる英語の句）も挙げる。そのあと、LLM が必要な内容面のチェックを行う。最近更新されたページを読んで古い主張との矛盾を探し、言及されているのに専用のページがないコンセプトを洗い出し、Web 検索や新しいソースで補うとよい不足をユーザーに提案する。lint の検出結果は、すでに済ませたこととしてではなく、ユーザーが承認する編集案として必ず示す。wiki はユーザーのものであり、黙って書き換えると信頼が損なわれる。
++詳しい内容は `references/lint-workflow.md` にある。lint は、操作のたびではなく、一定の頻度（N 回の取り込みごと、または週1回）で行うのがよい。MCP のツール `lint`（使えなければ `python "<skill-root>/scripts/wiki_lint.py"`）は、構造上の問題を自動で見つける。孤立ページ、リンク切れの `[[wikilinks]]`、大きすぎるページ（文字数か行数で判定する）、frontmatter の欠落や形式の誤り（全角の「：」、「、」で区切ったリスト、`YYYY-MM-DD` でない日付など）、`updated` の日付が古いページである。`--suggest-pages` を付けると、多くのページに出てくるのに専用のページがない語（3文字以上のカタカナ語や漢字の複合語、大文字で始まる英語の句）も挙げる。そのあと、LLM が必要な内容面のチェックを行う。最近更新されたページを読んで古い主張との矛盾を探し、言及されているのに専用のページがないコンセプトを洗い出し、Web 検索や新しいソースで補うとよい不足をユーザーに提案する。記事（ページ、索引、`log.md`、`SCHEMA.md`）か記事までの道がリンクなら、どのスクリプトとツールもその記事を読まず、lint の `links` と結果の `link_warnings` で知らせる。プラグインはリンクを置き換えない（info-hive-dev の ADR-0029。直し方の目安は `references/lint-workflow.md`）。lint の検出結果は、すでに済ませたこととしてではなく、ユーザーが承認する編集案として必ず示す。wiki はユーザーのものであり、黙って書き換えると信頼が損なわれる。
+ 
+ ## 防ぐべき失敗
+ 
+@@ -210,8 +210,9 @@ gist をめぐるコミュニティの議論で、このパターンがうまく
+ - `scripts/init_wiki.py`: wiki を初期化またはアップグレードし、実行環境とインデックスのセットアップが確認できるまで完了としない
+ - `scripts/setup_wiki.py`: `uv` を通じてバージョンを固定した FastEmbed、sqlite-vec、PyYAML をインストールし、ローカルのモデルをキャッシュし、パースとベクトルのインデックスを同期する
+ - `scripts/wiki_search.py`: セクション単位のローカルのハイブリッド検索。JSON の証拠、フィルター、差分更新のキャッシュ、依存パッケージを使わない語彙ベースの検索への切り替えを備える
+-- `scripts/wiki_lint.py`: 構造の健全性チェック（孤立ページ、リンク切れ、大きすぎるページ、frontmatter の検証、古い日付、`YYYY-MM-DD` でない日付、大文字と小文字だけが違うページ）
++- `scripts/wiki_lint.py`: 構造の健全性チェック（孤立ページ、リンク切れ、大きすぎるページ、frontmatter の検証、古い日付、`YYYY-MM-DD` でない日付、大文字と小文字だけが違うページ、記事か記事までの道のリンク（`links`。直さず、警告する））
+ - `scripts/wiki_pages.py`: lint、検索、統計、グラフが共有する、ページの集合と wikilink の抜き出しと解決の規則。コードの中の `[[...]]` はリンクとして数えない。本文は同梱した `scripts/_vendor/` の markdown-it-py で読む
++- `scripts/wiki_links.py`: wiki と raw の記事にリンクを置かない規則（info-hive-dev の ADR-0029）の、リンクの判定（シンボリックリンク、ジャンクション、名前の代理のリパースポイント、ハードリンク）。走査と lint が使う。`check` は、渡したパスとその下のリンクを JSON で出し、何も書かない
+ - `scripts/wiki_stats.py`: wiki の規模（ページ数、行数、文字数）、種類別のページ数、リンク密度の簡単なまとめ。インデックスを分割するタイミングを決めるのに役立つ
+ - `scripts/wiki_fetch.py`: Web ページを取得し、本文を Markdown にして画像とともに `raw/` に保存する。原文の HTML の SHA-256 を記録し、同じ内容の再取得を見分ける。サイトに共通の雑音（Wikipedia の部品、Medium の表示の文言など）を消し、ブラウザで保存した HTML（`--html-file`）も変換する。翻訳と画像の説明はモデルが行う
+ - `scripts/wiki_youtube.py`: YouTube の動画の字幕を、PEP 723 で版を固定した yt-dlp で取り、raw を 1 回で、重ねて書かない形で書き、読み取り専用にする（`inspect`、`write`）。用意したページの字幕の訂正と留保の印と定義、confidence を raw と照らし（`verify`）、定義の行を決まった書き方で出す（`define`）
+diff --git a/skills/info-hive/references/lint-workflow.md b/skills/info-hive/references/lint-workflow.md
+index 435c846..85f84b8 100644
+--- a/skills/info-hive/references/lint-workflow.md
++++ b/skills/info-hive/references/lint-workflow.md
+@@ -30,7 +30,7 @@ uv run --script "<skill-root>/scripts/wiki_graph_lint.py" wiki/
+ 
+ ユーザーが任意の判定レイヤーを有効にしている場合は、ツールではなく `wiki_graph_lint.py` を使い、`--decide` を付ける。証拠のテキストがソースページに出てこない型付きエッジをチェックする。矛盾を洗い出すには、`python "<skill-root>/scripts/wiki_decide.py" contradictions --wiki wiki/` を実行し、報告されたページの組を読んでから判断する。`decision-models.md` を参照。
+ 
+-lint が調べるページは、wiki の中の `.md` のうち、最上位の `SCHEMA.md`、`index.md`、`log.md`、`README.md` と、最上位の `indexes/`、`graph/`、`raw/`、`assets/`、`.evolution/`、`.wiki-cache/` の中のものと、名前が `.` で始まるファイルを除いたものである。検索（`wiki_search.py` と MCP の `query`）、統計、グラフも同じページを対象にする（`scripts/wiki_pages.py`）。
++lint が調べるページは、wiki の中の `.md` のうち、最上位の `SCHEMA.md`、`index.md`、`log.md`、`README.md` と、最上位の `indexes/`、`graph/`、`raw/`、`assets/`、`.evolution/`、`.wiki-cache/` の中のものと、どこかの要素の名前が `.` で始まるもの（`.git/`、`.obsidian/`、`.hidden.md` など、どの深さでも）を除いたものである。リンク（シンボリックリンク、ジャンクション、ハードリンク）のページと、リンクのディレクトリの下のページは読まず、下の「記事のリンク」で挙げる。検索（`wiki_search.py` と MCP の `query`）、統計、グラフ、閲覧も同じページを対象にする（`scripts/wiki_pages.py`）。
+ 
+ lint のレポートには、次のものが含まれる。
+ 
+@@ -47,6 +47,7 @@ lint のレポートには、次のものが含まれる。
+ - **原本がない**（`missing_raw`）: source ページの `raw:` が指すファイルかディレクトリがないもの。相対パスは、wiki のルート（`../raw/...`、`../W1_Raw/...`）、wiki の親（取り込みのひな形の `raw/...`）、ページのディレクトリのどれかを基準にして見つかればよい。rag が書く `C:/...` のような絶対パスはそのまま確かめる。URL は見ない。
+ - **タグの体系にないタグ**（`unknown_tags`）: `allowed_tags`（`--allowed-tags`）を渡したときだけ、そこにないタグを持つページを挙げる。タグは NFKC にそろえてから比べる。
+ - **字幕の訂正と留保の食い違い**（`caption_corrections`）: YouTube の動画の raw を `raw` に持つ要約ページと、`〔訂正 …〕`、`〔留保 …〕` の印のあるページを、raw と照らす（info-hive-dev の ADR-0027）。定義の字幕の語が raw の行にないもの、根拠の場所に訂正した語がないもの、印と定義の対応の誤り、印の直前の本文の末尾が語と合わないもの、要約ページの間で食い違う定義、書かれた `confidence` と計算した値の違いを挙げる。各項目は `path`、`line`、`code`、`message` を持つ。直し方は `ingest-workflow.md` の「字幕の訂正と留保」と「confidence の決め方」に従い、ユーザーの承認を得てからページを直す。raw は直さない。
++- **記事のリンク**（`links`）: wiki の記事（ページ、最上位の `index.md`、`log.md`、`SCHEMA.md`、`indexes/` の下の索引）か、記事までの途中のディレクトリが、シンボリックリンク（`symlink`）、ジャンクション（`junction`）、名前の代理のリパースポイント（`reparse`。Windows のマウントしたフォルダーなど）、ハードリンク（`hardlink`。リンクの数が 2 以上のふつうのファイル）であるもの。wiki と raw の記事にはリンクを置かない（info-hive-dev の ADR-0029）。リンクの記事は、検索、閲覧、統計、グラフ、lint のどれも読まない。読まないページへの wikilink は、リンク切れとしては挙げない（ここで挙げる）。リンクのディレクトリの下のページへの wikilink は、名前が分からないので、リンク切れとして挙がる。wiki の根そのものと、その祖先のリンクは許す。記事でないもの（`.git/`、`.wiki-cache/`、`graph/`、`assets/`、`raw/` の中で `raw:` から指されていないもの、`.md` でないファイル）のリンクは挙げない。この版では、raw の側（source ページの `raw:` が指すもの）は調べない（`summary.links_raw` が `null`）。調べられなかった項目（一覧を作れないディレクトリ、属性を取れない項目）は `links_unchecked` に挙がる。
+ - **日本語の書き損じ**: 英語のキーと日本語の別名を両方書いている frontmatter（`title` と `タイトル` など）、キーのあとが全角の「：」になっている frontmatter、リストの値を「、」で区切っている frontmatter、全角の「｜」か「＃」を使った wikilink、`created`・`updated`・`ingested` の日付が `YYYY-MM-DD` の形になっていないページ、文字列の値が二重引用符で囲まれていない frontmatter（`unquoted_strings`。配列の要素も含む。日付と数値は対象外）。
+ 
+ このスクリプトは控えめに動く。検出結果を報告するが、修正はしない。レポートをユーザーに示す。
+@@ -65,10 +66,35 @@ lint のレポートには、次のものが含まれる。
+ - 出典の参照切れ: 正しい source ページのスラッグに直すか、source ページがまだないなら取り込みを提案する。source でないページを参照したいなら、`sources_consulted` に移す。
+ - 原本がない: 原本を移したなら `raw:` のパスを直す。原本を失ったなら、ユーザーに確かめる。原本は raw の層にあり、lint の修正で作り直してはならない。
+ - タグの体系にないタグ: 体系にあるタグに置き換えるか、残す価値があるならユーザーと相談して `SCHEMA.md` の「タグの体系」に足す。
++- 記事のリンク: プラグインは直さない。リンクの先は利用者のデータのことがあり、直すか、どう直すかは利用者が決める（ADR-0029 の作者の決定の 8）。直し方の目安を、下の「記事のリンクの直し方」に示す。修正の提案にも、リンクを置き換える編集を入れない。
+ - 日本語の書き損じ: frontmatter のキーは英語に、コロンとリストの区切りは半角に、日付は `YYYY-MM-DD` の形に直す。wikilink の全角の「｜」「＃」は、区切りのつもりなら半角に直す。引用符のない文字列は、二重引用符で囲む。同じ wiki で多くのページに出るなら、まとめて直す提案をする。
+ 
+ 修正案は、すでに行ったこととしてではなく、編集の提案として示す。承認するのはユーザーである。
+ 
++### 記事のリンクの直し方
++
++直すのは利用者で、プラグインは警告するだけである。手順は OS、属性、リンクの種類で変わるので、直したあとに成り立つ状態と、その確かめ方を示す。
++
++**直したあとに成り立つ状態。**
++
++1. 直した名前は、ふつうのファイルかふつうのディレクトリで、ファイルならリンクの数が 1 である。
++2. 直した名前のバイト列は、直す前にその名前で読んだバイト列と同じである（ディレクトリなら、その下のすべてのファイル）。
++3. 直した名前の読み取り専用の属性は、直す前と同じである。
++4. リンクの先と、ハードリンクのもう一方の名前は、バイト列も属性も直す前と同じである。先を消さない。
++5. lint の `links` に、直した名前が出ない。
++
++**確かめ方。** 直す前に、直す名前ともう一方の名前（分かれば）のバイト列の SHA-256 と、読み取り専用かどうかを控える。直したあとに同じものを取り、上の 2〜4 を照らす。lint を流し直して 5 を確かめる。
++
++| 種類 | 注意 |
++| --- | --- |
++| ファイルのシンボリックリンク | 先の中身を同じディレクトリの新しい名前に写し、その名前でリンクの名前を置き換えるのが例である。先がないリンクは、写す中身がないので、リンクを消すか、用意したファイルに置き換えるかを決める |
++| ジャンクション（マウントしたフォルダーを含む） | 先の中身を写した実のディレクトリを作り、ジャンクションそのものを消してから、その名前に置く。Windows の `rmdir <名前>` はジャンクションだけを消す。`/s` を付けると先を消す |
++| ディレクトリのシンボリックリンク | 中身を写せば、ページが増え、検索の結果と孤立の判定が変わる。写すか、リンクを消すだけにするかを決める |
++| ハードリンク | 読み取り専用の属性はファイルに付くので、2 つの名前で同じである。Windows では、読み取り専用の名前を置き換えると `PermissionError` になる。属性を外してから置き換え、置き換えたあとに、新しいファイルともう一方の名前の属性を元に戻す |
++
++- **プラグインが残したハードリンク。** 重ねて書かない形でファイルを置く途中（一時ファイルから名前を作り、一時ファイルの名前を消すまで）で止まると、行き先の記事のリンクの数が 2 のまま残る。一時ファイルは名前が `.` で始まる（`.wiki-session-*.tmp` など）。その一時ファイルの名前を消せば直る。lint と書き込みが重なったときにだけ出る指摘は、lint を流し直すと消える。
++- **セッションの raw。** 読み取り専用で、あとから作り直せない。直したら、`wiki_session.py verify` で、同じバイト列で読み取り専用であることを確かめる。
++
+ ## 手順 3: 内容の確認を行う
+ 
+ 内容の確認は、スクリプトにはできない部分である。ページを読んで、内容について考える必要がある。ただし、wiki 全体を読む必要はない。内容に問題がありそうなページに絞る。
+diff --git a/skills/info-hive/references/mcp-server.md b/skills/info-hive/references/mcp-server.md
+index 866c28b..ece71c1 100644
+--- a/skills/info-hive/references/mcp-server.md
++++ b/skills/info-hive/references/mcp-server.md
+@@ -40,6 +40,8 @@ wiki のプラグインは、検索のためのローカルの MCP サーバー
+ | `graph` | グラフ（`graph/graph.sqlite`）への問い合わせ（`wiki_graph_query.py --json` と同じ結果）。DB は読み取り専用で開く |
+ | `index_chunks` | rag などからチャンクを受け取り、wiki の外の索引に加える |
+ 
++**拒んだリンクの知らせ（`link_warnings`）。** wiki の記事か記事までの道がリンク（シンボリックリンク、ジャンクション、名前の代理のリパースポイント、ハードリンク）なら、どのツールもその記事を読まない（info-hive-dev の ADR-0029）。`query`、`get_page`、`list_index`、`lint`、`stats`、`graph` の結果には、読まなかったものを `link_warnings`（`{"path", "kind"}` の並び。なければ空）で必ず付ける。`get_page` と `list_index` の `name` で、リンクなので読まない記事を名前で引くと、「見つからない」ではなく「リンクなので読まない」のエラーを返す。
++
+ `index_chunks` 以外のツールには、`wiki` に wiki のルートの絶対パスを渡す。渡すのは初期化された wiki（ルートに `SCHEMA.md` がある）のルートである。`SCHEMA.md` のないディレクトリには、どのツールも「初期化された wiki ではない」のエラーを返し、索引も作らない。そのときは CLI でやり直さず、`/wiki:init` を提案する。`lint`、`stats`、`graph` は、同じ名前のスクリプトの関数をサーバーの中で呼ぶ。結果のキーも CLI の `--json` と同じ英語のままである。
+ 
+ ### query
+diff --git a/skills/info-hive/references/page-conventions.md b/skills/info-hive/references/page-conventions.md
+index e27d615..1424d74 100644
+--- a/skills/info-hive/references/page-conventions.md
++++ b/skills/info-hive/references/page-conventions.md
+@@ -6,6 +6,10 @@ wiki のすべてのページが従う構造上の規則である。特定の wi
+ 
+ この wiki は日本語で書くことを前提にしている。本文、題名、ファイル名は日本語でよく、技術用語や固有名詞は英語のまま混ぜてよい。ただし、スクリプトが字句どおりに読む文字列（frontmatter のキー、`type` と `kind` の値、日付の形式、wikilink の書き方）は、下に書く形を守る。ソースのページの `## 主張と行き先` の表に書く行き先（`create`、`update`、`source_only`）も、英語の識別子のまま書く。
+ 
++## リンクを置かない
++
++wiki と raw の記事（ページ、索引、`log.md`、`SCHEMA.md`、source ページの `raw:` が指すもの）と、記事までの途中のディレクトリに、シンボリックリンク、ジャンクション、ハードリンクを置かない（info-hive-dev の ADR-0029）。記事を置くときは、中身を写したふつうのファイルを置く。リンクの記事は、検索、閲覧、統計、グラフ、lint のどれも読まず、lint の `links` と、各ツールの `link_warnings` で知らせる。wiki の根そのものと、その祖先のリンクは許す。名前が `.` で始まる項目（`.git/`、`.obsidian/` など）の下は、どの深さでも記事でない。
++
+ ## frontmatter
+ 
+ wiki のページはどれも YAML の frontmatter で始める。必須のフィールドは次のとおりである。
+diff --git a/skills/info-hive/scripts/init_wiki.py b/skills/info-hive/scripts/init_wiki.py
+index 1bf44be..a99a570 100644
+--- a/skills/info-hive/scripts/init_wiki.py
++++ b/skills/info-hive/scripts/init_wiki.py
+@@ -111,10 +111,20 @@ def copy_template(src: Path, dst: Path, substitutions: dict | None = None) -> bo
+     return True
+ 
+ 
+-def detect_schema_gaps(schema_path: Path) -> list[dict]:
+-    """SCHEMA_SECTION_MARKERS のうち、ユーザーの SCHEMA.md にない項目を返す。"""
+-    if not schema_path.exists():
++def detect_schema_gaps(schema_path: Path) -> "list[dict] | None":
++    """SCHEMA_SECTION_MARKERS のうち、ユーザーの SCHEMA.md にない項目を返す。調べられなかったら None。
++
++    SCHEMA.md は記事なので、リンクなら読まない（info-hive-dev の ADR-0029）。リンクのときと、リンクかを調べられない
++    ときは、理由を標準エラーに出して None を返す（空の並びは「不足なし」なので返さない）。
++    """
++    import wiki_links
++    state, kind = wiki_links.is_link(schema_path)
++    if state == "absent":
+         return []
++    if state != "ok" or kind is not None:
++        reason = f"リンクなので読まない（{kind}）" if kind is not None else "調べられない"
++        print(f"{schema_path.name} は{reason}。スキーマの不足は調べていない", file=sys.stderr)
++        return None
+     text = schema_path.read_text(encoding="utf-8-sig")
+ 
+     def marker_present(marker: str) -> bool:
+@@ -274,7 +284,10 @@ def init_wiki(project_root: Path, wiki_dir: str, raw_dir: str, upgrade: bool = F
+ 
+     if upgrade:
+         gaps = detect_schema_gaps(wiki / "SCHEMA.md")
+-        if gaps:
++        if gaps is None:
++            print()
++            print("SCHEMA.md の不足は調べていない（理由は上の標準エラーにある）。")
++        elif gaps:
+             print_schema_upgrade_guidance(wiki / "SCHEMA.md", gaps)
+         else:
+             print()
+diff --git a/skills/info-hive/scripts/wiki_browse_core.py b/skills/info-hive/scripts/wiki_browse_core.py
+index 9af45e6..5a27d5c 100644
+--- a/skills/info-hive/scripts/wiki_browse_core.py
++++ b/skills/info-hive/scripts/wiki_browse_core.py
+@@ -166,6 +166,10 @@ def take_snapshot(root, entries=None) -> Snapshot:
+     transient = []
+     gen = hashlib.sha256(CORE_VERSION.encode("utf-8"))
+     for kind, rel_disk, size, _mtime in first:
++        if kind == "link":
++            # リンクなので読まない（ADR-0029）。読まないことも内容なので、世代に入れる
++            gen.update(f"link\0{rel_disk}\0{_mtime}\n".encode("utf-8"))
++            continue
+         f = InputFile(kind=kind, disk_rel=rel_disk, rel=posix_rel(rel_disk))
+         data = None
+         if size is not None:
+@@ -625,6 +629,10 @@ class Core:
+         self.unreadable_ontology = [rel for kind, rel in unreadable if kind == "ontology"]
+         self._render_lock = threading.Lock()
+         self._build_pages()
++        # 走査がリンクなので読まなかった記事と記事までの道（ADR-0029）。黙って消さず、診断に出す
++        for kind, rel, _size, link_kind in snapshot.entries:
++            if kind == "link":
++                self.diagnostics.append({"kind": "link", "path": rel, "link_kind": link_kind})
+         self.out_name = assign_names(sorted(self.drawn), name_limit)
+         self.name_to_id = {name: pid for pid, name in self.out_name.items()}
+         for pid in sorted(self.drawn):
+diff --git a/skills/info-hive/scripts/wiki_browse_fs.py b/skills/info-hive/scripts/wiki_browse_fs.py
+index 99eb21e..f019d02 100644
+--- a/skills/info-hive/scripts/wiki_browse_fs.py
++++ b/skills/info-hive/scripts/wiki_browse_fs.py
+@@ -1413,7 +1413,8 @@ def remove_record(root, browse_root, state_dir, owner, instance) -> None:
+ def walk_inputs(root):
+     """入力の一覧（設計の 4）。(entries, problem) を返す。
+ 
+-    entries は (種類, ディスク上の / 区切りの相対パス, 大きさ, 更新時刻) の並びで、ページ、索引、オントロジーの順。
++    entries は (種類, ディスク上の / 区切りの相対パス, 大きさ, 更新時刻) の並びで、ページ、索引、リンク、オントロジーの順。
++    リンク（種類 "link"）は、走査がリンクなので読まなかった記事と記事までの道で、大きさは None、4 つ目はリンクの種類である。
+     ページと索引の集合は、lint と同じ走査の関数（wiki_pages.walk_pages、walk_index_files）が決める。オントロジーは、
+     層の stat で種類、大きさ、更新時刻を得る（ないなら入れない。調べられなければ、大きさと更新時刻を None にする）。
+     problem は、名前の集合が分からないとき（走査が送出した、一覧を作れない場所、種類を調べられない項目）に、
+@@ -1432,6 +1433,8 @@ def walk_inputs(root):
+             return [], "種類を調べられない項目がある"
+     entries = [("page", f.rel, f.size, f.mtime_ns) for f in pages.files]
+     entries += [("index", f.rel, f.size, f.mtime_ns) for f in indexes.files]
++    # 記事か記事までの道がリンクなので、走査が読まなかったもの（ADR-0029）。読まず、診断に出す。4 つ目は種類
++    entries += [("link", item["path"], None, item["kind"]) for item in wiki_pages.link_warnings(pages, indexes)]
+     if "drop_ontology" not in MUTANTS:
+         onto = wiki_pages.ONTOLOGY_REL if hasattr(wiki_pages, "ONTOLOGY_REL") else "graph/ontology.yaml"
+         try:
+diff --git a/skills/info-hive/scripts/wiki_decide.py b/skills/info-hive/scripts/wiki_decide.py
+index 1383fc8..17faa27 100644
+--- a/skills/info-hive/scripts/wiki_decide.py
++++ b/skills/info-hive/scripts/wiki_decide.py
+@@ -494,6 +494,10 @@ def search_candidates(source_query: str, wiki: Path, top: int, no_embed: bool) -
+     # 子の Python も UTF-8 モードで動かし、cp932 の既定に左右されないようにする。
+     env = {**os.environ, "PYTHONUTF8": "1"}
+     proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", env=env)
++    # 検索が出した知らせ（リンクなので読まなかったページ、調べられなかった場所）は、捨てずに利用者へ渡す
++    for line in (proc.stderr or "").splitlines():
++        if line.startswith(("リンクなので読まない:", "調べられない:")):
++            print(line, file=sys.stderr)
+     if proc.returncode != 0 or not proc.stdout.strip():
+         return []
+     return json.loads(proc.stdout).get("results", [])
+@@ -501,7 +505,9 @@ def search_candidates(source_query: str, wiki: Path, top: int, no_embed: bool) -
+ 
+ def cmd_shortlist(args, client: DecisionClient | None) -> int:
+     source_path = Path(args.source)
+-    text = source_path.read_text(encoding="utf-8-sig")
++    # 入力が wiki の中の記事なら、記事を読む口を通す（info-hive-dev の ADR-0029）
++    import wiki_pages
++    text = wiki_pages.read_user_file(source_path, args.wiki)
+     title, body = strip_frontmatter(text)
+     title = title or source_path.stem
+     t = QUESTIONS["changes"]
+@@ -511,9 +517,13 @@ def cmd_shortlist(args, client: DecisionClient | None) -> int:
+     started = time.monotonic()
+     candidates = []
+     for rank, row in enumerate(rows, 1):
+-        page_file = args.wiki / row["rel_path"]
++        # 記事は、記事を読む口を通して読む（info-hive-dev の ADR-0029）。読めなければ、検索の抜粋を使う
++        import wiki_pages
++        opened = wiki_pages.article_path(args.wiki, row["rel_path"])
+         try:
+-            _, page_body = strip_frontmatter(page_file.read_text(encoding="utf-8-sig"))
++            if opened.state != "ok":
++                raise OSError(opened.state)
++            _, page_body = strip_frontmatter(opened.path.read_text(encoding="utf-8-sig"))
+         except OSError:
+             page_body = row.get("snippet", "")
+         candidates.append({"rel_path": row["rel_path"], "title": row["title"], "search_rank": rank, "text": page_body})
+diff --git a/skills/info-hive/scripts/wiki_evolve.py b/skills/info-hive/scripts/wiki_evolve.py
+index d651d8d..24ae49c 100644
+--- a/skills/info-hive/scripts/wiki_evolve.py
++++ b/skills/info-hive/scripts/wiki_evolve.py
+@@ -38,6 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
+ from wiki_text import localize_argparse, normalize_quote  # noqa: E402
+ import wiki_initialized  # noqa: E402
+ import wiki_workspace  # noqa: E402
++import wiki_pages  # noqa: E402
+ 
+ IGNORED = {'.git', '__pycache__', '.wiki-cache', '.evolution', 'node_modules', '.wiki-evolve-lock'}
+ # wiki を使わない操作。ほかの操作はどれも、振り分けの前に wiki の判定を通る。
+@@ -49,8 +50,8 @@ def require(condition, message):
+         raise ValueError(message)
+ 
+ 
+-def read_json(path):
+-    return json.loads(Path(path).read_text(encoding='utf-8'))
++def read_json(path, wiki_root=None):
++    return json.loads(wiki_pages.read_user_file(path, wiki_root, encoding='utf-8'))
+ 
+ 
+ def encode(value):
+@@ -106,11 +107,18 @@ def atomic(path, data, mode=None):
+         Path(name).unlink(missing_ok=True)
+ 
+ 
+-def tree(root):
++def tree(root, wiki_root=None):
++    """木のハッシュ。利用者の wiki 内の木には wiki_root を渡し、記事の読み取りを共通の口に通す。"""
++    root = wiki_pages.user_directory_path(wiki_pages.absolute_user_path(root), wiki_root)
+     require(root.is_dir() and not root.is_symlink(), f'通常のディレクトリではない: {root}')
+     result = {}
+-    for directory, dirs, files in os.walk(root, followlinks=False):
++    def unreadable(error):
++        # 一覧できない木を、空の木や完全な写しとして扱わない。CLI もこの例外を理由付きで伝える。
++        raise error
++    for directory, dirs, files in os.walk(root, followlinks=False, onerror=unreadable):
+         dirs[:] = sorted(d for d in dirs if d not in IGNORED)
++        for name in dirs:
++            wiki_pages.user_directory_path(Path(directory) / name, wiki_root)
+         for name in dirs + sorted(files):
+             path = Path(directory) / name
+             require(not path.is_symlink(), f'シンボリックリンクは使えない: {path}')
+@@ -118,18 +126,19 @@ def tree(root):
+             path = Path(directory) / name
+             require(path.is_file(), f'通常のファイルではない: {path}')
+             result[path.relative_to(root).as_posix()] = {
+-                'sha256': digest(path.read_bytes()), 'mode': path.stat().st_mode & 0o777,
++                'sha256': digest(wiki_pages.read_user_bytes(path, wiki_root)), 'mode': path.stat().st_mode & 0o777,
+             }
+     return result
+ 
+ 
+-def copy_tree(source, dest):
+-    files = tree(source)
++def copy_tree(source, dest, wiki_root=None):
++    source = wiki_pages.user_directory_path(wiki_pages.absolute_user_path(source), wiki_root)
++    files = tree(source, wiki_root)
+     dest.mkdir(parents=True, exist_ok=True)
+     for name in files:
+         target = dest / name
+         target.parent.mkdir(parents=True, exist_ok=True)
+-        shutil.copy2(source / name, target)
++        shutil.copy2(wiki_pages.user_file_path(source / name, wiki_root), target)
+     return files
+ 
+ 
+@@ -167,7 +176,7 @@ def manifest(exp):
+ 
+ 
+ def capture(args):
+-    record = read_json(args.record)
++    record = read_json(args.record, getattr(args, 'wiki', None))
+     slug(record.get('id'))
+     for key in ('task', 'verification', 'model', 'tools', 'scope'):
+         require(isinstance(record.get(key), str) and record[key].strip(), f'{key} がない')
+@@ -201,34 +210,39 @@ def capture(args):
+ def propose(args, state):
+     exp = state / slug(args.id)
+     require(not exp.exists(), 'この実験の ID はすでにある。新しい ID を使う')
+-    source = args.skill.resolve()
+-    directory = args.candidate.is_dir()
++    source = wiki_pages.absolute_user_path(args.skill)
++    candidate = wiki_pages.absolute_user_path(args.candidate)
++    directory = candidate.is_dir()
+     require(directory or args.target, 'ファイル単位の提案には --target が必要である')
+     require(not args.skill.is_symlink(), 'スキルをシンボリックリンクにはできない')
+     require(source.is_dir() or directory, '新しいスキルには候補のディレクトリが必要である')
+-    require(not source.is_relative_to(state.resolve()), 'インストール先を実験の記録の中にはできない')
++    require(not source.resolve().is_relative_to(state.resolve()), 'インストール先を実験の記録の中にはできない')
+     if source.exists():
+-        require((source / 'SKILL.md').is_file() or not tree(source), 'スキルのディレクトリには SKILL.md が必要である（空のディレクトリならよい）')
++        require((source / 'SKILL.md').is_file() or not tree(source, args.wiki), 'スキルのディレクトリには SKILL.md が必要である（空のディレクトリならよい）')
+     if directory:
+-        require((args.candidate / 'SKILL.md').is_file(), '候補に SKILL.md がない')
++        require((candidate / 'SKILL.md').is_file(), '候補に SKILL.md がない')
+     else:
+         target = inside(source, args.target)
+         require(target.is_file(), '--target には、このスキルにある既存のファイルを指定する')
+         # 候補は渡されたバイト列のまま写す。文字として読み書きすると、Windows では改行が CRLF に変わる。
+-        after = args.candidate.read_bytes()
++        after = wiki_pages.read_user_bytes(candidate, args.wiki)
+         require(after.decode('utf-8').strip(), '候補が空である')
+     require(args.reason.strip(), '提案の理由（--reason）が空である')
+     evidence = {}
+     for name in args.evidence:
+         path = inside(args.wiki, name)
+         require(path.suffix == '.md' and path.is_file(), '根拠には、wiki にある既存の Markdown のページを指定する')
+-        evidence[name] = path.read_text(encoding='utf-8')
++        # 記事は、記事を読む口を通して読む。記事か記事までの道がリンクなら読まない（info-hive-dev の ADR-0029）
++        opened = wiki_pages.article_path(args.wiki, path.relative_to(args.wiki).as_posix())
++        require(opened.state != 'link', f'根拠のページがリンクなので読まない: {opened.link[0] if opened.link else name}')
++        require(opened.state == 'ok', f'根拠のページを読めない: {name}（{opened.state}）')
++        evidence[name] = opened.path.read_text(encoding='utf-8')
+     require(evidence, '根拠のページが少なくとも 1 つ必要である')
+     with tempfile.TemporaryDirectory(prefix='.staging-', dir=state) as tmp:
+         staging = Path(tmp) / 'experiment'
+         (staging / 'baseline').mkdir(parents=True)
+-        baseline = copy_tree(source, staging / 'baseline') if source.exists() else {}
+-        copy_tree(args.candidate if directory else source, staging / 'candidate')
++        baseline = copy_tree(source, staging / 'baseline', args.wiki) if source.exists() else {}
++        copy_tree(candidate if directory else source, staging / 'candidate', args.wiki)
+         if not directory:
+             (staging / 'candidate' / args.target).write_bytes(after)
+         require(tree(staging / 'candidate') != baseline, '候補がベースラインと同じである')
+@@ -356,14 +370,17 @@ def run_runner(argv, request, cwd, timeout):
+ 
+ 
+ def evaluate(args, exp):
++    wiki_root = getattr(args, 'wiki', None)
+     value = manifest(exp)
+     require(not list(exp.glob('evaluation-*.json')) and not list(exp.glob('inputs-*.json')),
+             '評価はすでに記録されたか、始まっている。新しく試すときは新しい提案を作る')
+     require(not (exp / 'transition.json').exists(), '適用した実験は評価できない')
+-    suite_path = args.suite.resolve()
+-    suite = read_json(suite_path)
+-    corpus = (suite_path.parent / relative(suite['corpus'])).resolve()
+-    runner = read_json(args.runner)
++    suite_path = wiki_pages.user_file_path(args.suite, wiki_root).resolve()
++    suite = read_json(suite_path, wiki_root)
++    corpus = suite_path.parent / relative(suite['corpus'])
++    corpus_root = wiki_pages.source_wiki_root(corpus, wiki_root)
++    tree(corpus, corpus_root)
++    runner = read_json(args.runner, wiki_root)
+     require(isinstance(runner, list) and runner and all(isinstance(x, str) and x for x in runner),
+             'ランナーのファイルには、空でない argv の JSON 配列を書く（シェルは使わない）')
+     finite(args.timeout, 'timeout')
+@@ -374,7 +391,7 @@ def evaluate(args, exp):
+     event(exp, 'inputs', {'suite': suite, 'model': args.model, 'tools': args.tools,
+                           'runner': runner, 'repeats': args.repeats, 'timeout': args.timeout,
+                           'proposal_sha256': digest((exp / 'proposal.json').read_bytes())})
+-    corpus_hash = copy_tree(corpus, exp / 'corpus')
++    corpus_hash = copy_tree(corpus, exp / 'corpus', corpus_root)
+     # 実行のたびに、アーカイブした入力の新しいコピーを渡す。
+     with tempfile.TemporaryDirectory(prefix='wiki-evaluation-') as tmp:
+         workspace = Path(tmp)
+@@ -434,7 +451,7 @@ def evaluate(args, exp):
+             raise
+ 
+ 
+-def transition(exp, rollback=False):
++def transition(exp, rollback=False, wiki_root=None):
+     value = manifest(exp)
+     source = Path(value['skill'])
+     source.mkdir(parents=True, exist_ok=True)
+@@ -444,12 +461,12 @@ def transition(exp, rollback=False):
+     except FileExistsError:
+         raise ValueError(f'スキルを別の処理が使用中である。そのプロセスが終了しているなら、確かめてから {lock} を削除する')
+     try:
+-        return promote(exp, value, rollback)
++        return promote(exp, value, rollback, wiki_root)
+     finally:
+         lock.rmdir()
+ 
+ 
+-def promote(exp, value, rollback):
++def promote(exp, value, rollback, wiki_root=None):
+     source = Path(value['skill'])
+     records = list(exp.glob('evaluation-*.json'))
+     require(len(records) == 1, '完了した評価が必要である')
+@@ -465,7 +482,7 @@ def promote(exp, value, rollback):
+     else:
+         require(current['status'] in ('proposed', 'applying', 'accepted'), 'ロールバックした実験は再び適用できない')
+         before, after, pending, done = 'baseline', 'candidate', 'applying', 'accepted'
+-    actual = tree(source)
++    actual = tree(source, wiki_root)
+     if current['status'] in (pending, done) and actual == value[after]:
+         atomic(journal, encode({'status': done}).encode())
+         return {'id': value['id'], 'status': done}
+@@ -486,7 +503,7 @@ def promote(exp, value, rollback):
+             atomic(target, (exp / after / name).read_bytes(), value[after][name]['mode'])
+         else:
+             target.unlink(missing_ok=True)
+-    require(tree(source) == value[after], '切り替えたあとのスキルがスナップショットと一致しない')
++    require(tree(source, wiki_root) == value[after], '切り替えたあとのスキルがスナップショットと一致しない')
+     atomic(journal, encode({'status': done}).encode())
+     event(exp, done, {'skill': str(source)})
+     return {'id': value['id'], 'status': done}
+@@ -612,7 +629,7 @@ def main():
+                         result = {'proposal': manifest(exp), 'inputs': [read_json(p) for p in exp.glob('inputs-*.json')], 'diff': (exp / 'change.diff').read_text(encoding='utf-8'),
+                                   'evaluations': [read_json(p) for p in exp.glob('evaluation-*.json')]}
+                     else:
+-                        result = transition(exp, rollback=args.action == 'rollback')
++                        result = transition(exp, rollback=args.action == 'rollback', wiki_root=args.wiki)
+         print(encode(result), end='')
+         if args.action == 'evaluate' and result.get('status') == 'rejected':
+             return 2
+diff --git a/skills/info-hive/scripts/wiki_evolve_loop.py b/skills/info-hive/scripts/wiki_evolve_loop.py
+index 5b56428..4e04055 100644
+--- a/skills/info-hive/scripts/wiki_evolve_loop.py
++++ b/skills/info-hive/scripts/wiki_evolve_loop.py
+@@ -21,6 +21,7 @@ from wiki_evolve import (atomic, copy_tree, digest, encode, event, finite, insid
+                          propose, read_json, require, run_runner, slug, tree, capture)
+ from wiki_text import format_fm_value, format_frontmatter, localize_argparse, quote_in_text
+ import wiki_initialized
++import wiki_pages
+ 
+ 
+ def contract(suite, corpus):
+@@ -417,6 +418,18 @@ def consolidate(rows, patterns, history, calls, workspace, iteration):
+ 
+ def publish_learning(args, rows, patterns, iteration):
+     """観測できる学習の raw の証拠と、検索できる通常のソースとコンセプトのページ。"""
++    import wiki_pages
++    # 読み書きする記事（観察のソース、パターンのページ、索引、ログ）を、どれかを読む前にすべて記事を読む口で確かめる。
++    # リンクなら読まず、置き換えもしない（info-hive-dev の ADR-0029 の I2）。途中まで書いて止まらないよう、先に確かめる
++    articles = []
++    for row in rows:
++        key_text = str(args.id) + ':' + str(iteration) + ':' + str(row['task'])
++        articles.append('sources/evolution-' + digest(key_text.encode())[:20] + '.md')
++    articles += ['concepts/evolution-pattern-' + key + '.md' for key, pattern in patterns.items()
++                 if pattern.get('run') == args.id and pattern['iteration'] == iteration]
++    for name in articles + ['index.md', 'log.md']:
++        opened = wiki_pages.article_path(args.wiki, name)
++        require(opened.state in ('ok', 'absent'), f'{name} はリンクか、調べられないので、学習の記録を書かない（{opened.state}）')
+     raw = getattr(args, 'raw', None) or args.wiki.parent / 'raw'
+     raw.mkdir(parents=True, exist_ok=True)
+     today = time.strftime('%Y-%m-%d')
+@@ -489,19 +502,22 @@ def run(args, state):
+     require(not archive.exists(), 'この実行の ID はすでにある。最終テストを使ったあとの実行は、完了したものも中断したものも再開できない')
+     require(not args.skill.is_symlink() and not args.skill.resolve().is_relative_to(state.resolve()),
+             'スキルには、実験の記録の外にある作業用のディレクトリを指定する')
+-    require(not args.skill.exists() or (args.skill / 'SKILL.md').is_file() or not tree(args.skill),
++    wiki_pages.absolute_user_path(args.skill)
++    require(not args.skill.exists() or (args.skill / 'SKILL.md').is_file() or not tree(args.skill, args.wiki),
+             'スキルのディレクトリには SKILL.md が必要である（空のディレクトリならよい）')
+-    suite_path = args.suite.resolve()
+-    suite = read_json(suite_path)
++    suite_path = wiki_pages.user_file_path(args.suite, args.wiki).resolve()
++    suite = read_json(suite_path, args.wiki)
+     corpus = inside(suite_path.parent, suite['corpus'])
++    corpus_root = wiki_pages.source_wiki_root(corpus, args.wiki)
++    tree(corpus, corpus_root)
+     tasks = contract(suite, corpus)
+     consumed_path = state / 'consumed-tests.json'
+     consumed = read_json(consumed_path) if consumed_path.exists() else {}
+     test_keys = [digest(encode({'question': t['question'], 'rubric': t['rubric'],
+-                  'sources': {name: inside(corpus, name).read_text(encoding='utf-8-sig') for name in t['sources']}}).encode())
++                  'sources': {name: wiki_pages.read_user_file(inside(corpus, name), corpus_root) for name in t['sources']}}).encode())
+                  for t in tasks if t['split'] == 'test']
+     require(not any(key in consumed for key in test_keys), '最終テストの課題はすでに使われた。新しい最終テスト用の課題を用意する')
+-    config = read_json(args.config)
++    config = read_json(args.config, args.wiki)
+     slug(args.id + '-selected')
+     require(type(config.get('iterations')) is int and config['iterations'] > 0, 'iterations は正の整数にする')
+     require(type(config.get('repeats')) is int and config['repeats'] > 0, 'repeats は正の整数にする')
+@@ -513,10 +529,10 @@ def run(args, state):
+     for script in Path(__file__).parent.glob('wiki_evolve*.py'):
+         shutil.copy2(script, runtime / script.name)
+     atomic(archive / 'runtime-hashes.json', encode(tree(runtime)).encode())
+-    corpus_hash = copy_tree(corpus, archive / 'corpus')
++    corpus_hash = copy_tree(corpus, archive / 'corpus', corpus_root)
+     initial = archive / 'baseline'
+     if args.skill.exists():
+-        copy_tree(args.skill, initial)
++        copy_tree(args.skill, initial, args.wiki)
+     else:
+         initial.mkdir()
+     copy_tree(initial, archive / 'best')
+diff --git a/skills/info-hive/scripts/wiki_graph_lint.py b/skills/info-hive/scripts/wiki_graph_lint.py
+index 6d2c909..76e3997 100644
+--- a/skills/info-hive/scripts/wiki_graph_lint.py
++++ b/skills/info-hive/scripts/wiki_graph_lint.py
+@@ -542,6 +542,7 @@ def main():
+     ontology = _extract.load_ontology(ontology_path)
+ 
+     pages = collect_pages(args.wiki)
++    # リンクなので読まなかったページは、グラフの lint の対象に入らない（ADR-0029）。知らせは、走査が終わりに出す
+     findings = lint(pages, ontology)
+     if args.decide:
+         unsupported, check = decide_evidence(pages, ontology, args.decide_threshold)
+diff --git a/skills/info-hive/scripts/wiki_graph_query.py b/skills/info-hive/scripts/wiki_graph_query.py
+index 999fd15..b57725b 100644
+--- a/skills/info-hive/scripts/wiki_graph_query.py
++++ b/skills/info-hive/scripts/wiki_graph_query.py
+@@ -244,14 +244,20 @@ def run_query(wiki: Path, command: str, *, node: str | None = None, subject: str
+     conn = open_db(Path(db) if db else wiki / "graph" / "graph.sqlite")
+     try:
+         if command == "neighbors":
+-            return cmd_neighbors(conn, node)
+-        if command == "edges":
+-            return cmd_edges(conn, subject, predicate)
+-        if command == "path":
+-            return cmd_path(conn, start, goal, max_depth)
+-        return cmd_facts(conn, about)
++            result = cmd_neighbors(conn, node)
++        elif command == "edges":
++            result = cmd_edges(conn, subject, predicate)
++        elif command == "path":
++            result = cmd_path(conn, start, goal, max_depth)
++        else:
++            result = cmd_facts(conn, about)
+     finally:
+         conn.close()
++    # グラフは、リンクなので読まなかったページを含まない（抽出も同じ走査を使う。info-hive-dev の ADR-0029）。
++    # CLI と MCP の graph の結果に、同じ欄で知らせる
++    import wiki_pages
++    result["link_warnings"] = wiki_pages.link_warnings(wiki_pages.walk_pages(wiki))
++    return result
+ 
+ 
+ def main():
+diff --git a/skills/info-hive/scripts/wiki_index.py b/skills/info-hive/scripts/wiki_index.py
+index 5526f60..3f7a984 100644
+--- a/skills/info-hive/scripts/wiki_index.py
++++ b/skills/info-hive/scripts/wiki_index.py
+@@ -819,10 +819,32 @@ def stat_signature(root: Path) -> str:
+     その下のファイルはページではないので、印に入れなくてよい。最上位の index.md などのページでない Markdown は入る。
+     たどる途中の権限と消失のほかの OSError は送出し、refresh() は索引の行を消さずに失敗する。
+     """
++    return _signature_and_links(root)[0]
++
++
++class Unverifiable(ValueError):
++    """記事か記事までの道を、権限などで調べられなかった（ADR-0029 の I4）。「ない」とは区別する。"""
++
++    def __init__(self, path: str):
++        self.path = path
++        super().__init__(f"調べられない: {path}（権限か、属性を取れない）")
++
++
++class LinkRefused(ValueError):
++    """記事か記事までの道がリンクなので、読まなかった（info-hive-dev の ADR-0029）。「ない」とは区別する。"""
++
++    def __init__(self, path: str, kind: str):
++        self.path, self.kind = path, kind
++        super().__init__(f"リンクなので読まない: {path}（{kind}）。wiki と raw の記事にはリンクを置かない（lint の links を見る）")
++
++
++def _signature_and_links(root: Path) -> "tuple[str, list]":
++    """stat_signature の印と、走査が拒んだページのリンク（link_warnings の形）を、1 回の走査で作る。"""
++    found = wiki_pages.walk_markdown(root, skip_top=True)
+     digest = hashlib.sha256()
+-    for f in wiki_pages.walk_markdown(root, skip_top=True).files:
++    for f in found.files:
+         digest.update(f"{f.rel}\0{f.size}\0{f.mtime_ns}\n".encode("utf-8"))
+-    return digest.hexdigest()
++    return digest.hexdigest(), wiki_pages.link_warnings(found)
+ 
+ 
+ class WikiIndex:
+@@ -840,6 +862,7 @@ class WikiIndex:
+         self.sections: list[dict] = []
+         self.by_locator: dict[str, dict] = {}
+         self._page_bm25 = None
++        self.link_warnings: list[dict] = []
+ 
+     def refresh(self) -> dict:
+         """wiki の変更を台帳と語彙の索引に入れる。埋め込みは embed_pending で別に行う。"""
+@@ -847,7 +870,7 @@ class WikiIndex:
+             if self.collection.needs_reconcile:
+                 # 前の書き込みが途中で失敗した。台帳の行は残っているので、索引を台帳に合わせる。
+                 self.collection.reconcile()
+-            signature = stat_signature(self.root)
++            signature, self.link_warnings = _signature_and_links(self.root)
+             if signature == self._signature:
+                 return {"changed": False}
+             pages = wiki_search.collect_pages(self.root, self.dir / "parse-cache.json")
+@@ -924,7 +947,7 @@ class WikiIndex:
+                 break
+         stats = self.collection.stats()
+         return {"query": query, "wiki": self.root.as_posix(), "granularity": "section", "mode": mode,
+-                "results": results, "warning": warning,
++                "results": results, "warning": warning, "link_warnings": list(self.link_warnings),
+                 "index": {"sections": stats["rows"], "embedded": stats["embedded"],
+                           "state": "ready" if stats["rows"] == stats["embedded"] else "embedding"}}
+ 
+@@ -939,11 +962,31 @@ class WikiIndex:
+                                  + "、".join(p["rel_path"] for p in candidates))
+             match = candidates[0] if candidates else None
+         if match is None:
++            for item in self.link_warnings:
++                rel = item["path"]
++                stem = wiki_pages.posix_rel(rel)[:-3] if rel.lower().endswith(".md") else None
++                if stem is not None and (stem == wanted or rel == page or stem.rsplit("/", 1)[-1] == wanted):
++                    raise LinkRefused(rel, item["kind"])
++            # パスで引いたときは、読む口で、途中のディレクトリのリンクと、調べられないことを見分ける
++            if "/" in wanted or page.lower().endswith(".md"):
++                rel = page.replace("\\", "/") if page.lower().endswith(".md") else wanted + ".md"
++                probe = wiki_pages.article_path(self.root, rel)
++                if probe.state == "link":
++                    raise LinkRefused(*probe.link)
++                if probe.state == "denied":
++                    raise Unverifiable(rel)
++            return None
++        found = wiki_pages.article_path(self.root, Path(match["path"]).relative_to(self.root).as_posix())
++        if found.state == "link":
++            raise LinkRefused(*found.link)
++        if found.state == "denied":
++            raise Unverifiable(match["rel_path"])
++        if found.state != "ok":
+             return None
+-        text = (self.root / match["rel_path"]).read_text(encoding="utf-8-sig")
++        text = found.path.read_text(encoding="utf-8-sig")
+         _meta, body = wiki_search.parse_frontmatter(text)
+         return {"slug": match["slug"], "rel_path": match["rel_path"], "meta": match["meta"], "body": body,
+-                "links": match["links"],
++                "links": match["links"], "link_warnings": list(self.link_warnings),
+                 "sections": [{"section_index": s["section_index"], "heading_path": s["heading_path"],
+                               "level": s["level"]} for s in match["sections"]]}
+ 
+@@ -952,32 +995,51 @@ class WikiIndex:
+ 
+ 
+ def list_index(root: Path, name: str | None = None) -> dict:
+-    """index.md と indexes/ の一覧を返す。name を渡すと indexes/ の中のそのファイルを返す。"""
++    """index.md と indexes/ の一覧を返す。name を渡すと indexes/ の中のそのファイルを返す。
++
++    どの本文も、記事を読む口（wiki_pages.article_path）を通して読む。index.md、indexes そのもの、indexes の下の
++    ファイルがリンクなら読まず（ADR-0029）、一覧では link_warnings に挙げ、名前の指定では LinkRefused を送出する。
++    """
++    walk = wiki_pages.walk_index_files(root)
++    warnings = wiki_pages.link_warnings(walk)
+     if name:
+-        target = (root / "indexes" / name).resolve()
++        rel = f"indexes/{name}".replace("\\", "/")
+         # 拡張子の大文字と小文字は問わない（一覧は Upper.MD も返す）。拡張子が .md でなければ、.md を付けたものとみなす。
+-        if target.suffix.lower() != ".md":
+-            target = target.with_suffix(".md")
+-        if not target.is_relative_to((root / "indexes").resolve()) or not target.is_file():
++        if not rel.lower().endswith(".md"):
++            rel += ".md"
++        if ".." in rel.split("/"):
++            raise FileNotFoundError(f"indexes/ に {name} がない")
++        found = wiki_pages.article_path(root, rel)
++        if found.state == "link":
++            raise LinkRefused(*found.link)
++        if found.state == "denied":
++            raise Unverifiable(rel)
++        if found.state != "ok":
+             raise FileNotFoundError(f"indexes/ に {name} がない")
+-        return {"wiki": root.as_posix(), "name": target.relative_to(root).as_posix(),
+-                "content": target.read_text(encoding="utf-8-sig")}
+-    index_md = root / "index.md"
++        return {"wiki": root.as_posix(), "name": rel, "content": found.path.read_text(encoding="utf-8-sig"),
++                "link_warnings": warnings}
+     files = []
+     folder = root / "indexes"
+     # 索引のファイルは lint と同じ集め方（wiki_pages.walk_index_files）にする。ふつうのファイルだけで、.md で終わる
+     # 名前のディレクトリで失敗しない。並びは今までどおり Path の順である。
+-    found = [f for f in wiki_pages.walk_index_files(root).files if f.rel != "index.md"]
+-    for f in sorted(found, key=lambda f: root / f.rel):
+-        path = root / f.rel
+-        text = path.read_text(encoding="utf-8-sig")
++    found_files = [f for f in walk.files if f.rel != "index.md"]
++    for f in sorted(found_files, key=lambda f: root / f.rel):
++        opened = wiki_pages.article_path(root, f.rel)
++        if opened.state != "ok":
++            if opened.state == "link":
++                warnings.append({"path": opened.link[0], "kind": opened.link[1]})
++            continue  # 走査と読む間に置き換えられた
++        text = opened.path.read_text(encoding="utf-8-sig")
+         meta, body = wiki_search.parse_frontmatter(text)
+         heading = next((line.lstrip("#").strip() for line in body.splitlines() if line.startswith("#")), None)
+-        files.append({"name": path.relative_to(folder).as_posix(),
++        files.append({"name": opened.path.relative_to(folder).as_posix(),
+                       "title": wiki_pages.text_value(meta.get("title")) or heading, "bytes": f.size})
++    top = wiki_pages.article_path(root, "index.md")
++    if top.state == "link" and not any(w["path"] == top.link[0] for w in warnings):
++        warnings.append({"path": top.link[0], "kind": top.link[1]})
+     return {"wiki": root.as_posix(),
+-            "index": index_md.read_text(encoding="utf-8-sig") if index_md.is_file() else None,
+-            "indexes": files}
++            "index": top.path.read_text(encoding="utf-8-sig") if top.state == "ok" else None,
++            "indexes": files, "link_warnings": warnings}
+ 
+ 
+ # ---------------------------------------------------------------------------
+diff --git a/skills/info-hive/scripts/wiki_lint.py b/skills/info-hive/scripts/wiki_lint.py
+index a81fd28..39d280c 100644
+--- a/skills/info-hive/scripts/wiki_lint.py
++++ b/skills/info-hive/scripts/wiki_lint.py
+@@ -55,7 +55,7 @@ import urllib.parse
+ import sys
+ from collections import Counter, defaultdict
+ from datetime import date, datetime
+-from pathlib import Path
++from pathlib import Path, PurePosixPath
+ 
+ # 同じディレクトリの wiki_text を import する。スクリプトとして実行したときも、
+ # テストから import したときも見つかるようにする。
+@@ -97,6 +97,9 @@ from wiki_pages import (  # noqa: E402
+     iter_page_files,
+     ref_values,
+     resolve_link,
++    article_path,
++    is_page_path,
++    walk_pages,
+     scalar_value,
+     text_value,
+     type_value,
+@@ -332,6 +335,33 @@ def parse_frontmatter_raw(text: str) -> "tuple[dict, str | None, str, bool]":
+     return parse_frontmatter_text(fm_text), fm_text, body, False
+ 
+ 
++def link_report(wiki_root: Path) -> dict:
++    """wiki の側の記事と記事までの道のリンク（info-hive-dev の ADR-0029）。何も書かず、直さない。
++
++    走査（walk_pages、walk_index_files）が拒んだ項目と、最上位の SCHEMA.md と log.md を読む口（article_path）が
++    拒んだものを、{"path", "kind"} で返す。走査の知らせ（一覧を作れなかったディレクトリと、種類を調べられなかった
++    項目）は unchecked に入れる。raw の側（source ページの raw: が指すもの）は、この版では調べない。
++    """
++    root = Path(wiki_root)
++    pages, index = walk_pages(root), walk_index_files(root)
++    seen, links = set(), []
++    for walk in (pages, index):
++        for rel, kind in walk.links:
++            if rel not in seen:
++                seen.add(rel)
++                links.append({"path": rel, "kind": kind})
++    unchecked = set(pages.unlistable) | set(pages.unknown) | set(index.unlistable) | set(index.unknown)
++    for name in ("SCHEMA.md", "log.md"):
++        found = article_path(root, name)
++        if found.state == "link" and found.link[0] not in seen:
++            seen.add(found.link[0])
++            links.append({"path": found.link[0], "kind": found.link[1]})
++        elif found.state == "denied":
++            unchecked.add(name)
++    links.sort(key=lambda item: (posix_rel(item["path"]), item["path"]))
++    return {"links": links, "unchecked": [{"path": rel} for rel in sorted(unchecked, key=lambda r: (posix_rel(r), r))]}
++
++
+ def collect_pages(wiki_root: Path) -> list[dict]:
+     pages = []
+     for md_path in iter_page_files(wiki_root):
+@@ -436,10 +466,29 @@ def lint(pages: list[dict], soft_cap: int, hard_cap: int, required_fm: list[str]
+         "missing_raw": [],
+         "unknown_tags": [],
+         "caption_corrections": [],
++        "links": [],
++        "links_unchecked": [],
+         "suggested_pages": [],
+         "summary": {},
+     }
+ 
++    # 記事と記事までの道のリンク（ADR-0029）。走査はリンクの記事を読まないので、ページの集合に入らない。
++    # そのページへの wikilink は、リンク切れではなく、ここで挙げる（拒んだことを「ない」に変えない。I4）。
++    refused_by_path, refused_slugs = {}, set()
++    if wiki_root is not None:
++        report = link_report(Path(wiki_root))
++        findings["links"] = report["links"]
++        findings["links_unchecked"] = report["unchecked"]
++        # どの読む側の結果にも、同じ名前の欄で知らせる（MCP の query、get_page などと同じ形）
++        findings["link_warnings"] = list(report["links"])
++        for item in report["links"]:
++            rel = item["path"]
++            if rel.lower().endswith(".md") and is_page_path(rel):
++                stem = posix_rel(rel)[:-3]
++                slug = nfc(PurePosixPath(stem).name)
++                refused_by_path[stem] = slug
++                refused_slugs.add(slug)
++
+     # YouTube の字幕の訂正と留保（ADR-0027）。ページは照合のモジュールが読み直す（印の行の番号をファイルの
+     # 行で示すため）。動画の raw を持たない wiki では、印のあるページだけを見る。
+     if wiki_root is not None:
+@@ -528,9 +577,9 @@ def lint(pages: list[dict], soft_cap: int, hard_cap: int, required_fm: list[str]
+         if not inbound.get(p["slug"]):
+             findings["orphans"].append({"slug": p["slug"], "path": p["rel_path"]})
+ 
+-        # リンク切れ
++        # リンク切れ。リンクなので読まなかったページを指すものは、links で挙げるので、ここでは数えない
+         for link in p["links"]:
+-            if resolve_link(link, by_path, by_slug) is None:
++            if resolve_link(link, by_path, by_slug) is None and resolve_link(link, refused_by_path, refused_slugs) is None:
+                 findings["broken_links"].append({
+                     "from": p["slug"],
+                     "from_path": p["rel_path"],
+@@ -685,11 +734,19 @@ def lint(pages: list[dict], soft_cap: int, hard_cap: int, required_fm: list[str]
+         # タグの体系を渡さなかったときは、検査していないことを 0 と区別できるよう None にする。
+         "unknown_tags": len(findings["unknown_tags"]) if allowed is not None else None,
+         "caption_corrections": len(findings["caption_corrections"]) if wiki_root is not None else None,
++        # wiki の根を渡さなかったときは、リンクを調べていない。raw の側は、この版ではまだ調べない（None）。
++        "links": len(findings["links"]) if wiki_root is not None else None,
++        "links_unchecked": len(findings["links_unchecked"]) if wiki_root is not None else None,
++        "links_raw": None,
+         "suggested_pages": len(findings["suggested_pages"]),
+     }
+     return findings
+ 
+ 
++LINK_KIND_LABELS = {"symlink": "シンボリックリンク", "junction": "ジャンクション", "reparse": "名前の代理のリパースポイント",
++                    "hardlink": "ハードリンク"}
++
++
+ def size_text(f: dict) -> str:
+     return f"  - {f['path']}  （{f['lines']} 行、{f['chars']:,} 文字）"
+ 
+@@ -739,6 +796,10 @@ def render_text(findings: dict) -> str:
+         ("unknown_tags", "タグの体系にないタグ", lambda f: f"  - {f['path']}  {', '.join(f['tags'])}"),
+         ("caption_corrections", "YouTube の字幕の訂正と留保の印、定義、confidence の食い違い",
+          lambda f: f"  - {f['path']}:{f['line']}  {f['message']}"),
++        ("links", "記事か記事までの道のリンク（読まずに飛ばした。プラグインは直さない。直し方は lint の手順の文書にある）",
++         lambda f: f"  - {f['path']}  （{LINK_KIND_LABELS.get(f['kind'], f['kind'])}）"),
++        ("links_unchecked", "リンクかを調べられなかった項目（一覧を作れないか、属性を取れない）",
++         lambda f: f"  - {f['path']}"),
+     ]
+ 
+     for key, label, formatter in sections:
+@@ -763,6 +824,10 @@ def render_text(findings: dict) -> str:
+         out.append("タグの検査はしていない（--allowed-tags にタグの体系を渡すと、体系にないタグを報告する）。")
+         out.append("")
+ 
++    if s.get("links_raw") is None:
++        out.append("raw の側のリンク（source ページの raw: が指すもの）は、この版ではまだ調べていない。")
++        out.append("")
++
+     # None は検査していない項目なので、問題がないものとして扱う。
+     if all(not v for k, v in s.items() if k != "total_pages"):
+         out.append("問題は見つからなかった。")
+diff --git a/skills/info-hive/scripts/wiki_mcp_common.py b/skills/info-hive/scripts/wiki_mcp_common.py
+index 84678eb..ee5915b 100644
+--- a/skills/info-hive/scripts/wiki_mcp_common.py
++++ b/skills/info-hive/scripts/wiki_mcp_common.py
+@@ -40,7 +40,10 @@ SCRIPTS = Path(__file__).resolve().parent
+ SERVER_FILES = ("wiki_mcp_common.py", "wiki_mcp_server.py", "wiki_index.py", "wiki_search.py", "wiki_text.py",
+                 "wiki_pages.py", "wiki_lint.py", "wiki_stats.py", "wiki_workspace.py", "wiki_initialized.py",
+                 "wiki_graph_common.py", "wiki_graph_query.py",
+-                "wiki_graph_lint.py", "wiki_graph_extract.py")
++                "wiki_graph_lint.py", "wiki_graph_extract.py",
++                # ADR-0029 の実装で足した。サーバーが関数の中で遅れて読み込むものも入れる（MCP の lint が wiki_captions を、
++                # それが閲覧の中核を、検索が判定のレイヤーを読み込む）。足りているかは tests/wiki/test_wiki_links.py が確かめる
++                "wiki_links.py", "wiki_decide.py", "wiki_captions.py", "wiki_browse_core.py", "wiki_browse_fs.py")
+ COLLECTION_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
+ 
+ 
+diff --git a/skills/info-hive/scripts/wiki_mcp_server.py b/skills/info-hive/scripts/wiki_mcp_server.py
+index 03a2cf3..db01093 100644
+--- a/skills/info-hive/scripts/wiki_mcp_server.py
++++ b/skills/info-hive/scripts/wiki_mcp_server.py
+@@ -307,11 +307,33 @@ def build_app(state: State, token: str, port: int):
+                                                      allowed_hosts=[f"127.0.0.1:{port}"], allowed_origins=[]),
+     )
+ 
++    def with_notices(fn, *args):
++        """ツールの関数を、走査と読む口の知らせの受け皿を開いて動かす（ADR-0029 の I4）。
++
++        リンクなので読まなかったものを結果の link_warnings に、調べられなかったものを unverified に足す。誤りなら、
++        誤りの文に添える（「見つからない」が、読まなかった場所や調べられなかった場所のせいかもしれないため）。
++        """
++        import wiki_pages
++        with wiki_pages.capture_notices() as notes:
++            try:
++                result = fn(*args)
++            except (ValueError, FileNotFoundError) as exc:
++                error = exc
++            else:
++                error = None
++        lines = wiki_pages.notice_lines(notes.items)
++        if error is not None:
++            raise ToolError(str(error) + (f"（{'、'.join(lines)}）" if lines else "")) from error
++        if isinstance(result, dict):
++            refused = [n for n in notes.items if n["kind"] not in wiki_pages.NOTICE_UNVERIFIED]
++            result["link_warnings"] = wiki_pages.dedupe_notices(list(result.get("link_warnings") or []) + refused)
++            unverified = [n for n in notes.items if n["kind"] in wiki_pages.NOTICE_UNVERIFIED]
++            if unverified:
++                result["unverified"] = unverified
++        return result
++
+     async def offload(fn, *args):
+-        try:
+-            return await anyio.to_thread.run_sync(fn, *args)
+-        except (ValueError, FileNotFoundError) as exc:
+-            raise ToolError(str(exc)) from exc
++        return await anyio.to_thread.run_sync(with_notices, fn, *args)
+ 
+     @mcp.tool()
+     async def query(query: str, wiki: str | None = None, top: int = 10, type: str | None = None,
+@@ -348,6 +370,7 @@ def build_app(state: State, token: str, port: int):
+             index.refresh()
+             found = index.get_page(page)
+             if found is None:
++                # 読まなかった場所や調べられなかった場所は、with_notices が誤りの文に添える
+                 raise FileNotFoundError(f"ページが見つからない: {page}")
+             return found
+         return await offload(run)
+diff --git a/skills/info-hive/scripts/wiki_pages.py b/skills/info-hive/scripts/wiki_pages.py
+index 842bf77..161170a 100644
+--- a/skills/info-hive/scripts/wiki_pages.py
++++ b/skills/info-hive/scripts/wiki_pages.py
+@@ -7,18 +7,23 @@ lint、検索（とそれを使う MCP の索引）、グラフ、統計、判
+ 
+ - ページは、wiki のルートからの相対パスが `.md`（大文字と小文字は問わない）で終わり、最上位の SCHEMA.md、
+   index.md、log.md、README.md と、最上位の indexes/、graph/、raw/、assets/、.evolution/、.wiki-cache/ に
+-  当たらず、ファイル名が `.` で始まらないファイルである。
++  当たらず、どの要素の名前も `.` で始まらないファイルである。
++- wiki の側の記事（is_article_path）は、ページと、最上位の index.md、log.md、SCHEMA.md と、indexes の下の .md である。
++  記事と記事までの道のリンクは、読まず、たどらず、Walk.links と article_path() の結果で知らせる（info-hive-dev の
++  ADR-0029）。リンクの判定は wiki_links.link_kind() の 1 か所にある。
+ - wikilink は、閲覧が使う markdown-it（commonmark、html は無効、表は有効）が本文の文字とするところだけから
+   拾う。コードブロックの中、インラインのコードの中、参照リンクの定義の中のものは数えない。
+ - パスとリンクの行き先は NFC にそろえて比べ、大文字と小文字を区別する。
+ - wiki をたどる経路は walk_markdown() の 1 つで、ページ（walk_pages）と索引のファイル（walk_index_files）は、
+-  起点を変えて同じたどり方を使う。最上位の除く名前の項目には、どの OS の呼び出しもしない。OS の呼び出しの失敗は、
+-  read_os() の 1 か所で「ない」「分からない」「そのほか（送出）」に分ける。設計は info-hive-dev の
+-  `docs/plans/wiki-walk-excluded-dirs-2026-11-11.md`（7 版目）にある。
++  起点を変えて同じたどり方を使う。最上位の除く名前の項目と、名前が `.` で始まる項目には、どの OS の呼び出しもしない。
++  OS の呼び出しの失敗は、read_os() の 1 か所で「ない」「分からない」「そのほか（送出）」に分ける。設計は info-hive-dev の
++  `docs/plans/wiki-walk-excluded-dirs-2026-11-11.md`（7 版目）と、リンクを拒む形に変えた
++  `docs/plans/wiki-links-2026-11-16.md`（ADR-0029 の実装の設計）にある。
+ """
+ 
+ from __future__ import annotations
+ 
++import atexit
+ import errno
+ import functools
+ import hashlib
+@@ -26,12 +31,14 @@ import os
+ import re
+ import stat
+ import sys
++import threading
+ import unicodedata
+ from collections import defaultdict
+ from pathlib import Path, PurePosixPath
+ from typing import NamedTuple
+ 
+ from wiki_text import canonical_kind, canonical_type, nfc, posix_rel
++from wiki_links import link_kind
+ 
+ SKIP_TOP_LEVEL_FILES = frozenset({"SCHEMA.md", "index.md", "log.md", "README.md"})
+ SKIP_TOP_LEVEL_DIRS = frozenset({"indexes", "graph", "raw", "assets", ".evolution", ".wiki-cache"})
+@@ -46,11 +53,17 @@ WIKILINK_FULL_RE = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
+ # ページの集合
+ # ---------------------------------------------------------------------------
+ 
+-def is_page_path(rel: "str | PurePosixPath") -> bool:
++def _relative_text(rel, native: bool) -> str:
++    """コマンドの区切りはそろえる。OS から得た名前は、その OS の文字のまま扱う。"""
++    text = str(rel)
++    return text if native and not NT else text.replace("\\", "/")
++
++
++def is_page_path(rel: "str | PurePosixPath", *, native: bool = False) -> bool:
+     """wiki のルートからの相対パス（/ 区切り）がページかを返す。"""
+-    parts = PurePosixPath(str(rel).replace("\\", "/")).parts
++    parts = PurePosixPath(_relative_text(rel, native)).parts
+     # 拡張子は大文字と小文字を区別しない。Windows の rglob("*.md") は Upper.MD も返し、0.8.0 までもページだった。
+-    if not parts or not parts[-1].lower().endswith(".md") or parts[-1].startswith("."):
++    if not parts or not parts[-1].lower().endswith(".md") or any(part.startswith(".") for part in parts):
+         return False
+     if len(parts) == 1:
+         return parts[0] not in SKIP_TOP_LEVEL_FILES
+@@ -61,8 +74,8 @@ def is_page_path(rel: "str | PurePosixPath") -> bool:
+ # wiki をたどる
+ # ---------------------------------------------------------------------------
+ #
+-# 走査が OS を呼ぶ口は、os.scandir()（開く、項目を 1 つ取り出す、閉じる）、項目の is_symlink()、is_dir()、
+-# is_junction()、os.stat()、Windows の win_file_id() だけである。どれも、呼ぶたびに os から引いて呼ぶ
++# 走査が OS を呼ぶ口は、os.scandir()（開く、項目を 1 つ取り出す、閉じる）、項目の stat(follow_symlinks=False)、
++# POSIX でリンクの項目の is_dir()、os.lstat() だけである。どれも、呼ぶたびに os から引いて呼ぶ
+ # （試験が差し替えられるように）。pathlib の入出力、os.walk、os.path.realpath、os.path.isfile は使わない。内側で
+ # いくつもの呼び出しをして、失敗を版ごとに違う形で読み替えるからである。口の各行の内側の扱いと、それが結果を
+ # 変えない理由は、設計の「決めること」の 1 の表にある。
+@@ -70,6 +83,100 @@ def is_page_path(rel: "str | PurePosixPath") -> bool:
+ NT = os.name == "nt"
+ 
+ 
++# ---------------------------------------------------------------------------
++# 拒んだことの知らせ（info-hive-dev の ADR-0029 の I4）
++# ---------------------------------------------------------------------------
++#
++# 走査と記事を読む口は、リンクなので読まなかったもの（種類は wiki_links.KINDS）と、調べられなかったもの（種類は
++# "unknown"、"unlistable"）を、拒んだその場で受け皿に入れる。知らせを出すのは使う側の仕事にしない。使う側は
++# 10 か所を超え、1 か所の付け忘れで「ない」に変わるからである（実装の 2 回目のレビュー）。
++# - MCP のサーバーは、ツールの呼び出しごとに capture_notices() で受け皿を開き、結果か誤りの文に付ける。
++# - CLI（スクリプトのディレクトリにあるスクリプトを直接動かしたとき）は、プロセスの終わりに標準エラーへまとめて出す。
++# 相対パスは、走査や読む口に渡した起点からのものである。
++
++NOTICE_UNVERIFIED = ("unknown", "unlistable")
++_SINK = threading.local()
++# CLI のときだけ、プロセスの終わりに出す知らせを貯める（重ねない。MCP のサーバーや試験では貯めない）
++_PROCESS_NOTICES: dict = {}
++_CLI = False
++
++
++def _remember(item: dict) -> None:
++    if _CLI:
++        _PROCESS_NOTICES.setdefault((item["path"], item["kind"]), item)
++
++
++def _notice(path: str, kind: str) -> None:
++    item = {"path": path, "kind": kind}
++    sink = getattr(_SINK, "items", None)
++    if sink is not None:
++        sink.append(item)
++    else:
++        _remember(item)
++
++
++class capture_notices:
++    """with の間に、この実行の筋で走査と読む口が入れた知らせを集める（入れ子にできる）。items に、重ねない並びを返す。"""
++
++    def __enter__(self):
++        self._outer = getattr(_SINK, "items", None)
++        _SINK.items = []
++        return self
++
++    def __exit__(self, *exc):
++        found = _SINK.items
++        _SINK.items = self._outer
++        if self._outer is not None:
++            self._outer.extend(found)
++        else:
++            for item in found:  # CLI では、受け皿で集めたものも、終わりに標準エラーへ出す
++                _remember(item)
++        self.items = dedupe_notices(found)
++        return False
++
++
++def dedupe_notices(items) -> list:
++    seen, out = set(), []
++    for item in items or ():
++        key = (item["path"], item["kind"])
++        if key not in seen:
++            seen.add(key)
++            out.append(dict(item))
++    return out
++
++
++def notice_lines(items) -> list:
++    """知らせを、利用者に見せる 1 行ずつの文にする。"""
++    out = []
++    for item in dedupe_notices(items):
++        if item["kind"] in NOTICE_UNVERIFIED:
++            out.append(f"調べられない: {item['path']}（{'一覧を作れない' if item['kind'] == 'unlistable' else '属性を取れない'}）")
++        else:
++            out.append(f"リンクなので読まない: {item['path']}（{item['kind']}）")
++    return out
++
++
++def _print_process_notices() -> None:
++    for line in notice_lines(list(_PROCESS_NOTICES.values())):
++        print(line, file=sys.stderr)
++
++
++# スクリプトのディレクトリのスクリプトを直接動かしたときだけ、終わりに出す（試験や、ほかのプログラムが読み込んだときは
++# 出さない）。MCP のサーバーは、呼び出しごとに受け皿を開くので、ここには残らない。
++def _same_dir(a: str, b: str) -> bool:
++    try:
++        return os.path.samefile(os.path.dirname(os.path.abspath(a)), os.path.dirname(os.path.abspath(b)))
++    except OSError:
++        return os.path.normcase(os.path.dirname(os.path.abspath(a))) == os.path.normcase(os.path.dirname(os.path.abspath(b)))
++
++
++if sys.argv and sys.argv[0] and _same_dir(sys.argv[0], __file__) \
++        and os.path.basename(sys.argv[0]).lower() not in ("wiki_mcp_server.py", "wiki_browse.py"):
++    # 常駐するもの（MCP のサーバー、閲覧のサーバー）は貯めない。呼び出しごとに受け皿を開く
++    _CLI = True
++    atexit.register(_print_process_notices)
++
++
+ class MdFile(NamedTuple):
+     """名前が .md で終わる、ふつうのファイル（リンクの先がふつうのファイルのものを含む）。"""
+     rel: str        # wiki のルートからの相対パス（/ 区切り、ディスク上の綴り）
+@@ -78,10 +185,14 @@ class MdFile(NamedTuple):
+ 
+ 
+ class Walk(NamedTuple):
+-    """走査の結果。知らせ（unlistable と unknown）がどちらも空なら、たどる間に変わらなかったものは欠けていない。"""
++    """走査の結果。知らせ（unlistable と unknown）がどちらも空なら、たどる間に変わらなかったものは欠けていない。
++
++    links は、ADR-0029 の規則に反した配置で、読まなかったものである。files に入らないが、黙って消えたのではない。
++    """
+     files: list            # MdFile の並び
+     unlistable: list       # 一覧を作れなかったディレクトリ（相対パス）
+-    unknown: list          # 種類か、同じ場所を回っていないかを、調べられなかった項目（相対パス）
++    unknown: list          # 種類を調べられなかった項目（相対パス）
++    links: list = ()       # リンクなので読まず、降りなかった記事と、記事までの道（(相対パス, 種類) の並び。ADR-0029）
+ 
+ 
+ class NoFileId(OSError):
+@@ -180,13 +291,17 @@ def _sort_key(rel: str) -> "tuple[str, str]":
+ 
+ 
+ def _stat_entry(path: str):
+-    """(状態, stat の結果)。.md の項目と最上位の index.md がふつうのファイルかどうかを調べる os.stat()。
++    """(状態, stat の結果)。.md の項目と、最上位の記事（index.md、log.md、SCHEMA.md）を調べる os.lstat()。
++
++    リンクをたどらない。リンクかどうか（wiki_links.link_kind）と、ふつうのファイルかどうかと、ハードリンクの
++    リンクの数（st_nlink。Windows の DirEntry.stat() ではいつも 0 なので、この呼び出しでしか分からない）を、
++    1 回の呼び出しで決める。
+ 
+-    Windows の os.stat() は、属性の取得がエラー 1、50、87 で失敗すると、S_IFBLK の成功に読み替える。一覧に載る項目が
++    Windows の os.lstat() は、属性の取得がエラー 1、50、87 で失敗すると、S_IFBLK の成功に読み替える。一覧に載る項目が
+     ボリュームや物理ディスクであることはないので、Windows で S_IFBLK が返ったら「分からない」にする。POSIX の S_IFBLK は
+     本物のデバイスのファイルなので、ふつうのファイルでない（今と同じ）。
+     """
+-    state, st = read_os(os.stat, path)
++    state, st = read_os(os.lstat, path)
+     if state == "ok" and NT and stat.S_ISBLK(st.st_mode):
+         return "denied", None
+     return state, st
+@@ -199,52 +314,53 @@ def _list_dir(directory: str) -> list:
+         return list(it)
+ 
+ 
+-def _identity(path: str):
+-    """(状態, 識別子)。識別子は win_file_id() の値。FileId がすべて 0 なら、分からない。Windows でだけ呼ばれる。"""
+-    state, value = read_os(win_file_id, path)
+-    if state != "ok":
+-        return state, None
+-    if not any(value[1]):
+-        return "denied", None
+-    return "ok", value
+-
++def _entry_lstat(entry):
++    """(状態, stat の結果)。一覧の項目の、リンクをたどらない属性。Windows では一覧の情報（再解析のタグと属性）から
++    答え、OS を呼ばない。POSIX では lstat を 1 回呼ぶ。st_nlink は使わない（Windows では 0 になる）。"""
++    return read_os(entry.stat, follow_symlinks=False)
+ 
+-def _chain_identities(chain: tuple):
+-    """(状態, 識別子の並び)。chain の各ディレクトリの識別子を、起点から順に取る。"""
+-    found = []
+-    for path in chain:
+-        state, one = _identity(path)
+-        if state != "ok":
+-            return state, None
+-        found.append(one)
+-    return "ok", tuple(found)
+ 
+-
+-def _is_junction(entry):
+-    """(状態, ジャンクションか)。DirEntry.is_junction()（3.12 から）は、Windows では一覧の情報（再解析のタグ）から答え、
+-    OS を呼ばない。Windows のほかでは、いつも偽を返す。"""
+-    return read_os(entry.is_junction)
++def _link_is_dir(entry, est):
++    """(状態, ディレクトリへのリンクか)。Windows では属性の FILE_ATTRIBUTE_DIRECTORY で決め、OS を呼ばない（ジャンクションと
++    ディレクトリのシンボリックリンクに立つ）。POSIX では、リンクの先をたどる is_dir() を呼ぶ。"""
++    if NT:
++        return "ok", bool((getattr(est, "st_file_attributes", 0) or 0) & 0x10)
++    return read_os(entry.is_dir)
+ 
+ 
+ def walk_markdown(start, prefix: str = "", skip_top: bool = False, visited: "list | None" = None) -> Walk:
+-    """start の下をたどり、名前が .md で終わるふつうのファイルと、知らせを返す。
++    """start の下をたどり、名前が .md で終わるふつうのファイルと、拒んだリンクと、知らせを返す（ADR-0029）。
+ 
+-    - 起点には、リンクであっても降りる。途中のディレクトリのシンボリックリンクには降りない。ジャンクションには降りる
+-      （どちらも 0.10 までの rglob と同じ）。
++    - 起点には、リンクであっても降りる（根と祖先のリンクは許す）。
++    - 起点の下の、名前が . で始まる項目には、どの深さでも、どの呼び出しもしない（記事でない）。
+     - skip_top が真なら、起点の直下の、名前が SKIP_TOP_LEVEL_DIRS に入っている項目には、どの呼び出しもしない。
+-    - ジャンクションを 1 つでも通った道筋では、入ろうとするディレクトリの識別子が、起点からそこまでに通った
+-      ディレクトリのどれかと同じなら、降りない（同じ場所を回る道筋）。識別子を取れなければ、unknown に入れて降りない。
++    - リンク（wiki_links.link_kind が種類を返すもの）には降りず、読まない。ディレクトリへのリンクと、名前が .md で
++      終わるもののリンクは、links に (相対パス, 種類) で入れる。名前が .md で終わらないファイルのリンクは、記事で
++      ないので入れない。ハードリンク（リンクの数が 2 以上）の .md も、読まずに links に入れる。
+     - prefix は、返す相対パスの先頭に付ける。並びは posix_rel の順、同じなら綴りの順である。
+     - visited にリストを渡すと、一覧を作れたディレクトリの相対パス（起点は prefix から末尾の / を除いたもの。
+       prefix が空なら ""）を足す。この一覧が降りる場所かを、規則を写さずに確かめるためのもの（YouTube の字幕の
+       照合が、用意したページの場所を確かめるのに使う）。
+     """
+-    files, unlistable, unknown = [], [], []
++    files, unlistable, unknown, links = [], [], [], []
+     start = os.fspath(start)
+-    # スタックの項目: (ディレクトリのパス, 相対パスの接頭辞, 起点からここまでのパスの並び, 識別子の並びか None)
+-    stack = [(start, prefix, (start,), None)]
++    stack = [(start, prefix)]
+     while stack:
+-        directory, pre, chain, ids = stack.pop()
++        directory, pre = stack.pop()
++        if pre != prefix:
++            # 一覧で見たあと、降りる前に、ディレクトリがリンクに替わっていないかを確かめる（起点は、リンクでも降りる）
++            state, dst = _stat_entry(directory)
++            if state == "absent":
++                continue
++            if state == "denied":
++                unknown.append(pre.rstrip("/"))
++                continue
++            kind = link_kind(dst)
++            if kind is not None:
++                links.append((pre.rstrip("/"), kind))
++                continue
++            if not stat.S_ISDIR(dst.st_mode):
++                continue
+         state, entries = read_os(_list_dir, directory)
+         if state == "absent":
+             continue
+@@ -258,72 +374,260 @@ def walk_markdown(start, prefix: str = "", skip_top: bool = False, visited: "lis
+             rel = pre + name
+             if skip_top and pre == prefix and name in SKIP_TOP_LEVEL_DIRS:
+                 continue  # 名前だけで決める。リンクかどうかも、ディレクトリかどうかも調べない
+-            is_link = is_dir = junction = False
+-            state, is_link = read_os(entry.is_symlink)
+-            if state == "ok":
+-                state, is_dir = read_os(entry.is_dir)  # リンクの先で判定する
+-            if state == "ok" and is_dir and not is_link:
+-                state, junction = _is_junction(entry)
++            if name.startswith("."):
++                continue  # 名前が . で始まる項目は、どの深さでも記事でない。どの呼び出しもしない
++            state, est = _entry_lstat(entry)
+             if state == "absent":
+                 continue
+             if state == "denied":
+                 unknown.append(rel)
+                 continue
+-            if is_dir:
+-                if is_link:
+-                    continue  # ディレクトリのシンボリックリンク。降りず、ファイルでもない
+-                child_ids = None
+-                if junction or ids is not None:
+-                    state, child = _identity(entry.path)
+-                    path_ids = ids
+-                    if state == "ok" and path_ids is None:
+-                        # このジャンクションで、道筋に初めて識別子が要る。起点からここまでの識別子を、
+-                        # このジャンクションのためだけに取る。兄弟の項目には引き継がない。
+-                        state, path_ids = _chain_identities(chain)
+-                    if state == "absent":
+-                        continue
+-                    if state == "denied":
+-                        unknown.append(rel)  # 同じ場所を回っていないかを、調べられなかった
+-                        continue
+-                    if child in path_ids:
+-                        continue  # 道筋の上のディレクトリに戻る。降りない
+-                    child_ids = path_ids + (child,)
+-                stack.append((entry.path, rel + "/", chain + (entry.path,), child_ids))
++            kind = link_kind(est, nlink_known=False)
++            if kind is not None:
++                # 名前が .md で終わるリンクは、記事のリンクとして入れる。ただし起点の直下の README.md は記事でない
++                # ので、ディレクトリへのリンク（記事までの道）のときだけ入れる（下の判定に回す）
++                if name.lower().endswith(".md") and not (skip_top and pre == prefix and name == "README.md"):
++                    links.append((rel, kind))
++                    continue
++                state, is_dir = _link_is_dir(entry, est)
++                if state == "denied":
++                    unknown.append(rel)
++                elif state == "ok" and is_dir:
++                    links.append((rel, kind))  # ディレクトリへのリンク。降りない
++                continue  # .md でないファイルのリンクと、先のないリンクは、記事でない
++            if stat.S_ISDIR(est.st_mode):
++                stack.append((entry.path, rel + "/"))
+                 continue
+             if name.lower().endswith(".md"):
+                 state, st = _stat_entry(entry.path)
+                 if state == "absent":
+-                    continue  # 先のないリンク
++                    continue
+                 if state == "denied":
+                     unknown.append(rel)
+                     continue
+-                if stat.S_ISREG(st.st_mode):
++                kind = link_kind(st)
++                if kind is not None:
++                    if kind == "hardlink" and skip_top and pre == prefix and name == "README.md":
++                        continue  # 起点の直下の README.md は記事でない（ふつうのファイルのハードリンクは道でもない）
++                    links.append((rel, kind))  # ハードリンク（一覧と lstat の間に置き換えられたリンクも）
++                elif stat.S_ISREG(st.st_mode):
+                     files.append(MdFile(rel, st.st_size, st.st_mtime_ns))
+     files.sort(key=lambda f: _sort_key(f.rel))
+-    return Walk(files, sorted(unlistable, key=_sort_key), sorted(unknown, key=_sort_key))
++    links.sort(key=lambda item: _sort_key(item[0]))
++    for rel, kind in links:
++        _notice(rel, kind)
++    for rel in unknown:
++        _notice(rel, "unknown")
++    for rel in unlistable:
++        _notice(rel, "unlistable")
++    return Walk(files, sorted(unlistable, key=_sort_key), sorted(unknown, key=_sort_key), links)
+ 
+ 
+ def walk_pages(wiki_root, visited: "list | None" = None) -> Walk:
+-    """ページのファイルと、知らせ。知らせは、たどった全体のものをそのまま返す。visited は walk_markdown と同じ。"""
++    """ページのファイルと、知らせ。知らせは、たどった全体のものをそのまま返す。visited は walk_markdown と同じ。
++
++    links は、走査が拒んだものをそのまま返す（最上位の index.md、log.md、SCHEMA.md のリンクも入る。どの記事の
++    リンクを入れるかは walk_markdown の 1 か所で決め、使う側で絞らない）。
++    """
+     found = walk_markdown(wiki_root, skip_top=True, visited=visited)
+-    return Walk([f for f in found.files if is_page_path(f.rel)], found.unlistable, found.unknown)
++    return Walk([f for f in found.files if is_page_path(f.rel)], found.unlistable, found.unknown, found.links)
+ 
+ 
+ def walk_index_files(wiki_root) -> Walk:
+-    """索引のファイル（最上位の index.md と、indexes を起点にした .md）と、知らせ。
++    """索引のファイル（最上位の index.md と、indexes を起点にした .md）と、拒んだリンクと、知らせ。
+ 
+-    indexes は、リンクであっても起点として降りる。ページの側とは別の呼び出しでたどるので、indexes がページの
+-    ディレクトリを指していても、ページと索引の両方がそろう。
++    最上位の index.md と indexes そのものがリンクなら、読まず、降りず、links に入れる（ADR-0029。indexes は記事までの道）。
+     """
+     root = os.fspath(wiki_root)
+-    files, unknown = [], []
++    files, unknown, links = [], [], []
+     state, st = _stat_entry(os.path.join(root, "index.md"))
+     if state == "denied":
+         unknown.append("index.md")
+-    elif state == "ok" and stat.S_ISREG(st.st_mode):
+-        files.append(MdFile("index.md", st.st_size, st.st_mtime_ns))
++        _notice("index.md", "unknown")
++    elif state == "ok":
++        kind = link_kind(st)
++        if kind is not None:
++            links.append(("index.md", kind))
++            _notice("index.md", kind)
++        elif stat.S_ISREG(st.st_mode):
++            files.append(MdFile("index.md", st.st_size, st.st_mtime_ns))
++    state, ist = _stat_entry(os.path.join(root, "indexes"))
++    if state == "denied":
++        _notice("indexes", "unknown")
++        return Walk(files, [], unknown + ["indexes"], links)
++    if state == "absent":
++        return Walk(files, [], unknown, links)
++    kind = link_kind(ist)
++    if kind is not None and kind != "hardlink":  # ふつうのファイルのハードリンクは、記事でも記事までの道でもない
++        _notice("indexes", kind)
++        return Walk(files, [], unknown, links + [("indexes", kind)])
+     below = walk_markdown(os.path.join(root, "indexes"), prefix="indexes/")
+-    return Walk(files + below.files, below.unlistable, unknown + below.unknown)
++    return Walk(files + below.files, below.unlistable, unknown + below.unknown, links + below.links)
++
++
++TOP_ARTICLES = ("index.md", "log.md", "SCHEMA.md")
++
++
++def is_article_path(rel: "str | PurePosixPath", *, native: bool = False) -> bool:
++    """wiki のルートからの相対パス（/ 区切り）が、wiki の側の記事かを、名前の規則だけで返す（ADR-0029 の作者の決定の 6）。
++
++    記事は、ページ（is_page_path）と、最上位の index.md、log.md、SCHEMA.md と、indexes の下の .md（どの要素も名前が
++    . で始まらないもの）である。リンクかどうかは定義に入れない。raw の記事は、source ページの raw: で決まる。
++    """
++    parts = PurePosixPath(_relative_text(rel, native)).parts
++    if not parts or any(part.startswith(".") for part in parts):
++        return False
++    if len(parts) == 1 and parts[0] in TOP_ARTICLES:
++        return True
++    if parts[0] == "indexes" and len(parts) > 1:
++        return parts[-1].lower().endswith(".md")
++    return is_page_path(rel, native=native)
++
++
++class ArticlePath(NamedTuple):
++    """記事を読む口の結果。state は "ok"、"absent"（ない、ふつうのファイルでない）、"denied"（分からない）、
++    "link"（記事か記事までの道がリンク。link に (相対パス, 種類)）、"not_article"（名前の規則で記事でない）。"""
++    state: str
++    path: "Path | None" = None
++    link: "tuple | None" = None
++
++
++def article_path(wiki_root, rel, *, directory: bool = False, native: bool = False) -> ArticlePath:
++    """記事を読む口（ADR-0029 の I2、I4）。根から rel までの道と rel そのものに、走査と同じ判定を当てる。
++
++    根そのものと、その祖先のリンクは許す。rel の要素ごとに os.lstat() を呼び、リンクに当たれば読まずに "link" を返す。
++    directory が真なら、記事を含みうるディレクトリまでの道を検査する。
++    native が真なら、POSIX のファイル名に含まれるバックスラッシュを区切りに変えない。
++    呼ぶ側は、"ok" のときだけ path を読むか降りる。拒んだことを「ない」に変えない。
++    """
++    rel = _relative_text(rel, native)
++    if directory and not rel:
++        return ArticlePath("ok", Path(wiki_root))  # 起点そのもののリンクは許す
++    parts = rel.split("/")
++    # 根の外へ出る名前（絶対パス、ドライブ、..、空の要素）は、記事の名前ではない
++    if rel.startswith("/") or any(part in ("", ".", "..") or (NT and ":" in part) for part in parts):
++        return ArticlePath("not_article")
++    if not is_article_path(rel + "/article.md" if directory else rel, native=native):
++        return ArticlePath("not_article")
++    current = os.fspath(wiki_root)
++    st = None
++    for i, part in enumerate(parts):
++        current = os.path.join(current, part)
++        state, st = _stat_entry(current)
++        if state == "denied":
++            _notice("/".join(parts[:i + 1]), "unknown")
++        if state != "ok":
++            return ArticlePath(state)
++        kind = link_kind(st)
++        if kind is not None:
++            _notice("/".join(parts[:i + 1]), kind)
++            return ArticlePath("link", link=("/".join(parts[:i + 1]), kind))
++    if not (stat.S_ISDIR(st.st_mode) if directory else stat.S_ISREG(st.st_mode)):
++        return ArticlePath("absent")
++    return ArticlePath("ok", Path(current))
++
++
++def absolute_user_path(path) -> Path:
++    """利用者のパスを、意味を変えずに絶対化する。途中の .. は解決する前に拒む（ADR-0029）。"""
++    if ".." in Path(path).parts:
++        raise ValueError(f".. を含むパスの所属は決められない。.. を含まないパスを指定する: {path}")
++    return Path(os.path.abspath(os.fspath(path)))
++
++
++def user_file_path(path, wiki_root=None, *, directory: bool = False) -> Path:
++    """記事と記事までの道を検査し、同じパスを返す。記事でない入力は規則の対象外。"""
++    path = Path(path)
++    absolute_user_path(path)  # 所属を調べない場合も、検査後と読み取り時で意味が変わる名前を受け取らない
++    if wiki_root is not None:
++        found = _article_rel(path, wiki_root, directory=directory)
++        if found is not None:
++            root, rel = found
++            if directory and not rel:
++                return Path(root)
++            if not is_article_path(rel + "/article.md" if directory else rel, native=True):
++                return path
++            opened = article_path(root, rel, directory=directory, native=True)
++            if opened.state == "link":
++                raise ValueError(f"リンクなので読まない: {opened.link[0]}（{opened.link[1]}）")
++            if opened.state == "denied":
++                raise ValueError(f"調べられない: {rel}")
++            if opened.state == "ok":
++                return opened.path
++            if opened.state == "absent":
++                raise FileNotFoundError(f"記事がないか、通常のファイルでない: {rel}")
++            # 記事の定義に入る名前を、読む口の入力検証の失敗で対象外に落とさない
++            _notice(rel, "unknown")
++            raise ValueError(f"記事として検査できないので読まない: {rel}")
++    return path
++
++
++def user_directory_path(path, wiki_root=None) -> Path:
++    """記事を含みうるディレクトリを、降りる前に検査する。"""
++    return user_file_path(path, wiki_root, directory=True)
++
++
++def read_user_file(path, wiki_root=None, encoding: str = "utf-8-sig") -> str:
++    """記事かどうかを判定し、記事ならリンクを拒んでから本文を読む。"""
++    return user_file_path(path, wiki_root).read_text(encoding=encoding)
++
++
++def read_user_bytes(path, wiki_root=None) -> bytes:
++    """read_user_file と同じ規則で、改行や BOM を変えずに読む。"""
++    return user_file_path(path, wiki_root).read_bytes()
++
++
++def _article_rel(path, wiki_root, *, directory: bool = False) -> "tuple[str, str] | None":
++    """path が wiki の中なら (比べた根, 根からの / 区切りの相対パス)。外なら None。
++
++    根の別名を通る入力は、祖先を上から解決し、既知の根に届いたところで止める。根より下の要素は解決しない。
++    ファイル自身は解決しない。大小文字の比較と、相対パスの要素の切り出しを分ける。
++    """
++    given = os.fspath(absolute_user_path(path))
++    roots = [os.fspath(absolute_user_path(wiki_root))]
++    try:
++        roots.append(os.path.realpath(roots[0]))
++    except OSError:
++        pass
++    def relative(candidate, root):
++        parts, base = Path(candidate).parts, Path(root).parts
++        if len(parts) < len(base) or any(os.path.normcase(a) != os.path.normcase(b)
++                                         for a, b in zip(parts, base)):
++            return None
++        return "/".join(parts[len(base):])
++
++    for root in roots:
++        rel = relative(given, root)
++        if rel is not None:
++            return root, rel
++    parts = Path(given).parts
++    for size in range(1, len(parts) + (1 if directory else 0)):
++        try:
++            resolved = os.path.realpath(os.path.join(*parts[:size]))
++        except OSError:
++            continue
++        for root in roots:
++            rel = relative(resolved, root)
++            if rel is not None:
++                return root, "/".join(([rel] if rel else []) + list(parts[size:]))
++    return None
++
++
++def source_wiki_root(path, wiki_root=None):
++    """部分木は元の wiki の記事規則を引き継ぐ。wiki 外のコーパスだけを独立した根として扱う。"""
++    if wiki_root is not None and _article_rel(path, wiki_root, directory=True) is not None:
++        return wiki_root
++    return path
++
++
++def link_warnings(*walks) -> list:
++    """走査の結果の links を、結果の欄 link_warnings の形（{"path", "kind"} の並び）にする。重ねて出さない。"""
++    seen, out = set(), []
++    for walk in walks:
++        for rel, kind in getattr(walk, "links", ()) or ():
++            if rel not in seen:
++                seen.add(rel)
++                out.append({"path": rel, "kind": kind})
++    return out
+ 
+ 
+ def iter_page_files(wiki_root: Path) -> list[Path]:
+diff --git a/skills/info-hive/scripts/wiki_search.py b/skills/info-hive/scripts/wiki_search.py
+index 2994356..d293745 100644
+--- a/skills/info-hive/scripts/wiki_search.py
++++ b/skills/info-hive/scripts/wiki_search.py
+@@ -73,6 +73,10 @@ from wiki_pages import (  # noqa: E402
+     split_lines,
+     extract_wikilinks,
+     iter_page_files,
++    NOTICE_UNVERIFIED,
++    capture_notices,
++    link_warnings,
++    walk_pages,
+     ref_values,
+     resolve_link,
+     scalar_value,
+@@ -851,7 +855,11 @@ def emit_json(args, results: list[dict], mode: str = "lexical", decision: dict |
+         "granularity": args.granularity,
+         "mode": mode,
+         "results": results,
++        # 走査がリンクなので読まなかったページ（ADR-0029）。拒んだものがなければ空
++        "link_warnings": getattr(args, "link_warnings", []),
+     }
++    if getattr(args, "unverified", None):
++        payload["unverified"] = args.unverified  # 調べられなかった場所
+     if decision is not None:
+         payload["decision"] = decision
+     print(json.dumps(payload, ensure_ascii=False))
+@@ -1153,8 +1161,16 @@ def main():
+     if args.cache:
+         cache_path = args.wiki / ".wiki-cache" / "search-index.json" if args.cache == "AUTO" else Path(args.cache)
+ 
+-    pages = collect_pages(args.wiki, cache_path)
++    # 記事か記事までの道がリンクなら、走査は読まない（ADR-0029）。黙って消さず、JSON の link_warnings と標準エラーで知らせる。
++    # JSON の link_warnings は、実際にページを集めた走査の知らせから作る（別に走査すると、間に変わったものを取り逃がす）
++    with capture_notices() as notes:
++        pages = collect_pages(args.wiki, cache_path)
++    args.link_warnings = [n for n in notes.items if n["kind"] not in NOTICE_UNVERIFIED]
++    args.unverified = [n for n in notes.items if n["kind"] in NOTICE_UNVERIFIED]
+     if not pages:
++        if getattr(args, "json", False) and args.query:
++            emit_empty_json(args)  # JSON を求められたら、ページがなくても link_warnings を返す
++            sys.exit(0)
+         print(f"wiki のページが見つからない: {args.wiki}", file=sys.stderr)
+         sys.exit(0)
+ 
+diff --git a/skills/info-hive/scripts/wiki_stats.py b/skills/info-hive/scripts/wiki_stats.py
+index 56c4ebe..95bd875 100644
+--- a/skills/info-hive/scripts/wiki_stats.py
++++ b/skills/info-hive/scripts/wiki_stats.py
+@@ -35,7 +35,7 @@ import wiki_workspace  # noqa: E402
+ # ページの集合とリンクの抜き出しは、lint と同じ規則（wiki_pages）を使う。
+ from wiki_pages import (  # noqa: E402,F401
+     SKIP_TOP_LEVEL_DIRS, SKIP_TOP_LEVEL_FILES, WIKILINK_RE, extract_wikilinks, is_page_path, read_os, type_value,
+-    walk_markdown,
++    walk_markdown, link_warnings,
+ )
+ 
+ 
+@@ -132,7 +132,8 @@ def compute_stats(wiki: Path) -> dict:
+ 
+     # ページと同じたどり方（wiki_pages.walk_markdown）で、最上位の除くディレクトリには降りない。読むのは、最上位の
+     # index.md（行数を数える）と、ページ（lint と同じ is_page_path）だけで、読むかどうかは読む前に決める。
+-    for found in walk_markdown(wiki, skip_top=True).files:
++    walk = walk_markdown(wiki, skip_top=True)
++    for found in walk.files:
+         top_index = found.rel == "index.md"
+         if not top_index and not is_page_path(found.rel):
+             continue
+@@ -197,6 +198,8 @@ def compute_stats(wiki: Path) -> dict:
+                     for chars, lines, path in largest[:TOP_N]],
+         "most_linked": [{"slug": slug, "count": count} for slug, count in by_count(most_linked_in)[:TOP_N]],
+         "advice": scale_advice(total_pages, index_lines, has_indexes),
++        # 走査がリンクなので読まなかったページと、記事までの道のリンク（ADR-0029）。拒んだものがなければ空
++        "link_warnings": link_warnings(walk),
+     }
+ 
+ 
+diff --git a/skills/info-hive/scripts/wiki_youtube.py b/skills/info-hive/scripts/wiki_youtube.py
+index 36dc1dc..53e37ac 100644
+--- a/skills/info-hive/scripts/wiki_youtube.py
++++ b/skills/info-hive/scripts/wiki_youtube.py
+@@ -590,7 +590,7 @@ def cmd_write(args) -> int:
+     return emit(args, result, 0)
+ 
+ 
+-def parse_page_args(values: list[str] | None) -> dict:
++def parse_page_args(values: list[str] | None, wiki=None) -> dict:
+     overlay = {}
+     for value in values or []:
+         if "=" not in value:
+@@ -603,8 +603,10 @@ def parse_page_args(values: list[str] | None) -> dict:
+         if rel in overlay:
+             raise Fail(f"--page に同じ場所を 2 回渡した（片方を黙って捨てない）: {rel}")
+         try:
+-            overlay[rel] = Path(file).read_text(encoding="utf-8-sig")
+-        except (OSError, UnicodeDecodeError) as exc:
++            # wiki の中の記事を渡されたら、記事を読む口を通す（info-hive-dev の ADR-0029。リンクなら読まない）
++            import wiki_pages
++            overlay[rel] = wiki_pages.read_user_file(Path(file), wiki)
++        except (OSError, UnicodeDecodeError, ValueError) as exc:
+             raise Fail(f"--page のファイルを読めない（{exc}）: {file}")
+     return overlay
+ 
+@@ -617,7 +619,7 @@ def cmd_verify(args) -> int:
+         doc = wc.parse_raw(raw_path.read_text(encoding="utf-8"))
+     except (OSError, UnicodeDecodeError, wc.CaptionError) as exc:
+         raise Fail(f"動画の raw を読めない（{exc}）: {raw_path}")
+-    overlay = parse_page_args(args.page)
++    overlay = parse_page_args(args.page, wiki)
+     label = wc.raw_label(raw_path, wiki)
+     # 指摘は wiki 全体のものを返す（この raw に関わるかで絞らない）。結果と「raw にない語」だけをこの raw に絞る。
+     try:
