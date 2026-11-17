@@ -76,8 +76,9 @@ def run(args) -> dict:
                 hook_input = {"prompt": prompt, "cwd": str(project), "hook_event_name": "UserPromptSubmit"}
                 started = time.monotonic()
                 picked = context.select(hook_input, env={}, is_wiki=is_wiki, deadline=started + 30)
+                rendered = context.render(picked.chosen, picked.roots) if picked else None
                 times.append(time.monotonic() - started)
-                chosen = picked.chosen if picked else []
+                chosen = rendered.shown if rendered else []
                 slugs = [c.page.slug for c in chosen]
                 counts["n"] += 1
                 if chosen:

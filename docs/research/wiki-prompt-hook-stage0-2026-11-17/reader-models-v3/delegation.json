@@ -1,0 +1,2420 @@
+{
+ "exit": 0,
+ "argv": [
+  "claude",
+  "-p",
+  "これは読むサブエージェントの起動の契約の試験である。下の3件を実際の Agent ツールで各1回呼ぶ。\n\nsubagent_type=wiki:wiki-reader と指定の model と effort を必ず渡す。メインはページを開かない。\n\n返答を受け取ったら各件の結果を1行で報告する。モデルやeffortを独自に変更しない。\n\nケース r1-powershell: model=sonnet, effort=low\n問い: PowerShell で Select-Object -First を使ったらスクリプトが途中で止まった。原因と避け方は？\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"powershellのパイプの打ち切り\", \"path\": \"concepts/powershellのパイプの打ち切り.md\"}\n{\"slug\": \"powershell-select-first-stops-writer-2026-11-15\", \"path\": \"sources/powershell-select-first-stops-writer-2026-11-15.md\"}\n\nケース r2-two-wikis: model=sonnet, effort=low\n問い: プロジェクトwikiに記録されたPDFのヘッダー位置の上限と、ユーザーwikiに記録された受付バイト上限を、それぞれ教えて。同名ページなので、根拠にはそれぞれのwikiの区別が付く絶対パスを付けて。\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}\nuser の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}\n\nケース r3-confidence: model=sonnet, effort=medium\n問い: query の確信度の規則は 0.20.0 から 0.24.0 までにどう変わった？版ごとに比べて\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"queryの回答の確信度への名前の変更とリリース-wiki-0.24.0\", \"path\": \"sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\"}\n{\"slug\": \"queryの確からしさとリリース-wiki-0.20.0\", \"path\": \"sources/queryの確からしさとリリース-wiki-0.20.0.md\"}\n{\"slug\": \"queryの確からしさの決め方の分離とリリース-wiki-0.21.1\", \"path\": \"sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\"}",
+  "--model",
+  "opus",
+  "--effort",
+  "high",
+  "--plugin-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+  "--tools",
+  "Agent,Read,Glob,Grep",
+  "--allowedTools",
+  "Agent,Read,Glob,Grep",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--permission-mode",
+  "auto",
+  "--max-budget-usd",
+  "3",
+  "--no-session-persistence",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "{\"mcpServers\":{}}",
+  "--settings",
+  "{\"autoMemoryEnabled\": false, \"claudeMdExcludes\": [\"**/CLAUDE.md\", \"**/CLAUDE.local.md\", \"**/AGENTS.md\", \"**/.claude/rules/**\"]}",
+  "--add-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+ ],
+ "fingerprint": "c7b9e69a443a55c8807dd832222250a65db2f07b3b28e2e9c6ba3ed219e6dc40",
+ "events": [
+  {
+   "type": "system",
+   "subtype": "init",
+   "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "tools": [
+    "Task",
+    "Glob",
+    "Grep",
+    "Read"
+   ],
+   "mcp_servers": [],
+   "model": "claude-opus-5-5",
+   "permissionMode": "auto",
+   "slash_commands": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring",
+    "advisor",
+    "agents",
+    "auto-mode-setup",
+    "autocompact",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "output-style",
+    "context",
+    "effort",
+    "fast",
+    "focus",
+    "heapdump",
+    "init",
+    "mcp",
+    "import",
+    "model",
+    "__remote-workflow",
+    "workflow-launch-exec",
+    "reload-plugins",
+    "reload-skills",
+    "rename",
+    "ultrareview",
+    "security-review",
+    "usage-credits",
+    "extra-usage",
+    "usage",
+    "insights",
+    "recap",
+    "skill-doctor",
+    "goal",
+    "design-consent",
+    "design-revoke",
+    "list-agents",
+    "team-onboarding"
+   ],
+   "terminal_slash_commands": [
+    "doctor",
+    "color",
+    "focus",
+    "reload-plugins"
+   ],
+   "apiKeySource": "none",
+   "claude_code_version": "2.1.325",
+   "output_style": "default",
+   "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup",
+    "web-fetch",
+    "wiki:wiki-reader"
+   ],
+   "skills": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring"
+   ],
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+     "source": "wiki@inline",
+     "version": "0.0.0"
+    },
+    {
+     "name": "cc-plugin-agents-md",
+     "path": "builtin",
+     "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+     "name": "cc-plugin-telemetry",
+     "path": "builtin",
+     "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+     "name": "cc-plugin-privacy",
+     "path": "builtin",
+     "source": "cc-plugin-privacy@builtin"
+    },
+    {
+     "name": "cc-plugin-plugin-authoring",
+     "path": "builtin",
+     "source": "cc-plugin-plugin-authoring@builtin"
+    }
+   ],
+   "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1"
+   ],
+   "analytics_disabled": false,
+   "product_feedback_disabled": false,
+   "uuid": "851f5c2a-c6ae-4c02-8c08-d5a1917d3209",
+   "original_cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "additional_directories": [
+    "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+   ],
+   "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-c9603333768a510770c857bc4c927326",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "per_turn_effort_active": true,
+   "ultrathink_available": false,
+   "ultrathink_typed_raises": false,
+   "view_mode": "default",
+   "powershell_path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "20725864-7e5d-40d9-9584-a0707df23b36"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 261,
+   "estimated_tokens_delta": 211,
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "7ce86fa7-516b-4504-b219-1df5bbfcb06e"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-opus-5-5",
+    "id": "msg_011Ch94AwtCaSXEC9giRGGfd",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "CAQSjAgKEAgTGAI4AUIIdGhpbmtpbmcSDLxEmJ9Q32M/QOBHKhoMHjg5b3RpZsgDeoQsIjCG0T6lom9mq2cYIcVrXRMPNsuch39UX9YgLPeMaf8KaCo3JfwhjgpuJpxrcmGtJDIqqQfJ9aFrY0jZJIn+E58vyZoW+s0T8I2hmca5jdHUUDrFcKcI7ugwpiajY3HBujD5/EPQIUYKoFvHynuWeDbJMDTcMXEwVlN81X+dPFw5bW0mSYXKyhpzyGM4zjpJ5DgDXZjvquNLl5tG37o3iIf6Te8sfRZ6NeRqzjwhkBWu59+HqW4po3eBuRhnVHo9X/KWpeoeK+l3vbpD/xdRdYpdda1+YcPtpHd5WbOQEdMd5qbQ/3vMxWUybKvuF2I1mIZ9YFoJGcBlc8+WtbEz4XxuUbdStdQK3PRTRlFmQ2W9sfVZliOSzk5RpyO3+Sou4jeFQ1LfaTW2j+43Eavea7sTLZNem1dvH13eYIQj4DFU6MxQSNl/qOh33bnX4egJPMFGHpyzW2MbW0fKEewA1nGHcbIoYA6xQWVTIPJ97L6oN2HM1pU7Sr+TL5UJ8bMLjzMJYeKVNPsMcSjRb95QOs5Th7v9NeDgMP7re4u+oDM+Uh470zEJAKvj2vTAgljj+8s2dywwyd0gr+uK/X+5YEnidKtlYpEasABYzy8jbRcXhHrCKdZy5LNiMCqv/j3Dk8WNezV2rfPiGzQtarIZplIzhosmB9WdlXzePOf6FlTbdOmLtowp+6IxohaOr8bMLlM1MHuuHMLct0BRNyTHd4GxWCI/zTtjkFT/F8lhXQz3UCoNkU74EZ+ZrD4s8STmGHL/rfQoWkd+fSASuABAgYETQsUzz3UOpPo8rTXs0atkuV5ZKeAUQCCBJvmuYywWW3hnwpLT3SgmOhHQaYiMqQiw8c9zD/eNUGdmClNbc56M4pOS9ukh2Fp/swnJC6gmj99a7Ao5OMjY7XkInTGpoSi2bJOgFylg0WJEDxKQjNMU+KpXHNcPOD/zKHY+IxbFKbGVgs8zNLP5yd2LGOUO9qsmEM8oZza5lSyx9l7AbPhPWvoLJnuyd5GFoLTGzQV+SoTDJYIVTmzxCCizZ6U7mn0RdjkolUzRvjFN7fDDWVOJLOfiq0GjG8lHn6VNLMdPP9yTBamYjQsMRRQUEJXDHSKB7cBuRBE6CFRmfnIsxFZWalK/liHzzgTtY2K+n92gKloQ08fGE9tf6tBMR17K7GwvDmDcAPxs8jRAxgdrCLmtUlun/snYTHdDn+tryTwE+p8XSRjmHxgcbSPArBdicxasf6+h7ThB3IzlpDRwqToxEaKVs07FBF6kqPfuJeaCDigtruRhv7C2aNWE4v9x0vWTeIUgBUF0TO4VBesMGAE="
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 5347,
+     "cache_read_input_tokens": 4940,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 5347
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "ef4c3d4d-80b8-4625-acc1-e260912c0061",
+   "timestamp": "2026-11-17T19:30:44.774Z",
+   "request_id": "req_011Ch94AweoUEyQjHM6TNyjh",
+   "thinking_duration_ms": 1550,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-opus-5-5",
+    "id": "msg_011Ch94AwtCaSXEC9giRGGfd",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+      "name": "Agent",
+      "input": {
+       "description": "r1-powershell wiki read",
+       "subagent_type": "wiki:wiki-reader",
+       "model": "sonnet",
+       "effort": "low",
+       "run_in_background": false,
+       "prompt": "問い: PowerShell で Select-Object -First を使ったらスクリプトが途中で止まった。原因と避け方は？\n\n候補のページ（wiki の中身だけで答え、根拠のページの絶対パスを付けること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"powershellのパイプの打ち切り\", \"path\": \"concepts/powershellのパイプの打ち切り.md\"}\n{\"slug\": \"powershell-select-first-stops-writer-2026-11-15\", \"path\": \"sources/powershell-select-first-stops-writer-2026-11-15.md\"}"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 5347,
+     "cache_read_input_tokens": 4940,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 5347
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "247353f3-4164-4429-af87-4d6948d148fe",
+   "timestamp": "2026-11-17T19:30:47.549Z",
+   "request_id": "req_011Ch94AweoUEyQjHM6TNyjh",
+   "wire_tool_inputs": {
+    "toolu_01W1MURCBK9tPUA4aXDGSi1E": {
+     "description": "r1-powershell wiki read",
+     "subagent_type": "wiki:wiki-reader",
+     "model": "sonnet",
+     "effort": "low",
+     "run_in_background": false,
+     "prompt": "問い: PowerShell で Select-Object -First を使ったらスクリプトが途中で止まった。原因と避け方は？\n\n候補のページ（wiki の中身だけで答え、根拠のページの絶対パスを付けること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"powershellのパイプの打ち切り\", \"path\": \"concepts/powershellのパイプの打ち切り.md\"}\n{\"slug\": \"powershell-select-first-stops-writer-2026-11-15\", \"path\": \"sources/powershell-select-first-stops-writer-2026-11-15.md\"}"
+    }
+   }
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-opus-5-5",
+    "id": "msg_011Ch94AwtCaSXEC9giRGGfd",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+      "name": "Agent",
+      "input": {
+       "description": "r2-two-wikis wiki read",
+       "subagent_type": "wiki:wiki-reader",
+       "model": "sonnet",
+       "effort": "low",
+       "run_in_background": false,
+       "prompt": "問い: プロジェクトwikiに記録されたPDFのヘッダー位置の上限と、ユーザーwikiに記録された受付バイト上限を、それぞれ教えて。同名ページなので、根拠にはそれぞれのwikiの区別が付く絶対パスを付けて。\n\n候補のページ（wiki の中身だけで答えること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}\nuser の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 5347,
+     "cache_read_input_tokens": 4940,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 5347
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "9aa5459c-2501-4a25-870a-6d7e33b5653a",
+   "timestamp": "2026-11-17T19:30:51.100Z",
+   "request_id": "req_011Ch94AweoUEyQjHM6TNyjh",
+   "wire_tool_inputs": {
+    "toolu_01L91EVvsDRWpmZwKifvxL6g": {
+     "description": "r2-two-wikis wiki read",
+     "subagent_type": "wiki:wiki-reader",
+     "model": "sonnet",
+     "effort": "low",
+     "run_in_background": false,
+     "prompt": "問い: プロジェクトwikiに記録されたPDFのヘッダー位置の上限と、ユーザーwikiに記録された受付バイト上限を、それぞれ教えて。同名ページなので、根拠にはそれぞれのwikiの区別が付く絶対パスを付けて。\n\n候補のページ（wiki の中身だけで答えること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}\nuser の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}"
+    }
+   }
+  },
+  {
+   "type": "system",
+   "subtype": "permission_check_status",
+   "tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "status": "checking",
+   "uuid": "fb336161-f76e-4ea1-bd68-b3a8da243092",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-opus-5-5",
+    "id": "msg_011Ch94AwtCaSXEC9giRGGfd",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+      "name": "Agent",
+      "input": {
+       "description": "r3-confidence wiki read",
+       "subagent_type": "wiki:wiki-reader",
+       "model": "sonnet",
+       "effort": "medium",
+       "run_in_background": false,
+       "prompt": "問い: query の確信度の規則は 0.20.0 から 0.24.0 までにどう変わった？版ごとに比べて\n\n候補のページ（wiki の中身だけで答え、根拠のページの絶対パスを付けること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"queryの回答の確信度への名前の変更とリリース-wiki-0.24.0\", \"path\": \"sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\"}\n{\"slug\": \"queryの確からしさとリリース-wiki-0.20.0\", \"path\": \"sources/queryの確からしさとリリース-wiki-0.20.0.md\"}\n{\"slug\": \"queryの確からしさの決め方の分離とリリース-wiki-0.21.1\", \"path\": \"sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\"}"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 5347,
+     "cache_read_input_tokens": 4940,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 5347
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "9b827987-70d8-4a7c-8da3-a6588831b292",
+   "timestamp": "2026-11-17T19:30:54.618Z",
+   "request_id": "req_011Ch94AweoUEyQjHM6TNyjh",
+   "wire_tool_inputs": {
+    "toolu_016tCHGuGdaNpxrf7CykHEsr": {
+     "description": "r3-confidence wiki read",
+     "subagent_type": "wiki:wiki-reader",
+     "model": "sonnet",
+     "effort": "medium",
+     "run_in_background": false,
+     "prompt": "問い: query の確信度の規則は 0.20.0 から 0.24.0 までにどう変わった？版ごとに比べて\n\n候補のページ（wiki の中身だけで答え、根拠のページの絶対パスを付けること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"queryの回答の確信度への名前の変更とリリース-wiki-0.24.0\", \"path\": \"sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\"}\n{\"slug\": \"queryの確からしさとリリース-wiki-0.20.0\", \"path\": \"sources/queryの確からしさとリリース-wiki-0.20.0.md\"}\n{\"slug\": \"queryの確からしさの決め方の分離とリリース-wiki-0.21.1\", \"path\": \"sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\"}"
+    }
+   }
+  },
+  {
+   "type": "system",
+   "subtype": "permission_check_status",
+   "tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "status": "done",
+   "uuid": "4924b639-6ea8-45f4-8f08-5106752f0446",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "system",
+   "subtype": "task_started",
+   "task_id": "a3ee394afbdf9fa25",
+   "run_id": "0mwl3868p-3e5146f1",
+   "tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "description": "r1-powershell wiki read",
+   "subagent_type": "wiki:wiki-reader",
+   "is_backgrounded": false,
+   "spawn_depth": 1,
+   "task_type": "local_agent",
+   "prompt": "問い: PowerShell で Select-Object -First を使ったらスクリプトが途中で止まった。原因と避け方は？\n\n候補のページ（wiki の中身だけで答え、根拠のページの絶対パスを付けること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"powershellのパイプの打ち切り\", \"path\": \"concepts/powershellのパイプの打ち切り.md\"}\n{\"slug\": \"powershell-select-first-stops-writer-2026-11-15\", \"path\": \"sources/powershell-select-first-stops-writer-2026-11-15.md\"}",
+   "uuid": "7cf7d973-fe06-456b-b757-9ab89d55d95d",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "system",
+   "subtype": "task_started",
+   "task_id": "a47e47d18bc283999",
+   "run_id": "0mwl38697-60642cc0",
+   "tool_use_id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+   "description": "r2-two-wikis wiki read",
+   "subagent_type": "wiki:wiki-reader",
+   "is_backgrounded": false,
+   "spawn_depth": 1,
+   "task_type": "local_agent",
+   "prompt": "問い: プロジェクトwikiに記録されたPDFのヘッダー位置の上限と、ユーザーwikiに記録された受付バイト上限を、それぞれ教えて。同名ページなので、根拠にはそれぞれのwikiの区別が付く絶対パスを付けて。\n\n候補のページ（wiki の中身だけで答えること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}\nuser の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}",
+   "uuid": "e4f6dd26-1a27-4f76-b655-07b1ab95c2d1",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "system",
+   "subtype": "task_started",
+   "task_id": "a37d3641ecbddf245",
+   "run_id": "0mwl3869j-63681774",
+   "tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "description": "r3-confidence wiki read",
+   "subagent_type": "wiki:wiki-reader",
+   "is_backgrounded": false,
+   "spawn_depth": 1,
+   "task_type": "local_agent",
+   "prompt": "問い: query の確信度の規則は 0.20.0 から 0.24.0 までにどう変わった？版ごとに比べて\n\n候補のページ（wiki の中身だけで答え、根拠のページの絶対パスを付けること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"queryの回答の確信度への名前の変更とリリース-wiki-0.24.0\", \"path\": \"sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\"}\n{\"slug\": \"queryの確からしさとリリース-wiki-0.20.0\", \"path\": \"sources/queryの確からしさとリリース-wiki-0.20.0.md\"}\n{\"slug\": \"queryの確からしさの決め方の分離とリリース-wiki-0.21.1\", \"path\": \"sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\"}",
+   "uuid": "ea94e472-8043-45ad-81d5-24987ac21b76",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "type": "text",
+      "text": "問い: PowerShell で Select-Object -First を使ったらスクリプトが途中で止まった。原因と避け方は？\n\n候補のページ（wiki の中身だけで答え、根拠のページの絶対パスを付けること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"powershellのパイプの打ち切り\", \"path\": \"concepts/powershellのパイプの打ち切り.md\"}\n{\"slug\": \"powershell-select-first-stops-writer-2026-11-15\", \"path\": \"sources/powershell-select-first-stops-writer-2026-11-15.md\"}"
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "agent_id": "a3ee394afbdf9fa25",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "5f2f3be0-1f98-4978-a3de-9dcc54c4e680",
+   "timestamp": "2026-11-17T19:30:54.736Z",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r1-powershell wiki read"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "type": "text",
+      "text": "問い: プロジェクトwikiに記録されたPDFのヘッダー位置の上限と、ユーザーwikiに記録された受付バイト上限を、それぞれ教えて。同名ページなので、根拠にはそれぞれのwikiの区別が付く絶対パスを付けて。\n\n候補のページ（wiki の中身だけで答えること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}\nuser の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}"
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+   "agent_id": "a47e47d18bc283999",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "658f3eb9-2d48-4ef7-b7e2-967694a286cd",
+   "timestamp": "2026-11-17T19:30:54.762Z",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r2-two-wikis wiki read"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "type": "text",
+      "text": "問い: query の確信度の規則は 0.20.0 から 0.24.0 までにどう変わった？版ごとに比べて\n\n候補のページ（wiki の中身だけで答え、根拠のページの絶対パスを付けること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"queryの回答の確信度への名前の変更とリリース-wiki-0.24.0\", \"path\": \"sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\"}\n{\"slug\": \"queryの確からしさとリリース-wiki-0.20.0\", \"path\": \"sources/queryの確からしさとリリース-wiki-0.20.0.md\"}\n{\"slug\": \"queryの確からしさの決め方の分離とリリース-wiki-0.21.1\", \"path\": \"sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\"}"
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "agent_id": "a37d3641ecbddf245",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "2018bce7-4ce4-47b9-a3dd-670630a1ff70",
+   "timestamp": "2026-11-17T19:30:54.774Z",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r3-confidence wiki read"
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.94,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.01,
+      "resetsAt": 1794961800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.94,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "5a6f3194-125c-4549-a9a2-0777575b6cf6",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "system",
+   "subtype": "task_progress",
+   "task_id": "a47e47d18bc283999",
+   "run_id": "0mwl38697-60642cc0",
+   "tool_use_id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+   "description": "Reading wiki\\concepts\\pdfのヘッダーの条件.md",
+   "subagent_type": "wiki:wiki-reader",
+   "usage": {
+    "total_tokens": 7083,
+    "tool_uses": 1,
+    "duration_ms": 1693
+   },
+   "last_tool_name": "Read",
+   "uuid": "ed898fb0-648f-4f36-906d-4b0bf917c080",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch94BzMohEqiHxCHyYdbK",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01H1svNnBw13XvM5hfGVHQqx",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 7061,
+     "cache_read_input_tokens": 0,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 7061,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+   "agent_id": "a47e47d18bc283999",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "c2e03c18-f5e8-46b9-aae7-afcd9cfe8d8d",
+   "timestamp": "2026-11-17T19:30:56.420Z",
+   "request_id": "req_011Ch94Bz9APHCy8xzjY9SKX",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r2-two-wikis wiki read"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01H1svNnBw13XvM5hfGVHQqx",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"concept\"\n3\ttitle: \"rag が受け付ける PDF のヘッダーの条件\"\n4\ttags: [\"rag\"]\n5\tsources: [\"pdfのヘッダーの判定の修正-rag-0.5.1\", \"取り込み手順の追従とリリース-wiki-0.11.1\", \"pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3\"]\n6\tcreated: 2026-11-12\n7\tupdated: 2026-11-13\n8\t---\n9\t\n10\t# rag が受け付ける PDF のヘッダーの条件\n11\t\n12\trag は、PDF を 2 つの段階で確かめる。登録で拒むものと、登録のあとの処理でジョブが `failed` になるものがある。wiki の取り込み手順（`info-hive-wiki` の `skills/info-hive/references/ingest-workflow.md`）は、この 2 つを分けて案内する。\n13\t\n14\t| 段階 | 呼ばれる所 | 確かめること | 外れたとき |\n15\t| --- | --- | --- | --- |\n16\t| 登録 | `register_pdf` → `Config.pdf_path`（`rag_config.py`） | 拡張子が `.pdf`（大文字と小文字は区別しない）、通常のファイル、UNC パスでない、派生データやキャッシュの中でない | 登録を拒む |\n17\t| 処理 | ワーカーの `Engine.ingest_pdf` → `read_pdf`（`rag_index.py`） | `%PDF-` の前にあるバイトが 1024 バイト以下 | ジョブが `failed` になる |\n18\t\n19\t> 段階の表 補足: `register_pdf` はジョブを台帳に書くだけで、PDF の中身を読まない。ヘッダーを読むのは、接続中だけ動くワーカーが PDF を読み込むときである。\n20\t\n21\t## 境界\n22\t\n23\t- `has_pdf_header` は `data.find(b\"%PDF-\", 0, 1024 + 5)` で探す。`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。言い換えると、`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。\n24\t- 上限は PDFium にそろえた。PDFium は `%PDF` を位置 0〜1024 で探す。pypdfium2 5.14.0（PDFium 156）で、改行、CRLF、空白、NUL などの前置きが 1024 バイトなら開け、1025 バイトでは開けないことを確かめた（[[pdfのヘッダーの判定の修正-rag-0.5.1]]）。\n25\t- 判定を通っても、PDFium で開けるとは限らない。開けないものは抽出で失敗する。\n26\t\n27\t## 書き方\n28\t\n29\t「先頭から 1024 バイト目まで」は、1 始まりで読むと、受け付ける範囲が実装より 1 バイト狭くなる。開始位置が 1024 の `%PDF-` は 1025 バイト目から始まるからである。wiki 0.11.1 からは「`%PDF-` の前にあるバイトが 1024 バイト以下」と書く（[[取り込み手順の追従とリリース-wiki-0.11.1]]）。\n30\t\n31\trag の README、CHANGELOG、`rag_index.py` のコメント、v0.5.1 の GitHub リリースの本文と、親の ADR-0013 も、2026-11-13 の rag 0.5.2（to884/info-hive-rag#9、文書だけの修正）で同じ書き方にそろえた。ADR-0013 の拒む条件は「`%PDF-` がないか、最初の `%PDF-` の前に 1024 バイトを超えるバイトがある」とし、`%PDF-` が範囲の内と外にあるときに実装より厳しく読めないようにした（記録は `docs/agent-runs/2026-11-13-rag-pdf-header-wording/`）。`read_pdf` のエラーメッセージ「先頭の 1024 バイトに %PDF- がない」は、試験が文字列を固定していたので 0.5.2 では残し、rag 0.5.3 で「%PDF- がないか、最初の %PDF- の前に 1024 バイトを超えるバイトがある」に直した（記録は `docs/agent-runs/2026-11-13-rag-pdf-header-message/`）。\n32\t\n33\t## 版による違い\n34\t\n35\t| rag の版 | ヘッダーの条件 |\n36\t| --- | --- |\n37\t| 0.5.0 以前 | 先頭がちょうど `%PDF-` |\n38\t| 0.5.1 以降 | `%PDF-` の前のバイトが 1024 バイト以下 |\n39\t\n40\t> 版の表 補足: 変わったのは処理の段階のヘッダーの条件だけで、登録の段階の条件は 0.5.0 と 0.5.1 で同じである。\n41\t\n42\t- wiki 0.11.1 と rag 0.5.0 を組み合わせると、先頭に改行や空白がある PDF のジョブは `failed` になる。wiki の手順は版による違いを書き、`failed` の理由をそのまま伝えるよう案内する。\n43\t- rag 0.5.0 でこの理由で失敗したジョブは、0.5.1 に更新しても自動では再開しない。`retry_job` で再試行するか、取り込み直す。\n44\t- 取り込み直しは要らない。SHA-256 と抽出は前置きを含む読んだままのバイト列に対して行い、今まで受け付けていた PDF の判定は変わらないので、抽出の版（ADR-0014）を上げていない。\n45\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+   "agent_id": "a47e47d18bc283999",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "5ed41fd4-cc54-47a5-8828-c9548a4c0a14",
+   "timestamp": "2026-11-17T19:30:56.504Z",
+   "tool_result_meta": [
+    {
+     "id": "toolu_01H1svNnBw13XvM5hfGVHQqx",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ],
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r2-two-wikis wiki read"
+  },
+  {
+   "type": "system",
+   "subtype": "task_progress",
+   "task_id": "a37d3641ecbddf245",
+   "run_id": "0mwl3869j-63681774",
+   "tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "description": "Reading wiki\\sources\\queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md",
+   "subagent_type": "wiki:wiki-reader",
+   "usage": {
+    "total_tokens": 7126,
+    "tool_uses": 1,
+    "duration_ms": 1812
+   },
+   "last_tool_name": "Read",
+   "uuid": "403c8fb7-3f8f-4e2e-bc2b-e55a441a56db",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch94BzXE6FGX3berPaEER",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01Wq2wSigmxnBRedj3gcN92w",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 7055,
+     "cache_read_input_tokens": 0,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 7055,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "agent_id": "a37d3641ecbddf245",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "584ef13b-db64-4502-afb3-7e8a23b04080",
+   "timestamp": "2026-11-17T19:30:56.567Z",
+   "request_id": "req_011Ch94BzHLRhgd8hE1LP96C",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r3-confidence wiki read"
+  },
+  {
+   "type": "system",
+   "subtype": "task_progress",
+   "task_id": "a3ee394afbdf9fa25",
+   "run_id": "0mwl3868p-3e5146f1",
+   "tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "description": "Reading wiki\\concepts\\powershellのパイプの打ち切り.md",
+   "subagent_type": "wiki:wiki-reader",
+   "usage": {
+    "total_tokens": 6968,
+    "tool_uses": 1,
+    "duration_ms": 1876
+   },
+   "last_tool_name": "Read",
+   "uuid": "fc5638f5-a020-4a9e-9315-a125622bdab2",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch94BzA9auzke5MoMkmno",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01Q8fhxy1QVZEwVQWrXhCUmV",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/powershellのパイプの打ち切り.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 6946,
+     "cache_read_input_tokens": 0,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 6946,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "agent_id": "a3ee394afbdf9fa25",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "9a712b70-962b-4047-a7cc-e7b242c1c4a3",
+   "timestamp": "2026-11-17T19:30:56.598Z",
+   "request_id": "req_011Ch94ByvWcG4Zc6cYYDjvW",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r1-powershell wiki read"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01Q8fhxy1QVZEwVQWrXhCUmV",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"concept\"\n3\tkind: \"experience-pattern\"\n4\ttitle: \"PowerShell の Select-Object -First は、上流のスクリプトを止める\"\n5\ttags: [\"windows\"]\n6\tsources: [\"powershell-select-first-stops-writer-2026-11-15\"]\n7\tcreated: 2026-11-15\n8\tupdated: 2026-11-15\n9\tstatus: \"hypothesis\"\n10\t---\n11\t\n12\t# PowerShell の Select-Object -First は、上流のスクリプトを止める\n13\t\n14\tPowerShell で、最後にファイルを書くスクリプトの出力を `Select-Object -First N` でしぼると、N 行を受け取ったところで上流が止まり、ファイルが書かれないことがある。出力を短く見たいときは、`Select-Object -Last N` にするか、出力をファイルに書いてから読む。実行のあとで、書くはずのファイルが変わったかを確かめる。\n15\t\n16\t## 根拠\n17\t\n18\t- 観測（[[powershell-select-first-stops-writer-2026-11-15]]）: `uv run --script run_bench.py --metrics-only 2>&1 | Select-Object -First 1` のあと、`results.json` は書き直されていなかった。`Select-Object -Last 1` で実行し直すと書き直された。エラーは出ず、1 行目は正しく出たので、止まったことに気づきにくい。\n19\t\n20\t## 原因と手順\n21\t\n22\t- 仮説: `Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止める。上流のスクリプトは、最後の書き込みの前に止まる。\n23\t- 手順の案: ファイルを書くスクリプトには `-First` を付けない。付けるなら、書き込みを出力より先にするか、実行のあとでファイルの更新を確かめる。\n24\t\n25\t## 適用範囲と反例\n26\t\n27\tPowerShell 7.6.9（Claude Code の PowerShell ツール）で、uv と Python の子プロセスを動かしたときに観測した。`-Last` では止まらなかった。Bash の `head` で同じことが起きるかは確かめていない。Windows PowerShell 5.1 では確かめていない。\n28\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "agent_id": "a3ee394afbdf9fa25",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "6ed0a9e2-b098-4f98-90d0-de38c894faac",
+   "timestamp": "2026-11-17T19:30:56.649Z",
+   "tool_result_meta": [
+    {
+     "id": "toolu_01Q8fhxy1QVZEwVQWrXhCUmV",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ],
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r1-powershell wiki read"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01Wq2wSigmxnBRedj3gcN92w",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の回答の「確からしさ」を「確信度」に変えた wiki 0.24.0 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"confidence\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-16-wiki-confidence-rename\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の回答の「確からしさ」を「確信度」に変えた wiki 0.24.0 のリリース\n13\t\n14\t作者の決定で、`/wiki:query` の回答に付ける「確からしさ（confidence）」の名前を「確信度」に変え、wiki 0.24.0 として出した記録である。決め方、上限、上げる方法は変えていない（[[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]）。レビューの原本は `docs/agent-runs/2026-11-16-wiki-confidence-rename/` にある。\n15\t\n16\t## 変えたこと\n17\t\n18\t- 回答の終わりの決まった 1 行は `**確信度（confidence）: 中**` になった。複数の結論の文の終わりは「（確信度: 高）」になった。\n19\t- プラグインでは、コマンド、決め方のファイル、ワークフロー、スキル、利用者向けの文書の 86 か所を変えた。browse のグラフのエッジの表の列名も「確信度」にした。\n20\t- 決まった 1 行の字句が変わり、前の字句を機械で数えている利用者には互換性のない変更になる。そこで minor を上げて 0.24.0 にした。0.24.0 を予定していた to884/info-hive-wiki#71 は、0.25.0 に振り直すことになる。\n21\t- ADR-0028 は承認済みなので、本文を書き換えず、「名前の追記」の節を足した。\n22\t\n23\t## 「確信度」が別の意味で使われていたこと\n24\t\n25\t「確信度」は、グラフのエッジの `confidence`（`low` など）と、判定モデルの答えの値（0〜1）で、すでに使われていた。回答の確信度とエッジの `confidence` が同じ文に出る箇所は、取り違えないよう「回答の確信度」「エッジの `confidence`」と書き分けた。\n26\t\n27\tこの重なりは、測定の要約のスクリプトでも問題になった。Sol のレビューでは、広い抽出式が「エッジの確信度: 低」も回答の印として拾う反例が、言い回しを変えて 3 回出た。字句の工夫では見分けきれないと判断し、作りを替えた。\n28\t\n29\t- 新しい名前は、決まった形（決まった 1 行と結論の文末の印）だけを機械で読む。\n30\t- 広い抽出は、回答の意味でしか使っていない前の名前だけを読む。\n31\t- 新しい名前の崩れた書き方は、回答を読んで判断する。\n32\t\n33\t3 回目の判定は採用可だった。残った反例は、エッジの値を決まった形（「（確信度: 低）」）で書いた回答だけである。これは回答の書き方の誤りなので、読めば見分けられる。\n34\t\n35\t## wiki のページの直し方\n36\t\n37\t確からしさを扱う 11 ページ（index を含む）の地の文と title を「確信度」にした。変えていないものは次の 4 つである。\n38\t\n39\t| 変えないもの | 理由 |\n40\t| --- | --- |\n41\t| ページ名（スラッグ）と `[[リンク]]` | 変えるとリンクが切れる |\n42\t| frontmatter の `sources` のページ名 | ページ名と同じ |\n43\t| 当時の版の字句（バッククォートの中、「（確からしさ: 高）」） | その版で実際に使っていた字句という事実である |\n44\t| `log.md` の過去の行 | 時系列の記録である。名前を変えたことは 1 行足した |\n45\t\n46\t> 変えないもの 補足：親の main を取り込んだとき、main 側で同じ行が書き換わっていたページが 1 つあった。main の行を取り、同じ規則で置き換え直した。\n47\t\n48\t## リリース\n49\t\n50\t1. 子の PR（to884/info-hive-wiki#77）と、親の PR（to884/info-hive-dev#156）を作った。子の CI 4 件と、子の先頭を指した親の CI 17 件が通ってから、子の PR をマージした（`2eb8ac4`）。Codex の PR レビューは、どちらも指摘なしだった。\n51\t2. 注釈付きのタグ `v0.24.0` と GitHub リリースを作った。本文は CHANGELOG の 0.24.0 の節である。\n52\t3. 使い捨ての設定でマーケットプレイスから入れ、0.24.0 が入ることを確かめた。v0.23.2 から変わった 10 個のファイルの SHA-256 は、タグの中身と一致した。\n53\t4. 親の参照をマージコミットに付け替えて、親の PR をマージした。\n54\t\n55\t## 関係するページ\n56\t\n57\t- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]\n58\t- [[queryの確からしさとリリース-wiki-0.20.0]]\n59\t- [[リリースの確かめ方]]\n60\t- [[敵対的レビューで設計を直す進め方]]\n61\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "agent_id": "a37d3641ecbddf245",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "8bf008b5-91f4-47b9-88b5-48596dddf5d7",
+   "timestamp": "2026-11-17T19:30:56.652Z",
+   "tool_result_meta": [
+    {
+     "id": "toolu_01Wq2wSigmxnBRedj3gcN92w",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ],
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r3-confidence wiki read"
+  },
+  {
+   "type": "system",
+   "subtype": "task_progress",
+   "task_id": "a47e47d18bc283999",
+   "run_id": "0mwl38697-60642cc0",
+   "tool_use_id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+   "description": "Reading C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md",
+   "subagent_type": "wiki:wiki-reader",
+   "usage": {
+    "total_tokens": 7149,
+    "tool_uses": 2,
+    "duration_ms": 2260
+   },
+   "last_tool_name": "Read",
+   "uuid": "d750521a-1e33-425f-813c-18209bbb9e54",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch94BzMohEqiHxCHyYdbK",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01BuU2Ja5rvqSWY5mcGGHGHS",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 7061,
+     "cache_read_input_tokens": 0,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 7061,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+   "agent_id": "a47e47d18bc283999",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "4b155b04-8c4a-4d39-ba10-989ca147f32e",
+   "timestamp": "2026-11-17T19:30:56.989Z",
+   "request_id": "req_011Ch94Bz9APHCy8xzjY9SKX",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r2-two-wikis wiki read"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01BuU2Ja5rvqSWY5mcGGHGHS",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: concept\n3\ttitle: ユーザー用のPDF受付の条件（測定専用）\n4\t---\n5\t\n6\t# ユーザー用のPDF受付の条件\n7\t\n8\tこれは測定用の合成データである。ユーザーの受付バイト上限は 32768 バイトとする。プロジェクトのヘッダー位置の条件とは別の値である。\n9\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+   "agent_id": "a47e47d18bc283999",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "12a32879-0a0b-467e-9b33-9156bc7274f4",
+   "timestamp": "2026-11-17T19:30:57.033Z",
+   "tool_result_meta": [
+    {
+     "id": "toolu_01BuU2Ja5rvqSWY5mcGGHGHS",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ],
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r2-two-wikis wiki read"
+  },
+  {
+   "type": "system",
+   "subtype": "task_progress",
+   "task_id": "a3ee394afbdf9fa25",
+   "run_id": "0mwl3868p-3e5146f1",
+   "tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "description": "Reading wiki\\sources\\powershell-select-first-stops-writer-2026-11-15.md",
+   "subagent_type": "wiki:wiki-reader",
+   "usage": {
+    "total_tokens": 7085,
+    "tool_uses": 2,
+    "duration_ms": 2475
+   },
+   "last_tool_name": "Read",
+   "uuid": "80b56a71-615c-4a3b-94df-5c9c85f87fea",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch94BzA9auzke5MoMkmno",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01UGHASsLsosZPD2uLqrUD7u",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 6946,
+     "cache_read_input_tokens": 0,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 6946,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "agent_id": "a3ee394afbdf9fa25",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "a9a5246a-8f7f-4fa9-a657-b31c111be585",
+   "timestamp": "2026-11-17T19:30:57.197Z",
+   "request_id": "req_011Ch94ByvWcG4Zc6cYYDjvW",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r1-powershell wiki read"
+  },
+  {
+   "type": "system",
+   "subtype": "task_progress",
+   "task_id": "a37d3641ecbddf245",
+   "run_id": "0mwl3869j-63681774",
+   "tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "description": "Reading wiki\\sources\\queryの確からしさとリリース-wiki-0.20.0.md",
+   "subagent_type": "wiki:wiki-reader",
+   "usage": {
+    "total_tokens": 7193,
+    "tool_uses": 2,
+    "duration_ms": 2478
+   },
+   "last_tool_name": "Read",
+   "uuid": "72197277-9274-4c53-84ce-0868efa73404",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch94BzXE6FGX3berPaEER",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_019S6NMXbBAcxs6Ltb2u4RMB",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 7055,
+     "cache_read_input_tokens": 0,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 7055,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "agent_id": "a37d3641ecbddf245",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "752ba8ad-56f3-4619-ac89-2c69cb43f064",
+   "timestamp": "2026-11-17T19:30:57.234Z",
+   "request_id": "req_011Ch94BzHLRhgd8hE1LP96C",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r3-confidence wiki read"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01UGHASsLsosZPD2uLqrUD7u",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"経験: PowerShell の Select-Object -First が、ファイルを書く前のスクリプトを止めた（2026-11-15）\"\n4\ttags: [\"windows\"]\n5\traw: \"raw/experiences/powershell-select-first-stops-writer-2026-11-15.json\"\n6\tingested: 2026-11-15\n7\tcreated: 2026-11-15\n8\tupdated: 2026-11-15\n9\t---\n10\t\n11\t# 経験: PowerShell の Select-Object -First が、ファイルを書く前のスクリプトを止めた（2026-11-15）\n12\t\n13\t`/wiki:learn` で記録した経験である。raw は `raw/experiences/powershell-select-first-stops-writer-2026-11-15.json`（ファイルの SHA-256 は `98166a9dffbcfda5d58b38156f594710ec2da64ca32e840288ffb00a6ef32f26`）。結果は failure。\n14\t\n15\t## 観測したこと\n16\t\n17\t- `uv run --script scripts/run_bench.py --metrics-only 2>&1 | Select-Object -First 1` で実行すると、1 行目は出たが、`results.json` の `versions.pdftotext` は書き直す前の文字列のままだった。\n18\t- 同じコマンドを `Select-Object -Last 1` で実行し直すと、`versions.pdftotext` が書き直された。\n19\t- スクリプトは、すべての行を出したあとに `results.json` を書く。\n20\t\n21\t## 原因についての仮説\n22\t\n23\t`Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止めるので、ファイルを書く前にスクリプトが止まったと考えられる（仮説）。\n24\t\n25\t## 適用範囲と反例\n26\t\n27\tPowerShell 7.6.9（Claude Code の PowerShell ツール）、uv 0.12.2、Python 3.12.13 で観測した。`-Last` では止まらなかった。Bash の `head` でも同じことが起きうるかは確かめていない。\n28\t\n29\t## 関係するページ\n30\t\n31\t- [[powershellのパイプの打ち切り]]\n32\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "agent_id": "a3ee394afbdf9fa25",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "8765b294-51b6-4474-b84f-581f491ee679",
+   "timestamp": "2026-11-17T19:30:57.274Z",
+   "tool_result_meta": [
+    {
+     "id": "toolu_01UGHASsLsosZPD2uLqrUD7u",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ],
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r1-powershell wiki read"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_019S6NMXbBAcxs6Ltb2u4RMB",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の回答の確信度と wiki 0.20.0 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"confidence\", \"プロンプト\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-16-wiki-query-confidence\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の回答の確信度と wiki 0.20.0 のリリース\n13\t\n14\t`/wiki:query` の回答に確信度（confidence）を付け、低いときは上げる方法を提案するようにして、wiki 0.20.0 として出した記録である。原本（Sol の 6 回のレビュー）は `docs/agent-runs/2026-11-16-wiki-query-confidence/` にあり、決定は ADR-0028（2026年11月16日に承認）にある。決め方の正本は、プラグインの `skills/info-hive/references/query-workflow.md` の手順 5b である。\n15\t\n16\t## 付ける場所を回答にした理由\n17\t\n18\t作者の依頼は「wiki:query の結果に confidence を足す」だった。付ける場所は、回答と検索の結果の行の 2 つが考えられた。\n19\t\n20\t- 検索の行の `score` は RRF の値で、順位だけから決まる。クエリをまたいで比べられない。\n21\t- ADR-0011 の較正データ（日本語の自然な質問）では、答えのない 12 問の最も近い距離は 0.151〜0.163 だった。答えのある 47 問のうち 6 問は、答えに届くのに 0.151 以上を要した。距離 0.15 未満を「高い」とする粗い区分なら作れるが、評価は小さく、MCP（ruri）と CLI（e5）でモデルが違う。\n22\t- 回答の正誤を確かめた評価のデータがない。\n23\t\n24\t作者は回答に付ける案を選んだ。数値にはせず、規則で決める「高」「中」「低」と理由にした。\n25\t\n26\t## 決め方\n27\t\n28\t- 判定するのは、回答の結論と、結論を導いた前提である。\n29\t- 前提は、その事柄の正本に書かれていたかで出発点を決める。表は上から順に見て、最初に当たった行を取る。\n30\t  - ソースの要約ページか raw で確かめた前提は「高」、コンセプトのページだけにある前提は「中」になる。\n31\t  - wiki 自身の事柄は、`log.md` などの記録で答えれば「高」になる。\n32\t  - シンセシスのページは根拠に数えない。\n33\t- 結論は導き方で決める。そのまま述べたもの、計算などの決まった手順で導いたもの、判断を加えたものに分ける。\n34\t- 上限（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）を当て、もっとも低いものに合わせる。\n35\t- 「中」か「低」のときは、要因ごとに上げる方法を提案する。wiki を書き換える方法は提案だけにする。\n36\t- wiki の外の知識は前提に使わない（作者の決定）。問いの一部だけ wiki に答えがないときも、その部分は答えない。\n37\t\n38\t## レビューで崩れた前提\n39\t\n40\tSol の敵対的レビューを 6 回受けた。1、2 回目は却下、3〜6 回目は採用可だった。\n41\t\n42\t1. ページの `sources` からソースまでたどれれば「高」としていた。これでは、推論の回答をシンセシスとして保存すると、次のクエリで「高」になる。ページ単位の `sources` は、個々の主張の出所を保証しない。\n43\t2. 根拠の形を「1 ページか、複数のページか」で分けたので、1 ページの値から計算する回答（8 件と 2 件から 80%）がどの行にも当たらなかった。前提と結論を分け、結論は導き方で決めることにした。\n44\t3. 場合を並べた表に、もれと重なりがあった。`log.md` を根拠にする回答の行がなく、検索の縮退の理由を `index.state` から推し量っていた。`index.state` は、埋め込み済みの件数が足りているかしか表さない。どの表も上から順に当てはめる形にし、最後に「どれにも当たらない」の行を置いた。\n45\t4. 外の知識を添えない決まりを質問全体の単位で書くと、「A と B は？」のように問いをまとめるだけで、wiki が扱っていない B を外の知識で埋められた。結論ごとに当てる形にした。\n46\t\n47\t## プロンプトの監査\n48\t\n49\t`commands/query.md` を、claude-api スキルの prompt-audit で、Claude Sonnet 5.5 を対象に監査した。\n50\t\n51\t- Sonnet 5.5 は、知識を問う質問で、検索を使わずに自分の知識で答えることがある。そこで「答えは wiki から取り、知っていると思う質問でも wiki を確かめる」を足した。\n52\t- 理由のない「0 件でも CLI でやり直さない」は、書かれたとおりに受け取られるので、「同じ検索語で」に限り、探し直しは 2 回までにした。\n53\t- `warning` の説明がコードと食い違っていた。被リンクの探し方も、コマンドと手順書で食い違っていた（コマンドの方が新しい）。どちらも直した。\n54\t\n55\t## 実際に動かした確かめ\n56\t\n57\tworktree のプラグインを `claude --plugin-dir` で読み込み、この wiki に 3 問を問い合わせた。エージェントは 3 問とも手順 5b を開いて従った。\n58\t\n59\t- 仮説のページ（[[officeのcomでの書き出し]]）に頼る質問は「中」だった。上げる方法として、仮説を確かめて `/wiki:learn` で記録することが出た。\n60\t- コンセプトのページにある質問では、ソースの要約ページで確かめきれず「中」になった。上げる方法として raw を読むことが出た。\n61\t- wiki が扱っていない質問には、確信度を付けなかった。ただし、外の知識を添えていた。これが作者の「添えない」の決定のきっかけになった。\n62\t\n63\tリリースのあとで、Sonnet 5.5 で 11 問を 3 回ずつ流して測った（[[queryの確からしさのsonnetでの測定-2026-11-16]]）。こちらでは、33 回のどれも手順 5b を開かず、`commands/query.md` の手順 6b の要約だけで判定した。判定の一致は 24/33 で、外れた 9 回はすべて期待より低く、規則にない上限（観測が 1 回だけ、raw 未確認）によるものだった。\n64\t\n65\t## リリース\n66\t\n67\t1. 子の PR（to884/info-hive-wiki#69）と親の PR（to884/info-hive-dev#136）の CI が、どちらも最新のコミットで通ってから、子をマージした（`08d60aa`）。\n68\t2. 注釈付きのタグ `v0.20.0` と GitHub リリースを作った。\n69\t3. 使い捨ての設定でマーケットプレイスから入れ、0.20.0 が入ること、v0.19.5 から変わった 7 つのファイルの SHA-256 がタグの中身と一致することを確かめた。\n70\t4. 親の参照をマージコミットに付け替えて、親をマージした。\n71\t\n72\t親の `tests/wiki` を手元の素の Python で流すと、`yaml` と `psutil` がないために 36 件が落ちた。変更は文書だけで、依存を入れて動く子の CI は通った。\n73\t\n74\t## ADR-0027 との関係\n75\t\n76\tリリースのあとで、YouTube の字幕の取り込みのセッションから連絡があった。ADR-0027（提案）が、ADR-0028 の上限の表に、動画のソースの行を足すよう求めていた。\n77\t\n78\t- 動画の raw の `confidence` が `medium` なら「中」、`low` なら「低」を上限にする。\n79\t- モデルの知識だけによる訂正や、留保した語に頼る前提は「低」を上限にする。\n80\t\n81\tADR-0028 は承認済みで、規則は 0.20.0 で出荷済みだった。承認した ADR は書き換えない決まりなので（`docs/adr/README.md`）、次のように分担した。\n82\t\n83\t- 上限の行と、それぞれを解消する「上げる方法」の行は、ADR-0027 を実装する PR で `query-workflow.md` の手順 5b に足す。\n84\t- その判断は ADR-0027 に書く。to884/info-hive-dev#139 でマージ済み。\n85\t\n86\t先に足さなかったのは、`confidence` の欄と訂正の印が ADR-0027 の実装で初めてできるからである。先に足すと、まだない欄を指す規則になる。上限の表は、当てはまる行をすべて当ててもっとも低いものを取る形なので、行を足しても既存の行と衝突しない。\n87\t\n88\t## 後始末\n89\t\n90\t`git worktree remove --force` は登録を外したが、`Permission denied` で空のフォルダーを残した。このセッションのシェルの作業ディレクトリが、まだその中にあったためと見られる。外に出てから `rmdir` で消えた。\n91\t\n92\t## 関係するページ\n93\t\n94\t- [[リリースの確かめ方]]\n95\t- [[敵対的レビューで設計を直す進め方]]\n96\t- [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n97\t- [[youtubeの字幕の取り込みの設計-2026-11-15]]\n98\t- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n99\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "agent_id": "a37d3641ecbddf245",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "a2992688-cc4d-4d76-aec8-114babafa5dd",
+   "timestamp": "2026-11-17T19:30:57.281Z",
+   "tool_result_meta": [
+    {
+     "id": "toolu_019S6NMXbBAcxs6Ltb2u4RMB",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ],
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r3-confidence wiki read"
+  },
+  {
+   "type": "system",
+   "subtype": "task_progress",
+   "task_id": "a37d3641ecbddf245",
+   "run_id": "0mwl3869j-63681774",
+   "tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "description": "Reading wiki\\sources\\queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md",
+   "subagent_type": "wiki:wiki-reader",
+   "usage": {
+    "total_tokens": 7250,
+    "tool_uses": 3,
+    "duration_ms": 3091
+   },
+   "last_tool_name": "Read",
+   "uuid": "f4e86e75-5975-49b8-b857-8480559a7362",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch94BzXE6FGX3berPaEER",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_016XVgS4i6NmKXgTmJWcSqdS",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 7055,
+     "cache_read_input_tokens": 0,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 7055,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "agent_id": "a37d3641ecbddf245",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "8623854e-834b-474a-9510-a82c9990e72a",
+   "timestamp": "2026-11-17T19:30:57.847Z",
+   "request_id": "req_011Ch94BzHLRhgd8hE1LP96C",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r3-confidence wiki read"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_016XVgS4i6NmKXgTmJWcSqdS",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の確信度の決め方の分離と wiki 0.21.1 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"confidence\", \"プロンプト\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-16-wiki-query-confidence-reach\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の確信度の決め方の分離と wiki 0.21.1 のリリース\n13\t\n14\t`/wiki:query` の確信度の決め方を別のファイルに分けて確実に読ませ、読み違いと外の知識の経路を直して、wiki 0.21.1 として出した記録である。きっかけは、Sonnet 5.5 で測ったときに、決め方の正本（手順 5b）が 1 回も読まれていなかったことである（[[queryの確からしさのsonnetでの測定-2026-11-16]]）。レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-confidence-reach/` にある。\n15\t\n16\t## 直したこと\n17\t\n18\t作者は、測定のレポートが示した案 1〜4 をすべて入れると決めた。\n19\t\n20\t1. 決め方の本文を `skills/info-hive/references/query-confidence.md` に分けた。コマンドの手順 6b では、確信度を書く前に、このファイルを `${CLAUDE_PLUGIN_ROOT}` のパスで Read するよう求めた。手順 5b は、このファイルへの案内として残した。\n21\t2. 6b の要約を、読み違いを生まない 3 点にした。\n22\t   - ソースの要約ページに書かれていれば高で、raw まで読まなくてよい。\n23\t   - wiki 自身の事柄を記録で答えたら高。\n24\t   - 上限は表の行だけで、回数、再現、raw や git で確かめていないことでは下げない。\n25\t3. wiki の外の知識に、会話に読み込まれたプロジェクトの指示と、wiki の外のファイルを含めた。思い付いた答えを、検索語として書くことも禁じた。\n26\t4. 1 行目は `**確からしさ（confidence）: 中**` の字句のまま書くことにした。\n27\t\n28\t判定の表の中身は変えていない。ADR-0028 は承認済みなので書き換えず、置き場所の行に日付つきで追記した。\n29\t\n30\t## レビューで直したこと\n31\t\n32\tSol の敵対的レビューを 3 回受けた。指摘はどれも、外の知識の例外の決め方に集まった。\n33\t\n34\t- 1 回目は、例外を frontmatter の `raw` の欄に限っていた。これでは、文字コードを変換した写しと、rag の抽出済みの Markdown が外れた。\n35\t- 2 回目は、「本文から参照している」という条件にしていた。これでは、`rag_job_id` で指す rag のページが外れた。\n36\t\n37\t最後は、要約ページがそのソースの raw として指しているもの、とした。指し方は 3 つ（`raw` の原本、`rag_job_id` のジョブ、本文の参照とその画像）である。欄や書き方の 1 つで例外を決めると、取り込みの手順が作る別の形を取りこぼした。\n38\t\n39\t## 測り直し\n40\t\n41\tリリースの前に、前回と同じ wiki（`4b3f578`）と 11 問で測り直した。\n42\t\n43\t- ラベルの一致：24/33 から 33/33 に上がった。\n44\t- 決め方のファイルを開いた回：0/30 から 30/30 になった。\n45\t- 判定のぶれ：なくなった。\n46\t\n47\t答えを検索語として書く漏れは残った。Q11 では減ったが、確信度を付けない Q09 で新しく起きた。この漏れは、0.21.2 で字句で決まる決まりにして直した（[[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]）。\n48\t\n49\t## リリース\n50\t\n51\t1. 子の PR の先頭を指した親の CI 17 件が通ってから、子の PR（to884/info-hive-wiki#72）をマージした（`4ffecc5`）。\n52\t2. 注釈付きのタグ `v0.21.1` と GitHub リリースを作った。\n53\t3. 使い捨ての設定でマーケットプレイスから入れ、0.21.1 が入ることを確かめた。v0.21.0 から変わった 7 つのファイルの SHA-256 は、タグの中身と一致した。\n54\t4. 親の参照をマージコミットに付け替えて、親の PR（to884/info-hive-dev#144）をマージした。\n55\t\n56\t並行して、to884/info-hive-wiki#71（rag の page_report）と ADR-0027 の実装が、どちらも 0.22.0 を予定している。\n57\t\n58\t## 関係するページ\n59\t\n60\t- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n61\t- [[queryの確からしさとリリース-wiki-0.20.0]]\n62\t- [[リリースの確かめ方]]\n63\t- [[敵対的レビューで設計を直す進め方]]\n64\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "agent_id": "a37d3641ecbddf245",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "c7c11aee-834f-48d6-bbe3-829da25398b8",
+   "timestamp": "2026-11-17T19:30:57.890Z",
+   "tool_result_meta": [
+    {
+     "id": "toolu_016XVgS4i6NmKXgTmJWcSqdS",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ],
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r3-confidence wiki read"
+  },
+  {
+   "type": "system",
+   "subtype": "task_progress",
+   "task_id": "a37d3641ecbddf245",
+   "run_id": "0mwl3869j-63681774",
+   "tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "description": "Reading wiki\\sources\\queryの確からしさの規則の直しとリリース-wiki-0.23.1.md",
+   "subagent_type": "wiki:wiki-reader",
+   "usage": {
+    "total_tokens": 15052,
+    "tool_uses": 4,
+    "duration_ms": 4848
+   },
+   "last_tool_name": "Read",
+   "uuid": "43e644d2-2aaa-4ee1-8e5c-43ad43d20d5a",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch94CCGR8AXSNuGF7GPRy",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01B4BT8ese9UqiDrAiKkeWwc",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 7731,
+     "cache_read_input_tokens": 7055,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 7731,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 5,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "agent_id": "a37d3641ecbddf245",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "daa74cdd-2bc1-4875-bc2c-68112787e13f",
+   "timestamp": "2026-11-17T19:30:59.603Z",
+   "request_id": "req_011Ch94CC2XsfYzcP7bG2LVZ",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r3-confidence wiki read"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01B4BT8ese9UqiDrAiKkeWwc",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の確信度の規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"測定\", \"レビュー\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/research/wiki-query-confidence-0-21-3-2026-11-16.md\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の確信度の規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース\n13\t\n14\t[[queryの確からしさの未測定の規則の測定-2026-11-16]] で作者が決めた直しの向き（案 1-A、2-B、3、4）を `/wiki:query` の確信度の規則に入れ、Claude Sonnet 5.5 で測り直して、wiki 0.23.1 として出した記録である。測定の原本は `docs/research/wiki-query-confidence-0-21-3-2026-11-16.md`、決定は ADR-0028 の「0.23.1 の追記」、レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-confidence-0-21-2/` にある。\n15\t\n16\t## 直したこと\n17\t\n18\t| 項目 | 決めたこと | 決めた人 |\n19\t| --- | --- | --- |\n20\t| エッジの上限（案 1-A） | エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。エッジの `source` のソースの要約ページか raw の本文が関係を直接述べていれば数えない | 作者 |\n21\t| エッジだけの前提 | 本文で確かめられないときは、エッジを書いたページの frontmatter で確かめて引用し、出発点を「中」にする。グラフの行だけを前提にしない | 提案を作者が承認 |\n22\t| 推測を答えにする | 根拠に推測や記憶として書かれたこと（「〜だったと思う」）を答えとして述べたら、留保を添えても上限は「低」 | 作者（提案は「中」） |\n23\t| グラフを必ず呼ぶ | 関係を問う質問では、ページを読む前に必ず `graph` の `neighbors` を呼ぶ。手順を 5b から 2b に移し、ノードの ID の作り方（`graph.node_id` の上書き、結果の `path` の確かめ）を書いた | 作者 |\n24\t| `Grep` で見つけたら縮退（案 2-B） | 縮退の理由に「0. 語彙だけの道具で見つけた」を足した。見つけ方は道具を呼んだ順だけで決める | 作者が「開く前に呼んだか」を選んだ |\n25\t| その場の検索し直し | 縮退に当たったページは、答える前に MCP の `query` で検索し直してよく、正常な hybrid の結果にそのページが出れば上限は外れる | 作者 |\n26\t| 縮退の目的（案 3）と複数の結論（案 4） | 縮退は見落としを表すのでページを読んでも外れない。結論の文の終わりに「（確からしさ: 高）」、決まった 1 行は 1 つの値 | 作者 |\n27\t| 何が結論か | 質問が問う事柄について、前提に使えるもの（出発点が決まるもの）が wiki にあるかで決める。前提に使えるものがない問いには付けず、どの問いにもなければ決まった 1 行も書かない | 作者が「直してから出す」と決めた |\n28\t\n29\t> 直したこと 補足: 「見つけ方」の文は、Sol の敵対的レビューで 2〜7 回目まで毎回崩れた。インデックスの行の読みで決める形と、リンクのたどり元から引き継ぐ形は、どちらも同じ記録から高と中を導けた。道具を呼んだ順だけで決める形にして、5 回目で条件付きで採用可になった（[[エージェントに守らせる決まりの書き方]] の「読み手の判断に任せず、記録で決める」）。\n30\t\n31\t## 測り直し\n32\t\n33\t試験用の wiki（架空の製品 Tsuyukusa）で、前回の 15 問に `Grep` の経路の問い R16 を足し、16 問 × 3 回を流した。測ったのは出す版の 1 つ前のコミット `ea0a5b5` である。\n34\t\n35\t- 一致は 48 回中 41 回だった。事前に書いた別の読み（R16 の 3 回と R04 r2）が 4 回、規則の外れが 3 回である。前回と同じ 15 問に限ると 45 回中 41 回（前回は 40 回）だった。\n36\t- 関係を問う R07 と R08 の 6 回とも、グラフの `neighbors` を呼んだ（前回は 0 回）。R07 は 3 回とも「推測を答えにした」で「低」、R08 は 3 回中 2 回が「高」だった。\n37\t- 複数の結論の書き方は 6 回とも規則どおりだった（前回は 6 回中 1 回）。\n38\t- `Grep` を答えのページを開く前に呼んだ回は 2 回だけで、R16 でも Sonnet は先に hybrid の MCP の検索を呼んだ。理由 0 の「中」と、その場の検索し直しの経路は、ほとんど測れていない。\n39\t- R02（主張がシンセシスにしかない）が 3 回中 2 回、「答えられない」に「低」を付けた。直しの前の v0.23.0 でも、3 回中 1 回が補足に「中」を付けた。作者は直してから出すと決め、「何が結論か」を足した。直した版（`f5b99d3`）で R02、R03、R04 を 3 回ずつ流すと、9 回とも期待どおりだった。\n40\t\n41\t費用は合計 15.1 USD だった（本番の 48 回が 11.52、取り込む前の版の試しが 0.84、v0.23.0 の R02 が 0.65、直した版の確かめが 2.10）。\n42\t\n43\t## 版と順番\n44\t\n45\t作者は「この直しを先に出す」と決めていた。作業中に、検索語の漏れの直し（0.21.2、to884/info-hive-wiki#73、[[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]）と YouTube の字幕（0.23.0、to884/info-hive-wiki#74、[[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]）が先に出たので、2 回取り込んで 0.23.1 にした。順番は作者の決定と逆になった。0.23.0 が上限の表に足した動画のソースの 3 行は、そのまま残した。\n46\t\n47\t## リリース\n48\t\n49\t1. 子の PR（to884/info-hive-wiki#75）の CI 4 件が通ってから、マージした（`955c15a`）。\n50\t2. 注釈付きのタグ `v0.23.1` と GitHub リリースを作った。本文は CHANGELOG の 0.23.1 の節である。\n51\t3. 使い捨ての設定でマーケットプレイスから入れ、0.23.1 が入ることを確かめた。変えた 5 つのファイル（`commands/query.md`、`query-confidence.md`、`query-workflow.md`、`graph-workflow.md`、`plugin.json`）の SHA-256 は、タグの中身と一致した。\n52\t4. 親の参照をマージコミットに付け替えた。\n53\t\n54\t## 残った直しの候補\n55\t\n56\t作者の判断を待つもの。\n57\t\n58\t- 時期や版の上限の行に、「より新しい記述がないことは当たらない」を足す（R08 r2 が、新しい記述がないことを上限に数えた）。\n59\t- 時期や版の不明の行で、`/wiki:lint` の提案が抜けやすい。\n60\t\n61\t## 主張と行き先\n62\t\n63\t| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n64\t| --- | --- | --- | --- | --- |\n65\t| c1 | 0.23.1 の規則の直しの中身と、それぞれを決めた人 | ADR-0028 の「0.23.1 の追記」 | `source_only` | 規則の正本はプラグインの `query-confidence.md` にある |\n66\t| c2 | 判定を読み手の判断に任せる文は、敵対的レビューで同じ記録から 2 通りの判定を導かれる。道具の記録や表で決まる形にすると閉じた | 原本の「測った版と出す版の違い」と ADR の追記の各行 | `update` | [[エージェントに守らせる決まりの書き方]] に節を足した |\n67\t| c3 | 測り直しの結果（41/48、グラフを呼んだ 6/6、R02 の外れと直しの確かめ） | 原本の「結論」「R02 の直しと、その確かめ」 | `source_only` | この版の測定に限った結果である |\n68\t| c4 | 新しい規則を足すときに、既存の上限や出発点を言い直すと、既存の表とぶつかる | ADR の追記の「何が結論か」の行（10 回目のレビュー） | `update` | [[エージェントに守らせる決まりの書き方]] の同じ節に書いた |\n69\t\n70\t## 関係するページ\n71\t\n72\t- [[queryの確からしさの未測定の規則の測定-2026-11-16]]（前回の測定と、直しの案）\n73\t- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]\n74\t- [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]\n75\t- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（このあと、名前を「確信度」に変えた）\n76\t- [[エージェントに守らせる決まりの書き方]]\n77\t- [[リリースの確かめ方]]\n78\t- [[敵対的レビューで設計を直す進め方]]\n79\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "agent_id": "a37d3641ecbddf245",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "5b9c9bb2-84ab-4ba4-a94b-675cfca71372",
+   "timestamp": "2026-11-17T19:30:59.651Z",
+   "tool_result_meta": [
+    {
+     "id": "toolu_01B4BT8ese9UqiDrAiKkeWwc",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ],
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r3-confidence wiki read"
+  },
+  {
+   "type": "system",
+   "subtype": "task_progress",
+   "task_id": "a47e47d18bc283999",
+   "run_id": "0mwl38697-60642cc0",
+   "tool_use_id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+   "description": "r2-two-wikis wiki read",
+   "subagent_type": "wiki:wiki-reader",
+   "usage": {
+    "total_tokens": 9860,
+    "tool_uses": 3,
+    "duration_ms": 7177
+   },
+   "last_tool_name": "SubagentHandback",
+   "uuid": "34e71dbd-d09d-4ac0-93e1-f54cecf7504e",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch94C8t2TJf1QpvSFhmGj",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01NauK6ZECkaUdmLQzWsMadR",
+      "name": "SubagentHandback",
+      "input": {
+       "message": "## 答え\n- プロジェクト wiki: PDF のヘッダー位置の上限は 1024 バイト。`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。言い換えると、`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。\n- ユーザー wiki: 受付バイト上限は 32768 バイト。\n\n## 根拠\n- [[pdfのヘッダーの条件]]（project: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。」`data.find(b\"%PDF-\", 0, 1024 + 5)` で探す。\n- [[pdfのヘッダーの条件]]（user: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 「ユーザーの受付バイト上限は 32768 バイトとする。プロジェクトのヘッダー位置の条件とは別の値である。」なお、このページ自身が「測定用の合成データ」と書いている。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md\n\n## 未確認の出典\n- なし\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 2460,
+     "cache_read_input_tokens": 7061,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 2460,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 24,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+   "agent_id": "a47e47d18bc283999",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "a2aa1def-482b-4f0c-bc7d-2bba472291e2",
+   "timestamp": "2026-11-17T19:31:01.906Z",
+   "request_id": "req_011Ch94C8gcGtkrfHVdbfou7",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r2-two-wikis wiki read"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01NauK6ZECkaUdmLQzWsMadR",
+      "type": "tool_result",
+      "content": [
+       {
+        "type": "text",
+        "text": "{\"success\":true,\"message\":\"Report delivered to your caller.\"}"
+       }
+      ]
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+   "agent_id": "a47e47d18bc283999",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "cbb6b65b-4301-4543-a8dd-b46d06f1e0ed",
+   "timestamp": "2026-11-17T19:31:02.058Z",
+   "tool_result_meta": [
+    {
+     "id": "toolu_01NauK6ZECkaUdmLQzWsMadR",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "classifier"
+     }
+    }
+   ],
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r2-two-wikis wiki read"
+  },
+  {
+   "type": "system",
+   "subtype": "task_updated",
+   "task_id": "a47e47d18bc283999",
+   "run_id": "0mwl38697-60642cc0",
+   "patch": {
+    "status": "completed",
+    "end_time": 1794943862072
+   },
+   "uuid": "e0186585-7ea3-44fb-b659-63b6c4145037",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "system",
+   "subtype": "task_notification",
+   "task_id": "a47e47d18bc283999",
+   "run_id": "0mwl38697-60642cc0",
+   "tool_use_id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+   "status": "completed",
+   "output_file": "C:\\UserData\\toshiki\\Temp\\claude\\15a4ce52834871e3\\dcd85704-c030-406f-af88-901733f22c1c\\tasks\\a47e47d18bc283999.output",
+   "summary": "This agent's report was delivered to you as a message from \"a47e47d18bc283999\" (its SubagentHandback call). Read it there; it is not repeated here.\n",
+   "usage": {
+    "total_tokens": 10360,
+    "tool_uses": 3,
+    "duration_ms": 7341
+   },
+   "handback": "send",
+   "handback_report": {
+    "text": "## 答え\n- プロジェクト wiki: PDF のヘッダー位置の上限は 1024 バイト。`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。言い換えると、`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。\n- ユーザー wiki: 受付バイト上限は 32768 バイト。\n\n## 根拠\n- [[pdfのヘッダーの条件]]（project: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。」`data.find(b\"%PDF-\", 0, 1024 + 5)` で探す。\n- [[pdfのヘッダーの条件]]（user: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 「ユーザーの受付バイト上限は 32768 バイトとする。プロジェクトのヘッダー位置の条件とは別の値である。」なお、このページ自身が「測定用の合成データ」と書いている。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md\n\n## 未確認の出典\n- なし\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）"
+   },
+   "uuid": "db942bdf-00c2-4641-b462-8062e90fd69b",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+      "type": "tool_result",
+      "content": [
+       {
+        "type": "text",
+        "text": "  This agent's report was delivered to you as a message from \"a47e47d18bc283999\" (its SubagentHandback call). Read it there; it is not repeated here.\n  \nagentId: a47e47d18bc283999\n<usage>subagent_tokens: 10360\ntool_uses: 3\nduration_ms: 7345</usage>"
+       }
+      ]
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "d531aadb-d639-4ee5-8f97-796089b896b4",
+   "timestamp": "2026-11-17T19:31:02.079Z",
+   "tool_use_result": {
+    "status": "completed",
+    "prompt": "問い: プロジェクトwikiに記録されたPDFのヘッダー位置の上限と、ユーザーwikiに記録された受付バイト上限を、それぞれ教えて。同名ページなので、根拠にはそれぞれのwikiの区別が付く絶対パスを付けて。\n\n候補のページ（wiki の中身だけで答えること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}\nuser の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}",
+    "agentId": "a47e47d18bc283999",
+    "agentType": "wiki:wiki-reader",
+    "handback": "send",
+    "handbackReport": {
+     "text": "## 答え\n- プロジェクト wiki: PDF のヘッダー位置の上限は 1024 バイト。`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。言い換えると、`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。\n- ユーザー wiki: 受付バイト上限は 32768 バイト。\n\n## 根拠\n- [[pdfのヘッダーの条件]]（project: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。」`data.find(b\"%PDF-\", 0, 1024 + 5)` で探す。\n- [[pdfのヘッダーの条件]]（user: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 「ユーザーの受付バイト上限は 32768 バイトとする。プロジェクトのヘッダー位置の条件とは別の値である。」なお、このページ自身が「測定用の合成データ」と書いている。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md\n\n## 未確認の出典\n- なし\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）"
+    },
+    "toolsUsed": [
+     "Read",
+     "SubagentHandback"
+    ],
+    "harnessNoteCount": 1,
+    "harnessTailCount": 0,
+    "harnessSectionHash": "7a87a9c820a76333",
+    "content": [
+     {
+      "type": "text",
+      "text": "This agent's report was delivered to you as a message from \"a47e47d18bc283999\" (its SubagentHandback call). Read it there; it is not repeated here.\n"
+     }
+    ],
+    "resolvedModel": "claude-sonnet-5-5",
+    "totalDurationMs": 7345,
+    "totalTokens": 10360,
+    "totalToolUseCount": 3,
+    "usage": {
+     "output_tokens_details": {
+      "thinking_tokens": 0
+     },
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 2460,
+     "cache_read_input_tokens": 7061,
+     "output_tokens": 837,
+     "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+     },
+     "service_tier": "standard",
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 2460
+     },
+     "inference_geo": "global",
+     "iterations": [
+      {
+       "input_tokens": 2,
+       "output_tokens": 837,
+       "cache_read_input_tokens": 7061,
+       "cache_creation_input_tokens": 2460,
+       "cache_creation": {
+        "ephemeral_5m_input_tokens": 2460,
+        "ephemeral_1h_input_tokens": 0
+       },
+       "type": "message"
+      }
+     ],
+     "speed": "standard",
+     "fallback_credit": null
+    },
+    "toolStats": {
+     "readCount": 2,
+     "searchCount": 0,
+     "bashCount": 0,
+     "editFileCount": 0,
+     "linesAdded": 0,
+     "linesRemoved": 0,
+     "otherToolCount": 1
+    },
+    "canContinueAgent": false
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01L91EVvsDRWpmZwKifvxL6g",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "classifier"
+     }
+    }
+   ]
+  },
+  {
+   "type": "system",
+   "subtype": "task_progress",
+   "task_id": "a3ee394afbdf9fa25",
+   "run_id": "0mwl3868p-3e5146f1",
+   "tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "description": "r1-powershell wiki read",
+   "subagent_type": "wiki:wiki-reader",
+   "usage": {
+    "total_tokens": 9293,
+    "tool_uses": 3,
+    "duration_ms": 9083
+   },
+   "last_tool_name": "SubagentHandback",
+   "uuid": "11bfc262-380c-4859-b32c-d3b6c9e6c1af",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch94C9awRVJuZ4iK2nVBB",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01JwBmiN9jLf8DRxpsoeskY5",
+      "name": "SubagentHandback",
+      "input": {
+       "message": "## 答え\n原因は仮説の段階。`Select-Object -First N` は、N 行を受け取るとパイプラインの上流を止める。そのため、全行を出したあとにファイルを書くスクリプトは、書き込みの前に止まる。エラーは出ず、1 行目は正しく出るので気づきにくい。\n\n避け方は次のとおり。\n- ファイルを書くスクリプトには `-First` を付けない。\n- 出力を短く見たいときは `Select-Object -Last N` にするか、出力をファイルに書いてから読む。\n- `-First` を付けるなら、書き込みを出力より先にする。\n- 実行のあとで、書くはずのファイルが更新されたかを確かめる。\n\n観測は PowerShell 7.6.9 のみ。Windows PowerShell 5.1 と、Bash の `head` では確かめていない。\n\n## 根拠\n- [[powershellのパイプの打ち切り]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/powershellのパイプの打ち切り.md）: status は hypothesis。「`Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止める。」手順の案として、書くスクリプトに `-First` を付けないこと、書き込みを先にすること、更新を確かめることを挙げている。\n- [[powershell-select-first-stops-writer-2026-11-15]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md）: 観測の記録。`-First 1` では `results.json` が書き直されず、`-Last 1` で実行し直すと書き直された。環境は PowerShell 7.6.9、uv 0.12.2、Python 3.12.13。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/powershellのパイプの打ち切り.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md\n\n## 未確認の出典\n- raw/experiences/powershell-select-first-stops-writer-2026-11-15.json は未読。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1885,
+     "cache_read_input_tokens": 6946,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 1885,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 24,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "agent_id": "a3ee394afbdf9fa25",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "8d6dd227-2288-4540-8c03-b911feb5a4a4",
+   "timestamp": "2026-11-17T19:31:03.806Z",
+   "request_id": "req_011Ch94C9MHqCzQVEavZbhco",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r1-powershell wiki read"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01JwBmiN9jLf8DRxpsoeskY5",
+      "type": "tool_result",
+      "content": [
+       {
+        "type": "text",
+        "text": "{\"success\":true,\"message\":\"Report delivered to your caller.\"}"
+       }
+      ]
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "agent_id": "a3ee394afbdf9fa25",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "587d7319-4461-4c46-9b7f-7e3d089471f1",
+   "timestamp": "2026-11-17T19:31:03.928Z",
+   "tool_result_meta": [
+    {
+     "id": "toolu_01JwBmiN9jLf8DRxpsoeskY5",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "classifier"
+     }
+    }
+   ],
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r1-powershell wiki read"
+  },
+  {
+   "type": "system",
+   "subtype": "task_updated",
+   "task_id": "a3ee394afbdf9fa25",
+   "run_id": "0mwl3868p-3e5146f1",
+   "patch": {
+    "status": "completed",
+    "end_time": 1794943863935
+   },
+   "uuid": "8694d9ab-0ab4-42cf-bd4e-cc773e21df1d",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "system",
+   "subtype": "task_notification",
+   "task_id": "a3ee394afbdf9fa25",
+   "run_id": "0mwl3868p-3e5146f1",
+   "tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+   "status": "completed",
+   "output_file": "C:\\UserData\\toshiki\\Temp\\claude\\15a4ce52834871e3\\dcd85704-c030-406f-af88-901733f22c1c\\tasks\\a3ee394afbdf9fa25.output",
+   "summary": "This agent's report was delivered to you as a message from \"a3ee394afbdf9fa25\" (its SubagentHandback call). Read it there; it is not repeated here.\n",
+   "usage": {
+    "total_tokens": 9903,
+    "tool_uses": 3,
+    "duration_ms": 9212
+   },
+   "handback": "send",
+   "handback_report": {
+    "text": "## 答え\n原因は仮説の段階。`Select-Object -First N` は、N 行を受け取るとパイプラインの上流を止める。そのため、全行を出したあとにファイルを書くスクリプトは、書き込みの前に止まる。エラーは出ず、1 行目は正しく出るので気づきにくい。\n\n避け方は次のとおり。\n- ファイルを書くスクリプトには `-First` を付けない。\n- 出力を短く見たいときは `Select-Object -Last N` にするか、出力をファイルに書いてから読む。\n- `-First` を付けるなら、書き込みを出力より先にする。\n- 実行のあとで、書くはずのファイルが更新されたかを確かめる。\n\n観測は PowerShell 7.6.9 のみ。Windows PowerShell 5.1 と、Bash の `head` では確かめていない。\n\n## 根拠\n- [[powershellのパイプの打ち切り]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/powershellのパイプの打ち切り.md）: status は hypothesis。「`Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止める。」手順の案として、書くスクリプトに `-First` を付けないこと、書き込みを先にすること、更新を確かめることを挙げている。\n- [[powershell-select-first-stops-writer-2026-11-15]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md）: 観測の記録。`-First 1` では `results.json` が書き直されず、`-Last 1` で実行し直すと書き直された。環境は PowerShell 7.6.9、uv 0.12.2、Python 3.12.13。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/powershellのパイプの打ち切り.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md\n\n## 未確認の出典\n- raw/experiences/powershell-select-first-stops-writer-2026-11-15.json は未読。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）"
+   },
+   "uuid": "95ca5ffe-e250-47a6-ae7d-b3e26022eca2",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+      "type": "tool_result",
+      "content": [
+       {
+        "type": "text",
+        "text": "  This agent's report was delivered to you as a message from \"a3ee394afbdf9fa25\" (its SubagentHandback call). Read it there; it is not repeated here.\n  \nagentId: a3ee394afbdf9fa25\n<usage>subagent_tokens: 9903\ntool_uses: 3\nduration_ms: 9213</usage>"
+       }
+      ]
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "d6d94601-8ea1-48d2-ad52-4f0877681505",
+   "timestamp": "2026-11-17T19:31:03.938Z",
+   "tool_use_result": {
+    "status": "completed",
+    "prompt": "問い: PowerShell で Select-Object -First を使ったらスクリプトが途中で止まった。原因と避け方は？\n\n候補のページ（wiki の中身だけで答え、根拠のページの絶対パスを付けること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"powershellのパイプの打ち切り\", \"path\": \"concepts/powershellのパイプの打ち切り.md\"}\n{\"slug\": \"powershell-select-first-stops-writer-2026-11-15\", \"path\": \"sources/powershell-select-first-stops-writer-2026-11-15.md\"}",
+    "agentId": "a3ee394afbdf9fa25",
+    "agentType": "wiki:wiki-reader",
+    "handback": "send",
+    "handbackReport": {
+     "text": "## 答え\n原因は仮説の段階。`Select-Object -First N` は、N 行を受け取るとパイプラインの上流を止める。そのため、全行を出したあとにファイルを書くスクリプトは、書き込みの前に止まる。エラーは出ず、1 行目は正しく出るので気づきにくい。\n\n避け方は次のとおり。\n- ファイルを書くスクリプトには `-First` を付けない。\n- 出力を短く見たいときは `Select-Object -Last N` にするか、出力をファイルに書いてから読む。\n- `-First` を付けるなら、書き込みを出力より先にする。\n- 実行のあとで、書くはずのファイルが更新されたかを確かめる。\n\n観測は PowerShell 7.6.9 のみ。Windows PowerShell 5.1 と、Bash の `head` では確かめていない。\n\n## 根拠\n- [[powershellのパイプの打ち切り]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/powershellのパイプの打ち切り.md）: status は hypothesis。「`Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止める。」手順の案として、書くスクリプトに `-First` を付けないこと、書き込みを先にすること、更新を確かめることを挙げている。\n- [[powershell-select-first-stops-writer-2026-11-15]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md）: 観測の記録。`-First 1` では `results.json` が書き直されず、`-Last 1` で実行し直すと書き直された。環境は PowerShell 7.6.9、uv 0.12.2、Python 3.12.13。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/powershellのパイプの打ち切り.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md\n\n## 未確認の出典\n- raw/experiences/powershell-select-first-stops-writer-2026-11-15.json は未読。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）"
+    },
+    "toolsUsed": [
+     "Read",
+     "SubagentHandback"
+    ],
+    "harnessNoteCount": 1,
+    "harnessTailCount": 0,
+    "harnessSectionHash": "96f3e78253eddb03",
+    "content": [
+     {
+      "type": "text",
+      "text": "This agent's report was delivered to you as a message from \"a3ee394afbdf9fa25\" (its SubagentHandback call). Read it there; it is not repeated here.\n"
+     }
+    ],
+    "resolvedModel": "claude-sonnet-5-5",
+    "totalDurationMs": 9213,
+    "totalTokens": 9903,
+    "totalToolUseCount": 3,
+    "usage": {
+     "output_tokens_details": {
+      "thinking_tokens": 0
+     },
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1885,
+     "cache_read_input_tokens": 6946,
+     "output_tokens": 1070,
+     "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+     },
+     "service_tier": "standard",
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 1885
+     },
+     "inference_geo": "global",
+     "iterations": [
+      {
+       "input_tokens": 2,
+       "output_tokens": 1070,
+       "cache_read_input_tokens": 6946,
+       "cache_creation_input_tokens": 1885,
+       "cache_creation": {
+        "ephemeral_5m_input_tokens": 1885,
+        "ephemeral_1h_input_tokens": 0
+       },
+       "type": "message"
+      }
+     ],
+     "speed": "standard",
+     "fallback_credit": null
+    },
+    "toolStats": {
+     "readCount": 2,
+     "searchCount": 0,
+     "bashCount": 0,
+     "editFileCount": 0,
+     "linesAdded": 0,
+     "linesRemoved": 0,
+     "otherToolCount": 1
+    },
+    "canContinueAgent": false
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01W1MURCBK9tPUA4aXDGSi1E",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "classifier"
+     }
+    }
+   ]
+  },
+  {
+   "type": "system",
+   "subtype": "task_progress",
+   "task_id": "a37d3641ecbddf245",
+   "run_id": "0mwl3869j-63681774",
+   "tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "description": "r3-confidence wiki read",
+   "subagent_type": "wiki:wiki-reader",
+   "usage": {
+    "total_tokens": 19730,
+    "tool_uses": 5,
+    "duration_ms": 23042
+   },
+   "last_tool_name": "SubagentHandback",
+   "uuid": "ccb59371-3f44-40c9-9594-95ff46e4e453",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch94CKtonshQR4vpewiGf",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_013KG4qS8uw6dNwQz4CaGCWr",
+      "name": "SubagentHandback",
+      "input": {
+       "message": "## 答え\n版ごとの変化（0.22.x と 0.23.0 は専用ページを開いていないので、0.23.1 のページが触れる範囲に限る）。\n\n- 0.20.0（導入）: 回答に確信度（当時の名前は「確からしさ」）を付け、低いときは上げる方法を提案する。数値にはせず、規則で決める「高」「中」「低」と理由にする。\n  - 前提は正本に書かれていたかで出発点を決める。ソースの要約ページか raw で確かめた前提は「高」、コンセプトのページだけにある前提は「中」。wiki 自身の事柄を log.md などの記録で答えれば「高」。シンセシスは根拠に数えない。\n  - 結論は導き方（そのまま述べた、決まった手順で導いた、判断を加えた）で決める。\n  - 上限（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）のうち最も低いものに合わせる。\n  - wiki の外の知識は前提に使わない。\n  - 決め方の正本は query-workflow.md の手順 5b。\n- 0.21.1（決め方の分離）: 判定表の中身は変えず、置き場所と読ませ方を変えた。\n  - 決め方の本文を `skills/info-hive/references/query-confidence.md` に分けた。コマンドの手順 6b で、確信度を書く前に Read するよう求めた。手順 5b は案内として残した。\n  - 6b の要約を 3 点にした。要約ページに書かれていれば高で raw まで読まなくてよい。wiki 自身の事柄を記録で答えたら高。上限は表の行だけで、回数、再現、raw や git で確かめていないことでは下げない。\n  - 外の知識に、会話に読み込まれたプロジェクトの指示と wiki の外のファイルを含めた。答えを検索語として書くことも禁じた。例外は、要約ページがそのソースの raw として指すものとした（`raw` の原本、`rag_job_id` のジョブ、本文の参照とその画像）。\n  - 1 行目は `**確からしさ（confidence）: 中**` の字句のまま書くと決めた。\n  - 測定では、ラベルの一致が 24/33 から 33/33 に、決め方のファイルを開いた回が 0/30 から 30/30 になった（リリース前の測り直し）。\n- 0.23.1（規則の直し。0.22.x と 0.23.0 を挟む）:\n  - エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。エッジの `source` の本文が関係を直接述べていれば数えない。\n  - エッジだけの前提は、エッジを書いたページの frontmatter で確かめて引用し、出発点を「中」にする。\n  - 根拠に推測や記憶として書かれたことを答えとして述べたら、留保を添えても上限は「低」。\n  - 関係を問う質問では、ページを読む前に必ず `graph` の `neighbors` を呼ぶ。手順は 5b から 2b に移した。\n  - 縮退の理由に「0. 語彙だけの道具（`Grep`）で見つけた」を足した。縮退に当たったページは、MCP の `query` で検索し直して正常な hybrid の結果に出れば上限が外れる。縮退はページを読んでも外れない。\n  - 複数の結論は、結論の文の終わりに「（確からしさ: 高）」を付け、決まった 1 行は 1 つの値にする。\n  - 「何が結論か」は、前提に使えるものが wiki にあるかで決める。前提に使えるものがない問いには付けず、どの問いにもなければ決まった 1 行も書かない。\n  - 0.23.0 が足した動画のソースの上限 3 行は、そのまま残した（0.23.0 の中身はこのページ以外では未確認）。\n- 0.24.0（名前の変更）: 規則の中身は変えず、名前を「確からしさ」から「確信度」に変えた。\n  - 決まった 1 行は `**確信度（confidence）: 中**`、複数の結論の文の終わりは「（確信度: 高）」になった。\n  - 決め方、上限、上げる方法は変えていない。\n  - 前の字句を機械で数える利用者には互換性のない変更なので、minor を上げて 0.24.0 にした。\n  - 機械で読む対象は、新しい名前では決まった形だけにした。広い抽出は前の名前だけを読む。\n  - エッジの `confidence` との取り違えを避けるため、「回答の確信度」「エッジの `confidence`」と書き分けた。\n\nまとめると、0.20.0 で規則ができ、0.21.1 で置き場所と読ませ方と字句の指定、0.23.1 でエッジ、推測、グラフ、縮退、複数の結論、何が結論かの規則が変わった。0.24.0 は名前と字句だけの変更である。0.22.x と 0.23.0 の変更は、0.20.0 / 0.21.1 / 0.24.0 のページと 0.23.1 の記述の範囲を超えては分からない。\n\n## 根拠\n- [[queryの確からしさとリリース-wiki-0.20.0]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md）: 「数値にはせず、規則で決める「高」「中」「低」と理由にした。」。決め方と上限の節。\n- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md）: 「判定の表の中身は変えていない。」。決め方のファイルへの分離と測り直しの結果。\n- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md）: 「直したこと」の表。0.23.0 が足した動画の上限 3 行は残した。\n- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md）: 「決め方、上限、上げる方法は変えていない」。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md\n3. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\n4. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md\n\n## 未確認の出典\n- 0.21.2、0.22.x、0.23.0 の各リリースのページ（例: [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]、[[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]）は開いていない。0.21.2 は検索語の漏れを字句で決まる決まりにして直した版、0.23.0 は動画のソースの上限を足した版だと、開いたページが述べている。\n- ADR-0028 と `query-confidence.md` は未読。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 3784,
+     "cache_read_input_tokens": 14786,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 3784,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 24,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "agent_id": "a37d3641ecbddf245",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "76bda57f-b2ce-4826-af3a-b65438c371fd",
+   "timestamp": "2026-11-17T19:31:17.797Z",
+   "request_id": "req_011Ch94CKdfpnYgKTbU7LHKz",
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r3-confidence wiki read"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_013KG4qS8uw6dNwQz4CaGCWr",
+      "type": "tool_result",
+      "content": [
+       {
+        "type": "text",
+        "text": "{\"success\":true,\"message\":\"Report delivered to your caller.\"}"
+       }
+      ]
+     }
+    ]
+   },
+   "parent_tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "agent_id": "a37d3641ecbddf245",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "8633002c-74ab-42bd-b8fb-cd879a2b025c",
+   "timestamp": "2026-11-17T19:31:17.890Z",
+   "tool_result_meta": [
+    {
+     "id": "toolu_013KG4qS8uw6dNwQz4CaGCWr",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "classifier"
+     }
+    }
+   ],
+   "subagent_type": "wiki:wiki-reader",
+   "task_description": "r3-confidence wiki read"
+  },
+  {
+   "type": "system",
+   "subtype": "task_updated",
+   "task_id": "a37d3641ecbddf245",
+   "run_id": "0mwl3869j-63681774",
+   "patch": {
+    "status": "completed",
+    "end_time": 1794943877897
+   },
+   "uuid": "23755477-a9e4-4fce-8a9e-295a16110004",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "system",
+   "subtype": "task_notification",
+   "task_id": "a37d3641ecbddf245",
+   "run_id": "0mwl3869j-63681774",
+   "tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+   "status": "completed",
+   "output_file": "C:\\UserData\\toshiki\\Temp\\claude\\15a4ce52834871e3\\dcd85704-c030-406f-af88-901733f22c1c\\tasks\\a37d3641ecbddf245.output",
+   "summary": "This agent's report was delivered to you as a message from \"a37d3641ecbddf245\" (its SubagentHandback call). Read it there; it is not repeated here.\n",
+   "usage": {
+    "total_tokens": 21813,
+    "tool_uses": 5,
+    "duration_ms": 23141
+   },
+   "handback": "send",
+   "handback_report": {
+    "text": "## 答え\n版ごとの変化（0.22.x と 0.23.0 は専用ページを開いていないので、0.23.1 のページが触れる範囲に限る）。\n\n- 0.20.0（導入）: 回答に確信度（当時の名前は「確からしさ」）を付け、低いときは上げる方法を提案する。数値にはせず、規則で決める「高」「中」「低」と理由にする。\n  - 前提は正本に書かれていたかで出発点を決める。ソースの要約ページか raw で確かめた前提は「高」、コンセプトのページだけにある前提は「中」。wiki 自身の事柄を log.md などの記録で答えれば「高」。シンセシスは根拠に数えない。\n  - 結論は導き方（そのまま述べた、決まった手順で導いた、判断を加えた）で決める。\n  - 上限（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）のうち最も低いものに合わせる。\n  - wiki の外の知識は前提に使わない。\n  - 決め方の正本は query-workflow.md の手順 5b。\n- 0.21.1（決め方の分離）: 判定表の中身は変えず、置き場所と読ませ方を変えた。\n  - 決め方の本文を `skills/info-hive/references/query-confidence.md` に分けた。コマンドの手順 6b で、確信度を書く前に Read するよう求めた。手順 5b は案内として残した。\n  - 6b の要約を 3 点にした。要約ページに書かれていれば高で raw まで読まなくてよい。wiki 自身の事柄を記録で答えたら高。上限は表の行だけで、回数、再現、raw や git で確かめていないことでは下げない。\n  - 外の知識に、会話に読み込まれたプロジェクトの指示と wiki の外のファイルを含めた。答えを検索語として書くことも禁じた。例外は、要約ページがそのソースの raw として指すものとした（`raw` の原本、`rag_job_id` のジョブ、本文の参照とその画像）。\n  - 1 行目は `**確からしさ（confidence）: 中**` の字句のまま書くと決めた。\n  - 測定では、ラベルの一致が 24/33 から 33/33 に、決め方のファイルを開いた回が 0/30 から 30/30 になった（リリース前の測り直し）。\n- 0.23.1（規則の直し。0.22.x と 0.23.0 を挟む）:\n  - エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。エッジの `source` の本文が関係を直接述べていれば数えない。\n  - エッジだけの前提は、エッジを書いたページの frontmatter で確かめて引用し、出発点を「中」にする。\n  - 根拠に推測や記憶として書かれたことを答えとして述べたら、留保を添えても上限は「低」。\n  - 関係を問う質問では、ページを読む前に必ず `graph` の `neighbors` を呼ぶ。手順は 5b から 2b に移した。\n  - 縮退の理由に「0. 語彙だけの道具（`Grep`）で見つけた」を足した。縮退に当たったページは、MCP の `query` で検索し直して正常な hybrid の結果に出れば上限が外れる。縮退はページを読んでも外れない。\n  - 複数の結論は、結論の文の終わりに「（確からしさ: 高）」を付け、決まった 1 行は 1 つの値にする。\n  - 「何が結論か」は、前提に使えるものが wiki にあるかで決める。前提に使えるものがない問いには付けず、どの問いにもなければ決まった 1 行も書かない。\n  - 0.23.0 が足した動画のソースの上限 3 行は、そのまま残した（0.23.0 の中身はこのページ以外では未確認）。\n- 0.24.0（名前の変更）: 規則の中身は変えず、名前を「確からしさ」から「確信度」に変えた。\n  - 決まった 1 行は `**確信度（confidence）: 中**`、複数の結論の文の終わりは「（確信度: 高）」になった。\n  - 決め方、上限、上げる方法は変えていない。\n  - 前の字句を機械で数える利用者には互換性のない変更なので、minor を上げて 0.24.0 にした。\n  - 機械で読む対象は、新しい名前では決まった形だけにした。広い抽出は前の名前だけを読む。\n  - エッジの `confidence` との取り違えを避けるため、「回答の確信度」「エッジの `confidence`」と書き分けた。\n\nまとめると、0.20.0 で規則ができ、0.21.1 で置き場所と読ませ方と字句の指定、0.23.1 でエッジ、推測、グラフ、縮退、複数の結論、何が結論かの規則が変わった。0.24.0 は名前と字句だけの変更である。0.22.x と 0.23.0 の変更は、0.20.0 / 0.21.1 / 0.24.0 のページと 0.23.1 の記述の範囲を超えては分からない。\n\n## 根拠\n- [[queryの確からしさとリリース-wiki-0.20.0]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md）: 「数値にはせず、規則で決める「高」「中」「低」と理由にした。」。決め方と上限の節。\n- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md）: 「判定の表の中身は変えていない。」。決め方のファイルへの分離と測り直しの結果。\n- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md）: 「直したこと」の表。0.23.0 が足した動画の上限 3 行は残した。\n- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md）: 「決め方、上限、上げる方法は変えていない」。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md\n3. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\n4. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md\n\n## 未確認の出典\n- 0.21.2、0.22.x、0.23.0 の各リリースのページ（例: [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]、[[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]）は開いていない。0.21.2 は検索語の漏れを字句で決まる決まりにして直した版、0.23.0 は動画のソースの上限を足した版だと、開いたページが述べている。\n- ADR-0028 と `query-confidence.md` は未読。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）"
+   },
+   "uuid": "33edadd1-c903-4f37-b87a-6da05a2a46a9",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+      "type": "tool_result",
+      "content": [
+       {
+        "type": "text",
+        "text": "  This agent's report was delivered to you as a message from \"a37d3641ecbddf245\" (its SubagentHandback call). Read it there; it is not repeated here.\n  \nagentId: a37d3641ecbddf245\n<usage>subagent_tokens: 21813\ntool_uses: 5\nduration_ms: 23142</usage>"
+       }
+      ]
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "262d8795-8f40-48ca-8e9c-a9472ab13abd",
+   "timestamp": "2026-11-17T19:31:17.899Z",
+   "tool_use_result": {
+    "status": "completed",
+    "prompt": "問い: query の確信度の規則は 0.20.0 から 0.24.0 までにどう変わった？版ごとに比べて\n\n候補のページ（wiki の中身だけで答え、根拠のページの絶対パスを付けること）:\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"queryの回答の確信度への名前の変更とリリース-wiki-0.24.0\", \"path\": \"sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\"}\n{\"slug\": \"queryの確からしさとリリース-wiki-0.20.0\", \"path\": \"sources/queryの確からしさとリリース-wiki-0.20.0.md\"}\n{\"slug\": \"queryの確からしさの決め方の分離とリリース-wiki-0.21.1\", \"path\": \"sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\"}",
+    "agentId": "a37d3641ecbddf245",
+    "agentType": "wiki:wiki-reader",
+    "handback": "send",
+    "handbackReport": {
+     "text": "## 答え\n版ごとの変化（0.22.x と 0.23.0 は専用ページを開いていないので、0.23.1 のページが触れる範囲に限る）。\n\n- 0.20.0（導入）: 回答に確信度（当時の名前は「確からしさ」）を付け、低いときは上げる方法を提案する。数値にはせず、規則で決める「高」「中」「低」と理由にする。\n  - 前提は正本に書かれていたかで出発点を決める。ソースの要約ページか raw で確かめた前提は「高」、コンセプトのページだけにある前提は「中」。wiki 自身の事柄を log.md などの記録で答えれば「高」。シンセシスは根拠に数えない。\n  - 結論は導き方（そのまま述べた、決まった手順で導いた、判断を加えた）で決める。\n  - 上限（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）のうち最も低いものに合わせる。\n  - wiki の外の知識は前提に使わない。\n  - 決め方の正本は query-workflow.md の手順 5b。\n- 0.21.1（決め方の分離）: 判定表の中身は変えず、置き場所と読ませ方を変えた。\n  - 決め方の本文を `skills/info-hive/references/query-confidence.md` に分けた。コマンドの手順 6b で、確信度を書く前に Read するよう求めた。手順 5b は案内として残した。\n  - 6b の要約を 3 点にした。要約ページに書かれていれば高で raw まで読まなくてよい。wiki 自身の事柄を記録で答えたら高。上限は表の行だけで、回数、再現、raw や git で確かめていないことでは下げない。\n  - 外の知識に、会話に読み込まれたプロジェクトの指示と wiki の外のファイルを含めた。答えを検索語として書くことも禁じた。例外は、要約ページがそのソースの raw として指すものとした（`raw` の原本、`rag_job_id` のジョブ、本文の参照とその画像）。\n  - 1 行目は `**確からしさ（confidence）: 中**` の字句のまま書くと決めた。\n  - 測定では、ラベルの一致が 24/33 から 33/33 に、決め方のファイルを開いた回が 0/30 から 30/30 になった（リリース前の測り直し）。\n- 0.23.1（規則の直し。0.22.x と 0.23.0 を挟む）:\n  - エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。エッジの `source` の本文が関係を直接述べていれば数えない。\n  - エッジだけの前提は、エッジを書いたページの frontmatter で確かめて引用し、出発点を「中」にする。\n  - 根拠に推測や記憶として書かれたことを答えとして述べたら、留保を添えても上限は「低」。\n  - 関係を問う質問では、ページを読む前に必ず `graph` の `neighbors` を呼ぶ。手順は 5b から 2b に移した。\n  - 縮退の理由に「0. 語彙だけの道具（`Grep`）で見つけた」を足した。縮退に当たったページは、MCP の `query` で検索し直して正常な hybrid の結果に出れば上限が外れる。縮退はページを読んでも外れない。\n  - 複数の結論は、結論の文の終わりに「（確からしさ: 高）」を付け、決まった 1 行は 1 つの値にする。\n  - 「何が結論か」は、前提に使えるものが wiki にあるかで決める。前提に使えるものがない問いには付けず、どの問いにもなければ決まった 1 行も書かない。\n  - 0.23.0 が足した動画のソースの上限 3 行は、そのまま残した（0.23.0 の中身はこのページ以外では未確認）。\n- 0.24.0（名前の変更）: 規則の中身は変えず、名前を「確からしさ」から「確信度」に変えた。\n  - 決まった 1 行は `**確信度（confidence）: 中**`、複数の結論の文の終わりは「（確信度: 高）」になった。\n  - 決め方、上限、上げる方法は変えていない。\n  - 前の字句を機械で数える利用者には互換性のない変更なので、minor を上げて 0.24.0 にした。\n  - 機械で読む対象は、新しい名前では決まった形だけにした。広い抽出は前の名前だけを読む。\n  - エッジの `confidence` との取り違えを避けるため、「回答の確信度」「エッジの `confidence`」と書き分けた。\n\nまとめると、0.20.0 で規則ができ、0.21.1 で置き場所と読ませ方と字句の指定、0.23.1 でエッジ、推測、グラフ、縮退、複数の結論、何が結論かの規則が変わった。0.24.0 は名前と字句だけの変更である。0.22.x と 0.23.0 の変更は、0.20.0 / 0.21.1 / 0.24.0 のページと 0.23.1 の記述の範囲を超えては分からない。\n\n## 根拠\n- [[queryの確からしさとリリース-wiki-0.20.0]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md）: 「数値にはせず、規則で決める「高」「中」「低」と理由にした。」。決め方と上限の節。\n- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md）: 「判定の表の中身は変えていない。」。決め方のファイルへの分離と測り直しの結果。\n- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md）: 「直したこと」の表。0.23.0 が足した動画の上限 3 行は残した。\n- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md）: 「決め方、上限、上げる方法は変えていない」。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md\n3. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\n4. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md\n\n## 未確認の出典\n- 0.21.2、0.22.x、0.23.0 の各リリースのページ（例: [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]、[[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]）は開いていない。0.21.2 は検索語の漏れを字句で決まる決まりにして直した版、0.23.0 は動画のソースの上限を足した版だと、開いたページが述べている。\n- ADR-0028 と `query-confidence.md` は未読。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）"
+    },
+    "toolsUsed": [
+     "Read",
+     "SubagentHandback"
+    ],
+    "harnessNoteCount": 1,
+    "harnessTailCount": 0,
+    "harnessSectionHash": "a4760a190f8377c4",
+    "content": [
+     {
+      "type": "text",
+      "text": "This agent's report was delivered to you as a message from \"a37d3641ecbddf245\" (its SubagentHandback call). Read it there; it is not repeated here.\n"
+     }
+    ],
+    "resolvedModel": "claude-sonnet-5-5",
+    "totalDurationMs": 23142,
+    "totalTokens": 21813,
+    "totalToolUseCount": 5,
+    "usage": {
+     "output_tokens_details": {
+      "thinking_tokens": 0
+     },
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 3784,
+     "cache_read_input_tokens": 14786,
+     "output_tokens": 3241,
+     "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+     },
+     "service_tier": "standard",
+     "cache_creation": {
+      "ephemeral_1h_input_tokens": 0,
+      "ephemeral_5m_input_tokens": 3784
+     },
+     "inference_geo": "global",
+     "iterations": [
+      {
+       "input_tokens": 2,
+       "output_tokens": 3241,
+       "cache_read_input_tokens": 14786,
+       "cache_creation_input_tokens": 3784,
+       "cache_creation": {
+        "ephemeral_5m_input_tokens": 3784,
+        "ephemeral_1h_input_tokens": 0
+       },
+       "type": "message"
+      }
+     ],
+     "speed": "standard",
+     "fallback_credit": null
+    },
+    "toolStats": {
+     "readCount": 4,
+     "searchCount": 0,
+     "bashCount": 0,
+     "editFileCount": 0,
+     "linesAdded": 0,
+     "linesRemoved": 0,
+     "otherToolCount": 1
+    },
+    "canContinueAgent": false
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_016tCHGuGdaNpxrf7CykHEsr",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "classifier"
+     }
+    }
+   ]
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "d09699dc-d4a0-4674-8410-a4186de923b8"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 219,
+   "estimated_tokens_delta": 169,
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "3552bfe4-efb5-4702-8f7b-705d03968ac3"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-opus-5-5",
+    "id": "msg_011Ch94DfpeYBaKaAYrKPC1R",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "CAQS5AYKEAgTGAI4AUIIdGhpbmtpbmcSDGQG1GUPBY/G6ZFWTRoMUkfUuYH5CrkArOUDIjDjoJtMpNtu4ZDooFWhac7k3v8mUzir/aFsZmcNL7XFzGD4ltdmeYQkIoGIPzvOh20qgQaKXn8EHTGZ1ZUa0djdFnF+ajSfWB6iFmxn8ISh654hAyziFlkyObgRQ60oe6xU3Uzsbu3xmWJmCoSXI1IPS1gjorLARbLPJn1zjJpgw9P74MpNDe5KEC1r4Ffb97O5lxy++M4rOUngC4kkU5HR+emu5j5shtr78IcSoOKDGSDmgO6eZJEC/5vxMMXxxE4axpqsceKbHhpkTUdNrt3YzE/TvZbDA0FBxlvlQ3q345GQcKWxc7z/81uDWanVervsEA1BIzjLRIUukCARtaXprEMXFD4y2Ah+5vJmgthnO2nRJSUmJ7O3X5yGYyP5wgyu7vd15IyZMdRjTJGlK0uXCdjbAq2/CN9QbkFEfxpuJ53WaiyhhimpG3hHtcTHphhOIHCK14yzxHQc5EQdXPxUXijLlqJuWhzr97ppFyilCBNh/alHUGFet65EeifSkVHCDMqkvlkG/lz2mMcb/PU0O5e3imZHbMrvi1gqdW0Q8UQmnvD0LDvDo1JTCMiCoRzSor8b5Ge/ipItkt+I5v0Nyt61Bx4saPfKbFLFGgqScK2gILzgouc5LXSMa/WuouUerzd+bYXCZPG5EVR2Uqk1cFKAR1+KhpLwJLOHJsqXsvmnv5C5EDgYKfQlyPIAC8IMwGA8a2Ogb2/6l870u1NMJ9BWNy0vISskRmZuLpDgcWtTfjBi5mDn4SN1ZA1bwrkPI0Jd1FfYGRHgxVvm8YMRBAkkfJONdN8oRuXmTQGC8x6+sAvnsIWwWNAqvhYj/mSyU+mNS/vlxjlWp3eS5tKSRg4pKOHshbuKwK3Hc1vVwk9ADWkNMqMYyVWGvK9Pk2X0ldpiE0YidergRhm/GtZXseBvKC0ildKEEO8OcDjU0Bt5vYwpc5OxSqc+fZ+KuEZvPM68sXBsSmN1U9QSJcf90ZmRbjduqc5kY8LGFv50dSL6LcUXQ+3oZ6h1SJru3Mx3a++Rhu+S2xGefG0u/5lj1jQKCkVGv/QOUt/kk/lkGtB3qCt9H09cKfkHn6CqKEA4ws06GAE="
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 8653,
+     "cache_read_input_tokens": 10287,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 8653
+     },
+     "output_tokens": 8,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "f4f0f04d-bdcc-4a18-a1a7-56e25c2132b9",
+   "timestamp": "2026-11-17T19:31:26.380Z",
+   "request_id": "req_011Ch94DfczPNXQBi4BQkgdw",
+   "thinking_duration_ms": 6197,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-opus-5-5",
+    "id": "msg_011Ch94DfpeYBaKaAYrKPC1R",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "3件とも `subagent_type=wiki:wiki-reader` で、指定どおりの model と effort を渡して1回ずつ呼びました。こちらではページを開いていません。\n\n- **r1-powershell**（sonnet/low）: 答えは返りました。原因は「`-First` が N 行を受け取るとパイプの上流を止めるので、出力のあとの書き込みまで進まない」で、wiki ではまだ仮説の段階です。避け方は「書くスクリプトに `-First` を付けない」「`-Last` にする」「書き込みを先にする」「ファイルが更新されたかを確かめる」です。根拠は候補の2ページで、どちらも絶対パス付きです。報告したモデルは Sonnet 5.5 です。\n- **r2-two-wikis**（sonnet/low）: 答えは返りました。プロジェクトの wiki ではヘッダー位置の上限が 1024 バイト、ユーザーの wiki では受付バイト上限が 32768 バイトです。根拠のパスは project と user で区別が付きます。報告したモデルは Sonnet 5.5 です。\n- **r3-confidence**（sonnet/medium）: 答えは返りました。版ごとの違いは次のとおりです。0.20.0 で規則ができ、0.21.1 で決め方を別のファイルに分けて字句を決め、0.23.1 でエッジ・推測・graph・縮退・複数の結論の規則を直し、0.24.0 は名前を「確信度」に変えただけです。ただし、候補にない 0.23.1 のページ（`sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md`）も開き、4ページを読んでいます。0.22.x と 0.23.0 のページは開いていないと、自分で報告しています。報告したモデルは Sonnet 5.5 です。"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 8653,
+     "cache_read_input_tokens": 10287,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 8653
+     },
+     "output_tokens": 8,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "uuid": "b9a2c507-b2ff-4a04-9f83-05ae9af0f992",
+   "timestamp": "2026-11-17T19:31:26.385Z",
+   "request_id": "req_011Ch94DfczPNXQBi4BQkgdw"
+  },
+  {
+   "duration_api_ms": 60165,
+   "stop_reason": "end_turn",
+   "session_id": "dcd85704-c030-406f-af88-901733f22c1c",
+   "total_cost_usd": 0.32382919999999993,
+   "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 14000,
+    "cache_read_input_tokens": 15227,
+    "output_tokens": 2442,
+    "output_tokens_details": {
+     "thinking_tokens": 219
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 14000,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 734,
+      "cache_read_input_tokens": 10287,
+      "cache_creation_input_tokens": 8653,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 8653
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-opus-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 2442,
+     "cacheReadInputTokens": 15227,
+     "cacheCreationInputTokens": 14000,
+     "webSearchRequests": 0,
+     "costUSD": 0.16390139999999997,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 219,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 14000,
+     "canonicalModel": "claude-opus-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    },
+    "claude-sonnet-5-5": {
+     "inputTokens": 14,
+     "outputTokens": 6401,
+     "cacheReadInputTokens": 35848,
+     "cacheCreationInputTokens": 36922,
+     "webSearchRequests": 0,
+     "costUSD": 0.1599278,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 59,
+     "cacheCreationEphemeral5mInputTokens": 36922,
+     "cacheCreationEphemeral1hInputTokens": 0,
+     "canonicalModel": "claude-sonnet-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 3,
+    "requested": {
+     "background": 0,
+     "foreground": 3,
+     "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 1,
+    "spawned_by_subagents": 0,
+    "completed": 3,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {
+     "wiki:wiki-reader": 3
+    }
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 4,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "3件とも `subagent_type=wiki:wiki-reader` で、指定どおりの model と effort を渡して1回ずつ呼びました。こちらではページを開いていません。\n\n- **r1-powershell**（sonnet/low）: 答えは返りました。原因は「`-First` が N 行を受け取るとパイプの上流を止めるので、出力のあとの書き込みまで進まない」で、wiki ではまだ仮説の段階です。避け方は「書くスクリプトに `-First` を付けない」「`-Last` にする」「書き込みを先にする」「ファイルが更新されたかを確かめる」です。根拠は候補の2ページで、どちらも絶対パス付きです。報告したモデルは Sonnet 5.5 です。\n- **r2-two-wikis**（sonnet/low）: 答えは返りました。プロジェクトの wiki ではヘッダー位置の上限が 1024 バイト、ユーザーの wiki では受付バイト上限が 32768 バイトです。根拠のパスは project と user で区別が付きます。報告したモデルは Sonnet 5.5 です。\n- **r3-confidence**（sonnet/medium）: 答えは返りました。版ごとの違いは次のとおりです。0.20.0 で規則ができ、0.21.1 で決め方を別のファイルに分けて字句を決め、0.23.1 でエッジ・推測・graph・縮退・複数の結論の規則を直し、0.24.0 は名前を「確信度」に変えただけです。ただし、候補にない 0.23.1 のページ（`sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md`）も開き、4ページを読んでいます。0.22.x と 0.23.0 のページは開いていないと、自分で報告しています。報告したモデルは Sonnet 5.5 です。",
+   "ttft_ms": 4499,
+   "type": "result",
+   "duration_ms": 46126,
+   "uuid": "b9d0b791-9aaf-479e-8fcd-b9c08969b85c",
+   "ttft_stream_ms": 2949,
+   "time_to_request_ms": 768,
+   "first_content_frame_ms": 2949,
+   "queued_turn_count": 0,
+   "result_index": 0,
+   "model_usage_since_last_result": {
+    "claude-opus-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 2442,
+     "cacheReadInputTokens": 15227,
+     "cacheCreationInputTokens": 14000,
+     "webSearchRequests": 0,
+     "costUSD": 0.16390139999999997,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 219,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 14000,
+     "canonicalModel": "claude-opus-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    },
+    "claude-sonnet-5-5": {
+     "inputTokens": 14,
+     "outputTokens": 6401,
+     "cacheReadInputTokens": 35848,
+     "cacheCreationInputTokens": 36922,
+     "webSearchRequests": 0,
+     "costUSD": 0.1599278,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 59,
+     "cacheCreationEphemeral5mInputTokens": 36922,
+     "cacheCreationEphemeral1hInputTokens": 0,
+     "canonicalModel": "claude-sonnet-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "credential_expires_at": "2026-12-06T22:17:39.049Z"
+  }
+ ],
+ "opened": [
+  "project:concepts/pdfのヘッダーの条件.md",
+  "project:concepts/powershellのパイプの打ち切り.md",
+  "project:sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md",
+  "user:concepts/pdfのヘッダーの条件.md",
+  "project:sources/powershell-select-first-stops-writer-2026-11-15.md",
+  "project:sources/queryの確からしさとリリース-wiki-0.20.0.md",
+  "project:sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md",
+  "project:sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md"
+ ],
+ "model_used": "claude-opus-5-5",
+ "result": "3件とも `subagent_type=wiki:wiki-reader` で、指定どおりの model と effort を渡して1回ずつ呼びました。こちらではページを開いていません。\n\n- **r1-powershell**（sonnet/low）: 答えは返りました。原因は「`-First` が N 行を受け取るとパイプの上流を止めるので、出力のあとの書き込みまで進まない」で、wiki ではまだ仮説の段階です。避け方は「書くスクリプトに `-First` を付けない」「`-Last` にする」「書き込みを先にする」「ファイルが更新されたかを確かめる」です。根拠は候補の2ページで、どちらも絶対パス付きです。報告したモデルは Sonnet 5.5 です。\n- **r2-two-wikis**（sonnet/low）: 答えは返りました。プロジェクトの wiki ではヘッダー位置の上限が 1024 バイト、ユーザーの wiki では受付バイト上限が 32768 バイトです。根拠のパスは project と user で区別が付きます。報告したモデルは Sonnet 5.5 です。\n- **r3-confidence**（sonnet/medium）: 答えは返りました。版ごとの違いは次のとおりです。0.20.0 で規則ができ、0.21.1 で決め方を別のファイルに分けて字句を決め、0.23.1 でエッジ・推測・graph・縮退・複数の結論の規則を直し、0.24.0 は名前を「確信度」に変えただけです。ただし、候補にない 0.23.1 のページ（`sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md`）も開き、4ページを読んでいます。0.22.x と 0.23.0 のページは開いていないと、自分で報告しています。報告したモデルは Sonnet 5.5 です。",
+ "cost_usd": 0.32382919999999993,
+ "duration_ms": 46126,
+ "is_error": false,
+ "terminal_reason": "completed",
+ "api_error": null,
+ "api_error_status": null,
+ "model_usage": {
+  "claude-opus-5-5": {
+   "inputTokens": 4,
+   "outputTokens": 2442,
+   "cacheReadInputTokens": 15227,
+   "cacheCreationInputTokens": 14000,
+   "webSearchRequests": 0,
+   "costUSD": 0.16390139999999997,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 219,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 14000,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-sonnet-5-5": {
+   "inputTokens": 14,
+   "outputTokens": 6401,
+   "cacheReadInputTokens": 35848,
+   "cacheCreationInputTokens": 36922,
+   "webSearchRequests": 0,
+   "costUSD": 0.1599278,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 59,
+   "cacheCreationEphemeral5mInputTokens": 36922,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-sonnet-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "cli_version": "2.1.325",
+ "memory_paths": {},
+ "stderr": "",
+ "cases": [
+  [
+   "r1-powershell",
+   "sonnet",
+   "low"
+  ],
+  [
+   "r2-two-wikis",
+   "sonnet",
+   "low"
+  ],
+  [
+   "r3-confidence",
+   "sonnet",
+   "medium"
+  ]
+ ]
+}

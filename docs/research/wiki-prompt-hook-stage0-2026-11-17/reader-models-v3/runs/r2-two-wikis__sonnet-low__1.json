@@ -1,0 +1,622 @@
+{
+ "protocol": 3,
+ "fingerprint": "c7b9e69a443a55c8807dd832222250a65db2f07b3b28e2e9c6ba3ed219e6dc40",
+ "id": "r2-two-wikis",
+ "class": "R2",
+ "model": "sonnet",
+ "effort": "low",
+ "run": 1,
+ "requested_effort": "low",
+ "prompt_sha256": "6915e4f8eff9b50b8491ab546f68b3de49ccbedfa5ea5255b96d81538f2b0201",
+ "argv": [
+  "claude",
+  "-p",
+  "問い: プロジェクトwikiに記録されたPDFのヘッダー位置の上限と、ユーザーwikiに記録された受付バイト上限を、それぞれ教えて。同名ページなので、根拠にはそれぞれのwikiの区別が付く絶対パスを付けて。\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}\nuser の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki\"）\n{\"slug\": \"pdfのヘッダーの条件\", \"path\": \"concepts/pdfのヘッダーの条件.md\"}",
+  "--agent",
+  "wiki:wiki-reader",
+  "--model",
+  "sonnet",
+  "--effort",
+  "low",
+  "--plugin-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--tools",
+  "Read,Glob,Grep",
+  "--allowedTools",
+  "Read,Glob,Grep",
+  "--max-budget-usd",
+  "2",
+  "--permission-mode",
+  "auto",
+  "--no-session-persistence",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "{\"mcpServers\":{}}",
+  "--settings",
+  "{\"autoMemoryEnabled\": false, \"claudeMdExcludes\": [\"**/CLAUDE.md\", \"**/CLAUDE.local.md\", \"**/AGENTS.md\", \"**/.claude/rules/**\"]}",
+  "--add-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+ ],
+ "events": [
+  {
+   "type": "system",
+   "subtype": "init",
+   "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "session_id": "d1cab2a2-de15-49f0-b177-cebf788b0070",
+   "tools": [
+    "Read",
+    "Glob",
+    "Grep"
+   ],
+   "mcp_servers": [],
+   "model": "claude-sonnet-5-5",
+   "permissionMode": "auto",
+   "slash_commands": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring",
+    "advisor",
+    "agents",
+    "auto-mode-setup",
+    "autocompact",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "output-style",
+    "context",
+    "effort",
+    "fast",
+    "focus",
+    "heapdump",
+    "init",
+    "mcp",
+    "import",
+    "model",
+    "__remote-workflow",
+    "workflow-launch-exec",
+    "reload-plugins",
+    "reload-skills",
+    "rename",
+    "ultrareview",
+    "security-review",
+    "usage-credits",
+    "extra-usage",
+    "usage",
+    "insights",
+    "recap",
+    "skill-doctor",
+    "goal",
+    "design-consent",
+    "design-revoke",
+    "list-agents",
+    "team-onboarding"
+   ],
+   "terminal_slash_commands": [
+    "doctor",
+    "color",
+    "focus",
+    "reload-plugins"
+   ],
+   "apiKeySource": "none",
+   "claude_code_version": "2.1.325",
+   "output_style": "default",
+   "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup",
+    "web-fetch",
+    "wiki:wiki-reader"
+   ],
+   "skills": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring"
+   ],
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+     "source": "wiki@inline",
+     "version": "0.0.0"
+    },
+    {
+     "name": "cc-plugin-agents-md",
+     "path": "builtin",
+     "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+     "name": "cc-plugin-telemetry",
+     "path": "builtin",
+     "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+     "name": "cc-plugin-privacy",
+     "path": "builtin",
+     "source": "cc-plugin-privacy@builtin"
+    },
+    {
+     "name": "cc-plugin-plugin-authoring",
+     "path": "builtin",
+     "source": "cc-plugin-plugin-authoring@builtin"
+    }
+   ],
+   "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1"
+   ],
+   "analytics_disabled": false,
+   "product_feedback_disabled": false,
+   "uuid": "65028b2a-2227-4597-a26b-3413db4de57b",
+   "original_cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "additional_directories": [
+    "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+   ],
+   "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-a494ec4e065fb0ebbdbecd131946dfcc",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "per_turn_effort_active": true,
+   "ultrathink_available": false,
+   "ultrathink_typed_raises": false,
+   "view_mode": "default",
+   "powershell_path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch8j5xqe7e8DgqapjE6zx",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01UJrafferrJDvnBZf2PuRPf",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1405,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1405
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "d1cab2a2-de15-49f0-b177-cebf788b0070",
+   "uuid": "0d30cac2-f2ea-4c89-9d4d-808ff4f3ceb6",
+   "timestamp": "2026-11-17T15:20:27.499Z",
+   "request_id": "req_011Ch8j5xd1DkbxKiy4d1P3L",
+   "wire_tool_inputs": {
+    "toolu_01UJrafferrJDvnBZf2PuRPf": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md"
+    }
+   }
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch8j5xqe7e8DgqapjE6zx",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01A3ryM4KxPsY1oF9LnU83xM",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1405,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1405
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "d1cab2a2-de15-49f0-b177-cebf788b0070",
+   "uuid": "1c68efd8-d1e7-4b7f-ad79-d38f3a7e5b77",
+   "timestamp": "2026-11-17T15:20:27.699Z",
+   "request_id": "req_011Ch8j5xd1DkbxKiy4d1P3L",
+   "wire_tool_inputs": {
+    "toolu_01A3ryM4KxPsY1oF9LnU83xM": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md"
+    }
+   }
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.91,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.5,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.91,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "3b09fd64-0318-4ef3-84fa-6c98b5d670d6",
+   "session_id": "d1cab2a2-de15-49f0-b177-cebf788b0070"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01A3ryM4KxPsY1oF9LnU83xM",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: concept\n3\ttitle: ユーザー用のPDF受付の条件（測定専用）\n4\t---\n5\t\n6\t# ユーザー用のPDF受付の条件\n7\t\n8\tこれは測定用の合成データである。ユーザーの受付バイト上限は 32768 バイトとする。プロジェクトのヘッダー位置の条件とは別の値である。\n9\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "d1cab2a2-de15-49f0-b177-cebf788b0070",
+   "uuid": "e604707a-6330-4963-8a69-cbb66405c7ff",
+   "timestamp": "2026-11-17T15:20:28.145Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md",
+     "content": "---\ntype: concept\ntitle: ユーザー用のPDF受付の条件（測定専用）\n---\n\n# ユーザー用のPDF受付の条件\n\nこれは測定用の合成データである。ユーザーの受付バイト上限は 32768 バイトとする。プロジェクトのヘッダー位置の条件とは別の値である。\n",
+     "numLines": 9,
+     "startLine": 1,
+     "totalLines": 9
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01A3ryM4KxPsY1oF9LnU83xM",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01UJrafferrJDvnBZf2PuRPf",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"concept\"\n3\ttitle: \"rag が受け付ける PDF のヘッダーの条件\"\n4\ttags: [\"rag\"]\n5\tsources: [\"pdfのヘッダーの判定の修正-rag-0.5.1\", \"取り込み手順の追従とリリース-wiki-0.11.1\", \"pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3\"]\n6\tcreated: 2026-11-12\n7\tupdated: 2026-11-13\n8\t---\n9\t\n10\t# rag が受け付ける PDF のヘッダーの条件\n11\t\n12\trag は、PDF を 2 つの段階で確かめる。登録で拒むものと、登録のあとの処理でジョブが `failed` になるものがある。wiki の取り込み手順（`info-hive-wiki` の `skills/info-hive/references/ingest-workflow.md`）は、この 2 つを分けて案内する。\n13\t\n14\t| 段階 | 呼ばれる所 | 確かめること | 外れたとき |\n15\t| --- | --- | --- | --- |\n16\t| 登録 | `register_pdf` → `Config.pdf_path`（`rag_config.py`） | 拡張子が `.pdf`（大文字と小文字は区別しない）、通常のファイル、UNC パスでない、派生データやキャッシュの中でない | 登録を拒む |\n17\t| 処理 | ワーカーの `Engine.ingest_pdf` → `read_pdf`（`rag_index.py`） | `%PDF-` の前にあるバイトが 1024 バイト以下 | ジョブが `failed` になる |\n18\t\n19\t> 段階の表 補足: `register_pdf` はジョブを台帳に書くだけで、PDF の中身を読まない。ヘッダーを読むのは、接続中だけ動くワーカーが PDF を読み込むときである。\n20\t\n21\t## 境界\n22\t\n23\t- `has_pdf_header` は `data.find(b\"%PDF-\", 0, 1024 + 5)` で探す。`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。言い換えると、`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。\n24\t- 上限は PDFium にそろえた。PDFium は `%PDF` を位置 0〜1024 で探す。pypdfium2 5.14.0（PDFium 156）で、改行、CRLF、空白、NUL などの前置きが 1024 バイトなら開け、1025 バイトでは開けないことを確かめた（[[pdfのヘッダーの判定の修正-rag-0.5.1]]）。\n25\t- 判定を通っても、PDFium で開けるとは限らない。開けないものは抽出で失敗する。\n26\t\n27\t## 書き方\n28\t\n29\t「先頭から 1024 バイト目まで」は、1 始まりで読むと、受け付ける範囲が実装より 1 バイト狭くなる。開始位置が 1024 の `%PDF-` は 1025 バイト目から始まるからである。wiki 0.11.1 からは「`%PDF-` の前にあるバイトが 1024 バイト以下」と書く（[[取り込み手順の追従とリリース-wiki-0.11.1]]）。\n30\t\n31\trag の README、CHANGELOG、`rag_index.py` のコメント、v0.5.1 の GitHub リリースの本文と、親の ADR-0013 も、2026-11-13 の rag 0.5.2（to884/info-hive-rag#9、文書だけの修正）で同じ書き方にそろえた。ADR-0013 の拒む条件は「`%PDF-` がないか、最初の `%PDF-` の前に 1024 バイトを超えるバイトがある」とし、`%PDF-` が範囲の内と外にあるときに実装より厳しく読めないようにした（記録は `docs/agent-runs/2026-11-13-rag-pdf-header-wording/`）。`read_pdf` のエラーメッセージ「先頭の 1024 バイトに %PDF- がない」は、試験が文字列を固定していたので 0.5.2 では残し、rag 0.5.3 で「%PDF- がないか、最初の %PDF- の前に 1024 バイトを超えるバイトがある」に直した（記録は `docs/agent-runs/2026-11-13-rag-pdf-header-message/`）。\n32\t\n33\t## 版による違い\n34\t\n35\t| rag の版 | ヘッダーの条件 |\n36\t| --- | --- |\n37\t| 0.5.0 以前 | 先頭がちょうど `%PDF-` |\n38\t| 0.5.1 以降 | `%PDF-` の前のバイトが 1024 バイト以下 |\n39\t\n40\t> 版の表 補足: 変わったのは処理の段階のヘッダーの条件だけで、登録の段階の条件は 0.5.0 と 0.5.1 で同じである。\n41\t\n42\t- wiki 0.11.1 と rag 0.5.0 を組み合わせると、先頭に改行や空白がある PDF のジョブは `failed` になる。wiki の手順は版による違いを書き、`failed` の理由をそのまま伝えるよう案内する。\n43\t- rag 0.5.0 でこの理由で失敗したジョブは、0.5.1 に更新しても自動では再開しない。`retry_job` で再試行するか、取り込み直す。\n44\t- 取り込み直しは要らない。SHA-256 と抽出は前置きを含む読んだままのバイト列に対して行い、今まで受け付けていた PDF の判定は変わらないので、抽出の版（ADR-0014）を上げていない。\n45\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "d1cab2a2-de15-49f0-b177-cebf788b0070",
+   "uuid": "231ad919-a5bd-49e3-900a-bdda19c7c6f0",
+   "timestamp": "2026-11-17T15:20:28.166Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md",
+     "content": "---\ntype: \"concept\"\ntitle: \"rag が受け付ける PDF のヘッダーの条件\"\ntags: [\"rag\"]\nsources: [\"pdfのヘッダーの判定の修正-rag-0.5.1\", \"取り込み手順の追従とリリース-wiki-0.11.1\", \"pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3\"]\ncreated: 2026-11-12\nupdated: 2026-11-13\n---\n\n# rag が受け付ける PDF のヘッダーの条件\n\nrag は、PDF を 2 つの段階で確かめる。登録で拒むものと、登録のあとの処理でジョブが `failed` になるものがある。wiki の取り込み手順（`info-hive-wiki` の `skills/info-hive/references/ingest-workflow.md`）は、この 2 つを分けて案内する。\n\n| 段階 | 呼ばれる所 | 確かめること | 外れたとき |\n| --- | --- | --- | --- |\n| 登録 | `register_pdf` → `Config.pdf_path`（`rag_config.py`） | 拡張子が `.pdf`（大文字と小文字は区別しない）、通常のファイル、UNC パスでない、派生データやキャッシュの中でない | 登録を拒む |\n| 処理 | ワーカーの `Engine.ingest_pdf` → `read_pdf`（`rag_index.py`） | `%PDF-` の前にあるバイトが 1024 バイト以下 | ジョブが `failed` になる |\n\n> 段階の表 補足: `register_pdf` はジョブを台帳に書くだけで、PDF の中身を読まない。ヘッダーを読むのは、接続中だけ動くワーカーが PDF を読み込むときである。\n\n## 境界\n\n- `has_pdf_header` は `data.find(b\"%PDF-\", 0, 1024 + 5)` で探す。`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。言い換えると、`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。\n- 上限は PDFium にそろえた。PDFium は `%PDF` を位置 0〜1024 で探す。pypdfium2 5.14.0（PDFium 156）で、改行、CRLF、空白、NUL などの前置きが 1024 バイトなら開け、1025 バイトでは開けないことを確かめた（[[pdfのヘッダーの判定の修正-rag-0.5.1]]）。\n- 判定を通っても、PDFium で開けるとは限らない。開けないものは抽出で失敗する。\n\n## 書き方\n\n「先頭から 1024 バイト目まで」は、1 始まりで読むと、受け付ける範囲が実装より 1 バイト狭くなる。開始位置が 1024 の `%PDF-` は 1025 バイト目から始まるからである。wiki 0.11.1 からは「`%PDF-` の前にあるバイトが 1024 バイト以下」と書く（[[取り込み手順の追従とリリース-wiki-0.11.1]]）。\n\nrag の README、CHANGELOG、`rag_index.py` のコメント、v0.5.1 の GitHub リリースの本文と、親の ADR-0013 も、2026-11-13 の rag 0.5.2（to884/info-hive-rag#9、文書だけの修正）で同じ書き方にそろえた。ADR-0013 の拒む条件は「`%PDF-` がないか、最初の `%PDF-` の前に 1024 バイトを超えるバイトがある」とし、`%PDF-` が範囲の内と外にあるときに実装より厳しく読めないようにした（記録は `docs/agent-runs/2026-11-13-rag-pdf-header-wording/`）。`read_pdf` のエラーメッセージ「先頭の 1024 バイトに %PDF- がない」は、試験が文字列を固定していたので 0.5.2 では残し、rag 0.5.3 で「%PDF- がないか、最初の %PDF- の前に 1024 バイトを超えるバイトがある」に直した（記録は `docs/agent-runs/2026-11-13-rag-pdf-header-message/`）。\n\n## 版による違い\n\n| rag の版 | ヘッダーの条件 |\n| --- | --- |\n| 0.5.0 以前 | 先頭がちょうど `%PDF-` |\n| 0.5.1 以降 | `%PDF-` の前のバイトが 1024 バイト以下 |\n\n> 版の表 補足: 変わったのは処理の段階のヘッダーの条件だけで、登録の段階の条件は 0.5.0 と 0.5.1 で同じである。\n\n- wiki 0.11.1 と rag 0.5.0 を組み合わせると、先頭に改行や空白がある PDF のジョブは `failed` になる。wiki の手順は版による違いを書き、`failed` の理由をそのまま伝えるよう案内する。\n- rag 0.5.0 でこの理由で失敗したジョブは、0.5.1 に更新しても自動では再開しない。`retry_job` で再試行するか、取り込み直す。\n- 取り込み直しは要らない。SHA-256 と抽出は前置きを含む読んだままのバイト列に対して行い、今まで受け付けていた PDF の判定は変わらないので、抽出の版（ADR-0014）を上げていない。\n",
+     "numLines": 45,
+     "startLine": 1,
+     "totalLines": 45
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01UJrafferrJDvnBZf2PuRPf",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch8j6P8PmSGJWj2PhhT8c",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "## 答え\n- **プロジェクト wiki のヘッダー位置の上限:** 1024 バイトです。`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けます。`%PDF-` の開始位置（0 始まり）では 0〜1024 にあたります。\n- **ユーザー wiki の受付バイト上限:** 32768 バイトです。このページは測定用の合成データだと明記されています。ページには、プロジェクトのヘッダー位置の条件とは別の値だとも書かれています。\n\n## 根拠\n- [[pdfのヘッダーの条件]]（project: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 「`%PDF-` の前にあるバイトが 1024 バイト以下」なら受け付けます。実装は `data.find(b\"%PDF-\", 0, 1024 + 5)` です。\n- [[pdfのヘッダーの条件]]（user: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 「ユーザーの受付バイト上限は 32768 バイトとする。」\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md\n\n## 未確認の出典\n- なし。プロジェクト wiki のページは `sources` に別のページを挙げていますが、開いていないので根拠にしていません。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 2460,
+     "cache_read_input_tokens": 4931,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 2460
+     },
+     "output_tokens": 827,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "d1cab2a2-de15-49f0-b177-cebf788b0070",
+   "uuid": "8d4f6ab3-ab8f-4567-97bb-4ce3f849eb01",
+   "timestamp": "2026-11-17T15:20:35.350Z",
+   "request_id": "req_011Ch8j6NtzzDUQ4oFvCxUsp"
+  },
+  {
+   "duration_api_ms": 10462,
+   "stop_reason": "end_turn",
+   "session_id": "d1cab2a2-de15-49f0-b177-cebf788b0070",
+   "total_cost_usd": 0.027413700000000003,
+   "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 3865,
+    "cache_read_input_tokens": 8457,
+    "output_tokens": 1110,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 3865,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 827,
+      "cache_read_input_tokens": 4931,
+      "cache_creation_input_tokens": 2460,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 2460
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-sonnet-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 1110,
+     "cacheReadInputTokens": 8457,
+     "cacheCreationInputTokens": 3865,
+     "webSearchRequests": 0,
+     "costUSD": 0.027413700000000003,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 0,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 3865,
+     "canonicalModel": "claude-sonnet-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+     "background": 0,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {}
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 3,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "## 答え\n- **プロジェクト wiki のヘッダー位置の上限:** 1024 バイトです。`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けます。`%PDF-` の開始位置（0 始まり）では 0〜1024 にあたります。\n- **ユーザー wiki の受付バイト上限:** 32768 バイトです。このページは測定用の合成データだと明記されています。ページには、プロジェクトのヘッダー位置の条件とは別の値だとも書かれています。\n\n## 根拠\n- [[pdfのヘッダーの条件]]（project: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 「`%PDF-` の前にあるバイトが 1024 バイト以下」なら受け付けます。実装は `data.find(b\"%PDF-\", 0, 1024 + 5)` です。\n- [[pdfのヘッダーの条件]]（user: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 「ユーザーの受付バイト上限は 32768 バイトとする。」\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md\n\n## 未確認の出典\n- なし。プロジェクト wiki のページは `sources` に別のページを挙げていますが、開いていないので根拠にしていません。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）",
+   "ttft_ms": 6038,
+   "type": "result",
+   "duration_ms": 13927,
+   "uuid": "6299b6fe-52c7-4a4b-b01f-97db67284bd9",
+   "ttft_stream_ms": 5201,
+   "time_to_request_ms": 2022,
+   "first_content_frame_ms": 5202,
+   "queued_turn_count": 0,
+   "result_index": 0,
+   "model_usage_since_last_result": {
+    "claude-sonnet-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 1110,
+     "cacheReadInputTokens": 8457,
+     "cacheCreationInputTokens": 3865,
+     "webSearchRequests": 0,
+     "costUSD": 0.027413700000000003,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 0,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 3865,
+     "canonicalModel": "claude-sonnet-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "credential_expires_at": "2026-12-06T22:17:39.049Z"
+  }
+ ],
+ "opened": [
+  "user:concepts/pdfのヘッダーの条件.md",
+  "project:concepts/pdfのヘッダーの条件.md"
+ ],
+ "model_used": "claude-sonnet-5-5",
+ "result": "## 答え\n- **プロジェクト wiki のヘッダー位置の上限:** 1024 バイトです。`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けます。`%PDF-` の開始位置（0 始まり）では 0〜1024 にあたります。\n- **ユーザー wiki の受付バイト上限:** 32768 バイトです。このページは測定用の合成データだと明記されています。ページには、プロジェクトのヘッダー位置の条件とは別の値だとも書かれています。\n\n## 根拠\n- [[pdfのヘッダーの条件]]（project: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 「`%PDF-` の前にあるバイトが 1024 バイト以下」なら受け付けます。実装は `data.find(b\"%PDF-\", 0, 1024 + 5)` です。\n- [[pdfのヘッダーの条件]]（user: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 「ユーザーの受付バイト上限は 32768 バイトとする。」\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md\n\n## 未確認の出典\n- なし。プロジェクト wiki のページは `sources` に別のページを挙げていますが、開いていないので根拠にしていません。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）",
+ "cost_usd": 0.027413700000000003,
+ "duration_ms": 13927,
+ "is_error": false,
+ "terminal_reason": "completed",
+ "api_error": null,
+ "api_error_status": null,
+ "model_usage": {
+  "claude-sonnet-5-5": {
+   "inputTokens": 4,
+   "outputTokens": 1110,
+   "cacheReadInputTokens": 8457,
+   "cacheCreationInputTokens": 3865,
+   "webSearchRequests": 0,
+   "costUSD": 0.027413700000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 3865,
+   "canonicalModel": "claude-sonnet-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "cli_version": "2.1.325",
+ "memory_paths": {},
+ "exit": 0,
+ "stderr": ""
+}

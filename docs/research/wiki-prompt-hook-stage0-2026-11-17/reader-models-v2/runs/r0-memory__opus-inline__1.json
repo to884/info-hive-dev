@@ -1,0 +1,617 @@
+{
+ "protocol": 2,
+ "fingerprint": "26bb919255ead6aa9b3b3f9e4ac1319ed2b635f0d62d5f9bf42cac3e07f90e8f",
+ "id": "r0-memory",
+ "class": "R0",
+ "model": "opus",
+ "effort": "inline",
+ "run": 1,
+ "requested_effort": "high",
+ "prompt_sha256": "e6155cb5d70d790ec05bcaca041f9a41bd11f159a94448ff09aca8da0679c276",
+ "argv": [
+  "claude",
+  "-p",
+  "問い: エージェントのメモリの 4 層とドリーミングについてまとめて\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v2/snapshot/project/wiki\"）\n{\"slug\": \"エージェントのメモリの階層\", \"path\": \"concepts/エージェントのメモリの階層.md\"}\n\n候補のページを自分で開いて読み、wiki に書かれていることだけで問いに答える。答えは「## 答え」「## 根拠」「## 開いたページ」に分け、根拠には [[スラッグ]] とパスを付ける。",
+  "--model",
+  "opus",
+  "--effort",
+  "high",
+  "--plugin-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v2\\plugin",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--tools",
+  "Read,Glob,Grep",
+  "--allowedTools",
+  "Read,Glob,Grep",
+  "--max-budget-usd",
+  "2",
+  "--permission-mode",
+  "auto",
+  "--no-session-persistence",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "{\"mcpServers\":{}}",
+  "--add-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v2\\snapshot\\user\\wiki"
+ ],
+ "events": [
+  {
+   "type": "system",
+   "subtype": "init",
+   "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v2\\snapshot\\project",
+   "session_id": "722da3f0-cc25-4730-a7c2-bb53465b0527",
+   "tools": [
+    "Glob",
+    "Grep",
+    "Read"
+   ],
+   "mcp_servers": [],
+   "model": "claude-opus-5-5",
+   "permissionMode": "auto",
+   "slash_commands": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring",
+    "advisor",
+    "agents",
+    "auto-mode-setup",
+    "autocompact",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "output-style",
+    "context",
+    "effort",
+    "fast",
+    "focus",
+    "heapdump",
+    "init",
+    "mcp",
+    "import",
+    "model",
+    "__remote-workflow",
+    "workflow-launch-exec",
+    "reload-plugins",
+    "reload-skills",
+    "rename",
+    "ultrareview",
+    "security-review",
+    "usage-credits",
+    "extra-usage",
+    "usage",
+    "insights",
+    "recap",
+    "skill-doctor",
+    "goal",
+    "design-consent",
+    "design-revoke",
+    "list-agents",
+    "team-onboarding"
+   ],
+   "terminal_slash_commands": [
+    "doctor",
+    "color",
+    "focus",
+    "reload-plugins"
+   ],
+   "apiKeySource": "none",
+   "claude_code_version": "2.1.325",
+   "output_style": "default",
+   "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup",
+    "web-fetch",
+    "wiki:wiki-reader"
+   ],
+   "skills": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring"
+   ],
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v2\\plugin",
+     "source": "wiki@inline",
+     "version": "0.0.0"
+    },
+    {
+     "name": "cc-plugin-agents-md",
+     "path": "builtin",
+     "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+     "name": "cc-plugin-telemetry",
+     "path": "builtin",
+     "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+     "name": "cc-plugin-privacy",
+     "path": "builtin",
+     "source": "cc-plugin-privacy@builtin"
+    },
+    {
+     "name": "cc-plugin-plugin-authoring",
+     "path": "builtin",
+     "source": "cc-plugin-plugin-authoring@builtin"
+    }
+   ],
+   "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1"
+   ],
+   "analytics_disabled": false,
+   "product_feedback_disabled": false,
+   "uuid": "9589a79a-31d1-4027-988e-922448ba72b4",
+   "memory_paths": {
+    "auto": "C:\\Users\\toshiki\\.claude\\projects\\C--Works-info-hive-dev\\memory\\"
+   },
+   "original_cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v2\\snapshot\\project",
+   "additional_directories": [
+    "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v2\\snapshot\\user\\wiki"
+   ],
+   "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-41c7199d4c15da333819065d0d458f94",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "per_turn_effort_active": true,
+   "ultrathink_available": false,
+   "ultrathink_typed_raises": false,
+   "view_mode": "default",
+   "powershell_path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-opus-5-5",
+    "id": "msg_011Ch8ftpPFSAfP9XQYgHeqq",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_018Rh74yjT6b8hTebTEdbewj",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v2/snapshot/project/wiki/concepts/エージェントのメモリの階層.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 4070,
+     "cache_read_input_tokens": 4972,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 4070
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "722da3f0-cc25-4730-a7c2-bb53465b0527",
+   "uuid": "92e3d856-5ca6-4d59-9aa7-13db454662cd",
+   "timestamp": "2026-11-17T14:38:35.522Z",
+   "request_id": "req_011Ch8ftpBM9eG3bd761Ns2R",
+   "wire_tool_inputs": {
+    "toolu_018Rh74yjT6b8hTebTEdbewj": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v2/snapshot/project/wiki/concepts/エージェントのメモリの階層.md"
+    }
+   }
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.9,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.22,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.9,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "2aaeeac8-3587-4bb1-affa-c97e2cf08ec6",
+   "session_id": "722da3f0-cc25-4730-a7c2-bb53465b0527"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_018Rh74yjT6b8hTebTEdbewj",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"concept\"\n3\ttitle: \"エージェントのメモリの階層\"\n4\ttags: [\"wiki設計\"]\n5\tsources: [\"components-of-agent-memory\", \"managed-agents-cma-dreaming-with-a-dynamic-workflow\", \"claude-quickstarts-managed-agents-knowledge-wiki\"]\n6\tcreated: 2026-11-16\n7\tupdated: 2026-11-16\n8\t---\n9\t\n10\t# エージェントのメモリの階層\n11\t\n12\tエージェントがセッションをまたいで持つメモリを、4 つの層と、層の間を整理するドリーミング（dreaming）で捉える枠組みである。Anthropic の記事 [[components-of-agent-memory]]（2026-11-06）が、評価の結果とともに示した。ここでのメモリは、あとで読めるコンテキストとして保存した知識だけを指し、重みの変更、文脈内学習、コンパクションは含まない。\n13\t\n14\t## 4 つの層\n15\t\n16\t| 層 | 中身 | 読まれ方 |\n17\t| --- | --- | --- |\n18\t| 注入コンテキスト | すべてのセッションの始まりに読み込むノート | 検索しなくても、在ることを知らなくても届く |\n19\t| メモリ表現 | wiki など、ある主題について知っていることを集め、リンクでつないだページ | 必要なときに読むか検索する |\n20\t| メモリノート | セッションの中で Claude が目立つと判断して書いたノート | 同上 |\n21\t| トランスクリプト | セッションの記録。検索できるイベントログ | 検索する。ほかの層を確かめる正解になる |\n22\t\n23\t```mermaid\n24\tflowchart BT\n25\t  T[\"トランスクリプト\"] --> N[\"メモリノート\"]\n26\t  T --> R[\"メモリ表現（wiki）\"]\n27\t  T --> I[\"注入コンテキスト\"]\n28\t  N <--> R\n29\t  R <--> I\n30\t  S[\"セッション\"] --> N\n31\t  I --> S2[\"次のセッション\"]\n32\t```\n33\t\n34\t> Claude Opus 5.5 補足: 記事の図 1 を描き直した。ドリーミングは、トランスクリプトから各層へ、また上の隣り合う層の間で働く。セッションの中でじかに書くのはメモリノートだけで、注入コンテキストは次のセッションの入口になる。\n35\t\n36\t## ドリーミングの役目\n37\t\n38\tドリーミングは、セッションの外の時間に、ログとトランスクリプトを見直してメモリを整理することである。人の脳が眠りや休息の間に体験を再生して長期記憶に移すことになぞらえている。記事は次の役目を挙げる。\n39\t\n40\t- **ノートを直す。** ノートをトランスクリプトと照らして、最初からの誤りや、環境が変わってずれたものを直す。\n41\t- **表現を組み立てる。** トランスクリプトとノートから wiki を作り、続く回で足し、直し、刈り込む。\n42\t- **最上位の層を小さく保つ。** 詳細を下の層へ移し、リンクを残す。\n43\t- **目標に合わせる。** 何が重要かを指示で伝え、その目標に向けてメモリを育てる。\n44\t- **セッションの隙間を埋める。** 1 つのセッションには見えない、複数のセッションに共通する誤りやパターンを見つける。切れたリンクを向け直し、索引を足す。\n45\t\n46\t### 組み方の例\n47\t\n48\tcookbook [[managed-agents-cma-dreaming-with-a-dynamic-workflow]] は、ドリーミングを Managed Agents の動的ワークフローで組む。リードエージェント（Sonnet 5.5）はワークフローを書いて始めるだけで、トランスクリプトを読まない。トランスクリプト 1 件に 1 体のアナライザー（Haiku 5.5）が、関係するメモリを検証、補強、整理し、最後にオーガナイザー（Haiku 5.5）が 1 回だけ重複を統合して `_index.md` を仕上げる。出来上がるのは、`_index.md` を入口にした小さな相互リンクのファイルで、トランスクリプトの層からメモリ表現の層を作る形である。\n49\t\n50\t## 層ごとの注意\n51\t\n52\t- **ノートは予測である。** 何を書くかは、将来に何が要るかの予測になる。強いモデルには、何に使うかだけを伝え、書き方の規則を決めないほうがよい。「失敗だけを記録する」という規則は、Opus 5 のメモリによる上積みを減らした（[[エージェントに守らせる決まりの書き方]]）。画面や環境から毎回読める情報を残すのは冗長で、古くなったノートを調べ回すことに時間を使うようになる。\n53\t- **wiki は、検索と組み合わせる。** wiki だけより、wiki と検索の組のほうが点数が高く（54% から 61%、検索だけは 53%）、トークンも減った。効くのは、複数の文書をまたぐ問いや、判断と計算が要る問いである。1 つの文書の文字列検索で答えが見つかる問いでは、差が出なかった。抽象化しないまま元の文書より大きくなった wiki もある。費用の面では、変化の遅い文書群から一度作った wiki があれば、小さいモデル（Haiku 5.5）が、生の文書を検索する大きいモデル（Sonnet 5.5）との差を 1 ポイント以内にし、1 回答あたりの価格は約 15 分の 1 で、約 240 問で wiki を作る費用（約 19 ドル）の元が取れる、という主張もある（[[claude-quickstarts-managed-agents-knowledge-wiki]]、確かめていない）。\n54\t- **共有のページの書き手は 1 つにする。** 複数のエージェントが 1 つのページを同時に書くと、互いの行を消して事実が欠けた（[[editとwriteの書き込みの競合]]）。\n55\t- **注入する層は小さく保つ。** 注入はトークンを使い、誤ったノートをすべてのセッションに持ち込む。読み込んでも従うとは限らず、指示のファイルが長いほど従う度合いが下がる。Claude Code の auto memory は、`MEMORY.md` の先頭の 200 行か 25 KB だけを読み込み、その部分を索引にしている。Managed Agents では、メモリストアを使うセッションに読み取り専用でマウントし、すべてのセッションに読み込む部分はマウントの `instructions`（4,096 文字まで）で渡す（[[managed-agents-cma-dreaming-with-a-dynamic-workflow]]）。\n56\t\n57\t## 未解決の問い\n58\t\n59\tメモリをその場で書くか、ドリーミングに回すかには引き換えがある。その場で書くと本来のタスクから注意がそれ、ドリーミングに回すとすぐには使えない。メモリを最新に保つには計算資源が要り、すべてを確かめ続けるのは現実的でないかもしれない。記事は、変わりそうな情報に絞ることと、使われる頻度でドリーミングの回数を決めることを挙げている。\n60\t\n61\t## 関係するページ\n62\t\n63\t- [[components-of-agent-memory]]\n64\t- [[managed-agents-cma-dreaming-with-a-dynamic-workflow]]\n65\t- [[claude-quickstarts-managed-agents-knowledge-wiki]]\n66\t- [[llm-wiki記事作成の方法論]]\n67\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "722da3f0-cc25-4730-a7c2-bb53465b0527",
+   "uuid": "cc9636b6-57ef-445f-b2b4-7b7ac020d62e",
+   "timestamp": "2026-11-17T14:38:35.693Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v2/snapshot/project/wiki/concepts/エージェントのメモリの階層.md",
+     "content": "---\ntype: \"concept\"\ntitle: \"エージェントのメモリの階層\"\ntags: [\"wiki設計\"]\nsources: [\"components-of-agent-memory\", \"managed-agents-cma-dreaming-with-a-dynamic-workflow\", \"claude-quickstarts-managed-agents-knowledge-wiki\"]\ncreated: 2026-11-16\nupdated: 2026-11-16\n---\n\n# エージェントのメモリの階層\n\nエージェントがセッションをまたいで持つメモリを、4 つの層と、層の間を整理するドリーミング（dreaming）で捉える枠組みである。Anthropic の記事 [[components-of-agent-memory]]（2026-11-06）が、評価の結果とともに示した。ここでのメモリは、あとで読めるコンテキストとして保存した知識だけを指し、重みの変更、文脈内学習、コンパクションは含まない。\n\n## 4 つの層\n\n| 層 | 中身 | 読まれ方 |\n| --- | --- | --- |\n| 注入コンテキスト | すべてのセッションの始まりに読み込むノート | 検索しなくても、在ることを知らなくても届く |\n| メモリ表現 | wiki など、ある主題について知っていることを集め、リンクでつないだページ | 必要なときに読むか検索する |\n| メモリノート | セッションの中で Claude が目立つと判断して書いたノート | 同上 |\n| トランスクリプト | セッションの記録。検索できるイベントログ | 検索する。ほかの層を確かめる正解になる |\n\n```mermaid\nflowchart BT\n  T[\"トランスクリプト\"] --> N[\"メモリノート\"]\n  T --> R[\"メモリ表現（wiki）\"]\n  T --> I[\"注入コンテキスト\"]\n  N <--> R\n  R <--> I\n  S[\"セッション\"] --> N\n  I --> S2[\"次のセッション\"]\n```\n\n> Claude Opus 5.5 補足: 記事の図 1 を描き直した。ドリーミングは、トランスクリプトから各層へ、また上の隣り合う層の間で働く。セッションの中でじかに書くのはメモリノートだけで、注入コンテキストは次のセッションの入口になる。\n\n## ドリーミングの役目\n\nドリーミングは、セッションの外の時間に、ログとトランスクリプトを見直してメモリを整理することである。人の脳が眠りや休息の間に体験を再生して長期記憶に移すことになぞらえている。記事は次の役目を挙げる。\n\n- **ノートを直す。** ノートをトランスクリプトと照らして、最初からの誤りや、環境が変わってずれたものを直す。\n- **表現を組み立てる。** トランスクリプトとノートから wiki を作り、続く回で足し、直し、刈り込む。\n- **最上位の層を小さく保つ。** 詳細を下の層へ移し、リンクを残す。\n- **目標に合わせる。** 何が重要かを指示で伝え、その目標に向けてメモリを育てる。\n- **セッションの隙間を埋める。** 1 つのセッションには見えない、複数のセッションに共通する誤りやパターンを見つける。切れたリンクを向け直し、索引を足す。\n\n### 組み方の例\n\ncookbook [[managed-agents-cma-dreaming-with-a-dynamic-workflow]] は、ドリーミングを Managed Agents の動的ワークフローで組む。リードエージェント（Sonnet 5.5）はワークフローを書いて始めるだけで、トランスクリプトを読まない。トランスクリプト 1 件に 1 体のアナライザー（Haiku 5.5）が、関係するメモリを検証、補強、整理し、最後にオーガナイザー（Haiku 5.5）が 1 回だけ重複を統合して `_index.md` を仕上げる。出来上がるのは、`_index.md` を入口にした小さな相互リンクのファイルで、トランスクリプトの層からメモリ表現の層を作る形である。\n\n## 層ごとの注意\n\n- **ノートは予測である。** 何を書くかは、将来に何が要るかの予測になる。強いモデルには、何に使うかだけを伝え、書き方の規則を決めないほうがよい。「失敗だけを記録する」という規則は、Opus 5 のメモリによる上積みを減らした（[[エージェントに守らせる決まりの書き方]]）。画面や環境から毎回読める情報を残すのは冗長で、古くなったノートを調べ回すことに時間を使うようになる。\n- **wiki は、検索と組み合わせる。** wiki だけより、wiki と検索の組のほうが点数が高く（54% から 61%、検索だけは 53%）、トークンも減った。効くのは、複数の文書をまたぐ問いや、判断と計算が要る問いである。1 つの文書の文字列検索で答えが見つかる問いでは、差が出なかった。抽象化しないまま元の文書より大きくなった wiki もある。費用の面では、変化の遅い文書群から一度作った wiki があれば、小さいモデル（Haiku 5.5）が、生の文書を検索する大きいモデル（Sonnet 5.5）との差を 1 ポイント以内にし、1 回答あたりの価格は約 15 分の 1 で、約 240 問で wiki を作る費用（約 19 ドル）の元が取れる、という主張もある（[[claude-quickstarts-managed-agents-knowledge-wiki]]、確かめていない）。\n- **共有のページの書き手は 1 つにする。** 複数のエージェントが 1 つのページを同時に書くと、互いの行を消して事実が欠けた（[[editとwriteの書き込みの競合]]）。\n- **注入する層は小さく保つ。** 注入はトークンを使い、誤ったノートをすべてのセッションに持ち込む。読み込んでも従うとは限らず、指示のファイルが長いほど従う度合いが下がる。Claude Code の auto memory は、`MEMORY.md` の先頭の 200 行か 25 KB だけを読み込み、その部分を索引にしている。Managed Agents では、メモリストアを使うセッションに読み取り専用でマウントし、すべてのセッションに読み込む部分はマウントの `instructions`（4,096 文字まで）で渡す（[[managed-agents-cma-dreaming-with-a-dynamic-workflow]]）。\n\n## 未解決の問い\n\nメモリをその場で書くか、ドリーミングに回すかには引き換えがある。その場で書くと本来のタスクから注意がそれ、ドリーミングに回すとすぐには使えない。メモリを最新に保つには計算資源が要り、すべてを確かめ続けるのは現実的でないかもしれない。記事は、変わりそうな情報に絞ることと、使われる頻度でドリーミングの回数を決めることを挙げている。\n\n## 関係するページ\n\n- [[components-of-agent-memory]]\n- [[managed-agents-cma-dreaming-with-a-dynamic-workflow]]\n- [[claude-quickstarts-managed-agents-knowledge-wiki]]\n- [[llm-wiki記事作成の方法論]]\n",
+     "numLines": 67,
+     "startLine": 1,
+     "totalLines": 67
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_018Rh74yjT6b8hTebTEdbewj",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "722da3f0-cc25-4730-a7c2-bb53465b0527",
+   "uuid": "914f07cc-82ed-42c4-92f1-d88145793ac1"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 183,
+   "estimated_tokens_delta": 133,
+   "session_id": "722da3f0-cc25-4730-a7c2-bb53465b0527",
+   "uuid": "46546e3e-b737-427c-b41f-7edbf3abd0c3"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-opus-5-5",
+    "id": "msg_011Ch8fu6jVctBUaFj8QnMwZ",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "CAQS1QUKEAgTGAI4AUIIdGhpbmtpbmcSDM9nwqOZ091UAMZQZhoMzwYAjMbVcNq9rYRnIjD/uhhVaPG536Z7oFxHd77K5aVKqsjEPFq7zriZsG1WL38i8CDefHNk6AT5/ZEb88Aq8gS8XXc3VbGNSMD0OrWYon8HVpRZhQGyVrXQndQ+fH5QmMM6C3F0wDaVimyWMAOOj7t6+HDWEhHzzTKALUAd9Swi5460ZvXesdmuhfLhs1slhP+XqOuuIFKeEvXqjmSEEjM2IAqJ7cNaAoq1vpa5wmhm6JCZfo9hukeutxk1Kdf5IgJhgeiiGat3B6pEEqt2+m29qMiIMB5cQ54bsqZbs8O1mFljyGka2tu3DbFHgLgMIvDNbuXSWoRdctlDHx4XRbs9kb9+wK6cDKAXQehgz3CmsFeKv1ASU6/FFt81wI9h2vgmxTUpOi1YwwxbrxcO85GpsLwFJvoUGTfMr0Xp2IIUhe9Dr38YHySR9whI7paPoefBLE0iu7b3S8Q3+dm67fTBOXi4lu2zIbavvWENpb1qh+ZG6HzxUYmD2cA7Dpd2iFXLeMGflQVN19Fqtdh1ejS3UA9ufD32wRJklVDLOsRcmWcK931ZnC5w5qQvgXsCLcHqW6f6vmE5YN1BAGTHhvNW2XUVh82PXeNdnJHa75gI0jHXPrxWXmsbBz7cX0WS8+CiJzsVmi4vYg2DQCyHNhGS6Vr0ctLV+PiDDnUukwb2Q+1A9+sBhNpqYktaLgCc9V+ahEC6LdwnxOsg3fII8nsUXpJhsRL0QFHEegL+LqZQ+lCflQ2rteXEuSVLJ024R+VJNrkE81PFCP59KIssQ6C7noxXw/yVCO9oyGDcQBpdqYgklNwCGKhZhvrVleQILLHsQcZWEw8lPaMk5azrCKMmbLWsKhIgHFuvsQrSIVI2QSB1Ab4V97isc+2IfRAjDF7CrAMx3vEVheScPxQnCuLnGRgB"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 2788,
+     "cache_read_input_tokens": 9042,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 2788
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "722da3f0-cc25-4730-a7c2-bb53465b0527",
+   "uuid": "0a98b9a0-fc2a-4d76-ab95-246ee128ef81",
+   "timestamp": "2026-11-17T14:38:43.040Z",
+   "request_id": "req_011Ch8fu6NR3Fv1gb7FimDpy",
+   "thinking_duration_ms": 5028,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-opus-5-5",
+    "id": "msg_011Ch8fu6jVctBUaFj8QnMwZ",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "## 答え\n\nエージェントがセッションをまたいで持つメモリは、4 つの層と、層の間を整理するドリーミング（dreaming）で捉えられます。ここでいうメモリは、あとで読めるコンテキストとして保存した知識だけです。重みの変更、文脈内学習、コンパクションは含みません。出典は Anthropic の記事（2026-11-06）です。\n\n**4 つの層**\n\n| 層 | 中身 | 読まれ方 |\n| --- | --- | --- |\n| 注入コンテキスト | すべてのセッションの始まりに読み込むノート | 検索しなくても、在ることを知らなくても届く |\n| メモリ表現 | wiki など、ある主題について知っていることを集め、リンクでつないだページ | 必要なときに読むか検索する |\n| メモリノート | セッションの中で Claude が目立つと判断して書いたノート | 必要なときに読むか検索する |\n| トランスクリプト | セッションの記録。検索できるイベントログ | 検索する。ほかの層を確かめるときの正解になる |\n\n- セッションの中でじかに書くのはメモリノートだけです。\n- 注入コンテキストは次のセッションの入口になります。\n\n**ドリーミング**\n\nドリーミングは、セッションの外の時間にログとトランスクリプトを見直し、メモリを整理することです。人の脳が眠りや休息の間に体験を再生して長期記憶に移すことになぞらえています。働く範囲は 2 つあります。\n- トランスクリプトから各層へ。\n- 上の隣り合う層の間。\n\n役目は次の 5 つです。\n1. **ノートを直す:** トランスクリプトと照らして、最初からの誤りや、環境の変化でずれたものを直す。\n2. **表現を組み立てる:** トランスクリプトとノートから wiki を作り、続く回で足し、直し、刈り込む。\n3. **最上位の層を小さく保つ:** 詳細を下の層へ移し、リンクを残す。\n4. **目標に合わせる:** 何が重要かを指示で伝え、その目標に向けてメモリを育てる。\n5. **セッションの隙間を埋める:** 1 つのセッションからは見えない、複数のセッションに共通する誤りやパターンを見つける。切れたリンクを向け直し、索引を足す。\n\n**組み方の例（cookbook）**\n\nManaged Agents の動的ワークフローで組む例です。\n- リードエージェント（Sonnet 5.5）はワークフローを書いて始めるだけで、トランスクリプトは読みません。\n- アナライザー（Haiku 5.5）がトランスクリプト 1 件に 1 体つき、関係するメモリを検証、補強、整理します。\n- 最後にオーガナイザー（Haiku 5.5）が 1 回だけ重複を統合し、`_index.md` を仕上げます。\n\n**層ごとの注意**\n- **ノートは予測である:** 強いモデルには、何に使うかだけを伝えます。書き方の規則は決めないほうがよいです。「失敗だけを記録する」という規則は、Opus 5 でメモリによる上積みを減らしました。\n- **wiki は検索と組み合わせる:** 点数は wiki だけで 54%、wiki と検索の組で 61%、検索だけで 53% でした。組のほうがトークンも減りました。差が出るのは、複数の文書をまたぐ問いや、判断と計算が要る問いです。\n- **共有のページの書き手は 1 つにする:** 複数で同時に書くと、互いの行を消し合います。\n- **注入する層は小さく保つ:** 注入はトークンを使い、誤ったノートをすべてのセッションに持ち込みます。また、指示のファイルが長いほど従う度合いが下がります。\n  - Claude Code の auto memory は、`MEMORY.md` の先頭の 200 行か 25 KB だけを読み込みます。\n  - Managed Agents では、すべてのセッションに読み込む部分を、マウントの `instructions` で渡します（4,096 文字まで）。\n\n**未解決の問い**\n\nメモリをその場で書くか、ドリーミングに回すかには引き換えがあります。\n- その場で書くと、本来のタスクから注意がそれます。\n- ドリーミングに回すと、すぐには使えません。\n\nメモリを最新に保つには計算資源が要ります。記事は、変わりそうな情報に絞ることと、使われる頻度でドリーミングの回数を決めることを挙げています。\n\n## 根拠\n\n- [[エージェントのメモリの階層]]（`concepts/エージェントのメモリの階層.md`）\n  - メモリの定義と出典: 12 行目\n  - 4 つの層の表: 14〜21 行目\n  - 層の図と補足（ドリーミングの働く範囲、直接書く層、次のセッションの入口）: 23〜34 行目\n  - ドリーミングの定義と 5 つの役目: 36〜44 行目\n  - cookbook の組み方の例: 46〜48 行目。元は [[managed-agents-cma-dreaming-with-a-dynamic-workflow]]\n  - 層ごとの注意: 50〜55 行目\n  - 未解決の問い: 57〜59 行目\n\n## 開いたページ\n\n- [[エージェントのメモリの階層]]: `concepts/エージェントのメモリの階層.md`\n\nこのページから先のリンク（[[components-of-agent-memory]] など）は開いていません。"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 2788,
+     "cache_read_input_tokens": 9042,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 2788
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "722da3f0-cc25-4730-a7c2-bb53465b0527",
+   "uuid": "b5bec65c-3a08-412d-a819-ff002fb65def",
+   "timestamp": "2026-11-17T14:38:51.655Z",
+   "request_id": "req_011Ch8fu6NR3Fv1gb7FimDpy"
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.9,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.23,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.9,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "07747c12-fa64-48e4-86cf-102824ac9531",
+   "session_id": "722da3f0-cc25-4730-a7c2-bb53465b0527"
+  },
+  {
+   "duration_api_ms": 19233,
+   "stop_reason": "end_turn",
+   "session_id": "722da3f0-cc25-4730-a7c2-bb53465b0527",
+   "total_cost_usd": 0.09920280000000001,
+   "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 6858,
+    "cache_read_input_tokens": 14014,
+    "output_tokens": 2076,
+    "output_tokens_details": {
+     "thinking_tokens": 58
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 6858,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 1934,
+      "cache_read_input_tokens": 9042,
+      "cache_creation_input_tokens": 2788,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 2788
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-opus-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 2076,
+     "cacheReadInputTokens": 14014,
+     "cacheCreationInputTokens": 6858,
+     "webSearchRequests": 0,
+     "costUSD": 0.09920280000000001,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 58,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 6858,
+     "canonicalModel": "claude-opus-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+     "background": 0,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {}
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 2,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "## 答え\n\nエージェントがセッションをまたいで持つメモリは、4 つの層と、層の間を整理するドリーミング（dreaming）で捉えられます。ここでいうメモリは、あとで読めるコンテキストとして保存した知識だけです。重みの変更、文脈内学習、コンパクションは含みません。出典は Anthropic の記事（2026-11-06）です。\n\n**4 つの層**\n\n| 層 | 中身 | 読まれ方 |\n| --- | --- | --- |\n| 注入コンテキスト | すべてのセッションの始まりに読み込むノート | 検索しなくても、在ることを知らなくても届く |\n| メモリ表現 | wiki など、ある主題について知っていることを集め、リンクでつないだページ | 必要なときに読むか検索する |\n| メモリノート | セッションの中で Claude が目立つと判断して書いたノート | 必要なときに読むか検索する |\n| トランスクリプト | セッションの記録。検索できるイベントログ | 検索する。ほかの層を確かめるときの正解になる |\n\n- セッションの中でじかに書くのはメモリノートだけです。\n- 注入コンテキストは次のセッションの入口になります。\n\n**ドリーミング**\n\nドリーミングは、セッションの外の時間にログとトランスクリプトを見直し、メモリを整理することです。人の脳が眠りや休息の間に体験を再生して長期記憶に移すことになぞらえています。働く範囲は 2 つあります。\n- トランスクリプトから各層へ。\n- 上の隣り合う層の間。\n\n役目は次の 5 つです。\n1. **ノートを直す:** トランスクリプトと照らして、最初からの誤りや、環境の変化でずれたものを直す。\n2. **表現を組み立てる:** トランスクリプトとノートから wiki を作り、続く回で足し、直し、刈り込む。\n3. **最上位の層を小さく保つ:** 詳細を下の層へ移し、リンクを残す。\n4. **目標に合わせる:** 何が重要かを指示で伝え、その目標に向けてメモリを育てる。\n5. **セッションの隙間を埋める:** 1 つのセッションからは見えない、複数のセッションに共通する誤りやパターンを見つける。切れたリンクを向け直し、索引を足す。\n\n**組み方の例（cookbook）**\n\nManaged Agents の動的ワークフローで組む例です。\n- リードエージェント（Sonnet 5.5）はワークフローを書いて始めるだけで、トランスクリプトは読みません。\n- アナライザー（Haiku 5.5）がトランスクリプト 1 件に 1 体つき、関係するメモリを検証、補強、整理します。\n- 最後にオーガナイザー（Haiku 5.5）が 1 回だけ重複を統合し、`_index.md` を仕上げます。\n\n**層ごとの注意**\n- **ノートは予測である:** 強いモデルには、何に使うかだけを伝えます。書き方の規則は決めないほうがよいです。「失敗だけを記録する」という規則は、Opus 5 でメモリによる上積みを減らしました。\n- **wiki は検索と組み合わせる:** 点数は wiki だけで 54%、wiki と検索の組で 61%、検索だけで 53% でした。組のほうがトークンも減りました。差が出るのは、複数の文書をまたぐ問いや、判断と計算が要る問いです。\n- **共有のページの書き手は 1 つにする:** 複数で同時に書くと、互いの行を消し合います。\n- **注入する層は小さく保つ:** 注入はトークンを使い、誤ったノートをすべてのセッションに持ち込みます。また、指示のファイルが長いほど従う度合いが下がります。\n  - Claude Code の auto memory は、`MEMORY.md` の先頭の 200 行か 25 KB だけを読み込みます。\n  - Managed Agents では、すべてのセッションに読み込む部分を、マウントの `instructions` で渡します（4,096 文字まで）。\n\n**未解決の問い**\n\nメモリをその場で書くか、ドリーミングに回すかには引き換えがあります。\n- その場で書くと、本来のタスクから注意がそれます。\n- ドリーミングに回すと、すぐには使えません。\n\nメモリを最新に保つには計算資源が要ります。記事は、変わりそうな情報に絞ることと、使われる頻度でドリーミングの回数を決めることを挙げています。\n\n## 根拠\n\n- [[エージェントのメモリの階層]]（`concepts/エージェントのメモリの階層.md`）\n  - メモリの定義と出典: 12 行目\n  - 4 つの層の表: 14〜21 行目\n  - 層の図と補足（ドリーミングの働く範囲、直接書く層、次のセッションの入口）: 23〜34 行目\n  - ドリーミングの定義と 5 つの役目: 36〜44 行目\n  - cookbook の組み方の例: 46〜48 行目。元は [[managed-agents-cma-dreaming-with-a-dynamic-workflow]]\n  - 層ごとの注意: 50〜55 行目\n  - 未解決の問い: 57〜59 行目\n\n## 開いたページ\n\n- [[エージェントのメモリの階層]]: `concepts/エージェントのメモリの階層.md`\n\nこのページから先のリンク（[[components-of-agent-memory]] など）は開いていません。",
+   "ttft_ms": 4505,
+   "type": "result",
+   "duration_ms": 20668,
+   "uuid": "87675021-953d-43ab-a843-900976d7b881",
+   "ttft_stream_ms": 3695,
+   "time_to_request_ms": 1092,
+   "first_content_frame_ms": 3696,
+   "queued_turn_count": 0,
+   "result_index": 0,
+   "model_usage_since_last_result": {
+    "claude-opus-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 2076,
+     "cacheReadInputTokens": 14014,
+     "cacheCreationInputTokens": 6858,
+     "webSearchRequests": 0,
+     "costUSD": 0.09920280000000001,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 58,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 6858,
+     "canonicalModel": "claude-opus-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "credential_expires_at": "2026-12-06T22:17:39.049Z"
+  }
+ ],
+ "opened": [
+  "project:concepts/エージェントのメモリの階層.md"
+ ],
+ "model_used": "claude-opus-5-5",
+ "result": "## 答え\n\nエージェントがセッションをまたいで持つメモリは、4 つの層と、層の間を整理するドリーミング（dreaming）で捉えられます。ここでいうメモリは、あとで読めるコンテキストとして保存した知識だけです。重みの変更、文脈内学習、コンパクションは含みません。出典は Anthropic の記事（2026-11-06）です。\n\n**4 つの層**\n\n| 層 | 中身 | 読まれ方 |\n| --- | --- | --- |\n| 注入コンテキスト | すべてのセッションの始まりに読み込むノート | 検索しなくても、在ることを知らなくても届く |\n| メモリ表現 | wiki など、ある主題について知っていることを集め、リンクでつないだページ | 必要なときに読むか検索する |\n| メモリノート | セッションの中で Claude が目立つと判断して書いたノート | 必要なときに読むか検索する |\n| トランスクリプト | セッションの記録。検索できるイベントログ | 検索する。ほかの層を確かめるときの正解になる |\n\n- セッションの中でじかに書くのはメモリノートだけです。\n- 注入コンテキストは次のセッションの入口になります。\n\n**ドリーミング**\n\nドリーミングは、セッションの外の時間にログとトランスクリプトを見直し、メモリを整理することです。人の脳が眠りや休息の間に体験を再生して長期記憶に移すことになぞらえています。働く範囲は 2 つあります。\n- トランスクリプトから各層へ。\n- 上の隣り合う層の間。\n\n役目は次の 5 つです。\n1. **ノートを直す:** トランスクリプトと照らして、最初からの誤りや、環境の変化でずれたものを直す。\n2. **表現を組み立てる:** トランスクリプトとノートから wiki を作り、続く回で足し、直し、刈り込む。\n3. **最上位の層を小さく保つ:** 詳細を下の層へ移し、リンクを残す。\n4. **目標に合わせる:** 何が重要かを指示で伝え、その目標に向けてメモリを育てる。\n5. **セッションの隙間を埋める:** 1 つのセッションからは見えない、複数のセッションに共通する誤りやパターンを見つける。切れたリンクを向け直し、索引を足す。\n\n**組み方の例（cookbook）**\n\nManaged Agents の動的ワークフローで組む例です。\n- リードエージェント（Sonnet 5.5）はワークフローを書いて始めるだけで、トランスクリプトは読みません。\n- アナライザー（Haiku 5.5）がトランスクリプト 1 件に 1 体つき、関係するメモリを検証、補強、整理します。\n- 最後にオーガナイザー（Haiku 5.5）が 1 回だけ重複を統合し、`_index.md` を仕上げます。\n\n**層ごとの注意**\n- **ノートは予測である:** 強いモデルには、何に使うかだけを伝えます。書き方の規則は決めないほうがよいです。「失敗だけを記録する」という規則は、Opus 5 でメモリによる上積みを減らしました。\n- **wiki は検索と組み合わせる:** 点数は wiki だけで 54%、wiki と検索の組で 61%、検索だけで 53% でした。組のほうがトークンも減りました。差が出るのは、複数の文書をまたぐ問いや、判断と計算が要る問いです。\n- **共有のページの書き手は 1 つにする:** 複数で同時に書くと、互いの行を消し合います。\n- **注入する層は小さく保つ:** 注入はトークンを使い、誤ったノートをすべてのセッションに持ち込みます。また、指示のファイルが長いほど従う度合いが下がります。\n  - Claude Code の auto memory は、`MEMORY.md` の先頭の 200 行か 25 KB だけを読み込みます。\n  - Managed Agents では、すべてのセッションに読み込む部分を、マウントの `instructions` で渡します（4,096 文字まで）。\n\n**未解決の問い**\n\nメモリをその場で書くか、ドリーミングに回すかには引き換えがあります。\n- その場で書くと、本来のタスクから注意がそれます。\n- ドリーミングに回すと、すぐには使えません。\n\nメモリを最新に保つには計算資源が要ります。記事は、変わりそうな情報に絞ることと、使われる頻度でドリーミングの回数を決めることを挙げています。\n\n## 根拠\n\n- [[エージェントのメモリの階層]]（`concepts/エージェントのメモリの階層.md`）\n  - メモリの定義と出典: 12 行目\n  - 4 つの層の表: 14〜21 行目\n  - 層の図と補足（ドリーミングの働く範囲、直接書く層、次のセッションの入口）: 23〜34 行目\n  - ドリーミングの定義と 5 つの役目: 36〜44 行目\n  - cookbook の組み方の例: 46〜48 行目。元は [[managed-agents-cma-dreaming-with-a-dynamic-workflow]]\n  - 層ごとの注意: 50〜55 行目\n  - 未解決の問い: 57〜59 行目\n\n## 開いたページ\n\n- [[エージェントのメモリの階層]]: `concepts/エージェントのメモリの階層.md`\n\nこのページから先のリンク（[[components-of-agent-memory]] など）は開いていません。",
+ "cost_usd": 0.09920280000000001,
+ "duration_ms": 20668,
+ "is_error": false,
+ "terminal_reason": "completed",
+ "api_error": null,
+ "api_error_status": null,
+ "model_usage": {
+  "claude-opus-5-5": {
+   "inputTokens": 4,
+   "outputTokens": 2076,
+   "cacheReadInputTokens": 14014,
+   "cacheCreationInputTokens": 6858,
+   "webSearchRequests": 0,
+   "costUSD": 0.09920280000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 58,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 6858,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "exit": 0,
+ "stderr": ""
+}

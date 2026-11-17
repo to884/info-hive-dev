@@ -14,7 +14,10 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
+import threading
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -108,6 +111,18 @@ class QueryTextTests(unittest.TestCase):
     def test_truncates_long_prompts(self):
         self.assertEqual(len(context.query_text("あ" * 5000)), context.MAX_QUERY_CHARS)
 
+    def test_unclosed_pastes_and_fences_are_discarded(self):
+        for suffix in ("<pasted_content>[[secret]]", "\n```x\n[[secret]]", "\n~~~x\n[[secret]]"):
+            with self.subTest(suffix=suffix):
+                self.assertEqual(context.query_text("このログを整形して" + suffix), "このログを整形して")
+
+    def test_nested_pasted_content_is_discarded(self):
+        text = context.query_text("これを整形して <pasted_content>A<pasted_content>B</pasted_content>C</pasted_content> 完了")
+        self.assertEqual(text, "これを整形して 完了")
+
+    def test_fence_closer_can_be_longer_than_opener(self):
+        self.assertEqual(context.query_text("確認して\n```x\n[[secret]]\n````\n続行して"), "確認して 続行して")
+
 
 class SettingTests(unittest.TestCase):
     def test_defaults(self):
@@ -166,6 +181,57 @@ class GateTests(unittest.TestCase):
     def test_direct_reference(self):
         self.assertEqual(self.kinds("[[リリースの確かめ方]] の手順で進めて"), [("リリースの確かめ方", "S1")])
         self.assertEqual(self.kinds("[[edge-id]] を見て"), [("エッジの識別子", "S1")])
+
+    def test_discarded_references_do_not_reenter_the_gate(self):
+        refs = ("[[リリースの確かめ方]]", "concepts/リリースの確かめ方.md", "リリースの確かめ方")
+        for ref in refs:
+            for prompt in (f"このログを整形して <pasted_content>{ref}</pasted_content>",
+                           f"このログを整形して\n```\n{ref}\n```\n",
+                           "あ" * context.MAX_QUERY_CHARS + ref):
+                with self.subTest(prompt=prompt[-100:]):
+                    self.assertEqual(self.kinds(prompt), [])
+
+    def test_expired_scan_or_scoring_never_returns_candidates(self):
+        import wiki_pages
+        for target in ("walk_pages", "walk_index_files"):
+            original = getattr(wiki_pages, target)
+
+            def slow(*args, **kwargs):
+                time.sleep(0.03)
+                return original(*args, **kwargs)
+
+            with self.subTest(target=target), patch.object(wiki_pages, target, slow):
+                result = context.build_context(hook_input(self.fixture.project, "[[リリースの確かめ方]]"),
+                                               env={}, is_wiki=is_wiki, deadline=time.monotonic() + 0.01)
+                self.assertIsNone(result)
+        original = context.candidates
+
+        def slow_candidates(*args, **kwargs):
+            result = original(*args, **kwargs)
+            time.sleep(0.03)
+            return result
+
+        with patch.object(context, "candidates", slow_candidates):
+            self.assertIsNone(context.build_context(hook_input(self.fixture.project, "[[リリースの確かめ方]]"),
+                                                   env={}, is_wiki=is_wiki, deadline=time.monotonic() + 0.02))
+
+    def test_large_pages_are_skipped(self):
+        write(self.fixture.wiki / "concepts/huge.md", page("huge") + "x" * context.MAX_PAGE_BYTES)
+        self.assertNotIn(("huge", "S1"), self.kinds("[[huge]] を見て"))
+
+    def test_actual_long_paths_can_be_opened_from_output(self):
+        project = Path(self.tmp.name) / ("a" * 70) / ("b" * 70)
+        wiki = project / "wiki"
+        slug = "page-" + "c" * 90
+        rel = "concepts/" + "d" * 70 + "/" + slug + ".md"
+        write(wiki / "SCHEMA.md", "# SCHEMA\n")
+        write(wiki / rel, page(slug, "実在するページ。"))
+        text = context.build_context(hook_input(project, f"[[{slug}]] を開いて"), env={}, is_wiki=is_wiki)
+        header = next(line for line in text.splitlines() if line.startswith("プロジェクトの wiki"))
+        root = Path(json.loads(header.split("root: ", 1)[1][:-1]))
+        row = json.loads(next(line for line in text.splitlines() if line.startswith("1. "))[3:])
+        self.assertEqual(row, {"slug": slug, "path": rel})
+        self.assertEqual((root / row["path"]).read_text(encoding="utf-8"), page(slug, "実在するページ。"))
 
     def test_name_match_needs_two_units(self):
         self.assertEqual(self.kinds("Windows の Python で CRLF になる"),
@@ -248,13 +314,42 @@ class RenderTests(unittest.TestCase):
         page = context.Page(rel_path="concepts/a.md", slug="a", title=evil, aliases=[], headings=["# h", evil],
                             name_units=[], text_lower="", summary=evil * 50)
         chosen = [context.Candidate("project", page, "S2", 1.0, evil)] * 3
-        text = context.render(chosen, {"project": Path("/w/wiki")}, "R1")
+        text = context.render(chosen, {"project": Path("/w/wiki")}).text
         body = text.split("プロジェクトの wiki", 1)[1]
         for bad in ("<script>", "`", "[[y]]", "\x07"):
             self.assertNotIn(bad, body)
         self.assertIn("＜script＞", body)
         self.assertLessEqual(len(text), context.CONTEXT_LIMIT)
         self.assertTrue(text.startswith("［wiki の候補］"))
+
+    def test_identity_fields_survive_long_and_special_paths(self):
+        root = Path("/work") / ("a" * 80) / ("b" * 80) / "wiki"
+        rel = "concepts/" + "長" * 120 + "`[x]<y>\n.md"
+        slug = Path(rel).stem
+        page = context.Page(rel, slug, slug, [], [], [], "")
+        result = context.render([context.Candidate("project", page, "S1", 1, "参照")], {"project": root})
+        lines = result.text.splitlines()
+        header = next(line for line in lines if line.startswith("プロジェクトの wiki"))
+        self.assertEqual(json.loads(header.split("root: ", 1)[1][:-1]), root.as_posix())
+        row = json.loads(next(line for line in lines if line.startswith("1. "))[3:])
+        self.assertEqual(row, {"slug": slug, "path": rel})
+
+    def test_omitted_candidates_do_not_affect_the_reading_tier(self):
+        page = context.Page("same.md", "same", "題" * 60, [], ["見出し" * 20] * 3, [], "", "要約" * 80)
+        chosen = [context.Candidate(scope, page, "S1", 1, "参照") for scope in ("project", "user")]
+        root = Path("/work/wiki")
+        single_size = len(context.render(chosen[:1], {"project": root}).text)
+        with patch.object(context, "CONTEXT_LIMIT", single_size):
+            result = context.render(chosen, {"project": root, "user": root / "other"})
+        self.assertEqual([(c.scope, c.page.rel_path) for c in result.shown], [("project", "same.md")])
+        self.assertEqual(result.tier, "R0")
+        self.assertIn("候補 1 件、wiki 1 つ", result.text)
+        self.assertNotIn("ユーザースコープの wiki", result.text)
+
+    def test_candidate_too_long_to_fit_is_omitted_instead_of_truncated(self):
+        page = context.Page("a" * 2000 + ".md", "a" * 2000, "a", [], [], [], "")
+        cand = context.Candidate("project", page, "S1", 1, "")
+        self.assertIsNone(context.render([cand], {"project": Path("/wiki")}))
 
     def test_hook_output_is_ascii_json(self):
         out = context.hook_output("［wiki の候補］日本語")
@@ -275,7 +370,7 @@ class StateTests(unittest.TestCase):
 
     def build(self, prompt: str, session: str = "s-1"):
         return context.build_context(hook_input(self.fixture.project, prompt, session_id=session), env=self.env,
-                                     is_wiki=is_wiki)
+                                     is_wiki=is_wiki, emit=lambda text: None)
 
     def test_same_page_is_not_repeated(self):
         self.assertIsNotNone(self.build("[[リリースの確かめ方]] を読んで"))
@@ -292,13 +387,100 @@ class StateTests(unittest.TestCase):
         path.write_bytes(json.dumps(state).encode("ascii"))
         self.assertIsNotNone(self.build("[[リリースの確かめ方]]"))
 
+    def test_short_user_turns_and_commands_advance_the_window(self):
+        self.assertIsNotNone(self.build("[[リリースの確かめ方]]"))
+        for _ in range(context.REPEAT_TURNS // 2):
+            self.assertIsNone(self.build("はい"))
+            self.assertIsNone(self.build("/model"))
+        self.assertIsNotNone(self.build("[[リリースの確かめ方]]"))
+
+    def test_system_reports_do_not_advance_the_window(self):
+        self.assertIsNotNone(self.build("[[リリースの確かめ方]]"))
+        for _ in range(context.REPEAT_TURNS):
+            self.assertIsNone(self.build("<agent-message>報告</agent-message>"))
+        self.assertIsNone(self.build("[[リリースの確かめ方]]"))
+
+    def test_only_rendered_scope_is_marked_as_shown(self):
+        home = WikiFixture(Path(self.tmp.name), name="home")
+        self.env.update({"INFO_HIVE_PROMPT_CONTEXT_USER_WIKI": "1", "INFO_HIVE_HOME": str(home.project)})
+        prompt = "[[リリースの確かめ方]]"
+        candidate = context.select(hook_input(self.fixture.project, prompt), env=self.env, is_wiki=is_wiki)
+        limit = len(context.render(candidate.chosen[:1], candidate.roots).text)
+        with patch.object(context, "CONTEXT_LIMIT", limit):
+            text = self.build(prompt)
+        state = json.loads((self.data / "prompt-context/sessions/s-1.json").read_bytes())
+        self.assertEqual([json.loads(key)[0] + ":" + json.loads(key)[2] for key in state["shown"]],
+                         ["project:concepts/リリースの確かめ方.md"])
+        self.assertNotIn("ユーザースコープの wiki", text)
+        self.assertIn("ユーザースコープの wiki", self.build(prompt))
+
+    def test_concurrent_selection_rechecks_state_under_the_lock(self):
+        barrier = threading.Barrier(2)
+        original = context.select
+
+        def simultaneous(*args, **kwargs):
+            selected = original(*args, **kwargs)
+            barrier.wait(timeout=5)
+            return selected
+
+        results = []
+        with patch.object(context, "select", simultaneous):
+            threads = [threading.Thread(target=lambda: results.append(self.build("[[リリースの確かめ方]]")))
+                       for _ in range(2)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(timeout=5)
+        self.assertEqual(sum(result is not None for result in results), 1)
+        self.assertEqual(len(results), 2)
+
+    def test_lock_contention_preserves_the_existing_state(self):
+        self.build("[[リリースの確かめ方]]")
+        path = self.data / "prompt-context/sessions/s-1.json"
+        before = path.read_bytes()
+        with context.state_lock(path) as acquired:
+            self.assertTrue(acquired)
+            self.assertIsNone(self.build("[[エッジの識別子]]"))
+        self.assertEqual(path.read_bytes(), before)
+
     def test_bad_session_id_and_broken_state(self):
         self.assertIsNotNone(self.build("[[リリースの確かめ方]]", session="../x"))
         self.assertFalse((self.data / "prompt-context").exists())
         path = self.data / "prompt-context" / "sessions" / "s-3.json"
         write(path, "{broken")
         self.assertIsNotNone(self.build("[[リリースの確かめ方]]", session="s-3"))
-        self.assertEqual(json.loads(path.read_bytes())["version"], 1)
+        self.assertEqual(json.loads(path.read_bytes())["version"], 2)
+
+    def test_other_project_with_same_relative_path_is_not_suppressed(self):
+        other = WikiFixture(Path(self.tmp.name), name="other")
+        self.assertTrue(self.build("[[リリースの確かめ方]]"))
+        self.assertTrue(context.build_context(hook_input(other.project, "[[リリースの確かめ方]]", session_id="s-1"),
+                                             env=self.env, is_wiki=is_wiki, emit=lambda text: None))
+
+    def test_delivery_failure_never_marks_the_candidate_as_shown(self):
+        def fail(text):
+            raise BrokenPipeError("受け取れなかった")
+
+        with self.assertRaises(BrokenPipeError):
+            context.build_context(hook_input(self.fixture.project, "[[リリースの確かめ方]]", session_id="s-1"),
+                                  env=self.env, is_wiki=is_wiki, emit=fail)
+        self.assertTrue(self.build("[[リリースの確かめ方]]"))
+
+    def test_output_precedes_state_save_even_if_saving_takes_too_long(self):
+        emitted = []
+        save = context.save_state
+        clock = [0.0]
+
+        def delayed(path, state, now):
+            self.assertEqual(len(emitted), 1)
+            clock[0] = 1.0
+            save(path, state, now)
+
+        with patch.object(context, "save_state", delayed), patch.object(context.time, "monotonic", side_effect=lambda: clock[0]):
+            text = context.build_context(hook_input(self.fixture.project, "[[リリースの確かめ方]]", session_id="s-1"),
+                                         env=self.env, is_wiki=is_wiki, emit=emitted.append,
+                                         deadline=.02)
+        self.assertEqual(emitted, [text])
 
 
 class WikiRootTests(unittest.TestCase):
@@ -333,6 +515,18 @@ class WikiRootTests(unittest.TestCase):
         roots = context.wiki_roots(fixture.project, {"INFO_HIVE_HOME": str(fixture.project)}, True, is_wiki)
         self.assertEqual(list(roots), ["project"])
 
+    def test_user_workspace_is_never_classified_as_project(self):
+        home = WikiFixture(self.base, name="home")
+        write(home.project / ".info-hive/workspace.json",
+              json.dumps({"version": 1, "kind": "user", "dirs": {"wiki": "wiki"}}))
+        child = home.project / "projects" / "child"
+        child.mkdir(parents=True)
+        env = {"INFO_HIVE_HOME": str(home.project)}
+        for cwd in (home.project, child):
+            with self.subTest(cwd=cwd):
+                self.assertEqual(context.wiki_roots(cwd, env, False, is_wiki), {})
+                self.assertEqual(context.wiki_roots(cwd, env, True, is_wiki), {"user": home.wiki})
+
 
 class EntryTests(unittest.TestCase):
     """入口は、どんな入力でも終了コード 0 で終わり、何も出さないか、ASCII だけの正しい JSON を出す。"""
@@ -346,8 +540,13 @@ class EntryTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def run_hook(self, payload: bytes) -> subprocess.CompletedProcess:
-        return subprocess.run([sys.executable, str(HOOK)], input=payload, capture_output=True, env=self.env,
+    def run_hook(self, payload: bytes, *, contract_budget=False) -> subprocess.CompletedProcess:
+        # JSON と状態の契約は起動時間から分ける。実際の 2.5 秒の打ち切りは別のテストで確かめる。
+        command = [sys.executable, str(HOOK)]
+        if contract_budget:
+            code = f"import sys, os; sys.path.insert(0, {str(SCRIPTS)!r}); import wiki_prompt_hook as h; h.DEADLINE_SECONDS=15; h.main(); os._exit(0)"
+            command = [sys.executable, "-c", code]
+        return subprocess.run(command, input=payload, capture_output=True, env=self.env,
                               timeout=60)
 
     def test_bad_inputs_exit_zero_silently(self):
@@ -362,7 +561,7 @@ class EntryTests(unittest.TestCase):
     def test_valid_input_gives_ascii_json(self):
         payload = json.dumps(hook_input(self.fixture.project, "[[リリースの確かめ方]] の手順", session_id="e-1"),
                              ensure_ascii=False).encode("utf-8")
-        proc = self.run_hook(payload)
+        proc = self.run_hook(payload, contract_budget=True)
         self.assertEqual(proc.returncode, 0)
         proc.stdout.decode("ascii")
         ctx = json.loads(proc.stdout)["hookSpecificOutput"]
@@ -373,6 +572,53 @@ class EntryTests(unittest.TestCase):
         payload = json.dumps(hook_input(self.fixture.project, "設計 " * 200000)).encode("utf-8")
         proc = self.run_hook(payload)
         self.assertEqual(proc.returncode, 0)
+
+    def test_skipped_user_turn_advances_existing_state_in_the_entry(self):
+        def send(prompt):
+            payload = json.dumps(hook_input(self.fixture.project, prompt, session_id="fast-path")).encode("utf-8")
+            proc = self.run_hook(payload, contract_budget=True)
+            self.assertEqual(proc.returncode, 0)
+            self.assertEqual(proc.stderr, b"")
+            return proc.stdout
+
+        self.assertTrue(send("[[リリースの確かめ方]]"))
+        path = Path(self.env["CLAUDE_PLUGIN_DATA"]) / "prompt-context/sessions/fast-path.json"
+        first = json.loads(path.read_bytes())
+        self.assertEqual(send("はい"), b"")
+        second = json.loads(path.read_bytes())
+        self.assertEqual(second["turns"], first["turns"] + 1)
+        self.assertEqual(second["shown"], first["shown"])
+        self.assertEqual(send("<agent-message>報告</agent-message>"), b"")
+        self.assertEqual(json.loads(path.read_bytes()), second)
+
+    def test_many_unclosed_fences_finish_before_hook_timeout(self):
+        prompt = "format this log\n" + "```x\n" * 20000
+        payload = json.dumps(hook_input(self.fixture.project, prompt)).encode("utf-8")
+        started = time.monotonic()
+        proc = self.run_hook(payload)
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(proc.stdout, b"")
+        self.assertEqual(proc.stderr, b"")
+        self.assertLess(time.monotonic() - started, 4.5)
+
+    def test_supervisor_ends_a_worker_stuck_in_parsing(self):
+        # 入口のコピーで子だけを停止させ、実際の親の起動、打ち切り、出力を確かめる。
+        slow_hook = Path(self.tmp.name) / "slow_hook.py"
+        source = HOOK.read_text(encoding="utf-8")
+        call = "        worker(float(sys.argv[2]))\n"
+        self.assertEqual(source.count(call), 1)
+        source = source.replace("        import wiki_prompt_context as context",
+                                f"        sys.path.insert(0, {str(SCRIPTS)!r})\n        import wiki_prompt_context as context")
+        write(slow_hook, source.replace(call, "        time.sleep(10)\n"))
+        payload = json.dumps(hook_input(self.fixture.project, "[[リリースの確かめ方]]")).encode("utf-8")
+        started = time.monotonic()
+        proc = subprocess.run([sys.executable, str(slow_hook)], input=payload, capture_output=True,
+                              env=self.env, timeout=6)
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(proc.stdout, b"")
+        self.assertEqual(proc.stderr, b"")
+        self.assertLess(time.monotonic() - started, 4.5)
+        self.assertGreater(time.monotonic() - started, 1.5)
 
 
 class StructureTests(unittest.TestCase):
@@ -391,7 +637,9 @@ class StructureTests(unittest.TestCase):
     def test_no_heavy_or_network_imports(self):
         for name in ("wiki_prompt_context.py", "wiki_prompt_hook.py", "wiki_tokens.py"):
             with self.subTest(script=name):
-                self.assertEqual(self.imports(SCRIPTS / name) & self.FORBIDDEN, set())
+                # 入口だけは、同じ Python の解析の子を締め切りで止めるため subprocess を使う。
+                forbidden = self.FORBIDDEN - {"subprocess"} if name == "wiki_prompt_hook.py" else self.FORBIDDEN
+                self.assertEqual(self.imports(SCRIPTS / name) & forbidden, set())
 
     def test_hooks_json(self):
         data = json.loads((PLUGIN / "hooks" / "hooks.json").read_bytes().decode("utf-8"))
@@ -401,7 +649,8 @@ class StructureTests(unittest.TestCase):
         self.assertEqual(hook["type"], "command")
         self.assertNotIn("args", hook)  # exec 形式だと、uv の段の終了コード 2 が利用者の指示を止める
         self.assertTrue(hook["command"].rstrip().endswith("; exit 0"))
-        for flag in ("--quiet", "--offline", "--no-python-downloads", "--script"):
+        self.assertNotIn("--script", hook["command"])
+        for flag in ("--quiet", "--offline", "--no-python-downloads", "--no-project", "--no-config", "-I", "-S"):
             self.assertIn(flag, hook["command"])
         self.assertIn("${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_prompt_hook.py", hook["command"])
         self.assertLessEqual(hook["timeout"], 10)
@@ -428,6 +677,10 @@ class StructureTests(unittest.TestCase):
         head = HOOK.read_bytes().decode("utf-8").split("# ///", 2)[1]
         self.assertIn('requires-python = ">=3.12,<3.15"', head)
         self.assertIn("dependencies = []", head)
+        command = json.loads((PLUGIN / "hooks/hooks.json").read_text(encoding="utf-8"))["hooks"]["UserPromptSubmit"][0]["hooks"][0]["command"]
+        declared = next(line.split("=", 1)[1].strip() for line in head.splitlines()
+                        if line.startswith("# requires-python")).strip('"')
+        self.assertIn('--python "' + declared + '"', command)
 
 
 class EvaluationGateTests(unittest.TestCase):

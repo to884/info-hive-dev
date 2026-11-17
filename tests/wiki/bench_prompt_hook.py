@@ -46,7 +46,8 @@ HOOK_INPUT = {
     "prompt": "uv の UV_SYSTEM_CERTS の直しはどうなった？",
 }
 
-UV_FLAGS = ["--quiet", "--offline", "--no-python-downloads", "--script"]
+UV_FLAGS = ["--no-project", "--no-config", "--quiet", "--quiet", "--offline", "--no-python-downloads",
+            "--python", ">=3.12,<3.15", "python", "-I", "-S"]
 
 
 def percentile(values: list[float], q: float) -> float:
@@ -68,6 +69,22 @@ def summary(values: list[float]) -> dict:
     }
 
 
+def valid_candidate_output(stdout: bytes) -> bool:
+    """合成 wiki の候補2件と、フックの出力の契約を確かめる。"""
+    try:
+        output = json.loads(stdout)["hookSpecificOutput"]
+        text = output["additionalContext"]
+        if output["hookEventName"] != "UserPromptSubmit" or not isinstance(text, str) or len(text) > 2000:
+            return False
+        identities = [json.loads(rest) for line in text.splitlines()
+                      for number, separator, rest in [line.partition(". ")]
+                      if separator and number.isdecimal()]
+        return all({"slug": f"page-{i:04d}", "path": f"concepts/page-{i:04d}.md"}
+                   in identities for i in (0, 1))
+    except (ValueError, KeyError, TypeError):
+        return False
+
+
 def bash_path() -> str | None:
     found = shutil.which("bash")
     if os.name == "nt":
@@ -83,7 +100,8 @@ def pwsh_path() -> str | None:
 
 def shell_line(script: Path, uv: str = "uv") -> str:
     # hooks.json の command と同じ形。パスは Claude Code の置換と同じくスラッシュにする。
-    return f'{uv} run {" ".join(UV_FLAGS)} "{script.as_posix()}"; exit 0'
+    command = json.loads((ROOT / "info-hive-wiki/hooks/hooks.json").read_text(encoding="utf-8"))["hooks"]["UserPromptSubmit"][0]["hooks"][0]["command"]
+    return command.replace("uv ", uv + " ", 1).replace("${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_prompt_hook.py", script.as_posix())
 
 
 def run_once(argv: list[str], payload: bytes, env: dict) -> tuple[float, int, bytes, bytes]:
@@ -111,7 +129,7 @@ def cmd_launch(args) -> dict:
     with tempfile.TemporaryDirectory() as tmp:
         stub = Path(tmp) / "stub_hook.py"
         stub.write_bytes(STUB.encode("utf-8"))
-        # 最初の 1 回は uv が Python を探して環境を用意するので、時間に数えない。
+        # 最初の 1 回は uv が Python を探すので、時間に数えない。
         for name, argv in forms(stub).items():
             run_once(argv, payload, env)
             times = []
@@ -144,7 +162,9 @@ def cmd_launch(args) -> dict:
             if p and not (Path(p) / ("uv.exe" if os.name == "nt" else "uv")).is_file()
         )
         no_python_env = dict(env)
-        no_python_env["UV_PYTHON"] = "3.99"
+        no_python_env.pop("VIRTUAL_ENV", None)
+        no_python_env["UV_MANAGED_PYTHON"] = "1"
+        no_python_env["UV_PYTHON_INSTALL_DIR"] = str(Path(tmp) / "no-python")
         scenarios = {
             "script_missing": (missing, env),
             "python_missing": (stub, no_python_env),

@@ -1,0 +1,127 @@
+{
+ "question": "Word の COM で PDF に書き出すときの引数の注意点は？",
+ "assertions": [
+  {
+   "id": "r2-wordcom:1",
+   "claim": "Documents.Openはパスだけでの呼び出しが記録された成功例",
+   "source": "concepts/officeのcomでの書き出し.md L14: `Documents.Open` にパスだけを渡し"
+  },
+  {
+   "id": "r2-wordcom:2",
+   "claim": "DisplayAlertsは0にした",
+   "source": "concepts/officeのcomでの書き出し.md L14: `DisplayAlerts` を 0 にし"
+  },
+  {
+   "id": "r2-wordcom:3",
+   "claim": "読み取り専用の引数を付けた例では300秒停止した。一般的な再現性までは確かめていない",
+   "source": "concepts/officeのcomでの書き出し.md L18: 読み取り専用の引数を渡した `Documents.Open` は、300 秒で終わらなかった"
+  },
+  {
+   "id": "r2-wordcom:4",
+   "claim": "PowerShell7のStart-Jobとタイムアウトを使った例では成功した",
+   "source": "concepts/officeのcomでの書き出し.md L18: pwsh 7 の `Start-Job` で動かすと書き出せた"
+  }
+ ],
+ "pages": {
+  "project:concepts/officeのcomでの書き出し.md": "---\ntype: \"concept\"\nkind: \"experience-pattern\"\ntitle: \"Office の COM で文書を開いて書き出すとき\"\ntags: [\"windows\"]\nsources: [\"office-com-word-export-2026-11-15\"]\ncreated: 2026-11-15\nupdated: 2026-11-15\nstatus: \"hypothesis\"\n---\n\n# Office の COM で文書を開いて書き出すとき\n\nスクリプトから Word の COM で文書を開き、PDF に書き出すときは、`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。止まったときに備えて、時間の上限を付けて別のジョブで動かし、残った `/Automation -Embedding` の WINWORD.EXE を確かめる。\n\n## 根拠\n\n- 観測（[[office-com-word-export-2026-11-15]]）: 読み取り専用の引数を渡した `Documents.Open` は、300 秒で終わらなかった。パスだけを渡し、pwsh 7 の `Start-Job` で動かすと書き出せた。Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返した。PowerPoint と Excel は、同じスクリプトで書き出せた。\n- 成功した例は 1 回の作業だけで、同じ条件でくり返してはいない。\n\n## 原因と手順\n\n- 仮説: 読み取り専用の引数で、画面に出ない確認を待ったまま止まった。Windows PowerShell 5.1 で null が返った原因は分かっていない。直前の試しの Word が残っていた影響の可能性もある。\n- 手順の案: `$w.DisplayAlerts = 0`、`$w.Documents.Open($path)`、戻り値が null なら止まる、`ExportAsFixedFormat($pdf, 17)`、`Close(0)`、`Quit()`。全体を `Start-Job` と `Wait-Job -Timeout` で包む。\n- 使った例: info-hive-dev の `docs/research/markitdown-benchmark-2026-11-15/scripts/export_office.ps1`（[[抽出の方式の比較-markitdown-2026-11-15]]）。\n\n## 適用範囲と反例\n\nOffice 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 で観測した。`pwsh -File` でスクリプト全体を最後まで通せるかは確かめていない。ほかの PC と Office の版では確かめていない。PowerPoint と Excel には、この問題は出なかった。\n",
+  "project:sources/office-com-word-export-2026-11-15.md": "---\ntype: \"source\"\ntitle: \"経験: Word の COM で PDF に書き出すとき、Documents.Open が止まるか null を返した（2026-11-15）\"\ntags: [\"windows\"]\nraw: \"raw/experiences/office-com-word-export-2026-11-15.json\"\ningested: 2026-11-15\ncreated: 2026-11-15\nupdated: 2026-11-15\n---\n\n# 経験: Word の COM で PDF に書き出すとき、Documents.Open が止まるか null を返した（2026-11-15）\n\n`/wiki:learn` で記録した経験である。raw は `raw/experiences/office-com-word-export-2026-11-15.json`（ファイルの SHA-256 は `c8825524ce099170f210b1ec9d428d144ae523161672efffc64ae7aad7dccf5a`）。結果は failure。スクリプトは `docs/research/markitdown-benchmark-2026-11-15/scripts/export_office.ps1` にある。\n\n## 観測したこと\n\n- Windows PowerShell 5.1（`powershell -File`）で、`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。`/Automation -Embedding` の WINWORD.EXE が残っていた。\n- pwsh 7 の `Start-Job` の中で、`DisplayAlerts = 0` にし、パスだけを渡すと、開いて書き出せた。\n- 引数をパスだけにしたスクリプトを、Windows PowerShell 5.1 で動かすと、`Documents.Open` が null を返した。同じ実行で、PowerPoint と Excel の書き出しは成功した。\n- Word の 2 つの PDF は、pwsh 7 の `Start-Job` で書き出した。\n\n## 原因についての仮説\n\n読み取り専用の引数で、画面に出ない確認を待ったまま止まったと考えられる。null を返した原因は分かっていない。直前の試しで開いた Word が終わらずに残っていた影響の可能性もある（どちらも確かめていない）。\n\n## 適用範囲と反例\n\nスクリプトから Office の COM で文書を開いて書き出すとき。Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 で観測した。`pwsh -File` で最後まで通るかは確かめていない。PowerPoint と Excel では問題がなかった。\n\n## 関係するページ\n\n- [[officeのcomでの書き出し]]\n"
+ },
+ "answers": [
+  {
+   "id": "Sd2b8c6c7d2e7452a50bd6f46",
+   "answer": "## 答え\n読み取り専用の引数（`Documents.Open(パス, $false, $true)`）を渡すと、300 秒で終わらず PDF もできなかった。注意点は次のとおり。`Documents.Open` にはパスだけを渡す。`DisplayAlerts` は 0 にする。pwsh 7 の `Start-Job` で動かし、`Wait-Job -Timeout` で時間の上限を付ける。止まったあとは `/Automation -Embedding` の WINWORD.EXE が残っていないか確かめる。ただし、これは 1 回の作業で観測された結果で、同じ条件でくり返して確かめてはいない。また、Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返した。その原因は分かっていない。wiki の状態は `hypothesis`（仮説）である。\n\n\n## 根拠\n- [[officeのcomでの書き出し]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/officeのcomでの書き出し.md）: 「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」「読み取り専用の引数を渡した `Documents.Open` は、300 秒で終わらなかった。」「Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返した。」\n- [[office-com-word-export-2026-11-15]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/office-com-word-export-2026-11-15.md）: 「`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。」「pwsh 7 の `Start-Job` の中で、`DisplayAlerts = 0` にし、パスだけを渡すと、開いて書き出せた。」「`pwsh -File` で最後まで通るかは確かめていない。」\n\n",
+   "opened": [
+    "project:concepts/officeのcomでの書き出し.md",
+    "project:sources/office-com-word-export-2026-11-15.md"
+   ]
+  },
+  {
+   "id": "Sb9dbbe410f7daeda63622073",
+   "answer": "## 答え\nWord の COM で PDF に書き出すときは、`Documents.Open` にパスだけを渡す。読み取り専用などの追加引数は付けない。これは仮説段階の知見で、成功例は 1 回の作業だけです。\n\n- **`Documents.Open` の引数**: 引数がパスだけのときは、PowerShell 7 の `Start-Job` 内で開いて書き出せました。`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒たっても終わらず、PDF もできませんでした。原因は「読み取り専用の引数で、画面に出ない確認を待ったまま止まった」という仮説です。確かめてはいません。\n- **`DisplayAlerts`**: `$w.DisplayAlerts = 0` にします。\n- **実行環境**: pwsh 7 で動かします。Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返しました。原因は分かっていません。直前の試しで残った Word の影響という可能性もあります。\n- **null の確認**: 戻り値が null なら、そこで止めます。\n- **書き出しと後始末**: 手順の案は `ExportAsFixedFormat($pdf, 17)`、`Close(0)`、`Quit()` の順です。\n- **止まったときの備え**: 全体を `Start-Job` と `Wait-Job -Timeout` で包み、時間の上限を付けます。残った `/Automation -Embedding` の WINWORD.EXE も確かめます。\n- **適用範囲**: Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 で観測しました。`pwsh -File` でスクリプト全体が最後まで通るかは確かめていません。PowerPoint と Excel は、同じスクリプトで問題なく書き出せました。\n\n\n## 根拠\n- [[officeのcomでの書き出し]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/officeのcomでの書き出し.md）: 「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」手順の案と、status が hypothesis であることも、このページに書かれています。\n- [[office-com-word-export-2026-11-15]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/office-com-word-export-2026-11-15.md）: 読み取り専用の引数で 300 秒たっても終わらなかったこと、5.1 で null が返ったこと、pwsh 7 の `Start-Job` で成功したことの観測元です。\n\n",
+   "opened": [
+    "project:sources/office-com-word-export-2026-11-15.md",
+    "project:concepts/officeのcomでの書き出し.md"
+   ]
+  },
+  {
+   "id": "S7c3ae464b54a30ecdab98bfa",
+   "answer": "## 答え\nwiki に書かれている注意点は次のとおり。ページの status は \"hypothesis\" で、成功例は 1 回の作業だけである。\n\n- **`Documents.Open` にはパスだけを渡す。** 読み取り専用の引数を付けた `Documents.Open(パス, $false, $true)` は、300 秒で終わらず、PDF もできなかった。画面に出ない確認を待ったまま止まったという仮説で、確かめてはいない。\n- **`DisplayAlerts` を 0 にする。** `$w.DisplayAlerts = 0` にしてから開く。\n- **pwsh 7 で動かす。** Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返した。原因は分かっておらず、直前の試しの Word が残っていた影響の可能性もある。\n- **戻り値が null なら止まる。** 開いたあと、`ExportAsFixedFormat($pdf, 17)`、`Close(0)`、`Quit()` の順に呼ぶ（手順の案）。\n- **時間の上限を付けて別のジョブで動かす。** 全体を `Start-Job` と `Wait-Job -Timeout` で包み、止まったときは残った `/Automation -Embedding` の WINWORD.EXE を確かめる。\n\n適用範囲は、Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 での観測に限られる。`pwsh -File` でスクリプト全体を最後まで通せるかと、ほかの PC や Office の版では確かめていない。PowerPoint と Excel には、この問題は出なかった。\n\n\n## 根拠\n- [[officeのcomでの書き出し]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/officeのcomでの書き出し.md）: 「スクリプトから Word の COM で文書を開き、PDF に書き出すときは、`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」手順の案、仮説、適用範囲もこのページにある。\n- [[office-com-word-export-2026-11-15]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/office-com-word-export-2026-11-15.md）: 「pwsh 7 の `Start-Job` の中で、`DisplayAlerts = 0` にし、パスだけを渡すと、開いて書き出せた。」読み取り専用の引数で 300 秒終わらなかったこと、5.1 で null が返ったこと、WINWORD.EXE が残ったことの観測もこのページにある。\n\n",
+   "opened": [
+    "project:concepts/officeのcomでの書き出し.md",
+    "project:sources/office-com-word-export-2026-11-15.md"
+   ]
+  },
+  {
+   "id": "S7af9300e71c50e7b4e0190d1",
+   "answer": "## 答え\n`Documents.Open` には、読み取り専用などの追加引数を付けず、パスだけを渡す。wiki の観測では、`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと 300 秒たっても終わらず、PDF もできなかった。\n\nそのほかの注意点は次のとおり。\n- `DisplayAlerts` を 0 にする。\n- pwsh 7 で動かす。Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返した。\n- 止まったときに備える。`Start-Job` と `Wait-Job -Timeout` で全体を包み、残った `/Automation -Embedding` の WINWORD.EXE を確かめる。\n- 手順の案は次のとおり。\n  1. `$w.DisplayAlerts = 0`\n  2. `$w.Documents.Open($path)`\n  3. 戻り値が null なら止まる\n  4. `ExportAsFixedFormat($pdf, 17)`\n  5. `Close(0)`\n  6. `Quit()`\n\n次の点は確かでない。\n- ページの状態は `hypothesis` で、成功した例は 1 回の作業だけである。同じ条件でくり返してはいない。\n- 読み取り専用の引数で止まった原因は仮説にとどまる。画面に出ない確認を待ったまま止まったと考えられている。\n- 5.1 で null が返った原因は分かっていない。直前の試しで開いた Word が残っていた影響の可能性もある。\n- `pwsh -File` でスクリプト全体を最後まで通せるかは確かめていない。\n- Office 16.0 と Windows 11 での観測に限る。ほかの PC や Office の版では確かめていない。\n- PowerPoint と Excel では、この問題は出なかった。\n\n\n## 根拠\n- [[officeのcomでの書き出し]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/officeのcomでの書き出し.md）: 「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」手順の案と適用範囲もここにある。\n- [[office-com-word-export-2026-11-15]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/office-com-word-export-2026-11-15.md）: 読み取り専用の引数での停止、5.1 での null、pwsh 7 の `Start-Job` での成功という観測の元になった経験の記録。\n\n",
+   "opened": [
+    "project:concepts/officeのcomでの書き出し.md",
+    "project:sources/office-com-word-export-2026-11-15.md"
+   ]
+  },
+  {
+   "id": "S12c0ce4a290e4c9a04f65f62",
+   "answer": "## 答え\n注意点は、`Documents.Open` に渡す引数と、実行環境の 2 つです。どちらも 1 回の作業で観測しただけで、ページの status は hypothesis です。\n\n- **`Documents.Open` にはパスだけを渡す。** 読み取り専用の引数（`Documents.Open(パス, $false, $true)`）を付けると、300 秒たっても終わらず、PDF もできませんでした。原因は、読み取り専用の引数で画面に出ない確認を待ったまま止まったという仮説です。\n- **`DisplayAlerts` を 0 にする。**\n- **pwsh 7 で動かす。** Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返しました。原因は分かっていません。直前の試しで残った Word の影響という可能性もありますが、確かめていません。\n- **戻り値が null なら止まる。**\n- **止まったときに備える。** 全体を `Start-Job` と `Wait-Job -Timeout` で包み、時間の上限を付けます。残った `/Automation -Embedding` の WINWORD.EXE も確かめます。\n- **手順の案:** `$w.DisplayAlerts = 0`、`$w.Documents.Open($path)`、null の確認、`ExportAsFixedFormat($pdf, 17)`、`Close(0)`、`Quit()` の順です。\n\nPowerPoint と Excel は、同じスクリプトで書き出せました。\n\n適用範囲は、Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 です。`pwsh -File` でスクリプト全体を最後まで通せるかは確かめていません。ほかの PC や Office の版でも確かめていません。\n\n\n## 根拠\n- [[officeのcomでの書き出し]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/officeのcomでの書き出し.md）: 「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」手順の案と、成功例が 1 回だけであることも、このページに書かれています。\n- [[office-com-word-export-2026-11-15]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/office-com-word-export-2026-11-15.md）: 読み取り専用で開くと 300 秒で終わらず、PDF もできませんでした。pwsh 7 の `Start-Job` 内で、パスだけを渡して開くと書き出せました。Windows PowerShell 5.1 では null が返りました。\n\n",
+   "opened": [
+    "project:sources/office-com-word-export-2026-11-15.md",
+    "project:concepts/officeのcomでの書き出し.md"
+   ]
+  },
+  {
+   "id": "Sa8afcd1abc38169f56c0fb89",
+   "answer": "## 答え\nWord の COM で PDF に書き出すときの引数の注意点は、次のとおり。ただし status は \"hypothesis\"（仮説）で、観測は 1 回の作業のみ。\n\n- `Documents.Open` には**パスだけを渡す**。読み取り専用の引数（`Documents.Open(パス, $false, $true)`）を渡すと、300 秒で終わらず PDF もできなかった。\n- `$w.DisplayAlerts = 0` にする。\n- 書き出しは `ExportAsFixedFormat($pdf, 17)` などで行い、`Close(0)`、`Quit()` で閉じる。\n- pwsh 7 の `Start-Job` で動かし、`Wait-Job -Timeout` で時間の上限を付ける。Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返した（原因は不明）。\n- 止まったあとは、`/Automation -Embedding` の WINWORD.EXE が残っていないか確かめる。\n\n`pwsh -File` でスクリプト全体を最後まで通せるかは未確認。\n\n\n## 根拠\n- [[officeのcomでの書き出し]]（/Users/…ではなく `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/officeのcomでの書き出し.md`）: 「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす」「時間の上限を付けて別のジョブで動かし、残った `/Automation -Embedding` の WINWORD.EXE を確かめる」。手順の案として `ExportAsFixedFormat($pdf, 17)`、`Close(0)`、`Quit()` を挙げている。\n- [[office-com-word-export-2026-11-15]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/office-com-word-export-2026-11-15.md`）: 「読み取り専用の引数で、`Documents.Open(パス, $false, $true)` で開くと、300 秒で終わらず、PDF もできなかった」「引数をパスだけにしたスクリプトを、Windows PowerShell 5.1 で動かすと、`Documents.Open` が null を返した」。\n\n",
+   "opened": [
+    "project:concepts/officeのcomでの書き出し.md",
+    "project:sources/office-com-word-export-2026-11-15.md"
+   ]
+  },
+  {
+   "id": "S52376c37370aecd75de24c02",
+   "answer": "## 答え\n\nwiki の記述では、Word の COM で PDF に書き出すとき、引数について次の点に注意する。ただし、どれも 1 回の観測に基づく仮説で、確かめられていない部分がある。\n\n- **`Documents.Open` にはパスだけを渡す。** 読み取り専用の引数（`Documents.Open(パス, $false, $true)`）を渡すと、300 秒で終わらず、PDF もできなかった。\n- **`DisplayAlerts` は 0 にする。** 画面に出ない確認で止まるのを防ぐためとされている。\n- **戻り値が null なら止める。** パスだけを渡しても、Windows PowerShell 5.1 では `Documents.Open` が null を返した。原因は分かっていない。\n- **pwsh 7 で動かし、`Start-Job` と `Wait-Job -Timeout` で時間の上限を付ける。** 成功した例は pwsh 7 の `Start-Job` で動かしたものだけである。\n- **止まったあとは `WINWORD.EXE`（`/Automation -Embedding`）が残っていないか確かめる。**\n\n手順の案は、`$w.DisplayAlerts = 0`、`$w.Documents.Open($path)`、null なら停止、`ExportAsFixedFormat($pdf, 17)`、`Close(0)`、`Quit()` の順である。ただし、`pwsh -File` でスクリプト全体を最後まで通せるかは確かめていない。\n\n\n## 根拠\n\n- [[officeのcomでの書き出し]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/officeのcomでの書き出し.md`）: 「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす」と書かれている。status は `hypothesis`。\n- [[office-com-word-export-2026-11-15]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/office-com-word-export-2026-11-15.md`）: 「読み取り専用の引数を渡した `Documents.Open` は、300 秒で終わらなかった」「引数をパスだけにしたスクリプトを、Windows PowerShell 5.1 で動かすと、`Documents.Open` が null を返した」と書かれている。\n- 同じく [[office-com-word-export-2026-11-15]]: 「成功した例は 1 回の作業だけで、同じ条件でくり返してはいない」（ページ本文にある適用範囲の記述）。\n\n",
+   "opened": [
+    "project:concepts/officeのcomでの書き出し.md",
+    "project:sources/office-com-word-export-2026-11-15.md"
+   ]
+  },
+  {
+   "id": "Se39d495d2319b472d1ee7a7c",
+   "answer": "## 答え\nWord の COM で PDF に書き出すときの注意点は、次のとおりです。ただし wiki のページは status が hypothesis で、成功例は 1 回の作業だけです。\n\n- **`Documents.Open` には引数としてパスだけを渡します。** `Documents.Open(パス, $false, $true)` のように読み取り専用の引数を付けると、300 秒たっても終わらず、PDF もできませんでした。仮説では、画面に出ない確認を待ったまま止まったと考えられています。\n- **`DisplayAlerts` を 0 にします。**\n- **pwsh 7 で動かします。** Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返しました。原因は分かっていません。直前の試しで残った Word の影響の可能性もあります。\n- **戻り値が null なら止まります。**\n- **時間の上限を付けて別のジョブで動かします。** `Start-Job` と `Wait-Job -Timeout` で全体を包みます。\n- **止まったときは、残った `/Automation -Embedding` の WINWORD.EXE を確かめます。**\n- **手順の案は次のとおりです。** `$w.DisplayAlerts = 0`、`$w.Documents.Open($path)`、null の確認、`ExportAsFixedFormat($pdf, 17)`、`Close(0)`、`Quit()` の順です。\n\n適用範囲は限られます。観測したのは Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 だけです。`pwsh -File` でスクリプト全体が最後まで通るかは確かめていません。PowerPoint と Excel では、この問題は出ませんでした。\n\n\n## 根拠\n- [[officeのcomでの書き出し]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/officeのcomでの書き出し.md）: 「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」手順の案と適用範囲もこのページにあります。\n- [[office-com-word-export-2026-11-15]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/office-com-word-export-2026-11-15.md）: 読み取り専用の引数では 300 秒で終わらなかったこと、パスだけを渡すと Windows PowerShell 5.1 で null が返ったこと、pwsh 7 の `Start-Job` で書き出せたことの観測です。\n\n",
+   "opened": [
+    "project:concepts/officeのcomでの書き出し.md",
+    "project:sources/office-com-word-export-2026-11-15.md"
+   ]
+  },
+  {
+   "id": "S3089e468538aac0470469ce7",
+   "answer": "## 答え\nwiki の記述では、Word の COM で PDF に書き出すとき、引数について次の注意がある。ただし、どれも 1 回の作業で観測した仮説や手順の案であり、確定した結論ではない。\n\n- `Documents.Open` には、読み取り専用の引数（`Documents.Open(パス, $false, $true)`）を付けず、パスだけを渡す。読み取り専用の引数で開いたときは、300 秒で終わらず、WINWORD.EXE が残った。\n- `DisplayAlerts` は 0 にする（手順の案）。画面に出る確認で止まるのを避けるためである。\n- Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返した。原因は分かっていない。\n- 動かすときは pwsh 7 の `Start-Job` で包み、`Wait-Job -Timeout` で時間の上限を付ける（手順の案）。止まったあとは、残った `/Automation -Embedding` の WINWORD.EXE を確かめる。\n\n\n## 根拠\n- [[officeのcomでの書き出し]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/officeのcomでの書き出し.md）: 「読み取り専用の引数を渡した `Documents.Open` は、300 秒で終わらなかった。パスだけを渡し、pwsh 7 の `Start-Job` で動かすと書き出せた。」「`$w.DisplayAlerts = 0`、`$w.Documents.Open($path)`、戻り値が null なら止まる、`ExportAsFixedFormat($pdf, 17)`、`Close(0)`、`Quit()`。全体を `Start-Job` と `Wait-Job -Timeout` で包む。」（手順の案と明記）\n- [[office-com-word-export-2026-11-15]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/office-com-word-export-2026-11-15.md）: 「`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。`/Automation -Embedding` の WINWORD.EXE が残っていた。」「引数をパスだけにしたスクリプトを、Windows PowerShell 5.1 で動かすと、`Documents.Open` が null を返した。」\n\n注意点として、wiki には「`ExportAsFixedFormat($pdf, 17)`」の引数の意味の説明はない。また、`pwsh -File` でスクリプト全体を最後まで通せるかは確かめていない、と書かれている。\n\n",
+   "opened": [
+    "project:concepts/officeのcomでの書き出し.md",
+    "project:sources/office-com-word-export-2026-11-15.md"
+   ]
+  },
+  {
+   "id": "S883c724a469ca742020fdd64",
+   "answer": "## 答え\nwiki での推奨は、`Documents.Open` に**ファイルのパスだけを渡す**ことです。読み取り専用の引数は付けません。あわせて `DisplayAlerts` を 0 にし、pwsh 7 で動かします。\n\n- **読み取り専用の引数は付けない**: `Documents.Open(パス, $false, $true)` と読み取り専用で開いたところ、300 秒たっても終わらず、PDF もできませんでした。`/Automation -Embedding` の WINWORD.EXE も残りました。wiki の仮説では、画面に出ない確認を待ったまま止まったとされています。まだ確かめられてはいません。\n- **パスだけを渡し、pwsh 7 で動かす**: pwsh 7 の `Start-Job` の中で `DisplayAlerts = 0` にしてパスだけを渡したところ、開いて書き出せました。ただし Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返しました。原因は分かっていません。直前の試しの Word が残っていた影響の可能性はありますが、これも確かめられていません。\n- **書き出しの手順の案**: 次の順に呼びます。\n  1. `$w.DisplayAlerts = 0`\n  2. `$w.Documents.Open($path)`（戻り値が null なら止める）\n  3. `ExportAsFixedFormat($pdf, 17)`\n  4. `Close(0)`\n  5. `Quit()`\n- **止まったときの備え**: 全体を `Start-Job` と `Wait-Job -Timeout` で包み、時間の上限を付けます。終わったあとは、`/Automation -Embedding` の WINWORD.EXE が残っていないか確かめます。\n\nこの知見は仮説の段階で、確かめた範囲は限られています。\n- 成功は 1 回の作業だけで、同じ条件でくり返していません。\n- 観測した環境は Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 だけです。\n- `pwsh -File` でスクリプト全体を最後まで通せるかは確かめていません。\n- 同じスクリプトで、PowerPoint と Excel はこの問題なく書き出せました。\n\n\n## 根拠\n- [[officeのcomでの書き出し]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/officeのcomでの書き出し.md）: 推奨の要約と手順の案、仮説であることと確かめた範囲が書かれている。原文:「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」\n- [[office-com-word-export-2026-11-15]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/office-com-word-export-2026-11-15.md）: 読み取り専用の引数で止まったこと、パスだけで書き出せたこと、Windows PowerShell 5.1 で null が返ったことの観測記録。原文:「`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。」\n\n",
+   "opened": [
+    "project:concepts/officeのcomでの書き出し.md",
+    "project:sources/office-com-word-export-2026-11-15.md"
+   ]
+  },
+  {
+   "id": "S46595094fb26adb513a0488a",
+   "answer": "## 答え\nwiki に書かれている注意点は次のとおり（ページの status は `hypothesis` で、成功例は 1 回の作業だけ）。\n\n- **`Documents.Open` にはパスだけを渡す。** 読み取り専用の引数を付けた `Documents.Open(パス, $false, $true)` は 300 秒で終わらず、PDF もできなかった。原因は「画面に出ない確認を待ったまま止まった」という仮説で、確かめられていない。\n- **`DisplayAlerts` を 0 にする。** `$w.DisplayAlerts = 0` にしてから開く。\n- **pwsh 7 で動かす。** Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返した。原因は分かっておらず、直前の試しの Word が残っていた影響の可能性もある。\n- **戻り値が null なら止める。** そのうえで `ExportAsFixedFormat($pdf, 17)`、`Close(0)`、`Quit()` の順に呼ぶ（手順の案）。\n- **時間の上限を付けて別のジョブで動かす。** 全体を `Start-Job` と `Wait-Job -Timeout` で包み、止まったときは残った `/Automation -Embedding` の WINWORD.EXE を確かめる。\n\n適用範囲は Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 での観測に限られる。`pwsh -File` でスクリプト全体を最後まで通せるかと、ほかの PC や Office の版での動作は確かめられていない。PowerPoint と Excel では、この問題は出なかった。\n\n\n## 根拠\n- [[officeのcomでの書き出し]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/officeのcomでの書き出し.md）: 引数の扱いと手順の案、適用範囲。「スクリプトから Word の COM で文書を開き、PDF に書き出すときは、`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」\n- [[office-com-word-export-2026-11-15]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/office-com-word-export-2026-11-15.md）: 元になった観測と仮説。「Windows PowerShell 5.1（`powershell -File`）で、`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。」\n\n",
+   "opened": [
+    "project:concepts/officeのcomでの書き出し.md",
+    "project:sources/office-com-word-export-2026-11-15.md"
+   ]
+  },
+  {
+   "id": "Sf32baadd1a804118831ac1fc",
+   "answer": "## 答え\nいちばん大事なのは、`Documents.Open` にはパスだけを渡し、読み取り専用などの引数を足さないことです。wiki にあるのは 1 回だけの作業の記録で、状態は仮説（hypothesis）です。同じ条件でくり返して確かめてはいません。\n\n- **読み取り専用の引数を渡すと止まった:** `Documents.Open(パス, $false, $true)`（読み取り専用）で開くと 300 秒たっても終わらず、PDF もできませんでした。`/Automation -Embedding` の WINWORD.EXE も残りました。原因は、画面に出ない確認を待ったまま止まったという仮説で、確かめてはいません。\n- **パスだけで開いて書き出す:** 手順の案は次の順です。\n  1. `$w.DisplayAlerts = 0` にする\n  2. `$w.Documents.Open($path)` で開き、戻り値が null なら止まる\n  3. `ExportAsFixedFormat($pdf, 17)` で書き出す\n  4. `Close(0)`、`Quit()` で閉じる\n- **pwsh 7 で動かす:** 引数をパスだけにしても、Windows PowerShell 5.1 では `Documents.Open` が null を返しました。原因は分かっていません。直前の試しの Word が残っていた影響かもしれませんが、これも確かめていません。書き出せたのは pwsh 7 の `Start-Job` の中で動かしたときです。\n- **止まったときに備える:** 全体を `Start-Job` と `Wait-Job -Timeout` で包みます。終わったら、`/Automation -Embedding` の WINWORD.EXE が残っていないかを確かめます。\n\n確かめた範囲は、Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 だけです。`pwsh -File` でスクリプト全体を最後まで通せるかは確かめていません。同じスクリプトで、PowerPoint と Excel はこの問題なく書き出せました。\n\n\n## 根拠\n- [[officeのcomでの書き出し]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/officeのcomでの書き出し.md）: 結論と手順の案、仮説、確かめた範囲。原文:「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」\n- [[office-com-word-export-2026-11-15]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/office-com-word-export-2026-11-15.md）: 観測の記録。原文:「`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。」\n\n",
+   "opened": [
+    "project:concepts/officeのcomでの書き出し.md",
+    "project:sources/office-com-word-export-2026-11-15.md"
+   ]
+  }
+ ]
+}

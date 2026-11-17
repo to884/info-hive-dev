@@ -1,0 +1,137 @@
+{
+  "sources": {
+    "info-hive-wiki/hooks/hooks.json": "e703ba119923bc4699d15d351831031d464c416746ba2f3e3136ab9103b0e273",
+    "info-hive-wiki/skills/info-hive/scripts/wiki_prompt_hook.py": "27abff815297c8899fe4c475a5a1e6d22b85fe4e76561eb5da3d36f7d8bc5065",
+    "info-hive-wiki/skills/info-hive/scripts/wiki_pages.py": "ceb65071d250f1fc11d7a6ef04903eeef7f268ac67ffde2f3d14315c3d677376",
+    "info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py": "d90f389431992e23db6f1c387cfa0e8844913833a7aabfeb2dbbf3de7d77f593",
+    "info-hive-wiki/skills/info-hive/scripts/wiki_rawcheck.py": "b64fbdf1741668cce39a301a17a711662b27cd39124ff436e1027ed154e0a765",
+    "info-hive-wiki/skills/info-hive/scripts/wiki_prompt_context.py": "b00a5e61f833a00582d6407e1baf97eaa8b587fcf926f34db78a9234130d4682",
+    "info-hive-wiki/agents/wiki-reader.md": "d7136ade4392baa667590e349911b5a54139ca25c5d80c176be4e26e116bc348",
+    "tests/wiki/bench_prompt_hook.py": "198d37e3b6c0eeff7179616a7ad2f604cb41b09ef5a7d36b6227f6b43420f6ba",
+    "tests/wiki/bench_prompt_parallel.py": "8b7f53ed99eccd32ffbd048bb01f78cfbc981e962919f9ff8f8d3b93695f9a36",
+    "tests/wiki/bench_prompt_publication.py": "d6fc696bddf3d1a8d3005a92e1b1fbc331edaa6849c0c7df45113247acd528cd",
+    "tests/wiki/test_prompt_launcher.py": "825ae409faf4c7e6cb059fa3905be1b571682ff4743df99dd738061993336bcc",
+    "tests/wiki/test_page_set.py": "eb4f6afdcc1bb615fed1b9cd05a945472af7278515ea4fefd1195ed04266ce26",
+    "tests/wiki/test_prompt_hook.py": "c47396d068b864baf1aa81a334462785420983fc12a1b7a303bd2850422362e4"
+  },
+  "measurements": [
+    {
+      "path": "review2-parallel-8.json",
+      "sha256": "9d8f5e97b157a500b36ce430a9d11d3cdcbaa3c2e2f450624b18aadb56298493",
+      "timing": {
+        "n": 20,
+        "p50_ms": 984.5,
+        "p95_ms": 1153.1,
+        "max_ms": 1322.2
+      },
+      "delivered": 20,
+      "gate_passed": true
+    },
+    {
+      "path": "review2-parallel-16-a.json",
+      "sha256": "dc817775be748f573425dbfba9f656ab972ae9a3130aa6e175f88923a8e133d6",
+      "timing": {
+        "n": 20,
+        "p50_ms": 1199.6,
+        "p95_ms": 1356.3,
+        "max_ms": 1402.7
+      },
+      "delivered": 20,
+      "gate_passed": true
+    },
+    {
+      "path": "review2-parallel-16-b.json",
+      "sha256": "1da8b0e5d7664a1b221243e1b69b8a22a4678d0d1d82e1f17b602eb29beaedf8",
+      "timing": {
+        "n": 20,
+        "p50_ms": 1198.0,
+        "p95_ms": 1625.6,
+        "max_ms": 1741.1
+      },
+      "delivered": 20,
+      "gate_passed": true
+    },
+    {
+      "path": "review2-venv-cwd-8.json",
+      "sha256": "83ab0d6a9ea7cf54913b463c90d531131765cc2dd2f1a3258bd6307f06b2aa68",
+      "timing": {
+        "n": 20,
+        "p50_ms": 1285.5,
+        "p95_ms": 1494.8,
+        "max_ms": 1559.0
+      },
+      "delivered": 20,
+      "gate_passed": true
+    },
+    {
+      "path": "review2-venv-active-8.json",
+      "sha256": "7b8f8573835dfd90a64585a309dcd32276953f2fae7ec3335bb9fc1c5648f301",
+      "timing": {
+        "n": 20,
+        "p50_ms": 1009.7,
+        "p95_ms": 1160.1,
+        "max_ms": 1178.7
+      },
+      "delivered": 20,
+      "gate_passed": true
+    },
+    {
+      "path": "review2-names-corrected-8.json",
+      "sha256": "b207db906590ba90192f213a5ec5d03450e182b0bd574f041eae3f46115ad33c",
+      "timing": {
+        "n": 20,
+        "p50_ms": 1698.4,
+        "p95_ms": 3178.7,
+        "max_ms": 3258.8
+      },
+      "delivered": 20,
+      "gate_passed": true
+    },
+    {
+      "path": "review2-serial.json",
+      "sha256": "50ab93de40be5c719e0983e6af81234a26ce2bd0500062246e5f22ff8245956b",
+      "one_second_goal_met_in_this_batch": true,
+      "scope": "このバッチの逐次検索p95が1秒未満。他作業の負荷は一定ではなく、前の1.17秒も保証値にはしない。"
+    }
+  ],
+  "parallel_trials": 120,
+  "tests": [
+    {
+      "suite": "フック・実起動・測定・ページ集合・fetch・rawcheck・web-raw・YouTube",
+      "total": 393,
+      "failed": 0,
+      "skipped": 1
+    },
+    {
+      "suite": "未初期化wiki・閲覧（Python3.12とPyYAML6.0.3）",
+      "total": 171,
+      "failed": 0,
+      "skipped": 6
+    },
+    {
+      "suite": "同梱解析器の初期化・外部版混在のfreshプロセスでの追加検査",
+      "total": 6,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "external_package_probe": {
+    "preloaded_version": "4.3.0",
+    "selected_version": "3.0.0",
+    "same_token_class": true
+  },
+  "excluded_measurements": {
+    "review2-names-8.json": "計測用ページ1の題の置換に失敗し、問い合わせに対応するページが1件しかなかった。修正後は別ファイルに記録。"
+  },
+  "limitations": [
+    "他の作業を継続しており、CPUとI/Oの条件は一定ではない。",
+    "S1とS2、150ページ、フック4本同時の有限回の結果である。",
+    "合成の負荷は通常優先度。I/Oや同じAboveNormalとの競合への効果は保証しない。",
+    "5秒以内の完了は観測した条件での結果であり、任意の負荷での保証ではない。"
+  ],
+  "not_run": [
+    "有料の候補を読むモデルの再測定",
+    "リモートCI",
+    "マーケットプレイスからの導入"
+  ]
+}

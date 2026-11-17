@@ -1,0 +1,622 @@
+{
+ "protocol": 3,
+ "fingerprint": "c7b9e69a443a55c8807dd832222250a65db2f07b3b28e2e9c6ba3ed219e6dc40",
+ "id": "r3-haiku",
+ "class": "R3",
+ "model": "sonnet",
+ "effort": "medium",
+ "run": 1,
+ "requested_effort": "medium",
+ "prompt_sha256": "69a7f12be693b8d0e57b7dd03c61ef5e18bf28b5e9dbdf1b7ae689e9472e7218",
+ "argv": [
+  "claude",
+  "-p",
+  "問い: ingest の raw の段を Haiku にしてよいか、モデルの比較の結果から判断して\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"ingestに使うモデル\", \"path\": \"concepts/ingestに使うモデル.md\"}\n{\"slug\": \"ingestのモデルの比較-2026-11-13\", \"path\": \"sources/ingestのモデルの比較-2026-11-13.md\"}",
+  "--agent",
+  "wiki:wiki-reader",
+  "--model",
+  "sonnet",
+  "--effort",
+  "medium",
+  "--plugin-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--tools",
+  "Read,Glob,Grep",
+  "--allowedTools",
+  "Read,Glob,Grep",
+  "--max-budget-usd",
+  "2",
+  "--permission-mode",
+  "auto",
+  "--no-session-persistence",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "{\"mcpServers\":{}}",
+  "--settings",
+  "{\"autoMemoryEnabled\": false, \"claudeMdExcludes\": [\"**/CLAUDE.md\", \"**/CLAUDE.local.md\", \"**/AGENTS.md\", \"**/.claude/rules/**\"]}",
+  "--add-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+ ],
+ "events": [
+  {
+   "type": "system",
+   "subtype": "init",
+   "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "session_id": "a429e7c4-eb35-4b55-8269-ce664e439c8e",
+   "tools": [
+    "Read",
+    "Glob",
+    "Grep"
+   ],
+   "mcp_servers": [],
+   "model": "claude-sonnet-5-5",
+   "permissionMode": "auto",
+   "slash_commands": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring",
+    "advisor",
+    "agents",
+    "auto-mode-setup",
+    "autocompact",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "output-style",
+    "context",
+    "effort",
+    "fast",
+    "focus",
+    "heapdump",
+    "init",
+    "mcp",
+    "import",
+    "model",
+    "__remote-workflow",
+    "workflow-launch-exec",
+    "reload-plugins",
+    "reload-skills",
+    "rename",
+    "ultrareview",
+    "security-review",
+    "usage-credits",
+    "extra-usage",
+    "usage",
+    "insights",
+    "recap",
+    "skill-doctor",
+    "goal",
+    "design-consent",
+    "design-revoke",
+    "list-agents",
+    "team-onboarding"
+   ],
+   "terminal_slash_commands": [
+    "doctor",
+    "color",
+    "focus",
+    "reload-plugins"
+   ],
+   "apiKeySource": "none",
+   "claude_code_version": "2.1.325",
+   "output_style": "default",
+   "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup",
+    "web-fetch",
+    "wiki:wiki-reader"
+   ],
+   "skills": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring"
+   ],
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+     "source": "wiki@inline",
+     "version": "0.0.0"
+    },
+    {
+     "name": "cc-plugin-agents-md",
+     "path": "builtin",
+     "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+     "name": "cc-plugin-telemetry",
+     "path": "builtin",
+     "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+     "name": "cc-plugin-privacy",
+     "path": "builtin",
+     "source": "cc-plugin-privacy@builtin"
+    },
+    {
+     "name": "cc-plugin-plugin-authoring",
+     "path": "builtin",
+     "source": "cc-plugin-plugin-authoring@builtin"
+    }
+   ],
+   "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1"
+   ],
+   "analytics_disabled": false,
+   "product_feedback_disabled": false,
+   "uuid": "afeeb187-5b7d-45ed-b0ad-51b945df161e",
+   "original_cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "additional_directories": [
+    "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+   ],
+   "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-7a03f48d49fe132fe8c995898096eb98",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "per_turn_effort_active": true,
+   "ultrathink_available": false,
+   "ultrathink_typed_raises": false,
+   "view_mode": "default",
+   "powershell_path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch8jJKPz4aTih4HVo48UU",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01LbjnjifsnW82Vcp2H5fyzj",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/ingestに使うモデル.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1255,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1255
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "a429e7c4-eb35-4b55-8269-ce664e439c8e",
+   "uuid": "0e2bd94c-2df3-4615-b412-0259dd743d8d",
+   "timestamp": "2026-11-17T15:23:13.295Z",
+   "request_id": "req_011Ch8jJK87nzgpi7BA91GAj",
+   "wire_tool_inputs": {
+    "toolu_01LbjnjifsnW82Vcp2H5fyzj": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/ingestに使うモデル.md"
+    }
+   }
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch8jJKPz4aTih4HVo48UU",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01RcpS5v37iVTVrVsCyjFFKf",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/ingestのモデルの比較-2026-11-13.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1255,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1255
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "a429e7c4-eb35-4b55-8269-ce664e439c8e",
+   "uuid": "b5475275-0257-4a5c-9656-c665ca1d6235",
+   "timestamp": "2026-11-17T15:23:13.889Z",
+   "request_id": "req_011Ch8jJK87nzgpi7BA91GAj",
+   "wire_tool_inputs": {
+    "toolu_01RcpS5v37iVTVrVsCyjFFKf": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/ingestのモデルの比較-2026-11-13.md"
+    }
+   }
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.92,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.56,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.92,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "2715f717-4597-4bc4-b569-a44c6665e1ef",
+   "session_id": "a429e7c4-eb35-4b55-8269-ce664e439c8e"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01RcpS5v37iVTVrVsCyjFFKf",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:ingest のモデルの比較（2026-11-13）\"\n4\ttags: [\"取り込み\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/research/wiki-ingest-model-comparison-2026-11-13.md\"\n7\tingested: 2026-11-13\n8\tcreated: 2026-11-13\n9\tupdated: 2026-11-14\n10\t---\n11\t\n12\t# /wiki:ingest のモデルの比較（2026-11-13）\n13\t\n14\tHaiku 5.5、Sonnet 5.5、Opus 5.5 で同じ 4 つの Web ページを `/wiki:ingest` に取り込み、raw の違いを比べた調査である。原本は `docs/research/wiki-ingest-model-comparison-2026-11-13.md`、実行の記録とスクリプトは `docs/agent-runs/2026-11-13-wiki-ingest-model-comparison/` にある。結論として、Sonnet 5.5 を使い続けることにした（[[ingestに使うモデル]]）。\n15\t\n16\t## 進め方\n17\t\n18\t- ページは CQRS（英語、図 2 枚）、Datatypes In SQLite（英語、約 30,000 文字、コード 5 個）、ブルームフィルタ（日本語の Wikipedia）、Medium の有料記事（英語、約 61,000 文字、コード 58 個、図 34 枚）の 4 つ。\n19\t- 実行ごとに空の wiki を作り、パス以外は同じ依頼文で 12 回取り込ませた。モデルが手を入れる前の `wiki_fetch.py` の取得を基準にし、raw をスクリプトで突き合わせた。\n20\t- 訳は GPT-6.1 Sol に目隠しで評価させた。図の補足は 9 枚を図と照らし合わせた。\n21\t- Medium の記事は有料の壁で冒頭しか取れないので、ログイン済みの Chrome に表示された本文を `wiki_fetch.py` の変換に通して 3 モデルに渡した。\n22\t\n23\t## 分かったこと\n24\t\n25\t- モデルの差が raw に出るのは Web ページだけである。モデルが受け持つのは、雑音の削除、訳、画像の補足、`translated_by` の記入である。PDF とテキストのソースは原本をそのまま置く。\n26\t- Haiku 5.5 は raw の規則を何度も破った。SQL のコメントを訳してコードブロックを変えた。本文のリンクを落とした（SQLite で 8 か所）。図の下の説明文を消して alt に移した。それでいて Sonnet より速くもない。\n27\t- Sonnet 5.5 に重大な誤訳はなかった。ただし、原文の HTML にない演算子 `<>` を自分の知識で補い、図 9 枚中 1 枚で中央値を読み違えた。\n28\t- Opus 5.5 は、目隠しの評価で 3 ページ中 2 ページの 1 位、残る 1 ページで 2 位だった。図の補足に誤りはなかった。一方で、時間は Sonnet の 1.8〜7 倍かかった。\n29\t- 日本語のページでは訳がないので、Sonnet と Opus の raw はほぼ同じだった。\n30\t- 取り込みの時間は、Haiku が 122〜342 秒、Sonnet が 85〜499 秒、Opus が 421〜920 秒。報告されたトークン数には固定の分が含まれるため、費用の比は出せなかった。\n31\t- 付随して、空の `tags` を lint が指摘するため、Opus と Sonnet は `SCHEMA.md` に自分でタグを足した。\n32\t\n33\t## モデルごとの比較\n34\t\n35\t数値は原本の「結果」の節から写した。1 つのページとモデルの組み合わせにつき、実行は 1 回だけである。\n36\t\n37\t### raw の構造\n38\t\n39\t| 確かめたこと | Haiku 5.5 | Sonnet 5.5 | Opus 5.5 |\n40\t| --- | --- | --- | --- |\n41\t| 段落の欠落と統合、見出しの階層 | なし、保った | なし、保った | なし、保った |\n42\t| コードブロック | SQLite の 5 個中 3 個で SQL のコメントを訳した | すべて保った | すべて保った |\n43\t| 本文のリンク | SQLite で 8 か所、Medium で 1 か所を落とした | SQLite で 2 か所を落とした | SQLite で 1 か所を落とした |\n44\t| 原文にない内容 | なし | SQLite で、ページにない演算子 `<>` を補った | なし |\n45\t| 図の下の説明文（Medium） | 34 個を本文から消し、alt に移した | 保った | 保った |\n46\t| 雑音の削除 | 曖昧さ回避の表を残した | タグのリンクと重複した題名を残した | すべて削った |\n47\t| 固有名詞の英語表記 | `Event Sourcing`、`Domain-Driven Design` などを訳した | ほぼ保った（`Greenwich` を訳した） | ほぼ保った（`Greenwich`、`Brier` を訳した） |\n48\t| 文体 | です・ます調（SQLite はである調と混ざる） | である調 | である調 |\n49\t\n50\t### 訳の正確さ（目隠しの評価、10 点満点。忠実さ、読みやすさ）\n51\t\n52\t| ページ | Haiku 5.5 | Sonnet 5.5 | Opus 5.5 |\n53\t| --- | --- | --- | --- |\n54\t| CQRS | 8.8、8.4（1 位） | 8.2、7.7（3 位） | 8.6、8.0（2 位） |\n55\t| SQLite | 7.8、8.4（3 位） | 9.1、8.5（2 位） | 9.5、7.8（1 位） |\n56\t| Medium（5 つの節） | 6.5、7.5（3 位） | 9.5、7.5（2 位） | 9.5、8.5（1 位） |\n57\t\n58\t### 図の補足（照らし合わせた 9 枚）\n59\t\n60\t| | Haiku 5.5 | Sonnet 5.5 | Opus 5.5 |\n61\t| --- | --- | --- | --- |\n62\t| 誤りのあった図 | 2 枚（ブルームフィルタのグラフの立ち上がり、Medium の散布図の解決の時間） | 1 枚（Medium の散布図の中央値） | 0 枚 |\n63\t| 補足の文字数（Medium の 34 枚の合計） | 8,930 | 9,522 | 13,855 |\n64\t\n65\t### 時間とトークン（取り込み全体）\n66\t\n67\t| ページ | Haiku 5.5 | Sonnet 5.5 | Opus 5.5 |\n68\t| --- | --- | --- | --- |\n69\t| CQRS | 162 秒、125k | 88 秒、102k | 626 秒、164k |\n70\t| SQLite | 158 秒、156k | 198 秒、131k | 493 秒、158k |\n71\t| ブルームフィルタ | 122 秒、141k | 85 秒、111k | 421 秒、151k |\n72\t| Medium | 342 秒、294k | 499 秒、272k | 920 秒、296k |\n73\t\n74\tトークンには固定の分（何もさせない実行でも約 66k）が含まれるので、費用の比は出せない。raw の段を Sonnet に任せ、後段を Opus で行ったときの時間と費用は、[[rawの段を任せるエージェントの確かめ-2026-11-14]] にある。\n75\t\n76\t## 主張と行き先\n77\t\n78\t| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n79\t| --- | --- | --- | --- | --- |\n80\t| 1 | `/wiki:ingest` には Sonnet 5.5 を使い続ける。その理由と、受け入れた弱点 | レポートの「決定」 | create | [[ingestに使うモデル]] |\n81\t| 2 | 3 モデルの raw の構造、訳の点数、図の補足、時間の比較 | レポートの「結果」 | source_only | 調査の数値で、ほかのページから引く場面がない。このページの「モデルごとの比較」に載せた（2026-11-14） |\n82\t| 3 | 有料のページは、ブラウザで取った HTML を `wiki_fetch.py` の変換に通せば、同じ形の raw にできる | 記録の `scripts/fetch_from_dom.py` | source_only | この調査のための手段で、手順としては決めていない |\n83\t\n84\t## 関係するページ\n85\t\n86\t- [[ingestに使うモデル]]\n87\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "a429e7c4-eb35-4b55-8269-ce664e439c8e",
+   "uuid": "f2f84331-841b-4344-bfe0-48b7bbf115cb",
+   "timestamp": "2026-11-17T15:23:14.124Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/ingestのモデルの比較-2026-11-13.md",
+     "content": "---\ntype: \"source\"\ntitle: \"/wiki:ingest のモデルの比較（2026-11-13）\"\ntags: [\"取り込み\"]\nauthors: [\"to884\"]\nraw: \"docs/research/wiki-ingest-model-comparison-2026-11-13.md\"\ningested: 2026-11-13\ncreated: 2026-11-13\nupdated: 2026-11-14\n---\n\n# /wiki:ingest のモデルの比較（2026-11-13）\n\nHaiku 5.5、Sonnet 5.5、Opus 5.5 で同じ 4 つの Web ページを `/wiki:ingest` に取り込み、raw の違いを比べた調査である。原本は `docs/research/wiki-ingest-model-comparison-2026-11-13.md`、実行の記録とスクリプトは `docs/agent-runs/2026-11-13-wiki-ingest-model-comparison/` にある。結論として、Sonnet 5.5 を使い続けることにした（[[ingestに使うモデル]]）。\n\n## 進め方\n\n- ページは CQRS（英語、図 2 枚）、Datatypes In SQLite（英語、約 30,000 文字、コード 5 個）、ブルームフィルタ（日本語の Wikipedia）、Medium の有料記事（英語、約 61,000 文字、コード 58 個、図 34 枚）の 4 つ。\n- 実行ごとに空の wiki を作り、パス以外は同じ依頼文で 12 回取り込ませた。モデルが手を入れる前の `wiki_fetch.py` の取得を基準にし、raw をスクリプトで突き合わせた。\n- 訳は GPT-6.1 Sol に目隠しで評価させた。図の補足は 9 枚を図と照らし合わせた。\n- Medium の記事は有料の壁で冒頭しか取れないので、ログイン済みの Chrome に表示された本文を `wiki_fetch.py` の変換に通して 3 モデルに渡した。\n\n## 分かったこと\n\n- モデルの差が raw に出るのは Web ページだけである。モデルが受け持つのは、雑音の削除、訳、画像の補足、`translated_by` の記入である。PDF とテキストのソースは原本をそのまま置く。\n- Haiku 5.5 は raw の規則を何度も破った。SQL のコメントを訳してコードブロックを変えた。本文のリンクを落とした（SQLite で 8 か所）。図の下の説明文を消して alt に移した。それでいて Sonnet より速くもない。\n- Sonnet 5.5 に重大な誤訳はなかった。ただし、原文の HTML にない演算子 `<>` を自分の知識で補い、図 9 枚中 1 枚で中央値を読み違えた。\n- Opus 5.5 は、目隠しの評価で 3 ページ中 2 ページの 1 位、残る 1 ページで 2 位だった。図の補足に誤りはなかった。一方で、時間は Sonnet の 1.8〜7 倍かかった。\n- 日本語のページでは訳がないので、Sonnet と Opus の raw はほぼ同じだった。\n- 取り込みの時間は、Haiku が 122〜342 秒、Sonnet が 85〜499 秒、Opus が 421〜920 秒。報告されたトークン数には固定の分が含まれるため、費用の比は出せなかった。\n- 付随して、空の `tags` を lint が指摘するため、Opus と Sonnet は `SCHEMA.md` に自分でタグを足した。\n\n## モデルごとの比較\n\n数値は原本の「結果」の節から写した。1 つのページとモデルの組み合わせにつき、実行は 1 回だけである。\n\n### raw の構造\n\n| 確かめたこと | Haiku 5.5 | Sonnet 5.5 | Opus 5.5 |\n| --- | --- | --- | --- |\n| 段落の欠落と統合、見出しの階層 | なし、保った | なし、保った | なし、保った |\n| コードブロック | SQLite の 5 個中 3 個で SQL のコメントを訳した | すべて保った | すべて保った |\n| 本文のリンク | SQLite で 8 か所、Medium で 1 か所を落とした | SQLite で 2 か所を落とした | SQLite で 1 か所を落とした |\n| 原文にない内容 | なし | SQLite で、ページにない演算子 `<>` を補った | なし |\n| 図の下の説明文（Medium） | 34 個を本文から消し、alt に移した | 保った | 保った |\n| 雑音の削除 | 曖昧さ回避の表を残した | タグのリンクと重複した題名を残した | すべて削った |\n| 固有名詞の英語表記 | `Event Sourcing`、`Domain-Driven Design` などを訳した | ほぼ保った（`Greenwich` を訳した） | ほぼ保った（`Greenwich`、`Brier` を訳した） |\n| 文体 | です・ます調（SQLite はである調と混ざる） | である調 | である調 |\n\n### 訳の正確さ（目隠しの評価、10 点満点。忠実さ、読みやすさ）\n\n| ページ | Haiku 5.5 | Sonnet 5.5 | Opus 5.5 |\n| --- | --- | --- | --- |\n| CQRS | 8.8、8.4（1 位） | 8.2、7.7（3 位） | 8.6、8.0（2 位） |\n| SQLite | 7.8、8.4（3 位） | 9.1、8.5（2 位） | 9.5、7.8（1 位） |\n| Medium（5 つの節） | 6.5、7.5（3 位） | 9.5、7.5（2 位） | 9.5、8.5（1 位） |\n\n### 図の補足（照らし合わせた 9 枚）\n\n| | Haiku 5.5 | Sonnet 5.5 | Opus 5.5 |\n| --- | --- | --- | --- |\n| 誤りのあった図 | 2 枚（ブルームフィルタのグラフの立ち上がり、Medium の散布図の解決の時間） | 1 枚（Medium の散布図の中央値） | 0 枚 |\n| 補足の文字数（Medium の 34 枚の合計） | 8,930 | 9,522 | 13,855 |\n\n### 時間とトークン（取り込み全体）\n\n| ページ | Haiku 5.5 | Sonnet 5.5 | Opus 5.5 |\n| --- | --- | --- | --- |\n| CQRS | 162 秒、125k | 88 秒、102k | 626 秒、164k |\n| SQLite | 158 秒、156k | 198 秒、131k | 493 秒、158k |\n| ブルームフィルタ | 122 秒、141k | 85 秒、111k | 421 秒、151k |\n| Medium | 342 秒、294k | 499 秒、272k | 920 秒、296k |\n\nトークンには固定の分（何もさせない実行でも約 66k）が含まれるので、費用の比は出せない。raw の段を Sonnet に任せ、後段を Opus で行ったときの時間と費用は、[[rawの段を任せるエージェントの確かめ-2026-11-14]] にある。\n\n## 主張と行き先\n\n| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n| --- | --- | --- | --- | --- |\n| 1 | `/wiki:ingest` には Sonnet 5.5 を使い続ける。その理由と、受け入れた弱点 | レポートの「決定」 | create | [[ingestに使うモデル]] |\n| 2 | 3 モデルの raw の構造、訳の点数、図の補足、時間の比較 | レポートの「結果」 | source_only | 調査の数値で、ほかのページから引く場面がない。このページの「モデルごとの比較」に載せた（2026-11-14） |\n| 3 | 有料のページは、ブラウザで取った HTML を `wiki_fetch.py` の変換に通せば、同じ形の raw にできる | 記録の `scripts/fetch_from_dom.py` | source_only | この調査のための手段で、手順としては決めていない |\n\n## 関係するページ\n\n- [[ingestに使うモデル]]\n",
+     "numLines": 87,
+     "startLine": 1,
+     "totalLines": 87
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01RcpS5v37iVTVrVsCyjFFKf",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01LbjnjifsnW82Vcp2H5fyzj",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"concept\"\n3\ttitle: \"/wiki:ingest に使うモデル\"\n4\ttags: [\"取り込み\"]\n5\tsources: [\"ingestのモデルの比較-2026-11-13\", \"rawの段を任せるエージェントの確かめ-2026-11-14\"]\n6\tcreated: 2026-11-13\n7\tupdated: 2026-11-14\n8\t---\n9\t\n10\t# /wiki:ingest に使うモデル\n11\t\n12\t`/wiki:ingest` で Web ページを取り込むときは、raw を作る段（取得、雑音の削除、訳、画像の補足、検査）を Claude Sonnet 5.5 で行う。2026-11-13 に Haiku 5.5 と Opus 5.5 とで比べ、Sonnet のまま使うことに決めた（[[ingestのモデルの比較-2026-11-13]]）。比べたのは raw だけなので、要約ページから後は、取り込みを進めているモデル（ユーザーが使っているモデル）で行う。\n13\t\n14\twiki プラグイン 0.15.0 からは、raw の段をプラグインのエージェント `wiki:web-raw`（`model: sonnet`）が行う。それまでは、グローバルの指示（`C:\\Users\\toshiki\\.claude\\CLAUDE.md`）で取り込み全体を Sonnet にしていたが、2026-11-14 にその指示を消した（設計は `docs/plans/wiki-web-raw-agent-2026-11-14.md`）。0.15.0 より前のプラグインでは、raw の段も、取り込みを進めているモデルで行われる。\n15\t\n16\tメインを Opus 5.5 にして分けた取り込みを実際に動かすと、分担は記録の上で確かめられ、費用の大半は後段の Opus で、Sonnet の raw の段は 1 割ほどだった（[[rawの段を任せるエージェントの確かめ-2026-11-14]]）。モデルごとの比較の数値は [[ingestのモデルの比較-2026-11-13]] にある。\n17\t\n18\t## モデルが raw に与える影響\n19\t\n20\tWeb ページの取り込みでは、`wiki_fetch.py` が取得と Markdown への変換をし、モデルが雑音の削除、訳、画像の補足を受け持つ。raw は取り込んだあとに書き換えない原本なので、ここでの誤りは取り直すまで残る。要約ページの引用も raw から取る。PDF とテキストのソースは原本をそのまま置くので、raw にはモデルの差が出ない。\n21\t\n22\t## Sonnet 5.5 にした理由\n23\t\n24\t- 重大な誤訳がなく、目隠しの評価の忠実さは Opus と 0〜0.4 点の差だった。\n25\t- 時間は Opus の 1/7〜1/2 で済む。\n26\t- Haiku は、コードブロックの中身を変える、リンクを落とすなど、raw の規則を破る。速さも Sonnet と変わらない。\n27\t\n28\t## 受け入れた弱点\n29\t\n30\tSonnet で取り込んだ raw には、次のような誤りが入りうる。気づいたら、raw を直さずに取り直して別版にする。\n31\t\n32\t- 原文にない内容を、自分の知識で補うことがある（比較では、ページの HTML にない `<>` を補った）。\n33\t- 図の数値を読み違えることがある（照らし合わせた 9 枚中 1 枚）。\n34\t- 雑音を残すことがある（タグのリンク、重複した題名）。\n35\t\n36\t## 見直す条件\n37\t\n38\t- 図の多い英語のページで、補足の読み違いが目立つようになったら、英語のページだけ Opus を使う案を考え直す。\n39\t- 新しいモデルが出たら、同じ 4 ページで比べ直せる。スクリプトは `docs/agent-runs/2026-11-13-wiki-ingest-model-comparison/scripts/` にある。\n40\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "a429e7c4-eb35-4b55-8269-ce664e439c8e",
+   "uuid": "e9a3b45b-b2b3-4a35-bb15-e5b1dccd3250",
+   "timestamp": "2026-11-17T15:23:14.142Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/ingestに使うモデル.md",
+     "content": "---\ntype: \"concept\"\ntitle: \"/wiki:ingest に使うモデル\"\ntags: [\"取り込み\"]\nsources: [\"ingestのモデルの比較-2026-11-13\", \"rawの段を任せるエージェントの確かめ-2026-11-14\"]\ncreated: 2026-11-13\nupdated: 2026-11-14\n---\n\n# /wiki:ingest に使うモデル\n\n`/wiki:ingest` で Web ページを取り込むときは、raw を作る段（取得、雑音の削除、訳、画像の補足、検査）を Claude Sonnet 5.5 で行う。2026-11-13 に Haiku 5.5 と Opus 5.5 とで比べ、Sonnet のまま使うことに決めた（[[ingestのモデルの比較-2026-11-13]]）。比べたのは raw だけなので、要約ページから後は、取り込みを進めているモデル（ユーザーが使っているモデル）で行う。\n\nwiki プラグイン 0.15.0 からは、raw の段をプラグインのエージェント `wiki:web-raw`（`model: sonnet`）が行う。それまでは、グローバルの指示（`C:\\Users\\toshiki\\.claude\\CLAUDE.md`）で取り込み全体を Sonnet にしていたが、2026-11-14 にその指示を消した（設計は `docs/plans/wiki-web-raw-agent-2026-11-14.md`）。0.15.0 より前のプラグインでは、raw の段も、取り込みを進めているモデルで行われる。\n\nメインを Opus 5.5 にして分けた取り込みを実際に動かすと、分担は記録の上で確かめられ、費用の大半は後段の Opus で、Sonnet の raw の段は 1 割ほどだった（[[rawの段を任せるエージェントの確かめ-2026-11-14]]）。モデルごとの比較の数値は [[ingestのモデルの比較-2026-11-13]] にある。\n\n## モデルが raw に与える影響\n\nWeb ページの取り込みでは、`wiki_fetch.py` が取得と Markdown への変換をし、モデルが雑音の削除、訳、画像の補足を受け持つ。raw は取り込んだあとに書き換えない原本なので、ここでの誤りは取り直すまで残る。要約ページの引用も raw から取る。PDF とテキストのソースは原本をそのまま置くので、raw にはモデルの差が出ない。\n\n## Sonnet 5.5 にした理由\n\n- 重大な誤訳がなく、目隠しの評価の忠実さは Opus と 0〜0.4 点の差だった。\n- 時間は Opus の 1/7〜1/2 で済む。\n- Haiku は、コードブロックの中身を変える、リンクを落とすなど、raw の規則を破る。速さも Sonnet と変わらない。\n\n## 受け入れた弱点\n\nSonnet で取り込んだ raw には、次のような誤りが入りうる。気づいたら、raw を直さずに取り直して別版にする。\n\n- 原文にない内容を、自分の知識で補うことがある（比較では、ページの HTML にない `<>` を補った）。\n- 図の数値を読み違えることがある（照らし合わせた 9 枚中 1 枚）。\n- 雑音を残すことがある（タグのリンク、重複した題名）。\n\n## 見直す条件\n\n- 図の多い英語のページで、補足の読み違いが目立つようになったら、英語のページだけ Opus を使う案を考え直す。\n- 新しいモデルが出たら、同じ 4 ページで比べ直せる。スクリプトは `docs/agent-runs/2026-11-13-wiki-ingest-model-comparison/scripts/` にある。\n",
+     "numLines": 40,
+     "startLine": 1,
+     "totalLines": 40
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01LbjnjifsnW82Vcp2H5fyzj",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-sonnet-5-5",
+    "id": "msg_011Ch8jJZnS8ipkhycCP39AC",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "## 答え\nraw の段を Haiku にするのは避けるべきだ。wiki の比較結果は、Haiku が raw の規則を何度も破ることを示している。そのため、現行の決定は Sonnet 5.5 のままで、wiki はそれを変える材料を示していない。\n\n- Haiku は速さの利点がない。取り込み時間は Haiku が 122〜342 秒、Sonnet が 85〜499 秒で、大きな差はない。\n- Haiku が破った規則は次のとおり。\n  - SQLite の 5 個中 3 個のコードブロックで、SQL のコメントを訳した。\n  - 本文のリンクを落とした。SQLite で 8 か所、Medium で 1 か所。\n  - Medium の図の下の説明文 34 個を消して alt に移した。\n  - 固有名詞の英語表記を訳した。\n- Haiku は図の補足の誤りも多い。照らし合わせた 9 枚のうち、誤りは Haiku が 2 枚、Sonnet が 1 枚、Opus が 0 枚だった。\n- 訳の忠実さは、Medium で Haiku 6.5、Sonnet 9.5 と差が大きい。CQRS では Haiku が 1 位だった。ただし 1 ページ・モデルにつき実行は 1 回だけなので、強い根拠にはならない。\n- raw は取り込み後に書き換えない原本で、誤りは取り直すまで残る。この点でも Haiku の規則違反は重い。\n\n比較したのは 4 ページ・1 回ずつの実行で、費用の比は出せていない。Haiku を前提にした費用面の議論は、wiki からはできない。\n\n## 根拠\n- [[ingestに使うモデル]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/ingestに使うモデル.md）: 「Haiku は、コードブロックの中身を変える、リンクを落とすなど、raw の規則を破る。速さも Sonnet と変わらない。」raw の段は Sonnet 5.5 と決定済み。\n- [[ingestのモデルの比較-2026-11-13]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/ingestのモデルの比較-2026-11-13.md）: 「Haiku 5.5 は raw の規則を何度も破った。」コードブロック、リンク、図の説明文、図の補足、訳の点数、時間の表が根拠。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/ingestに使うモデル.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/ingestのモデルの比較-2026-11-13.md\n\n## 未確認の出典\n- 原本 `docs/research/wiki-ingest-model-comparison-2026-11-13.md` と、[[rawの段を任せるエージェントの確かめ-2026-11-14]] は開いていない。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 4759,
+     "cache_read_input_tokens": 4781,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 4759
+     },
+     "output_tokens": 819,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "a429e7c4-eb35-4b55-8269-ce664e439c8e",
+   "uuid": "0297338b-7106-4d6f-a523-d7bb5d06590e",
+   "timestamp": "2026-11-17T15:23:25.602Z",
+   "request_id": "req_011Ch8jJZYYipvxMpHrwTLnG"
+  },
+  {
+   "duration_api_ms": 13537,
+   "stop_reason": "end_turn",
+   "session_id": "a429e7c4-eb35-4b55-8269-ce664e439c8e",
+   "total_cost_usd": 0.040574700000000005,
+   "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 6014,
+    "cache_read_input_tokens": 8307,
+    "output_tokens": 1568,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 6014,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 1284,
+      "cache_read_input_tokens": 4781,
+      "cache_creation_input_tokens": 4759,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 4759
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-sonnet-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 1568,
+     "cacheReadInputTokens": 8307,
+     "cacheCreationInputTokens": 6014,
+     "webSearchRequests": 0,
+     "costUSD": 0.040574700000000005,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 0,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 6014,
+     "canonicalModel": "claude-sonnet-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+     "background": 0,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {}
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 3,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "## 答え\nraw の段を Haiku にするのは避けるべきだ。wiki の比較結果は、Haiku が raw の規則を何度も破ることを示している。そのため、現行の決定は Sonnet 5.5 のままで、wiki はそれを変える材料を示していない。\n\n- Haiku は速さの利点がない。取り込み時間は Haiku が 122〜342 秒、Sonnet が 85〜499 秒で、大きな差はない。\n- Haiku が破った規則は次のとおり。\n  - SQLite の 5 個中 3 個のコードブロックで、SQL のコメントを訳した。\n  - 本文のリンクを落とした。SQLite で 8 か所、Medium で 1 か所。\n  - Medium の図の下の説明文 34 個を消して alt に移した。\n  - 固有名詞の英語表記を訳した。\n- Haiku は図の補足の誤りも多い。照らし合わせた 9 枚のうち、誤りは Haiku が 2 枚、Sonnet が 1 枚、Opus が 0 枚だった。\n- 訳の忠実さは、Medium で Haiku 6.5、Sonnet 9.5 と差が大きい。CQRS では Haiku が 1 位だった。ただし 1 ページ・モデルにつき実行は 1 回だけなので、強い根拠にはならない。\n- raw は取り込み後に書き換えない原本で、誤りは取り直すまで残る。この点でも Haiku の規則違反は重い。\n\n比較したのは 4 ページ・1 回ずつの実行で、費用の比は出せていない。Haiku を前提にした費用面の議論は、wiki からはできない。\n\n## 根拠\n- [[ingestに使うモデル]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/ingestに使うモデル.md）: 「Haiku は、コードブロックの中身を変える、リンクを落とすなど、raw の規則を破る。速さも Sonnet と変わらない。」raw の段は Sonnet 5.5 と決定済み。\n- [[ingestのモデルの比較-2026-11-13]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/ingestのモデルの比較-2026-11-13.md）: 「Haiku 5.5 は raw の規則を何度も破った。」コードブロック、リンク、図の説明文、図の補足、訳の点数、時間の表が根拠。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/ingestに使うモデル.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/ingestのモデルの比較-2026-11-13.md\n\n## 未確認の出典\n- 原本 `docs/research/wiki-ingest-model-comparison-2026-11-13.md` と、[[rawの段を任せるエージェントの確かめ-2026-11-14]] は開いていない。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）",
+   "ttft_ms": 3100,
+   "type": "result",
+   "duration_ms": 15446,
+   "uuid": "270ea51a-818f-495e-be49-b4eb8c14fe6a",
+   "ttft_stream_ms": 2526,
+   "time_to_request_ms": 1099,
+   "first_content_frame_ms": 2527,
+   "queued_turn_count": 0,
+   "result_index": 0,
+   "model_usage_since_last_result": {
+    "claude-sonnet-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 1568,
+     "cacheReadInputTokens": 8307,
+     "cacheCreationInputTokens": 6014,
+     "webSearchRequests": 0,
+     "costUSD": 0.040574700000000005,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 0,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 6014,
+     "canonicalModel": "claude-sonnet-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "credential_expires_at": "2026-12-06T22:17:39.049Z"
+  }
+ ],
+ "opened": [
+  "project:sources/ingestのモデルの比較-2026-11-13.md",
+  "project:concepts/ingestに使うモデル.md"
+ ],
+ "model_used": "claude-sonnet-5-5",
+ "result": "## 答え\nraw の段を Haiku にするのは避けるべきだ。wiki の比較結果は、Haiku が raw の規則を何度も破ることを示している。そのため、現行の決定は Sonnet 5.5 のままで、wiki はそれを変える材料を示していない。\n\n- Haiku は速さの利点がない。取り込み時間は Haiku が 122〜342 秒、Sonnet が 85〜499 秒で、大きな差はない。\n- Haiku が破った規則は次のとおり。\n  - SQLite の 5 個中 3 個のコードブロックで、SQL のコメントを訳した。\n  - 本文のリンクを落とした。SQLite で 8 か所、Medium で 1 か所。\n  - Medium の図の下の説明文 34 個を消して alt に移した。\n  - 固有名詞の英語表記を訳した。\n- Haiku は図の補足の誤りも多い。照らし合わせた 9 枚のうち、誤りは Haiku が 2 枚、Sonnet が 1 枚、Opus が 0 枚だった。\n- 訳の忠実さは、Medium で Haiku 6.5、Sonnet 9.5 と差が大きい。CQRS では Haiku が 1 位だった。ただし 1 ページ・モデルにつき実行は 1 回だけなので、強い根拠にはならない。\n- raw は取り込み後に書き換えない原本で、誤りは取り直すまで残る。この点でも Haiku の規則違反は重い。\n\n比較したのは 4 ページ・1 回ずつの実行で、費用の比は出せていない。Haiku を前提にした費用面の議論は、wiki からはできない。\n\n## 根拠\n- [[ingestに使うモデル]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/ingestに使うモデル.md）: 「Haiku は、コードブロックの中身を変える、リンクを落とすなど、raw の規則を破る。速さも Sonnet と変わらない。」raw の段は Sonnet 5.5 と決定済み。\n- [[ingestのモデルの比較-2026-11-13]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/ingestのモデルの比較-2026-11-13.md）: 「Haiku 5.5 は raw の規則を何度も破った。」コードブロック、リンク、図の説明文、図の補足、訳の点数、時間の表が根拠。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/ingestに使うモデル.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/ingestのモデルの比較-2026-11-13.md\n\n## 未確認の出典\n- 原本 `docs/research/wiki-ingest-model-comparison-2026-11-13.md` と、[[rawの段を任せるエージェントの確かめ-2026-11-14]] は開いていない。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）",
+ "cost_usd": 0.040574700000000005,
+ "duration_ms": 15446,
+ "is_error": false,
+ "terminal_reason": "completed",
+ "api_error": null,
+ "api_error_status": null,
+ "model_usage": {
+  "claude-sonnet-5-5": {
+   "inputTokens": 4,
+   "outputTokens": 1568,
+   "cacheReadInputTokens": 8307,
+   "cacheCreationInputTokens": 6014,
+   "webSearchRequests": 0,
+   "costUSD": 0.040574700000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 6014,
+   "canonicalModel": "claude-sonnet-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "cli_version": "2.1.325",
+ "memory_paths": {},
+ "exit": 0,
+ "stderr": ""
+}

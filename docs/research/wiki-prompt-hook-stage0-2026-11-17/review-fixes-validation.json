@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-17",
+  "worktree": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook",
+  "sol_major_findings": {
+    "1": "一方向の入力走査、解析の子を親が期限で停止、処理前後の締め切り確認、ファイル読取量の上限",
+    "2": "直接参照と語彙の一致に同じ抽出済み問い合わせ文を使う",
+    "3": "kind:user の作業領域を project に分類しない",
+    "4": "同じ wiki の同じページが意味検索結果に出たときだけ理由0Fを外す規則",
+    "5": "所在は省略しない復元可能なJSON。実在する長いパスを出力から開く試験",
+    "6": "表示した候補の明示的な集合で読む段と既出記録を決める"
+  },
+  "other_fixes": [
+    "状態の読み直しから保存までOSロックで排他。競合した呼び出しは待たず何も出さない",
+    "短文とコマンドも既存セッションの40ターンに数える",
+    "評価は出力に収まった集合を数える",
+    "評価の一般化と文字置換の限界、モデル表が暫定であることを文書に記録"
+  ],
+  "tests": {
+    "combined_with_pyyaml": {
+      "command": "uv run --python 3.14 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_prompt_hook.py tests/wiki/test_uninitialized_wiki.py tests/wiki/test_python_version.py tests/wiki/test_page_set.py tests/wiki/test_walk.py",
+      "tests": 152,
+      "skipped": 5,
+      "passed": true
+    },
+    "final_hook_suite": {
+      "command": "python -X utf8 -B -m unittest tests/wiki/test_prompt_hook.py",
+      "tests": 60,
+      "skipped": 0,
+      "passed": true
+    },
+    "distinct_tests": 154,
+    "distinct_passed": 149,
+    "distinct_skipped": 5,
+    "baseline_regressions": {
+      "tests": 2,
+      "subtest_failures": 11,
+      "errors": 0,
+      "note": "HEADの修正前コードで、除外済み参照の復活とユーザーwikiの分類の反例が失敗することを確認"
+    },
+    "own_changes_diff_check": "passed"
+  },
+  "evaluation": {
+    "recall": 0.889,
+    "precision": 0.893,
+    "N1_fire": 0,
+    "N2_fire": 0,
+    "N3_fire": 0,
+    "passed": true
+  },
+  "timing": {
+    "skip": {
+      "runs": 10,
+      "p50_ms": 201.0,
+      "p95_ms": 214.0,
+      "max_ms": 220.2
+    },
+    "search": {
+      "runs": 10,
+      "p50_ms": 476.4,
+      "p95_ms": 517.5,
+      "max_ms": 524.3
+    }
+  },
+  "timing_fixture_pages": 9,
+  "pending": [
+    "Opus 5.5の敵対的レビューは利用上限で開始不可。表示上の解除は2026-11-17 23:30 Asia/Tokyo",
+    "モデルとエフォートの表の再測定と確定",
+    "uv起動失敗時の標準エラーの画面上での扱いと、デスクトップで窓が出ないことの実機確認",
+    "150ページ、未知のwiki、Windows以外での変更後の実測",
+    "リリースと段階2は今回の修正範囲に含めていない"
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "sources": {
+    "info-hive-wiki/hooks/hooks.json": "e703ba119923bc4699d15d351831031d464c416746ba2f3e3136ab9103b0e273",
+    "info-hive-wiki/skills/info-hive/scripts/wiki_prompt_hook.py": "9c78905d916ba328849a7df73c3c1dacd263ddf2a3d493b2c41ce25dd8e0b055",
+    "info-hive-wiki/skills/info-hive/scripts/wiki_pages.py": "4f2ff3a2202016ee4fce816d183d2bba65c58075edd4459b20d342ef12d9cf9b",
+    "info-hive-wiki/skills/info-hive/scripts/wiki_browse_core.py": "a1c5030c340d425abdef6798dbe5b75c4decf8a050c2d4a671f5f1c6479df7e1",
+    "info-hive-wiki/skills/info-hive/scripts/wiki_prompt_context.py": "b00a5e61f833a00582d6407e1baf97eaa8b587fcf926f34db78a9234130d4682",
+    "info-hive-wiki/agents/wiki-reader.md": "d7136ade4392baa667590e349911b5a54139ca25c5d80c176be4e26e116bc348",
+    "tests/wiki/bench_prompt_hook.py": "198d37e3b6c0eeff7179616a7ad2f604cb41b09ef5a7d36b6227f6b43420f6ba",
+    "tests/wiki/bench_prompt_parallel.py": "0675d831c244d9e3c2ed97257fa10e85b09368039d118d6de88b7532b7b0efb8",
+    "tests/wiki/bench_prompt_publication.py": "96286c4db0cca1388c358d86bf836984a143ac77e4f234de29139f35ad901637",
+    "tests/wiki/test_prompt_launcher.py": "5ac9b01406bb7d95c2ed5c8ec9fea276b4e829284d8c71f304c4741931621291",
+    "tests/wiki/test_page_set.py": "dda70aa09cd1d2e1805e94be0aefd907010d53f8075608f9996f0dd6d808acd0",
+    "tests/wiki/test_prompt_hook.py": "c47396d068b864baf1aa81a334462785420983fc12a1b7a303bd2850422362e4"
+  },
+  "measurements": [
+    {
+      "path": "foreground-parallel-8.json",
+      "sha256": "47149269c646491e9d5108273b1705877455534cb54eaca0083ac5577017d6db",
+      "timing": {
+        "n": 20,
+        "p50_ms": 1540.1,
+        "p95_ms": 2048.0,
+        "max_ms": 2396.2
+      },
+      "delivered": 20,
+      "gate_passed": true
+    },
+    {
+      "path": "foreground-parallel-16.json",
+      "sha256": "6688fb6d979da72412dae86fc6b0b74f448dddbf7fed19063b2ba6498abf13ed",
+      "timing": {
+        "n": 20,
+        "p50_ms": 2299.0,
+        "p95_ms": 2661.0,
+        "max_ms": 2777.5
+      },
+      "delivered": 20,
+      "gate_passed": true
+    },
+    {
+      "path": "foreground-serial.json",
+      "sha256": "9ce438ca785513f828ebcd0319acbcb1666fde39b66358c885238530bf012b9b",
+      "one_second_goal_met": false
+    }
+  ],
+  "tests": [
+    {
+      "command": "python -X utf8 -m unittest tests/wiki/test_page_set.py tests/wiki/test_walk.py tests/wiki/test_wiki_lint.py tests/wiki/test_prompt_hook.py tests/wiki/test_prompt_launcher.py tests/wiki/test_reader_measurement.py",
+      "stage": "after_lazy_parser_before_priority",
+      "total": 155,
+      "failed": 0,
+      "skipped": 3
+    },
+    {
+      "command": "python -X utf8 -m unittest tests/wiki/test_prompt_hook.py tests/wiki/test_prompt_launcher.py tests/wiki/test_reader_measurement.py",
+      "stage": "after_priority",
+      "total": 96,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "uv run --no-project --no-config --python 3.12 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_page_set.py tests/wiki/test_browse.py",
+      "stage": "after_explicit_browse_parser",
+      "total": 161,
+      "failed": 0,
+      "skipped": 5
+    }
+  ],
+  "not_run": [
+    "有料の候補を読むモデルの再測定",
+    "リモートのCIのOS・Pythonの組み合わせ",
+    "マーケットプレイスからの導入"
+  ],
+  "limitations": [
+    "他の作業を継続したため、PC全体のCPUとI/Oの条件は一定ではない。",
+    "他の作業を継続した逐次測定では、検索1秒の目安に届いていない。",
+    "最終の並列測定40回で5秒以内の完了を観測したが、任意の負荷での保証ではない。"
+  ]
+}

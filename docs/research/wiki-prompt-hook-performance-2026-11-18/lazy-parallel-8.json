@@ -1,0 +1,1380 @@
+{
+  "pages": 150,
+  "runs": 20,
+  "load_workers": 8,
+  "concurrency": 4,
+  "profiled": true,
+  "excluded_env": [
+    "RUST_LOG"
+  ],
+  "load": "各workerが新しいPythonを繰り返し起動し、標準ライブラリの読込と合成wiki全ファイルの読込を行う。API・ネットワーク・他のプロセスの操作はない。",
+  "timing": {
+    "n": 20,
+    "p50_ms": 3130.1,
+    "p95_ms": 3757.8,
+    "max_ms": 3803.0
+  },
+  "delivered": 19,
+  "command": "uv run --no-project --no-config --quiet --quiet --offline --no-python-downloads --python \">=3.12,<3.15\" python -I -S \"C:/UserData/toshiki/Temp/wiki-hook-parallel-opw8bc67/profile_hook.py\"; exit 0",
+  "source_sha256": "0c6b41b74a9a7d3a1d9e911bd5a4da34fa9b53fe0c6ef1f3ccbd807bed790bd8",
+  "context_sha256": "b00a5e61f833a00582d6407e1baf97eaa8b587fcf926f34db78a9234130d4682",
+  "pages_sha256": "4f2ff3a2202016ee4fce816d183d2bba65c58075edd4459b20d342ef12d9cf9b",
+  "warmup": {
+    "ms": 3084.4,
+    "exit": 0,
+    "delivered": true,
+    "stdout_bytes": 3366,
+    "stderr": "",
+    "profile": [
+      {
+        "phase": "parent_imported",
+        "at": 39493.6122374,
+        "entry": 39493.4873865,
+        "pid": 41176,
+        "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+        "since_launch_ms": 1093.0,
+        "import_ms": 124.9
+      },
+      {
+        "phase": "context_imported",
+        "at": 39493.7660671,
+        "entry": 39493.4873865,
+        "pid": 41176,
+        "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+        "since_launch_ms": 1246.9,
+        "import_ms": 278.7
+      },
+      {
+        "phase": "context_imported",
+        "at": 39494.8458012,
+        "entry": 39494.1235188,
+        "pid": 8752,
+        "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+        "since_launch_ms": 2326.6,
+        "import_ms": 722.3
+      },
+      {
+        "phase": "before_select",
+        "at": 39494.8474248,
+        "entry": 39494.1235188,
+        "pid": 8752,
+        "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+        "since_launch_ms": 2328.2,
+        "import_ms": 723.9
+      },
+      {
+        "phase": "selected",
+        "at": 39495.4150382,
+        "entry": 39494.1235188,
+        "pid": 8752,
+        "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+        "since_launch_ms": 2895.8,
+        "import_ms": 1291.5
+      },
+      {
+        "phase": "worker_returned",
+        "at": 39495.423203,
+        "entry": 39493.4873865,
+        "pid": 41176,
+        "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+        "since_launch_ms": 2904.0,
+        "import_ms": 1935.8
+      }
+    ]
+  },
+  "trials": [
+    {
+      "ms": 3344.6,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39496.6695324,
+          "entry": 39496.3566131,
+          "pid": 43440,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1013.3,
+          "import_ms": 312.9
+        },
+        {
+          "phase": "context_imported",
+          "at": 39496.8931084,
+          "entry": 39496.3566131,
+          "pid": 43440,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1236.9,
+          "import_ms": 536.5
+        },
+        {
+          "phase": "context_imported",
+          "at": 39498.2495172,
+          "entry": 39497.2498261,
+          "pid": 32016,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2593.3,
+          "import_ms": 999.7
+        },
+        {
+          "phase": "before_select",
+          "at": 39498.2510347,
+          "entry": 39497.2498261,
+          "pid": 32016,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2594.8,
+          "import_ms": 1001.2
+        },
+        {
+          "phase": "selected",
+          "at": 39498.7940026,
+          "entry": 39497.2498261,
+          "pid": 32016,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3137.8,
+          "import_ms": 1544.2
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39498.8131892,
+          "entry": 39496.3566131,
+          "pid": 43440,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3157.0,
+          "import_ms": 2456.6
+        }
+      ]
+    },
+    {
+      "ms": 2612.9,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39496.3719957,
+          "entry": 39496.2788483,
+          "pid": 440,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 680.8,
+          "import_ms": 93.1
+        },
+        {
+          "phase": "context_imported",
+          "at": 39496.4712621,
+          "entry": 39496.2788483,
+          "pid": 440,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 780.1,
+          "import_ms": 192.4
+        },
+        {
+          "phase": "context_imported",
+          "at": 39497.856376,
+          "entry": 39496.7327447,
+          "pid": 42196,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2165.2,
+          "import_ms": 1123.6
+        },
+        {
+          "phase": "before_select",
+          "at": 39497.8575904,
+          "entry": 39496.7327447,
+          "pid": 42196,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2166.4,
+          "import_ms": 1124.8
+        },
+        {
+          "phase": "selected",
+          "at": 39498.2021439,
+          "entry": 39496.7327447,
+          "pid": 42196,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2510.9,
+          "import_ms": 1469.4
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39498.2095208,
+          "entry": 39496.2788483,
+          "pid": 440,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2518.3,
+          "import_ms": 1930.7
+        }
+      ]
+    },
+    {
+      "ms": 2202.1,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39496.6123698,
+          "entry": 39496.3013185,
+          "pid": 45224,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 872.0,
+          "import_ms": 311.1
+        },
+        {
+          "phase": "context_imported",
+          "at": 39496.7277596,
+          "entry": 39496.3013185,
+          "pid": 45224,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 987.4,
+          "import_ms": 426.4
+        },
+        {
+          "phase": "context_imported",
+          "at": 39497.4261523,
+          "entry": 39497.0774615,
+          "pid": 18672,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1685.8,
+          "import_ms": 348.7
+        },
+        {
+          "phase": "before_select",
+          "at": 39497.4278485,
+          "entry": 39497.0774615,
+          "pid": 18672,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1687.5,
+          "import_ms": 350.4
+        },
+        {
+          "phase": "selected",
+          "at": 39497.7452659,
+          "entry": 39497.0774615,
+          "pid": 18672,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2004.9,
+          "import_ms": 667.8
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39497.7558969,
+          "entry": 39496.3013185,
+          "pid": 45224,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2015.5,
+          "import_ms": 1454.6
+        }
+      ]
+    },
+    {
+      "ms": 3193.0,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39496.7965815,
+          "entry": 39496.3359999,
+          "pid": 46172,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1048.6,
+          "import_ms": 460.6
+        },
+        {
+          "phase": "context_imported",
+          "at": 39496.9039786,
+          "entry": 39496.3359999,
+          "pid": 46172,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1156.0,
+          "import_ms": 568.0
+        },
+        {
+          "phase": "context_imported",
+          "at": 39498.090676,
+          "entry": 39497.2417478,
+          "pid": 41036,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2342.7,
+          "import_ms": 848.9
+        },
+        {
+          "phase": "before_select",
+          "at": 39498.0923124,
+          "entry": 39497.2417478,
+          "pid": 41036,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2344.4,
+          "import_ms": 850.6
+        },
+        {
+          "phase": "selected",
+          "at": 39498.6052618,
+          "entry": 39497.2417478,
+          "pid": 41036,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2857.3,
+          "import_ms": 1363.5
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39498.7097819,
+          "entry": 39496.3359999,
+          "pid": 46172,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2961.8,
+          "import_ms": 2373.8
+        }
+      ]
+    },
+    {
+      "ms": 2858.0,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39498.6802408,
+          "entry": 39498.5234959,
+          "pid": 42120,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 719.8,
+          "import_ms": 156.7
+        },
+        {
+          "phase": "context_imported",
+          "at": 39498.8771898,
+          "entry": 39498.5234959,
+          "pid": 42120,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 916.8,
+          "import_ms": 353.7
+        },
+        {
+          "phase": "context_imported",
+          "at": 39500.2442286,
+          "entry": 39499.2814893,
+          "pid": 5728,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2283.8,
+          "import_ms": 962.7
+        },
+        {
+          "phase": "before_select",
+          "at": 39500.2458409,
+          "entry": 39499.2814893,
+          "pid": 5728,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2285.4,
+          "import_ms": 964.4
+        },
+        {
+          "phase": "selected",
+          "at": 39500.5825573,
+          "entry": 39499.2814893,
+          "pid": 5728,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2622.1,
+          "import_ms": 1301.1
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39500.642312,
+          "entry": 39498.5234959,
+          "pid": 42120,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2681.9,
+          "import_ms": 2118.8
+        }
+      ]
+    },
+    {
+      "ms": 3755.4,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39499.9291711,
+          "entry": 39499.1908356,
+          "pid": 45464,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1611.6,
+          "import_ms": 738.3
+        },
+        {
+          "phase": "context_imported",
+          "at": 39500.1614637,
+          "entry": 39499.1908356,
+          "pid": 45464,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1843.9,
+          "import_ms": 970.6
+        },
+        {
+          "phase": "context_imported",
+          "at": 39501.2549952,
+          "entry": 39500.6499219,
+          "pid": 31188,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2937.5,
+          "import_ms": 605.1
+        },
+        {
+          "phase": "before_select",
+          "at": 39501.2561922,
+          "entry": 39500.6499219,
+          "pid": 31188,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2938.7,
+          "import_ms": 606.3
+        },
+        {
+          "phase": "selected",
+          "at": 39501.6913852,
+          "entry": 39500.6499219,
+          "pid": 31188,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3373.8,
+          "import_ms": 1041.5
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39501.7258625,
+          "entry": 39499.1908356,
+          "pid": 45464,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3408.3,
+          "import_ms": 2535.0
+        }
+      ]
+    },
+    {
+      "ms": 3419.2,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39500.0725768,
+          "entry": 39499.8003101,
+          "pid": 26732,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1117.4,
+          "import_ms": 272.3
+        },
+        {
+          "phase": "context_imported",
+          "at": 39500.2416689,
+          "entry": 39499.8003101,
+          "pid": 26732,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1286.5,
+          "import_ms": 441.4
+        },
+        {
+          "phase": "context_imported",
+          "at": 39501.8396748,
+          "entry": 39500.674817,
+          "pid": 36756,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2884.5,
+          "import_ms": 1164.9
+        },
+        {
+          "phase": "before_select",
+          "at": 39501.8409921,
+          "entry": 39500.674817,
+          "pid": 36756,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2885.8,
+          "import_ms": 1166.2
+        },
+        {
+          "phase": "selected",
+          "at": 39502.1649478,
+          "entry": 39500.674817,
+          "pid": 36756,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3209.7,
+          "import_ms": 1490.1
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39502.1741538,
+          "entry": 39499.8003101,
+          "pid": 26732,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3219.0,
+          "import_ms": 2373.8
+        }
+      ]
+    },
+    {
+      "ms": 3097.7,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39500.254074,
+          "entry": 39499.9466493,
+          "pid": 45428,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1240.0,
+          "import_ms": 307.4
+        },
+        {
+          "phase": "context_imported",
+          "at": 39500.4256304,
+          "entry": 39499.9466493,
+          "pid": 45428,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1411.6,
+          "import_ms": 479.0
+        },
+        {
+          "phase": "context_imported",
+          "at": 39501.2408414,
+          "entry": 39500.6374579,
+          "pid": 12480,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2226.8,
+          "import_ms": 603.4
+        },
+        {
+          "phase": "before_select",
+          "at": 39501.2429636,
+          "entry": 39500.6374579,
+          "pid": 12480,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2228.9,
+          "import_ms": 605.5
+        },
+        {
+          "phase": "selected",
+          "at": 39501.6834695,
+          "entry": 39500.6374579,
+          "pid": 12480,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2669.4,
+          "import_ms": 1046.0
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39501.711678,
+          "entry": 39499.9466493,
+          "pid": 45428,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2697.6,
+          "import_ms": 1765.0
+        }
+      ]
+    },
+    {
+      "ms": 3803.0,
+      "exit": 0,
+      "delivered": false,
+      "stdout_bytes": 0,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39502.1246939,
+          "entry": 39501.7543314,
+          "pid": 33152,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1293.1,
+          "import_ms": 370.4
+        },
+        {
+          "phase": "context_imported",
+          "at": 39503.0062679,
+          "entry": 39501.7543314,
+          "pid": 33152,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2174.7,
+          "import_ms": 1251.9
+        },
+        {
+          "phase": "context_imported",
+          "at": 39504.2936191,
+          "entry": 39503.4274444,
+          "pid": 35692,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3462.0,
+          "import_ms": 866.2
+        },
+        {
+          "phase": "before_select",
+          "at": 39504.2950939,
+          "entry": 39503.4274444,
+          "pid": 35692,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3463.5,
+          "import_ms": 867.6
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39504.4431261,
+          "entry": 39501.7543314,
+          "pid": 33152,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3611.6,
+          "import_ms": 2688.8
+        }
+      ]
+    },
+    {
+      "ms": 3341.1,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39503.4860767,
+          "entry": 39503.201103,
+          "pid": 9496,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1402.0,
+          "import_ms": 285.0
+        },
+        {
+          "phase": "context_imported",
+          "at": 39503.6032237,
+          "entry": 39503.201103,
+          "pid": 9496,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1519.1,
+          "import_ms": 402.1
+        },
+        {
+          "phase": "context_imported",
+          "at": 39504.511931,
+          "entry": 39503.9013888,
+          "pid": 18832,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2427.8,
+          "import_ms": 610.5
+        },
+        {
+          "phase": "before_select",
+          "at": 39504.5149385,
+          "entry": 39503.9013888,
+          "pid": 18832,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2430.9,
+          "import_ms": 613.5
+        },
+        {
+          "phase": "selected",
+          "at": 39505.2737836,
+          "entry": 39503.9013888,
+          "pid": 18832,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3189.7,
+          "import_ms": 1372.4
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39505.304281,
+          "entry": 39503.201103,
+          "pid": 9496,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3220.2,
+          "import_ms": 2103.2
+        }
+      ]
+    },
+    {
+      "ms": 3162.6,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39503.0849879,
+          "entry": 39502.8501927,
+          "pid": 12460,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 957.3,
+          "import_ms": 234.8
+        },
+        {
+          "phase": "context_imported",
+          "at": 39503.3778422,
+          "entry": 39502.8501927,
+          "pid": 12460,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1250.2,
+          "import_ms": 527.6
+        },
+        {
+          "phase": "context_imported",
+          "at": 39504.2272009,
+          "entry": 39503.7218545,
+          "pid": 43936,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2099.5,
+          "import_ms": 505.3
+        },
+        {
+          "phase": "before_select",
+          "at": 39504.2461979,
+          "entry": 39503.7218545,
+          "pid": 43936,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2118.5,
+          "import_ms": 524.3
+        },
+        {
+          "phase": "selected",
+          "at": 39504.7429205,
+          "entry": 39503.7218545,
+          "pid": 43936,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2615.3,
+          "import_ms": 1021.1
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39504.8085023,
+          "entry": 39502.8501927,
+          "pid": 12460,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2680.8,
+          "import_ms": 1958.3
+        }
+      ]
+    },
+    {
+      "ms": 2927.5,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39503.4119472,
+          "entry": 39503.2785101,
+          "pid": 17708,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1024.7,
+          "import_ms": 133.4
+        },
+        {
+          "phase": "context_imported",
+          "at": 39503.5895917,
+          "entry": 39503.2785101,
+          "pid": 17708,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1202.3,
+          "import_ms": 311.1
+        },
+        {
+          "phase": "context_imported",
+          "at": 39504.4172487,
+          "entry": 39503.8260009,
+          "pid": 39444,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2030.0,
+          "import_ms": 591.2
+        },
+        {
+          "phase": "before_select",
+          "at": 39504.4190769,
+          "entry": 39503.8260009,
+          "pid": 39444,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2031.8,
+          "import_ms": 593.1
+        },
+        {
+          "phase": "selected",
+          "at": 39505.0091725,
+          "entry": 39503.8260009,
+          "pid": 39444,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2621.9,
+          "import_ms": 1183.2
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39505.1173201,
+          "entry": 39503.2785101,
+          "pid": 17708,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2730.1,
+          "import_ms": 1838.8
+        }
+      ]
+    },
+    {
+      "ms": 3614.2,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39506.5524018,
+          "entry": 39505.6059391,
+          "pid": 27852,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1903.1,
+          "import_ms": 946.5
+        },
+        {
+          "phase": "context_imported",
+          "at": 39506.8049714,
+          "entry": 39505.6059391,
+          "pid": 27852,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2155.7,
+          "import_ms": 1199.0
+        },
+        {
+          "phase": "context_imported",
+          "at": 39507.6579416,
+          "entry": 39507.2609234,
+          "pid": 21936,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3008.6,
+          "import_ms": 397.0
+        },
+        {
+          "phase": "before_select",
+          "at": 39507.6621337,
+          "entry": 39507.2609234,
+          "pid": 21936,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3012.8,
+          "import_ms": 401.2
+        },
+        {
+          "phase": "selected",
+          "at": 39508.0749546,
+          "entry": 39507.2609234,
+          "pid": 21936,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3425.6,
+          "import_ms": 814.0
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39508.0898398,
+          "entry": 39505.6059391,
+          "pid": 27852,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3440.5,
+          "import_ms": 2483.9
+        }
+      ]
+    },
+    {
+      "ms": 3088.1,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39507.0864174,
+          "entry": 39506.260909,
+          "pid": 39144,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1782.1,
+          "import_ms": 825.5
+        },
+        {
+          "phase": "context_imported",
+          "at": 39507.2497953,
+          "entry": 39506.260909,
+          "pid": 39144,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1945.5,
+          "import_ms": 988.9
+        },
+        {
+          "phase": "context_imported",
+          "at": 39507.8084499,
+          "entry": 39507.5108839,
+          "pid": 37128,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2504.2,
+          "import_ms": 297.6
+        },
+        {
+          "phase": "before_select",
+          "at": 39507.8099582,
+          "entry": 39507.5108839,
+          "pid": 37128,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2505.7,
+          "import_ms": 299.1
+        },
+        {
+          "phase": "selected",
+          "at": 39508.2134167,
+          "entry": 39507.5108839,
+          "pid": 37128,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2909.1,
+          "import_ms": 702.5
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39508.2289568,
+          "entry": 39506.260909,
+          "pid": 39144,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2924.7,
+          "import_ms": 1968.0
+        }
+      ]
+    },
+    {
+      "ms": 2856.3,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39506.566378,
+          "entry": 39506.230748,
+          "pid": 38924,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1236.2,
+          "import_ms": 335.6
+        },
+        {
+          "phase": "context_imported",
+          "at": 39506.6739688,
+          "entry": 39506.230748,
+          "pid": 38924,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1343.8,
+          "import_ms": 443.2
+        },
+        {
+          "phase": "context_imported",
+          "at": 39507.6231942,
+          "entry": 39507.092496,
+          "pid": 46172,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2293.0,
+          "import_ms": 530.7
+        },
+        {
+          "phase": "before_select",
+          "at": 39507.6245065,
+          "entry": 39507.092496,
+          "pid": 46172,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2294.3,
+          "import_ms": 532.0
+        },
+        {
+          "phase": "selected",
+          "at": 39507.9256885,
+          "entry": 39507.092496,
+          "pid": 46172,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2595.5,
+          "import_ms": 833.2
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39507.9535959,
+          "entry": 39506.230748,
+          "pid": 38924,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2623.4,
+          "import_ms": 1722.8
+        }
+      ]
+    },
+    {
+      "ms": 3084.5,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39506.9876301,
+          "entry": 39506.4814954,
+          "pid": 42664,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1551.4,
+          "import_ms": 506.1
+        },
+        {
+          "phase": "context_imported",
+          "at": 39507.0822805,
+          "entry": 39506.4814954,
+          "pid": 42664,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1646.0,
+          "import_ms": 600.8
+        },
+        {
+          "phase": "context_imported",
+          "at": 39507.8499284,
+          "entry": 39507.5059684,
+          "pid": 14048,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2413.7,
+          "import_ms": 344.0
+        },
+        {
+          "phase": "before_select",
+          "at": 39507.8514771,
+          "entry": 39507.5059684,
+          "pid": 14048,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2415.2,
+          "import_ms": 345.5
+        },
+        {
+          "phase": "selected",
+          "at": 39508.2791726,
+          "entry": 39507.5059684,
+          "pid": 14048,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2842.9,
+          "import_ms": 773.2
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39508.3171603,
+          "entry": 39506.4814954,
+          "pid": 42664,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2880.9,
+          "import_ms": 1835.7
+        }
+      ]
+    },
+    {
+      "ms": 2391.5,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39509.1752473,
+          "entry": 39508.8931241,
+          "pid": 18344,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 972.4,
+          "import_ms": 282.1
+        },
+        {
+          "phase": "context_imported",
+          "at": 39509.4867011,
+          "entry": 39508.8931241,
+          "pid": 18344,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1283.9,
+          "import_ms": 593.6
+        },
+        {
+          "phase": "context_imported",
+          "at": 39509.9830883,
+          "entry": 39509.690753,
+          "pid": 11224,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1780.3,
+          "import_ms": 292.3
+        },
+        {
+          "phase": "before_select",
+          "at": 39509.984638,
+          "entry": 39509.690753,
+          "pid": 11224,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1781.8,
+          "import_ms": 293.9
+        },
+        {
+          "phase": "selected",
+          "at": 39510.4447372,
+          "entry": 39509.690753,
+          "pid": 11224,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2241.9,
+          "import_ms": 754.0
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39510.4585328,
+          "entry": 39508.8931241,
+          "pid": 18344,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2255.7,
+          "import_ms": 1565.4
+        }
+      ]
+    },
+    {
+      "ms": 2691.4,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39509.2481371,
+          "entry": 39508.776872,
+          "pid": 36220,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 967.6,
+          "import_ms": 471.3
+        },
+        {
+          "phase": "context_imported",
+          "at": 39509.3872846,
+          "entry": 39508.776872,
+          "pid": 36220,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1106.7,
+          "import_ms": 610.4
+        },
+        {
+          "phase": "context_imported",
+          "at": 39510.4580108,
+          "entry": 39509.6849496,
+          "pid": 25984,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2177.4,
+          "import_ms": 773.1
+        },
+        {
+          "phase": "before_select",
+          "at": 39510.4598782,
+          "entry": 39509.6849496,
+          "pid": 25984,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2179.3,
+          "import_ms": 774.9
+        },
+        {
+          "phase": "selected",
+          "at": 39510.7920852,
+          "entry": 39509.6849496,
+          "pid": 25984,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2511.5,
+          "import_ms": 1107.1
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39510.8693437,
+          "entry": 39508.776872,
+          "pid": 36220,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2588.8,
+          "import_ms": 2092.5
+        }
+      ]
+    },
+    {
+      "ms": 3628.5,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39509.6818452,
+          "entry": 39509.3957589,
+          "pid": 46544,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1276.2,
+          "import_ms": 286.1
+        },
+        {
+          "phase": "context_imported",
+          "at": 39509.8123415,
+          "entry": 39509.3957589,
+          "pid": 46544,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1406.7,
+          "import_ms": 416.6
+        },
+        {
+          "phase": "context_imported",
+          "at": 39511.5487784,
+          "entry": 39510.2897725,
+          "pid": 26788,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3143.1,
+          "import_ms": 1259.0
+        },
+        {
+          "phase": "before_select",
+          "at": 39511.5505512,
+          "entry": 39510.2897725,
+          "pid": 26788,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3144.9,
+          "import_ms": 1260.8
+        },
+        {
+          "phase": "selected",
+          "at": 39511.8509398,
+          "entry": 39510.2897725,
+          "pid": 26788,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3445.3,
+          "import_ms": 1561.2
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39511.8754782,
+          "entry": 39509.3957589,
+          "pid": 46544,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3469.8,
+          "import_ms": 2479.7
+        }
+      ]
+    },
+    {
+      "ms": 3440.1,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 39509.7030989,
+          "entry": 39509.4423576,
+          "pid": 4060,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1171.4,
+          "import_ms": 260.7
+        },
+        {
+          "phase": "context_imported",
+          "at": 39509.8274081,
+          "entry": 39509.4423576,
+          "pid": 4060,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 1295.7,
+          "import_ms": 385.1
+        },
+        {
+          "phase": "context_imported",
+          "at": 39511.4572504,
+          "entry": 39510.2233254,
+          "pid": 37460,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2925.6,
+          "import_ms": 1233.9
+        },
+        {
+          "phase": "before_select",
+          "at": 39511.4588811,
+          "entry": 39510.2233254,
+          "pid": 37460,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 2927.2,
+          "import_ms": 1235.6
+        },
+        {
+          "phase": "selected",
+          "at": 39511.793928,
+          "entry": 39510.2233254,
+          "pid": 37460,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3262.3,
+          "import_ms": 1570.6
+        },
+        {
+          "phase": "worker_returned",
+          "at": 39511.8141899,
+          "entry": 39509.4423576,
+          "pid": 4060,
+          "python": "C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\python.exe",
+          "since_launch_ms": 3282.5,
+          "import_ms": 2371.8
+        }
+      ]
+    }
+  ],
+  "load_actual": [
+    {
+      "cycles": 13,
+      "bytes_read": 9830288,
+      "elapsed_ms": 19288.1
+    },
+    {
+      "cycles": 14,
+      "bytes_read": 10586464,
+      "elapsed_ms": 19203.4
+    },
+    {
+      "cycles": 14,
+      "bytes_read": 10586464,
+      "elapsed_ms": 19829.2
+    },
+    {
+      "cycles": 14,
+      "bytes_read": 10586464,
+      "elapsed_ms": 19223.7
+    },
+    {
+      "cycles": 14,
+      "bytes_read": 10586464,
+      "elapsed_ms": 20016.0
+    },
+    {
+      "cycles": 12,
+      "bytes_read": 9074112,
+      "elapsed_ms": 19409.2
+    },
+    {
+      "cycles": 13,
+      "bytes_read": 9830288,
+      "elapsed_ms": 19547.8
+    },
+    {
+      "cycles": 13,
+      "bytes_read": 9830288,
+      "elapsed_ms": 18953.0
+    }
+  ]
+}

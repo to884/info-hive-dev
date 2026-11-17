@@ -1,0 +1,100 @@
+[ask-claude 07:24:54] claude-opus-5-5 に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\prompt-context-hook）
+## 判定
+
+**却下**。今回の性能修正の一つ、`wiki_pages` の遅延初期化で回帰が起きています。`wiki_rawcheck` は、`import wiki_pages` の副作用で同梱の `markdown_it` が `sys.path` に入ることに依存していました。遅延化でその副作用が消え、URL の取り込み（`wiki_fetch`、`wiki_rawcheck`）が import の時点で落ちます。確信度は高です。現行版での再現と、旧 `wiki_pages.py` での対照の両方を取りました。
+
+## 致命的・重大な欠陥
+
+### 1.【致命】`wiki_rawcheck` と、それを import する `wiki_fetch` が読み込めない
+
+- **主張**: `wiki_rawcheck.py:56-57` は、モジュールの読み込みの時点で `importlib.import_module("markdown_it.rules_block.table")` と `markdown_it.token` を呼びます。以前は直前の `import wiki_pages`（48 行目）が `_load_vendored()` を実行し、`_vendor` を `sys.path[0]` に入れていました。今回の差分で、それが初回の `_parser()` まで遅れます。同梱版を参照する `wiki_pages.new_parser()` の呼び出しは 113 行目なので、56 行目の時点では `_vendor` が探索パスにありません。
+- **再現**:
+  - `cd info-hive-wiki/skills/info-hive/scripts; python -I -S -c "import sys;sys.path.insert(0,'.');import wiki_fetch"` は `ModuleNotFoundError: No module named 'markdown_it'` で失敗しました。`wiki_rawcheck.py --help` も同じです。
+  - 対照として、`/tmp/rc` に scripts をコピーし、`wiki_pages.py` だけを `git show HEAD:` の版に戻しました。こちらでは `import wiki_fetch, wiki_rawcheck` が成功します。原因は今回の差分だけです。
+- **影響の範囲**（コードで確かめた分）:
+  - `wiki_fetch.py:62` が `import wiki_rawcheck` を持つので、`/wiki:ingest <URL>` の W 段（`agents/web-raw.md`、`references/web-raw.md` は `python .../wiki_rawcheck.py` と `wiki_fetch.py` を直接起動する）が全滅します。
+  - `wiki_session.py:1644` は `cmd_write` の中で `import wiki_fetch` をするので、セッションの取り込みの書き込みも落ちるはずです（コードから導いた推論で、実行はしていません）。
+- **試験での再現**: 次の 4 つで失敗が出ました。
+  - `tests/wiki/test_wiki_fetch.py`、`test_wiki_web_check.py`、`test_web_raw_agent.py`、`test_wiki_youtube.py`: どれも、モジュールの読み込みで `ModuleNotFoundError` になります。
+  - `test_uninitialized_wiki.py`: 41 件中 21 件が failures です。出力に `No module named 'markdown_it'` が 12 回出ました。残り 9 件は今回の差分によるものか切り分けていません。
+- **見落とした理由**: 報告書の「走査・lint・ページ集合・フック・測定の155件」には、fetch と rawcheck の系統が入っていません。
+- **関連する試験の書き換え**: `tests/wiki/test_page_set.py` の外部 `mdurl` の差し替えの試験は、assert を `extract_wikilinks` の後ろへ動かしています。「import の時点で同梱版に替わる」という保証が外れ、試験もそれに合わせて弱められました。rawcheck が依存していたのは、まさにその保証です。
+
+### 2.【重大（実害の大きさは推測）】外部の markdown-it-py があると、同梱版の検証をすり抜けて版が混ざる
+
+- **主張**: markdown-it-py が入った Python（`rich` などに引き込まれることが多い）で rawcheck を動かすと、落ちずに混ざります。
+  - 56 行目と 57 行目で外部 4.3.0 の `rules_block.table` と `Token` を掴みます。
+  - そのあと 113 行目の `new_parser()` で `_load_vendored()` が `sys.modules` を同梱の 3.0.0 に差し替えます。
+  - 結果は「パーサーは同梱 3.0.0、表の規則と、補ったセルの `Token` は外部 4.3.0」です。`_load_vendored` が守ろうとしている「閲覧と同じ規則で読めないなら止める」が、ここでは働きません。
+- **再現**: `uv run --no-project --offline --with markdown-it-py python -B` の中で確かめました。
+  - `wiki_rawcheck._TABLE_RULE.__file__` は `...\uv\archive-v0\...\site-packages\markdown_it\rules_block\table.py` でした。
+  - `wiki_rawcheck._Token is wiki_pages.markdown_it.token.Token` は `False` でした。同じ環境で旧 `wiki_pages.py` を使うと `True` です。
+  - `inspect.getfile(_Token)` は、差し替え後の `sys.modules` を引くため同梱のパスを返します。この方法では見分けられません。
+- **実害**: 小さな表（列の過不足、リストの中の表）で比べたところ、トークンの並びは旧版と同じでした。検査結果の食い違いは示せていないので、実害は推測です。版の検証を迂回できる構造そのものは事実です。
+
+## 崩れる前提
+
+- **「`wiki_pages` を import すれば同梱の解析器が `sys.path` と `sys.modules` にある」**: 今回の差分で崩れました。`wiki_rawcheck` がこの前提で書かれています。ほかのスクリプトについては grep で確かめました。
+  - `markdown_it` を直接 import するのは `wiki_rawcheck.py` と `wiki_browse_core.py:42` だけです。後者は今回、明示的な取得に直されています。
+  - `info-hive-rag` には、直接の import は見つかりませんでした。
+- **「フックの入口は仮想環境を経由しない」**: 報告書の原因 1 と CHANGELOG の主張ですが、次の場合に崩れます。
+  - `VIRTUAL_ENV` が有効な場合。このホストで `sys.executable` は `C:\Users\toshiki\.venv\Scripts\python.exe` でした。
+  - `VIRTUAL_ENV` がなくても、cwd に `.venv` がある場合。`/tmp/vproj/.venv` を作ると `...\vproj\.venv\Scripts\python.exe` が選ばれました。フックの cwd は利用者のプロジェクトなので、Python のプロジェクトではよくある状況です。
+  - Windows では、入口は venv のランチャーから基底の Python への 2 段起動のままです（子は `_base_executable` なので 1 段）。`-I -S` が効くので site は読まれず、正しさの問題ではありません。ただし、外したと主張しているコストがこの利用者では残ります。
+  - `test_prompt_launcher.py:31-33` は `VIRTUAL_ENV` を消してから試験しています。`.venv` がある cwd の場合は試験も測定もしていません。
+- **「優先度の差がフックを助ける」**: 合成の負荷はすべて通常優先度なので、AboveNormal が勝つことは構造上はじめから決まっています。次の 2 つの場合には、効果は測定より小さいはずです（推測）。
+  - 競合の相手が他のセッションのフック（同じ AboveNormal）である。
+  - 待ちの主因が I/O やウイルス対策の検査である。優先度クラスは I/O の優先度を変えません。
+  - 同時に動くフックは 4 本で、この範囲しか表していません。
+- **「優先度はフックの全体に効く」**: 適用されるのは `wiki_prompt_hook.py:36` に達した後だけです。bash、uv、uv の interpreter 問い合わせ、Python の初期化と `os`・`sys` の import は通常優先度のままです。CPU が飽和すると、ここで待たされる分は残ります。
+
+## 見落としと軽微な問題
+
+- **【軽微】優先度の二重適用と、それを見分けない試験**
+  - 解析の子も `__name__ == "__main__"` として 36 行目を実行し、自分で `SetPriorityClass` を呼びます。`creationflags` の `ABOVE_NORMAL_PRIORITY_CLASS` は冗長です。
+  - 親の変更が失敗して `_FOREGROUND=False` になっても、子は独自に AboveNormal になり得ます。「変更不能なら通常で動かす」と食い違います。
+  - `test_foreground_priority_is_limited_to_the_hook_parent_and_worker` は、子の優先度が `creationflags` から来たのか、自前の呼び出しから来たのかを区別できません。
+- **【軽微】短文でも `ctypes` を読む**: 飛ばす指示でも毎回 `ctypes` の import と `WinDLL` の解決が走ります。わずかですが、性能を削る修正の中では逆向きのコストです。
+- **【軽微・既知の限界】このホストの既定の環境では、測定の基準の「標準エラーなし」が成り立たない**
+  - このホストは `RUST_LOG=warn` です。
+  - pyproject がない cwd では、`--quiet --quiet` を付けても uv が標準エラーに ``WARN `--no-project` was provided, but no project was found`` を毎回出します。`RUST_LOG` を外すと消えることも確かめました。
+  - ベンチマークは `RUST_LOG` を外して測っています。報告書に明記はありますが、実際のセッションの条件とは違います。
+- **【軽微】`foreground-serial.json` にハッシュがない**: `context_sha256` と `pages_sha256` がありません。報告書の「最終測定には `wiki_prompt_context.py` と `wiki_pages.py` のハッシュも付ける」と食い違います。`bench_prompt_publication.py` が記録していません。
+- **【軽微・根拠の弱さ】最終版の 20/20 は条件ごとに 1 バッチ**
+  - 途中の版では同じ 16 本で 20/20 から 10/20 まで揺れたと記録されています。1 バッチの 20/20 で安定とは言えません。
+  - 16 本の負荷では p50 が 2,299ms、最大が 2,777ms です。内部期限の 2.5 秒は入口から数えるので、走査が締め切りに近い状態です。外側 5 秒にも余裕は大きくありません。
+  - `select` は締め切りを過ぎると例外を投げ、部分的な結果を返しません。少し重くなれば候補は 0 件になります。
+- **【軽微】測った問い合わせは 1 種類**: 並列の測定は、2 ページを明示参照する問い合わせだけです。明示参照のない検索の問い合わせは、並列負荷の下で測っていません。
+- **【軽微】版の検証が失敗する時点が変わった**: 外部の版を検出したときの `ImportError` は、import の時点ではなく初回の解析の時点で出るようになりました。lint と search の呼び出し元（`wiki_lint.py:372`、`wiki_search.py:262`）に、それを握りつぶす広い `except` は見当たりません。
+  - search で全ページがキャッシュに当たると `extract_wikilinks` が呼ばれず、検証そのものが走りません。キャッシュの中身は同梱版で作ったものなので、意味の上での害は確認できません。
+
+## 検証した事実
+
+- **回帰の再現**: 現行版で `wiki_fetch` と `wiki_rawcheck` の import が失敗し、旧 `wiki_pages.py` に差し替えた複製では成功します。**一致**（欠陥 1 を確定）。
+- **外部 markdown-it-py との混在**: 表の規則が外部のもの、`Token` のクラスが不一致になります。**確認**。表の解析結果の差は再現できませんでした。
+- **最終データのハッシュ**: `foreground-parallel-8.json` と `-16.json` の hook、context、pages の SHA-256 は、現在の作業ツリーのファイルと**一致**。
+- **最終データの中身**: 全試行で exit 0、stderr が空、stdout が 3,366 バイトで同一です。負荷の反復数は全 worker で 1 以上（8 本の負荷で 8〜9、16 本で 6〜8）。報告書の数値と**一致**。
+- **成功判定の中身**: `valid_candidate_output` は JSON の `hookEventName`、2,000 文字以内、候補 2 件の slug と path を確かめ、`bench_prompt_parallel.py` はさらに exit 0 と stderr が空であることを確かめています。空の出力や壊れた出力を成功に数える経路は見つかりませんでした。負荷については、`returncode` と `cycles < 1` の検査、測定前の `poll()` があります。**一致**。
+- **測定の起動行**: 最終データの `command` は `hooks.json` の登録行と同じです（`-qq` ではなく `--quiet --quiet` の形）。**一致**。
+- **Python の取得の扱い**: 旧登録行（`baseline-hooks.json`）にも `--offline --no-python-downloads` がありました。範囲内の Python がないと黙って無効になるのは、以前と同じです。確かめた結果も、終了コード 2 を `; exit 0` が吸収していました。**回帰ではない**。
+- **uv のプロジェクトの扱い**: `--no-project` を付けても、cwd の `.venv` と `VIRTUAL_ENV` は入口の interpreter に選ばれます。**確認**（「崩れる前提」を参照）。
+- **`PARSER_ID` の式**: 差分の前後で文字列の式とハッシュの範囲は同じで、`lru_cache` で 1 回だけ計算されます。**一致**。
+- **`__getattr__` の届く範囲**: `wiki_pages` の中から裸の名前で `markdown_it`、`_MD`、`_md_utils`、`PARSER_ID` を参照する箇所はありません（モジュールの `__getattr__` は外からの属性の参照にしか効かない）。**確認**。
+
+## 崩せなかった点
+
+- **遅延初期化の排他**: `_parser()` は `RLock` の中で 1 度だけ初期化し、タプルを公開します。並列の初回呼び出しで、二重の初期化やデッドロックになる筋は見つかりませんでした。
+- **既存の公開属性**: `PARSER_ID`、`_MD` などは `__getattr__` で引き続き読めます。`mock.patch.object(wiki_pages._MD, "parse", ...)` も同じ共有オブジェクトに効きます。
+- **閲覧の `Token`**: `wiki_browse_core.py:42` の `wiki_pages.markdown_it.token.Token` は同梱版を確実に読みます。
+- **プロジェクトの設定と同期**: `-I -S` と `--no-project --no-config` の組み合わせで、壊れた設定ファイル、`PYTHONPATH` の `sitecustomize`、`.python-version` があっても、同期や site の実行は起きません。既存の試験の設計で確認しました（`.venv` がある場合は前述）。
+- **優先度の適用範囲**: import する側の優先度は変わりません。`SetPriorityClass` が失敗しても、例外は握られて通常の優先度で続きます。High や Realtime は使っていません。優先度は、期限で終わるプロセスにしか残りません。以上はコードを読んで確かめました。ABI（擬似ハンドル `c_void_p(-1)`、`c_uint32`、`c_int`）にも誤りは見つかりませんでした。
+- **期限と終了コード**: 子は `subprocess.run(timeout=...)` で止まります。親は期限の監視、`os._exit(0)`、flush の後の状態の保存という順序を保っています。今回の優先度の追加は、この順序に触れていません。
+
+---
+
+- 次の作業（欠陥 1 の構造的な修正と、fetch・rawcheck・未初期化の wiki の試験の再実行）に適したモデルとエフォート: Opus、high
+- 今回のレビューに適したモデルとエフォート: Opus、high
+
+使用した MCP サーバー: なし
+使用した Agent Skills: なし
+[ask-claude 07:38:34] 完了（claude-opus-5-5）。session 3e5998ab-ddc9-4989-ba17-2af1d0e915cf  usage {"total_cost_usd": 3.6565723999999995, "usage": {"input_tokens": 72, "cache_creation_input_tokens": 112309, "cache_read_input_tokens": 3425572, "output_tokens": 36967, "output_tokens_details": {"thinking_tokens": 22068}, "server_tool_use": {"web_search_requests": 0, "web_fetch_requests": 0}, "service_tier": "standard", "cache_creation": {"ephemeral_1h_input_tokens": 110567, "ephemeral_5m_input_tokens": 0}, "inference_geo": "global", "iterations": [{"input_tokens": 2, "output_tokens": 7449, "cache_read_input_tokens": 128327, "cache_creation_input_tokens": 830, "cache_creation": {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 830}, "type": "message"}], "speed": "standard", "fallback_credit": null}}

@@ -1,0 +1,740 @@
+{
+ "protocol": 3,
+ "fingerprint": "c7b9e69a443a55c8807dd832222250a65db2f07b3b28e2e9c6ba3ed219e6dc40",
+ "id": "r1-apply",
+ "class": "R1",
+ "model": "haiku",
+ "effort": "medium",
+ "run": 1,
+ "requested_effort": "medium",
+ "prompt_sha256": "38de3c8f235292e3c6e4f2653d68b0ae93467705aede14676cb899f1991c45b8",
+ "argv": [
+  "claude",
+  "-p",
+  "問い: wiki_apply.py に書き込みを移す設計のロックの考え方\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"editとwriteの書き込みの競合\", \"path\": \"concepts/editとwriteの書き込みの競合.md\"}\n{\"slug\": \"wikiの書く段の設計-2026-11-15\", \"path\": \"sources/wikiの書く段の設計-2026-11-15.md\"}",
+  "--agent",
+  "wiki:wiki-reader",
+  "--model",
+  "haiku",
+  "--effort",
+  "medium",
+  "--plugin-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--tools",
+  "Read,Glob,Grep",
+  "--allowedTools",
+  "Read,Glob,Grep",
+  "--max-budget-usd",
+  "2",
+  "--permission-mode",
+  "auto",
+  "--no-session-persistence",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "{\"mcpServers\":{}}",
+  "--settings",
+  "{\"autoMemoryEnabled\": false, \"claudeMdExcludes\": [\"**/CLAUDE.md\", \"**/CLAUDE.local.md\", \"**/AGENTS.md\", \"**/.claude/rules/**\"]}",
+  "--add-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+ ],
+ "events": [
+  {
+   "type": "system",
+   "subtype": "init",
+   "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347",
+   "tools": [
+    "Read",
+    "Glob",
+    "Grep"
+   ],
+   "mcp_servers": [],
+   "model": "claude-haiku-5-5",
+   "permissionMode": "auto",
+   "slash_commands": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring",
+    "advisor",
+    "agents",
+    "auto-mode-setup",
+    "autocompact",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "output-style",
+    "context",
+    "effort",
+    "fast",
+    "focus",
+    "heapdump",
+    "init",
+    "mcp",
+    "import",
+    "model",
+    "__remote-workflow",
+    "workflow-launch-exec",
+    "reload-plugins",
+    "reload-skills",
+    "rename",
+    "ultrareview",
+    "security-review",
+    "usage-credits",
+    "extra-usage",
+    "usage",
+    "insights",
+    "recap",
+    "skill-doctor",
+    "goal",
+    "design-consent",
+    "design-revoke",
+    "list-agents",
+    "team-onboarding"
+   ],
+   "terminal_slash_commands": [
+    "doctor",
+    "color",
+    "focus",
+    "reload-plugins"
+   ],
+   "apiKeySource": "none",
+   "claude_code_version": "2.1.325",
+   "output_style": "default",
+   "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup",
+    "web-fetch",
+    "wiki:wiki-reader"
+   ],
+   "skills": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring"
+   ],
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+     "source": "wiki@inline",
+     "version": "0.0.0"
+    },
+    {
+     "name": "cc-plugin-agents-md",
+     "path": "builtin",
+     "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+     "name": "cc-plugin-telemetry",
+     "path": "builtin",
+     "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+     "name": "cc-plugin-privacy",
+     "path": "builtin",
+     "source": "cc-plugin-privacy@builtin"
+    },
+    {
+     "name": "cc-plugin-plugin-authoring",
+     "path": "builtin",
+     "source": "cc-plugin-plugin-authoring@builtin"
+    }
+   ],
+   "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1"
+   ],
+   "analytics_disabled": false,
+   "product_feedback_disabled": false,
+   "uuid": "d6611405-ff27-4804-8d8a-fbcbb4170bcf",
+   "original_cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "additional_directories": [
+    "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+   ],
+   "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-a0dfe4996df2a4d6adb04a1ba3b273e9",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "per_turn_effort_active": true,
+   "ultrathink_available": false,
+   "ultrathink_typed_raises": false,
+   "view_mode": "default",
+   "powershell_path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8joz31FFMkdmVRn76DG",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "CAQS4wUKEAgTGAI4AUIIdGhpbmtpbmcSDNsq776hcf+2yd0dGBoMhBgw7mr2fqLZZKuaIjBBH2jbf+MC0hk42EExEa4ewazSOcKNGbjMnayQjfF5ZKZeOpZPZhdV6NdQqjj2a7kqgAVfG5s3V9DNlUnEwBvk68srin6BW+l8SVHVbC9A0gfTpl8xSjwNx0uT32hzQi5F2lFBmE+PgYAuA84/12Z1BAHIvr1GrB2QfWcs8lWpCZYsrPm7xo/EjzHwx/aTh8Ir1SItqKwgYej/rRQLd+sDLVS/fi1xHIWRMkEmkS8uLxmdP/meaZ0nNjG+l4goBmHQ5D1NhEi9jtD+ofaJH+ZJRyR3nQyg7KUeuBCbnF3NydkzlcUNZ0r+LyHc/jbnP5ovzPK/78yMOeKy1CY1Pzfb85OeWp4+sWj6nKNUsTGcIlO4RiR4cjqKcavnNMFJbb2TjCaQ1+mSHbLse6M9HBC3zeYyIYkI6N1MHmOVC7k5Xx/IlB4NM1Bm5EFxeTCnVyoqs15UBdlZAVGFYSMT5IrRgvsLjHiG96tGbYJON8Frf/CM+CTNL4qyyX7xu5fWlQta5bwefPart+em8r7S0cUBhsx/5iVhIqKcNm9EWzz0kqzjjNrJpQinEm20eDZ/MURaJ98FFPUHFQZ3vxx7M34+4JbHJw+yUiLIoqkCdaTvOkNVSlxtzk4d3BuyTbzzdgejmrVADeF663NpMYAKuSjBcvSqsTdoiWSrsN0B9TLMvNXOGDvJ9ivqAYJzhoppzx8AQfJR6TOc0/loLBVBybIilSAiQzhzoBRvlfkSyPAxyPJ0GO9ebDn9z9VYV8Fv4gRx8xyUfjRhjZjZkAXJZVWIUDWjnbVlKaFpTSx9yEm+2eporAKnAEIJXgUPsnZ//qh2D4n03SfJ+6W89TdpmtKrC6hoh3w3qbkTHOrUuLT6Y3vCnP++Y21UqZIHVvddbrR1LDpu6VlhDGKaN5HT6sUE0x1RGAE="
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 807,
+     "cache_read_input_tokens": 3995,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 807
+     },
+     "output_tokens": 2,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347",
+   "uuid": "e981a7f3-0772-4cff-986d-65fd6fe5ae3c",
+   "timestamp": "2026-11-17T15:29:55.261Z",
+   "request_id": "req_011Ch8joyhAK4z3xfThCN3Pr",
+   "thinking_duration_ms": 397,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8joz31FFMkdmVRn76DG",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_012mf5SmYiACpqCsakNvYa6E",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/editとwriteの書き込みの競合.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 807,
+     "cache_read_input_tokens": 3995,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 807
+     },
+     "output_tokens": 2,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347",
+   "uuid": "aefb76a7-f1ba-4018-8af4-49dbbe6abb33",
+   "timestamp": "2026-11-17T15:29:55.459Z",
+   "request_id": "req_011Ch8joyhAK4z3xfThCN3Pr",
+   "wire_tool_inputs": {
+    "toolu_012mf5SmYiACpqCsakNvYa6E": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/editとwriteの書き込みの競合.md"
+    }
+   }
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_012mf5SmYiACpqCsakNvYa6E",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"concept\"\n3\ttitle: \"Claude Code の Edit と Write の書き込みの競合\"\n4\ttags: [\"取り込み\", \"windows\"]\n5\tsources: [\"セッションの取り込みの設計-2026-11-14\", \"wikiの書く段の設計-2026-11-15\", \"components-of-agent-memory\", \"managed-agents-cma-dreaming-with-a-dynamic-workflow\", \"claude-quickstarts-managed-agents-knowledge-wiki\"]\n6\tcreated: 2026-11-14\n7\tupdated: 2026-11-16\n8\t---\n9\t\n10\t# Claude Code の Edit と Write の書き込みの競合\n11\t\n12\t取り込みの手順 6〜7 は、要約ページ、関連ページ、`index.md`、`log.md` を、モデルが Claude Code の Write と Edit で書く。wiki のスクリプトでロックを持つのは、グラフの抽出（`.extract.lock`）と閲覧だけで、共有のテキストファイルには排他がない。2 つのセッションが同じ wiki を同時に書くとどうなるかを、2026-11-14 に、デスクトップアプリの Claude Code 2.1.321（Windows）で試した（[[セッションの取り込みの設計-2026-11-14]]）。\n13\t\n14\t## 分かったこと\n15\t\n16\t| 試したこと | 結果 |\n17\t| --- | --- |\n18\t| 読んだあと、ほかのプロセスが行を足し、そのあとで Edit で行を足す | 両方の行が残った。ハーネスは次のツールの結果に「ディスクで変わった」と知らせた |\n19\t| ほかのプロセスが行を足すのと同じ応答の中で、古い内容のまま Write で全体を書き直す | Write は `File has been modified since read` で拒んだ |\n20\t| 同じ並びで、Edit で行を足す | 当たり、ほかの行も残った。「ほかの変更がある」との注意が付いた |\n21\t| ほかのプロセスが 10 ミリ秒ごとに「読む、足す、書く」で書き換える間に、Edit で 5 行を足す | 両方向に消えた。Edit が成功と報告した 1 行と、相手の 1,500 行のうち 7 行が消え、どちらにも誤りは出なかった |\n22\t| 読み取り専用のファイルを、ジャンクションを経由して Edit と Write で書く | どちらも `EPERM`（一時ファイルから名前を変えるところ）で失敗し、中身も一時ファイルも残らなかった |\n23\t\n24\t> Claude Opus 5.5 補足: 表は、上の 4 つが共有のテキストファイルの競合、最後の 1 つが読み取り専用のファイルの守りを試したものである。ふだんの競合は Write の検査と Edit の当て方で防げるが、数ミリ秒の中で重なる書き込みは黙って失われる。\n25\t\n26\t## 使い方\n27\t\n28\t- ふだんの使い方（古い内容を覚えたまま書き直すこと）は、Claude Code のツールが防ぐ。ただし、Edit も中では原子的でなく、同時の書き込みは黙って失われる。lint は、索引に足りない項目とログの抜けを見つけない。これは、今のどの取り込みにもある性質である。\n29\t- Claude Code の Write と Edit は、一時ファイルに書いてから名前を変える。Windows では、読み取り専用のファイルは名前の変更で置き換えられないので、取り込んだ raw を読み取り専用にすれば、パスの別名を経由した書き込みからも守れる。POSIX では、ディレクトリに書ければ読み取り専用のファイルも置き換わる見込みで（確かめていない）、守りにはならない。\n30\t- この競合を防ぐため、wiki のページ、索引、ログを書くのは `wiki_apply.py` だけにし、wiki ごとの残るロックと、前と後を書いた日誌で当てる設計を承認した（2026-11-15、ADR-0023、[[wikiの書く段の設計-2026-11-15]]）。実装はまだで、移り終えるまでは、ここに書いた競合が残る。\n31\t\n32\t## 外での観測\n33\t\n34\tAnthropic の記事 [[components-of-agent-memory]] にも、同じ型の失敗がある。Harvey LAB の契約のタスクで wiki を組み立てたとき、4 体のエージェントが共有のページ `provisions.md` に契約の条件を同時に書き、1 体の保存が別の 1 体の行を消した。wiki から作った準備書面には、採点した 57 の事実のうち 41（72%）しか入らなかった。契約ごとに 1 体が自分のページを書き、条件をそのまま引用する指示に替えると、57 がすべて残った。共有のファイルの書き手を 1 つにするという点で、ADR-0023 の決定と同じ方向である。ただし記事が直したのは指示で、ロックではない。\n35\t\n36\tドリーミングの cookbook [[managed-agents-cma-dreaming-with-a-dynamic-workflow]] は、同じディレクトリを並行して書くアナライザーに、ロックの代わりに手順で守らせている。書く直前にファイルを読み直してほかの書き手の中身を残し、書いたあとに別のターンで読み戻して、自分の中身が消えていたら両方をまとめて書き直す。共有の索引は全体を書き直さず、狙った編集で足す。統合、改名、移動はさせず、ほかに書き手のいない最後の段（オーガナイザー）に回す。上の表の最後の競合（数ミリ秒の中で重なる書き込み）は、読み戻しで見つけて書き直す形である。この wiki の設計（ロックと日誌）とどちらが確かかは、確かめていない。\n37\t\n38\t文書から wiki を作るクイックスタート [[claude-quickstarts-managed-agents-knowledge-wiki]] は、損失を知ったうえで受け入れている。エージェントが共有ページに直接書くので、いちばん混み合うエンティティのページでは、登録した行の約 5% で内容が失われる。それでも、共有ページには異なる文書の数値が集まり、食い違いに旗を立てられるので、受け入れるとしている（README の主張で、確かめていない）。\n39\t\n40\t| 扱い方 | 例 |\n41\t| --- | --- |\n42\t| ロックで防ぐ | この wiki の `wiki_apply.py`（ADR-0023、承認済み、実装はまだ） |\n43\t| 読み戻して直し、統合は書き手のいない段に回す | [[managed-agents-cma-dreaming-with-a-dynamic-workflow]] |\n44\t| 書き手をページごとに 1 つにする | [[components-of-agent-memory]] の契約のページ |\n45\t| 損失を受け入れる | [[claude-quickstarts-managed-agents-knowledge-wiki]] の共有のエンティティのページ |\n46\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347",
+   "uuid": "d8fde523-609c-47fd-8cf9-36f8f3772193",
+   "timestamp": "2026-11-17T15:29:55.560Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/editとwriteの書き込みの競合.md",
+     "content": "---\ntype: \"concept\"\ntitle: \"Claude Code の Edit と Write の書き込みの競合\"\ntags: [\"取り込み\", \"windows\"]\nsources: [\"セッションの取り込みの設計-2026-11-14\", \"wikiの書く段の設計-2026-11-15\", \"components-of-agent-memory\", \"managed-agents-cma-dreaming-with-a-dynamic-workflow\", \"claude-quickstarts-managed-agents-knowledge-wiki\"]\ncreated: 2026-11-14\nupdated: 2026-11-16\n---\n\n# Claude Code の Edit と Write の書き込みの競合\n\n取り込みの手順 6〜7 は、要約ページ、関連ページ、`index.md`、`log.md` を、モデルが Claude Code の Write と Edit で書く。wiki のスクリプトでロックを持つのは、グラフの抽出（`.extract.lock`）と閲覧だけで、共有のテキストファイルには排他がない。2 つのセッションが同じ wiki を同時に書くとどうなるかを、2026-11-14 に、デスクトップアプリの Claude Code 2.1.321（Windows）で試した（[[セッションの取り込みの設計-2026-11-14]]）。\n\n## 分かったこと\n\n| 試したこと | 結果 |\n| --- | --- |\n| 読んだあと、ほかのプロセスが行を足し、そのあとで Edit で行を足す | 両方の行が残った。ハーネスは次のツールの結果に「ディスクで変わった」と知らせた |\n| ほかのプロセスが行を足すのと同じ応答の中で、古い内容のまま Write で全体を書き直す | Write は `File has been modified since read` で拒んだ |\n| 同じ並びで、Edit で行を足す | 当たり、ほかの行も残った。「ほかの変更がある」との注意が付いた |\n| ほかのプロセスが 10 ミリ秒ごとに「読む、足す、書く」で書き換える間に、Edit で 5 行を足す | 両方向に消えた。Edit が成功と報告した 1 行と、相手の 1,500 行のうち 7 行が消え、どちらにも誤りは出なかった |\n| 読み取り専用のファイルを、ジャンクションを経由して Edit と Write で書く | どちらも `EPERM`（一時ファイルから名前を変えるところ）で失敗し、中身も一時ファイルも残らなかった |\n\n> Claude Opus 5.5 補足: 表は、上の 4 つが共有のテキストファイルの競合、最後の 1 つが読み取り専用のファイルの守りを試したものである。ふだんの競合は Write の検査と Edit の当て方で防げるが、数ミリ秒の中で重なる書き込みは黙って失われる。\n\n## 使い方\n\n- ふだんの使い方（古い内容を覚えたまま書き直すこと）は、Claude Code のツールが防ぐ。ただし、Edit も中では原子的でなく、同時の書き込みは黙って失われる。lint は、索引に足りない項目とログの抜けを見つけない。これは、今のどの取り込みにもある性質である。\n- Claude Code の Write と Edit は、一時ファイルに書いてから名前を変える。Windows では、読み取り専用のファイルは名前の変更で置き換えられないので、取り込んだ raw を読み取り専用にすれば、パスの別名を経由した書き込みからも守れる。POSIX では、ディレクトリに書ければ読み取り専用のファイルも置き換わる見込みで（確かめていない）、守りにはならない。\n- この競合を防ぐため、wiki のページ、索引、ログを書くのは `wiki_apply.py` だけにし、wiki ごとの残るロックと、前と後を書いた日誌で当てる設計を承認した（2026-11-15、ADR-0023、[[wikiの書く段の設計-2026-11-15]]）。実装はまだで、移り終えるまでは、ここに書いた競合が残る。\n\n## 外での観測\n\nAnthropic の記事 [[components-of-agent-memory]] にも、同じ型の失敗がある。Harvey LAB の契約のタスクで wiki を組み立てたとき、4 体のエージェントが共有のページ `provisions.md` に契約の条件を同時に書き、1 体の保存が別の 1 体の行を消した。wiki から作った準備書面には、採点した 57 の事実のうち 41（72%）しか入らなかった。契約ごとに 1 体が自分のページを書き、条件をそのまま引用する指示に替えると、57 がすべて残った。共有のファイルの書き手を 1 つにするという点で、ADR-0023 の決定と同じ方向である。ただし記事が直したのは指示で、ロックではない。\n\nドリーミングの cookbook [[managed-agents-cma-dreaming-with-a-dynamic-workflow]] は、同じディレクトリを並行して書くアナライザーに、ロックの代わりに手順で守らせている。書く直前にファイルを読み直してほかの書き手の中身を残し、書いたあとに別のターンで読み戻して、自分の中身が消えていたら両方をまとめて書き直す。共有の索引は全体を書き直さず、狙った編集で足す。統合、改名、移動はさせず、ほかに書き手のいない最後の段（オーガナイザー）に回す。上の表の最後の競合（数ミリ秒の中で重なる書き込み）は、読み戻しで見つけて書き直す形である。この wiki の設計（ロックと日誌）とどちらが確かかは、確かめていない。\n\n文書から wiki を作るクイックスタート [[claude-quickstarts-managed-agents-knowledge-wiki]] は、損失を知ったうえで受け入れている。エージェントが共有ページに直接書くので、いちばん混み合うエンティティのページでは、登録した行の約 5% で内容が失われる。それでも、共有ページには異なる文書の数値が集まり、食い違いに旗を立てられるので、受け入れるとしている（README の主張で、確かめていない）。\n\n| 扱い方 | 例 |\n| --- | --- |\n| ロックで防ぐ | この wiki の `wiki_apply.py`（ADR-0023、承認済み、実装はまだ） |\n| 読み戻して直し、統合は書き手のいない段に回す | [[managed-agents-cma-dreaming-with-a-dynamic-workflow]] |\n| 書き手をページごとに 1 つにする | [[components-of-agent-memory]] の契約のページ |\n| 損失を受け入れる | [[claude-quickstarts-managed-agents-knowledge-wiki]] の共有のエンティティのページ |\n",
+     "numLines": 46,
+     "startLine": 1,
+     "totalLines": 46
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_012mf5SmYiACpqCsakNvYa6E",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8joz31FFMkdmVRn76DG",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01TAERHXe7LmiFzr9bhcUNEh",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/wikiの書く段の設計-2026-11-15.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 807,
+     "cache_read_input_tokens": 3995,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 807
+     },
+     "output_tokens": 2,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347",
+   "uuid": "b4241e96-9124-4d22-a889-31c4b78f0f96",
+   "timestamp": "2026-11-17T15:29:55.866Z",
+   "request_id": "req_011Ch8joyhAK4z3xfThCN3Pr",
+   "wire_tool_inputs": {
+    "toolu_01TAERHXe7LmiFzr9bhcUNEh": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/wikiの書く段の設計-2026-11-15.md"
+    }
+   }
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01TAERHXe7LmiFzr9bhcUNEh",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"wiki の書く段の設計の記録（ADR-0023）\"\n4\ttags: [\"取り込み\", \"wiki設計\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-14-wiki-apply\"\n7\tingested: 2026-11-15\n8\tcreated: 2026-11-15\n9\tupdated: 2026-11-15\n10\t---\n11\t\n12\t# wiki の書く段の設計の記録（ADR-0023）\n13\t\n14\t2026-11-14〜15 の、wiki のページ、索引、ログへの書き込みを、モデルの Edit と Write から、ロックを持つ Python のプロセス（`wiki_apply.py`）に移す設計の記録である。原本は、GPT-6.1 Sol の 15 回の敵対的レビューと各版を残した `docs/agent-runs/2026-11-14-wiki-apply/` で、経緯の要約は同じ場所の `summary.md` にある。設計は `docs/plans/wiki-apply-2026-11-14.md`（17 版目、承認）、決定は ADR-0023（承認）にある。実装はまだである。\n15\t\n16\t## 経緯\n17\t\n18\t1. セッションの取り込みの設計の 4 版目に足した書く段が、レビューの重大の指摘を集めたので、作者の判断で別の設計に分けた（[[セッションの取り込みの設計-2026-11-14]]）。並行して書くと行が黙って消える問題（[[editとwriteの書き込みの競合]]）を防ぐのが目的である。\n19\t2. 1〜5 回目は、済んだかを今の中身から推す作り、検査を書く場所ごとに分ける作り、パスの字面で場所を決める作りが崩れた。日誌だけで判定し、書き込みの入口を 1 つにし、正規のパスだけを受ける形に直した。\n20\t3. 3〜10 回目は、ロックと日誌を利用者の PC に 1 か所に置き、wiki の印で管理領域を決める形を足しては崩された（環境変数で管理領域が分かれる、印を移す操作が並ぶ、など）。\n21\t4. 作者が「作者が決めること」に答えた（2026-11-15）。ロックはプロジェクト（wiki）ごとに持ち、落ちても残るファイルにして、利用者が `unlock` で外す。待ちは 3 分で、待ちきれなければ差分を `.wiki-cache/apply-pending/` に置いて誤りにし、5 件以上で知らせる。日誌は 14 日残す。これで印の仕組みが要らなくなり、外した。\n22\t5. 11〜15 回目は、作り直しの継ぎ目と、raw の守りの境目（bind mount、`raw:` の向け方）を突いた。raw の守りは、書く道に別名がないことと、wiki の木と raw の木がディレクトリを分け合わないことの組にした。\n23\t6. 重大の指摘の発生の度合いを回ごとに分けると、実装すれば確実に踏む欠陥は作り直した直後にだけ出て、13 回目からは出ていなかった。作者はレビューを 15 回で止め、17 版目を承認した（[[敵対的レビューで設計を直す進め方]]）。\n24\t\n25\t## 決めたこと\n26\t\n27\t| 項目 | 決めたこと |\n28\t| --- | --- |\n29\t| 書き手 | wiki のページ、索引、ログを書くのは `wiki_apply.py` だけにする。モデルは作業用のフォルダーに変更を用意し、wiki のファイルを直接書かない |\n30\t| 変更の種類 | `new`（新しいページ）、`edit`（ファイルの全体が用意したときと同じときだけ置き換える）、`ops`（索引とログの決まった操作を、ロックの中で今の中身に順に当てる）。3 方向の当て方はしない |\n31\t| 済んだかの判定 | 書く前に「前」と「後」の中身を日誌に書き、日誌だけで決める。次にロックを取った書き手が前に進め、置けなければ戻す |\n32\t| 承認 | `plan_id` を含む計画の全体からハッシュを作り、計画が指すファイルを 1 回だけ読んで使う |\n33\t| ロック | wiki ごとの残るロックのファイル。3 分待って差分を置く。`unlock` で外す |\n34\t| raw の守り | 書く道に別名（リンク、再解析点、mount point）がないことと、wiki の木と守る raw のルートの木が交わらないことの組。走査は完全でなければ書かない |\n35\t| 移す範囲 | 文書とスクリプトの書き込みの指示と書き手を洗い出した表にし、機械の検査で閉じる |\n36\t\n37\t## 主張と行き先\n38\t\n39\t| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n40\t| --- | --- | --- | --- | --- |\n41\t| 状態を推さない | 安全に関わる事実を、書き手が作った結果（日誌、承認したハッシュ）として持てば、あとから推す作りで出た反例が出なくなる。セッションの取り込みの設計と、この設計の 2 つで確かめた | `summary.md` の「崩れなかったもの」、設計書の「4 回目のレビューで崩れた前提」 | create | [[敵対的レビューで設計を直す進め方]] |\n42\t| 直しの仕組みから次の指摘が出る | 3 回目から、重大はどれも前の回の直しで足した仕組みから出た | 設計書の各回の「崩れた前提」の表 | create | [[敵対的レビューで設計を直す進め方]] |\n43\t| 発生の度合いで止める | 重大を A（確実）〜D（作為的）で分けると、止める判断の材料になる | `summary.md` の「重大の指摘の発生の度合い」 | create | [[敵対的レビューで設計を直す進め方]] |\n44\t| 書く段の決定 | 上の表のとおり | 設計書、ADR-0023 | update | [[editとwriteの書き込みの競合]] の「使い方」の最後の項目を、承認した設計への案内に改めた |\n45\t| raw の守りの組 | 書く道の別名だけでも、raw のディレクトリを集めて照らすだけでも崩れ、2 つを組にした | `design-review-13.md`〜`design-review-15.md` | source_only | 実装と試験で確かめる前で、まだ 1 つの設計の結論である |\n46\t\n47\t## 関係するページ\n48\t\n49\t- [[セッションの取り込みの設計-2026-11-14]]\n50\t- [[editとwriteの書き込みの競合]]\n51\t- [[敵対的レビューで設計を直す進め方]]\n52\t- [[初期化されたwikiの判定]]\n53\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347",
+   "uuid": "efea75a7-d1e7-4e0d-8163-4f806c4b9c47",
+   "timestamp": "2026-11-17T15:29:55.932Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/wikiの書く段の設計-2026-11-15.md",
+     "content": "---\ntype: \"source\"\ntitle: \"wiki の書く段の設計の記録（ADR-0023）\"\ntags: [\"取り込み\", \"wiki設計\"]\nauthors: [\"to884\"]\nraw: \"docs/agent-runs/2026-11-14-wiki-apply\"\ningested: 2026-11-15\ncreated: 2026-11-15\nupdated: 2026-11-15\n---\n\n# wiki の書く段の設計の記録（ADR-0023）\n\n2026-11-14〜15 の、wiki のページ、索引、ログへの書き込みを、モデルの Edit と Write から、ロックを持つ Python のプロセス（`wiki_apply.py`）に移す設計の記録である。原本は、GPT-6.1 Sol の 15 回の敵対的レビューと各版を残した `docs/agent-runs/2026-11-14-wiki-apply/` で、経緯の要約は同じ場所の `summary.md` にある。設計は `docs/plans/wiki-apply-2026-11-14.md`（17 版目、承認）、決定は ADR-0023（承認）にある。実装はまだである。\n\n## 経緯\n\n1. セッションの取り込みの設計の 4 版目に足した書く段が、レビューの重大の指摘を集めたので、作者の判断で別の設計に分けた（[[セッションの取り込みの設計-2026-11-14]]）。並行して書くと行が黙って消える問題（[[editとwriteの書き込みの競合]]）を防ぐのが目的である。\n2. 1〜5 回目は、済んだかを今の中身から推す作り、検査を書く場所ごとに分ける作り、パスの字面で場所を決める作りが崩れた。日誌だけで判定し、書き込みの入口を 1 つにし、正規のパスだけを受ける形に直した。\n3. 3〜10 回目は、ロックと日誌を利用者の PC に 1 か所に置き、wiki の印で管理領域を決める形を足しては崩された（環境変数で管理領域が分かれる、印を移す操作が並ぶ、など）。\n4. 作者が「作者が決めること」に答えた（2026-11-15）。ロックはプロジェクト（wiki）ごとに持ち、落ちても残るファイルにして、利用者が `unlock` で外す。待ちは 3 分で、待ちきれなければ差分を `.wiki-cache/apply-pending/` に置いて誤りにし、5 件以上で知らせる。日誌は 14 日残す。これで印の仕組みが要らなくなり、外した。\n5. 11〜15 回目は、作り直しの継ぎ目と、raw の守りの境目（bind mount、`raw:` の向け方）を突いた。raw の守りは、書く道に別名がないことと、wiki の木と raw の木がディレクトリを分け合わないことの組にした。\n6. 重大の指摘の発生の度合いを回ごとに分けると、実装すれば確実に踏む欠陥は作り直した直後にだけ出て、13 回目からは出ていなかった。作者はレビューを 15 回で止め、17 版目を承認した（[[敵対的レビューで設計を直す進め方]]）。\n\n## 決めたこと\n\n| 項目 | 決めたこと |\n| --- | --- |\n| 書き手 | wiki のページ、索引、ログを書くのは `wiki_apply.py` だけにする。モデルは作業用のフォルダーに変更を用意し、wiki のファイルを直接書かない |\n| 変更の種類 | `new`（新しいページ）、`edit`（ファイルの全体が用意したときと同じときだけ置き換える）、`ops`（索引とログの決まった操作を、ロックの中で今の中身に順に当てる）。3 方向の当て方はしない |\n| 済んだかの判定 | 書く前に「前」と「後」の中身を日誌に書き、日誌だけで決める。次にロックを取った書き手が前に進め、置けなければ戻す |\n| 承認 | `plan_id` を含む計画の全体からハッシュを作り、計画が指すファイルを 1 回だけ読んで使う |\n| ロック | wiki ごとの残るロックのファイル。3 分待って差分を置く。`unlock` で外す |\n| raw の守り | 書く道に別名（リンク、再解析点、mount point）がないことと、wiki の木と守る raw のルートの木が交わらないことの組。走査は完全でなければ書かない |\n| 移す範囲 | 文書とスクリプトの書き込みの指示と書き手を洗い出した表にし、機械の検査で閉じる |\n\n## 主張と行き先\n\n| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n| --- | --- | --- | --- | --- |\n| 状態を推さない | 安全に関わる事実を、書き手が作った結果（日誌、承認したハッシュ）として持てば、あとから推す作りで出た反例が出なくなる。セッションの取り込みの設計と、この設計の 2 つで確かめた | `summary.md` の「崩れなかったもの」、設計書の「4 回目のレビューで崩れた前提」 | create | [[敵対的レビューで設計を直す進め方]] |\n| 直しの仕組みから次の指摘が出る | 3 回目から、重大はどれも前の回の直しで足した仕組みから出た | 設計書の各回の「崩れた前提」の表 | create | [[敵対的レビューで設計を直す進め方]] |\n| 発生の度合いで止める | 重大を A（確実）〜D（作為的）で分けると、止める判断の材料になる | `summary.md` の「重大の指摘の発生の度合い」 | create | [[敵対的レビューで設計を直す進め方]] |\n| 書く段の決定 | 上の表のとおり | 設計書、ADR-0023 | update | [[editとwriteの書き込みの競合]] の「使い方」の最後の項目を、承認した設計への案内に改めた |\n| raw の守りの組 | 書く道の別名だけでも、raw のディレクトリを集めて照らすだけでも崩れ、2 つを組にした | `design-review-13.md`〜`design-review-15.md` | source_only | 実装と試験で確かめる前で、まだ 1 つの設計の結論である |\n\n## 関係するページ\n\n- [[セッションの取り込みの設計-2026-11-14]]\n- [[editとwriteの書き込みの競合]]\n- [[敵対的レビューで設計を直す進め方]]\n- [[初期化されたwikiの判定]]\n",
+     "numLines": 53,
+     "startLine": 1,
+     "totalLines": 53
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01TAERHXe7LmiFzr9bhcUNEh",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.93,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.7,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.93,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "335b2a4d-50e2-4f66-9c53-b5851936fdcf",
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347",
+   "uuid": "ab82f4b6-2af4-4b7f-afc9-23c3cd5d7a67"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 300,
+   "estimated_tokens_delta": 250,
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347",
+   "uuid": "01ded048-56f2-4f5a-a7f5-dedd17856299"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 500,
+   "estimated_tokens_delta": 200,
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347",
+   "uuid": "3fbb873c-dc6c-459f-90ad-4ae08f20874a"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 661,
+   "estimated_tokens_delta": 161,
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347",
+   "uuid": "ac9a2248-341e-49c8-a8bd-d93eefdee1ae"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jpA4kbEnDhbhBoHW4V",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "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"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 5220,
+     "cache_read_input_tokens": 4802,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 5220
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347",
+   "uuid": "96541ff3-7456-4a1b-b865-dd2b7319d49e",
+   "timestamp": "2026-11-17T15:30:01.532Z",
+   "request_id": "req_011Ch8jp9pcQ96qAyjjG3bYE",
+   "thinking_duration_ms": 3680,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jpA4kbEnDhbhBoHW4V",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "## 答え\n\nwiki のページ、索引、ログへの書き込みを `wiki_apply.py` に移す設計では、ロックは wiki（プロジェクト）ごとに 1 つ持ち、残るファイルとして置く。待ちは 3 分までで、取れなければ差分を `.wiki-cache/apply-pending/` に置いて誤りとし、5 件以上たまったら知らせる。ロックは利用者が `unlock` で外す。ロックは書き込みの排他だけを担い、書いたかどうかの判定は、書く前後の中身を書いた日誌だけで行う。日誌は 14 日残す。この設計は承認済みだが、実装はまだである（2026-11-15、ADR-0023）。\n\n## 根拠\n- [[wikiの書く段の設計-2026-11-15]]（`/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/wikiの書く段の設計-2026-11-15.md`）:\n  - 決定表の「ロック」行: 「wiki ごとの残るロックのファイル。3 分待って差分を置く。`unlock` で外す」。\n  - 決定表の「済んだかの判定」行: 「書く前に『前』と『後』の中身を日誌に書き、日誌だけで決める。次にロックを取った書き手が前に進め、置けなければ戻す」。\n  - 経緯 4 の「作者が決めること」の答え: 「ロックはプロジェクト（wiki）ごとに持ち、落ちても残るファイルにして、利用者が `unlock` で外す。待ちは 3 分で、待ちきれなければ差分を `.wiki-cache/apply-pending/` に置いて誤りにし、5 件以上で知らせる。日誌は 14 日残す。」\n  - 経緯 3: 以前はロックと日誌を利用者の PC に 1 か所に置き、wiki の印で管理領域を決める案だったが、崩されて外した。現在の案はプロジェクトごとのロックである。\n  - 経緯 2: 済んだかを今の中身から推す作りは崩れ、日誌だけで判定する形に直した。\n- [[editとwriteの書き込みの競合]]（`/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/editとwriteの書き込みの競合.md`）:\n  - 「使い方」の 3 つ目の項目: 「wiki のページ、索引、ログを書くのは `wiki_apply.py` だけにし、wiki ごとの残るロックと、前と後を書いた日誌で当てる設計を承認した」。また「実装はまだで、移り終えるまでは、ここに書いた競合が残る」。\n  - 現状でロックを持つのはグラフの抽出（`.extract.lock`）と閲覧だけで、共有のテキストファイルには排他がないとも書かれている。\n\n## 開いたページ\n1. `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/editとwriteの書き込みの競合.md`\n2. `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/wikiの書く段の設計-2026-11-15.md`\n\n## 未確認の出典\n- `docs/plans/wiki-apply-2026-11-14.md`（設計書、17 版目）と ADR-0023 は未読である。ロックの細部（ロックファイルの名前、取り方、`unlock` の挙動）は確かめていない。\n- `docs/agent-runs/2026-11-14-wiki-apply/`（原本とレビューの記録）も未読である。\n- 経緯の 6 にある [[敵対的レビューで設計を直す進め方]] は、リンクはあるが開いていない。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 5220,
+     "cache_read_input_tokens": 4802,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 5220
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347",
+   "uuid": "bd998e6d-8f7b-4f34-888c-e6d3dcac6a0e",
+   "timestamp": "2026-11-17T15:30:06.778Z",
+   "request_id": "req_011Ch8jp9pcQ96qAyjjG3bYE"
+  },
+  {
+   "duration_api_ms": 12917,
+   "stop_reason": "end_turn",
+   "session_id": "3762655a-9c90-4c2b-a4a2-26ad683dc347",
+   "total_cost_usd": 0.00257577,
+   "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 6027,
+    "cache_read_input_tokens": 8797,
+    "output_tokens": 2564,
+    "output_tokens_details": {
+     "thinking_tokens": 747
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 6027,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 2238,
+      "cache_read_input_tokens": 4802,
+      "cache_creation_input_tokens": 5220,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 5220
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-haiku-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 2564,
+     "cacheReadInputTokens": 8797,
+     "cacheCreationInputTokens": 6027,
+     "webSearchRequests": 0,
+     "costUSD": 0.00257577,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 747,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 6027,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+     "background": 0,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {}
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 3,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "## 答え\n\nwiki のページ、索引、ログへの書き込みを `wiki_apply.py` に移す設計では、ロックは wiki（プロジェクト）ごとに 1 つ持ち、残るファイルとして置く。待ちは 3 分までで、取れなければ差分を `.wiki-cache/apply-pending/` に置いて誤りとし、5 件以上たまったら知らせる。ロックは利用者が `unlock` で外す。ロックは書き込みの排他だけを担い、書いたかどうかの判定は、書く前後の中身を書いた日誌だけで行う。日誌は 14 日残す。この設計は承認済みだが、実装はまだである（2026-11-15、ADR-0023）。\n\n## 根拠\n- [[wikiの書く段の設計-2026-11-15]]（`/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/wikiの書く段の設計-2026-11-15.md`）:\n  - 決定表の「ロック」行: 「wiki ごとの残るロックのファイル。3 分待って差分を置く。`unlock` で外す」。\n  - 決定表の「済んだかの判定」行: 「書く前に『前』と『後』の中身を日誌に書き、日誌だけで決める。次にロックを取った書き手が前に進め、置けなければ戻す」。\n  - 経緯 4 の「作者が決めること」の答え: 「ロックはプロジェクト（wiki）ごとに持ち、落ちても残るファイルにして、利用者が `unlock` で外す。待ちは 3 分で、待ちきれなければ差分を `.wiki-cache/apply-pending/` に置いて誤りにし、5 件以上で知らせる。日誌は 14 日残す。」\n  - 経緯 3: 以前はロックと日誌を利用者の PC に 1 か所に置き、wiki の印で管理領域を決める案だったが、崩されて外した。現在の案はプロジェクトごとのロックである。\n  - 経緯 2: 済んだかを今の中身から推す作りは崩れ、日誌だけで判定する形に直した。\n- [[editとwriteの書き込みの競合]]（`/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/editとwriteの書き込みの競合.md`）:\n  - 「使い方」の 3 つ目の項目: 「wiki のページ、索引、ログを書くのは `wiki_apply.py` だけにし、wiki ごとの残るロックと、前と後を書いた日誌で当てる設計を承認した」。また「実装はまだで、移り終えるまでは、ここに書いた競合が残る」。\n  - 現状でロックを持つのはグラフの抽出（`.extract.lock`）と閲覧だけで、共有のテキストファイルには排他がないとも書かれている。\n\n## 開いたページ\n1. `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/editとwriteの書き込みの競合.md`\n2. `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/wikiの書く段の設計-2026-11-15.md`\n\n## 未確認の出典\n- `docs/plans/wiki-apply-2026-11-14.md`（設計書、17 版目）と ADR-0023 は未読である。ロックの細部（ロックファイルの名前、取り方、`unlock` の挙動）は確かめていない。\n- `docs/agent-runs/2026-11-14-wiki-apply/`（原本とレビューの記録）も未読である。\n- 経緯の 6 にある [[敵対的レビューで設計を直す進め方]] は、リンクはあるが開いていない。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+   "ttft_ms": 2257,
+   "type": "result",
+   "duration_ms": 13791,
+   "uuid": "1ae2c65a-e5a4-41f5-acaf-85300f3dda75",
+   "ttft_stream_ms": 1859,
+   "time_to_request_ms": 753,
+   "first_content_frame_ms": 1859,
+   "queued_turn_count": 0,
+   "result_index": 0,
+   "model_usage_since_last_result": {
+    "claude-haiku-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 2564,
+     "cacheReadInputTokens": 8797,
+     "cacheCreationInputTokens": 6027,
+     "webSearchRequests": 0,
+     "costUSD": 0.00257577,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 747,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 6027,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "credential_expires_at": "2026-12-06T22:17:39.049Z"
+  }
+ ],
+ "opened": [
+  "project:concepts/editとwriteの書き込みの競合.md",
+  "project:sources/wikiの書く段の設計-2026-11-15.md"
+ ],
+ "model_used": "claude-haiku-5-5",
+ "result": "## 答え\n\nwiki のページ、索引、ログへの書き込みを `wiki_apply.py` に移す設計では、ロックは wiki（プロジェクト）ごとに 1 つ持ち、残るファイルとして置く。待ちは 3 分までで、取れなければ差分を `.wiki-cache/apply-pending/` に置いて誤りとし、5 件以上たまったら知らせる。ロックは利用者が `unlock` で外す。ロックは書き込みの排他だけを担い、書いたかどうかの判定は、書く前後の中身を書いた日誌だけで行う。日誌は 14 日残す。この設計は承認済みだが、実装はまだである（2026-11-15、ADR-0023）。\n\n## 根拠\n- [[wikiの書く段の設計-2026-11-15]]（`/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/wikiの書く段の設計-2026-11-15.md`）:\n  - 決定表の「ロック」行: 「wiki ごとの残るロックのファイル。3 分待って差分を置く。`unlock` で外す」。\n  - 決定表の「済んだかの判定」行: 「書く前に『前』と『後』の中身を日誌に書き、日誌だけで決める。次にロックを取った書き手が前に進め、置けなければ戻す」。\n  - 経緯 4 の「作者が決めること」の答え: 「ロックはプロジェクト（wiki）ごとに持ち、落ちても残るファイルにして、利用者が `unlock` で外す。待ちは 3 分で、待ちきれなければ差分を `.wiki-cache/apply-pending/` に置いて誤りにし、5 件以上で知らせる。日誌は 14 日残す。」\n  - 経緯 3: 以前はロックと日誌を利用者の PC に 1 か所に置き、wiki の印で管理領域を決める案だったが、崩されて外した。現在の案はプロジェクトごとのロックである。\n  - 経緯 2: 済んだかを今の中身から推す作りは崩れ、日誌だけで判定する形に直した。\n- [[editとwriteの書き込みの競合]]（`/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/editとwriteの書き込みの競合.md`）:\n  - 「使い方」の 3 つ目の項目: 「wiki のページ、索引、ログを書くのは `wiki_apply.py` だけにし、wiki ごとの残るロックと、前と後を書いた日誌で当てる設計を承認した」。また「実装はまだで、移り終えるまでは、ここに書いた競合が残る」。\n  - 現状でロックを持つのはグラフの抽出（`.extract.lock`）と閲覧だけで、共有のテキストファイルには排他がないとも書かれている。\n\n## 開いたページ\n1. `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/editとwriteの書き込みの競合.md`\n2. `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/wikiの書く段の設計-2026-11-15.md`\n\n## 未確認の出典\n- `docs/plans/wiki-apply-2026-11-14.md`（設計書、17 版目）と ADR-0023 は未読である。ロックの細部（ロックファイルの名前、取り方、`unlock` の挙動）は確かめていない。\n- `docs/agent-runs/2026-11-14-wiki-apply/`（原本とレビューの記録）も未読である。\n- 経緯の 6 にある [[敵対的レビューで設計を直す進め方]] は、リンクはあるが開いていない。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+ "cost_usd": 0.00257577,
+ "duration_ms": 13791,
+ "is_error": false,
+ "terminal_reason": "completed",
+ "api_error": null,
+ "api_error_status": null,
+ "model_usage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 4,
+   "outputTokens": 2564,
+   "cacheReadInputTokens": 8797,
+   "cacheCreationInputTokens": 6027,
+   "webSearchRequests": 0,
+   "costUSD": 0.00257577,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 747,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 6027,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "cli_version": "2.1.325",
+ "memory_paths": {},
+ "exit": 0,
+ "stderr": ""
+}

@@ -1,0 +1,75 @@
+[ask-claude 00:34:37] claude-opus-5-5 に依頼（effort high、edit、cwd C:\Works\info-hive-dev\.claude\worktrees\prompt-context-hook）
+**158 件をすべて採点し、`docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/semantic-grades.json` に書きました。** 610 命題の内訳は supported 577、omitted 33、wrong 0 です。citation_errors がある回答は 5 件、unsupported_claims がある回答は 12 件です。
+
+## 結果
+
+| ファイル | 回答 | supported / omitted | 主な omitted |
+|---|---|---|---|
+| r0-memory | 14 | 69 / 1 | A134（メモリノートの「目立つと判断」がない） |
+| r1-apply, r1-pdfheader, r1-powershell, r1-rag051 | 各 12 | すべて supported | ― |
+| r1-schema | 12 | 38 / 10 | os.stat と失敗の区別がない、0.13.0 がリンク名にしか出ない |
+| r2-blind | 12 | 43 / 5 | 改ページの文字の「5 個」がない |
+| r2-two-wikis | 12 | 24 / 0 | ― |
+| r2-wordcom | 12 | 46 / 2 | A045、A082（pwsh 7 の Start-Job で書き出せたという観測がない） |
+| r3-confidence | 12 | 42 / 6 | 33/33 がない |
+| r3-extract | 12 | 44 / 4 | id(obj) という原因がない、189 MiB がない |
+| r3-haiku | 12 | 48 / 0 | ― |
+| r3-youtube | 12 | 43 / 5 | wiki_captions.py の共通化がない |
+
+主な citation_errors と unsupported_claims は次のとおりです。
+- **A010、A121**: ページのタイトルをそのまま `[[...]]` のリンク名にしている。このリンクは解決しないと判定したが、**これは推測です**。13 個の JSON の中のリンクがファイル名の形であることから推しただけで、解決の規則そのものは確かめていません。
+- **A053、A113**: DisplayAlerts を 0 にする目的を、ページにないまま補っている。
+- **A022、A035、A074、A108、A141、A153**: 一般論を、実際に起きた出来事として書いている（下の線引きを参照）。
+- **A146**: 「1025 バイトを超える前置き」と書き、境界が 1 バイトずれている。
+
+## 期待値の誤りと曖昧さ（本文と照らして確かめたもの）
+
+期待値は書き換えていません。
+- **r2-wordcom:4**: 「タイムアウトを使った例では成功」とあるが、観測の文は「パスだけを渡し、pwsh 7 の Start-Job で動かすと書き出せた」だけです。`Wait-Job -Timeout` は手順の案にしか出てきません。
+- **r3-extract:3**: 「段組みなどで」は pdfminer のページの本文にありません。
+- **r3-haiku:3**: 「必須リンク」とあるが、本文は「本文のリンク」です。
+- **r2-wordcom:3**: 「300秒停止」とあるが、本文は「300 秒で終わらなかった」です。
+- **r2-blind:2**: 「コピーの同一性の証拠」は本文にありません。本文にあるのは「読んだことの証明ではない」だけです。
+- **r0-memory:3**: 期待値は「作業中のノート／重要」、本文は「メモリノート／目立つと判断」です。
+- **r1-rag051:1**: 「案内だけを変更」とあるが、本文は「古い条件を書いていたのはこの 1 箇所だけ」で、版も上げています。
+- **r1-rag051:3**: 「依存するwiki」という言い方が分かりにくいです。
+- **r1-schema:1**: 「集約」とあるが、rag の `rag_config.py` も同じ規則を別に持っています。
+- **r1-schema:3**: ソースのページでは ADR-0019 の状態が「提案」です。
+- **ほぼ同じ命題**: r2-blind:1 と :4、r1-powershell:1 と :3 はほぼ重なっています。
+
+## 難しかった判定と、採った線引き
+
+- **r1-schema:2**: os.stat に触れ、さらに「Path.is_file を使わない理由」か「certain の区別」のどちらかを述べていれば supported にしました。A087 は os.stat と is_file の不使用を書いていますが、目的がないので omitted です。
+- **r2-wordcom**: 1 番目は「パスだけを渡す」ことを主な内容と見て、推奨として書いた回答も supported にしました。4 番目は、Start-Job で書き出せたという観測を述べた回答だけを supported にしています。
+- **r2-blind の時制**: 「計測をやり直すと古い判定が付いた」と過去の出来事として書いた 6 件を unsupported にしました。本文では一般論で、観測されたのは Sol のレビューがメモリ上で示した差し替えだけです。
+- **r3-youtube:4**: wiki_captions.py に印の照合と confidence の計算があり、加えて「raw の生成と読み取り」か「lint と共有」に触れていれば supported です。A009、A120、A156 はこの一句がないため omitted にしました。境目の判定なので、決め直す余地があります。
+- **A145 と A146 の違い**: A145 は 0 始まりの書き方で一貫しているので notes にとどめました。A146 はバイト数で書いて境界がずれているので unsupported_claims にしました。
+- **約 190 MiB**: ページの主張の表にある丸めた値なので supported にしました（A011、A149、A155、A158）。
+- **wrong が 0 件**: 命題に反する主張はありませんでした。
+- **パスの崩れ**: /root/...、ドライブ名の欠け、断片のパスは採点の対象外として notes に書きました（A085、A095、A125、A127、A128、A138、A153）。
+
+## 前提と手順の注意
+
+- **範囲外のファイル**: 書き出しの後、改行の形式をそろえるために `summary.json` と `manual-spotcheck.json` を開きました。見たのは LF か CRLF かだけで、親ディレクトリの一覧も 1 回表示しています。採点には影響していません。
+- **リンクの検査**: 存在しないリンクの候補はスクリプトで抜き出し、出てきたものだけを読んで判定しました。意味の判定には単語の一致を使っていません。
+- **git fetch**: 外部との通信を禁じた依頼なので省きました。
+
+`✶ Insight ─────────────────────────────────────`
+- r3-confidence は回答ごとに開いたページが違います。そこで、先に「命題を支えるページ」を対応させてから、回答ごとに照らしました。今回は、命題を支える 3 ページを全回答が開いていました。
+- omitted の多くは、数値や原因のような一要素が抜けたものです（33/33、5 個、id(obj)）。命題の中にある、意味を左右する要素が効いています。
+`─────────────────────────────────────────────────`
+
+## 検査
+
+実行できる試験はありません。構造の検査は通りました（13 ファイルと ID の集合が一致、labels の個数が命題の数と一致、値は 3 種類のどれか、型も正しい、LF、見えない制御文字なし）。
+
+## 変更したファイル
+
+- `docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/semantic-grades.json`（新規）
+- 作業ツリーの外の `%TEMP%\grade\` に、表示・集計・検査用のスクリプトと途中のファイルを置きました（`show.py`、`add.py`、`finalize.py`、`links.py`、`grades.json`、`conf_head.txt`）。
+
+**この作業に最適なモデルとエフォート**: Opus、high。
+
+使用した MCP サーバー: なし
+使用した Agent Skills: なし
+[ask-claude 00:50:02] 完了（claude-opus-5-5）。session 43c90bca-9d4c-47d3-b558-b8085cf64ba3  usage {"total_cost_usd": 13.672841199999999, "usage": {"input_tokens": 136, "cache_creation_input_tokens": 398240, "cache_read_input_tokens": 15409461, "output_tokens": 50661, "output_tokens_details": {"thinking_tokens": 20723}, "server_tool_use": {"web_search_requests": 0, "web_fetch_requests": 0}, "service_tier": "standard", "cache_creation": {"ephemeral_1h_input_tokens": 395379, "ephemeral_5m_input_tokens": 0}, "inference_geo": "global", "iterations": [{"input_tokens": 2, "output_tokens": 3391, "cache_read_input_tokens": 412319, "cache_creation_input_tokens": 1650, "cache_creation": {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 1650}, "type": "message"}], "speed": "standard", "fallback_credit": null}}

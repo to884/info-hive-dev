@@ -19,7 +19,15 @@ on:
       - tests/wiki/test_wiki_lint.py
       - tests/wiki/test_wiki_links.py
       - tests/wiki/test_prompt_hook.py
+      - tests/wiki/test_prompt_launcher.py
+      - tests/wiki/bench_prompt_hook.py
+      - tests/wiki/test_reader_measurement.py
+      - tests/wiki/measure_reader_models.py
+      - tests/wiki/reader_measurement_runtime.py
+      - tests/wiki/grade_reader_models.py
+      - tests/wiki/reconcile_reader_grades.py
       - tests/wiki/fixtures/prompt_context/**
+      - docs/research/**/model-selection.json
       - .github/workflows/wiki-walk.yml
 
 permissions:
@@ -84,4 +92,4 @@ jobs:
       # 実際の wiki での評価（EvaluationGateTests）は、浅い取得では評価のコミットがないので飛ぶ。
       - name: プロンプトのフックの試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
-        run: uv run --python ${{ matrix.python }} python -X utf8 -B -m unittest tests/wiki/test_prompt_hook.py -v
+        run: uv run --python ${{ matrix.python }} python -X utf8 -B -m unittest tests/wiki/test_prompt_hook.py tests/wiki/test_prompt_launcher.py tests/wiki/test_reader_measurement.py -v

@@ -1,0 +1,998 @@
+{
+ "protocol": 3,
+ "fingerprint": "c7b9e69a443a55c8807dd832222250a65db2f07b3b28e2e9c6ba3ed219e6dc40",
+ "id": "r3-confidence",
+ "class": "R3",
+ "model": "fable",
+ "effort": "medium",
+ "run": 2,
+ "requested_effort": "medium",
+ "prompt_sha256": "c210c685ca411841961560047d19a674152d986dd7972b0dae95e751872701db",
+ "argv": [
+  "claude",
+  "-p",
+  "問い: query の確信度の規則は 0.20.0 から 0.24.0 までにどう変わった？版ごとに比べて\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"queryの回答の確信度への名前の変更とリリース-wiki-0.24.0\", \"path\": \"sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\"}\n{\"slug\": \"queryの確からしさとリリース-wiki-0.20.0\", \"path\": \"sources/queryの確からしさとリリース-wiki-0.20.0.md\"}\n{\"slug\": \"queryの確からしさの決め方の分離とリリース-wiki-0.21.1\", \"path\": \"sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\"}",
+  "--agent",
+  "wiki:wiki-reader",
+  "--model",
+  "fable",
+  "--effort",
+  "medium",
+  "--plugin-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--tools",
+  "Read,Glob,Grep",
+  "--allowedTools",
+  "Read,Glob,Grep",
+  "--max-budget-usd",
+  "2",
+  "--permission-mode",
+  "auto",
+  "--no-session-persistence",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "{\"mcpServers\":{}}",
+  "--settings",
+  "{\"autoMemoryEnabled\": false, \"claudeMdExcludes\": [\"**/CLAUDE.md\", \"**/CLAUDE.local.md\", \"**/AGENTS.md\", \"**/.claude/rules/**\"]}",
+  "--add-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+ ],
+ "events": [
+  {
+   "type": "system",
+   "subtype": "init",
+   "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "tools": [
+    "Read",
+    "Glob",
+    "Grep"
+   ],
+   "mcp_servers": [],
+   "model": "claude-fable-5-2",
+   "permissionMode": "auto",
+   "slash_commands": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring",
+    "advisor",
+    "agents",
+    "auto-mode-setup",
+    "autocompact",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "output-style",
+    "context",
+    "effort",
+    "fast",
+    "focus",
+    "heapdump",
+    "init",
+    "mcp",
+    "import",
+    "model",
+    "__remote-workflow",
+    "workflow-launch-exec",
+    "reload-plugins",
+    "reload-skills",
+    "rename",
+    "ultrareview",
+    "security-review",
+    "usage-credits",
+    "extra-usage",
+    "usage",
+    "insights",
+    "recap",
+    "skill-doctor",
+    "goal",
+    "design-consent",
+    "design-revoke",
+    "list-agents",
+    "team-onboarding"
+   ],
+   "terminal_slash_commands": [
+    "doctor",
+    "color",
+    "focus",
+    "reload-plugins"
+   ],
+   "apiKeySource": "none",
+   "claude_code_version": "2.1.325",
+   "output_style": "default",
+   "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup",
+    "web-fetch",
+    "wiki:wiki-reader"
+   ],
+   "skills": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring"
+   ],
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+     "source": "wiki@inline",
+     "version": "0.0.0"
+    },
+    {
+     "name": "cc-plugin-agents-md",
+     "path": "builtin",
+     "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+     "name": "cc-plugin-telemetry",
+     "path": "builtin",
+     "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+     "name": "cc-plugin-privacy",
+     "path": "builtin",
+     "source": "cc-plugin-privacy@builtin"
+    },
+    {
+     "name": "cc-plugin-plugin-authoring",
+     "path": "builtin",
+     "source": "cc-plugin-plugin-authoring@builtin"
+    }
+   ],
+   "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1"
+   ],
+   "analytics_disabled": false,
+   "product_feedback_disabled": false,
+   "uuid": "a4a47d83-1f5c-4275-bf57-bd02b065aa03",
+   "original_cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "additional_directories": [
+    "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+   ],
+   "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-1e77faae8ca4bbf25dfb323451c48b73",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "per_turn_effort_active": true,
+   "ultrathink_available": false,
+   "ultrathink_typed_raises": false,
+   "view_mode": "default",
+   "powershell_path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-fable-5-2",
+    "id": "msg_011Ch8jUmC4GFe9XFusXYkx2",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01USGh2JHTF1MdKao8c3e9CS",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1380,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1380
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "d13b5508-a038-4aff-9839-91e79f3e93f3",
+   "timestamp": "2026-11-17T15:25:34.767Z",
+   "request_id": "req_011Ch8jUkV91voFJmfZw22gH",
+   "wire_tool_inputs": {
+    "toolu_01USGh2JHTF1MdKao8c3e9CS": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md"
+    }
+   }
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-fable-5-2",
+    "id": "msg_011Ch8jUmC4GFe9XFusXYkx2",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01KxvFptuD9zkQdp69rPH2UJ",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1380,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1380
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "36bd239a-cfe0-45f2-85f9-3b5ea8aa954f",
+   "timestamp": "2026-11-17T15:25:36.114Z",
+   "request_id": "req_011Ch8jUkV91voFJmfZw22gH",
+   "wire_tool_inputs": {
+    "toolu_01KxvFptuD9zkQdp69rPH2UJ": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md"
+    }
+   }
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-fable-5-2",
+    "id": "msg_011Ch8jUmC4GFe9XFusXYkx2",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01Jgf7m4No5Kj6A5KceunRgU",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1380,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1380
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "303ff4f0-17dc-459a-a256-b0fee9cd93b5",
+   "timestamp": "2026-11-17T15:25:36.804Z",
+   "request_id": "req_011Ch8jUkV91voFJmfZw22gH",
+   "wire_tool_inputs": {
+    "toolu_01Jgf7m4No5Kj6A5KceunRgU": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md"
+    }
+   }
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.92,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.61,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.92,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     },
+     "seven_day_overage_included": {
+      "utilization": 0.24,
+      "resetsAt": 1795028400,
+      "status": "allowed"
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "999e92df-6129-4520-8819-c5d8777102a0",
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01USGh2JHTF1MdKao8c3e9CS",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の回答の確信度と wiki 0.20.0 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"confidence\", \"プロンプト\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-16-wiki-query-confidence\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の回答の確信度と wiki 0.20.0 のリリース\n13\t\n14\t`/wiki:query` の回答に確信度（confidence）を付け、低いときは上げる方法を提案するようにして、wiki 0.20.0 として出した記録である。原本（Sol の 6 回のレビュー）は `docs/agent-runs/2026-11-16-wiki-query-confidence/` にあり、決定は ADR-0028（2026年11月16日に承認）にある。決め方の正本は、プラグインの `skills/info-hive/references/query-workflow.md` の手順 5b である。\n15\t\n16\t## 付ける場所を回答にした理由\n17\t\n18\t作者の依頼は「wiki:query の結果に confidence を足す」だった。付ける場所は、回答と検索の結果の行の 2 つが考えられた。\n19\t\n20\t- 検索の行の `score` は RRF の値で、順位だけから決まる。クエリをまたいで比べられない。\n21\t- ADR-0011 の較正データ（日本語の自然な質問）では、答えのない 12 問の最も近い距離は 0.151〜0.163 だった。答えのある 47 問のうち 6 問は、答えに届くのに 0.151 以上を要した。距離 0.15 未満を「高い」とする粗い区分なら作れるが、評価は小さく、MCP（ruri）と CLI（e5）でモデルが違う。\n22\t- 回答の正誤を確かめた評価のデータがない。\n23\t\n24\t作者は回答に付ける案を選んだ。数値にはせず、規則で決める「高」「中」「低」と理由にした。\n25\t\n26\t## 決め方\n27\t\n28\t- 判定するのは、回答の結論と、結論を導いた前提である。\n29\t- 前提は、その事柄の正本に書かれていたかで出発点を決める。表は上から順に見て、最初に当たった行を取る。\n30\t  - ソースの要約ページか raw で確かめた前提は「高」、コンセプトのページだけにある前提は「中」になる。\n31\t  - wiki 自身の事柄は、`log.md` などの記録で答えれば「高」になる。\n32\t  - シンセシスのページは根拠に数えない。\n33\t- 結論は導き方で決める。そのまま述べたもの、計算などの決まった手順で導いたもの、判断を加えたものに分ける。\n34\t- 上限（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）を当て、もっとも低いものに合わせる。\n35\t- 「中」か「低」のときは、要因ごとに上げる方法を提案する。wiki を書き換える方法は提案だけにする。\n36\t- wiki の外の知識は前提に使わない（作者の決定）。問いの一部だけ wiki に答えがないときも、その部分は答えない。\n37\t\n38\t## レビューで崩れた前提\n39\t\n40\tSol の敵対的レビューを 6 回受けた。1、2 回目は却下、3〜6 回目は採用可だった。\n41\t\n42\t1. ページの `sources` からソースまでたどれれば「高」としていた。これでは、推論の回答をシンセシスとして保存すると、次のクエリで「高」になる。ページ単位の `sources` は、個々の主張の出所を保証しない。\n43\t2. 根拠の形を「1 ページか、複数のページか」で分けたので、1 ページの値から計算する回答（8 件と 2 件から 80%）がどの行にも当たらなかった。前提と結論を分け、結論は導き方で決めることにした。\n44\t3. 場合を並べた表に、もれと重なりがあった。`log.md` を根拠にする回答の行がなく、検索の縮退の理由を `index.state` から推し量っていた。`index.state` は、埋め込み済みの件数が足りているかしか表さない。どの表も上から順に当てはめる形にし、最後に「どれにも当たらない」の行を置いた。\n45\t4. 外の知識を添えない決まりを質問全体の単位で書くと、「A と B は？」のように問いをまとめるだけで、wiki が扱っていない B を外の知識で埋められた。結論ごとに当てる形にした。\n46\t\n47\t## プロンプトの監査\n48\t\n49\t`commands/query.md` を、claude-api スキルの prompt-audit で、Claude Sonnet 5.5 を対象に監査した。\n50\t\n51\t- Sonnet 5.5 は、知識を問う質問で、検索を使わずに自分の知識で答えることがある。そこで「答えは wiki から取り、知っていると思う質問でも wiki を確かめる」を足した。\n52\t- 理由のない「0 件でも CLI でやり直さない」は、書かれたとおりに受け取られるので、「同じ検索語で」に限り、探し直しは 2 回までにした。\n53\t- `warning` の説明がコードと食い違っていた。被リンクの探し方も、コマンドと手順書で食い違っていた（コマンドの方が新しい）。どちらも直した。\n54\t\n55\t## 実際に動かした確かめ\n56\t\n57\tworktree のプラグインを `claude --plugin-dir` で読み込み、この wiki に 3 問を問い合わせた。エージェントは 3 問とも手順 5b を開いて従った。\n58\t\n59\t- 仮説のページ（[[officeのcomでの書き出し]]）に頼る質問は「中」だった。上げる方法として、仮説を確かめて `/wiki:learn` で記録することが出た。\n60\t- コンセプトのページにある質問では、ソースの要約ページで確かめきれず「中」になった。上げる方法として raw を読むことが出た。\n61\t- wiki が扱っていない質問には、確信度を付けなかった。ただし、外の知識を添えていた。これが作者の「添えない」の決定のきっかけになった。\n62\t\n63\tリリースのあとで、Sonnet 5.5 で 11 問を 3 回ずつ流して測った（[[queryの確からしさのsonnetでの測定-2026-11-16]]）。こちらでは、33 回のどれも手順 5b を開かず、`commands/query.md` の手順 6b の要約だけで判定した。判定の一致は 24/33 で、外れた 9 回はすべて期待より低く、規則にない上限（観測が 1 回だけ、raw 未確認）によるものだった。\n64\t\n65\t## リリース\n66\t\n67\t1. 子の PR（to884/info-hive-wiki#69）と親の PR（to884/info-hive-dev#136）の CI が、どちらも最新のコミットで通ってから、子をマージした（`08d60aa`）。\n68\t2. 注釈付きのタグ `v0.20.0` と GitHub リリースを作った。\n69\t3. 使い捨ての設定でマーケットプレイスから入れ、0.20.0 が入ること、v0.19.5 から変わった 7 つのファイルの SHA-256 がタグの中身と一致することを確かめた。\n70\t4. 親の参照をマージコミットに付け替えて、親をマージした。\n71\t\n72\t親の `tests/wiki` を手元の素の Python で流すと、`yaml` と `psutil` がないために 36 件が落ちた。変更は文書だけで、依存を入れて動く子の CI は通った。\n73\t\n74\t## ADR-0027 との関係\n75\t\n76\tリリースのあとで、YouTube の字幕の取り込みのセッションから連絡があった。ADR-0027（提案）が、ADR-0028 の上限の表に、動画のソースの行を足すよう求めていた。\n77\t\n78\t- 動画の raw の `confidence` が `medium` なら「中」、`low` なら「低」を上限にする。\n79\t- モデルの知識だけによる訂正や、留保した語に頼る前提は「低」を上限にする。\n80\t\n81\tADR-0028 は承認済みで、規則は 0.20.0 で出荷済みだった。承認した ADR は書き換えない決まりなので（`docs/adr/README.md`）、次のように分担した。\n82\t\n83\t- 上限の行と、それぞれを解消する「上げる方法」の行は、ADR-0027 を実装する PR で `query-workflow.md` の手順 5b に足す。\n84\t- その判断は ADR-0027 に書く。to884/info-hive-dev#139 でマージ済み。\n85\t\n86\t先に足さなかったのは、`confidence` の欄と訂正の印が ADR-0027 の実装で初めてできるからである。先に足すと、まだない欄を指す規則になる。上限の表は、当てはまる行をすべて当ててもっとも低いものを取る形なので、行を足しても既存の行と衝突しない。\n87\t\n88\t## 後始末\n89\t\n90\t`git worktree remove --force` は登録を外したが、`Permission denied` で空のフォルダーを残した。このセッションのシェルの作業ディレクトリが、まだその中にあったためと見られる。外に出てから `rmdir` で消えた。\n91\t\n92\t## 関係するページ\n93\t\n94\t- [[リリースの確かめ方]]\n95\t- [[敵対的レビューで設計を直す進め方]]\n96\t- [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n97\t- [[youtubeの字幕の取り込みの設計-2026-11-15]]\n98\t- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n99\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "14c3a07e-3466-48ab-a249-fbbcd5e4d94d",
+   "timestamp": "2026-11-17T15:25:37.224Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md",
+     "content": "---\ntype: \"source\"\ntitle: \"/wiki:query の回答の確信度と wiki 0.20.0 のリリース\"\ntags: [\"リリース\", \"query\", \"confidence\", \"プロンプト\"]\nauthors: [\"to884\"]\nraw: \"docs/agent-runs/2026-11-16-wiki-query-confidence\"\ningested: 2026-11-16\ncreated: 2026-11-16\nupdated: 2026-11-16\n---\n\n# /wiki:query の回答の確信度と wiki 0.20.0 のリリース\n\n`/wiki:query` の回答に確信度（confidence）を付け、低いときは上げる方法を提案するようにして、wiki 0.20.0 として出した記録である。原本（Sol の 6 回のレビュー）は `docs/agent-runs/2026-11-16-wiki-query-confidence/` にあり、決定は ADR-0028（2026年11月16日に承認）にある。決め方の正本は、プラグインの `skills/info-hive/references/query-workflow.md` の手順 5b である。\n\n## 付ける場所を回答にした理由\n\n作者の依頼は「wiki:query の結果に confidence を足す」だった。付ける場所は、回答と検索の結果の行の 2 つが考えられた。\n\n- 検索の行の `score` は RRF の値で、順位だけから決まる。クエリをまたいで比べられない。\n- ADR-0011 の較正データ（日本語の自然な質問）では、答えのない 12 問の最も近い距離は 0.151〜0.163 だった。答えのある 47 問のうち 6 問は、答えに届くのに 0.151 以上を要した。距離 0.15 未満を「高い」とする粗い区分なら作れるが、評価は小さく、MCP（ruri）と CLI（e5）でモデルが違う。\n- 回答の正誤を確かめた評価のデータがない。\n\n作者は回答に付ける案を選んだ。数値にはせず、規則で決める「高」「中」「低」と理由にした。\n\n## 決め方\n\n- 判定するのは、回答の結論と、結論を導いた前提である。\n- 前提は、その事柄の正本に書かれていたかで出発点を決める。表は上から順に見て、最初に当たった行を取る。\n  - ソースの要約ページか raw で確かめた前提は「高」、コンセプトのページだけにある前提は「中」になる。\n  - wiki 自身の事柄は、`log.md` などの記録で答えれば「高」になる。\n  - シンセシスのページは根拠に数えない。\n- 結論は導き方で決める。そのまま述べたもの、計算などの決まった手順で導いたもの、判断を加えたものに分ける。\n- 上限（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）を当て、もっとも低いものに合わせる。\n- 「中」か「低」のときは、要因ごとに上げる方法を提案する。wiki を書き換える方法は提案だけにする。\n- wiki の外の知識は前提に使わない（作者の決定）。問いの一部だけ wiki に答えがないときも、その部分は答えない。\n\n## レビューで崩れた前提\n\nSol の敵対的レビューを 6 回受けた。1、2 回目は却下、3〜6 回目は採用可だった。\n\n1. ページの `sources` からソースまでたどれれば「高」としていた。これでは、推論の回答をシンセシスとして保存すると、次のクエリで「高」になる。ページ単位の `sources` は、個々の主張の出所を保証しない。\n2. 根拠の形を「1 ページか、複数のページか」で分けたので、1 ページの値から計算する回答（8 件と 2 件から 80%）がどの行にも当たらなかった。前提と結論を分け、結論は導き方で決めることにした。\n3. 場合を並べた表に、もれと重なりがあった。`log.md` を根拠にする回答の行がなく、検索の縮退の理由を `index.state` から推し量っていた。`index.state` は、埋め込み済みの件数が足りているかしか表さない。どの表も上から順に当てはめる形にし、最後に「どれにも当たらない」の行を置いた。\n4. 外の知識を添えない決まりを質問全体の単位で書くと、「A と B は？」のように問いをまとめるだけで、wiki が扱っていない B を外の知識で埋められた。結論ごとに当てる形にした。\n\n## プロンプトの監査\n\n`commands/query.md` を、claude-api スキルの prompt-audit で、Claude Sonnet 5.5 を対象に監査した。\n\n- Sonnet 5.5 は、知識を問う質問で、検索を使わずに自分の知識で答えることがある。そこで「答えは wiki から取り、知っていると思う質問でも wiki を確かめる」を足した。\n- 理由のない「0 件でも CLI でやり直さない」は、書かれたとおりに受け取られるので、「同じ検索語で」に限り、探し直しは 2 回までにした。\n- `warning` の説明がコードと食い違っていた。被リンクの探し方も、コマンドと手順書で食い違っていた（コマンドの方が新しい）。どちらも直した。\n\n## 実際に動かした確かめ\n\nworktree のプラグインを `claude --plugin-dir` で読み込み、この wiki に 3 問を問い合わせた。エージェントは 3 問とも手順 5b を開いて従った。\n\n- 仮説のページ（[[officeのcomでの書き出し]]）に頼る質問は「中」だった。上げる方法として、仮説を確かめて `/wiki:learn` で記録することが出た。\n- コンセプトのページにある質問では、ソースの要約ページで確かめきれず「中」になった。上げる方法として raw を読むことが出た。\n- wiki が扱っていない質問には、確信度を付けなかった。ただし、外の知識を添えていた。これが作者の「添えない」の決定のきっかけになった。\n\nリリースのあとで、Sonnet 5.5 で 11 問を 3 回ずつ流して測った（[[queryの確からしさのsonnetでの測定-2026-11-16]]）。こちらでは、33 回のどれも手順 5b を開かず、`commands/query.md` の手順 6b の要約だけで判定した。判定の一致は 24/33 で、外れた 9 回はすべて期待より低く、規則にない上限（観測が 1 回だけ、raw 未確認）によるものだった。\n\n## リリース\n\n1. 子の PR（to884/info-hive-wiki#69）と親の PR（to884/info-hive-dev#136）の CI が、どちらも最新のコミットで通ってから、子をマージした（`08d60aa`）。\n2. 注釈付きのタグ `v0.20.0` と GitHub リリースを作った。\n3. 使い捨ての設定でマーケットプレイスから入れ、0.20.0 が入ること、v0.19.5 から変わった 7 つのファイルの SHA-256 がタグの中身と一致することを確かめた。\n4. 親の参照をマージコミットに付け替えて、親をマージした。\n\n親の `tests/wiki` を手元の素の Python で流すと、`yaml` と `psutil` がないために 36 件が落ちた。変更は文書だけで、依存を入れて動く子の CI は通った。\n\n## ADR-0027 との関係\n\nリリースのあとで、YouTube の字幕の取り込みのセッションから連絡があった。ADR-0027（提案）が、ADR-0028 の上限の表に、動画のソースの行を足すよう求めていた。\n\n- 動画の raw の `confidence` が `medium` なら「中」、`low` なら「低」を上限にする。\n- モデルの知識だけによる訂正や、留保した語に頼る前提は「低」を上限にする。\n\nADR-0028 は承認済みで、規則は 0.20.0 で出荷済みだった。承認した ADR は書き換えない決まりなので（`docs/adr/README.md`）、次のように分担した。\n\n- 上限の行と、それぞれを解消する「上げる方法」の行は、ADR-0027 を実装する PR で `query-workflow.md` の手順 5b に足す。\n- その判断は ADR-0027 に書く。to884/info-hive-dev#139 でマージ済み。\n\n先に足さなかったのは、`confidence` の欄と訂正の印が ADR-0027 の実装で初めてできるからである。先に足すと、まだない欄を指す規則になる。上限の表は、当てはまる行をすべて当ててもっとも低いものを取る形なので、行を足しても既存の行と衝突しない。\n\n## 後始末\n\n`git worktree remove --force` は登録を外したが、`Permission denied` で空のフォルダーを残した。このセッションのシェルの作業ディレクトリが、まだその中にあったためと見られる。外に出てから `rmdir` で消えた。\n\n## 関係するページ\n\n- [[リリースの確かめ方]]\n- [[敵対的レビューで設計を直す進め方]]\n- [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n- [[youtubeの字幕の取り込みの設計-2026-11-15]]\n- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n",
+     "numLines": 99,
+     "startLine": 1,
+     "totalLines": 99
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01USGh2JHTF1MdKao8c3e9CS",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01KxvFptuD9zkQdp69rPH2UJ",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の確信度の決め方の分離と wiki 0.21.1 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"confidence\", \"プロンプト\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-16-wiki-query-confidence-reach\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の確信度の決め方の分離と wiki 0.21.1 のリリース\n13\t\n14\t`/wiki:query` の確信度の決め方を別のファイルに分けて確実に読ませ、読み違いと外の知識の経路を直して、wiki 0.21.1 として出した記録である。きっかけは、Sonnet 5.5 で測ったときに、決め方の正本（手順 5b）が 1 回も読まれていなかったことである（[[queryの確からしさのsonnetでの測定-2026-11-16]]）。レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-confidence-reach/` にある。\n15\t\n16\t## 直したこと\n17\t\n18\t作者は、測定のレポートが示した案 1〜4 をすべて入れると決めた。\n19\t\n20\t1. 決め方の本文を `skills/info-hive/references/query-confidence.md` に分けた。コマンドの手順 6b では、確信度を書く前に、このファイルを `${CLAUDE_PLUGIN_ROOT}` のパスで Read するよう求めた。手順 5b は、このファイルへの案内として残した。\n21\t2. 6b の要約を、読み違いを生まない 3 点にした。\n22\t   - ソースの要約ページに書かれていれば高で、raw まで読まなくてよい。\n23\t   - wiki 自身の事柄を記録で答えたら高。\n24\t   - 上限は表の行だけで、回数、再現、raw や git で確かめていないことでは下げない。\n25\t3. wiki の外の知識に、会話に読み込まれたプロジェクトの指示と、wiki の外のファイルを含めた。思い付いた答えを、検索語として書くことも禁じた。\n26\t4. 1 行目は `**確からしさ（confidence）: 中**` の字句のまま書くことにした。\n27\t\n28\t判定の表の中身は変えていない。ADR-0028 は承認済みなので書き換えず、置き場所の行に日付つきで追記した。\n29\t\n30\t## レビューで直したこと\n31\t\n32\tSol の敵対的レビューを 3 回受けた。指摘はどれも、外の知識の例外の決め方に集まった。\n33\t\n34\t- 1 回目は、例外を frontmatter の `raw` の欄に限っていた。これでは、文字コードを変換した写しと、rag の抽出済みの Markdown が外れた。\n35\t- 2 回目は、「本文から参照している」という条件にしていた。これでは、`rag_job_id` で指す rag のページが外れた。\n36\t\n37\t最後は、要約ページがそのソースの raw として指しているもの、とした。指し方は 3 つ（`raw` の原本、`rag_job_id` のジョブ、本文の参照とその画像）である。欄や書き方の 1 つで例外を決めると、取り込みの手順が作る別の形を取りこぼした。\n38\t\n39\t## 測り直し\n40\t\n41\tリリースの前に、前回と同じ wiki（`4b3f578`）と 11 問で測り直した。\n42\t\n43\t- ラベルの一致：24/33 から 33/33 に上がった。\n44\t- 決め方のファイルを開いた回：0/30 から 30/30 になった。\n45\t- 判定のぶれ：なくなった。\n46\t\n47\t答えを検索語として書く漏れは残った。Q11 では減ったが、確信度を付けない Q09 で新しく起きた。この漏れは、0.21.2 で字句で決まる決まりにして直した（[[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]）。\n48\t\n49\t## リリース\n50\t\n51\t1. 子の PR の先頭を指した親の CI 17 件が通ってから、子の PR（to884/info-hive-wiki#72）をマージした（`4ffecc5`）。\n52\t2. 注釈付きのタグ `v0.21.1` と GitHub リリースを作った。\n53\t3. 使い捨ての設定でマーケットプレイスから入れ、0.21.1 が入ることを確かめた。v0.21.0 から変わった 7 つのファイルの SHA-256 は、タグの中身と一致した。\n54\t4. 親の参照をマージコミットに付け替えて、親の PR（to884/info-hive-dev#144）をマージした。\n55\t\n56\t並行して、to884/info-hive-wiki#71（rag の page_report）と ADR-0027 の実装が、どちらも 0.22.0 を予定している。\n57\t\n58\t## 関係するページ\n59\t\n60\t- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n61\t- [[queryの確からしさとリリース-wiki-0.20.0]]\n62\t- [[リリースの確かめ方]]\n63\t- [[敵対的レビューで設計を直す進め方]]\n64\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "408641af-eef0-4e60-a436-04249f716159",
+   "timestamp": "2026-11-17T15:25:37.253Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md",
+     "content": "---\ntype: \"source\"\ntitle: \"/wiki:query の確信度の決め方の分離と wiki 0.21.1 のリリース\"\ntags: [\"リリース\", \"query\", \"confidence\", \"プロンプト\"]\nauthors: [\"to884\"]\nraw: \"docs/agent-runs/2026-11-16-wiki-query-confidence-reach\"\ningested: 2026-11-16\ncreated: 2026-11-16\nupdated: 2026-11-16\n---\n\n# /wiki:query の確信度の決め方の分離と wiki 0.21.1 のリリース\n\n`/wiki:query` の確信度の決め方を別のファイルに分けて確実に読ませ、読み違いと外の知識の経路を直して、wiki 0.21.1 として出した記録である。きっかけは、Sonnet 5.5 で測ったときに、決め方の正本（手順 5b）が 1 回も読まれていなかったことである（[[queryの確からしさのsonnetでの測定-2026-11-16]]）。レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-confidence-reach/` にある。\n\n## 直したこと\n\n作者は、測定のレポートが示した案 1〜4 をすべて入れると決めた。\n\n1. 決め方の本文を `skills/info-hive/references/query-confidence.md` に分けた。コマンドの手順 6b では、確信度を書く前に、このファイルを `${CLAUDE_PLUGIN_ROOT}` のパスで Read するよう求めた。手順 5b は、このファイルへの案内として残した。\n2. 6b の要約を、読み違いを生まない 3 点にした。\n   - ソースの要約ページに書かれていれば高で、raw まで読まなくてよい。\n   - wiki 自身の事柄を記録で答えたら高。\n   - 上限は表の行だけで、回数、再現、raw や git で確かめていないことでは下げない。\n3. wiki の外の知識に、会話に読み込まれたプロジェクトの指示と、wiki の外のファイルを含めた。思い付いた答えを、検索語として書くことも禁じた。\n4. 1 行目は `**確からしさ（confidence）: 中**` の字句のまま書くことにした。\n\n判定の表の中身は変えていない。ADR-0028 は承認済みなので書き換えず、置き場所の行に日付つきで追記した。\n\n## レビューで直したこと\n\nSol の敵対的レビューを 3 回受けた。指摘はどれも、外の知識の例外の決め方に集まった。\n\n- 1 回目は、例外を frontmatter の `raw` の欄に限っていた。これでは、文字コードを変換した写しと、rag の抽出済みの Markdown が外れた。\n- 2 回目は、「本文から参照している」という条件にしていた。これでは、`rag_job_id` で指す rag のページが外れた。\n\n最後は、要約ページがそのソースの raw として指しているもの、とした。指し方は 3 つ（`raw` の原本、`rag_job_id` のジョブ、本文の参照とその画像）である。欄や書き方の 1 つで例外を決めると、取り込みの手順が作る別の形を取りこぼした。\n\n## 測り直し\n\nリリースの前に、前回と同じ wiki（`4b3f578`）と 11 問で測り直した。\n\n- ラベルの一致：24/33 から 33/33 に上がった。\n- 決め方のファイルを開いた回：0/30 から 30/30 になった。\n- 判定のぶれ：なくなった。\n\n答えを検索語として書く漏れは残った。Q11 では減ったが、確信度を付けない Q09 で新しく起きた。この漏れは、0.21.2 で字句で決まる決まりにして直した（[[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]）。\n\n## リリース\n\n1. 子の PR の先頭を指した親の CI 17 件が通ってから、子の PR（to884/info-hive-wiki#72）をマージした（`4ffecc5`）。\n2. 注釈付きのタグ `v0.21.1` と GitHub リリースを作った。\n3. 使い捨ての設定でマーケットプレイスから入れ、0.21.1 が入ることを確かめた。v0.21.0 から変わった 7 つのファイルの SHA-256 は、タグの中身と一致した。\n4. 親の参照をマージコミットに付け替えて、親の PR（to884/info-hive-dev#144）をマージした。\n\n並行して、to884/info-hive-wiki#71（rag の page_report）と ADR-0027 の実装が、どちらも 0.22.0 を予定している。\n\n## 関係するページ\n\n- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n- [[queryの確からしさとリリース-wiki-0.20.0]]\n- [[リリースの確かめ方]]\n- [[敵対的レビューで設計を直す進め方]]\n",
+     "numLines": 64,
+     "startLine": 1,
+     "totalLines": 64
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01KxvFptuD9zkQdp69rPH2UJ",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01Jgf7m4No5Kj6A5KceunRgU",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の回答の「確からしさ」を「確信度」に変えた wiki 0.24.0 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"confidence\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-16-wiki-confidence-rename\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の回答の「確からしさ」を「確信度」に変えた wiki 0.24.0 のリリース\n13\t\n14\t作者の決定で、`/wiki:query` の回答に付ける「確からしさ（confidence）」の名前を「確信度」に変え、wiki 0.24.0 として出した記録である。決め方、上限、上げる方法は変えていない（[[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]）。レビューの原本は `docs/agent-runs/2026-11-16-wiki-confidence-rename/` にある。\n15\t\n16\t## 変えたこと\n17\t\n18\t- 回答の終わりの決まった 1 行は `**確信度（confidence）: 中**` になった。複数の結論の文の終わりは「（確信度: 高）」になった。\n19\t- プラグインでは、コマンド、決め方のファイル、ワークフロー、スキル、利用者向けの文書の 86 か所を変えた。browse のグラフのエッジの表の列名も「確信度」にした。\n20\t- 決まった 1 行の字句が変わり、前の字句を機械で数えている利用者には互換性のない変更になる。そこで minor を上げて 0.24.0 にした。0.24.0 を予定していた to884/info-hive-wiki#71 は、0.25.0 に振り直すことになる。\n21\t- ADR-0028 は承認済みなので、本文を書き換えず、「名前の追記」の節を足した。\n22\t\n23\t## 「確信度」が別の意味で使われていたこと\n24\t\n25\t「確信度」は、グラフのエッジの `confidence`（`low` など）と、判定モデルの答えの値（0〜1）で、すでに使われていた。回答の確信度とエッジの `confidence` が同じ文に出る箇所は、取り違えないよう「回答の確信度」「エッジの `confidence`」と書き分けた。\n26\t\n27\tこの重なりは、測定の要約のスクリプトでも問題になった。Sol のレビューでは、広い抽出式が「エッジの確信度: 低」も回答の印として拾う反例が、言い回しを変えて 3 回出た。字句の工夫では見分けきれないと判断し、作りを替えた。\n28\t\n29\t- 新しい名前は、決まった形（決まった 1 行と結論の文末の印）だけを機械で読む。\n30\t- 広い抽出は、回答の意味でしか使っていない前の名前だけを読む。\n31\t- 新しい名前の崩れた書き方は、回答を読んで判断する。\n32\t\n33\t3 回目の判定は採用可だった。残った反例は、エッジの値を決まった形（「（確信度: 低）」）で書いた回答だけである。これは回答の書き方の誤りなので、読めば見分けられる。\n34\t\n35\t## wiki のページの直し方\n36\t\n37\t確からしさを扱う 11 ページ（index を含む）の地の文と title を「確信度」にした。変えていないものは次の 4 つである。\n38\t\n39\t| 変えないもの | 理由 |\n40\t| --- | --- |\n41\t| ページ名（スラッグ）と `[[リンク]]` | 変えるとリンクが切れる |\n42\t| frontmatter の `sources` のページ名 | ページ名と同じ |\n43\t| 当時の版の字句（バッククォートの中、「（確からしさ: 高）」） | その版で実際に使っていた字句という事実である |\n44\t| `log.md` の過去の行 | 時系列の記録である。名前を変えたことは 1 行足した |\n45\t\n46\t> 変えないもの 補足：親の main を取り込んだとき、main 側で同じ行が書き換わっていたページが 1 つあった。main の行を取り、同じ規則で置き換え直した。\n47\t\n48\t## リリース\n49\t\n50\t1. 子の PR（to884/info-hive-wiki#77）と、親の PR（to884/info-hive-dev#156）を作った。子の CI 4 件と、子の先頭を指した親の CI 17 件が通ってから、子の PR をマージした（`2eb8ac4`）。Codex の PR レビューは、どちらも指摘なしだった。\n51\t2. 注釈付きのタグ `v0.24.0` と GitHub リリースを作った。本文は CHANGELOG の 0.24.0 の節である。\n52\t3. 使い捨ての設定でマーケットプレイスから入れ、0.24.0 が入ることを確かめた。v0.23.2 から変わった 10 個のファイルの SHA-256 は、タグの中身と一致した。\n53\t4. 親の参照をマージコミットに付け替えて、親の PR をマージした。\n54\t\n55\t## 関係するページ\n56\t\n57\t- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]\n58\t- [[queryの確からしさとリリース-wiki-0.20.0]]\n59\t- [[リリースの確かめ方]]\n60\t- [[敵対的レビューで設計を直す進め方]]\n61\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "db070b17-4c2c-4d6e-954d-23527c5b91d2",
+   "timestamp": "2026-11-17T15:25:37.259Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md",
+     "content": "---\ntype: \"source\"\ntitle: \"/wiki:query の回答の「確からしさ」を「確信度」に変えた wiki 0.24.0 のリリース\"\ntags: [\"リリース\", \"query\", \"confidence\"]\nauthors: [\"to884\"]\nraw: \"docs/agent-runs/2026-11-16-wiki-confidence-rename\"\ningested: 2026-11-16\ncreated: 2026-11-16\nupdated: 2026-11-16\n---\n\n# /wiki:query の回答の「確からしさ」を「確信度」に変えた wiki 0.24.0 のリリース\n\n作者の決定で、`/wiki:query` の回答に付ける「確からしさ（confidence）」の名前を「確信度」に変え、wiki 0.24.0 として出した記録である。決め方、上限、上げる方法は変えていない（[[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]）。レビューの原本は `docs/agent-runs/2026-11-16-wiki-confidence-rename/` にある。\n\n## 変えたこと\n\n- 回答の終わりの決まった 1 行は `**確信度（confidence）: 中**` になった。複数の結論の文の終わりは「（確信度: 高）」になった。\n- プラグインでは、コマンド、決め方のファイル、ワークフロー、スキル、利用者向けの文書の 86 か所を変えた。browse のグラフのエッジの表の列名も「確信度」にした。\n- 決まった 1 行の字句が変わり、前の字句を機械で数えている利用者には互換性のない変更になる。そこで minor を上げて 0.24.0 にした。0.24.0 を予定していた to884/info-hive-wiki#71 は、0.25.0 に振り直すことになる。\n- ADR-0028 は承認済みなので、本文を書き換えず、「名前の追記」の節を足した。\n\n## 「確信度」が別の意味で使われていたこと\n\n「確信度」は、グラフのエッジの `confidence`（`low` など）と、判定モデルの答えの値（0〜1）で、すでに使われていた。回答の確信度とエッジの `confidence` が同じ文に出る箇所は、取り違えないよう「回答の確信度」「エッジの `confidence`」と書き分けた。\n\nこの重なりは、測定の要約のスクリプトでも問題になった。Sol のレビューでは、広い抽出式が「エッジの確信度: 低」も回答の印として拾う反例が、言い回しを変えて 3 回出た。字句の工夫では見分けきれないと判断し、作りを替えた。\n\n- 新しい名前は、決まった形（決まった 1 行と結論の文末の印）だけを機械で読む。\n- 広い抽出は、回答の意味でしか使っていない前の名前だけを読む。\n- 新しい名前の崩れた書き方は、回答を読んで判断する。\n\n3 回目の判定は採用可だった。残った反例は、エッジの値を決まった形（「（確信度: 低）」）で書いた回答だけである。これは回答の書き方の誤りなので、読めば見分けられる。\n\n## wiki のページの直し方\n\n確からしさを扱う 11 ページ（index を含む）の地の文と title を「確信度」にした。変えていないものは次の 4 つである。\n\n| 変えないもの | 理由 |\n| --- | --- |\n| ページ名（スラッグ）と `[[リンク]]` | 変えるとリンクが切れる |\n| frontmatter の `sources` のページ名 | ページ名と同じ |\n| 当時の版の字句（バッククォートの中、「（確からしさ: 高）」） | その版で実際に使っていた字句という事実である |\n| `log.md` の過去の行 | 時系列の記録である。名前を変えたことは 1 行足した |\n\n> 変えないもの 補足：親の main を取り込んだとき、main 側で同じ行が書き換わっていたページが 1 つあった。main の行を取り、同じ規則で置き換え直した。\n\n## リリース\n\n1. 子の PR（to884/info-hive-wiki#77）と、親の PR（to884/info-hive-dev#156）を作った。子の CI 4 件と、子の先頭を指した親の CI 17 件が通ってから、子の PR をマージした（`2eb8ac4`）。Codex の PR レビューは、どちらも指摘なしだった。\n2. 注釈付きのタグ `v0.24.0` と GitHub リリースを作った。本文は CHANGELOG の 0.24.0 の節である。\n3. 使い捨ての設定でマーケットプレイスから入れ、0.24.0 が入ることを確かめた。v0.23.2 から変わった 10 個のファイルの SHA-256 は、タグの中身と一致した。\n4. 親の参照をマージコミットに付け替えて、親の PR をマージした。\n\n## 関係するページ\n\n- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]\n- [[queryの確からしさとリリース-wiki-0.20.0]]\n- [[リリースの確かめ方]]\n- [[敵対的レビューで設計を直す進め方]]\n",
+     "numLines": 61,
+     "startLine": 1,
+     "totalLines": 61
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01Jgf7m4No5Kj6A5KceunRgU",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "c2edd73c-e8c6-4fcb-9b48-050997119e04"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 150,
+   "estimated_tokens_delta": 100,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "89b361d7-5760-43aa-a711-14a73fea5e87"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 255,
+   "estimated_tokens_delta": 105,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "7eec6a71-7266-47ab-bc30-b1805c781880"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-fable-5-2",
+    "id": "msg_011Ch8jV71BCc1JgQ9FtAn3z",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "CAQS9AcKEAgTGAI4AUIIdGhpbmtpbmcSDL0dMdAb5e/8ZFSfCxoMa6jGTfEyymxwPUo5IjCCjhzqJdaAwZaLcruN93Y9GsWI4rW+zMdkbGaOGMvl+5ZuKwrC0lpYF20bk32Up7AqkQesEnNJsqpwxwaSKsa9J+wC/T561nhV7tt5JB7qKRG7+h5q2e9H/UXhsXcVxz0On/Gge4flNF1Pkf+rApUe3zZZ6h0sufPD2Ecu27zraQPZdptN3r03aIbgb/QI016CJz2z3vjXXYUMcf8LUARAh8x6B6u/0kH7U6DNW5E/sl5v7o91mrY327adVaFR1ItFrnLVrrGUnXe/pxARtXMI0p+NWLe0n8SEG3LqH05f+uFIEwRTF+w/AYWGg9/ciyPRAfKJbnUN+xxWOzCa9t92qQNC9y1BI4nrQyyTyNWY64c5Owtt9oLo5X/Ku9SVpkJEUd1EHpm32dAfe/9Ix4kth6NybvMi08TbDuhCoupmOIwslSk7jU4aGO5tOSgzQuQE5YBccb0A06y7hAtLqtuxE1Tou4UcH3GQ3M24OuBrsroh0vu+WsVEhPdNNPFYt2BWZk5bN5gxTeM9oStwUo22MWRBDiVgpECMNIFaZvzGCBELKkZksg9Un2BXVKtacYP11vH9oNKZWsYW3PNvtUSWjCiN17ggs/fhpcOhqjJdvStWBr0mGNv9YloYeWSEiwbKqy0EPvGLoCQwFZ7H0EcI8gkANUiGbWkqJ5805+2tStzac1ZSBoh/l/tU9QwuaxvoIhB9DZAX15I3AWQJQkl4rhrFEXcOVfvuaeMf2ohAg6tY8KunL4dYXEiNLgGXy5BkSCGpgao7LgKh3aAkX1oIcN4p5TZL6bnGqg+Tx16wZPmGLnKWUu8prAYhC4J8alGflTWXSqwyAX70M823LiQ3zXZpwmUSndodOIxbtLluQj27fqTe/dCwOdmS5QkJfbiZBncOp+hQ002yBPqJquPOnpz0UiIs1oJvmfLaBkRFhkN9q1LIKUpiPYPBcT3IkVn80S5Hfheu2NR/Uv6CPXQehsV/CyWoMTqbZ64OuHWu6/2mAFclGgYt5vDdreuQ8GrrqKX8isTvx0JkIZaZsRfUkubhk7tGpaDQMQCURYnmh2N94KHAeu63qcX9nzSIKr3b47FjcOC86HJAHwEBGAc9u6YkWGjCCImdQBozwpbNjOZh2mLETQpc2swWd1Q3l9NBsIiTE5j0KdmHE0oiU/5DIDUnT3Ns9RV6W3l1Q6LeyvjufNab7xQCyiYe4eFlAEmFxeAH7821TuswmlVVL59WsUgJC0IEk0BTg/3+N+GLnB+2Y45u8yQYfJQ1yuJwQlzJsYYnGAE="
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 7729,
+     "cache_read_input_tokens": 4906,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 7729
+     },
+     "output_tokens": 8,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "83cb5ac2-4145-4906-abf9-954be76e6629",
+   "timestamp": "2026-11-17T15:25:40.298Z",
+   "request_id": "req_011Ch8jV6mH93b4vmCo9bFCX",
+   "thinking_duration_ms": 1980,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-fable-5-2",
+    "id": "msg_011Ch8jV71BCc1JgQ9FtAn3z",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01VPUhSwrJschccCD7seEJBw",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 7729,
+     "cache_read_input_tokens": 4906,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 7729
+     },
+     "output_tokens": 8,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "467178c7-60fb-4f43-b758-a55dc87024fa",
+   "timestamp": "2026-11-17T15:25:41.303Z",
+   "request_id": "req_011Ch8jV6mH93b4vmCo9bFCX",
+   "wire_tool_inputs": {
+    "toolu_01VPUhSwrJschccCD7seEJBw": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md"
+    }
+   }
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01VPUhSwrJschccCD7seEJBw",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の確信度の規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"測定\", \"レビュー\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/research/wiki-query-confidence-0-21-3-2026-11-16.md\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の確信度の規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース\n13\t\n14\t[[queryの確からしさの未測定の規則の測定-2026-11-16]] で作者が決めた直しの向き（案 1-A、2-B、3、4）を `/wiki:query` の確信度の規則に入れ、Claude Sonnet 5.5 で測り直して、wiki 0.23.1 として出した記録である。測定の原本は `docs/research/wiki-query-confidence-0-21-3-2026-11-16.md`、決定は ADR-0028 の「0.23.1 の追記」、レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-confidence-0-21-2/` にある。\n15\t\n16\t## 直したこと\n17\t\n18\t| 項目 | 決めたこと | 決めた人 |\n19\t| --- | --- | --- |\n20\t| エッジの上限（案 1-A） | エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。エッジの `source` のソースの要約ページか raw の本文が関係を直接述べていれば数えない | 作者 |\n21\t| エッジだけの前提 | 本文で確かめられないときは、エッジを書いたページの frontmatter で確かめて引用し、出発点を「中」にする。グラフの行だけを前提にしない | 提案を作者が承認 |\n22\t| 推測を答えにする | 根拠に推測や記憶として書かれたこと（「〜だったと思う」）を答えとして述べたら、留保を添えても上限は「低」 | 作者（提案は「中」） |\n23\t| グラフを必ず呼ぶ | 関係を問う質問では、ページを読む前に必ず `graph` の `neighbors` を呼ぶ。手順を 5b から 2b に移し、ノードの ID の作り方（`graph.node_id` の上書き、結果の `path` の確かめ）を書いた | 作者 |\n24\t| `Grep` で見つけたら縮退（案 2-B） | 縮退の理由に「0. 語彙だけの道具で見つけた」を足した。見つけ方は道具を呼んだ順だけで決める | 作者が「開く前に呼んだか」を選んだ |\n25\t| その場の検索し直し | 縮退に当たったページは、答える前に MCP の `query` で検索し直してよく、正常な hybrid の結果にそのページが出れば上限は外れる | 作者 |\n26\t| 縮退の目的（案 3）と複数の結論（案 4） | 縮退は見落としを表すのでページを読んでも外れない。結論の文の終わりに「（確からしさ: 高）」、決まった 1 行は 1 つの値 | 作者 |\n27\t| 何が結論か | 質問が問う事柄について、前提に使えるもの（出発点が決まるもの）が wiki にあるかで決める。前提に使えるものがない問いには付けず、どの問いにもなければ決まった 1 行も書かない | 作者が「直してから出す」と決めた |\n28\t\n29\t> 直したこと 補足: 「見つけ方」の文は、Sol の敵対的レビューで 2〜7 回目まで毎回崩れた。インデックスの行の読みで決める形と、リンクのたどり元から引き継ぐ形は、どちらも同じ記録から高と中を導けた。道具を呼んだ順だけで決める形にして、5 回目で条件付きで採用可になった（[[エージェントに守らせる決まりの書き方]] の「読み手の判断に任せず、記録で決める」）。\n30\t\n31\t## 測り直し\n32\t\n33\t試験用の wiki（架空の製品 Tsuyukusa）で、前回の 15 問に `Grep` の経路の問い R16 を足し、16 問 × 3 回を流した。測ったのは出す版の 1 つ前のコミット `ea0a5b5` である。\n34\t\n35\t- 一致は 48 回中 41 回だった。事前に書いた別の読み（R16 の 3 回と R04 r2）が 4 回、規則の外れが 3 回である。前回と同じ 15 問に限ると 45 回中 41 回（前回は 40 回）だった。\n36\t- 関係を問う R07 と R08 の 6 回とも、グラフの `neighbors` を呼んだ（前回は 0 回）。R07 は 3 回とも「推測を答えにした」で「低」、R08 は 3 回中 2 回が「高」だった。\n37\t- 複数の結論の書き方は 6 回とも規則どおりだった（前回は 6 回中 1 回）。\n38\t- `Grep` を答えのページを開く前に呼んだ回は 2 回だけで、R16 でも Sonnet は先に hybrid の MCP の検索を呼んだ。理由 0 の「中」と、その場の検索し直しの経路は、ほとんど測れていない。\n39\t- R02（主張がシンセシスにしかない）が 3 回中 2 回、「答えられない」に「低」を付けた。直しの前の v0.23.0 でも、3 回中 1 回が補足に「中」を付けた。作者は直してから出すと決め、「何が結論か」を足した。直した版（`f5b99d3`）で R02、R03、R04 を 3 回ずつ流すと、9 回とも期待どおりだった。\n40\t\n41\t費用は合計 15.1 USD だった（本番の 48 回が 11.52、取り込む前の版の試しが 0.84、v0.23.0 の R02 が 0.65、直した版の確かめが 2.10）。\n42\t\n43\t## 版と順番\n44\t\n45\t作者は「この直しを先に出す」と決めていた。作業中に、検索語の漏れの直し（0.21.2、to884/info-hive-wiki#73、[[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]）と YouTube の字幕（0.23.0、to884/info-hive-wiki#74、[[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]）が先に出たので、2 回取り込んで 0.23.1 にした。順番は作者の決定と逆になった。0.23.0 が上限の表に足した動画のソースの 3 行は、そのまま残した。\n46\t\n47\t## リリース\n48\t\n49\t1. 子の PR（to884/info-hive-wiki#75）の CI 4 件が通ってから、マージした（`955c15a`）。\n50\t2. 注釈付きのタグ `v0.23.1` と GitHub リリースを作った。本文は CHANGELOG の 0.23.1 の節である。\n51\t3. 使い捨ての設定でマーケットプレイスから入れ、0.23.1 が入ることを確かめた。変えた 5 つのファイル（`commands/query.md`、`query-confidence.md`、`query-workflow.md`、`graph-workflow.md`、`plugin.json`）の SHA-256 は、タグの中身と一致した。\n52\t4. 親の参照をマージコミットに付け替えた。\n53\t\n54\t## 残った直しの候補\n55\t\n56\t作者の判断を待つもの。\n57\t\n58\t- 時期や版の上限の行に、「より新しい記述がないことは当たらない」を足す（R08 r2 が、新しい記述がないことを上限に数えた）。\n59\t- 時期や版の不明の行で、`/wiki:lint` の提案が抜けやすい。\n60\t\n61\t## 主張と行き先\n62\t\n63\t| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n64\t| --- | --- | --- | --- | --- |\n65\t| c1 | 0.23.1 の規則の直しの中身と、それぞれを決めた人 | ADR-0028 の「0.23.1 の追記」 | `source_only` | 規則の正本はプラグインの `query-confidence.md` にある |\n66\t| c2 | 判定を読み手の判断に任せる文は、敵対的レビューで同じ記録から 2 通りの判定を導かれる。道具の記録や表で決まる形にすると閉じた | 原本の「測った版と出す版の違い」と ADR の追記の各行 | `update` | [[エージェントに守らせる決まりの書き方]] に節を足した |\n67\t| c3 | 測り直しの結果（41/48、グラフを呼んだ 6/6、R02 の外れと直しの確かめ） | 原本の「結論」「R02 の直しと、その確かめ」 | `source_only` | この版の測定に限った結果である |\n68\t| c4 | 新しい規則を足すときに、既存の上限や出発点を言い直すと、既存の表とぶつかる | ADR の追記の「何が結論か」の行（10 回目のレビュー） | `update` | [[エージェントに守らせる決まりの書き方]] の同じ節に書いた |\n69\t\n70\t## 関係するページ\n71\t\n72\t- [[queryの確からしさの未測定の規則の測定-2026-11-16]]（前回の測定と、直しの案）\n73\t- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]\n74\t- [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]\n75\t- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（このあと、名前を「確信度」に変えた）\n76\t- [[エージェントに守らせる決まりの書き方]]\n77\t- [[リリースの確かめ方]]\n78\t- [[敵対的レビューで設計を直す進め方]]\n79\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "0f01f94f-0889-470a-bbb6-9b460124d0d5",
+   "timestamp": "2026-11-17T15:25:41.506Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md",
+     "content": "---\ntype: \"source\"\ntitle: \"/wiki:query の確信度の規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース\"\ntags: [\"リリース\", \"query\", \"測定\", \"レビュー\"]\nauthors: [\"to884\"]\nraw: \"docs/research/wiki-query-confidence-0-21-3-2026-11-16.md\"\ningested: 2026-11-16\ncreated: 2026-11-16\nupdated: 2026-11-16\n---\n\n# /wiki:query の確信度の規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース\n\n[[queryの確からしさの未測定の規則の測定-2026-11-16]] で作者が決めた直しの向き（案 1-A、2-B、3、4）を `/wiki:query` の確信度の規則に入れ、Claude Sonnet 5.5 で測り直して、wiki 0.23.1 として出した記録である。測定の原本は `docs/research/wiki-query-confidence-0-21-3-2026-11-16.md`、決定は ADR-0028 の「0.23.1 の追記」、レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-confidence-0-21-2/` にある。\n\n## 直したこと\n\n| 項目 | 決めたこと | 決めた人 |\n| --- | --- | --- |\n| エッジの上限（案 1-A） | エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。エッジの `source` のソースの要約ページか raw の本文が関係を直接述べていれば数えない | 作者 |\n| エッジだけの前提 | 本文で確かめられないときは、エッジを書いたページの frontmatter で確かめて引用し、出発点を「中」にする。グラフの行だけを前提にしない | 提案を作者が承認 |\n| 推測を答えにする | 根拠に推測や記憶として書かれたこと（「〜だったと思う」）を答えとして述べたら、留保を添えても上限は「低」 | 作者（提案は「中」） |\n| グラフを必ず呼ぶ | 関係を問う質問では、ページを読む前に必ず `graph` の `neighbors` を呼ぶ。手順を 5b から 2b に移し、ノードの ID の作り方（`graph.node_id` の上書き、結果の `path` の確かめ）を書いた | 作者 |\n| `Grep` で見つけたら縮退（案 2-B） | 縮退の理由に「0. 語彙だけの道具で見つけた」を足した。見つけ方は道具を呼んだ順だけで決める | 作者が「開く前に呼んだか」を選んだ |\n| その場の検索し直し | 縮退に当たったページは、答える前に MCP の `query` で検索し直してよく、正常な hybrid の結果にそのページが出れば上限は外れる | 作者 |\n| 縮退の目的（案 3）と複数の結論（案 4） | 縮退は見落としを表すのでページを読んでも外れない。結論の文の終わりに「（確からしさ: 高）」、決まった 1 行は 1 つの値 | 作者 |\n| 何が結論か | 質問が問う事柄について、前提に使えるもの（出発点が決まるもの）が wiki にあるかで決める。前提に使えるものがない問いには付けず、どの問いにもなければ決まった 1 行も書かない | 作者が「直してから出す」と決めた |\n\n> 直したこと 補足: 「見つけ方」の文は、Sol の敵対的レビューで 2〜7 回目まで毎回崩れた。インデックスの行の読みで決める形と、リンクのたどり元から引き継ぐ形は、どちらも同じ記録から高と中を導けた。道具を呼んだ順だけで決める形にして、5 回目で条件付きで採用可になった（[[エージェントに守らせる決まりの書き方]] の「読み手の判断に任せず、記録で決める」）。\n\n## 測り直し\n\n試験用の wiki（架空の製品 Tsuyukusa）で、前回の 15 問に `Grep` の経路の問い R16 を足し、16 問 × 3 回を流した。測ったのは出す版の 1 つ前のコミット `ea0a5b5` である。\n\n- 一致は 48 回中 41 回だった。事前に書いた別の読み（R16 の 3 回と R04 r2）が 4 回、規則の外れが 3 回である。前回と同じ 15 問に限ると 45 回中 41 回（前回は 40 回）だった。\n- 関係を問う R07 と R08 の 6 回とも、グラフの `neighbors` を呼んだ（前回は 0 回）。R07 は 3 回とも「推測を答えにした」で「低」、R08 は 3 回中 2 回が「高」だった。\n- 複数の結論の書き方は 6 回とも規則どおりだった（前回は 6 回中 1 回）。\n- `Grep` を答えのページを開く前に呼んだ回は 2 回だけで、R16 でも Sonnet は先に hybrid の MCP の検索を呼んだ。理由 0 の「中」と、その場の検索し直しの経路は、ほとんど測れていない。\n- R02（主張がシンセシスにしかない）が 3 回中 2 回、「答えられない」に「低」を付けた。直しの前の v0.23.0 でも、3 回中 1 回が補足に「中」を付けた。作者は直してから出すと決め、「何が結論か」を足した。直した版（`f5b99d3`）で R02、R03、R04 を 3 回ずつ流すと、9 回とも期待どおりだった。\n\n費用は合計 15.1 USD だった（本番の 48 回が 11.52、取り込む前の版の試しが 0.84、v0.23.0 の R02 が 0.65、直した版の確かめが 2.10）。\n\n## 版と順番\n\n作者は「この直しを先に出す」と決めていた。作業中に、検索語の漏れの直し（0.21.2、to884/info-hive-wiki#73、[[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]）と YouTube の字幕（0.23.0、to884/info-hive-wiki#74、[[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]）が先に出たので、2 回取り込んで 0.23.1 にした。順番は作者の決定と逆になった。0.23.0 が上限の表に足した動画のソースの 3 行は、そのまま残した。\n\n## リリース\n\n1. 子の PR（to884/info-hive-wiki#75）の CI 4 件が通ってから、マージした（`955c15a`）。\n2. 注釈付きのタグ `v0.23.1` と GitHub リリースを作った。本文は CHANGELOG の 0.23.1 の節である。\n3. 使い捨ての設定でマーケットプレイスから入れ、0.23.1 が入ることを確かめた。変えた 5 つのファイル（`commands/query.md`、`query-confidence.md`、`query-workflow.md`、`graph-workflow.md`、`plugin.json`）の SHA-256 は、タグの中身と一致した。\n4. 親の参照をマージコミットに付け替えた。\n\n## 残った直しの候補\n\n作者の判断を待つもの。\n\n- 時期や版の上限の行に、「より新しい記述がないことは当たらない」を足す（R08 r2 が、新しい記述がないことを上限に数えた）。\n- 時期や版の不明の行で、`/wiki:lint` の提案が抜けやすい。\n\n## 主張と行き先\n\n| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n| --- | --- | --- | --- | --- |\n| c1 | 0.23.1 の規則の直しの中身と、それぞれを決めた人 | ADR-0028 の「0.23.1 の追記」 | `source_only` | 規則の正本はプラグインの `query-confidence.md` にある |\n| c2 | 判定を読み手の判断に任せる文は、敵対的レビューで同じ記録から 2 通りの判定を導かれる。道具の記録や表で決まる形にすると閉じた | 原本の「測った版と出す版の違い」と ADR の追記の各行 | `update` | [[エージェントに守らせる決まりの書き方]] に節を足した |\n| c3 | 測り直しの結果（41/48、グラフを呼んだ 6/6、R02 の外れと直しの確かめ） | 原本の「結論」「R02 の直しと、その確かめ」 | `source_only` | この版の測定に限った結果である |\n| c4 | 新しい規則を足すときに、既存の上限や出発点を言い直すと、既存の表とぶつかる | ADR の追記の「何が結論か」の行（10 回目のレビュー） | `update` | [[エージェントに守らせる決まりの書き方]] の同じ節に書いた |\n\n## 関係するページ\n\n- [[queryの確からしさの未測定の規則の測定-2026-11-16]]（前回の測定と、直しの案）\n- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]\n- [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]\n- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（このあと、名前を「確信度」に変えた）\n- [[エージェントに守らせる決まりの書き方]]\n- [[リリースの確かめ方]]\n- [[敵対的レビューで設計を直す進め方]]\n",
+     "numLines": 79,
+     "startLine": 1,
+     "totalLines": 79
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01VPUhSwrJschccCD7seEJBw",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-fable-5-2",
+    "id": "msg_011Ch8jV71BCc1JgQ9FtAn3z",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01GzzKgGLnxDXgLj8DTcixwZ",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 7729,
+     "cache_read_input_tokens": 4906,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 7729
+     },
+     "output_tokens": 8,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "18c7b91f-9586-44fe-bd72-ff8632d9e58d",
+   "timestamp": "2026-11-17T15:25:42.302Z",
+   "request_id": "req_011Ch8jV6mH93b4vmCo9bFCX",
+   "wire_tool_inputs": {
+    "toolu_01GzzKgGLnxDXgLj8DTcixwZ": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md"
+    }
+   }
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.92,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.62,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.92,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     },
+     "seven_day_overage_included": {
+      "utilization": 0.24,
+      "resetsAt": 1795028400,
+      "status": "allowed"
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "1a213548-d8d6-49db-8fc1-8ce29c3ed96c",
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01GzzKgGLnxDXgLj8DTcixwZ",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の検索の説明への外の語の漏れの直しと wiki 0.21.2 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"プロンプト\", \"測定\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/research/wiki-query-confidence-sonnet-2026-11-16.md\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の検索の説明への外の語の漏れの直しと wiki 0.21.2 のリリース\n13\t\n14\t`/wiki:query` の回答で、どう探したかを説明する文に wiki の外の知識が入る漏れを直し、wiki 0.21.2 として出した記録である。0.21.1 の測り直しで残った問題を扱った（[[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]）。測定の原本は `docs/research/wiki-query-confidence-sonnet-2026-11-16.md` の「検索の説明への外の語の漏れの直し」の節にある。レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-search-terms/` にある。\n15\t\n16\t## 原因\n17\t\n18\t- 0.21.1 の決まりは「自分の知識で思い付いた答えを、検索に使った語として回答に書かない」だった。\n19\t- 漏れた回は、この決まりの書かれた手順（コマンドの手順 7、`query-confidence.md`）を読んだうえで破っていた。原因は決まりの置き場所ではなく、文面にあると見た。\n20\t- この文面では、どの語が答えに当たるかを、エージェント自身が判断することになる。Claude Sonnet 5.5 が書いた語は、略語を展開した語（Command Query Responsibility Segregation）、訳した語、ライブラリの別名（`fitz`、`MuPDF`）、答えの語（Rust）だった。\n21\t\n22\t## 直したこと\n23\t\n24\t- 回答のうち wiki の内容を述べない部分を、1 つの決まりにまとめた。どう探したかの説明と、取り込むとよいソースの提案の 2 つである。どちらにも、自分で選んだ語を書かない。\n25\t  - 探した語として示すのは、質問文にそのままある語だけにする。ほかの語は「言い換えた語でも探した」とだけ書く。\n26\t  - ソースは、資料の種類と、質問文か wiki にある語で示す。自分の知識で、題名、著者、URL を挙げない。\n27\t- 判断に頼らず、字句で決まる決まりにした。置き場所は、コマンドの手順 4c とクエリのワークフローの手順 5 である。手順 7 と `query-confidence.md` からは、そこを指す。\n28\t- 答えの語を含む否定の例（「『Rust』で検索したが…」）は、答えを含まない書き方の例に替えた。否定の例は、避けたい型そのものを見せてしまう。\n29\t\n30\t## レビューで直したこと\n31\t\n32\tSol の敵対的レビューを 2 回受けた。決まりの文は 2 回とも崩されなかった。指摘は、測定の照合の作りに集まった。\n33\t\n34\t- 1 回目の照合は、回答から「検索を述べた文」を推し量り、その中の引用を数えていた。これでは、引用符のない語、「調べた」「照合した」の言い回し、箇条書きを見逃した。そこで、問いごとに「出てはならない外の語」を決め、回答のどこかに出たかで判定するようにした。\n35\t- 2 回目の指摘は 2 つだった。\n36\t  - 答えが「C」の 1 文字の問いは、字句で見分けられない。そこで、問いを答えに特徴のあるもの（sqlite-vec の作者）に替えた。\n37\t  - 最終の回答がない回を「漏れなし」と数えていた。そこで、こうした回は判定できない回として分けた。\n38\t- 取り込む候補から題名、著者、URL を外したのは、Sol の指摘を受けて足した部分である（候補の名前に答えが入る経路。再現はしていない）。この部分だけの効き目は、測定では切り分けられていない。\n39\t\n40\t## 測り直し\n41\t\n42\t| 確かめたこと | 0.21.1 | 0.21.2 |\n43\t| --- | --- | --- |\n44\t| 外の語が回答に出た（Q09〜Q11） | 5/9 | 0/9 |\n45\t| 外の語が回答に出た（足した Q12、Q13） | ― | 0/6 |\n46\t| 外の語が回答に出た（Q11、記録のページを含まない wiki） | ― | 0/3 |\n47\t\n48\t> 測り直しの表 補足：0.21.1 の 5/9 は、新しい照合で数え直した値である。目視で数えた 3/6 では、Q10 の `fitz` と `MuPDF` を見落としていた。費用は合わせて 4.04 USD だった。\n49\t\n50\t- 合否は、照合のスクリプトだけでなく、回答をすべて読んで決めた。照合が見つけられるのは、登録した表記だけだからである。\n51\t- 最初の 15 回は、最新の wiki で流した。この wiki には、0.21.1 の測定の記録のページが入っている。Q11 の 2 回は、Grep の結果で、その記録の「答え（Rust）を検索語として回答に書いた」という行を見ていた。そこで、記録のページを含まない wiki（`4b3f578`）で Q11 を流し直し、3 回とも漏れがないことを確かめた。\n52\t- Q09 の 1 回目は、自分の知識で訳した語で検索したが、回答には書かなかった。検索に使うのはよく、回答に書かない、という決まりのとおりの形である。\n53\t- 決まりの文のとおりではない書き方が 2 つあった。どちらも答えは含まない。\n54\t  - 質問を言い換えた語を、探した語として書いた回（Q13 の 3 回目）。\n55\t  - 取り込む候補に「PKCE を定めた仕様（RFC）」を挙げた回（Q12 の 3 回）。\n56\t- 答えのある問い（Q01〜Q08）は流していない。\n57\t\n58\t## リリース\n59\t\n60\t1. 子の PR（to884/info-hive-wiki#73）と、親の PR（to884/info-hive-dev#146）を作った。子の CI 4 件と、子の先頭を指した親の CI 17 件が通ってから、子の PR をマージした（`9fa01b6`）。Codex の PR レビューは、どちらも指摘なしだった。\n61\t2. 注釈付きのタグ `v0.21.2` と GitHub リリースを作った。本文は CHANGELOG の 0.21.2 の節である。\n62\t3. 使い捨ての設定でマーケットプレイスから入れ、0.21.2 が入ることを確かめた。v0.21.1 から変わった 5 つのファイルの SHA-256 は、タグの中身と一致した。\n63\t4. 親の参照をマージコミットに付け替えて、親の PR をマージした。\n64\t\n65\t並行して、同じ `query-confidence.md` と `query.md` に触れる確信度の規則の直し（案 1〜4）が、別のセッションで進んでいた。そちらは、この版のあとに合わせることになる。\n66\t\n67\t## 関係するページ\n68\t\n69\t- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]\n70\t- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n71\t- [[エージェントに守らせる決まりの書き方]]\n72\t- [[リリースの確かめ方]]\n73\t- [[敵対的レビューで設計を直す進め方]]\n74\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "accbd26d-105f-4e71-8d0c-5a06219c6126",
+   "timestamp": "2026-11-17T15:25:42.469Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md",
+     "content": "---\ntype: \"source\"\ntitle: \"/wiki:query の検索の説明への外の語の漏れの直しと wiki 0.21.2 のリリース\"\ntags: [\"リリース\", \"query\", \"プロンプト\", \"測定\"]\nauthors: [\"to884\"]\nraw: \"docs/research/wiki-query-confidence-sonnet-2026-11-16.md\"\ningested: 2026-11-16\ncreated: 2026-11-16\nupdated: 2026-11-16\n---\n\n# /wiki:query の検索の説明への外の語の漏れの直しと wiki 0.21.2 のリリース\n\n`/wiki:query` の回答で、どう探したかを説明する文に wiki の外の知識が入る漏れを直し、wiki 0.21.2 として出した記録である。0.21.1 の測り直しで残った問題を扱った（[[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]）。測定の原本は `docs/research/wiki-query-confidence-sonnet-2026-11-16.md` の「検索の説明への外の語の漏れの直し」の節にある。レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-search-terms/` にある。\n\n## 原因\n\n- 0.21.1 の決まりは「自分の知識で思い付いた答えを、検索に使った語として回答に書かない」だった。\n- 漏れた回は、この決まりの書かれた手順（コマンドの手順 7、`query-confidence.md`）を読んだうえで破っていた。原因は決まりの置き場所ではなく、文面にあると見た。\n- この文面では、どの語が答えに当たるかを、エージェント自身が判断することになる。Claude Sonnet 5.5 が書いた語は、略語を展開した語（Command Query Responsibility Segregation）、訳した語、ライブラリの別名（`fitz`、`MuPDF`）、答えの語（Rust）だった。\n\n## 直したこと\n\n- 回答のうち wiki の内容を述べない部分を、1 つの決まりにまとめた。どう探したかの説明と、取り込むとよいソースの提案の 2 つである。どちらにも、自分で選んだ語を書かない。\n  - 探した語として示すのは、質問文にそのままある語だけにする。ほかの語は「言い換えた語でも探した」とだけ書く。\n  - ソースは、資料の種類と、質問文か wiki にある語で示す。自分の知識で、題名、著者、URL を挙げない。\n- 判断に頼らず、字句で決まる決まりにした。置き場所は、コマンドの手順 4c とクエリのワークフローの手順 5 である。手順 7 と `query-confidence.md` からは、そこを指す。\n- 答えの語を含む否定の例（「『Rust』で検索したが…」）は、答えを含まない書き方の例に替えた。否定の例は、避けたい型そのものを見せてしまう。\n\n## レビューで直したこと\n\nSol の敵対的レビューを 2 回受けた。決まりの文は 2 回とも崩されなかった。指摘は、測定の照合の作りに集まった。\n\n- 1 回目の照合は、回答から「検索を述べた文」を推し量り、その中の引用を数えていた。これでは、引用符のない語、「調べた」「照合した」の言い回し、箇条書きを見逃した。そこで、問いごとに「出てはならない外の語」を決め、回答のどこかに出たかで判定するようにした。\n- 2 回目の指摘は 2 つだった。\n  - 答えが「C」の 1 文字の問いは、字句で見分けられない。そこで、問いを答えに特徴のあるもの（sqlite-vec の作者）に替えた。\n  - 最終の回答がない回を「漏れなし」と数えていた。そこで、こうした回は判定できない回として分けた。\n- 取り込む候補から題名、著者、URL を外したのは、Sol の指摘を受けて足した部分である（候補の名前に答えが入る経路。再現はしていない）。この部分だけの効き目は、測定では切り分けられていない。\n\n## 測り直し\n\n| 確かめたこと | 0.21.1 | 0.21.2 |\n| --- | --- | --- |\n| 外の語が回答に出た（Q09〜Q11） | 5/9 | 0/9 |\n| 外の語が回答に出た（足した Q12、Q13） | ― | 0/6 |\n| 外の語が回答に出た（Q11、記録のページを含まない wiki） | ― | 0/3 |\n\n> 測り直しの表 補足：0.21.1 の 5/9 は、新しい照合で数え直した値である。目視で数えた 3/6 では、Q10 の `fitz` と `MuPDF` を見落としていた。費用は合わせて 4.04 USD だった。\n\n- 合否は、照合のスクリプトだけでなく、回答をすべて読んで決めた。照合が見つけられるのは、登録した表記だけだからである。\n- 最初の 15 回は、最新の wiki で流した。この wiki には、0.21.1 の測定の記録のページが入っている。Q11 の 2 回は、Grep の結果で、その記録の「答え（Rust）を検索語として回答に書いた」という行を見ていた。そこで、記録のページを含まない wiki（`4b3f578`）で Q11 を流し直し、3 回とも漏れがないことを確かめた。\n- Q09 の 1 回目は、自分の知識で訳した語で検索したが、回答には書かなかった。検索に使うのはよく、回答に書かない、という決まりのとおりの形である。\n- 決まりの文のとおりではない書き方が 2 つあった。どちらも答えは含まない。\n  - 質問を言い換えた語を、探した語として書いた回（Q13 の 3 回目）。\n  - 取り込む候補に「PKCE を定めた仕様（RFC）」を挙げた回（Q12 の 3 回）。\n- 答えのある問い（Q01〜Q08）は流していない。\n\n## リリース\n\n1. 子の PR（to884/info-hive-wiki#73）と、親の PR（to884/info-hive-dev#146）を作った。子の CI 4 件と、子の先頭を指した親の CI 17 件が通ってから、子の PR をマージした（`9fa01b6`）。Codex の PR レビューは、どちらも指摘なしだった。\n2. 注釈付きのタグ `v0.21.2` と GitHub リリースを作った。本文は CHANGELOG の 0.21.2 の節である。\n3. 使い捨ての設定でマーケットプレイスから入れ、0.21.2 が入ることを確かめた。v0.21.1 から変わった 5 つのファイルの SHA-256 は、タグの中身と一致した。\n4. 親の参照をマージコミットに付け替えて、親の PR をマージした。\n\n並行して、同じ `query-confidence.md` と `query.md` に触れる確信度の規則の直し（案 1〜4）が、別のセッションで進んでいた。そちらは、この版のあとに合わせることになる。\n\n## 関係するページ\n\n- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]\n- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n- [[エージェントに守らせる決まりの書き方]]\n- [[リリースの確かめ方]]\n- [[敵対的レビューで設計を直す進め方]]\n",
+     "numLines": 74,
+     "startLine": 1,
+     "totalLines": 74
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01GzzKgGLnxDXgLj8DTcixwZ",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-fable-5-2",
+    "id": "msg_011Ch8jVVHNaXadefWbst1ba",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "## 答え\n\n判定の表そのものは 0.20.0 で作られ、0.21.1 と 0.24.0 は表の中身を変えていない。中身が変わったのは 0.23.0（上限の行の追加）と 0.23.1（エッジ、Grep、何が結論か）である。0.21.0、0.22.0、0.23.2 を扱うページは開いた中になく、この 3 版で規則が変わったかは wiki に答えがない。\n\n| 版 | 規則の変化 |\n| --- | --- |\n| 0.20.0 | 確信度を新設した。回答に「高」「中」「低」と理由を付け、数値にはしない。 |\n| 0.21.1 | 判定の表は変えず、決め方を `query-confidence.md` に分けて必ず読ませた。読み違いと外の知識の経路を直した。 |\n| 0.21.2 | 確信度の判定は変えず、回答の「どう探したか」と「取り込むソースの提案」に自分で選んだ語を書かない決まりを足した。 |\n| 0.23.0 | 上限の表に動画のソースの 3 行を足した。 |\n| 0.23.1 | エッジの上限、推測の上限、Grep による縮退、複数の結論の書き方、何が結論かを直した。 |\n| 0.24.0 | 名前を「確からしさ」から「確信度」に変えただけで、決め方、上限、上げる方法は変えていない。 |\n\n### 0.20.0（新設）\n- 判定するのは、回答の結論と、結論を導いた前提である。\n- 前提の出発点は次のとおりで、表は上から順に見て最初に当たった行を取る。\n  - ソースの要約ページか raw で確かめた前提は「高」。\n  - コンセプトのページだけにある前提は「中」。\n  - wiki 自身の事柄を `log.md` などの記録で答えれば「高」。\n  - シンセシスのページは根拠に数えない。\n- 結論は導き方で分ける（そのまま述べた、決まった手順で導いた、判断を加えた）。\n- 上限は 6 つ（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）で、もっとも低いものに合わせる。\n- 「中」か「低」のときは、要因ごとに上げる方法を提案する。wiki を書き換える方法は提案だけにする。\n- wiki の外の知識は前提に使わない。問いの一部だけ wiki に答えがないときも、その部分は答えない。\n- 正本は `query-workflow.md` の手順 5b だった。\n\n### 0.21.1（置き場所と要約の直し）\n- きっかけは、Sonnet 5.5 の測定で手順 5b が 1 回も読まれなかったこと。\n- 決め方の本文を `skills/info-hive/references/query-confidence.md` に分け、コマンドの手順 6b で確信度を書く前に Read させる。手順 5b は案内として残した。\n- 6b の要約を 3 点にした。\n  - ソースの要約ページに書かれていれば高で、raw まで読まなくてよい。\n  - wiki 自身の事柄を記録で答えたら高。\n  - 上限は表の行だけで、回数、再現、raw や git で確かめていないことでは下げない。\n- wiki の外の知識に、会話に読み込まれたプロジェクトの指示と、wiki の外のファイルを含めた。例外は、要約ページがそのソースの raw として指しているもの（`raw` の原本、`rag_job_id` のジョブ、本文の参照とその画像）。\n- 思い付いた答えを検索語として書くことを禁じた。\n- 1 行目は `**確からしさ（confidence）: 中**` の字句のまま書く。\n\n### 0.21.2（検索の説明の決まり）\n- 0.21.1 の「思い付いた答えを検索語として書かない」は、どの語が答えかをエージェントが判断する文面で、漏れが残った。字句で決まる決まりに替えた。\n- 探した語として示すのは、質問文にそのままある語だけ。ほかは「言い換えた語でも探した」とだけ書く。\n- 取り込むソースは、資料の種類と、質問文か wiki にある語で示す。自分の知識で題名、著者、URL を挙げない。\n- 置き場所はコマンドの手順 4c とワークフローの手順 5 で、`query-confidence.md` からはそこを指す。\n\n### 0.23.0（上限の行の追加）\n- 上限の表に動画のソースの 3 行を足した。0.23.1 でもそのまま残っている。\n- 3 行の中身は、開いたページには直接書かれていない。0.20.0 のページにある ADR-0027 の求めは次のとおりで、これが 3 行に当たるかは未確認である。\n  - 動画の raw の `confidence` が `medium` なら「中」、`low` なら「低」を上限にする。\n  - モデルの知識だけによる訂正や、留保した語に頼る前提は「低」を上限にする。\n\n### 0.23.1（規則の中身の直し）\n- エッジの上限：エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。エッジの `source` のソースの要約ページか raw の本文が関係を直接述べていれば数えない。\n- エッジだけの前提：本文で確かめられないときは、エッジを書いたページの frontmatter で確かめて引用し、出発点を「中」にする。\n- 推測を答えにする：根拠に推測や記憶として書かれたことを答えとして述べたら、留保を添えても上限は「低」。\n- グラフ：関係を問う質問では、ページを読む前に必ず `graph` の `neighbors` を呼ぶ。手順を 5b から 2b に移した。\n- 縮退の理由に「0. 語彙だけの道具で見つけた」（`Grep`）を足した。見つけ方は道具を呼んだ順だけで決める。\n- 縮退に当たったページは、MCP の `query` で検索し直してよい。正常な hybrid の結果にそのページが出れば上限は外れる。ページを読んだだけでは外れない。\n- 複数の結論：結論の文の終わりに「（確からしさ: 高）」を付け、決まった 1 行は 1 つの値にする。\n- 何が結論か：前提に使えるものが wiki にあるかで決める。ない問いには付けず、どの問いにもなければ決まった 1 行も書かない。\n\n### 0.24.0（名前だけ）\n- 決まった 1 行は `**確信度（confidence）: 中**`、結論の文の終わりは「（確信度: 高）」になった。\n- 字句を機械で数えている利用者には互換性のない変更なので、minor を上げた。\n- グラフのエッジの `confidence` と取り違えないよう、「回答の確信度」「エッジの `confidence`」と書き分ける。\n\n## 根拠\n- [[queryの確からしさとリリース-wiki-0.20.0]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md）: 「決め方」の節に 0.20.0 の規則、「ADR-0027 との関係」の節に動画のソースの上限の求めがある。「上限（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）を当て、もっとも低いものに合わせる。」\n- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md）: 「直したこと」の 4 点と、外の知識の例外の決め方がある。「判定の表の中身は変えていない。」\n- [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md）: 「探した語として示すのは、質問文にそのままある語だけにする。」\n- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md）: 「直したこと」の表に 0.23.1 の 8 項目がある。0.23.0 については「0.23.0 が上限の表に足した動画のソースの 3 行は、そのまま残した。」\n- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md）: 「決め方、上限、上げる方法は変えていない」\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\n3. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\n4. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md\n5. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md\n\n## 未確認の出典\n- [[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]: 未読。0.23.0 が足した動画のソースの 3 行の正確な中身は、ここで確かめる必要がある。\n- [[queryの確からしさの未測定の規則の測定-2026-11-16]]: 未読。0.23.1 の直しの案（1-A、2-B、3、4）の元になった測定である。\n- [[queryの確からしさのsonnetでの測定-2026-11-16]]: 未読。0.21.1 の直しのきっかけになった測定である。\n- プラグインの `query-confidence.md`、`query-workflow.md`、ADR-0028 とその追記、ADR-0027: 未読。規則の正本であり、wiki の外にある。\n\n## 関係のなかった候補\nなし\n\n## モデル\nFable 5.2（claude-fable-5-2）"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 6869,
+     "cache_read_input_tokens": 12635,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 6869
+     },
+     "output_tokens": 759,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "uuid": "18467fdf-2b97-4912-bab4-cfb091887a76",
+   "timestamp": "2026-11-17T15:26:14.932Z",
+   "request_id": "req_011Ch8jVUtYhyUprxsqbHLRM"
+  },
+  {
+   "duration_api_ms": 40941,
+   "stop_reason": "end_turn",
+   "session_id": "0dfba983-666b-48aa-a13d-721bf37f5271",
+   "total_cost_usd": 0.47042939999999994,
+   "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 15978,
+    "cache_read_input_tokens": 21067,
+    "output_tokens": 5263,
+    "output_tokens_details": {
+     "thinking_tokens": 212
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 15978,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 4271,
+      "cache_read_input_tokens": 12635,
+      "cache_creation_input_tokens": 6869,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 6869
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-fable-5-2": {
+     "inputTokens": 6,
+     "outputTokens": 5263,
+     "cacheReadInputTokens": 21067,
+     "cacheCreationInputTokens": 15978,
+     "webSearchRequests": 0,
+     "costUSD": 0.47042939999999994,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 212,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 15978,
+     "canonicalModel": "claude-fable-5-2",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+     "background": 0,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {}
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 6,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "## 答え\n\n判定の表そのものは 0.20.0 で作られ、0.21.1 と 0.24.0 は表の中身を変えていない。中身が変わったのは 0.23.0（上限の行の追加）と 0.23.1（エッジ、Grep、何が結論か）である。0.21.0、0.22.0、0.23.2 を扱うページは開いた中になく、この 3 版で規則が変わったかは wiki に答えがない。\n\n| 版 | 規則の変化 |\n| --- | --- |\n| 0.20.0 | 確信度を新設した。回答に「高」「中」「低」と理由を付け、数値にはしない。 |\n| 0.21.1 | 判定の表は変えず、決め方を `query-confidence.md` に分けて必ず読ませた。読み違いと外の知識の経路を直した。 |\n| 0.21.2 | 確信度の判定は変えず、回答の「どう探したか」と「取り込むソースの提案」に自分で選んだ語を書かない決まりを足した。 |\n| 0.23.0 | 上限の表に動画のソースの 3 行を足した。 |\n| 0.23.1 | エッジの上限、推測の上限、Grep による縮退、複数の結論の書き方、何が結論かを直した。 |\n| 0.24.0 | 名前を「確からしさ」から「確信度」に変えただけで、決め方、上限、上げる方法は変えていない。 |\n\n### 0.20.0（新設）\n- 判定するのは、回答の結論と、結論を導いた前提である。\n- 前提の出発点は次のとおりで、表は上から順に見て最初に当たった行を取る。\n  - ソースの要約ページか raw で確かめた前提は「高」。\n  - コンセプトのページだけにある前提は「中」。\n  - wiki 自身の事柄を `log.md` などの記録で答えれば「高」。\n  - シンセシスのページは根拠に数えない。\n- 結論は導き方で分ける（そのまま述べた、決まった手順で導いた、判断を加えた）。\n- 上限は 6 つ（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）で、もっとも低いものに合わせる。\n- 「中」か「低」のときは、要因ごとに上げる方法を提案する。wiki を書き換える方法は提案だけにする。\n- wiki の外の知識は前提に使わない。問いの一部だけ wiki に答えがないときも、その部分は答えない。\n- 正本は `query-workflow.md` の手順 5b だった。\n\n### 0.21.1（置き場所と要約の直し）\n- きっかけは、Sonnet 5.5 の測定で手順 5b が 1 回も読まれなかったこと。\n- 決め方の本文を `skills/info-hive/references/query-confidence.md` に分け、コマンドの手順 6b で確信度を書く前に Read させる。手順 5b は案内として残した。\n- 6b の要約を 3 点にした。\n  - ソースの要約ページに書かれていれば高で、raw まで読まなくてよい。\n  - wiki 自身の事柄を記録で答えたら高。\n  - 上限は表の行だけで、回数、再現、raw や git で確かめていないことでは下げない。\n- wiki の外の知識に、会話に読み込まれたプロジェクトの指示と、wiki の外のファイルを含めた。例外は、要約ページがそのソースの raw として指しているもの（`raw` の原本、`rag_job_id` のジョブ、本文の参照とその画像）。\n- 思い付いた答えを検索語として書くことを禁じた。\n- 1 行目は `**確からしさ（confidence）: 中**` の字句のまま書く。\n\n### 0.21.2（検索の説明の決まり）\n- 0.21.1 の「思い付いた答えを検索語として書かない」は、どの語が答えかをエージェントが判断する文面で、漏れが残った。字句で決まる決まりに替えた。\n- 探した語として示すのは、質問文にそのままある語だけ。ほかは「言い換えた語でも探した」とだけ書く。\n- 取り込むソースは、資料の種類と、質問文か wiki にある語で示す。自分の知識で題名、著者、URL を挙げない。\n- 置き場所はコマンドの手順 4c とワークフローの手順 5 で、`query-confidence.md` からはそこを指す。\n\n### 0.23.0（上限の行の追加）\n- 上限の表に動画のソースの 3 行を足した。0.23.1 でもそのまま残っている。\n- 3 行の中身は、開いたページには直接書かれていない。0.20.0 のページにある ADR-0027 の求めは次のとおりで、これが 3 行に当たるかは未確認である。\n  - 動画の raw の `confidence` が `medium` なら「中」、`low` なら「低」を上限にする。\n  - モデルの知識だけによる訂正や、留保した語に頼る前提は「低」を上限にする。\n\n### 0.23.1（規則の中身の直し）\n- エッジの上限：エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。エッジの `source` のソースの要約ページか raw の本文が関係を直接述べていれば数えない。\n- エッジだけの前提：本文で確かめられないときは、エッジを書いたページの frontmatter で確かめて引用し、出発点を「中」にする。\n- 推測を答えにする：根拠に推測や記憶として書かれたことを答えとして述べたら、留保を添えても上限は「低」。\n- グラフ：関係を問う質問では、ページを読む前に必ず `graph` の `neighbors` を呼ぶ。手順を 5b から 2b に移した。\n- 縮退の理由に「0. 語彙だけの道具で見つけた」（`Grep`）を足した。見つけ方は道具を呼んだ順だけで決める。\n- 縮退に当たったページは、MCP の `query` で検索し直してよい。正常な hybrid の結果にそのページが出れば上限は外れる。ページを読んだだけでは外れない。\n- 複数の結論：結論の文の終わりに「（確からしさ: 高）」を付け、決まった 1 行は 1 つの値にする。\n- 何が結論か：前提に使えるものが wiki にあるかで決める。ない問いには付けず、どの問いにもなければ決まった 1 行も書かない。\n\n### 0.24.0（名前だけ）\n- 決まった 1 行は `**確信度（confidence）: 中**`、結論の文の終わりは「（確信度: 高）」になった。\n- 字句を機械で数えている利用者には互換性のない変更なので、minor を上げた。\n- グラフのエッジの `confidence` と取り違えないよう、「回答の確信度」「エッジの `confidence`」と書き分ける。\n\n## 根拠\n- [[queryの確からしさとリリース-wiki-0.20.0]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md）: 「決め方」の節に 0.20.0 の規則、「ADR-0027 との関係」の節に動画のソースの上限の求めがある。「上限（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）を当て、もっとも低いものに合わせる。」\n- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md）: 「直したこと」の 4 点と、外の知識の例外の決め方がある。「判定の表の中身は変えていない。」\n- [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md）: 「探した語として示すのは、質問文にそのままある語だけにする。」\n- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md）: 「直したこと」の表に 0.23.1 の 8 項目がある。0.23.0 については「0.23.0 が上限の表に足した動画のソースの 3 行は、そのまま残した。」\n- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md）: 「決め方、上限、上げる方法は変えていない」\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\n3. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\n4. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md\n5. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md\n\n## 未確認の出典\n- [[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]: 未読。0.23.0 が足した動画のソースの 3 行の正確な中身は、ここで確かめる必要がある。\n- [[queryの確からしさの未測定の規則の測定-2026-11-16]]: 未読。0.23.1 の直しの案（1-A、2-B、3、4）の元になった測定である。\n- [[queryの確からしさのsonnetでの測定-2026-11-16]]: 未読。0.21.1 の直しのきっかけになった測定である。\n- プラグインの `query-confidence.md`、`query-workflow.md`、ADR-0028 とその追記、ADR-0027: 未読。規則の正本であり、wiki の外にある。\n\n## 関係のなかった候補\nなし\n\n## モデル\nFable 5.2（claude-fable-5-2）",
+   "ttft_ms": 3687,
+   "type": "result",
+   "duration_ms": 43874,
+   "uuid": "66a7c3d9-6db4-41b9-9ed5-aca9c326853b",
+   "ttft_stream_ms": 2630,
+   "time_to_request_ms": 1738,
+   "first_content_frame_ms": 2631,
+   "queued_turn_count": 0,
+   "result_index": 0,
+   "model_usage_since_last_result": {
+    "claude-fable-5-2": {
+     "inputTokens": 6,
+     "outputTokens": 5263,
+     "cacheReadInputTokens": 21067,
+     "cacheCreationInputTokens": 15978,
+     "webSearchRequests": 0,
+     "costUSD": 0.47042939999999994,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 212,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 15978,
+     "canonicalModel": "claude-fable-5-2",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "credential_expires_at": "2026-12-06T22:17:39.049Z"
+  }
+ ],
+ "opened": [
+  "project:sources/queryの確からしさとリリース-wiki-0.20.0.md",
+  "project:sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md",
+  "project:sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md",
+  "project:sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md",
+  "project:sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md"
+ ],
+ "model_used": "claude-fable-5-2",
+ "result": "## 答え\n\n判定の表そのものは 0.20.0 で作られ、0.21.1 と 0.24.0 は表の中身を変えていない。中身が変わったのは 0.23.0（上限の行の追加）と 0.23.1（エッジ、Grep、何が結論か）である。0.21.0、0.22.0、0.23.2 を扱うページは開いた中になく、この 3 版で規則が変わったかは wiki に答えがない。\n\n| 版 | 規則の変化 |\n| --- | --- |\n| 0.20.0 | 確信度を新設した。回答に「高」「中」「低」と理由を付け、数値にはしない。 |\n| 0.21.1 | 判定の表は変えず、決め方を `query-confidence.md` に分けて必ず読ませた。読み違いと外の知識の経路を直した。 |\n| 0.21.2 | 確信度の判定は変えず、回答の「どう探したか」と「取り込むソースの提案」に自分で選んだ語を書かない決まりを足した。 |\n| 0.23.0 | 上限の表に動画のソースの 3 行を足した。 |\n| 0.23.1 | エッジの上限、推測の上限、Grep による縮退、複数の結論の書き方、何が結論かを直した。 |\n| 0.24.0 | 名前を「確からしさ」から「確信度」に変えただけで、決め方、上限、上げる方法は変えていない。 |\n\n### 0.20.0（新設）\n- 判定するのは、回答の結論と、結論を導いた前提である。\n- 前提の出発点は次のとおりで、表は上から順に見て最初に当たった行を取る。\n  - ソースの要約ページか raw で確かめた前提は「高」。\n  - コンセプトのページだけにある前提は「中」。\n  - wiki 自身の事柄を `log.md` などの記録で答えれば「高」。\n  - シンセシスのページは根拠に数えない。\n- 結論は導き方で分ける（そのまま述べた、決まった手順で導いた、判断を加えた）。\n- 上限は 6 つ（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）で、もっとも低いものに合わせる。\n- 「中」か「低」のときは、要因ごとに上げる方法を提案する。wiki を書き換える方法は提案だけにする。\n- wiki の外の知識は前提に使わない。問いの一部だけ wiki に答えがないときも、その部分は答えない。\n- 正本は `query-workflow.md` の手順 5b だった。\n\n### 0.21.1（置き場所と要約の直し）\n- きっかけは、Sonnet 5.5 の測定で手順 5b が 1 回も読まれなかったこと。\n- 決め方の本文を `skills/info-hive/references/query-confidence.md` に分け、コマンドの手順 6b で確信度を書く前に Read させる。手順 5b は案内として残した。\n- 6b の要約を 3 点にした。\n  - ソースの要約ページに書かれていれば高で、raw まで読まなくてよい。\n  - wiki 自身の事柄を記録で答えたら高。\n  - 上限は表の行だけで、回数、再現、raw や git で確かめていないことでは下げない。\n- wiki の外の知識に、会話に読み込まれたプロジェクトの指示と、wiki の外のファイルを含めた。例外は、要約ページがそのソースの raw として指しているもの（`raw` の原本、`rag_job_id` のジョブ、本文の参照とその画像）。\n- 思い付いた答えを検索語として書くことを禁じた。\n- 1 行目は `**確からしさ（confidence）: 中**` の字句のまま書く。\n\n### 0.21.2（検索の説明の決まり）\n- 0.21.1 の「思い付いた答えを検索語として書かない」は、どの語が答えかをエージェントが判断する文面で、漏れが残った。字句で決まる決まりに替えた。\n- 探した語として示すのは、質問文にそのままある語だけ。ほかは「言い換えた語でも探した」とだけ書く。\n- 取り込むソースは、資料の種類と、質問文か wiki にある語で示す。自分の知識で題名、著者、URL を挙げない。\n- 置き場所はコマンドの手順 4c とワークフローの手順 5 で、`query-confidence.md` からはそこを指す。\n\n### 0.23.0（上限の行の追加）\n- 上限の表に動画のソースの 3 行を足した。0.23.1 でもそのまま残っている。\n- 3 行の中身は、開いたページには直接書かれていない。0.20.0 のページにある ADR-0027 の求めは次のとおりで、これが 3 行に当たるかは未確認である。\n  - 動画の raw の `confidence` が `medium` なら「中」、`low` なら「低」を上限にする。\n  - モデルの知識だけによる訂正や、留保した語に頼る前提は「低」を上限にする。\n\n### 0.23.1（規則の中身の直し）\n- エッジの上限：エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。エッジの `source` のソースの要約ページか raw の本文が関係を直接述べていれば数えない。\n- エッジだけの前提：本文で確かめられないときは、エッジを書いたページの frontmatter で確かめて引用し、出発点を「中」にする。\n- 推測を答えにする：根拠に推測や記憶として書かれたことを答えとして述べたら、留保を添えても上限は「低」。\n- グラフ：関係を問う質問では、ページを読む前に必ず `graph` の `neighbors` を呼ぶ。手順を 5b から 2b に移した。\n- 縮退の理由に「0. 語彙だけの道具で見つけた」（`Grep`）を足した。見つけ方は道具を呼んだ順だけで決める。\n- 縮退に当たったページは、MCP の `query` で検索し直してよい。正常な hybrid の結果にそのページが出れば上限は外れる。ページを読んだだけでは外れない。\n- 複数の結論：結論の文の終わりに「（確からしさ: 高）」を付け、決まった 1 行は 1 つの値にする。\n- 何が結論か：前提に使えるものが wiki にあるかで決める。ない問いには付けず、どの問いにもなければ決まった 1 行も書かない。\n\n### 0.24.0（名前だけ）\n- 決まった 1 行は `**確信度（confidence）: 中**`、結論の文の終わりは「（確信度: 高）」になった。\n- 字句を機械で数えている利用者には互換性のない変更なので、minor を上げた。\n- グラフのエッジの `confidence` と取り違えないよう、「回答の確信度」「エッジの `confidence`」と書き分ける。\n\n## 根拠\n- [[queryの確からしさとリリース-wiki-0.20.0]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md）: 「決め方」の節に 0.20.0 の規則、「ADR-0027 との関係」の節に動画のソースの上限の求めがある。「上限（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）を当て、もっとも低いものに合わせる。」\n- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md）: 「直したこと」の 4 点と、外の知識の例外の決め方がある。「判定の表の中身は変えていない。」\n- [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md）: 「探した語として示すのは、質問文にそのままある語だけにする。」\n- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md）: 「直したこと」の表に 0.23.1 の 8 項目がある。0.23.0 については「0.23.0 が上限の表に足した動画のソースの 3 行は、そのまま残した。」\n- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md）: 「決め方、上限、上げる方法は変えていない」\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\n3. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\n4. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md\n5. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md\n\n## 未確認の出典\n- [[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]: 未読。0.23.0 が足した動画のソースの 3 行の正確な中身は、ここで確かめる必要がある。\n- [[queryの確からしさの未測定の規則の測定-2026-11-16]]: 未読。0.23.1 の直しの案（1-A、2-B、3、4）の元になった測定である。\n- [[queryの確からしさのsonnetでの測定-2026-11-16]]: 未読。0.21.1 の直しのきっかけになった測定である。\n- プラグインの `query-confidence.md`、`query-workflow.md`、ADR-0028 とその追記、ADR-0027: 未読。規則の正本であり、wiki の外にある。\n\n## 関係のなかった候補\nなし\n\n## モデル\nFable 5.2（claude-fable-5-2）",
+ "cost_usd": 0.47042939999999994,
+ "duration_ms": 43874,
+ "is_error": false,
+ "terminal_reason": "completed",
+ "api_error": null,
+ "api_error_status": null,
+ "model_usage": {
+  "claude-fable-5-2": {
+   "inputTokens": 6,
+   "outputTokens": 5263,
+   "cacheReadInputTokens": 21067,
+   "cacheCreationInputTokens": 15978,
+   "webSearchRequests": 0,
+   "costUSD": 0.47042939999999994,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 212,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 15978,
+   "canonicalModel": "claude-fable-5-2",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "cli_version": "2.1.325",
+ "memory_paths": {},
+ "exit": 0,
+ "stderr": ""
+}

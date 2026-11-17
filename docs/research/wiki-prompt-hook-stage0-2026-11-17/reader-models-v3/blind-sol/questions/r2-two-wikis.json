@@ -1,0 +1,117 @@
+{
+ "question": "プロジェクトwikiに記録されたPDFのヘッダー位置の上限と、ユーザーwikiに記録された受付バイト上限を、それぞれ教えて。同名ページなので、根拠にはそれぞれのwikiの区別が付く絶対パスを付けて。",
+ "assertions": [
+  {
+   "id": "r2-two-wikis:1",
+   "claim": "projectの1024はPDF署名の先頭位置の上限",
+   "source": "concepts/pdfのヘッダーの条件.md L23: ヘッダーの開始位置は 0〜1024"
+  },
+  {
+   "id": "r2-two-wikis:2",
+   "claim": "userの32768は別のバイト数上限であり、projectの1024と混同しない",
+   "source": "user:concepts/pdfのヘッダーの条件.md L8: ユーザーの受付バイト上限は 32768 バイト"
+  }
+ ],
+ "pages": {
+  "project:concepts/pdfのヘッダーの条件.md": "---\ntype: \"concept\"\ntitle: \"rag が受け付ける PDF のヘッダーの条件\"\ntags: [\"rag\"]\nsources: [\"pdfのヘッダーの判定の修正-rag-0.5.1\", \"取り込み手順の追従とリリース-wiki-0.11.1\", \"pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3\"]\ncreated: 2026-11-12\nupdated: 2026-11-13\n---\n\n# rag が受け付ける PDF のヘッダーの条件\n\nrag は、PDF を 2 つの段階で確かめる。登録で拒むものと、登録のあとの処理でジョブが `failed` になるものがある。wiki の取り込み手順（`info-hive-wiki` の `skills/info-hive/references/ingest-workflow.md`）は、この 2 つを分けて案内する。\n\n| 段階 | 呼ばれる所 | 確かめること | 外れたとき |\n| --- | --- | --- | --- |\n| 登録 | `register_pdf` → `Config.pdf_path`（`rag_config.py`） | 拡張子が `.pdf`（大文字と小文字は区別しない）、通常のファイル、UNC パスでない、派生データやキャッシュの中でない | 登録を拒む |\n| 処理 | ワーカーの `Engine.ingest_pdf` → `read_pdf`（`rag_index.py`） | `%PDF-` の前にあるバイトが 1024 バイト以下 | ジョブが `failed` になる |\n\n> 段階の表 補足: `register_pdf` はジョブを台帳に書くだけで、PDF の中身を読まない。ヘッダーを読むのは、接続中だけ動くワーカーが PDF を読み込むときである。\n\n## 境界\n\n- `has_pdf_header` は `data.find(b\"%PDF-\", 0, 1024 + 5)` で探す。`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。言い換えると、`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。\n- 上限は PDFium にそろえた。PDFium は `%PDF` を位置 0〜1024 で探す。pypdfium2 5.14.0（PDFium 156）で、改行、CRLF、空白、NUL などの前置きが 1024 バイトなら開け、1025 バイトでは開けないことを確かめた（[[pdfのヘッダーの判定の修正-rag-0.5.1]]）。\n- 判定を通っても、PDFium で開けるとは限らない。開けないものは抽出で失敗する。\n\n## 書き方\n\n「先頭から 1024 バイト目まで」は、1 始まりで読むと、受け付ける範囲が実装より 1 バイト狭くなる。開始位置が 1024 の `%PDF-` は 1025 バイト目から始まるからである。wiki 0.11.1 からは「`%PDF-` の前にあるバイトが 1024 バイト以下」と書く（[[取り込み手順の追従とリリース-wiki-0.11.1]]）。\n\nrag の README、CHANGELOG、`rag_index.py` のコメント、v0.5.1 の GitHub リリースの本文と、親の ADR-0013 も、2026-11-13 の rag 0.5.2（to884/info-hive-rag#9、文書だけの修正）で同じ書き方にそろえた。ADR-0013 の拒む条件は「`%PDF-` がないか、最初の `%PDF-` の前に 1024 バイトを超えるバイトがある」とし、`%PDF-` が範囲の内と外にあるときに実装より厳しく読めないようにした（記録は `docs/agent-runs/2026-11-13-rag-pdf-header-wording/`）。`read_pdf` のエラーメッセージ「先頭の 1024 バイトに %PDF- がない」は、試験が文字列を固定していたので 0.5.2 では残し、rag 0.5.3 で「%PDF- がないか、最初の %PDF- の前に 1024 バイトを超えるバイトがある」に直した（記録は `docs/agent-runs/2026-11-13-rag-pdf-header-message/`）。\n\n## 版による違い\n\n| rag の版 | ヘッダーの条件 |\n| --- | --- |\n| 0.5.0 以前 | 先頭がちょうど `%PDF-` |\n| 0.5.1 以降 | `%PDF-` の前のバイトが 1024 バイト以下 |\n\n> 版の表 補足: 変わったのは処理の段階のヘッダーの条件だけで、登録の段階の条件は 0.5.0 と 0.5.1 で同じである。\n\n- wiki 0.11.1 と rag 0.5.0 を組み合わせると、先頭に改行や空白がある PDF のジョブは `failed` になる。wiki の手順は版による違いを書き、`failed` の理由をそのまま伝えるよう案内する。\n- rag 0.5.0 でこの理由で失敗したジョブは、0.5.1 に更新しても自動では再開しない。`retry_job` で再試行するか、取り込み直す。\n- 取り込み直しは要らない。SHA-256 と抽出は前置きを含む読んだままのバイト列に対して行い、今まで受け付けていた PDF の判定は変わらないので、抽出の版（ADR-0014）を上げていない。\n",
+  "user:concepts/pdfのヘッダーの条件.md": "---\ntype: concept\ntitle: ユーザー用のPDF受付の条件（測定専用）\n---\n\n# ユーザー用のPDF受付の条件\n\nこれは測定用の合成データである。ユーザーの受付バイト上限は 32768 バイトとする。プロジェクトのヘッダー位置の条件とは別の値である。\n"
+ },
+ "answers": [
+  {
+   "id": "S824c5232c7dac489dcd5a74d",
+   "answer": "## 答え\n- **プロジェクト wiki:** PDF のヘッダー位置の上限は **1024 バイト**です。`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けます。`%PDF-` の開始位置は 0 始まりで 0〜1024 です。\n- **ユーザー wiki:** 受付バイト上限は **32768 バイト**です。ページには「プロジェクトのヘッダー位置の条件とは別の値である」とあります。\n\nユーザー wiki のページは「測定用の合成データ」と明記されています。\n\n\n## 根拠\n- [[pdfのヘッダーの条件]]（project: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。」\n- [[pdfのヘッダーの条件]]（user: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 「ユーザーの受付バイト上限は 32768 バイトとする。」\n\n",
+   "opened": [
+    "project:concepts/pdfのヘッダーの条件.md",
+    "user:concepts/pdfのヘッダーの条件.md"
+   ]
+  },
+  {
+   "id": "S1291fd3cbe38a9a968ebe201",
+   "answer": "## 答え\n- **プロジェクト wiki の PDF ヘッダー位置の上限**: `%PDF-` の開始位置（0 始まり）が 0〜1024 まで。言い換えると、`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける（rag 0.5.1 以降）。超えると、登録は通るが処理の段階でジョブが `failed` になる。rag 0.5.0 以前は、先頭がちょうど `%PDF-` であることが条件だった。\n- **ユーザー wiki の受付バイト上限**: 32768 バイト。ページ自身が「測定用の合成データ」と断っており、プロジェクトのヘッダー位置の条件とは別の値だと書いている。\n\n\n## 根拠\n- [[pdfのヘッダーの条件]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 「`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。」。段階の表では、処理の段階で「`%PDF-` の前にあるバイトが 1024 バイト以下」を確かめ、外れるとジョブが `failed` になる。版の表では、0.5.0 以前は「先頭がちょうど `%PDF-`」、0.5.1 以降は「`%PDF-` の前のバイトが 1024 バイト以下」。\n- [[pdfのヘッダーの条件]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 「ユーザーの受付バイト上限は 32768 バイトとする。」。同じページに、測定用の合成データであることと、プロジェクトのヘッダー位置の条件とは別の値であることが書かれている。\n\n",
+   "opened": [
+    "user:concepts/pdfのヘッダーの条件.md",
+    "project:concepts/pdfのヘッダーの条件.md"
+   ]
+  },
+  {
+   "id": "S3a7652575717ca3cb1675062",
+   "answer": "## 答え\n- **プロジェクト wiki**：PDF のヘッダー位置の上限は **1024** です。`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付けます。言い換えると、`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けます。この条件は rag 0.5.1 以降のもので、0.5.0 以前は先頭がちょうど `%PDF-` である必要がありました。\n- **ユーザー wiki**：受付バイト上限は **32768 バイト**です。ページ自体が「測定用の合成データ」と明記しており、プロジェクトのヘッダー位置の条件とは別の値だと書いています。\n\n\n## 根拠\n- [[pdfのヘッダーの条件]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 「`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。」版の表には「0.5.1 以降 | `%PDF-` の前のバイトが 1024 バイト以下」とあります。\n- [[pdfのヘッダーの条件]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 「ユーザーの受付バイト上限は 32768 バイトとする。」\n\n",
+   "opened": [
+    "project:concepts/pdfのヘッダーの条件.md",
+    "user:concepts/pdfのヘッダーの条件.md"
+   ]
+  },
+  {
+   "id": "Safcfbd029214d2b2220f1db6",
+   "answer": "## 答え\n- **プロジェクト wiki のヘッダー位置の上限:** 1024 バイトです。`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けます。`%PDF-` の開始位置（0 始まり）では 0〜1024 にあたります。\n- **ユーザー wiki の受付バイト上限:** 32768 バイトです。このページは測定用の合成データだと明記されています。ページには、プロジェクトのヘッダー位置の条件とは別の値だとも書かれています。\n\n\n## 根拠\n- [[pdfのヘッダーの条件]]（project: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 「`%PDF-` の前にあるバイトが 1024 バイト以下」なら受け付けます。実装は `data.find(b\"%PDF-\", 0, 1024 + 5)` です。\n- [[pdfのヘッダーの条件]]（user: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 「ユーザーの受付バイト上限は 32768 バイトとする。」\n\n",
+   "opened": [
+    "user:concepts/pdfのヘッダーの条件.md",
+    "project:concepts/pdfのヘッダーの条件.md"
+   ]
+  },
+  {
+   "id": "Sef2b7da45bb3d2db18e0f542",
+   "answer": "## 答え\n- プロジェクト wiki: `%PDF-` の前にあるバイトは **1024 バイト以下**まで（開始位置 0〜1024 が受け付け範囲）。\n- ユーザー wiki: 受付バイト上限は **32768 バイト**。\n\n\n## 根拠\n- [[pdfのヘッダーの条件]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md`）: 「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。」（境界の節）。0.5.1 以降の条件で、0.5.0 以前は先頭がちょうど `%PDF-` だった。\n- [[pdfのヘッダーの条件]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md`）: 「ユーザーの受付バイト上限は 32768 バイトとする。」。このページは「ユーザー用のPDF受付の条件（測定専用）」と題され、測定用の合成データだと明記されている。\n\n",
+   "opened": [
+    "project:concepts/pdfのヘッダーの条件.md",
+    "user:concepts/pdfのヘッダーの条件.md"
+   ]
+  },
+  {
+   "id": "Secd15226853740664bd51c8f",
+   "answer": "## 答え\n- **プロジェクト wiki**：PDF のヘッダー位置の上限は 1024 です。rag 0.5.1 以降は、`%PDF-` の開始位置（0 始まり）が 0〜1024 なら PDF を受け付けます。言い換えると、`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けます。1025 バイトを超える前置きがあると、処理の段階でジョブが `failed` になります。\n- **ユーザー wiki**：受付バイト上限は 32768 バイトです。ページは、これがプロジェクトのヘッダー位置の条件とは別の値だと書いています。また、このページは自分を「測定用の合成データ」と書いています。\n\n\n## 根拠\n- [[pdfのヘッダーの条件]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 原文は「`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。」。段階の表と版の表も、処理の段階の条件を「`%PDF-` の前にあるバイトが 1024 バイト以下」としています。\n- [[pdfのヘッダーの条件]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 原文は「ユーザーの受付バイト上限は 32768 バイトとする。」です。\n\n",
+   "opened": [
+    "project:concepts/pdfのヘッダーの条件.md",
+    "user:concepts/pdfのヘッダーの条件.md"
+   ]
+  },
+  {
+   "id": "S945b1e4c9a23d1931bd71e63",
+   "answer": "## 答え\n- **プロジェクト wiki のヘッダー位置の上限:** 1024 バイト。`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けます。開始位置(0 始まり)でいえば 0〜1024 です。この上限は PDFium にそろえた値です。\n- **ユーザー wiki の受付バイト上限:** 32768 バイト。\n\n2 つは別の値です。ユーザー wiki のページ自身が「プロジェクトのヘッダー位置の条件とは別の値である」と書いています。ユーザー wiki のページは「測定用の合成データ」と明記されています。\n\n\n## 根拠\n- [[pdfのヘッダーの条件]]（project: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 「`has_pdf_header` は `data.find(b\"%PDF-\", 0, 1024 + 5)` で探す。`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。」\n- [[pdfのヘッダーの条件]]（user: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 「ユーザーの受付バイト上限は 32768 バイトとする。」\n\n",
+   "opened": [
+    "project:concepts/pdfのヘッダーの条件.md",
+    "user:concepts/pdfのヘッダーの条件.md"
+   ]
+  },
+  {
+   "id": "Sc5244120dda1d9dab0ee98c2",
+   "answer": "## 答え\n- **プロジェクト wiki（PDF のヘッダー位置の上限）:** `%PDF-` の前にあるバイトが **1024 バイト以下**なら受け付ける。`%PDF-` の開始位置（0 始まり）が 0〜1024 の範囲にあれば受け付ける。\n- **ユーザー wiki（受付バイト上限）:** **32768 バイト**。ただし、このページは測定用の合成データだと書かれている。\n\n\n## 根拠\n- [[pdfのヘッダーの条件]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。」（境界の節）。版の表でも、0.5.1 以降は「`%PDF-` の前のバイトが 1024 バイト以下」とある。\n- [[pdfのヘッダーの条件]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 「ユーザーの受付バイト上限は 32768 バイトとする。」このページは「測定用の合成データである」と冒頭にあり、プロジェクトのヘッダー位置の条件とは別の値だと明記されている。\n\n",
+   "opened": [
+    "project:concepts/pdfのヘッダーの条件.md",
+    "user:concepts/pdfのヘッダーの条件.md"
+   ]
+  },
+  {
+   "id": "Sd003c9e6cf00d1408cb4eca1",
+   "answer": "## 答え\n- **プロジェクト wiki**: `%PDF-` の前にあるバイトは **1024 バイト以下** なら受け付ける。処理の段階（`read_pdf`）の条件で、0.5.1 以降の rag に当てはまる。\n- **ユーザー wiki**: 受付バイト上限は **32768 バイト**。ただし、このページは「測定用の合成データ」と明記しており、実際の運用の値として確かめたものではない。\n\n\n## 根拠\n- [[pdfのヘッダーの条件]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md`）: 「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。」（境界の節）。版の表でも、0.5.1 以降は「`%PDF-` の前のバイトが 1024 バイト以下」とされている。\n- [[pdfのヘッダーの条件]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md`）: 「ユーザーの受付バイト上限は 32768 バイトとする。」（本文 8 行目）。同じ文で「プロジェクトのヘッダー位置の条件とは別の値である」とも書かれている。\n\n",
+   "opened": [
+    "project:concepts/pdfのヘッダーの条件.md",
+    "user:concepts/pdfのヘッダーの条件.md"
+   ]
+  },
+  {
+   "id": "Sc1b16e6194dc750cf49d2ae6",
+   "answer": "## 答え\n- **プロジェクト wiki の PDF ヘッダー位置の上限**: `%PDF-` の前にあるバイトが 1024 バイト以下であること。開始位置（0 始まり）で言うと 0〜1024 なら受け付ける。これは rag 0.5.1 以降の条件で、0.5.0 以前は先頭がちょうど `%PDF-` であることが条件だった。外れると、登録ではなく処理の段階でジョブが `failed` になる。\n- **ユーザー wiki の受付バイト上限**: 32768 バイト。ページ自身が「測定用の合成データ」と明記しており、プロジェクトのヘッダー位置の条件とは別の値だとしている。\n\n\n## 根拠\n- [[pdfのヘッダーの条件]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）: 「`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。」。段階の表でも、処理の段階で「`%PDF-` の前にあるバイトが 1024 バイト以下」を確かめ、外れるとジョブが `failed` になるとある。版の表に 0.5.0 以前と 0.5.1 以降の違いがある。\n- [[pdfのヘッダーの条件]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）: 「ユーザーの受付バイト上限は 32768 バイトとする。」。同じページに、測定用の合成データであることと、プロジェクトの条件とは別の値であることが書かれている。\n\n",
+   "opened": [
+    "project:concepts/pdfのヘッダーの条件.md",
+    "user:concepts/pdfのヘッダーの条件.md"
+   ]
+  },
+  {
+   "id": "S2d5b78f2e46d597208a10240",
+   "answer": "## 答え\n- プロジェクト wiki の PDF ヘッダー位置の上限: `%PDF-` の前にあるバイトが **1024 バイト以下**なら受け付ける（ヘッダー位置が 0〜1024 なら可。rag 0.5.1 以降の条件）。\n- ユーザー wiki の受付バイト上限: **32768 バイト**。ただし、このページは測定用の合成データだと明記されている。\n\n\n## 根拠\n- [[pdfのヘッダーの条件]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md`）: 「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける」（境界の節）。版の表でも 0.5.1 以降は「`%PDF-` の前のバイトが 1024 バイト以下」とある。\n- [[pdfのヘッダーの条件]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md`）: 「ユーザーの受付バイト上限は 32768 バイトとする。」（本文 8 行目）。同じ行で「プロジェクトのヘッダー位置の条件とは別の値である」とも書かれている。\n\n",
+   "opened": [
+    "user:concepts/pdfのヘッダーの条件.md",
+    "project:concepts/pdfのヘッダーの条件.md"
+   ]
+  },
+  {
+   "id": "S906eaa3908117839c282a7d6",
+   "answer": "## 答え\n- **プロジェクト wiki のヘッダー位置の上限:** `%PDF-` の前にあるバイトが 1024 バイト以下です。`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付けます。\n- **ユーザー wiki の受付バイト上限:** 32768 バイトです。\n\nユーザー wiki のページは、これが測定用の合成データだと書いています。また、プロジェクトのヘッダー位置の条件とは別の値だとも書いています。\n\n\n## 根拠\n- [[pdfのヘッダーの条件]]（project: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfのヘッダーの条件.md）\n  - 「`has_pdf_header` は `data.find(b\"%PDF-\", 0, 1024 + 5)` で探す。`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。」\n  - この上限は PDFium にそろえた値です。\n- [[pdfのヘッダーの条件]]（user: C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/user/wiki/concepts/pdfのヘッダーの条件.md）\n  - 「ユーザーの受付バイト上限は 32768 バイトとする。」\n\n",
+   "opened": [
+    "user:concepts/pdfのヘッダーの条件.md",
+    "project:concepts/pdfのヘッダーの条件.md"
+   ]
+  }
+ ]
+}
