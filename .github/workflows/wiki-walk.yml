@@ -17,6 +17,9 @@ on:
       - tests/wiki/test_page_set.py
       - tests/wiki/test_wiki_lint.py
       - tests/wiki/test_wiki_links.py
+      - tests/wiki/test_raw_links.py
+      - tests/wiki/test_wiki_youtube.py
+      - tests/wiki/test_wiki_session.py
       - .github/workflows/wiki-walk.yml
 
 permissions:
@@ -76,4 +79,4 @@ jobs:
         run: uv run --python ${{ matrix.python }} python -X utf8 -B -m unittest tests/wiki/test_page_set.py tests/wiki/test_wiki_lint.py -v
       - name: 記事のリンク拒否の回帰試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
-        run: uv run --python ${{ matrix.python }} --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_wiki_links.py -v
+        run: uv run --python ${{ matrix.python }} --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_wiki_links.py tests/wiki/test_raw_links.py tests/wiki/test_wiki_youtube.py tests.wiki.test_wiki_session.ReadOnlyVerifyTests.test_post_write_check_refuses_shared_raw_before_chmod -v

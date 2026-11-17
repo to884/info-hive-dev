@@ -334,12 +334,12 @@ class LintTests(Base):
                                              {"path": "concepts/h.md", "kind": "hardlink"},
                                              {"path": "log.md", "kind": "hardlink"}])
         self.assertEqual(findings["summary"]["links"], 3)
-        self.assertIsNone(findings["summary"]["links_raw"])
+        self.assertEqual(findings["summary"]["links_raw"], 0)
         # リンクなので読まなかったページへの wikilink は、リンク切れにしない（b から a へのリンク）
         self.assertEqual([b["to"] for b in findings["broken_links"]], [])
         text = wiki_lint.render_text(findings)
         self.assertIn("concepts/h.md  （ハードリンク）", text)
-        self.assertIn("raw の側のリンク", text)
+        self.assertNotIn("この版ではまだ調べていない", text)
 
     def test_junction_and_index(self):
         self.write("concepts/a.md", page("a"))
@@ -1281,6 +1281,8 @@ class ReadSiteInventoryTests(unittest.TestCase):
         ("wiki_pages.py", "_vendor_digest"): NOT_ARTICLE,
         ("wiki_pages.py", "read_user_file"): GATEWAY,
         ("wiki_pages.py", "read_user_bytes"): GATEWAY,
+        ("wiki_raw.py", "_digest"): RAW,  # _inspect が全候補のリンクを検査したあとだけ読む
+        ("wiki_raw.py", "_raw_meta"): RAW,
         ("wiki_pages.py", "user_directory_path"): GATEWAY,
         ("wiki_pdf.py", "main"): RAW,
         ("wiki_rawcheck.py", "apply_translation_review"): NOT_ARTICLE,  # 作業用の確認の JSON

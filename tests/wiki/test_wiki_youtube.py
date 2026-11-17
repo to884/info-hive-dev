@@ -1106,6 +1106,65 @@ class VerifyTests(Workspace):
         overlay = {"sources/動画.md": self.page("動画", "![999](https://example.com/image.png)")}
         self.assertIn("999", self.check(overlay).unknown_words["sources/動画.md"])
 
+    def test_verify_refuses_primary_hardlink_before_parsing_raw(self):
+        os.link(self.raw / "動画.md", self.tmp / "raw-copy.md")
+        with mock.patch.object(wc, "parse_raw", side_effect=AssertionError("リンクの本文を読んだ")):
+            code, out = self.run_main("verify", "--wiki", str(self.wiki), "--raw-root", str(self.raw),
+                                      "--slug", "動画", "--json")
+        self.assertNotEqual(code, 0)
+        self.assertIn("link", json.dumps(out, ensure_ascii=False))
+
+    def test_write_rejects_parent_in_root_before_fetch(self):
+        from types import SimpleNamespace
+        args = SimpleNamespace(wiki=str(self.wiki), raw_root=str(self.wiki / "../raw"))
+        with mock.patch.object(wy, "take", side_effect=AssertionError("取得に進んだ")):
+            with self.assertRaises(wy.Fail):
+                wy.cmd_write(args)
+
+    def test_rejected_evidence_is_not_called_missing(self):
+        os.link(self.raw / "記事.md", self.tmp / "article-copy.md")
+        self.write_page("sources/動画.md", self.page("動画", "トヨダ〔訂正 L3-1〕の話", confidence="medium",
+            defs="- L3-1: 字幕 `トヨタ` を `トヨダ` に訂正（根拠 wiki_source:記事）"))
+        result = wc.check_wiki(self.wiki, raw_roots=[self.raw])
+        messages = [f.message for f in result.findings if f.code == "bad_definition"]
+        self.assertTrue(any("リンクなので読まない" in m for m in messages), messages)
+        self.assertFalse(any("見つからない" in m for m in messages), messages)
+
+    def test_verify_passes_raw_root_for_auxiliary_raw(self):
+        from tests.wiki.test_wiki_links import junction
+        external = self.tmp / "external"
+        external.mkdir()
+        (external / "other.md").write_text(self.raw_text, encoding="utf-8")
+        jump = self.raw / "jump"
+        if not junction(jump, external):
+            self.skipTest("ディレクトリのリンクを作れない")
+        def cleanup_jump():
+            if os.path.lexists(jump):
+                os.rmdir(jump) if os.name == "nt" else jump.unlink()
+        self.addCleanup(cleanup_jump)
+        self.write_page("sources/動画.md", self.page("動画", "本文"))
+        self.write_page("sources/別.md", self.page("別", "本文", raw="raw/jump/other.md"))
+        original = Path.read_text
+        def checked_read(path, *args, **kwargs):
+            if "jump" in path.parts:
+                raise AssertionError("途中のリンクを通って読んだ")
+            return original(path, *args, **kwargs)
+        with mock.patch.object(Path, "read_text", checked_read):
+            code, out = self.run_main("verify", "--wiki", str(self.wiki), "--raw-root", str(self.raw),
+                                      "--slug", "動画", "--json")
+        self.assertEqual(code, 1)
+        self.assertTrue(any(f["code"] == "unreadable_raw" and f["path"] == "sources/別.md" for f in out["findings"]))
+
+    def test_verify_warns_about_unrelated_ambiguity_without_blocking(self):
+        self.write_page("sources/動画.md", self.page("動画", "本文"))
+        self.write_page("sources/別.md", self.page("別", "本文", raw="other.md", kind=None, confidence=None))
+        (self.wiki / "other.md").write_text("A", encoding="utf-8")
+        (self.wiki.parent / "other.md").write_text("B", encoding="utf-8")
+        code, out = self.run_main("verify", "--wiki", str(self.wiki), "--raw-root", str(self.raw),
+                                  "--slug", "動画", "--json")
+        self.assertEqual((code, out["findings"]), (0, []))
+        self.assertTrue(any(w["state"] == "ambiguous" for w in out["raw_warnings"]))
+
     def test_verify_cli_and_lint(self):
         summary = self.page("動画", "講義では 50〔訂正 L2-1〕 人", confidence="medium",
                             defs="- L2-1: 字幕 `15`（2 つ目） を `50` に訂正（根拠 model:x）")
