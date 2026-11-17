@@ -131,7 +131,9 @@ class LauncherTests(unittest.TestCase):
                     probe = self.invoke(shell, bench.shell_line(echo), dict(env, ECHO_OUT=str(sink)))
                     self.assertEqual(probe.returncode, 0)
                     self.assertEqual(probe.stderr, b"")
-                    self.assertTrue(Path(json.loads(sink.read_text(encoding="utf-8"))).is_relative_to(root))
+                    # Windowsの短いパス名を解決し、POSIXのpython本体のsymlinkは辿らず、venvのbinを比べる。
+                    interpreter = Path(json.loads(sink.read_text(encoding="utf-8")))
+                    self.assertEqual(interpreter.parent.resolve(), (root / ("Scripts" if os.name == "nt" else "bin")).resolve())
                     self.assert_context(self.invoke(shell, env=env))
 
     @unittest.skipUnless(os.name == "nt", "Windowsの優先度を使う試験")
@@ -145,9 +147,10 @@ get.restype = ctypes.c_uint32
 """
         code = ("import sys\n" + query + f"\nsys.path.insert(0, {str(bench.SCRIPTS)!r})\n"
                 "before = get(ctypes.c_void_p(-1))\nimport wiki_prompt_hook\n"
-                "assert before == get(ctypes.c_void_p(-1))\n")
+                "assert before == get(ctypes.c_void_p(-1))\nprint(before)\n")
         imported = subprocess.run([sys.executable, "-I", "-S", "-c", code], capture_output=True, timeout=20)
         self.assertEqual(imported.returncode, 0, imported.stderr.decode("utf-8", "replace"))
+        inherited_priority = int(imported.stdout.strip())
         source = HOOK.read_text(encoding="utf-8").replace(
             "sys.path.insert(0, str(Path(__file__).resolve().parent))",
             f"sys.path.insert(0, {str(bench.SCRIPTS)!r})")
@@ -166,7 +169,7 @@ get.restype = ctypes.c_uint32
         self.assert_context(result)
         rows = [json.loads(line) for line in sink.read_text(encoding="utf-8").splitlines()]
         self.assertEqual(rows, [{"priority": 0x8000, "worker": False}, {"priority": 0x8000, "worker": True}])
-        # 親のAPIが拒否されたら、子も起動時の通常優先度を維持する。
+        # 親のAPIが拒否されたら、親子とも継承した優先度を維持する。CIではBelowNormalの場合もある。
         refused = self.base / "priority_refused.py"
         write(refused, source.replace('change = kernel32.SetPriorityClass', 'raise OSError("優先度の変更を拒否")'))
         sink = self.base / "refused.jsonl"
@@ -174,7 +177,8 @@ get.restype = ctypes.c_uint32
             capture_output=True, env=dict(self.env, PRIORITY_OUT=str(sink), CLAUDE_PLUGIN_DATA=str(self.base / "refused-data")), timeout=20)
         self.assert_context(result)
         rows = [json.loads(line) for line in sink.read_text(encoding="utf-8").splitlines()]
-        self.assertEqual(rows, [{"priority": 0x20, "worker": False}, {"priority": 0x20, "worker": True}])
+        self.assertEqual(rows, [{"priority": inherited_priority, "worker": False},
+                                {"priority": inherited_priority, "worker": True}])
 
 
 if __name__ == "__main__":
