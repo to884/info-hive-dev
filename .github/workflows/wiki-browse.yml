@@ -32,7 +32,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # Playwright 1.56.1 が対応する Ubuntu を使う。ubuntu-latest の 26.04 は依存の導入で失敗する。
+        os: [ubuntu-24.04, windows-latest]
         # 標準ライブラリの失敗の読み替えは版で違う（構造の直しの設計の 3.1、12）。下限の 3.12 と 3.14 で流す
         python: ['3.12', '3.14']
     runs-on: ${{ matrix.os }}

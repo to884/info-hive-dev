@@ -42,3 +42,9 @@ v0.27.0 から v0.29.0 までに追加・変更された全 16 ファイル（RE
 - Codex の独立したエージェントが再監査し、リリースを止める欠陥は見つからなかった。Claude の利用量を節約するという指示に従い、`ask-claude` は使っていない。
 
 手元の CI の集計は [local-ci.json](local-ci.json)、会話の抽出から raw の保存までの両方式の実機試験は [会話履歴の検証](../wiki-codex-session-2026-11-17/verification.md) にある。
+
+## 親リポジトリの CI
+
+[親 PR #170](https://github.com/to884/info-hive-dev/pull/170) の初回 CI では、操作手順を表示する `wiki_codex.py` が、wiki のパスを受け取らない入口の一覧に未登録だった。既存の未初期化 wiki の試験の一覧に追加し、入口の分類 4 件を通した。プラグイン本体の修正は不要で、MCP の他の試験とモデル評価は成功した。
+
+ブラウザ試験は、`ubuntu-latest` が Ubuntu 26.04 になり、固定している Playwright 1.56.1 の Chromium の導入で失敗した。対応する `ubuntu-24.04` に runner を固定した。失敗した実行では Python の browse とサーバーの試験は成功していた。
