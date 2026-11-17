@@ -123,6 +123,33 @@ class AssetIntegrationTests(Base):
 
 
 class IntegrationReviewTests(Base):
+    def test_external_alias_never_resolves_through_a_forbidden_wiki_directory(self):
+        self.write("outside/a.md", "OUTSIDE", base=self.ext)
+        jump = self.wiki / "concepts/jump"
+        jump.parent.mkdir()
+        if not junction(jump, self.ext / "outside"):
+            self.skipTest("リンクを作れない")
+        view = self.tmp / "view"
+        if not junction(view, jump):
+            self.skipTest("リンクを作れない")
+        for path in (jump / "a.md", view / "a.md"):
+            with self.subTest(path=str(path)), self.assertRaisesRegex(ValueError, "リンクなので読まない"):
+                wiki_pages.read_user_bytes(path, self.wiki)
+        self.assertEqual(wiki_pages.source_wiki_root(view, self.wiki), self.wiki)
+
+    @unittest.skipIf(NT, "POSIX の相対的なリンクの行き先を使う")
+    def test_relative_alias_targets_and_cycles(self):
+        self.write("concepts/a.md", page("a"))
+        (self.tmp / "aliases").mkdir()
+        alias = self.tmp / "aliases/view"
+        os.symlink("../wiki/concepts", alias, target_is_directory=True)
+        self.assertEqual(wiki_pages.read_user_bytes(alias / "a.md", self.wiki),
+                         (self.wiki / "concepts/a.md").read_bytes())
+        os.symlink("loop-b", self.tmp / "loop-a", target_is_directory=True)
+        os.symlink("loop-a", self.tmp / "loop-b", target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "循環"):
+            wiki_pages.read_user_bytes(self.tmp / "loop-a/a.md", self.wiki)
+
     def test_case_variant_root_still_checks_articles(self):
         alias = self.wiki.with_name("WIKI")
         try:
@@ -158,7 +185,7 @@ class IntegrationReviewTests(Base):
         a = self.write("sources/s.md", page("s"))
         os.link(a, self.ext / "s.md")
         self.write("entities/s.md", page("other"))
-        self.write("concepts/a.md", page("a", "[[s]] [[entities/s]]").replace('tags: ["t"]', 'tags: ["t"]\nsources: ["[[s]]"]'))
+        self.write("concepts/a.md", page("a", "[[s]]").replace('tags: ["t"]', 'tags: ["t"]\nsources: ["[[s]]"]'))
         findings = wiki_lint.lint(wiki_lint.collect_pages(self.wiki), 100, 200, ["type"], False, 5,
                                   index_entries=[], wiki_root=self.wiki)
         self.assertEqual(findings["unresolved_sources"], [])
@@ -166,6 +193,14 @@ class IntegrationReviewTests(Base):
         self.assertEqual(c.resolve("s")["state"], "refused")
         self.assertEqual(c.resolve("entities/s")["state"], "resolved")
         self.assertIn('title="リンクなので読まない">[[s]]', c.render_page("concepts/a"))
+        self.assertTrue(any(f["path"] == "entities/s.md" for f in findings["orphans"]))
+        import wiki_graph_extract as graph
+        pages = graph.collect_pages(self.wiki)
+        _nodes, ids, _aliases = graph.build_nodes(pages, {"node_types": {}, "predicates": {}})
+        diagnostics = []
+        edges = graph.build_edges(pages, ids, diagnostics)
+        self.assertFalse(any(e["predicate"] == "sourced_from" for e in edges))
+        self.assertFalse(any(d["kind"] == "unresolved_source" for d in diagnostics))
 
     def test_browse_and_lint_report_refusals_instead_of_missing_pages(self):
         import wiki_browse
