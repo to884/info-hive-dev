@@ -234,13 +234,13 @@ FETCH_OUTPUT = json.dumps({"path": "raw/cqrs.md", "url": "https://martinfowler.c
                            "fetched_sha256": "b" * 64}, indent=2)
 # wiki_rawcheck.py check --finish --json が通ったときの出力（の一部）
 CHECK_OUTPUT = json.dumps({"stage": "check", "ok": True, "completed": True, "needs_translation": True,
-                           "translation": {"state": "checked", "checked_blocks": 1}, "language_override": None,
+                           "translation": {"state": "checked", "checked_blocks": 1, "pending_reviews": 0, "reviewed_passages": 0, "reviewed_by": "", "retained": [], "basis": {"source_sha256": "a" * 64, "raw_sha256": "b" * 64}}, "language_override": None,
                            "translated_by": "Claude Sonnet 5.5",
                            "caption_names": ["Claude Sonnet 5.5"], "errors": [], "warnings": [], "work_dir_removed": True},
                           indent=2)
 # check --finish --accept-warnings で、警告が残ったまま写しを消したときの出力（の一部）
 ACCEPTED_OUTPUT = json.dumps({"stage": "check", "ok": True, "completed": True, "needs_translation": True,
-                              "translation": {"state": "checked", "checked_blocks": 1}, "language_override": None,
+                              "translation": {"state": "checked", "checked_blocks": 1, "pending_reviews": 0, "reviewed_passages": 0, "reviewed_by": "", "retained": [], "basis": {"source_sha256": "a" * 64, "raw_sha256": "b" * 64}}, "language_override": None,
                               "translated_by": "Claude Sonnet 5.5",
                               "caption_names": ["Claude Sonnet 5.5"], "errors": [],
                               "warnings": [{"kind": "style", "line": None, "message": "文体が混ざっている"}],
@@ -457,6 +457,9 @@ class SyntheticTranscriptTest(unittest.TestCase):
             "non_string_translator": {"translated_by": ["Model"]},
             "non_integer_block_count": {"translation": {"state": "checked", "checked_blocks": True}},
             "checked_zero": {"translation": {"state": "checked", "checked_blocks": 0}},
+            "pending_review": {"translation": {**json.loads(CHECK_OUTPUT)["translation"], "pending_reviews": 1}},
+            "missing_review_evidence": {"translation": {"state": "checked", "checked_blocks": 1}},
+            "inconsistent_review_count": {"translation": {**json.loads(CHECK_OUTPUT)["translation"], "reviewed_passages": 1}},
         }
         for name, changes in cases.items():
             with self.subTest(name=name):
@@ -789,7 +792,7 @@ class SyntheticTranscriptTest(unittest.TestCase):
             with self.subTest(sep=hex(ord(sep))):
                 # 1. 警告の詳細に原文の行の区切りの文字が入った回の、警告の受け入れの違反を見逃さない
                 accepted = json.dumps({"stage": "check", "ok": True, "completed": True, "needs_translation": True,
-                                       "translation": {"state": "checked", "checked_blocks": 1}, "language_override": None,
+                                       "translation": {"state": "checked", "checked_blocks": 1, "pending_reviews": 0, "reviewed_passages": 0, "reviewed_by": "", "retained": [], "basis": {"source_sha256": "a" * 64, "raw_sha256": "b" * 64}}, "language_override": None,
                                        "translated_by": "Claude Sonnet 5.5",
                                        "caption_names": ["Claude Sonnet 5.5"], "errors": [],
                                        "warnings": [{"kind": "missing_names", "line": 3,

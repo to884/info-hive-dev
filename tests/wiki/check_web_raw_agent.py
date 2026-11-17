@@ -509,6 +509,22 @@ def verified_completion(value: dict) -> bool:
     blocks = translation.get("checked_blocks")
     if type(blocks) is not int or blocks < 0:
         return False
+    pending = translation.get("pending_reviews")
+    reviewed = translation.get("reviewed_passages")
+    retained = translation.get("retained")
+    basis = translation.get("basis")
+    if (type(pending) is not int or pending != 0 or type(reviewed) is not int or reviewed < 0
+            or not isinstance(retained, list) or len(retained) != reviewed
+            or not isinstance(basis, dict)
+            or any(not isinstance(basis.get(k), str) or not re.fullmatch(r"[0-9a-f]{64}", basis[k])
+                   for k in ("source_sha256", "raw_sha256"))):
+        return False
+    if reviewed and (not isinstance(translation.get("reviewed_by"), str) or not translation["reviewed_by"].strip()):
+        return False
+    for item in retained:
+        if not isinstance(item, dict) or any(not isinstance(item.get(k), str) or not item[k].strip()
+                                             for k in ("id", "text", "kind", "reason")):
+            return False
     translator = value.get("translated_by")
     if not isinstance(translator, str) or (required and not translator.strip()):
         return False
