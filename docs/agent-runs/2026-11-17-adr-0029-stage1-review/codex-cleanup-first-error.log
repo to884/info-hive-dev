@@ -1,0 +1,34 @@
+Traceback (most recent call last):
+  File "C:\Program Files\Python314\Lib\shutil.py", line 701, in _rmtree_unsafe
+    os.unlink(fullname)
+    ~~~~~~~~~^^^^^^^^^^
+PermissionError: [WinError 32] プロセスはファイルにアクセスできません。別のプロセスが使用中です。: 'C:\\UserData\\toshiki\\Temp\\info-hive-codex-w4eo4hrt\\codex-home\\.tmp\\plugins-clone-CH3lGX\\.git\\FETCH_HEAD'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Works\info-hive-dev\.claude\worktrees\adr-0029-impl\tests\wiki\check_codex_plugin.py", line 156, in <module>
+    main()
+    ~~~~^^
+  File "C:\Works\info-hive-dev\.claude\worktrees\adr-0029-impl\tests\wiki\check_codex_plugin.py", line 146, in main
+    with tempfile.TemporaryDirectory(prefix="info-hive-codex-") as folder:
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python314\Lib\tempfile.py", line 971, in __exit__
+    self.cleanup()
+    ~~~~~~~~~~~~^^
+  File "C:\Program Files\Python314\Lib\tempfile.py", line 975, in cleanup
+    self._rmtree(self.name, ignore_errors=self._ignore_cleanup_errors)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python314\Lib\tempfile.py", line 955, in _rmtree
+    _shutil.rmtree(name, onexc=onexc)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python314\Lib\shutil.py", line 852, in rmtree
+    _rmtree_impl(path, dir_fd, onexc)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python314\Lib\shutil.py", line 705, in _rmtree_unsafe
+    onexc(os.unlink, fullname, err)
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python314\Lib\tempfile.py", line 930, in onexc
+    _os.unlink(path)
+    ~~~~~~~~~~^^^^^^
+PermissionError: [WinError 32] プロセスはファイルにアクセスできません。別のプロセスが使用中です。: 'C:\\UserData\\toshiki\\Temp\\info-hive-codex-w4eo4hrt\\codex-home\\.tmp\\plugins-clone-CH3lGX\\.git\\FETCH_HEAD'

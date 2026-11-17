@@ -1,0 +1,58 @@
+diff --git a/skills/info-hive/scripts/wiki_browse_core.py b/skills/info-hive/scripts/wiki_browse_core.py
+index b38e3a0..03aa743 100644
+--- a/skills/info-hive/scripts/wiki_browse_core.py
++++ b/skills/info-hive/scripts/wiki_browse_core.py
+@@ -943,9 +943,9 @@ class Core:
+         pid = self.pages[disks[0]]["id"]
+         return pid if self.drawn.get(pid) == disks[0] else None
+ 
+-    def resolve(self, target: str) -> dict:
++    def resolve(self, target: str, *, articles: bool = False) -> dict:
+         """wikilink の行き先を解決する（設計の 3.3）。"""
+-        refused = wiki_pages.refused_link(target, self.link_warnings)
++        refused = wiki_pages.refused_link(target, self.link_warnings, articles=articles)
+         if refused is not None:
+             return {"state": "refused", "target": target, "path": refused["path"], "link_kind": refused["kind"]}
+         disks = wiki_pages.link_candidates(target, self.pages_by_path, self.pages_by_slug)
+@@ -1399,7 +1399,7 @@ class Core:
+                 after = _after_first_link(inline_tok)
+                 if clean in group_of_file and clean.startswith("indexes/"):
+                     return {"state": "group", "group": group_of_file[clean], "label": label, "after": after}
+-                r = self.resolve(target)
++                r = self.resolve(target, articles=True)
+                 if r["state"] == "resolved":
+                     return {"state": "resolved", "id": r["id"], "label": self.title(r["id"]),
+                             "anchor": r.get("anchor"), "after": after}
+diff --git a/skills/info-hive/scripts/wiki_pages.py b/skills/info-hive/scripts/wiki_pages.py
+index 7b44d75..7c0068b 100644
+--- a/skills/info-hive/scripts/wiki_pages.py
++++ b/skills/info-hive/scripts/wiki_pages.py
+@@ -1083,23 +1083,24 @@ def resolve_link(link: str, by_path: dict, by_slug) -> "str | None":
+     return target if target in by_slug else None
+ 
+ 
+-def refused_link(link: str, warnings: list) -> "dict | None":
++def refused_link(link: str, warnings: list, *, articles: bool = False) -> "dict | None":
+     """読まなかった記事か、その途中の道を指す wikilink なら、その知らせを返す。
+ 
+     降りなかったディレクトリの下のスラッグは推測しない。パスを指定したときだけ、
+     要素の境界で照合する。lint と閲覧が、拒否をリンク切れに読み替えないために共用する。
++    articles は Index の行用で、パスで指す索引の記事も含める。本文と sources はページだけを照合する。
+     """
+     lookup = link_lookup(link)
+     if lookup is None:
+         return None
+     kind, target = lookup
++    accepts = is_article_path if articles and kind == "path" else is_page_path
+     for item in warnings:
+         # OS 上の読み取りのパスは変えず、wikilink の照合だけをページの索引と同じ鍵にする。
+         rel = posix_rel(item["path"])
+-        if kind == "path" and target.startswith(rel + "/"):
++        if kind == "path" and accepts(target + ".md", native=True) and target.startswith(rel + "/"):
+             return item
+-        if rel.lower().endswith(".md") and (is_article_path(rel, native=True) if kind == "path"
+-                                              else is_page_path(rel, native=True)):
++        if rel.lower().endswith(".md") and accepts(rel, native=True):
+             stem = rel[:-3]
+             expected = stem if kind == "path" else PurePosixPath(stem).name
+             if target == expected:

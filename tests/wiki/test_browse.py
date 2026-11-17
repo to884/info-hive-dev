@@ -298,7 +298,7 @@ def link_dir(link: Path, target: Path) -> bool:
 
 
 class SignatureTest(TempWiki):
-    def test_linked_indexes_dir_is_watched(self):
+    def test_linked_indexes_dir_is_refused_and_reported(self):
         write(self.wiki, "a.md", page("# A"))
         split = self.base / "split-indexes"
         write(split, "contents.md", "# OLD_NAV\n\n- [[a]]\n")
@@ -306,9 +306,10 @@ class SignatureTest(TempWiki):
             self.skipTest("ディレクトリのリンクを作れない")
         before = core.signature(self.wiki)
         c = build_core(self.wiki)
-        self.assertIn("OLD_NAV", c.render_data("nav.js"))
+        self.assertNotIn("OLD_NAV", c.render_data("nav.js"))
+        self.assertTrue(any(d.get("kind") == "link" and d.get("path") == "indexes" for d in c.diagnostics))
         write(split, "contents.md", "# NEW_NAV_LONGER\n\n- [[a]]\n")
-        self.assertNotEqual(core.signature(self.wiki), before)
+        self.assertEqual(core.signature(self.wiki), before)
 
     def test_link_loop_terminates_and_skipped_dirs_are_ignored(self):
         write(self.wiki, "concepts/a.md", page("# A"))

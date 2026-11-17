@@ -171,9 +171,10 @@ class RequestTest(InProcess):
         write(self.wiki, "concepts/a.md", '---\ntype: "source"\nraw: "http://["\n---\n# A\n')
         self.assertEqual(self.get("concepts/a.html")[0], 200)
 
-    def test_page_pointing_at_the_record_is_drawn(self):
-        # Wiki のページが browse の作ったファイル（記録）を指していても、Wiki の内容として読んで描く。
-        # サーバーは動き続ける（構造の直しの設計の 5、10）
+    def test_page_pointing_at_the_record_is_not_drawn(self):
+        # Wiki のページが browse の作ったファイル（記録）を指すシンボリックリンクなら、読まず、描かない
+        # （info-hive-dev の ADR-0029。ADR-0017 の「入力の実体は、置き場所によらず読む」のうち、リンクを通って
+        # 届くものを置き換えた）。サーバーは動き続ける（構造の直しの設計の 5、10）
         record = self.state_dir / "server.json"
         record.write_text(json.dumps({"note": "RECORD-CONTENT"}), encoding="utf-8")
         try:
@@ -181,8 +182,8 @@ class RequestTest(InProcess):
         except (OSError, NotImplementedError):
             self.skipTest("シンボリックリンクを作れない")
         code, body, _h = self.get("concepts/record.html")
-        self.assertEqual(code, 200)
-        self.assertIn("RECORD-CONTENT", body)
+        self.assertEqual(code, 404)
+        self.assertNotIn("RECORD-CONTENT", body)
         self.assertFalse(self.app._stopping.is_set())
         self.assertEqual(request(self.port, "GET", f"/{self.app.control_token}/control/locate/a")[0], 200)
 

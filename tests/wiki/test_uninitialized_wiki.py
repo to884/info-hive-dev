@@ -504,6 +504,7 @@ class EntranceInventoryTests(unittest.TestCase):
         "wiki_codex.py": "Codex 向けの操作手順を表示する。wiki のパスは受け取らない",
         "wiki_encoding.py": "1 つのファイルの文字コードを調べる",
         "wiki_help.py": "コマンドの一覧と個別のヘルプを出す",
+        "wiki_links.py": "渡したパスとその下のリンクを調べる（wiki でも raw でもよい。ADR-0029）",
         "wiki_mcp_launch.py": "MCP の入口。wiki はツールの引数でサーバーが受け取る",
         "wiki_mcp_relay.py": "MCP の中継。同上",
         "wiki_pdf.py": "1 つの PDF の文字の層を取り出す。wiki には書かない（ADR-0025）",

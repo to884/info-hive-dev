@@ -1,0 +1,176 @@
+--- before/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py
++++ after/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py
+@@ -429,9 +429,9 @@
+     links は、走査が拒んだものをそのまま返す（最上位の index.md、log.md、SCHEMA.md のリンクも入る。どの記事の
+     リンクを入れるかは walk_markdown の 1 か所で決め、使う側で絞らない）。
+     """
+     found = walk_markdown(wiki_root, skip_top=True, visited=visited)
+-    return Walk([f for f in found.files if is_page_path(f.rel)], found.unlistable, found.unknown, found.links)
++    return Walk([f for f in found.files if is_page_path(f.rel, native=True)], found.unlistable, found.unknown, found.links)
+ 
+ 
+ def walk_index_files(wiki_root) -> Walk:
+     """索引のファイル（最上位の index.md と、indexes を起点にした .md）と、拒んだリンクと、知らせ。
+--- before/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py
++++ after/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py
+@@ -232,9 +232,9 @@
+     for name in args.evidence:
+         path = inside(args.wiki, name)
+         require(path.suffix == '.md' and path.is_file(), '根拠には、wiki にある既存の Markdown のページを指定する')
+         # 記事は、記事を読む口を通して読む。記事か記事までの道がリンクなら読まない（info-hive-dev の ADR-0029）
+-        opened = wiki_pages.article_path(args.wiki, path.relative_to(args.wiki).as_posix())
++        opened = wiki_pages.article_path(args.wiki, path.relative_to(args.wiki).as_posix(), native=True)
+         require(opened.state != 'link', f'根拠のページがリンクなので読まない: {opened.link[0] if opened.link else name}')
+         require(opened.state == 'ok', f'根拠のページを読めない: {name}（{opened.state}）')
+         evidence[name] = opened.path.read_text(encoding='utf-8')
+     require(evidence, '根拠のページが少なくとも 1 つ必要である')
+--- before/info-hive-wiki/skills/info-hive/scripts/wiki_index.py
++++ after/info-hive-wiki/skills/info-hive/scripts/wiki_index.py
+@@ -975,9 +975,9 @@
+                     raise LinkRefused(*probe.link)
+                 if probe.state == "denied":
+                     raise Unverifiable(rel)
+             return None
+-        found = wiki_pages.article_path(self.root, Path(match["path"]).relative_to(self.root).as_posix())
++        found = wiki_pages.article_path(self.root, Path(match["path"]).relative_to(self.root).as_posix(), native=True)
+         if found.state == "link":
+             raise LinkRefused(*found.link)
+         if found.state == "denied":
+             raise Unverifiable(match["rel_path"])
+@@ -1023,9 +1023,9 @@
+     # 索引のファイルは lint と同じ集め方（wiki_pages.walk_index_files）にする。ふつうのファイルだけで、.md で終わる
+     # 名前のディレクトリで失敗しない。並びは今までどおり Path の順である。
+     found_files = [f for f in walk.files if f.rel != "index.md"]
+     for f in sorted(found_files, key=lambda f: root / f.rel):
+-        opened = wiki_pages.article_path(root, f.rel)
++        opened = wiki_pages.article_path(root, f.rel, native=True)
+         if opened.state != "ok":
+             if opened.state == "link":
+                 warnings.append({"path": opened.link[0], "kind": opened.link[1]})
+             continue  # 走査と読む間に置き換えられた
+--- before/info-hive-wiki/skills/info-hive/scripts/wiki_stats.py
++++ after/info-hive-wiki/skills/info-hive/scripts/wiki_stats.py
+@@ -134,9 +134,9 @@
+     # index.md（行数を数える）と、ページ（lint と同じ is_page_path）だけで、読むかどうかは読む前に決める。
+     walk = walk_markdown(wiki, skip_top=True)
+     for found in walk.files:
+         top_index = found.rel == "index.md"
+-        if not top_index and not is_page_path(found.rel):
++        if not top_index and not is_page_path(found.rel, native=True):
+             continue
+         rel = PurePosixPath(found.rel)
+         try:
+             # 先頭に BOM があっても読めるようにする。
+--- before/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py
++++ after/info-hive-wiki/skills/info-hive/scripts/wiki_lint.py
+@@ -482,9 +482,9 @@
+         # どの読む側の結果にも、同じ名前の欄で知らせる（MCP の query、get_page などと同じ形）
+         findings["link_warnings"] = list(report["links"])
+         for item in report["links"]:
+             rel = item["path"]
+-            if rel.lower().endswith(".md") and is_page_path(rel):
++            if rel.lower().endswith(".md") and is_page_path(rel, native=True):
+                 stem = posix_rel(rel)[:-3]
+                 slug = nfc(PurePosixPath(stem).name)
+                 refused_by_path[stem] = slug
+                 refused_slugs.add(slug)
+--- before/tests/wiki/test_wiki_links.py
++++ after/tests/wiki/test_wiki_links.py
+@@ -928,8 +928,11 @@
+                                               st_nlink=2 if linked and str(path) == requested else 1)
+             with mock.patch.object(wiki_pages, "os", proxy), mock.patch.object(wiki_pages, "Path", ModelPath), \
+                  mock.patch.object(wiki_pages, "NT", False), mock.patch.object(wiki_pages, "_stat_entry", side_effect=attributes):
+                 with self.subTest(path=relative):
++                    found = wiki_pages.Walk([SimpleNamespace(rel=relative)], [], [], [])
++                    with mock.patch.object(wiki_pages, "walk_markdown", return_value=found):
++                        self.assertEqual([f.rel for f in wiki_pages.walk_pages(ModelPath("/W")).files], [relative])
+                     self.assertEqual(wiki_pages.read_user_bytes(ModelPath(requested), ModelPath("/W")), b"ORIGINAL")
+                     self.assertEqual(wiki_pages.read_user_file(ModelPath(requested), ModelPath("/W")), "ORIGINAL")
+                     self.assertEqual(reads, [requested, requested])
+                     linked = True
+@@ -937,18 +940,85 @@
+                         with self.assertRaisesRegex(ValueError, "リンク"):
+                             reader(ModelPath(requested), ModelPath("/W"))
+                     self.assertEqual(reads, [requested, requested])
+ 
++    def test_physical_evidence_and_index_page_keep_the_native_name(self):
++        import posixpath
++        import stat
++        import wiki_evolve
++        import wiki_index
++        from pathlib import PurePosixPath
++        relative = "concepts/a\\b.md"
++        requested = "/W/" + relative
++        reads = []
++        class ModelPath(PurePosixPath):
++            def resolve(path): return path
++            def exists(path): return str(path) != "/STATE/sample"
++            def is_dir(path): return str(path) in ("/S", "/W", "/STATE")
++            def is_file(path): return not path.is_dir()
++            def is_symlink(path): return False
++            def read_bytes(path): return b"candidate"
++            def read_text(path, **kwargs):
++                reads.append(str(path))
++                return "ORIGINAL" if str(path) == requested else "DECOY"
++        proxy = SimpleNamespace(path=SimpleNamespace(abspath=posixpath.abspath, normcase=posixpath.normcase,
++                                                     realpath=lambda path: str(path), join=posixpath.join),
++                                fspath=os.fspath)
++        linked = False
++        def attributes(path):
++            return "ok", SimpleNamespace(st_mode=stat.S_IFREG if str(path).endswith(".md") else stat.S_IFDIR,
++                                          st_nlink=2 if linked and str(path) == requested else 1)
++        class BeforeStaging(Exception):
++            pass
++        args = SimpleNamespace(id="sample", skill=ModelPath("/S"), candidate=ModelPath("/candidate.md"),
++                               target="SKILL.md", wiki=ModelPath("/W"), reason="回帰", evidence=[relative])
++        with mock.patch.object(wiki_pages, "os", proxy), mock.patch.object(wiki_pages, "Path", ModelPath), \
++             mock.patch.object(wiki_pages, "NT", False), mock.patch.object(wiki_pages, "_stat_entry", side_effect=attributes), \
++             mock.patch.object(wiki_evolve, "inside", side_effect=lambda root, name: ModelPath(str(root) + "/" + name)), \
++             mock.patch.object(wiki_evolve.tempfile, "TemporaryDirectory", side_effect=BeforeStaging):
++            with self.assertRaises(BeforeStaging):
++                wiki_evolve.propose(args, ModelPath("/STATE"))
++            self.assertEqual(reads, [requested])
++            linked = True
++            with self.assertRaisesRegex(ValueError, "リンク"):
++                wiki_evolve.propose(args, ModelPath("/STATE"))
++            self.assertEqual(reads, [requested])
++            linked = False
++            index = object.__new__(wiki_index.WikiIndex)
++            index.root = ModelPath("/W")
++            index.link_warnings = []
++            index.pages = [{"rel_path": relative, "path": requested, "slug": "literal", "meta": {}, "links": [], "sections": []}]
++            with mock.patch.object(wiki_index, "Path", ModelPath):
++                result = index.get_page("literal")
++                self.assertEqual(result["body"], "ORIGINAL")
++                self.assertEqual(reads, [requested, requested])
++                linked = True
++                with self.assertRaises(wiki_index.LinkRefused):
++                    index.get_page("literal")
++                self.assertEqual(reads, [requested, requested])
++
+     @unittest.skipIf(NT, "POSIX のファイル名のバックスラッシュを使う")
+     def test_posix_candidate_bytes_are_from_the_named_file(self):
+         import wiki_evolve
+         candidate = self.write("concepts/a\\b.md", "ORIGINAL")
+         self.write("concepts/a/b.md", "DECOY")
+         wiki_evolve.propose(self.args(candidate), self.state)
+         self.assertEqual((self.state / "sample/candidate/SKILL.md").read_bytes(), b"ORIGINAL")
++        outside = self.write("candidate.md", "after", self.ext)
++        wiki_evolve.propose(self.args(outside, id="evidence", evidence=["concepts/a\\b.md"]), self.state)
++        proposal = json.loads((self.state / "evidence/proposal.json").read_text(encoding="utf-8"))
++        self.assertEqual(proposal["evidence"]["concepts/a\\b.md"], "ORIGINAL")
++        import wiki_index
++        self.write("indexes/a\\b.md", "# ORIGINAL")
++        self.write("indexes/a/b.md", "# DECOY")
++        rows = {row["name"]: row["title"] for row in wiki_index.list_index(self.wiki)["indexes"]}
++        self.assertEqual(rows["a\\b.md"], "ORIGINAL")
++        self.assertEqual(rows["a/b.md"], "DECOY")
+         os.link(candidate, self.ext / "copy.md")
+         with self.assertRaisesRegex(ValueError, "リンク"):
+             wiki_evolve.propose(self.args(candidate, id="linked"), self.state)
++        with self.assertRaisesRegex(ValueError, "リンク"):
++            wiki_evolve.propose(self.args(outside, id="linked-evidence", evidence=["concepts/a\\b.md"]), self.state)
+ 
+ 
+ class ReadSiteInventoryTests(unittest.TestCase):
+     """スクリプトの中のファイルの読み取り（read_text、read_bytes、open）を、関数ごとに 1 度ずつ分類する。

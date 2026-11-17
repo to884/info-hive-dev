@@ -1,0 +1,118 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 95ab78e..ac01bcb 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -16,6 +16,7 @@
+   - 黙っては消さない。lint に新しい指摘 `links` と `links_unchecked` を足し、`summary` に `links`、`links_unchecked`、`links_raw`（raw の側はこの版では調べないので `null`）を足した。MCP の `query`、`get_page`、`list_index`、`lint`、`stats`、`graph` と、`wiki_search.py --json`、`wiki_stats.py --json` の結果に `link_warnings` を足した（CLI の検索は標準エラーにも出す）。`get_page` と、`list_index` の `name` でリンクの記事を引くと、「見つからない」ではなく「リンクなので読まない」のエラーを返す。閲覧は、診断（`WIKI_DIAGNOSTICS`）に種類 `link` で出す。
+   - 読まなかったページへの wikilink は、lint のリンク切れに挙げない（`links` で挙げる）。
+   - 閲覧も、拒否した記事への wikilink とリンク切れを分け、診断に場所と種類を表示する。リンクのディレクトリの下をパスで指す場合も、lint と閲覧で同じ判定を使う。静的な書き出しの JSON にも `link_warnings` を返す。
++    `sources:` の出典にも同じ拒否の判定を当てる。閲覧は、拒否した記事と同じスラッグの別のページへ黙って結び付けない。
+   - 大小文字を区別しない macOS のファイルシステムで、wiki の根と異なる大小文字のパスを指定しても、根の実体を認識して記事を検査する。
+   - SVG の走査も共通のリンク判定を使う。`assets/` と SVG の名前の代理のリパースポイントをたどらず、SVG のハードリンクは従来どおり許す。
+   - 走査の結果を通さずに記事を読んでいたところも、記事を読む口（`wiki_pages.article_path()`）を通す。`/wiki:upgrade` のスキーマの不足の検査（`SCHEMA.md` がリンクなら読まず、標準エラーで知らせる）、`/wiki:evolve` の根拠のページ、判定のレイヤーの候補のページである。CLI の統計、グラフの問い合わせ、グラフの lint も、読まなかったものを標準エラーで知らせる。
+diff --git a/skills/info-hive/scripts/wiki_browse_core.py b/skills/info-hive/scripts/wiki_browse_core.py
+index 6430ae8..92ac77c 100644
+--- a/skills/info-hive/scripts/wiki_browse_core.py
++++ b/skills/info-hive/scripts/wiki_browse_core.py
+@@ -945,11 +945,11 @@ class Core:
+ 
+     def resolve(self, target: str) -> dict:
+         """wikilink の行き先を解決する（設計の 3.3）。"""
++        refused = wiki_pages.refused_link(target, self.link_warnings)
++        if refused is not None:
++            return {"state": "refused", "target": target, "path": refused["path"], "link_kind": refused["kind"]}
+         disks = wiki_pages.link_candidates(target, self.pages_by_path, self.pages_by_slug)
+         if not disks:
+-            refused = wiki_pages.refused_link(target, self.link_warnings)
+-            if refused is not None:
+-                return {"state": "refused", "target": target, "path": refused["path"], "link_kind": refused["kind"]}
+             return {"state": "unresolved", "target": target}
+         pid = self.resolve_disks(disks)
+         if pid is None:
+@@ -1539,7 +1539,11 @@ class Core:
+             cells = []
+             for ref in sources:
+                 _status, found, _t = wiki_pages.classify_source_ref(
+-                    ref, self.pages_by_path, self.pages_by_slug, lambda d: self.pages[d]["meta"].get("type"))
++                    ref, self.pages_by_path, self.pages_by_slug, lambda d: self.pages[d]["meta"].get("type"),
++                    link_warnings=self.link_warnings)
++                if _status == "refused":
++                    cells.append(self._link_html(path, {"state": "refused", "label": ref}))
++                    continue
+                 sp = self.resolve_disks(found)
+                 if sp is not None:
+                     cells.append(f'<a href="{html.escape(rel_href(path, self.out_name[sp]))}">'
+diff --git a/skills/info-hive/scripts/wiki_lint.py b/skills/info-hive/scripts/wiki_lint.py
+index c2bcc9c..609053e 100644
+--- a/skills/info-hive/scripts/wiki_lint.py
++++ b/skills/info-hive/scripts/wiki_lint.py
+@@ -633,7 +633,8 @@ def lint(pages: list[dict], soft_cap: int, hard_cap: int, required_fm: list[str]
+         # sources: は source ページを指す。ページがないか、source でないページを指すものを挙げる。
+         # 分け方はグラフの抽出（sourced_from）と同じ wiki_pages.classify_source_ref に任せる。
+         for ref in _ref_values(p["meta"].get("sources")):
+-            status, _found, wrong_type = classify_source_ref(ref, src_by_path, src_by_slug, page_type)
++            status, _found, wrong_type = classify_source_ref(ref, src_by_path, src_by_slug, page_type,
++                                                           link_warnings=findings["links"])
+             if status == "missing":
+                 findings["unresolved_sources"].append({"path": p["rel_path"], "source": ref, "reason": "missing"})
+             elif status == "not_source":
+diff --git a/skills/info-hive/scripts/wiki_pages.py b/skills/info-hive/scripts/wiki_pages.py
+index 64a9bbc..3706eeb 100644
+--- a/skills/info-hive/scripts/wiki_pages.py
++++ b/skills/info-hive/scripts/wiki_pages.py
+@@ -611,12 +611,16 @@ def _article_rel(path, wiki_root, *, directory: bool = False) -> "tuple[str, str
+                 return root, "/".join(([rel] if rel else []) + list(parts[size:]))
+             # 大小文字を区別しない POSIX の根も、綴りではなく実体で認識する。
+             # 祖先を上から調べ、根に届いたところで止めるので、その下のリンクは解決しない。
+-            try:
+-                same_root = os.path.samefile(resolved, root)
+-            except OSError:
+-                same_root = False
+-            if same_root:
+-                return root, "/".join(parts[size:])
++            # 外の別名が根の下のディレクトリを指す場合も、その解決済みのパスの
++            # 祖先から根を探す。根の綴りや NFC/NFD の違いを、所属の違いにしない。
++            resolved_parts = Path(resolved).parts
++            for prefix_size in range(1, len(resolved_parts) + 1):
++                try:
++                    same_root = os.path.samefile(os.path.join(*resolved_parts[:prefix_size]), root)
++                except OSError:
++                    same_root = False
++                if same_root:
++                    return root, "/".join(list(resolved_parts[prefix_size:]) + list(parts[size:]))
+     return None
+ 
+ 
+@@ -1004,17 +1008,21 @@ def build_page_index(pages: list[dict], value=lambda p: p) -> "tuple[dict, dict]
+     return pages_by_path, pages_by_slug
+ 
+ 
+-def classify_source_ref(ref: str, pages_by_path: dict, pages_by_slug: dict, page_type) -> "tuple[str, list, object]":
++def classify_source_ref(ref: str, pages_by_path: dict, pages_by_slug: dict, page_type,
++                        *, link_warnings=None) -> "tuple[str, list, object]":
+     """`sources:` の値 1 つを分ける。(状態, 当たるページ, source でない type) を返す。
+ 
+     値は ref_link で外側の [[ ]] を外し、wikilink と同じ規則（link_candidates）でページを探す。状態は次のどれかである。
+     - "missing": 当たるページがない。
+     - "not_source": 当たるページのうち type のあるものが 1 つ以上あり、どれも source でない。3 つ目の値は最初の type。
+     - "ok": それ以外。
++    - "refused": link_warnings が渡され、リンクなので読まなかった記事を指す。
+     lint の unresolved_sources（missing と not_source）と、グラフの抽出の sourced_from が、この関数を共有する。
+     当たるページが 2 つ以上かどうか（曖昧さ）は、状態に含めない。呼び出す側が、当たるページの数で見る。
+     page_type は、ページ（pages_by_* の値）から type を返す。
+     """
++    if link_warnings and refused_link(ref_link(ref), link_warnings) is not None:
++        return "refused", [], None
+     found = link_candidates(ref_link(ref), pages_by_path, pages_by_slug)
+     if not found:
+         return "missing", [], None
+@@ -1052,7 +1060,8 @@ def refused_link(link: str, warnings: list) -> "dict | None":
+         return None
+     kind, target = lookup
+     for item in warnings:
+-        rel = nfc(item["path"])
++        # OS 上の読み取りのパスは変えず、wikilink の照合だけをページの索引と同じ鍵にする。
++        rel = posix_rel(item["path"])
+         if kind == "path" and target.startswith(rel + "/"):
+             return item
+         if rel.lower().endswith(".md") and is_page_path(rel, native=True):
