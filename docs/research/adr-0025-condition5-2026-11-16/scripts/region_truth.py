@@ -24,9 +24,10 @@ import pypdfium2 as pdfium  # noqa: E402
 from public_truth import CORPUS, DPI, OUT, layout_pages  # noqa: E402
 from rag_ocr_flags import corners  # noqa: E402
 
-REGION_REVISION = "region-v6"
+REGION_REVISION = "region-v7"
 CONTRAST = 64  # 背景の明るさ（周りの中央値）とこの値を超えて違う画素をインクとする（濃い字にも、地の色の上の白い字にも効く）
 INSIDE = 0.5  # 字のインクの、読む向きの長さのこの割合以上が箱に入り、直交する向きのインクの中心が箱に入れば、字は箱に入る
+FOREIGN = 0.2  # 属さない字の箱が、読む向きにこの割合以上箱に入り、直交する向きの中心が箱に入れば、その箱の行は決められない
 GROW = 0.3  # 説明できないインクを数えるとき、字の箱を直交する向きに字の大きさのこの倍だけ広げた範囲を、字で説明できる範囲とする
 STRAY_INK = 8  # 箱の中の、どの字のインクでも説明できないインクの画素がこの数を超えれば、決められない
 
@@ -131,6 +132,14 @@ def assign(truth_lines: list[dict], chars_by_line: list[list[dict]], ocr_lines: 
                 shared.update(hits)
             else:
                 unboxed.add((i, k))
+    # 箱に属さないのに、字の箱で見ると箱に入る字（字の箱とインクの位置がずれて割り当てられなかった字など）。
+    # その箱の行は、字を取りこぼした正解になりうるので決められない（防衛白書で、色の付いた「第2章」が抜けた）
+    foreign = set()
+    for i, chars in enumerate(chars_by_line):
+        for k, c in enumerate(chars):
+            for j, (b, v) in enumerate(zip(boxes, vertical)):
+                if owner.get((i, k)) != j and inside(c["box"], b, v) >= FOREIGN:
+                    foreign.add(j)
     members: dict[int, list[tuple[int, int]]] = {}
     for key, j in owner.items():
         members.setdefault(j, []).append(key)
@@ -141,6 +150,8 @@ def assign(truth_lines: list[dict], chars_by_line: list[list[dict]], ocr_lines: 
         reason = None
         if j in shared:
             reason = "shared-char"
+        elif j in foreign:
+            reason = "foreign-char"
         elif not mine:
             reason = "no-chars"
         elif len(sources) > 1:

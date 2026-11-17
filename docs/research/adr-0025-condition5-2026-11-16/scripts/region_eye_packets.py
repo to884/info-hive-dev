@@ -2,7 +2,7 @@
 
 使い方: python -X utf8 scripts/region_eye_packets.py <side>
 corpus/public/region/ の結果と、前の回の目で作った正解（corpus/public/eyetruth/<side>/）を照らし、まだない行を
-corpus/public/eyetruth/<side>-region/ に、eye_truth_packets.py と同じ形（赤い枠、index.json。OCR の本文は書かない）で書く。
+corpus/public/eyetruth/<side>-<領域の正解の版>/ に、eye_truth_packets.py と同じ形（赤い枠、index.json。OCR の本文は書かない）で書く。
 """
 
 from __future__ import annotations
@@ -28,7 +28,11 @@ def main() -> None:
     side = sys.argv[1]
     old = CORPUS / "public" / "eyetruth" / side
     asked = {(x["key"], x["line_index"]) for x in load(old / "index.json")} if (old / "index.json").exists() else set()
-    out = CORPUS / "public" / "eyetruth" / f"{side}-region"
+    revisions = {load(path)["revision"] for path in (CORPUS / "public" / "region").glob("*.json")}
+    if len(revisions) != 1:
+        raise SystemExit(f"領域の正解の版がそろっていない: {sorted(revisions)}")
+    # 決まりの版ごとに別のフォルダーに書く（古い版の画像と混ざらないように）
+    out = CORPUS / "public" / "eyetruth" / f"{side}-{revisions.pop()}"
     out.mkdir(parents=True, exist_ok=True)
     index = []
     for truth in load_truths():
