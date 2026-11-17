@@ -827,6 +827,61 @@ class ReviewRegressionTests(Base):
         active = [job for job in jobs.list(str(self.wiki)) if job["kind"] == "review" and job["status"] in ("queued", "running", "paused")]
         self.assertEqual(len(active), 1)
 
+    def test_retry_goes_behind_waiting_jobs(self):
+        """古い失敗のジョブを再試行すると、すでに待っているジョブの後ろに並ぶ（PR #12 のレビュー）。
+
+        SQLite の UPDATE の右辺は更新前の行で評価されるので、queued_at=updated_at では古い時刻が入り、前に割り込んでいた。
+        作り直し（kind='review'）と取り込み（kind='ingest'）の、両方の再試行の経路で確かめる。
+        """
+        for kind in ("review", "ingest"):
+            with self.subTest(kind=kind):
+                jobs = Jobs(self.config.data_dir)
+                for job in jobs.list(str(self.wiki)):  # 前の繰り返しのジョブを片付ける
+                    jobs.cancel(str(self.wiki), job["job_id"])
+                old = jobs.register_rebuild(self.config, str(self.wiki), kind[0] * 64, 1)
+                job = jobs.claim("試験")
+                self.assertEqual(job["id"], old["job_id"])
+                jobs.finish(job["id"], "試験", error="試験の失敗")
+                waiting = jobs.register_rebuild(self.config, str(self.wiki), kind[1] * 64, 1)
+                with closing(sqlite3.connect(jobs.path)) as db, db:  # 古い失敗のジョブにする
+                    db.execute("UPDATE ingest_jobs SET kind=?,updated_at=1.0,queued_at=1.0 WHERE id=?", (kind, old["job_id"]))
+                self.assertEqual(jobs.retry(str(self.wiki), old["job_id"])["status"], "queued")
+                self.assertEqual(jobs.claim("試験")["id"], waiting["job_id"])
+
+    def test_concurrent_upgrade_of_old_ledger(self):
+        """前の版の台帳を、2 つ以上の接続が同時に開いても、列を足す段で失敗しない（PR #12 のレビュー）。"""
+        import threading
+        data_dir = self.root / "old-ledger"
+        data_dir.mkdir()
+        with closing(sqlite3.connect(data_dir / "jobs-v2.sqlite")) as db, db:
+            db.execute("""CREATE TABLE ingest_jobs (
+                id TEXT PRIMARY KEY, wiki TEXT NOT NULL, source TEXT NOT NULL,
+                source_page TEXT NOT NULL, title TEXT NOT NULL, size INTEGER, mtime_ns INTEGER,
+                config TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'queued',
+                phase TEXT NOT NULL DEFAULT '受付', completed INTEGER NOT NULL DEFAULT 0,
+                total INTEGER NOT NULL DEFAULT 0, attempts INTEGER NOT NULL DEFAULT 0,
+                owner TEXT, error TEXT, result TEXT, created_at REAL, updated_at REAL,
+                publication_started INTEGER NOT NULL DEFAULT 0, request_key TEXT NOT NULL,
+                dev TEXT, ino TEXT)""")
+        start, errors = threading.Barrier(8), []
+
+        def open_ledger():
+            start.wait()
+            try:
+                Jobs(data_dir)
+            except Exception as error:  # noqa: BLE001 - 試験で失敗を集める
+                errors.append(repr(error))
+
+        threads = [threading.Thread(target=open_ledger) for _ in range(8)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        self.assertEqual(errors, [])
+        with closing(sqlite3.connect(data_dir / "jobs-v2.sqlite")) as db:
+            columns = {row[1] for row in db.execute("PRAGMA table_info(ingest_jobs)")}
+        self.assertTrue({"kind", "doc_id", "rerun", "review_version", "queued_at"} <= columns)
+
     def test_old_confidence_revision_is_unknown(self):
         engine = self.engine()
         jobs, job_id = self.ingest_job(engine)
