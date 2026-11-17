@@ -1,0 +1,91 @@
+[ask-codex 20:35:12] gpt-6.1-sol に敵対的レビューを依頼（effort high、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\wiki-overview）
+## 判定
+
+**条件付きで採用可。確信度：高。** 元ページがなく、サイドカーも壊れている場合に、仕様上の削除経路がない。新しいフェンス形式には、`check` を通った下書きが `write` で拒まれる反例もある。
+
+## 致命的・重大な欠陥
+
+### 1. 重大・B：壊れたサイドカーは、元ページがなくなると削除できない
+
+再現する状態は、ページの改名・削除と、サイドカーの Git 競合などが重なった場合である。
+
+```text
+concepts/foo.md                              存在しない
+assets/overview/ad3d747063f9b50e.overview.md    存在するが frontmatter が壊れている
+```
+
+この状態では、次のようになる。
+
+1. `classify` は表の行 2 で `broken` を返す。元ページがない場合の行 8 には到達しない。
+2. `remove --orphan=ad3d747063f9b50e` は、状態が `orphan` ではないため `not_orphan` になる。
+3. ページを指定する `remove` は、現在のページ集合から対象を決めるため `not_found` になる。
+4. `--refresh` でも元ページを選べない。
+
+したがって、lint が知らせる `broken` に対して、10 節が案内する削除・再生成のどちらも実行できない。これは、破損した既存ファイルを扱う運用経路の欠落である。
+
+**根拠：** [設計書の状態表](/C:/Works/info-hive-dev/.claude/worktrees/wiki-overview/docs/plans/wiki-overview-2026-11-17.md:168)、[ページの解決](/C:/Works/info-hive-dev/.claude/worktrees/wiki-overview/docs/plans/wiki-overview-2026-11-17.md:224)、[`remove` の条件](/C:/Works/info-hive-dev/.claude/worktrees/wiki-overview/docs/plans/wiki-overview-2026-11-17.md:258)、[lint の対処案内](/C:/Works/info-hive-dev/.claude/worktrees/wiki-overview/docs/plans/wiki-overview-2026-11-17.md:356)。
+
+**検証結果：仕様上の不整合を確認。** 新機能は未実装なので、コマンドの実行結果ではなく、規定された分岐から導いた反例である。
+
+## 崩れる前提
+
+- **元ページがない概要は、`remove --orphan` で片付けられる。** サイドカーに破損があると、状態表では `broken` が先に成立する。
+- **下書きを単独で検査すれば、図のフェンスを後置しても同じ構造になる。** 下書きが閉じていないコードフェンスで終わる場合に崩れる。
+
+## 見落としと軽微な問題
+
+### 軽微：`check` が成功しても、図の追加によって `write` の検査が失敗する
+
+有効な `draft/a.svg` と、次の `draft/overview.md` を置く。Mermaid の閉じフェンスは書かない。
+
+````markdown
+![図](#fig-a)
+
+```mermaid
+flowchart TD
+  A --> B
+````
+
+これは同梱の markdown-it では、画像 1 個と、文末まで続く Mermaid フェンスになる。8 節の検査条件には、閉じフェンスの欠落がないため、下書き検査では拒否されない。
+
+ところが、後置した `svg-figure a` の開始行は Mermaid の中身になる。図の閉じフェンスが元の Mermaid を閉じるため、**`svg-figure` のトークンは 0 個**になる。
+
+同梱パーサーで、この構造変化を確認した。7.5 節の組み立て後の再検査では参照と図が対応せず、保存できない。再検査があるため、壊れた概要の公開までは至らない。
+
+**根拠：** [フェンスの読み方](/C:/Works/info-hive-dev/.claude/worktrees/wiki-overview/docs/plans/wiki-overview-2026-11-17.md:151)、[`check`](/C:/Works/info-hive-dev/.claude/worktrees/wiki-overview/docs/plans/wiki-overview-2026-11-17.md:238)、[組み立て後の再検査](/C:/Works/info-hive-dev/.claude/worktrees/wiki-overview/docs/plans/wiki-overview-2026-11-17.md:247)、[下書きの検査一覧](/C:/Works/info-hive-dev/.claude/worktrees/wiki-overview/docs/plans/wiki-overview-2026-11-17.md:267)。
+
+### 軽微：`remove` の成功時の JSON が定義されていない
+
+7 節は常に JSON 1 個を返す契約だが、7.6 節には、削除成功時とサイドカーがもともとない場合の出力形がない。ほかのサブコマンドほど出力契約が具体化されていない。
+
+**根拠：** 設計書 184・193・255〜261 行。
+
+## 検証した事実
+
+| 確かめた主張 | 結果 |
+| --- | --- |
+| 基準版は wiki 0.25.2、概要機能は未実装 | **一致。** `plugin.json` とスクリプトの有無を確認した |
+| 長いバッククォートを含む SVG をフェンスに収められる | **一致。** SVG 内の連続 8 個に対して区切りを 9 個にすると、階層 0 の図フェンス 1 個になった |
+| `format: 2`、`figures: []` を既存 frontmatter 関数で往復できる | **一致。** 読み戻した値は文字列 `"2"` と空配列だった |
+| `#fig-a` が画像の行き先として保持される | **一致。** markdown-it の `src` は `#fig-a`、`missing_assets` は空だった |
+| BOM・CRLF・単独 CR の違いでページハッシュが変わらない | **一致。** 既存 browse の読み方で正規化すると同じ SHA-256 になった |
+| NFC で同じ名前は同じ P、大文字小文字は区別される | **一致。** 日本語の結合文字と、英字の大小で確認した |
+| 正規の `assets/` と `.wiki-cache/` はページ集合から外れる | **一致。** `is_page_path()` で確認。`Assets/` は外れなかった |
+| MCP の lint は共通の `wiki_lint.lint()` を使う | **一致。** 現行コードで確認した |
+| 前回の出力欄の欠落への対応 | **一致。** `orphan_id`、`page_unknown`、`Sidecar` の読めない状態が明記された |
+| ADR-0030 の実物との接続 | **確かめられず。** 指定された別 worktree の文書は存在しなかった |
+
+書き込み、実機の電源断、新しい CLI の終了コードは検証していない。リポジトリのファイルは変更していない。
+
+## 崩せなかった点
+
+- SVG をサイドカーに含めたため、前回の所有記録の Git 搬送と、図の片付け順に関する反例は成立しない。
+- `begin` を要求ファイルへの Write より前に置いた手順では、前回の「既存ジャンクションへ先に書く」反例は成立しない。
+- 別名ジャンクションの問題は未修正だが、4.3 節と11 節で明示的に範囲外へ移されている。
+- ページ名を要求ファイルで渡す方式では、ページ名によるシェル注入は崩せなかった。
+- 作成後の再検査を含めた手順では、上記のフェンス反例で壊れた概要を公開することは崩せなかった。
+- 開発 PC 固有のスキル名や絶対パスを必須にする規則は見つからなかった。
+
+使用した MCP サーバー: なし  
+使用した Agent Skills: なし
+[ask-codex 20:45:00] 完了。session 01a1e94a-2973-7c03-a959-e64413abf8ff  usage {"input_tokens": 1500540, "cached_input_tokens": 1380480, "cache_write_input_tokens": 0, "output_tokens": 15140, "reasoning_output_tokens": 8900}
