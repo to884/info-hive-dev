@@ -219,6 +219,31 @@ class GateTests(unittest.TestCase):
         write(self.fixture.wiki / "concepts/huge.md", page("huge") + "x" * context.MAX_PAGE_BYTES)
         self.assertNotIn(("huge", "S1"), self.kinds("[[huge]] を見て"))
 
+    def linked_page_is_skipped(self, symbolic):
+        # 先行mainのADR-0029の走査を共有し、候補にする前にリンクを拒否する。
+        target = Path(self.tmp.name) / "outside.md"
+        write(target, page("外の機密のページ", "取り込まない本文"))
+        linked = self.fixture.wiki / "concepts" / "linked-page.md"
+        try:
+            linked.symlink_to(target) if symbolic else os.link(target, linked)
+        except OSError as exc:
+            self.skipTest(f"リンクを作れない環境: {exc}")
+        original = Path.open
+
+        def guarded(path, *args, **kwargs):
+            self.assertNotEqual(path, linked, "リンクの本文を開いた")
+            return original(path, *args, **kwargs)
+
+        with patch.object(Path, "open", guarded):
+            picked = self.pick("[[linked-page]] を確認して")
+        self.assertFalse(picked.chosen if picked else [])
+
+    def test_symbolic_link_page_is_not_read_or_suggested(self):
+        self.linked_page_is_skipped(True)
+
+    def test_hard_link_page_is_not_read_or_suggested(self):
+        self.linked_page_is_skipped(False)
+
     def test_actual_long_paths_can_be_opened_from_output(self):
         project = Path(self.tmp.name) / ("a" * 70) / ("b" * 70)
         wiki = project / "wiki"
