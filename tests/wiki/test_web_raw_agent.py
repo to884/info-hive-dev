@@ -109,7 +109,8 @@ class ReferenceTest(unittest.TestCase):
         request = requests[0]
         self.assertEqual(set(request), {"web_raw_request", "url", "wiki_root", "raw_root", "slug", "fetch",
                                         "language", "language_reason", "conditions"})
-        self.assertEqual(set(request["fetch"]), {"force", "keep_noise", "html_file", "page_url"})
+        self.assertEqual(set(request["fetch"]), {"force", "keep_noise", "html_file", "page_url",
+                                                "browser", "browser_session", "browser_only"})
         done = reports["done"]
         for key in ("slug", "raw", "url", "wiki_root", "raw_root", "model", "translated_by", "caption_names",
                     "language_override", "warnings", "question", "error", "notes"):
