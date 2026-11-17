@@ -1,0 +1,82 @@
+[ask-codex 19:28:24] gpt-6.1-sol に敵対的レビューを依頼（effort xhigh、analysis、cwd C:\Works\info-hive-dev\.claude\worktrees\adr-0029-impl\info-hive-wiki）
+## 判定
+
+**却下。確信度：高。** 段階 1 の対象である wiki 側に、リンクの記事を直接読む経路と、拒否を「ない」や空の結果に変える経路が残っている。raw 側の未実装は、この判定に含めていない。
+
+## 致命的・重大な欠陥
+
+1. **重大・B：走査も `article_path()` も通さず、リンクの記事を読む処理が残る。**
+
+   - `<wiki>/SCHEMA.md` を有効なシンボリックリンクかハードリンクにしてアップグレードすると、`detect_schema_gaps()` が本文を直接読む。初期化済みかどうかの属性検査だけの問題ではない。[init_wiki.py:114](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/init_wiki.py:114) の処理を、同ファイルの 276 行が呼ぶ。
+   - `concepts/a.md` をハードリンクにして `evolve propose` の `--evidence` に渡すと、その本文を読む。`inside()` はシンボリックリンクを検査するが、`st_nlink` は見ないため、ハードリンクは通過する。[wiki_evolve.py:77](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:77)、[根拠ページの読み取り:222](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_evolve.py:222)。
+
+   いずれも、競合がなくても wiki 側の I2 を破る。
+
+2. **重大・B：`get_page` が、リンクのディレクトリ配下への要求を「見つからない」に変える。判定不能も同様に消す。**
+
+   `concepts/` をジャンクションにすると、走査結果には `{"path":"concepts","kind":"junction"}` が残る。しかし `get_page("concepts/a.md")` の不一致時の処理は、警告のパスが `.md` で終わる場合だけを見る。`article_path()` に進まず `None` を返し、MCP は `FileNotFoundError` にする。[wiki_index.py:947](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_index.py:947)、[wiki_mcp_server.py:349](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_mcp_server.py:349)。
+
+   さらに、`article_path()` が `denied` を返した場合も、`get_page` は `None`、`list_index(name=...)` は `FileNotFoundError` にする。メモリ上の再現でも、それぞれこの結果になった。拒否と判定不能を「ない」に変えないという I4 に反する。
+
+3. **重大・B：`find_links()` は、許可されたシンボリックリンクの根の下を検査しない。**
+
+   `view` を `store` へのディレクトリシンボリックリンクとし、`store/a.md` と `store/b.md` をハードリンクにする。`find_links(view, origin=view)` は、根のリンクを許可したあと、再び `lstat(view)` の結果に `S_ISDIR` を当てる。シンボリックリンクはここで偽になり、子孫を一覧せず `{"links":[],"unchecked":[]}` を返す。[wiki_links.py:86](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_links.py:86)。
+
+   OS の結果を差し替えた再現では、一覧取得の呼び出しが **0 回**だった。既存試験は、許可する根のリンク先をリンクのないディレクトリにしているため、この未検査を見分けられない。[test_wiki_links.py:135](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_wiki_links.py:135)。
+
+4. **重大・B：統計が、拒否した最上位の `index.md` を警告から落とす。**
+
+   `index.md` がハードリンクなら、走査は正しく拒否する。しかし `compute_stats()` の警告生成は `SKIP_TOP_LEVEL_FILES` を一律に除くため、`index.md` の拒否まで消す。通常の `index.md` は行数を数える対象なのに、拒否時は `index_lines: 0`、`link_warnings: []` になる。[wiki_stats.py:135](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_stats.py:135)、[警告のフィルター:202](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_stats.py:202)。
+
+   メモリ上でこの組み合わせを再現した。CLI の JSON と MCP の `stats` の両方に届く欠落である。
+
+5. **重大・C：`README.md` というディレクトリのリンクは、lint にも残らない。**
+
+   最上位の `README.md/` を、`x.md` を含むディレクトリへのジャンクションにする。`is_page_path("README.md/x.md")` は真であり、ここは記事までの道である。それでも `walk_pages()` は、警告の名前が最上位の除外ファイル名に一致するという理由で `README.md` を落とす。[wiki_pages.py:300](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:300)。
+
+   再現結果は、`walk_markdown.links` には拒否があり、`walk_pages.links` と lint の `link_report()` は空だった。試験の `model_pages()` も同じフィルターを持ち、この反例を正解として受け入れる。[test_walk.py:334](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_walk.py:334)。
+
+6. **重大・B：既存 CLI の出力で、拒否情報が利用者に届かない。**
+
+   リンクのページを置いて通常のテキスト出力を使うと、統計とグラフ問い合わせは警告を表示しない。内部の辞書に `link_warnings` があっても、描画処理はそれを使わず、`main()` も標準エラーに出さない。[wiki_stats.py:210](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_stats.py:210)、[wiki_graph_query.py:304](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_graph_query.py:304)。
+
+   また、単独のグラフ抽出とグラフ lint は、警告を捨てる `iter_page_files()` 経由でページを集め、最終出力にも拒否情報を付けない。リンクのページが除外されたことを知らせず、件数や検査結果を返す。[wiki_graph_extract.py:377](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_graph_extract.py:377)、[wiki_graph_lint.py:544](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_graph_lint.py:544)。設計の「CLI は標準エラーにも出す」と I4 に食い違う。
+
+7. **重大・C：一覧取得後にディレクトリがリンクへ置き換わると、外のページを通常ページとして返しうる。**
+
+   Windows で、一覧に載った通常ディレクトリ `d` を、処理が降りる前に外のディレクトリへのジャンクションに置き換える。`DirEntry.stat()` の一覧由来の属性で通常ディレクトリと判定したあと、コードは `d` を再検査せずスタックに積み、そのパスを `scandir()` に渡す。子の `lstat()` は途中のジャンクションをたどるため、通常ファイルの属性を返す。[wiki_pages.py:215](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:215)、[走査処理:254](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:254)。
+
+   この状態遷移を OS の差し替えで再現すると、`d/external.md` が `files` に入り、`links` は空だった。`d` 自体への `lstat()` は呼ばれない。**実体のジャンクションを競合させる試験は未実施**であり、確認したのは属性の状態遷移とコードの応答である。
+
+## 崩れる前提
+
+- **走査を変えれば、すべての記事の読み取りが保護される。** `upgrade` のスキーマ検査と `evolve` の根拠ページ読み取りで崩れる。
+- **拒否されたパスは、要求されたページ名と完全一致する。** 途中のディレクトリが拒否された場合に崩れる。
+- **最上位の除外ファイル名なら、その名前の項目は記事までの道でもない。** `README.md/` のようなディレクトリで崩れる。
+- **警告を辞書に追加すれば、出力にも届く。** テキスト描画と、収集結果を作り直す下流処理で崩れる。
+- **一覧で見たディレクトリの種類は、降りるまで変わらない。** 指摘 7 の時機で崩れる。
+
+## 見落としと軽微な問題
+
+- **軽微：記事でない `indexes` ファイルもリンク違反になる。** 最上位の `indexes` が通常のハードリンクファイルなら、`.md` の記事でも途中のディレクトリでもない。それでも `walk_index_files()` は `("indexes","hardlink")` を返す。メモリ上で再現した。[wiki_pages.py:329](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_pages.py:329)。
+
+- **軽微：検索の `--json` は、全ページが拒否されると JSON を返さない。** 警告を標準エラーに出したあと、`pages` が空という理由で終了コード 0、標準出力なしになる。JSON の `link_warnings` を受け取る契約は、この場合に成立しない。[wiki_search.py:1161](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/info-hive-wiki/skills/info-hive/scripts/wiki_search.py:1161)。
+
+- **軽微：対照 `control_follow_links()` は、POSIX のシンボリックリンクを実際にはたどらない。** `link_kind` を無効にしても `st_mode` は `S_IFLNK` のままで、ディレクトリにも通常ファイルにも分類されない。この対照を検出できても、名称と説明が掲げる「リンクの先を読む実装」を検出した証拠にはならない。[test_walk.py:678](C:/Works/info-hive-dev/.claude/worktrees/adr-0029-impl/tests/wiki/test_walk.py:678)。
+
+## 検証した事実
+
+- 指定された実装・試験、ADR、設計、親リポジトリの試験差分を読んだ。
+- 指摘 2〜5 と 7 は、実装を読み込んで OS または走査結果をメモリ上で差し替え、記載した応答を確認した。指摘 1 は直接読み取りをソースで確認し、スキーマ検査では `read_text()` が呼ばれ、`article_path()` が呼ばれないことも確認した。
+- `ServerFilesTests` の 2 件と `PortTests` の 2 件は通過した。
+- 読み取り専用環境のため、実リンクを作る試験一式は実行していない。ファイルは変更していない。
+
+使用した MCP サーバー：なし。使用した Agent Skills：`research`。
+
+## 崩せなかった点
+
+- `article_path()` に渡した絶対パス、ドライブ指定、`..`、空の要素、ドットで始まる項目は、検証した 8 入力すべてで OS を呼ぶ前に拒否された。
+- 名前の代理のビット、既知の 2 タグ、名前の代理でないタグの合成属性による判定は、検証した条件と一致した。
+- 現在の静的な Python import をたどる範囲では、`SERVER_FILES` の不足を見つけられなかった。
+- グラフ問い合わせが古い DB の情報を返すことは確認したが、それ自体をリンクの記事の直接読み取りとは判定していない。
+[ask-codex 19:40:21] 完了。session 01a1e90c-fe93-7100-9de6-b3623ba45fb1  usage {"input_tokens": 4378377, "cached_input_tokens": 4211072, "cache_write_input_tokens": 0, "output_tokens": 18770, "reasoning_output_tokens": 7954}

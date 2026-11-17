@@ -512,11 +512,14 @@ class EntranceInventoryTests(unittest.TestCase):
         "wiki_evolve_claude.py": "評価のランナー（Claude Code）",
     }
     NO_WIKI = {
+        "wiki_codex.py": "Codex 向けの操作手順を表示する。wiki のパスは受け取らない",
         "wiki_encoding.py": "1 つのファイルの文字コードを調べる",
         "wiki_help.py": "コマンドの一覧と個別のヘルプを出す",
+        "wiki_links.py": "渡したパスとその下のリンクを調べる（wiki でも raw でもよい。ADR-0029）",
         "wiki_mcp_launch.py": "MCP の入口。wiki はツールの引数でサーバーが受け取る",
         "wiki_mcp_relay.py": "MCP の中継。同上",
         "wiki_pdf.py": "1 つの PDF の文字の層を取り出す。wiki には書かない（ADR-0025）",
+        "wiki_fetch_browser.py": "URL の DOM をメモリで返す。wiki のパスを受け取らず、raw にも書かない",
         "wiki_workspace.py": "作業領域の設定から wiki の場所を出すだけで、wiki を読まない",
     }
     # wiki のパスを受け取る書き方。NO_WIKI の入口にあれば、分類を見直す。

@@ -1,4 +1,4 @@
-"""概要の保存、検査、状態、経路、停止時の契約（ADR-0031）の試験。
+"""概要の保存、検査、状態、経路、停止時の契約（ADR-0033）の試験。
 
 一時的な wiki を使う。ネットワークや LLM は使わない。実機の電源断は試さない。
     python -X utf8 -B -m unittest tests/wiki/test_wiki_overview.py -v

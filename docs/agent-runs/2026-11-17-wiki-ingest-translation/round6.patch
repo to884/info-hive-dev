@@ -1,0 +1,74 @@
+diff --git a/skills/info-hive/references/web-raw.md b/skills/info-hive/references/web-raw.md
+index b196fec..862e00d 100644
+--- a/skills/info-hive/references/web-raw.md
++++ b/skills/info-hive/references/web-raw.md
+@@ -17 +17 @@ W8 の `ok: true` は検査でエラーがなかったという意味で、raw
+-翻訳の検査は、コード・画像・インラインのコード・URL を除く文字をブロックごとに照合する。かな・漢字以外の文字体系を Unicode の語と字母で調べ、文章の全体が外国語なら 2 語以上または字母 20 字以上、日本語の中の外国語は 4 語以上または字母 20 字以上を確認の対象にする。文末、大小文字、原文との完全一致には依存しない。漢字があり、かなの文字数がかなと漢字の合計の 35% 未満のブロックも、短いものを含めて確認の対象にする。原文に近い漢字のまとまりも確認する。これは候補を拾う条件で、日本語や中国語を確定する判定ではない。日本語の見出しなども対象になり得る。図の補足は本文に数えない。
++翻訳の検査は、コード・画像・インラインのコード・URL を除く文字をブロックごとに照合する。かな・漢字以外の文字体系を Unicode の語と字母で調べ、文章の全体が外国語なら 2 語以上または字母 20 字以上、日本語の中の外国語は 4 語以上または字母 20 字以上を確認の対象にする。文末、大小文字、原文との完全一致には依存しない。漢字があり、かなの文字数がかなと漢字の合計の 35% 未満のブロックも、短いものを含めて確認の対象にする。段落中では、かなを含まない漢字の文も確認する。小数点は文の区切りにしない。原文に近い漢字のまとまりも確認する。これは候補を拾う条件で、日本語や中国語を確定する判定ではない。日本語の見出しなども対象になり得る。図の補足は本文に数えない。
+@@ -19 +19 @@ W8 の `ok: true` は検査でエラーがなかったという意味で、raw
+-未解決の候補は `translation_review_required` のエラーであり、`--accept-warnings` では通らない。文章の訳し忘れは訳す。名前や表示文などを正しく保持する場合は、次の確認の記録で対象ごとに解決する。`translation.pending_reviews` が 1 以上なら未完了である。検査は意味の正しい翻訳や完全性を保証しないので、候補のブロック全体と訳文を読み直す。
++未解決の候補は `translation_review_required` のエラーであり、`--accept-warnings` では通らない。文章の訳し忘れは訳す。名前や表示文などを正しく保持する場合は、次の確認の記録で対象ごとに解決する。`translation.pending_reviews` が 1 以上なら未完了である。同一文内で外国語の漢字の語に日本語の助詞を混ぜた形などは、かなの比率によって検出しない。検査は意味の正しい翻訳や完全性を保証しないので、候補のブロック全体と訳文を読み直す。
+@@ -22,0 +23,2 @@ W8 の `ok: true` は検査でエラーがなかったという意味で、raw
++漢字の多い見出しや表のセルは、正しい日本語でも頻繁に確認の対象になる。委譲時の `warnings` は通常の経路であり、`done` を増やすために検査を緩めたり、候補をまとめて受理したりしない。親は原文との対応を対象ごとに確かめる。たとえば `Overview` を `概要` と訳した対象なら、その対応を理由に書く。件数が多くても候補の全件を確認し、一般的な「翻訳済み」という理由で埋めない。
++
+@@ -39 +41 @@ W8 に `translation_review_required` が出たら、`source`、`raw`、`line`
+-`kind` は `proper_name`（固有名詞）、`identifier`（識別子）、`bibliography`（書誌情報）、`ui_text`（UI の表示）、`error_message`（エラーメッセージ）、`term`（原語の併記）、`quotation`（原語を併記する引用）、`japanese_text`（日本語の訳や元から日本語の文字列であると確認）から選ぶ。後ろの 5 種類は、同じブロックにかなの文字または漢字を含む日本語の説明や訳を添える。中黒と長音符だけではこの条件を満たさない。`text` は検査結果の全文をそのまま写し、理由は対象ごとに書く。対象が複数あれば、すべてを別の項目にする。一部だけの text、不明・重複の ID、空の理由、古いハッシュは受理されない。
++`kind` は `proper_name`（固有名詞）、`identifier`（識別子）、`bibliography`（書誌情報）、`ui_text`（UI の表示）、`error_message`（エラーメッセージ）、`term`（原語の併記）、`quotation`（原語を併記する引用）、`japanese_text`（日本語の訳や元から日本語の文字列であると確認）から選ぶ。後ろの 5 種類は、同じブロックにかなの文字または漢字を含む日本語の説明や訳を添える。中黒、長音符、数字の `〇` だけではこの条件を満たさない。かな・漢字の有無は文字を含むかの検査にすぎず、中国語と日本語を区別する証拠にはならない。実際に日本語の説明や訳があるかは確認者が読む。`text` は検査結果の全文をそのまま写し、理由は対象ごとに書く。対象が複数あれば、すべてを別の項目にする。一部だけの text、不明・重複の ID、空の理由、古いハッシュは受理されない。
+diff --git a/skills/info-hive/scripts/wiki_rawcheck.py b/skills/info-hive/scripts/wiki_rawcheck.py
+index 6eeda8f..68070fc 100644
+--- a/skills/info-hive/scripts/wiki_rawcheck.py
++++ b/skills/info-hive/scripts/wiki_rawcheck.py
+@@ -934 +934 @@ def is_han(character: str) -> bool:
+-    return character == "〇" or unicodedata.name(character, "").startswith(
++    return unicodedata.name(character, "").startswith(
+@@ -961 +961,10 @@ def translation_block(source: str, output: str, node_type: str) -> tuple[bool, l
+-    passages, runs, current = [], [], []
++    # 段落の別の日本語の文に薄められないよう、文単位ではかなを含まない漢字の文を確認する。
++    # 同一文内で混ざる語の意味や言語は、この文字の条件では確定しない。
++    out_units = re.split(r"[。！？!?;；\n]+|\.(?=\s|$)", out)
++    passages = []
++    for unit in out_units:
++        unit_kana, unit_han = script_counts(unit)
++        if unit_han and not unit_kana:
++            if unit.strip() not in passages:
++                passages.append(unit.strip())
++    runs, current = [], []
+@@ -974 +982,0 @@ def translation_block(source: str, output: str, node_type: str) -> tuple[bool, l
+-    out_units = re.split(r"[。！？.!?;；\n]+", out)
+@@ -1089 +1097 @@ def compare(a: Node, b: Node, translate: bool, errors: list[dict], warnings: lis
+-            checked, passages = translation_block(src_text, out_text, a.type)
++            checked, passages = translation_block(inline_text(ia, newline="\n"), inline_text(ib, newline="\n"), a.type)
+diff --git a/docs/plans/wiki-ingest-translation-completion-2026-11-17.md b/docs/plans/wiki-ingest-translation-completion-2026-11-17.md
+index 88ceac4..7e449b2 100644
+--- a/docs/plans/wiki-ingest-translation-completion-2026-11-17.md
++++ b/docs/plans/wiki-ingest-translation-completion-2026-11-17.md
+@@ -19 +19 @@
+-文字数の割合や固有名詞の推定から翻訳済みとは判断しない。かな・漢字以外の文字体系を Unicode の単語と字母で調べる。文章の全体が外国語なら 2 語以上または字母 20 字以上、日本語の中の外国語は 4 語以上または字母 20 字以上を確認の対象にする。文末、大小文字、原文との完全一致に依存しない。漢字があり、かなの文字数がかなと漢字の合計の 35% 未満のブロックも、短いものを含めて確認する。原文に近い漢字のまとまりも確認する。日本語の見出しなども該当し得るので、この条件で言語や訳の正しさを確定しない。コード、画像、インラインのコード、URL、図の補足は文章の検出に数えない。
++文字数の割合や固有名詞の推定から翻訳済みとは判断しない。かな・漢字以外の文字体系を Unicode の単語と字母で調べる。文章の全体が外国語なら 2 語以上または字母 20 字以上、日本語の中の外国語は 4 語以上または字母 20 字以上を確認の対象にする。文末、大小文字、原文との完全一致に依存しない。漢字があり、かなの文字数がかなと漢字の合計の 35% 未満のブロックも、短いものを含めて確認する。段落中では、かなを含まない漢字の文も確認する。小数点は文の区切りにしない。原文に近い漢字のまとまりも確認する。日本語の見出しなども該当し得るので、この条件で言語や訳の正しさを確定しない。コード、画像、インラインのコード、URL、図の補足は文章の検出に数えない。
+@@ -30,0 +31,2 @@
++漢字の多い見出しや表のセルは、正しい日本語でも頻繁に確認の対象になる。委譲時の `warnings` は通常の経路であり、`done` を増やすために検査を緩めたり、候補をまとめて受理したりしない。親は原文との対応を対象ごとに確かめる。たとえば `Overview` を `概要` と訳した対象なら、その対応を理由に書く。件数が多くても候補の全件を確認し、一般的な「翻訳済み」という理由で埋めない。
++
+@@ -37 +39 @@
+-短い語や検出条件に当たらない言語の形の見逃しはあり得る。訳文の読み直しを残す。比較元やプログラム自体を任意に改ざんする実行者への防御は目的としない。`fetch.json`、`fetched.md`、`cleaned.md`、`removed.json` を手作業で作ったり変えたりして検査済みにしてはならない。
++短い語や検出条件に当たらない言語の形の見逃しはあり得る。同一文で外国語の漢字の語を日本語の助詞に混ぜた形（例: `引擎は搜索链接します`）も、かなの比率によっては検出しない。訳文の読み直しを残す。比較元やプログラム自体を任意に改ざんする実行者への防御は目的としない。`fetch.json`、`fetched.md`、`cleaned.md`、`removed.json` を手作業で作ったり変えたりして検査済みにしてはならない。
+diff --git a/tests/wiki/test_wiki_web_check.py b/tests/wiki/test_wiki_web_check.py
+index 3234a91..e5adc0a 100644
+--- a/tests/wiki/test_wiki_web_check.py
++++ b/tests/wiki/test_wiki_web_check.py
+@@ -623 +623 @@ class ReviewCounterexample2Test(RawCheckCase):
+-        result = self.check_with(src, out, images=["assets/a/1.png"], japanese=['項目  続き'])
++        result = self.check_with(src, out, images=["assets/a/1.png"], japanese=['項目\n\n続き'])
+@@ -747 +747 @@ class ReviewCounterexample4Test(RawCheckCase):
+-        result = self.check_japanese(['参照: [x]: 有効'])
++        result = self.check_japanese(['参照:\n[x]: 有効'])
+@@ -2507,0 +2508,7 @@ class TranslationReviewContractTest(RawCheckCase):
++    def test_foreign_han_sentence_is_not_diluted_by_other_japanese_sentences(self):
++        for separator in ("。", "！", "？", ";", "\n"):
++            with self.subTest(separator=separator):
++                self.prepare("This article explains search. The system retrieves documents using existing links.\n")
++                self.write_raw("この記事では検索について説明します" + separator + "系统使用现有链接检索文档。\n", fm=FM_T)
++                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
++
+@@ -2519 +2526 @@ class TranslationReviewContractTest(RawCheckCase):
+-        for mark in ("・", "ー"):
++        for mark in ("・", "ー", "〇"):

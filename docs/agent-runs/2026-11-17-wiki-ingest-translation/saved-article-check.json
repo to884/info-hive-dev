@@ -1,0 +1,190 @@
+{
+  "fixture": "saved article in isolated temporary wiki; original files are not modified",
+  "cases": [
+    {
+      "case": "original incident: keep and English raw",
+      "exit_code": 1,
+      "completed": false,
+      "translation": {
+        "state": "incomplete",
+        "checked_blocks": 125,
+        "basis": {
+          "source_sha256": "4185ffd1181a816bf022b1c2645827b13a1b72a6b892c16efcbe35ac2b54aac1",
+          "raw_sha256": "0262a9804043bdeaca029fff5af3c2a294300a05fb3c169c5d144e75b6f1477c"
+        },
+        "reviewed_by": "",
+        "reviewed_passages": 0,
+        "pending_reviews": 123,
+        "decisions": []
+      },
+      "error_kinds": {
+        "translation_required": 1,
+        "translated_by": 1,
+        "translation_review_required": 123
+      },
+      "warnings": 0,
+      "work_dir_exists": true
+    },
+    {
+      "case": "translator name with English raw",
+      "exit_code": 1,
+      "completed": false,
+      "translation": {
+        "state": "incomplete",
+        "checked_blocks": 125,
+        "basis": {
+          "source_sha256": "4185ffd1181a816bf022b1c2645827b13a1b72a6b892c16efcbe35ac2b54aac1",
+          "raw_sha256": "f4fcd39a3ccf953f77e383dabea309d3d2814bfe50a25f124865f2a91622d2ef"
+        },
+        "reviewed_by": "",
+        "reviewed_passages": 0,
+        "pending_reviews": 123,
+        "decisions": []
+      },
+      "error_kinds": {
+        "translation_review_required": 123
+      },
+      "warnings": 0,
+      "work_dir_exists": true
+    },
+    {
+      "case": "Japanese raw with documented warning acceptance",
+      "exit_code": 0,
+      "completed": true,
+      "translation": {
+        "state": "checked",
+        "checked_blocks": 125,
+        "basis": {
+          "source_sha256": "4185ffd1181a816bf022b1c2645827b13a1b72a6b892c16efcbe35ac2b54aac1",
+          "raw_sha256": "5523cc95aa1fe7844727b7314884d6459e3db9b600554bf4953f37affadc79bf"
+        },
+        "reviewed_by": "GPT-6",
+        "reviewed_passages": 14,
+        "pending_reviews": 0,
+        "decisions": [
+          {
+            "id": "b5b8e8d689e3b6347c80e1fc09c0b3740f8b9da6b8d4c275b3cc1365bd1da8e1",
+            "text": "読了まで 16 分 2026 年 10 月 31 日",
+            "kind": "japanese_text",
+            "reason": "読了時間と日付を日本語の表記に直し、数値と日付を保持している。",
+            "line": 18
+          },
+          {
+            "id": "581ad5ac7fafb31123867d4e345f8e57d9593c8d7c50bbb14ca933a9a2478d00",
+            "text": "複数段階の質問を自動で生成し、正答率、引用の精度、回答の見送りを採点する評価の仕組み。",
+            "kind": "japanese_text",
+            "reason": "multi-hop の質問の生成と、正答率・引用の精度・回答の見送りの採点という原文の説明を日本語に訳している。",
+            "line": 37
+          },
+          {
+            "id": "55584c807aa8697199e99854c4bcc7eae4898bbf7d157ede7b5131be87d3f544",
+            "text": "Wikipedia(English Wikipedia)",
+            "kind": "proper_name",
+            "reason": "英語版 Wikipedia の固有名を原語で添えた表記である。周囲の説明は日本語に訳している。",
+            "line": 63
+          },
+          {
+            "id": "a9829456b00800fd015a821b1a75bcf71305660d63b2ccef9e6bfa57dc8964a1",
+            "text": "全体の設計",
+            "kind": "japanese_text",
+            "reason": "High-Level Design の見出しを日本語に訳したもの。",
+            "line": 95
+          },
+          {
+            "id": "7df9b902d0db359ef6bf295971bb4e1dd4bc3479e5ae992683cff0ea598c8bd6",
+            "text": "Wikipedia(English Wikipedia)",
+            "kind": "proper_name",
+            "reason": "英語版 Wikipedia の固有名を原語で添えた表記である。周囲の説明は日本語に訳している。",
+            "line": 123
+          },
+          {
+            "id": "20c100657fe90ac22a9b5b5ab61e5bc16694e8369575f006c6e36c34181cac9e",
+            "text": "。Simple English Wikipedia",
+            "kind": "proper_name",
+            "reason": "Simple English Wikipedia という Wikipedia の別版の固有名である。文の残りは日本語に訳しており、この名称を保持する。",
+            "line": 123
+          },
+          {
+            "id": "ad8583d8d028b75e847c7cfff4e0a209a753267311ce0e429ab7f94e6298c17b",
+            "text": "手順 3",
+            "kind": "japanese_text",
+            "reason": "Step 3 の見出しのラベルを手順 3 と訳したもので、続く CSR の説明と順序に対応している。",
+            "line": 143
+          },
+          {
+            "id": "4410096ce9c6928ab59df32a3e6d10661bd485cec955e780b6a2ec2bbbc87bc5",
+            "text": "手順 4",
+            "kind": "japanese_text",
+            "reason": "Step 4 の見出しのラベルを手順 4 と訳したもので、続く BM25 の入口の説明に対応している。",
+            "line": 192
+          },
+          {
+            "id": "2e64d1a427082439b15ecdaf32a9c677a9c6aa09e8f1a67fd3c15b6c80d2eb85",
+            "text": "手順 5",
+            "kind": "japanese_text",
+            "reason": "Step 5 の見出しのラベルを手順 5 と訳したもので、続くエージェントのループと経路なしの規則に対応している。",
+            "line": 199
+          },
+          {
+            "id": "b42a8c20ea167865b6d8548de1741c91391784304528b1d48ed017cd3fae24df",
+            "text": "手順 6",
+            "kind": "japanese_text",
+            "reason": "Step 6 の見出しのラベルを手順 6 と訳したもので、グラフが作る質問による評価の節に対応している。",
+            "line": 248
+          },
+          {
+            "id": "ca9fcb47326cf4e93d3e1b44a3586b72c93ad3d6b2689234bf5df2c2d5d47959",
+            "text": "正答率",
+            "kind": "japanese_text",
+            "reason": "Accuracy の項目を正答率と訳し、回答可能な質問で正しい端点の経路を返したかという説明を続けている。",
+            "line": 258
+          },
+          {
+            "id": "22d559aa5495011b85348bcb1b400a3dd61680eed54988b7085c7edf40120982",
+            "text": "規模を拡張する計画。",
+            "kind": "japanese_text",
+            "reason": "Scale plan の見出しを日本語で表したもの。",
+            "line": 289
+          },
+          {
+            "id": "d6e7b4fadfc26adf546e544897f92ab669f2410e17271f8796cc1adf9ac54d6d",
+            "text": "率直な限界。",
+            "kind": "japanese_text",
+            "reason": "Honest limits の見出しを日本語に訳したもの。",
+            "line": 306
+          },
+          {
+            "id": "c81835c0ed23b7de01310adccf409b4d12bc1a4b4ad716f4f58904a82ad10cb4",
+            "text": "優先順位",
+            "kind": "japanese_text",
+            "reason": "Priority Order を優先順位と訳した見出しで、What to Build First に対応する説明が続いている。",
+            "line": 313
+          }
+        ]
+      },
+      "error_kinds": {},
+      "warnings": 18,
+      "work_dir_exists": false
+    }
+  ],
+  "source_sha256": "6c94d056cd53f3080122821320be4b39141cb67b72f5cfb9a93bc8cd7f197c2c",
+  "translation_sha256": "5523cc95aa1fe7844727b7314884d6459e3db9b600554bf4953f37affadc79bf",
+  "accepted_warning_reasons": [
+    {
+      "line": 57,
+      "reason": "NOT は否定の強調で、固有名詞ではない。否定を日本語に訳している。"
+    },
+    {
+      "line": 67,
+      "reason": "How は疑問詞で、どう、と訳している。実際の固有名詞は保持している。"
+    },
+    {
+      "line": 68,
+      "reason": "What と There は疑問詞と文法上の語で、日本語に訳している。実際の固有名詞は保持している。"
+    },
+    {
+      "line": 252,
+      "reason": "How は質問例の疑問詞で、どう、と訳している。"
+    }
+  ]
+}

@@ -298,7 +298,7 @@ def link_dir(link: Path, target: Path) -> bool:
 
 
 class SignatureTest(TempWiki):
-    def test_linked_indexes_dir_is_watched(self):
+    def test_linked_indexes_dir_is_refused_and_reported(self):
         write(self.wiki, "a.md", page("# A"))
         split = self.base / "split-indexes"
         write(split, "contents.md", "# OLD_NAV\n\n- [[a]]\n")
@@ -306,9 +306,10 @@ class SignatureTest(TempWiki):
             self.skipTest("ディレクトリのリンクを作れない")
         before = core.signature(self.wiki)
         c = build_core(self.wiki)
-        self.assertIn("OLD_NAV", c.render_data("nav.js"))
+        self.assertNotIn("OLD_NAV", c.render_data("nav.js"))
+        self.assertTrue(any(d.get("kind") == "link" and d.get("path") == "indexes" for d in c.diagnostics))
         write(split, "contents.md", "# NEW_NAV_LONGER\n\n- [[a]]\n")
-        self.assertNotEqual(core.signature(self.wiki), before)
+        self.assertEqual(core.signature(self.wiki), before)
 
     def test_link_loop_terminates_and_skipped_dirs_are_ignored(self):
         write(self.wiki, "concepts/a.md", page("# A"))
@@ -341,7 +342,8 @@ class UnreadableExcludedDirTest(TempWiki):
         write(self.wiki, "raw/x.md", "raw\n")
         write(self.wiki, "assets/y.md", "asset\n")
         with self.denied():
-            # main の ADR-0030 の試験に合わせる。SVG の一覧が不明なことも入力の印に残す。
+            # assets/ は図の svg の入力（ADR-0030）。一覧を作れないことは、大きさのない asset_dir の項目で表し、
+            # 閲覧は止めない（図の描画の設計の 6.1）
             self.assertEqual([e[:4] for e in core.input_list(self.wiki)][-1], ("asset_dir", "assets", None, None))
             self.assertEqual([e[0] for e in core.input_list(self.wiki)], ["page", "asset_dir"])
             report = self.build(self.base / "site")
@@ -1877,6 +1879,384 @@ class FluentAssetsTest(TempWiki):
         self.assertEqual(re.findall(r"#[0-9a-fA-F]{3,8}\b", body), [])
         self.assertEqual(re.findall(r"\b\d+(?:\.\d+)?px\b", body), [])
         self.assertEqual(re.findall(r"\b\d+(?:\.\d+)?rem\b", body.split("@media")[0]), [])
+
+
+# ---------------------------------------------------------------------------
+# 図の svg（ADR-0030、図の描画の設計の 6）
+# ---------------------------------------------------------------------------
+
+SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>\n'
+
+
+class FigureTargetTest(unittest.TestCase):
+    """本文の画像の参照を、図の svg に解く（図の描画の設計の 6.4）。"""
+
+    def test_table(self):
+        cases = [
+            ("concepts/p.md", "../assets/x.svg", "assets/x.svg"),
+            ("concepts/p.md", "../assets/x.SVG", "assets/x.SVG"),
+            ("concepts/p.md", "../assets/a%20b.svg", "assets/a b.svg"),
+            ("concepts/p.md", "../assets/a&b.svg", "assets/a&b.svg"),
+            ("concepts/p.md", "../assets/%E5%9B%B3.svg", "assets/図.svg"),
+            ("concepts/p.md", "../assets/x.svg#frag", "assets/x.svg"),
+            ("concepts/p.md", "../assets/x.svg?q=1", "assets/x.svg"),
+            ("top.md", "assets/x.svg", "assets/x.svg"),
+            ("a/b/p.md", "../../assets/x.svg", "assets/x.svg"),
+            ("concepts/p.md", "assets/x.svg", None),            # concepts/assets/ を指す（lint が指摘する）
+            ("concepts/p.md", "../assets/sub/x.svg", None),     # 下位のディレクトリ
+            ("concepts/p.md", "../../assets/x.svg", None),      # wiki の外
+            ("concepts/p.md", "../assets/x.png", None),
+            ("concepts/p.md", "../assets/.x.svg", None),
+            ("concepts/p.md", "../assets/a%5Cb.svg", None),     # \ を含む
+            ("concepts/p.md", "../assets/a%00.svg", None),
+            ("concepts/p.md", "../assets/%FF.svg", None),       # UTF-8 でない
+            ("concepts/p.md", "https://example.com/x.svg", None),
+            ("concepts/p.md", "data:image/svg+xml,x", None),
+            ("concepts/p.md", "/assets/x.svg", None),
+            ("concepts/p.md", "#x", None),
+            ("concepts/p.md", "", None),
+        ]
+        for page_rel, src, want in cases:
+            with self.subTest(src=src):
+                self.assertEqual(core.figure_target(page_rel, src), want)
+
+    def test_nfc(self):
+        nfd = unicodedata.normalize("NFD", "が")
+        src = "../assets/" + urllib_quote(nfd) + ".svg"
+        self.assertEqual(core.figure_target("concepts/p.md", src), "assets/が.svg")
+
+    def test_svg_size(self):
+        cases = [
+            (b'<svg width="200" height="100">', (200, 100)),
+            (b'<svg width="200px" height="99.6px">', (200, 100)),
+            (b'<svg viewBox="0 0 640 480">', (640, 480)),
+            (b'<svg width="50%" height="100" viewBox="0,0,30,20">', (30, 20)),
+            (b'<?xml version="1.0"?>\n<svg\n xmlns="http://www.w3.org/2000/svg" width=\'12\' height=\'34\'>', (12, 34)),
+            (b'<svg width="10em" height="2em">', None),
+            (b'<svg>', None),
+            (b'<svg width="0" height="10">', None),
+            (b'<svg viewBox="0 0 x 1">', None),
+            (b'<svg width="99999" height="1">', None),
+            (b"\xff<svg width='1' height='1'>", None),
+            # 実装の 1 回目のレビューの反例: コメントの中の <svg と、data-width を拾わない
+            (b'<!-- <svg width="1" height="1"> --><svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"/>',
+             (800, 600)),
+            (b'<svg width="800" height="600" data-width="1" data-height="1"/>', (800, 600)),
+            (b'<svg:svg xmlns:svg="http://www.w3.org/2000/svg" width="5" height="6"/>', (5, 6)),
+            (b'<html><svg width="5" height="6"/></html>', None),             # 根が svg でない
+            (b'<!DOCTYPE svg [<!ENTITY a "x">]><svg width="1" height="1"/>', None),   # DTD は読まない
+            (b'<svg width="1" height="1"', None),                           # 開始タグが閉じていない
+        ]
+        for data, want in cases:
+            with self.subTest(data=data):
+                self.assertEqual(core.svg_size(data), want)
+
+    def test_utf8_only(self):
+        self.assertTrue(core.is_utf8_svg(SVG.encode("utf-8")))
+        self.assertTrue(core.is_utf8_svg(b"\xef\xbb\xbf" + SVG.encode("utf-8")))
+        self.assertTrue(core.is_utf8_svg(b'<?xml version="1.0" encoding="UTF-8"?>' + SVG.encode("utf-8")))
+        self.assertFalse(core.is_utf8_svg(SVG.encode("utf-16")))
+        self.assertFalse(core.is_utf8_svg(b"<svg>\xff</svg>"))
+        self.assertFalse(core.is_utf8_svg(b'<?xml version="1.0" encoding="Shift_JIS"?><svg/>'))
+        # 実装の 1 回目のレビューの重大: BOM のない UTF-16 の ASCII の XML は、UTF-8 としても読めるが落とす
+        decl = '<?xml version="1.0" encoding="UTF-16"?>' + SVG
+        for enc in ("utf-16-le", "utf-16-be", "utf-32-le"):
+            with self.subTest(enc=enc):
+                self.assertFalse(core.is_utf8_svg(decl.encode(enc)))
+                self.assertFalse(core.is_utf8_svg(SVG.encode(enc)))
+        self.assertFalse(core.is_utf8_svg(b"<svg>\x01</svg>"))       # XML で許されない制御文字
+        # 処理命令は XML の宣言ではない（実装の 2 回目のレビューの軽微）
+        self.assertTrue(core.is_utf8_svg(b'<?xml-stylesheet type="text/css" href="s.css?encoding=\'Shift_JIS\'"?>' + SVG.encode()))
+        self.assertTrue(core.is_utf8_svg(b'<?xml\nversion="1.0"\nencoding="utf-8"?>' + SVG.encode()))
+        self.assertTrue(core.is_utf8_svg("<svg>\t改行\r\n😀</svg>".encode("utf-8")))
+
+
+def urllib_quote(text: str) -> str:
+    import urllib.parse
+    return urllib.parse.quote(text)
+
+
+class FigureSvgTest(TempWiki):
+    """図の svg の入力、写し、描画、書き出し（図の描画の設計の 6）。"""
+
+    def setUp(self):
+        super().setUp()
+        write(self.wiki, "concepts/p.md", page("# P\n\n図は次のとおり。\n\n![流れの図](../assets/p-01.svg)\n"))
+
+    def svg(self, name: str, data: bytes) -> Path:
+        path = self.wiki / "assets" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        return path
+
+    def test_inputs_are_direct_svg_files(self):
+        self.svg("p-01.svg", SVG.encode("utf-8"))
+        self.svg("x.png", b"png")
+        self.svg(".hidden.svg", SVG.encode("utf-8"))
+        self.svg("sub/y.svg", SVG.encode("utf-8"))
+        kinds = [(k, rel) for k, rel, _s, _m in core.input_list(self.wiki)]
+        self.assertEqual([e for e in kinds if e[0] == "asset"], [("asset", "assets/p-01.svg")])
+
+    def test_wiki_without_svg_keeps_its_signature_entries(self):
+        before = core.input_list(self.wiki)
+        self.assertFalse([e for e in before if e[0].startswith("asset")])
+        (self.wiki / "assets").mkdir()
+        self.assertEqual(core.input_list(self.wiki), before)
+
+    def test_page_draws_img_with_relative_src(self):
+        self.svg("p-01.svg", SVG.encode("utf-8"))
+        write(self.wiki, "top.md", page("# T\n\n![上の図 <b>](assets/p-01.svg)\n"))
+        c = build_core(self.wiki)
+        out = c.asset_out["assets/p-01.svg"]
+        self.assertRegex(out, r"^assets/wiki/[0-9a-f]{16}\.svg$")
+        body = c.render(c.out_name["concepts/p"])
+        self.assertIn(f'<img class="fui-Image" src="../{out}" alt="流れの図" width="10" height="10">', body)
+        self.assertIn('data-fig="svg" data-theme="light"', body)
+        top = c.render(c.out_name["top"])
+        self.assertIn(f'src="{out}" alt="上の図 &lt;b&gt;"', top)
+        self.assertNotIn("style=", body)
+        self.assertEqual(c.asset_bytes(out), SVG.encode("utf-8"))
+        self.assertTrue(c.knows(out))
+        self.assertFalse([d for d in c.diagnostics if d.get("page") == "concepts/p"])
+
+    def test_missing_svg_keeps_alt_text_and_diagnoses(self):
+        c = build_core(self.wiki)
+        body = c.render(c.out_name["concepts/p"])
+        self.assertIn("流れの図", body)
+        self.assertNotIn("<img", body)
+        self.assertIn({"kind": "missing_asset", "page": "concepts/p", "target": "assets/p-01.svg"}, c.diagnostics)
+
+    def test_other_images_stay_alt_text(self):
+        write(self.wiki, "concepts/q.md", page("# Q\n\n![外](https://example.com/x.svg) ![png](../assets/x.png)\n"))
+        self.svg("x.png", b"png")
+        c = build_core(self.wiki)
+        body = c.render(c.out_name["concepts/q"])
+        self.assertNotIn("<img", body)
+        self.assertFalse([d for d in c.diagnostics if d.get("page") == "concepts/q"])
+
+    def test_heading_image_keeps_heading_id(self):
+        self.svg("p-01.svg", SVG.encode("utf-8"))
+        write(self.wiki, "concepts/h.md", page("# H\n\n## 見出し ![図](../assets/p-01.svg)\n"))
+        c = build_core(self.wiki)
+        self.assertIn('id="見出し-図"', c.render(c.out_name["concepts/h"]))
+
+    def test_non_utf8_svg_is_not_output(self):
+        secret = f'<?xml version="1.0" encoding="UTF-16"?><svg xmlns="http://www.w3.org/2000/svg"><desc>{self.wiki}</desc></svg>'
+        for name, data in (("p-01.svg", SVG.encode("utf-16")),
+                           ("p-01.svg", secret.encode("utf-16-le")),
+                           ("p-01.svg", b'<?xml version="1.0" encoding="Shift_JIS"?>' + SVG.encode("ascii"))):
+            with self.subTest(data=data[:20]):
+                self.svg(name, data)
+                snap = core.take_snapshot(self.wiki)
+                self.assertIn(("asset", "assets/p-01.svg"), snap.unreadable)
+                c = core.Core(snap)
+                self.assertEqual(c.asset_out, {})
+                self.assertIn({"kind": "asset_unreadable", "page": "concepts/p", "target": "assets/p-01.svg"},
+                              c.diagnostics)
+
+    def test_too_large_svg_is_not_read(self):
+        self.svg("p-01.svg", b"<svg>" + b" " * 64 + b"</svg>")
+        with mock.patch.object(core, "ASSET_MAX_BYTES", 32):
+            snap = core.take_snapshot(self.wiki)
+        f = snap.by_kind("asset")[0]
+        self.assertEqual((f.error, f.data), ("too_large", None))
+
+    def test_read_cap_is_enforced_by_the_reader(self):
+        # 走査で見た大きさではなく、読む口が上限を強制する（走査のあとで大きくなった場合）
+        path = self.svg("p-01.svg", b"x" * 100)
+        with self.assertRaises(fs.TooLarge):
+            fs.read_input_capped(self.wiki, "assets/p-01.svg", 99)
+        self.assertEqual(fs.read_input_capped(self.wiki, "assets/p-01.svg", 100), path.read_bytes())
+
+    def test_svg_change_changes_signature_and_generation(self):
+        self.svg("p-01.svg", SVG.encode("utf-8"))
+        sig, gen = core.signature(self.wiki), core.take_snapshot(self.wiki).generation
+        self.svg("p-01.svg", SVG.replace("10", "200").encode("utf-8"))   # 印は大きさと時刻で見るので、大きさを変える
+        self.assertNotEqual(core.signature(self.wiki), sig)
+        self.assertNotEqual(core.take_snapshot(self.wiki).generation, gen)
+
+    def outside_svg(self) -> Path:
+        outside = self.base / "outside"
+        outside.mkdir()
+        (outside / "p-01.svg").write_bytes(SVG.encode("utf-8"))
+        return outside
+
+    def test_file_link_is_not_read(self):
+        outside = self.outside_svg()
+        (self.wiki / "assets").mkdir()
+        try:
+            os.symlink(outside / "p-01.svg", self.wiki / "assets" / "p-01.svg")
+        except (OSError, NotImplementedError):
+            self.skipTest("ファイルのシンボリックリンクを作れない")
+        self.assertFalse([e for e in core.input_list(self.wiki) if e[0] == "asset"])
+
+    def test_linked_assets_dir_is_not_read(self):
+        # ディレクトリのシンボリックリンク（作れなければ、Windows ではジャンクション）。どちらもたどらない
+        outside = self.outside_svg()
+        if not link_dir(self.wiki / "assets", outside):
+            self.skipTest("ディレクトリのリンクを作れない")
+        self.assertFalse([e for e in core.input_list(self.wiki) if e[0].startswith("asset")])
+        c = build_core(self.wiki)
+        self.assertIn({"kind": "missing_asset", "page": "concepts/p", "target": "assets/p-01.svg"}, c.diagnostics)
+
+    @unittest.skipUnless(os.name == "nt", "ジャンクションは Windows だけ")
+    def test_junction_assets_dir_is_not_read(self):
+        import _winapi
+        outside = self.outside_svg()
+        _winapi.CreateJunction(str(outside), str(self.wiki / "assets"))
+        self.assertFalse([e for e in core.input_list(self.wiki) if e[0].startswith("asset")])
+
+    def test_output_names_do_not_clash(self):
+        self.svg("p-01.svg", SVG.encode("utf-8"))
+        self.svg("P-01.SVG", SVG.encode("utf-8")) if not (self.wiki / "assets" / "P-01.SVG").exists() else None
+        write(self.wiki, "assets.md", page("# 予約の名前と同じページ"))
+        write(self.wiki, "Assets/wiki.md", page("# 大文字の Assets"))
+        c = build_core(self.wiki)
+        pages = {n.casefold() for n in c.out_name.values()} | {n.casefold() for n in core._fixed_files()}
+        dirs = {"/".join(n.casefold().split("/")[:i]) for n in pages for i in range(1, n.count("/") + 1)}
+        for name in c.asset_by_out:
+            self.assertNotIn(name.casefold(), pages)
+            self.assertNotIn(name.casefold(), dirs)
+            self.assertTrue(core.is_safe_relative(name))
+
+    def test_build_writes_svg_bytes(self):
+        data = b"\xef\xbb\xbf" + SVG.replace("\n", "\r\n").encode("utf-8")
+        self.svg("p-01.svg", data)
+        out = self.base / "site"
+        self.build(out)
+        c = build_core(self.wiki)
+        self.assertEqual((out / c.asset_out["assets/p-01.svg"]).read_bytes(), data)
+
+    def test_machine_info_in_svg_is_reported(self):
+        self.svg("p-01.svg", f'<svg xmlns="http://www.w3.org/2000/svg"><desc>{self.wiki}</desc></svg>'.encode("utf-8"))
+        report = self.build(self.base / "site")
+        self.assertTrue(any("絶対パス" in w and "assets/wiki/" in w for w in report["warnings"]), report["warnings"])
+
+    def test_lint_and_browse_resolve_the_same_path(self):
+        # 同じ参照先を、lint（本文の文字から image_ref_path）と閲覧（markdown-it の src から figure_target）が
+        # 同じパスに解く（実装の 1 回目のレビューの軽微。文字参照の # と &quest;）
+        import posixpath
+        parser = wiki_pages.new_parser()
+        raws = ["../assets/a.svg", "../assets/a&amp;b.svg", "../assets/a&#38;b.svg", "../assets/a&#x26;b.svg",
+                "../assets/a.svg&quest;v=1", "../assets/a.svg&#35;frag", "../assets/a\\&amp;b.svg",
+                "../assets/a\\#b.svg", "../assets/a%20b.svg", "../assets/%E5%9B%B3.svg", "../assets/a%zz.svg",
+                "../assets/a(1).svg", "<../assets/a b.svg>", "../assets/a.svg?q#f", "../assets/x%2Fy.svg",
+                # 空白の文字参照。markdown-it は URL の正規化で前後の空白を落とす（実装の 2 回目のレビューの軽微）
+                "../assets/a.svg&#32;", "&#32;../assets/a.svg", "../assets/a.svg&#9;", "../assets/a.svg&NewLine;"]
+        for raw in raws:
+            with self.subTest(raw=raw):
+                tokens = parser.parse(f"![x]({raw})\n")
+                image = next(c for t in tokens if t.type == "inline" for c in t.children if c.type == "image")
+                browse = core.figure_target("concepts/p.md", image.attrs["src"])
+                target = raw[1:-1] if raw.startswith("<") else raw
+                rel = wiki_lint.image_ref_path(target)
+                lint = posixpath.normpath(posixpath.join("concepts", rel)) if rel else None
+                if browse is not None:
+                    self.assertEqual(unicodedata.normalize("NFC", lint), browse)
+                else:
+                    self.assertFalse(lint and lint.startswith("assets/") and lint.count("/") == 1
+                                     and lint.lower().endswith(".svg") and "\\" not in lint, lint)
+
+    def test_lint_resolves_character_references_like_markdown(self):
+        # lint と閲覧は、参照先の文字参照を同じに解く（図の描画の設計の 6.4）
+        self.svg("a&b.svg", SVG.encode("utf-8"))
+        md = write(self.wiki, "concepts/r.md", page("# R\n\n![図](../assets/a&amp;b.svg) ![x](../assets/a\\&amp;b.svg)\n"))
+        found = wiki_lint.missing_assets(md.read_text(encoding="utf-8"), md, self.wiki)
+        self.assertEqual([f["target"] for f in found], ["../assets/a\\&amp;b.svg"])
+        c = build_core(self.wiki)
+        self.assertIn('<img class="fui-Image"', c.render(c.out_name["concepts/r"]))
+
+
+class MermaidAssetsTest(TempWiki):
+    """Mermaid の同梱物と、ページの読み込み（ADR-0030、図の描画の設計の 7.2、7.3）。"""
+    ASSET_DIR = SCRIPTS / "browse_assets"
+
+    def test_tiny_matches_record(self):
+        data = (self.ASSET_DIR / "mermaid.tiny.js").read_bytes()
+        readme = (self.ASSET_DIR / "README.md").read_text(encoding="utf-8")
+        self.assertIn(hashlib.sha256(data).hexdigest(), readme)
+        self.assertIn(f"{len(data):,} バイト", readme)
+        self.assertIn(f"`{core.FRAME_VERSION}`", readme)
+        attrs = (ROOT / "info-hive-wiki" / ".gitattributes").read_text(encoding="utf-8")
+        self.assertIn("skills/info-hive/scripts/browse_assets/mermaid.tiny.js -text", attrs)
+
+    def test_frame_version_matches_figures_js(self):
+        js = (self.ASSET_DIR / "figures.js").read_text(encoding="utf-8")
+        self.assertIn(f'var FRAME_VERSION = "{core.FRAME_VERSION}";', js)
+
+    def test_frame_document_has_no_inline_code_or_meta_csp(self):
+        import re
+        doc = (self.ASSET_DIR / "mermaid-frame.html").read_text(encoding="utf-8")
+        self.assertNotIn("Content-Security-Policy", doc)     # <meta> を置くと WebKit が 'self' で止める
+        self.assertNotIn("style", doc)
+        self.assertEqual(re.findall(r"<script[^>]*>", doc),
+                         ['<script src="mermaid.tiny.js">', '<script src="mermaid-frame.js">'])
+        self.assertEqual(re.findall(r"<script[^>]*>([^<]*)</script>", doc), ["", ""])
+        self.assertEqual(sorted(core.load_frame_assets()), sorted(core.FRAME_ASSETS))
+
+    def test_license_notice_is_in_frame_script(self):
+        js = (self.ASSET_DIR / "mermaid-frame.js").read_text(encoding="utf-8")
+        self.assertIn("MIT ライセンス、Copyright (c) 2014 - 2022 Knut Sveidqvist", js)
+        self.assertTrue((self.ASSET_DIR / "licenses" / "mermaid.LICENSE").is_file())
+        self.assertTrue((self.ASSET_DIR / "licenses" / "mermaid.THIRD-PARTY-NOTICES.txt").is_file())
+
+    def test_frame_csp(self):
+        csp = core.frame_csp(41234)
+        self.assertIn(f"script-src http://127.0.0.1:41234/_frame/{core.FRAME_VERSION}/;", csp)
+        self.assertNotIn("'self'", csp)
+        self.assertIn("default-src 'none'", csp)
+        self.assertIn("style-src 'unsafe-inline'", csp)
+        self.assertTrue(csp.endswith("sandbox allow-scripts"))
+        self.assertIn("frame-src 'self'", core.CSP)
+        self.assertNotIn("unsafe", core.CSP)
+
+    def test_build_has_figures_js_but_not_the_frame(self):
+        write(self.wiki, "a.md", page("# A\n\n```mermaid\nflowchart LR\n  a --> b\n```\n"))
+        out = Path(self.build()["out"])
+        self.assertEqual((out / "assets" / "figures.js").read_bytes(), (self.ASSET_DIR / "figures.js").read_bytes())
+        for name in core.FRAME_ASSETS:
+            self.assertFalse(list(out.rglob(name)), name)
+        html_text = (out / "a.html").read_text(encoding="utf-8")
+        self.assertIn('<script src="assets/figures.js"></script>', html_text)
+        self.assertLess(html_text.index("assets/app.js"), html_text.index("assets/figures.js"))
+        self.assertIn('<code class="language-mermaid">', html_text)     # 静的版ではコードのまま
+        self.assertIn("frame-src &#x27;self&#x27;", html_text.replace("'", "&#x27;"))
+
+    def test_assets_are_not_scanned_for_machine_info(self):
+        # 同梱物は入力の中身を含まないので、公開の前の検査で調べない（図の描画の設計の 7.2）
+        write(self.wiki, "a.md", page("# A"))
+        seen = []
+        real = core.scan_machine_info
+
+        def spy(files, needles, tokens):
+            seen.extend(files)
+            return real(files, needles, tokens)
+        with mock.patch.object(core, "scan_machine_info", spy):
+            self.build()
+        self.assertIn("a.html", seen)
+        self.assertFalse([n for n in seen if n in core.ASSETS])
+
+
+class UnlistableAssetsTest(TempWiki):
+    """assets/ の一覧を作れなくても閲覧は止めず、図を「読めない」と示す（図の描画の設計の 6.1）。"""
+
+    def test_unlistable_assets_marks_figures_unreadable(self):
+        write(self.wiki, "concepts/p.md", page("# P\n\n![図](../assets/p-01.svg)\n"))
+        (self.wiki / "assets").mkdir()
+        (self.wiki / "assets" / "p-01.svg").write_bytes(SVG.encode("utf-8"))
+        real = os.scandir
+        blocked = self.wiki / "assets"
+
+        def scandir(path="."):
+            if Path(path) == blocked:
+                raise PermissionError("denied")
+            return real(path)
+        with mock.patch.object(os, "scandir", scandir):
+            snap = core.take_snapshot(self.wiki)
+        c = core.Core(snap)
+        self.assertIn({"kind": "assets_unlistable", "target": "assets"}, c.diagnostics)
+        self.assertIn({"kind": "asset_unreadable", "page": "concepts/p", "target": "assets/p-01.svg"}, c.diagnostics)
+        self.assertNotEqual(snap.signature, core.signature(self.wiki))   # 一覧を作れるようになれば作り直す
 
 
 if __name__ == "__main__":

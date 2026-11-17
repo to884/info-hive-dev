@@ -1,0 +1,98 @@
+{
+  "note": "統合中に手元で実行したプラグイン自身のCI手順。最終コミット全体はGitHub CIで確かめる。test_loop.py は別に実行して成功した。",
+  "plugin_checks": [
+    {
+      "check": 0,
+      "exit_code": 0,
+      "test_counts": [],
+      "tail": ""
+    },
+    {
+      "check": 1,
+      "exit_code": 0,
+      "test_counts": [],
+      "tail": "61 ファイルを検査した。encoding の付け忘れはない。\n"
+    },
+    {
+      "check": 2,
+      "exit_code": 0,
+      "test_counts": [
+        "Ran 45 tests in 20.856s"
+      ],
+      "tail": "..............追加・変更された 2 件のセクションを intfloat/multilingual-e5-small で埋め込む……\n.追加・変更された 2 件のセクションを intfloat/multilingual-e5-small で埋め込む……\n追加・変更された 1 件のセクションを intfloat/multilingual-e5-small で埋め込む……\n.追加・変更された 1 件のセクションを intfloat/multilingual-e5-small で埋め込む……\n.追加・変更された 2 件のセクションを intfloat/multilingual-e5-small で埋め込む……\n............................\n----------------------------------------------------------------------\nRan 45 tests in 20.856s\n\nOK\n"
+    },
+    {
+      "check": 3,
+      "exit_code": 0,
+      "test_counts": [
+        "Ran 116 tests in 99.048s"
+      ],
+      "tail": "....................................................................................................................\n----------------------------------------------------------------------\nRan 116 tests in 99.048s\n\nOK\n"
+    },
+    {
+      "check": 4,
+      "exit_code": 0,
+      "test_counts": [],
+      "tail": "_alias_conflicts\n  PASS  lint    1                      summary counts fullwidth_colon_keys\n  PASS  lint    1                      summary counts ideographic_comma_lists\n  PASS  lint    1                      summary counts fullwidth_link_syntax\n\nsearch: NFD filename resolves NFC links\n  PASS  search  True                   links from 目次 resolve to NFC slug\n  PASS  search  True                   links from 索引 resolve to NFC slug\n  PASS  search  True                   --backlinks ガイド finds NFC and NFD linkers\n\nstats: NFC and NFD links counted together\n  PASS  stats   True                   hub count for [[ガイド]] is 5\n\ngraph: NFD filename gets mentions edges from NFC links\n  PASS  graph   True                   node for NFD file is found by its NFC slug\n  PASS  graph   True                   目次 -> ガイド mentions edge\n  PASS  graph   True                   索引 -> ガイド mentions edge\n\nlint: NFC and NFD files with the same name are duplicate slugs\n  PASS  lint    True                   one duplicate-slug finding for ガイド\n  PASS  lint    True                   finding lists both on-disk paths\n  PASS  lint    True                   finding is marked as a normalization collision\n\n\n113/113 passed\n"
+    },
+    {
+      "check": 5,
+      "exit_code": 0,
+      "test_counts": [],
+      "tail": "ki/assets/\n  = raw/\n  = raw/assets/\n  = wiki\\SCHEMA.md\n  = wiki\\index.md\n  = wiki\\log.md\n  = wiki\\.page-template.md\n  = wiki\\.experience-template.json\n  = wiki\\.pattern-template.md\n  = wiki\\.evolution\\README.md\n  = wiki\\graph\\ontology.yaml\n  = wiki\\graph\\README.md\n  = wiki\\graph\\.gitignore\n  = wiki\\.wiki-cache\\.gitignore\n\n================================================================\nUpgrade required: C:\\UserData\\toshiki\\Temp\\tmpk8mo772z\\wiki\\SCHEMA.md\n================================================================\nこの SCHEMA.md には、新しいバージョンのプラグインで加わったセクションや方針のマーカーが欠けている。\n下の項目を手作業でマージする。\nSCHEMA.md はユーザーと一緒に改訂していくものなので、このスクリプトは上書きしない。\n\n欠けているセクション:\n  - [0.8.0] ソースの要約ページの主張と行き先の表\n  - [3.2.0] 任意の経験の記録と、テストで確かめるスキルの改良\n  - [0.3.0] 任意のグラフのメタデータ（frontmatter の graph: キー）\n  - [0.3.0] グラフ層（正本と生成物の扱いの方針）\n  - [0.3.0] グラフの lint と抽出の頻度（lint の頻度の節）\n  - [2.0.0] 検索（セクション検索とキャッシュ）\n  - [3.0.0] ローカルの埋め込み検索（FastEmbed と sqlite-vec）\n\n参照するテンプレート: C:\\Works\\info-hive-dev\\.claude\\worktrees\\adr-0029-impl\\info-hive-wiki\\skills\\info-hive\\assets\\SCHEMA.md.template\nSCHEMA.md をテンプレートと比べ、欠けているセクションを写す。\n/wiki:upgrade を実行すれば、Claude が編集を対話しながら提案する\n（1 セクションずつ提案し、黙って書き換えることはない）。\n評価ループのライフサイクル、却下、復旧、分離、検証、パイロットの契約: PASS\n"
+    },
+    {
+      "check": 6,
+      "exit_code": 0,
+      "test_counts": [],
+      "tail": "9 種類のアダプターのプロトコル、中断に耐える記録、不明な使用量、リクエスト前の USD の予約: PASS\n"
+    },
+    {
+      "check": 7,
+      "exit_code": 0,
+      "test_counts": [],
+      "tail": "| 方式    | recall@5 | recall@10 | mrr | fp_rate |\n|---------|----------|----------|----------|----------|\n| page    | 0.630 | 0.630 | 0.630 | 0.000 |\n| section | 0.630 | 0.630 | 0.630 | 0.000 |\n| hybrid  | 0.815 | 0.926 | 0.721 | 0.000 |\n\nキャッシュ: 一致\nゲート: 合格（section/page と hybrid の検索品質）\n基準値: 合格（page、section、hybrid は en.json から 0.05 以内）\n"
+    },
+    {
+      "check": 8,
+      "exit_code": 0,
+      "test_counts": [],
+      "tail": "| 方式    | recall@5 | recall@10 | mrr | fp_rate |\n|---------|----------|----------|----------|----------|\n| page    | 0.972 | 0.972 | 0.922 | 0.000 |\n| section | 0.972 | 0.972 | 0.901 | 0.000 |\n| hybrid  | 0.993 | 1.000 | 0.954 | 0.000 |\n\nキャッシュ: 一致\nゲート: 合格（section/page と hybrid の検索品質）\n基準値: 合格（page、section、hybrid は ja.json から 0.05 以内）\n"
+    },
+    {
+      "check": 9,
+      "exit_code": 0,
+      "test_counts": [
+        "Ran 43 tests in 171.826s"
+      ],
+      "tail": "3.13-windows-x86_64-none\\Lib\\http\\server.py\", line 436, in handle\n    self.handle_one_request()\n    ~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\Lib\\http\\server.py\", line 424, in handle_one_request\n    method()\n    ~~~~~~^^\n  File \"C:\\Works\\info-hive-dev\\.claude\\worktrees\\adr-0029-impl\\info-hive-wiki\\eval\\decisions\\fake_backend.py\", line 134, in do_POST\n    self.wfile.write(data.encode(\"utf-8\"))\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\toshiki\\AppData\\Roaming\\uv\\python\\cpython-3.13-windows-x86_64-none\\Lib\\socketserver.py\", line 845, in write\n    self._sock.sendall(b)\n    ~~~~~~~~~~~~~~~~~~^^^\nConnectionAbortedError: [WinError 10053] 確立された接続がホスト コンピューターのソウトウェアによって中止されました。\n----------------------------------------\n...判定レイヤー: 関連度のゲートが失敗したので、処理を通す（fail-open）。invalid_answer: relevant の回答の選択肢 'yes' は未知である\n.判定レイヤー: 関連度のゲートが失敗したので、処理を通す（fail-open）。unavailable: バックエンドが設定されていない。INFO_HIVE_DECISIONS で選ぶ\n..........判定レイヤー: 関連度のゲートが失敗したので、処理を通す（fail-open）。invalid_answer: relevant の回答の A の確率が無効である: nan\n..............\n----------------------------------------------------------------------\nRan 43 tests in 171.826s\n\nOK\n"
+    }
+  ],
+  "related_regression": {
+    "commit": "0e1f7a9e43931f1a945a5549ee4262d571a8e265",
+    "tests": 242,
+    "skipped": 8,
+    "result": "pass"
+  },
+  "later_regression": [
+    {
+      "commit": "8b69eb39b673e69221d6924ece6e25ea1c89f5e1",
+      "tests": 262,
+      "skipped": 10,
+      "result": "pass"
+    },
+    {
+      "commit": "8b69eb39b673e69221d6924ece6e25ea1c89f5e1",
+      "suite": "eval/scripts",
+      "tests": 116,
+      "result": "pass"
+    },
+    {
+      "commit": "88a68f3d225d22aace62819793ec0a05ed0de726",
+      "suite": "test_wiki_links",
+      "tests": 73,
+      "skipped": 4,
+      "result": "pass"
+    }
+  ]
+}

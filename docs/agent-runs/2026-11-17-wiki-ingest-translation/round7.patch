@@ -1,0 +1,108 @@
+diff --git a/.codex-plugin/plugin.json b/.codex-plugin/plugin.json
+index d01063b..6b4dc5b 100644
+--- a/.codex-plugin/plugin.json
++++ b/.codex-plugin/plugin.json
+@@ -5,3 +5 @@
+-  "author": {
+-    "name": "to884"
+-  },
++  "author": { "name": "to884" },
+@@ -15,6 +13 @@
+-      "args": [
+-        "run",
+-        "--quiet",
+-        "--script",
+-        "skills/info-hive/scripts/wiki_mcp_launch.py"
+-      ],
++      "args": ["run", "--quiet", "--script", "skills/info-hive/scripts/wiki_mcp_launch.py"],
+@@ -22,3 +15 @@
+-      "env": {
+-        "PYTHONUTF8": "1"
+-      },
++      "env": { "PYTHONUTF8": "1" },
+@@ -26,16 +17,4 @@
+-        "INFO_HIVE_DATA_DIR",
+-        "INFO_HIVE_MCP_IDLE_SECONDS",
+-        "INFO_HIVE_EMBED_THREADS",
+-        "FASTEMBED_CACHE_PATH",
+-        "HF_HOME",
+-        "HF_HUB_OFFLINE",
+-        "UV_SYSTEM_CERTS",
+-        "UV_NATIVE_TLS",
+-        "UV_PYTHON",
+-        "UV_PYTHON_DOWNLOADS",
+-        "UV_CACHE_DIR",
+-        "SSL_CERT_FILE",
+-        "SSL_CERT_DIR",
+-        "HTTP_PROXY",
+-        "HTTPS_PROXY",
+-        "NO_PROXY"
++        "INFO_HIVE_DATA_DIR", "INFO_HIVE_MCP_IDLE_SECONDS", "INFO_HIVE_EMBED_THREADS",
++        "FASTEMBED_CACHE_PATH", "HF_HOME", "HF_HUB_OFFLINE",
++        "UV_SYSTEM_CERTS", "UV_NATIVE_TLS", "UV_PYTHON", "UV_PYTHON_DOWNLOADS", "UV_CACHE_DIR",
++        "SSL_CERT_FILE", "SSL_CERT_DIR", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY"
+@@ -52,4 +31 @@
+-    "capabilities": [
+-      "Read",
+-      "Write"
+-    ],
++    "capabilities": ["Read", "Write"],
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 80df74d..bfca8c8 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -15 +15 @@
+-- 短い中国語や漢字の言い換えも確認の対象にした。漢字の多い日本語は `japanese_text` として確認できる。委譲先の `done` は、実際の検査の警告が空で確認した対象が 0 件の場合だけ受理する。自分で実行する場合の自己確認と、委譲先から親への確認の違いも明記した。
++- 短い中国語や漢字の言い換え、同じ段落に混ざる漢字の文と長い漢字のまとまりも確認の対象にした。漢字の多い日本語は `japanese_text` として確認できる。委譲先の `done` は、実際の検査の警告が空で確認した対象が 0 件の場合だけ受理する。自分で実行する場合の自己確認と、委譲先から親への確認の違いも明記した。
+diff --git a/skills/info-hive/references/web-raw.md b/skills/info-hive/references/web-raw.md
+index 862e00d..df416c8 100644
+--- a/skills/info-hive/references/web-raw.md
++++ b/skills/info-hive/references/web-raw.md
+@@ -17 +17 @@ W8 の `ok: true` は検査でエラーがなかったという意味で、raw
+-翻訳の検査は、コード・画像・インラインのコード・URL を除く文字をブロックごとに照合する。かな・漢字以外の文字体系を Unicode の語と字母で調べ、文章の全体が外国語なら 2 語以上または字母 20 字以上、日本語の中の外国語は 4 語以上または字母 20 字以上を確認の対象にする。文末、大小文字、原文との完全一致には依存しない。漢字があり、かなの文字数がかなと漢字の合計の 35% 未満のブロックも、短いものを含めて確認の対象にする。段落中では、かなを含まない漢字の文も確認する。小数点は文の区切りにしない。原文に近い漢字のまとまりも確認する。これは候補を拾う条件で、日本語や中国語を確定する判定ではない。日本語の見出しなども対象になり得る。図の補足は本文に数えない。
++翻訳の検査は、コード・画像・インラインのコード・URL を除く文字をブロックごとに照合する。かな・漢字以外の文字体系を Unicode の語と字母で調べ、文章の全体が外国語なら 2 語以上または字母 20 字以上、日本語の中の外国語は 4 語以上または字母 20 字以上を確認の対象にする。文末、大小文字、原文との完全一致には依存しない。漢字があり、かなの文字数がかなと漢字の合計の 35% 未満のブロックも、短いものを含めて確認の対象にする。段落中では、かなを含まない漢字の文も確認する。数字の間のピリオドは文の区切りにしない。区切りや別のかなの語により薄まらないよう、8 字以上連続する漢字も確認する。原文に近い漢字のまとまりも確認する。これは候補を拾う条件で、日本語や中国語を確定する判定ではない。日本語の見出しなども対象になり得る。図の補足は本文に数えない。
+@@ -19 +19 @@ W8 の `ok: true` は検査でエラーがなかったという意味で、raw
+-未解決の候補は `translation_review_required` のエラーであり、`--accept-warnings` では通らない。文章の訳し忘れは訳す。名前や表示文などを正しく保持する場合は、次の確認の記録で対象ごとに解決する。`translation.pending_reviews` が 1 以上なら未完了である。同一文内で外国語の漢字の語に日本語の助詞を混ぜた形などは、かなの比率によって検出しない。検査は意味の正しい翻訳や完全性を保証しないので、候補のブロック全体と訳文を読み直す。
++未解決の候補は `translation_review_required` のエラーであり、`--accept-warnings` では通らない。文章の訳し忘れは訳す。名前や表示文などを正しく保持する場合は、次の確認の記録で対象ごとに解決する。`translation.pending_reviews` が 1 以上なら未完了である。同一文内で外国語の漢字の語に日本語の助詞を混ぜた形などは、ブロックのかなの比率、文中のかなの有無、漢字の連続の長さによって検出しない。検査は意味の正しい翻訳や完全性を保証しないので、候補のブロック全体と訳文を読み直す。
+diff --git a/skills/info-hive/scripts/wiki_rawcheck.py b/skills/info-hive/scripts/wiki_rawcheck.py
+index 68070fc..438d1f2 100644
+--- a/skills/info-hive/scripts/wiki_rawcheck.py
++++ b/skills/info-hive/scripts/wiki_rawcheck.py
+@@ -963 +963 @@ def translation_block(source: str, output: str, node_type: str) -> tuple[bool, l
+-    out_units = re.split(r"[。！？!?;；\n]+|\.(?=\s|$)", out)
++    out_units = re.split(r"[。！？!?;；:…\n]+|(?<!\d)\.|\.(?!\d)", out)
+@@ -969,0 +970,11 @@ def translation_block(source: str, output: str, node_type: str) -> tuple[bool, l
++    # 区切り記号や別のかなの語が混ざっても、長い漢字のまとまりを薄めない。
++    # 日本語の複合語も候補になるので、意味は対象ごとの確認に委ねる。
++    han_run = []
++    for character in out + " ":
++        if is_han(character):
++            han_run.append(character)
++        else:
++            text = "".join(han_run)
++            if len(han_run) >= 8 and not any(text in passage for passage in passages):
++                passages.append(text)
++            han_run = []
+diff --git a/docs/plans/wiki-ingest-translation-completion-2026-11-17.md b/docs/plans/wiki-ingest-translation-completion-2026-11-17.md
+index 7e449b2..6d805b2 100644
+--- a/docs/plans/wiki-ingest-translation-completion-2026-11-17.md
++++ b/docs/plans/wiki-ingest-translation-completion-2026-11-17.md
+@@ -19 +19 @@
+-文字数の割合や固有名詞の推定から翻訳済みとは判断しない。かな・漢字以外の文字体系を Unicode の単語と字母で調べる。文章の全体が外国語なら 2 語以上または字母 20 字以上、日本語の中の外国語は 4 語以上または字母 20 字以上を確認の対象にする。文末、大小文字、原文との完全一致に依存しない。漢字があり、かなの文字数がかなと漢字の合計の 35% 未満のブロックも、短いものを含めて確認する。段落中では、かなを含まない漢字の文も確認する。小数点は文の区切りにしない。原文に近い漢字のまとまりも確認する。日本語の見出しなども該当し得るので、この条件で言語や訳の正しさを確定しない。コード、画像、インラインのコード、URL、図の補足は文章の検出に数えない。
++文字数の割合や固有名詞の推定から翻訳済みとは判断しない。かな・漢字以外の文字体系を Unicode の単語と字母で調べる。文章の全体が外国語なら 2 語以上または字母 20 字以上、日本語の中の外国語は 4 語以上または字母 20 字以上を確認の対象にする。文末、大小文字、原文との完全一致に依存しない。漢字があり、かなの文字数がかなと漢字の合計の 35% 未満のブロックも、短いものを含めて確認する。段落中では、かなを含まない漢字の文も確認する。数字の間のピリオドは文の区切りにしない。区切りや別のかなの語により薄まらないよう、8 字以上連続する漢字も確認する。原文に近い漢字のまとまりも確認する。日本語の見出しなども該当し得るので、この条件で言語や訳の正しさを確定しない。コード、画像、インラインのコード、URL、図の補足は文章の検出に数えない。
+@@ -39 +39 @@
+-短い語や検出条件に当たらない言語の形の見逃しはあり得る。同一文で外国語の漢字の語を日本語の助詞に混ぜた形（例: `引擎は搜索链接します`）も、かなの比率によっては検出しない。訳文の読み直しを残す。比較元やプログラム自体を任意に改ざんする実行者への防御は目的としない。`fetch.json`、`fetched.md`、`cleaned.md`、`removed.json` を手作業で作ったり変えたりして検査済みにしてはならない。
++短い語や検出条件に当たらない言語の形の見逃しはあり得る。同一文で外国語の漢字の語を日本語の助詞に混ぜた形（例: `引擎は搜索链接します`）も、ブロックのかなの比率、文中のかなの有無、漢字の連続の長さによっては検出しない。訳文の読み直しを残す。比較元やプログラム自体を任意に改ざんする実行者への防御は目的としない。`fetch.json`、`fetched.md`、`cleaned.md`、`removed.json` を手作業で作ったり変えたりして検査済みにしてはならない。
+diff --git a/tests/wiki/test_wiki_web_check.py b/tests/wiki/test_wiki_web_check.py
+index e5adc0a..4527ebf 100644
+--- a/tests/wiki/test_wiki_web_check.py
++++ b/tests/wiki/test_wiki_web_check.py
+@@ -2509 +2509 @@ class TranslationReviewContractTest(RawCheckCase):
+-        for separator in ("。", "！", "？", ";", "\n"):
++        for separator in ("。", "！", "？", ";", "\n", ".", "．", "：", "…", "、", "——", " "):
+@@ -2514,0 +2515,5 @@ class TranslationReviewContractTest(RawCheckCase):
++    def test_han_run_with_a_katakana_name_is_still_reviewed(self):
++        self.prepare("The system retrieves documents using existing links.\n")
++        self.write_raw("この記事では検索について詳しく説明します。系统使用ソフト现有链接检索文档。\n", fm=FM_T)
++        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "translation_review_required")
++

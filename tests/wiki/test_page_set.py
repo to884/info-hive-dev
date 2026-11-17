@@ -50,14 +50,15 @@ PAGES = [
     "top.md",
     "notes/README.md",       # 最上位でない README.md はページ
     "notes/assets/d.md",     # 最上位でない assets/ はページ
-    "concepts/.NET/interop.md",  # 利用者が名付けた . で始まるディレクトリはページ（名前で除くものだけ除く）
-    ".archive/old.md",
 ]
 # ページとして数えないもの
 NOT_PAGES = [
     "SCHEMA.md", "index.md", "log.md", "README.md",
     "indexes/concepts.md", "graph/README.md", "raw/x.md", "assets/x.md",
     ".evolution/x.md", ".wiki-cache/x.md", "concepts/.hidden.md",
+    # 名前が . で始まる項目の下は、どの深さでも記事でない（ADR-0029 の作者の決定の 6。wiki 0.9.0 から 0.25 までは
+    # 利用者が名付けた . で始まるディレクトリの下もページだった）
+    "concepts/.NET/interop.md", ".archive/old.md",
 ]
 
 

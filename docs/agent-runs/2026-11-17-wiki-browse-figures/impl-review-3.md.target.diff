@@ -1,0 +1,528 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index 2946998..ca97291 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -60,7 +60,7 @@
+ - リリースのコミットが `info-hive-wiki` の `main` に入り、`vX.Y.Z` のタグが push され、GitHub リリースが作成され、マーケットプレイスからの導入を確かめるまでは、リリースの完了を報告しない。
+ 
+ ### Browse UI constraints
+-The /wiki:browse page runs under a strict CSP (ADR-0010). Do not use inline style attributes or inline scripts. Use classes and token-based CSS.
++The /wiki:browse page runs under a strict CSP (ADR-0010). Do not use inline style attributes or inline scripts. Use classes and token-based CSS. The CSP is chosen per response (page, figure frame, svg) in ADR-0030; only the Mermaid frame document may use `style-src 'unsafe-inline'`.
+ 
+ ## rag プラグイン（info-hive-rag）の開発
+ 
+diff --git a/docs/adr/0001-local-only-server-is-not-hosted-wiki.md b/docs/adr/0001-local-only-server-is-not-hosted-wiki.md
+index a42cbfa..6fb5142 100644
+--- a/docs/adr/0001-local-only-server-is-not-hosted-wiki.md
++++ b/docs/adr/0001-local-only-server-is-not-hosted-wiki.md
+@@ -43,6 +43,7 @@ info-hive は、移植元の llm-wiki-plugin から「ホスト型 wiki」を削
+ 
+ - `/wiki:browse` は、ループバックのサーバーを使う構成を採れる（ADR-0002）。
+ - サーバーを作るときは、上の 3 条件を守るための対策を実装する。待ち受けのアドレスを 127.0.0.1 に固定すること、起動ごとのトークン、Host ヘッダーの確認、書き込みの API を持たないことである（`docs/research/llm-wiki-browse-options.md` 第6.8節）。
++  - 2026-11-17 追記: ADR-0030 は、Mermaid の図の枠の同梱物（`/_frame/<版>/` の 3 つの固定のファイル）だけを、トークンなしで配る例外を足した。wiki の中身と状態は返さず、127.0.0.1 への固定、Host ヘッダーの確認、書き込みの API を持たないことは保つ。
+ - `info-hive-wiki/UPSTREAM.md` の方針 G の説明は変えない。移植元から削った機能の説明としては正しいためである。
+ - 今後、外部に公開する機能を検討するときは、本 ADR の条件に照らして判断する。条件を外れるなら、方針 G を見直す ADR を新たに書く。
+ 
+diff --git a/docs/adr/0002-wiki-browse-uses-on-demand-local-server.md b/docs/adr/0002-wiki-browse-uses-on-demand-local-server.md
+index aefbb0b..e733cbd 100644
+--- a/docs/adr/0002-wiki-browse-uses-on-demand-local-server.md
++++ b/docs/adr/0002-wiki-browse-uses-on-demand-local-server.md
+@@ -78,6 +78,7 @@ info-hive が作る LLM Wiki は、YAML の frontmatter を持つ Markdown の
+ - PoC で、第 1 段階の合格の目安を満たせない
+ - 拡張の 4 方向のどれも使わないと決まる。その場合は、静的 HTML（構成 A）で足りる
+ - 自前の画面の保守の負担が、見積もりを大きく超える。決定行列では、開発と保守の負担の重みを 31% 以上にすると、現状維持が 1 位になる
++- 2026-11-17 追記（ADR-0005 が残した宿題）: 図の表示は ADR-0030 で足した。生の HTML（`<svg>` を含む）を出さない方針は変えていない。
+ 
+ ## 参照
+ 
+diff --git a/docs/adr/0005-wiki-figures-use-mermaid-and-svg.md b/docs/adr/0005-wiki-figures-use-mermaid-and-svg.md
+index b96a13c..fc8c344 100644
+--- a/docs/adr/0005-wiki-figures-use-mermaid-and-svg.md
++++ b/docs/adr/0005-wiki-figures-use-mermaid-and-svg.md
+@@ -58,6 +58,7 @@ wiki の知識ページは文章だけで書かれてきた。`page-conventions.
+ - 要件定義書に §6.5（F-W01〜F-W06）と AC-P20 を足し、D-03 に browse の将来の作業を書き添えた。
+ - 実装では次を直す。`page-conventions.md` に図表の決まりを書く。`wiki_lint.py` の大きさの判定からフェンスの中身と画像の行を除き、`![alt](assets/x.svg)` の参照先の存在を確かめ、`wiki/assets/` を lint の対象から除く。`wiki_search.py` でフェンスの中身を索引から除くかを決める。`--suggest-pages` の走査から alt テキストとフェンスの中身を除く。`init_wiki.py` で `wiki/assets/` を作る。`.gitattributes` に `*.svg` を足す。
+ - 2026-11-06 追記: 上の決定の表の `![説明](assets/<ページのスラッグ>-NN.svg)` は、`wiki/<種類>/` にあるページからは `wiki/<種類>/assets/` を指し、表示されない（ADR-0008 の「影響」の指摘）。実装では、ページからの相対パス `../assets/<ページのスラッグ>-NN.svg` で参照し、lint もページの位置から解決するようにした（info-hive-wiki の `feature/wiki-figures`）。svg を `wiki/assets/` に置く決定は変えていない。また、`wiki_search.py` で索引からフェンスの中身を除く変更は、wiki の MCP サーバーと検索の移行の作業に回した。
++- 2026-11-17 追記: 決定の表の「browse での表示」の行（将来の作業）は、ADR-0030 で置き換わった。browse は `wiki/assets/` の直下の svg を `<img>` で表示し、mermaid はサーバーの方式でだけ、sandbox の枠で描いて画像で見せる。mermaid.js は `@mermaid-js/tiny` を同梱した。
+ - `/wiki:browse` の実装では、mermaid と svg は描かれない。ADR-0002 の「見直す条件」に、図の表示を足すときの判断を書く必要がある。
+ 
+ ## 見直す条件
+diff --git a/docs/adr/0010-wiki-browse-separates-core-from-delivery.md b/docs/adr/0010-wiki-browse-separates-core-from-delivery.md
+index efa43c7..43364eb 100644
+--- a/docs/adr/0010-wiki-browse-separates-core-from-delivery.md
++++ b/docs/adr/0010-wiki-browse-separates-core-from-delivery.md
+@@ -92,7 +92,7 @@ ADR-0002 の「作る順序」を次のように改める。どの方式に決
+ 4. 選んだ方式のアダプタを作る。最初は構成 B のサーバーとする
+ 5. 検索、全体のグラフ、RAG のデータ源を足す
+ 
+-mermaid と `wiki/assets/` の svg の表示は、ADR-0005 のとおり第 1 段階に含めない。
++mermaid と `wiki/assets/` の svg の表示は、ADR-0005 のとおり第 1 段階に含めない（2026-11-17 追記: ADR-0030 で足した。mermaid はサーバーの方式でだけ描き、そのために iframe と `postMessage` を、classic な `<script src>` で読む `figures.js` が使う）。
+ 
+ ## 理由
+ 
+diff --git a/info-hive-wiki b/info-hive-wiki
+index fd36292..07aa777 160000
+--- a/info-hive-wiki
++++ b/info-hive-wiki
+@@ -1 +1 @@
+-Subproject commit fd3629204445049fbe1482c19df42b8ddbda1fff
++Subproject commit 07aa777b5396c915b3203a91f48b2a36737d10a9-dirty
+diff --git a/tests/wiki/browse/figures.test.mjs b/tests/wiki/browse/figures.test.mjs
+index 09cca56..8ff79e1 100644
+--- a/tests/wiki/browse/figures.test.mjs
++++ b/tests/wiki/browse/figures.test.mjs
+@@ -62,6 +62,40 @@ put("concepts/図.md", ["---", 'type: "concept"', "---", "", "# 図", "",
+   "大きさのない図。", "", "![大きさのない図](../assets/無寸.svg)", "",
+   "ない図。", "", "![ない図の説明](../assets/ない.svg)", ""].join("\n"));
+ 
++// Mermaid の図（ADR-0030、図の描画の設計の 7）。描ける 3 つと、描けない 3 つ（構文の誤り、tiny にないマインドマップ、
++// 外の画像を使う図）
++const FENCE = "```";
++put("concepts/流れ.md", ["---", 'type: "concept"', "---", "", "# 流れ", "",
++  FENCE + "mermaid", "flowchart LR", '  予測["予測"] --> 更新["更新<br>（観測で直す）"]', "  観測 --> 更新", FENCE, "",
++  FENCE + "mermaid", "sequenceDiagram", "  利用者->>サーバー: 要求する", "  サーバー-->>利用者: 返す", FENCE, "",
++  FENCE + "mermaid", "flowchart TD", "  accTitle: 取り込みの流れ", "  accDescr: raw を作り、ページを書く", "  raw --> ページ", FENCE, "",
++  FENCE + "mermaid", "flowchart LR", "  A -->", FENCE, "",
++  FENCE + "mermaid", "mindmap", "  root((wiki))", "    取り込み", FENCE, "",
++  FENCE + "mermaid", "flowchart LR", '  X@{ img: "https://example.invalid/x.png", label: "画像", pos: "t", h: 40, constraint: "on" }', FENCE, "",
++  FENCE + "python", 'print("mermaid ではない")', FENCE, ""].join("\n"));
++const MERMAID_OK = 3;
++const MERMAID_NG = 3;
++put("concepts/一つ.md", ["# 一つ", "", FENCE + "mermaid", "flowchart LR", "  a --> b", FENCE, ""].join("\n"));
++
++// 枠の寿命の確かめに使う、偽の枠のスクリプト（mermaid-frame.js の応答を差し替える）
++const FAKE_SVG = (fill) => `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="40" height="20" fill="${fill}"/></svg>`;
++const FAKE_FRAMES = {
++  // result を 2 回送る。親は 1 回目だけを使い、2 回目は処理しない
++  twice: `addEventListener("message", function (e) {
++    if (!e.data || e.data.type !== "render") return;
++    parent.postMessage({ type: "result", ok: true, svg: ${JSON.stringify(FAKE_SVG("#000001"))}, w: 40, h: 20 }, "*");
++    parent.postMessage({ type: "result", ok: true, svg: ${JSON.stringify(FAKE_SVG("#000002"))}, w: 40, h: 20 }, "*");
++  }); parent.postMessage({ type: "ready" }, "*");`,
++  // 応答しない
++  silent: `parent.postMessage({ type: "ready" }, "*");`,
++  // 暗い配色のときだけ失敗する
++  failDark: `addEventListener("message", function (e) {
++    if (!e.data || e.data.type !== "render") return;
++    if (e.data.theme && e.data.theme.darkMode) parent.postMessage({ type: "result", ok: false, error: "x" }, "*");
++    else parent.postMessage({ type: "result", ok: true, svg: ${JSON.stringify(FAKE_SVG("#000003"))}, w: 40, h: 20 }, "*");
++  }); parent.postMessage({ type: "ready" }, "*");`,
++};
++
+ function python(args, opts = {}) {
+   return spawnSync(PYTHON[0], [...PYTHON.slice(1), "-X", "utf8", SCRIPT, ...args],
+     { encoding: "utf8", env: { ...process.env, INFO_HIVE_DATA_DIR: data }, ...opts });
+@@ -89,8 +123,217 @@ function startServer() {
+ const PROBE = () => {
+   window.__violations = [];
+   document.addEventListener("securitypolicyviolation", (e) => window.__violations.push(e.violatedDirective + " " + e.blockedURI));
++  // 同時に生きている枠の数の最大（図の描画の設計の 7.4 の 3）
++  window.__maxFrames = 0;
++  if (window === window.top) {
++    new MutationObserver(() => {
++      window.__maxFrames = Math.max(window.__maxFrames, document.querySelectorAll("iframe.fig-frame").length);
++    }).observe(document, { childList: true, subtree: true });
++  }
+ };
+ 
++// 2 枚の PNG の違う画素の割合。端数の位置で 1 px ずれることがあるので、1 px までずらした中でいちばん小さい値をとる
++function diffRatio(a, b) {
++  const pa = PNG.sync.read(a), pb = PNG.sync.read(b);
++  if (Math.abs(pa.width - pb.width) > 2 || Math.abs(pa.height - pb.height) > 2) return 1;
++  const w = Math.min(pa.width, pb.width) - 1, h = Math.min(pa.height, pb.height) - 1;
++  let best = 1;
++  for (const [ax, ay, bx, by] of [[0, 0, 0, 0], [1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [1, 1, 0, 0], [0, 0, 1, 1]]) {
++    let bad = 0;
++    for (let y = 0; y < h - 1; y++) {
++      for (let x = 0; x < w - 1; x++) {
++        const i = ((y + ay) * pa.width + x + ax) * 4, j = ((y + by) * pb.width + x + bx) * 4;
++        if (Math.max(Math.abs(pa.data[i] - pb.data[j]), Math.abs(pa.data[i + 1] - pb.data[j + 1]),
++          Math.abs(pa.data[i + 2] - pb.data[j + 2])) > 48) bad++;
++      }
++    }
++    best = Math.min(best, bad / (w * h));
++  }
++  return best;
++}
++
++// 厳格な CSP のページの画像と、CSP のないページの同じ data: の画像を撮り比べる。<style> を抜いた版とも比べる
++async function sameAsControl(context, img) {
++  const src = await img.getAttribute("src");
++  // 図の地は透明なので、対照のページの地を、入れ物（Card）の地の色にそろえる
++  const [w, h, bg] = await img.evaluate((i) => [i.width, i.height, getComputedStyle(i.parentElement).backgroundColor]);
++  const a = await img.screenshot();
++  const shot = async (url) => {
++    const p = await context.newPage();
++    await p.setContent(`<!doctype html><html><body style="margin:0;background:${bg}"><img id="c" width="${w}" height="${h}"></body></html>`);
++    await p.$eval("#c", (i, u) => new Promise((res) => { i.onload = res; i.onerror = res; i.src = u; }), url);
++    const buf = await (await p.$("#c")).screenshot({ omitBackground: false });
++    await p.close();
++    return buf;
++  };
++  const svg = decodeURIComponent(src.slice(src.indexOf(",") + 1));
++  const stripped = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg.replace(/<style[\s\S]*?<\/style>/gi, ""));
++  return { same: diffRatio(a, await shot(src)), stripped: diffRatio(a, await shot(stripped)) };
++}
++
++// Mermaid の図がすべて決着した（画像か警告になり、枠が残っていない）
++function settled(expected) {
++  return (n) => {
++    const pres = [...document.querySelectorAll("#_body pre > code.language-mermaid")].map((c) => c.parentNode);
++    const done = pres.filter((p) => p.closest("details.wiki-fig-source") ||
++      (p.previousElementSibling && p.previousElementSibling.classList.contains("wiki-fig-error")));
++    return pres.length === n && done.length === n && document.querySelectorAll("iframe.fig-frame").length === 0;
++  };
++}
++
++async function mermaidScenario(browser, base, origin, mode) {
++  const context = await browser.newContext({ viewport: { width: 1200, height: 900 }, deviceScaleFactor: 1 });
++  const external = [];
++  const requested = [];
++  await context.route("**/*", (route) => {
++    const url = route.request().url();
++    requested.push(url.slice(0, 200));
++    if (url.startsWith("file:") || url.startsWith("data:") || url.startsWith(origin)) return route.continue();
++    external.push(url);
++    return route.abort();
++  });
++  await context.addInitScript(PROBE);
++  const page = await context.newPage();
++  const errors = [];
++  page.on("console", (m) => { if (m.type() === "error") errors.push(m.text().slice(0, 200)); });
++  page.on("pageerror", (e) => errors.push(String(e).slice(0, 200)));
++  const r = {};
++  await page.goto(base + "concepts/" + encodeURIComponent("流れ") + ".html");
++  if (mode === "static") {
++    await page.waitForTimeout(1500);
++    r.static = await page.evaluate(() => ({
++      frames: document.querySelectorAll("iframe").length, figures: document.querySelectorAll(".wiki-fig").length,
++      codes: document.querySelectorAll("#_body pre > code.language-mermaid").length,
++      styleAttrs: document.querySelectorAll("[style]").length, violations: window.__violations.slice() }));
++    r.tinyRequested = requested.some((u) => u.includes("mermaid"));
++    r.errors = errors;
++    r.external = external;
++    await context.close();
++    return r;
++  }
++  await page.waitForFunction(settled(MERMAID_OK + MERMAID_NG), MERMAID_OK + MERMAID_NG, { timeout: 90000 });
++  await page.waitForTimeout(300);
++  Object.assign(r, await page.evaluate(() => {
++    const ids = [...document.querySelectorAll("[id]")].map((e) => e.id);
++    return {
++      figures: [...document.querySelectorAll('#_body figure.wiki-fig[data-fig="mermaid"]')].map((f) => {
++        const i = f.querySelector("img");
++        return { cls: f.className, alt: i.alt, natural: i.naturalWidth, shown: Math.round(i.getBoundingClientRect().width) };
++      }),
++      sources: [...document.querySelectorAll("#_body details.fui-AccordionItem.wiki-fig-source")].map((d) => [
++        d.open, !!d.querySelector("summary.fui-AccordionHeader__button .fui-AccordionHeader__expandIcon"),
++        !!d.querySelector(".fui-AccordionPanel > pre > code.language-mermaid")]),
++      warnings: [...document.querySelectorAll('#_body .wiki-fig-error.fui-MessageBar[data-intent="warning"]')]
++        .map((b) => b.textContent),
++      pythonUntouched: !!document.querySelector("#_body > pre > code.language-python"),
++      styleAttrs: document.querySelectorAll("[style]").length,
++      dupIds: ids.filter((x, i) => ids.indexOf(x) !== i),
++      violations: window.__violations.slice(),
++      maxFrames: window.__maxFrames,
++    };
++  }));
++  // 撮る前に、コンソールのエラーを数えた（外の画像の図は、枠の中で img-src の違反を出す）
++  r.errors = errors.filter((e) => !e.includes("example.invalid"));
++  // 配色を変えると、すべての図を描き直す。描画の途中で 2 回変えても、生きている枠は 2 つを超えない
++  const before = await page.$eval('#_body figure.wiki-fig[data-fig="mermaid"] img', (i) => i.getAttribute("src"));
++  await page.evaluate(() => {
++    document.documentElement.setAttribute("data-theme", "dark");
++    setTimeout(() => document.documentElement.setAttribute("data-theme", "light"), 30);
++    setTimeout(() => document.documentElement.setAttribute("data-theme", "dark"), 60);
++  });
++  await page.waitForTimeout(200);
++  await page.waitForFunction(settled(MERMAID_OK + MERMAID_NG), MERMAID_OK + MERMAID_NG, { timeout: 90000 });
++  await page.waitForTimeout(300);
++  r.afterTheme = await page.evaluate(() => ({
++    maxFrames: window.__maxFrames,
++    figures: document.querySelectorAll('#_body figure.wiki-fig[data-fig="mermaid"]').length,
++    styleAttrs: document.querySelectorAll("[style]").length,
++    styled: [...document.querySelectorAll("[style]")].map((e) => e.tagName + "." + e.className + " " + e.getAttribute("style")).slice(0, 3),
++  }));
++  r.themeChanged = before !== await page.$eval('#_body figure.wiki-fig[data-fig="mermaid"] img', (i) => i.getAttribute("src"));
++  // 撮るのは、style と違反を数えたあとにする（Chromium は撮るときに入力欄へ空の style を付け、WebKit は CSP の違反を出す）
++  const imgs = await page.$$('#_body figure.wiki-fig[data-fig="mermaid"] img');
++  r.compare = imgs[0] ? await sameAsControl(context, imgs[0]) : null;
++  // 枠を閉じ込めていること: 枠の中からも、枠を直接開いたページからも、トークンの付いたパスを読めない
++  const frameUrl = new URL(`/_frame/${await frameVersion()}/mermaid-frame.html`, origin).href;
++  const secret = new URL("nav.js", page.url()).href;
++  await page.evaluate((u) => new Promise((res) => {
++    const f = document.createElement("iframe");
++    f.id = "probe"; f.className = "fig-frame"; f.setAttribute("sandbox", "allow-scripts"); f.onload = res; f.src = u;
++    document.body.appendChild(f);
++  }), frameUrl);
++  const probe = page.frames().find((f) => f.url() === frameUrl);
++  const tryRead = (f) => f.evaluate((u) => Promise.all([
++    new Promise((res) => {
++      const s = document.createElement("script");
++      s.src = u; s.onload = () => res("読めた"); s.onerror = () => res("止まった");
++      document.head.appendChild(s);
++      setTimeout(() => res("時間切れ"), 3000);
++    }),
++    fetch(u).then(() => "読めた", () => "止まった"),
++    Promise.resolve(document.referrer),
++  ]), secret);
++  r.probe = probe ? await tryRead(probe) : ["枠がない"];
++  const direct = await context.newPage();
++  await direct.goto(frameUrl);
++  r.direct = await tryRead(direct.mainFrame());
++  await direct.close();
++  r.external = external;
++  await context.close();
++  return r;
++}
++
++// 偽の枠で、使い切りのやり取り、時間切れ、描き直しの失敗を確かめる（図の描画の設計の 7.4 の 5〜7）
++async function lifecycleScenario(browser, base, kind) {
++  const context = await browser.newContext({ viewport: { width: 1200, height: 900 } });
++  await context.route("**/mermaid-frame.js", (route) =>
++    route.fulfill({ status: 200, contentType: "text/javascript; charset=utf-8", body: FAKE_FRAMES[kind] }));
++  await context.addInitScript(PROBE);
++  const page = await context.newPage();
++  await page.goto(base + "concepts/" + encodeURIComponent("一つ") + ".html");
++  const state = () => page.evaluate(() => {
++    const img = document.querySelector('#_body figure.wiki-fig[data-fig="mermaid"] img');
++    return { src: img ? decodeURIComponent(img.getAttribute("src")) : null,
++             warning: document.querySelectorAll("#_body .wiki-fig-error").length,
++             preInBody: !!document.querySelector("#_body > pre > code.language-mermaid"),
++             details: document.querySelectorAll("#_body details.wiki-fig-source").length,
++             frames: document.querySelectorAll("iframe").length };
++  });
++  let r;
++  if (kind === "twice") {
++    await page.waitForFunction(() => document.querySelector('#_body figure.wiki-fig[data-fig="mermaid"] img'), null, { timeout: 30000 });
++    await page.waitForTimeout(500);
++    r = await state();
++    r.ok = r.src.includes("#000001") && r.frames === 0;
++  } else if (kind === "silent") {
++    await page.waitForTimeout(5000);
++    const early = await state();
++    await page.waitForFunction(() => document.querySelector("#_body .wiki-fig-error"), null, { timeout: 30000 });
++    r = await state();
++    r.ok = early.warning === 0 && early.frames === 1 && r.warning === 1 && r.frames === 0 && r.preInBody;
++  } else {
++    await page.waitForFunction(() => document.querySelector('#_body figure.wiki-fig[data-fig="mermaid"] img'), null, { timeout: 30000 });
++    await page.evaluate(() => document.documentElement.setAttribute("data-theme", "dark"));
++    await page.waitForFunction(() => document.querySelector("#_body .wiki-fig-error"), null, { timeout: 30000 });
++    r = await state();
++    r.ok = r.src === null && r.warning === 1 && r.details === 0 && r.preInBody && r.frames === 0;
++    await page.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
++    await page.waitForFunction(() => document.querySelector('#_body figure.wiki-fig[data-fig="mermaid"] img'), null, { timeout: 30000 });
++    const back = await state();
++    r.back = back;
++    r.ok = r.ok && back.warning === 0 && back.details === 1 && !back.preInBody;
++  }
++  r.styleAttrs = await page.evaluate(() => document.querySelectorAll("[style]").length);
++  await context.close();
++  return r;
++}
++
++async function frameVersion() {
++  const js = (await import("node:fs")).readFileSync(
++    join(REPO, "info-hive-wiki", "skills", "info-hive", "scripts", "browse_assets", "figures.js"), "utf8");
++  return /var FRAME_VERSION = "([^"]+)";/.exec(js)[1];
++}
++
+ // 画像の中心の画素の色
+ async function centerColor(el) {
+   const png = PNG.sync.read(await el.screenshot());
+@@ -200,6 +443,50 @@ try {
+       } catch (e) {
+         check(false, `${tag}: ${String(e).slice(0, 400)}`);
+       }
++      try {
++        const m = await mermaidScenario(browser, b.base, b.origin, mode);
++        run.mermaid = m;
++        if (mode === "static") {
++          check(m.static.frames === 0 && m.static.figures === 0 && m.static.codes === MERMAID_OK + MERMAID_NG + 0,
++            `${tag}: 静的版で Mermaid に触れた: ${JSON.stringify(m.static)}`);
++          check(!m.tinyRequested, `${tag}: 静的版で Mermaid を読んだ`);
++          check(m.static.styleAttrs === 0 && m.static.violations.length === 0, `${tag}: 静的版の Mermaid のページに style か違反がある`);
++          check(m.errors.length === 0 && m.external.length === 0, `${tag}: 静的版の Mermaid のページのエラーか外への要求: ${m.errors} ${m.external}`);
++        } else {
++          check(m.figures.length === MERMAID_OK, `${tag}: Mermaid の図の数が違う: ${JSON.stringify(m.figures)}`);
++          check(m.figures.every((f) => f.cls === "wiki-fig fui-Card" && f.natural > 0 && f.shown > 0),
++            `${tag}: Mermaid の図の画像を読めない: ${JSON.stringify(m.figures)}`);
++          check(m.figures.some((f) => f.alt === "取り込みの流れ") && m.figures.filter((f) => f.alt === "図").length === 2,
++            `${tag}: Mermaid の図の代替テキストが違う: ${JSON.stringify(m.figures.map((f) => f.alt))}`);
++          check(m.sources.length === MERMAID_OK && m.sources.every(([open, chevron, code]) => !open && chevron && code),
++            `${tag}: 図のコードの Accordion が違う: ${JSON.stringify(m.sources)}`);
++          check(m.warnings.length === MERMAID_NG && m.warnings.every((t) => t.includes("図を描けなかった")),
++            `${tag}: 描けない図の警告が違う: ${JSON.stringify(m.warnings)}`);
++          check(m.pythonUntouched, `${tag}: Mermaid でないコードに触れた`);
++          check(m.styleAttrs === 0 && m.afterTheme.styleAttrs === 0, `${tag}: Mermaid のページに style の属性がある`);
++          check(m.dupIds.length === 0, `${tag}: Mermaid のページに同じ ID がある: ${m.dupIds}`);
++          check(m.violations.length === 0, `${tag}: Mermaid のページに CSP の違反がある: ${m.violations}`);
++          check(m.errors.length === 0, `${tag}: Mermaid のページのコンソールのエラー: ${m.errors.slice(0, 3)}`);
++          check(m.external.length === 0, `${tag}: Mermaid のページが外へ要求した: ${m.external}`);
++          check(m.maxFrames <= 2 && m.afterTheme.maxFrames <= 2, `${tag}: 同時に生きている枠が 2 つを超えた: ${m.afterTheme.maxFrames}`);
++          // 対照との差は、端数の位置の違いで Chromium 系が 1.2% ほど。<style> を抜いた版との差は 40% を超える
++          check(m.compare && m.compare.same < 0.03 && m.compare.stripped > 0.2,
++            `${tag}: Mermaid の画像の中のスタイルが効いていない: ${JSON.stringify(m.compare)}`);
++          check(m.themeChanged && m.afterTheme.figures === MERMAID_OK, `${tag}: 配色を変えても描き直さない`);
++          check(JSON.stringify(m.probe) === JSON.stringify(["止まった", "止まった", ""]),
++            `${tag}: 枠の中からトークンの付いたパスを読めた: ${JSON.stringify(m.probe)}`);
++          check(m.direct[0] === "止まった" && m.direct[1] === "止まった",
++            `${tag}: 枠を直接開いたページからトークンの付いたパスを読めた: ${JSON.stringify(m.direct)}`);
++          run.lifecycle = {};
++          for (const kind of Object.keys(FAKE_FRAMES)) {
++            const l = await lifecycleScenario(browser, b.base, kind);
++            run.lifecycle[kind] = l;
++            check(l.ok && l.styleAttrs === 0, `${tag}: 枠の寿命（${kind}）が違う: ${JSON.stringify(l)}`);
++          }
++        }
++      } catch (e) {
++        check(false, `${tag}: Mermaid: ${String(e).slice(0, 400)}`);
++      }
+       results.runs.push(run);
+     }
+     await browser.close();
+diff --git a/tests/wiki/test_browse.py b/tests/wiki/test_browse.py
+index 51a6904..9cc7efa 100644
+--- a/tests/wiki/test_browse.py
++++ b/tests/wiki/test_browse.py
+@@ -2166,6 +2166,76 @@ class FigureSvgTest(TempWiki):
+         self.assertIn('<img class="fui-Image"', c.render(c.out_name["concepts/r"]))
+ 
+ 
++class MermaidAssetsTest(TempWiki):
++    """Mermaid の同梱物と、ページの読み込み（ADR-0030、図の描画の設計の 7.2、7.3）。"""
++    ASSET_DIR = SCRIPTS / "browse_assets"
++
++    def test_tiny_matches_record(self):
++        data = (self.ASSET_DIR / "mermaid.tiny.js").read_bytes()
++        readme = (self.ASSET_DIR / "README.md").read_text(encoding="utf-8")
++        self.assertIn(hashlib.sha256(data).hexdigest(), readme)
++        self.assertIn(f"{len(data):,} バイト", readme)
++        self.assertIn(f"`{core.FRAME_VERSION}`", readme)
++        attrs = (ROOT / "info-hive-wiki" / ".gitattributes").read_text(encoding="utf-8")
++        self.assertIn("skills/info-hive/scripts/browse_assets/mermaid.tiny.js -text", attrs)
++
++    def test_frame_version_matches_figures_js(self):
++        js = (self.ASSET_DIR / "figures.js").read_text(encoding="utf-8")
++        self.assertIn(f'var FRAME_VERSION = "{core.FRAME_VERSION}";', js)
++
++    def test_frame_document_has_no_inline_code_or_meta_csp(self):
++        import re
++        doc = (self.ASSET_DIR / "mermaid-frame.html").read_text(encoding="utf-8")
++        self.assertNotIn("Content-Security-Policy", doc)     # <meta> を置くと WebKit が 'self' で止める
++        self.assertNotIn("style", doc)
++        self.assertEqual(re.findall(r"<script[^>]*>", doc),
++                         ['<script src="mermaid.tiny.js">', '<script src="mermaid-frame.js">'])
++        self.assertEqual(re.findall(r"<script[^>]*>([^<]*)</script>", doc), ["", ""])
++        self.assertEqual(sorted(core.load_frame_assets()), sorted(core.FRAME_ASSETS))
++
++    def test_license_notice_is_in_frame_script(self):
++        js = (self.ASSET_DIR / "mermaid-frame.js").read_text(encoding="utf-8")
++        self.assertIn("MIT ライセンス、Copyright (c) 2014 - 2022 Knut Sveidqvist", js)
++        self.assertTrue((self.ASSET_DIR / "licenses" / "mermaid.LICENSE").is_file())
++        self.assertTrue((self.ASSET_DIR / "licenses" / "mermaid.THIRD-PARTY-NOTICES.txt").is_file())
++
++    def test_frame_csp(self):
++        csp = core.frame_csp(41234)
++        self.assertIn(f"script-src http://127.0.0.1:41234/_frame/{core.FRAME_VERSION}/;", csp)
++        self.assertNotIn("'self'", csp)
++        self.assertIn("default-src 'none'", csp)
++        self.assertIn("style-src 'unsafe-inline'", csp)
++        self.assertTrue(csp.endswith("sandbox allow-scripts"))
++        self.assertIn("frame-src 'self'", core.CSP)
++        self.assertNotIn("unsafe", core.CSP)
++
++    def test_build_has_figures_js_but_not_the_frame(self):
++        write(self.wiki, "a.md", page("# A\n\n```mermaid\nflowchart LR\n  a --> b\n```\n"))
++        out = Path(self.build()["out"])
++        self.assertEqual((out / "assets" / "figures.js").read_bytes(), (self.ASSET_DIR / "figures.js").read_bytes())
++        for name in core.FRAME_ASSETS:
++            self.assertFalse(list(out.rglob(name)), name)
++        html_text = (out / "a.html").read_text(encoding="utf-8")
++        self.assertIn('<script src="assets/figures.js"></script>', html_text)
++        self.assertLess(html_text.index("assets/app.js"), html_text.index("assets/figures.js"))
++        self.assertIn('<code class="language-mermaid">', html_text)     # 静的版ではコードのまま
++        self.assertIn("frame-src &#x27;self&#x27;", html_text.replace("'", "&#x27;"))
++
++    def test_assets_are_not_scanned_for_machine_info(self):
++        # 同梱物は入力の中身を含まないので、公開の前の検査で調べない（図の描画の設計の 7.2）
++        write(self.wiki, "a.md", page("# A"))
++        seen = []
++        real = core.scan_machine_info
++
++        def spy(files, needles, tokens):
++            seen.extend(files)
++            return real(files, needles, tokens)
++        with mock.patch.object(core, "scan_machine_info", spy):
++            self.build()
++        self.assertIn("a.html", seen)
++        self.assertFalse([n for n in seen if n in core.ASSETS])
++
++
+ class UnlistableAssetsTest(TempWiki):
+     """assets/ の一覧を作れなくても閲覧は止めず、図を「読めない」と示す（図の描画の設計の 6.1）。"""
+ 
+diff --git a/tests/wiki/test_browse_server.py b/tests/wiki/test_browse_server.py
+index 08d2a29..26fa1c7 100644
+--- a/tests/wiki/test_browse_server.py
++++ b/tests/wiki/test_browse_server.py
+@@ -899,6 +899,59 @@ class SvgServeTest(InProcess):
+         self.assertEqual(self.get(name)[1].encode("utf-8"), bigger)
+ 
+ 
++class FrameServeTest(InProcess):
++    """Mermaid の図の枠の同梱物を、トークンなしの /_frame/<版>/ から配る（図の描画の設計の 7.2、7.3）。"""
++
++    def setUp(self):
++        super().setUp()
++        self.app.frame_assets = core.load_frame_assets()
++        self.base = f"/{core.FRAME_PREFIX}/{core.FRAME_VERSION}/"
++
++    def raw(self, method: str, path: str) -> tuple:
++        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=20)
++        try:
++            conn.putrequest(method, path, skip_host=True, skip_accept_encoding=True)
++            conn.putheader("Host", f"127.0.0.1:{self.port}")
++            conn.endheaders()
++            res = conn.getresponse()
++            return res.status, res.read(), dict(res.getheaders())
++        finally:
++            conn.close()
++
++    def test_frame_files_are_served_without_token(self):
++        for name in core.FRAME_ASSETS:
++            code, body, headers = self.raw("GET", self.base + name)
++            self.assertEqual(code, 200, name)
++            self.assertEqual(body, (SCRIPTS / "browse_assets" / name).read_bytes(), name)
++            self.assertEqual(headers["Cache-Control"], "private, max-age=86400", name)
++            self.assertEqual(headers["X-Content-Type-Options"], "nosniff", name)
++            if name.endswith(".html"):
++                self.assertTrue(headers["Content-Type"].startswith("text/html"))
++                self.assertEqual(headers["Content-Security-Policy"], core.frame_csp(self.port))
++            else:
++                self.assertTrue(headers["Content-Type"].startswith("text/javascript"))
++                self.assertEqual(headers["Content-Security-Policy"], core.CSP)
++        code, _b, headers = self.raw("HEAD", self.base + "mermaid-frame.html")
++        self.assertEqual((code, headers["Content-Length"]), (200, str(len(self.app.frame_assets["mermaid-frame.html"]))))
++
++    def test_other_paths_are_404_and_never_redirect(self):
++        for path in (f"/{core.FRAME_PREFIX}/mermaid-0.0.0-0/mermaid.tiny.js", self.base + "app.js",
++                     self.base + "style.css", self.base + "../mermaid.tiny.js", self.base + "%2e%2e/x",
++                     f"/{core.FRAME_PREFIX}/{core.FRAME_VERSION}", f"/{core.FRAME_PREFIX}/{core.FRAME_VERSION}/",
++                     self.base + "mermaid-frame.html/x", f"/{core.FRAME_PREFIX}/{core.FRAME_VERSION}/data/search.js"):
++            code, _b, headers = self.raw("GET", path)
++            self.assertEqual(code, 404, path)
++            self.assertNotIn("Location", headers, path)
++        self.assertEqual(self.raw("POST", self.base + "mermaid-frame.html")[0], 405)
++        code, _b, _h = request(self.port, "GET", self.base + "mermaid-frame.html", host="localhost")
++        self.assertEqual(code, 421)
++
++    def test_page_csp_allows_only_same_origin_frames(self):
++        _code, _body, headers = self.get("concepts/a.html")
++        self.assertEqual(headers["Content-Security-Policy"], core.CSP)
++        self.assertIn("frame-src 'self'", headers["Content-Security-Policy"])
++
++
+ class ServeScopeTest(Base):
+     """serve の出力の scope と、そのサーバーが描くスコープ（BrowseState.scope）の一致。
+ 

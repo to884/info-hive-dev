@@ -5,6 +5,7 @@ name: Wiki browse
 # - tests/wiki/test_browse.py: 中核と静的の書き出し（関係表は PyYAML が要る）
 # - tests/wiki/test_browse_server.py: サーバーの要求の扱い、作り直し、起動、使い回し、停止
 # - tests/wiki/browse/browse.test.mjs: 静的版とサーバーを Chromium で開いて比べる（ADR-0016 の合格の条件）
+# - tests/wiki/browse/figures.test.mjs: 図（svg）を静的版とサーバーで開き、画像の中のスタイルと CSP を確かめる（ADR-0030）
 # Firefox、WebKit、Edge、Chrome での確認は、手で流す試験に残す（BROWSERS 環境変数）。
 #
 # info-hive-wiki は、シークレット WIKI_READ_TOKEN の読み取り専用のトークンで取得する（wiki-mcp.yml と同じ）。
@@ -31,7 +32,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # Playwright 1.56.1 は Ubuntu 26.04 に未対応のため、対応する 24.04 に固定する。
+        os: [ubuntu-24.04, windows-latest]
         # 標準ライブラリの失敗の読み替えは版で違う（構造の直しの設計の 3.1、12）。下限の 3.12 と 3.14 で流す
         python: ['3.12', '3.14']
     runs-on: ${{ matrix.os }}
@@ -100,6 +102,12 @@ jobs:
         env:
           OUT: ${{ runner.temp }}/findability-results.json
         run: node findability.test.mjs
+      - name: 図の試験（静的版とサーバー、Chromium）
+        if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
+        working-directory: tests/wiki/browse
+        env:
+          OUT: ${{ runner.temp }}/figures-results.json
+        run: node figures.test.mjs
       - name: 起動の速さ（1,000 ページの合成 Wiki）
         if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
         working-directory: tests/wiki/browse
@@ -112,4 +120,5 @@ jobs:
           path: |
             ${{ runner.temp }}/browse-results.json
             ${{ runner.temp }}/findability-results.json
+            ${{ runner.temp }}/figures-results.json
           if-no-files-found: ignore

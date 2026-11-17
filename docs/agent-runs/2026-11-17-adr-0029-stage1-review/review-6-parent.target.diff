@@ -1,0 +1,827 @@
+diff --git a/tests/wiki/test_browse_server.py b/tests/wiki/test_browse_server.py
+index 768fd3e..379e643 100644
+--- a/tests/wiki/test_browse_server.py
++++ b/tests/wiki/test_browse_server.py
+@@ -171,9 +171,10 @@ class RequestTest(InProcess):
+         write(self.wiki, "concepts/a.md", '---\ntype: "source"\nraw: "http://["\n---\n# A\n')
+         self.assertEqual(self.get("concepts/a.html")[0], 200)
+ 
+-    def test_page_pointing_at_the_record_is_drawn(self):
+-        # Wiki のページが browse の作ったファイル（記録）を指していても、Wiki の内容として読んで描く。
+-        # サーバーは動き続ける（構造の直しの設計の 5、10）
++    def test_page_pointing_at_the_record_is_not_drawn(self):
++        # Wiki のページが browse の作ったファイル（記録）を指すシンボリックリンクなら、読まず、描かない
++        # （info-hive-dev の ADR-0029。ADR-0017 の「入力の実体は、置き場所によらず読む」のうち、リンクを通って
++        # 届くものを置き換えた）。サーバーは動き続ける（構造の直しの設計の 5、10）
+         record = self.state_dir / "server.json"
+         record.write_text(json.dumps({"note": "RECORD-CONTENT"}), encoding="utf-8")
+         try:
+@@ -181,8 +182,8 @@ class RequestTest(InProcess):
+         except (OSError, NotImplementedError):
+             self.skipTest("シンボリックリンクを作れない")
+         code, body, _h = self.get("concepts/record.html")
+-        self.assertEqual(code, 200)
+-        self.assertIn("RECORD-CONTENT", body)
++        self.assertEqual(code, 404)
++        self.assertNotIn("RECORD-CONTENT", body)
+         self.assertFalse(self.app._stopping.is_set())
+         self.assertEqual(request(self.port, "GET", f"/{self.app.control_token}/control/locate/a")[0], 200)
+ 
+diff --git a/tests/wiki/test_page_set.py b/tests/wiki/test_page_set.py
+index 195a81b..3f3895f 100644
+--- a/tests/wiki/test_page_set.py
++++ b/tests/wiki/test_page_set.py
+@@ -50,14 +50,15 @@ PAGES = [
+     "top.md",
+     "notes/README.md",       # 最上位でない README.md はページ
+     "notes/assets/d.md",     # 最上位でない assets/ はページ
+-    "concepts/.NET/interop.md",  # 利用者が名付けた . で始まるディレクトリはページ（名前で除くものだけ除く）
+-    ".archive/old.md",
+ ]
+ # ページとして数えないもの
+ NOT_PAGES = [
+     "SCHEMA.md", "index.md", "log.md", "README.md",
+     "indexes/concepts.md", "graph/README.md", "raw/x.md", "assets/x.md",
+     ".evolution/x.md", ".wiki-cache/x.md", "concepts/.hidden.md",
++    # 名前が . で始まる項目の下は、どの深さでも記事でない（ADR-0029 の作者の決定の 6。wiki 0.9.0 から 0.25 までは
++    # 利用者が名付けた . で始まるディレクトリの下もページだった）
++    "concepts/.NET/interop.md", ".archive/old.md",
+ ]
+ 
+ 
+diff --git a/tests/wiki/test_uninitialized_wiki.py b/tests/wiki/test_uninitialized_wiki.py
+index 6f0bcc7..9b97709 100644
+--- a/tests/wiki/test_uninitialized_wiki.py
++++ b/tests/wiki/test_uninitialized_wiki.py
+@@ -503,6 +503,7 @@ class EntranceInventoryTests(unittest.TestCase):
+     NO_WIKI = {
+         "wiki_encoding.py": "1 つのファイルの文字コードを調べる",
+         "wiki_help.py": "コマンドの一覧と個別のヘルプを出す",
++        "wiki_links.py": "渡したパスとその下のリンクを調べる（wiki でも raw でもよい。ADR-0029）",
+         "wiki_mcp_launch.py": "MCP の入口。wiki はツールの引数でサーバーが受け取る",
+         "wiki_mcp_relay.py": "MCP の中継。同上",
+         "wiki_pdf.py": "1 つの PDF の文字の層を取り出す。wiki には書かない（ADR-0025）",
+diff --git a/tests/wiki/test_walk.py b/tests/wiki/test_walk.py
+index 5a812ac..1626cca 100644
+--- a/tests/wiki/test_walk.py
++++ b/tests/wiki/test_walk.py
+@@ -1,16 +1,20 @@
+-"""wiki をたどる経路（wiki_pages.walk_markdown、walk_pages、walk_index_files。wiki 0.11.2）の試験。
++"""wiki をたどる経路（wiki_pages.walk_markdown、walk_pages、walk_index_files、article_path）の試験。
+ 
+ 設計は `docs/plans/wiki-walk-excluded-dirs-2026-11-11.md`（7 版目、2026年11月12日に承認）にある。試作と実測は
+-`docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/` の walk_v7.py と results.md にある。
++`docs/agent-runs/2026-11-11-wiki-walk-excluded-dirs/` の walk_v7.py と results.md にある。ADR-0029（wiki と raw の
++記事にリンクを置かない）の実装で、走査はリンクに降りず、リンクの記事を読まず、拒んだものを Walk.links で返す形に
++変わった（`docs/plans/wiki-links-2026-11-16.md` の「ページの走査」）。名前が . で始まる項目には、どの深さでも降りない。
+ 
+ - 木の表から、失敗のないときの答え（ページと索引のファイル）を、走査のコードを使わずに計算し、等しいことを確かめる。
+-- 今（0.10.1）の実装と照らす。写しを持たず、info-hive-wiki のコミット BASE_COMMIT の wiki_pages.py と wiki_lint.py を
+-  git から取り出して読み込む。違ってよいのは、今の関数の並びの鍵で同じになる組の中の順と、設計の 7 の表のものだけ。
++- 0.10.1 の実装と照らす。写しを持たず、info-hive-wiki のコミット BASE_COMMIT の wiki_pages.py と wiki_lint.py を
++  git から取り出して読み込む。照らすのは、リンクも、名前が . で始まる項目もない木だけである（ADR-0029 で、
++  それ以外の木の答えは意図して変わった）。違ってよいのは、並びの鍵で同じになる組の中の順と、設計の 7 の表のものだけ。
+ - 探索: OS を呼ぶ口のすべてを差し替えて呼び出しを数え、走査が呼ぶはずの呼び出しの集合と役割を木から計算して、
+   失敗のない実行で集合が等しいことを確かめる。そのうえで、呼び出しのそれぞれに失敗を 1 つずつ入れ、木と役割から
+   計算した答えと等しいことを確かめる。わざと決まりを破った実装（対照）を、探索が見つけることも確かめる。
+ - 口の一覧: 走査の関数の構文木に、口の一覧にない入出力の呼び出しと、read_os のほかの except OSError がないこと。
+ - 使う側: stats、MCP の索引の印、list_index、索引の更新の失敗。
++- 記事を読む口（article_path）と、link_warnings の形。
+ 
+ リンクを作れない環境では、その木を飛ばす。ジャンクションは Windows だけ、FIFO と名前に \\ を含むファイルは
+ Linux と macOS だけで作る。大文字と小文字を区別するフォルダーは、Windows で fsutil が使えるときだけ作る。
+@@ -65,6 +69,7 @@ def sort_key(rel):
+ #   ("junction", 先)           ジャンクション（Windows だけ）
+ #   ("rawlink", 先[, "dir"])   先を、リンクのあるディレクトリからの相対パスのまま書いたリンク（解けないリンク）
+ #   ("fifo",)                  FIFO（Linux と macOS だけ）
++#   ("hlink", 先)              ハードリンク（先と同じ実体の、ふつうのファイル。先もリンクの数が 2 になる）
+ 
+ NFD = unicodedata.normalize("NFD", "ガイド")
+ E_NFC = unicodedata.lookup("LATIN SMALL LETTER E WITH ACUTE")
+@@ -103,6 +108,8 @@ TREES = {
+                  "indexes": ("junction", "wiki/concepts") if NT else ("dlink", "wiki/concepts")},
+     },
+     "indexes がファイル": {"wiki": {"indexes": "x", "a.md": "a"}},
++    "indexes がハードリンクのファイル": {"wiki": {"indexes": ("hlink", "ext/file"), "a.md": "a"},
++                                           "ext": {"file": "text"}},
+     "空の wiki": {"wiki": {}},
+     "NFC と NFD の名前": {"wiki": {E_NFC + ".md": "1", E_NFD + ".md": "2",
+                                    "indexes": {E_NFC + ".md": "1", E_NFD + ".md": "2"}}},
+@@ -116,6 +123,21 @@ TREES = {
+                              "dir.md": {"in.md": "i"}, **({} if NT else {"pipe.md": ("fifo",)})},
+                  **({} if NT else {"pipe.md": ("fifo",)})}},
+ }
++TREES.update({
++    "ハードリンクの記事": {"wiki": {"a.md": "a", "h.md": ("hlink", "wiki/a.md"), "n.txt": "n", "hn.txt": ("hlink", "wiki/n.txt"),
++                                "cache": {"t.md": ("hlink", "ext/p.md")}, "indexes": {"i.md": ("hlink", "ext/q.md")}},
++                       "ext": {"p.md": "p", "q.md": "q"}},
++    "README.md という名前のディレクトリのリンク": {
++        "wiki": {"README.md": ("junction", "ext") if NT else ("dlink", "ext"), "a.md": "a",
++                 "sub": {"README.md": ("flink", "ext/x.md")}},
++        "ext": {"x.md": "x"}},
++    "最上位の README.md がファイルのリンク": {"wiki": {"README.md": ("flink", "ext/x.md"), "a.md": "a"},
++                                             "ext": {"x.md": "x"}},
++    "最上位の README.md がハードリンク": {"wiki": {"README.md": ("hlink", "ext/x.md"), "a.md": "a"},
++                                         "ext": {"x.md": "x"}},
++    "名前が . で始まる項目の下": {"wiki": {".git": {"info": {"notes.md": "n"}}, "c": {".d": {"x.md": "x"}, "y.md": "y"},
++                                         "indexes": {".private.md": "p", ".h": {"z.md": "z"}, "ok.md": "o"}}},
++})
+ if NT:
+     TREES.update({
+         "ジャンクションと通常のディレクトリが兄弟": {
+@@ -135,7 +157,19 @@ if NT:
+ else:
+     TREES["名前に区切りの文字を含む"] = {"wiki": {"a" + BACKSLASH + "b.md": "1", "a0.md": "2", "c": {"d.md": "3"}}}
+     TREES["鍵が同じになる名前"] = {"wiki": {"a" + BACKSLASH + "b.md": "1", "a": {"b.md": "2"}, "a0.md": "3"}}
+-CYCLIC = {name for name in TREES if name.startswith("循環")}
++
++
++
++def plain(spec) -> bool:
++    """リンクも、名前が . で始まる項目もない木か（0.10.1 の実装と照らせる木）。"""
++    def walk(node):
++        for name, value in node.items():
++            if name.startswith(".") or isinstance(value, tuple):
++                return False
++            if isinstance(value, dict) and not walk(value):
++                return False
++        return True
++    return walk(spec)
+ 
+ 
+ def build(base: Path, spec: dict) -> bool:
+@@ -160,6 +194,8 @@ def build(base: Path, spec: dict) -> bool:
+                 os.mkfifo(path)
+             elif kind == "rawlink":
+                 os.symlink(value[1], path, target_is_directory=(len(value) > 2 and value[2] == "dir"))
++            elif kind == "hlink":
++                os.link(base / value[1], path)
+             elif kind == "junction":
+                 target = base / value[1]
+                 if subprocess.run(["cmd", "/c", "mklink", "/J", str(path), str(target)],
+@@ -211,6 +247,8 @@ def resolve(spec, parts):
+         if isinstance(value, tuple):
+             if value[0] in ("broken", "rawlink"):
+                 return None, None
++            if value[0] == "hlink":
++                return "file", real + (part,)
+             if value[0] == "fifo":
+                 return "fifo", real + (part,)
+             kind, real = resolve(spec, tuple(p for p in value[1].split("/") if p))
+@@ -235,45 +273,103 @@ def link_target(spec, value):
+     return resolve(spec, tuple(p for p in value[1].split("/") if p))
+ 
+ 
++def hard_targets(spec):
++    """ハードリンクで、リンクの数が 2 以上になるファイルの、木の根からのパスの集合（リンクの名前と先の両方）。"""
++    found = set()
++
++    def walk(node, path):
++        for name, value in node.items():
++            if isinstance(value, dict):
++                walk(value, path + (name,))
++            elif isinstance(value, tuple) and value[0] == "hlink":
++                found.add(path + (name,))
++                found.add(tuple(p for p in value[1].split("/") if p))
++    walk(spec, ())
++    return found
++
++
++def link_entry_kind(value, name, top_readme=False):
++    """リンクの項目（タプル）を、走査が links に入れるなら (種類,)、入れないなら None で返す（ADR-0029）。
++
++    名前が .md で終わるリンクは、先によらず入れる。そのほかは、ディレクトリへのリンク（ジャンクションと、先が
++    ディレクトリのシンボリックリンク）だけを入れる。Windows では、ディレクトリとして作ったシンボリックリンクに
++    ディレクトリの属性が付くので、先のない（解けない）ものも入れる。POSIX では is_dir() が先をたどるので、先のないものは
++    「ない」になり、入れない。FIFO はリンクでない。
++    """
++    kind = value[0]
++    if kind == "fifo":
++        return None
++    link = "junction" if kind == "junction" else "symlink"
++    if name.lower().endswith(".md") and not top_readme:
++        return link
++    if kind in ("junction", "dlink"):
++        return link
++    if kind == "rawlink" and len(value) > 2 and value[2] == "dir":
++        return link if NT else None
++    return None
++
++
+ def model(spec, start, prefix="", skip_top=False):
+-    """失敗のないときの .md のふつうのファイルの相対パス（並びも）を、木の表から計算する。"""
++    """失敗のないときの (.md のふつうのファイルの相対パス, 拒んだリンクの (相対パス, 種類)) を、木の表から計算する。"""
+     kind, real = resolve(spec, start)
+-    found = []
++    found, links = [], []
+     if kind != "dir":
+-        return found
++        return found, links
++    hard = hard_targets(spec)
+ 
+-    def descend(real, pre, path):
++    def descend(real, pre):
+         for name, value in node_at(spec, real).items():
+             rel = pre + name
+             if skip_top and pre == prefix and name in wiki_pages.SKIP_TOP_LEVEL_DIRS:
+                 continue
++            if name.startswith("."):
++                continue
++            path = real + (name,)
+             if isinstance(value, dict):
+-                child = real + (name,)
+-                if child not in path:
+-                    descend(child, rel + "/", path + (child,))
+-            elif isinstance(value, str):
++                descend(path, rel + "/")
++            elif isinstance(value, str) or value[0] == "hlink":
+                 if name.lower().endswith(".md"):
+-                    found.append(rel)
+-            elif value[0] == "junction":
+-                target_kind, child = link_target(spec, value)
+-                if target_kind == "dir" and child not in path:
+-                    descend(child, rel + "/", path + (child,))
+-            elif value[0] == "flink":
+-                target_kind, _real = link_target(spec, value)
+-                if target_kind == "file" and name.lower().endswith(".md"):
+-                    found.append(rel)
+-            # dlink、broken、rawlink、fifo は、降りず、ふつうのファイルでもない
+-    descend(real, prefix, (real,))
+-    return sorted(found, key=sort_key)
++                    if path in hard and skip_top and pre == prefix and name == "README.md":
++                        continue  # 起点の直下の README.md は記事でない
++                    if path in hard:
++                        links.append((rel, "hardlink"))
++                    else:
++                        found.append(rel)
++            else:
++                link = link_entry_kind(value, name, top_readme=skip_top and pre == prefix and name == "README.md")
++                if link is not None:
++                    links.append((rel, link))
++    descend(real, prefix)
++    return sorted(found, key=sort_key), sorted(links, key=lambda item: sort_key(item[0]))
+ 
+ 
+ def model_pages(spec):
+-    return [rel for rel in model(spec, ("wiki",), skip_top=True) if wiki_pages.is_page_path(rel)]
++    found, links = model(spec, ("wiki",), skip_top=True)
++    return [rel for rel in found if wiki_pages.is_page_path(rel)], links
+ 
+ 
+ def model_index(spec):
+-    kind, _real = resolve(spec, ("wiki", "index.md"))
+-    return (["index.md"] if kind == "file" else []) + model(spec, ("wiki", "indexes"), prefix="indexes/")
++    files, links = [], []
++    node = spec["wiki"]
++    top = node.get("index.md")
++    hard = hard_targets(spec)
++    if isinstance(top, str):
++        if ("wiki", "index.md") in hard:
++            links.append(("index.md", "hardlink"))
++        else:
++            files.append("index.md")
++    elif isinstance(top, tuple):
++        if top[0] == "hlink":
++            links.append(("index.md", "hardlink"))
++        elif top[0] != "fifo":
++            links.append(("index.md", "junction" if top[0] == "junction" else "symlink"))
++    value = node.get("indexes")
++    if isinstance(value, tuple):
++        if value[0] not in ("fifo", "hlink"):  # ふつうのファイルのハードリンクは、記事でも記事までの道でもない
++            return files, links + [("indexes", "junction" if value[0] == "junction" else "symlink")]
++        return files, links
++    below, below_links = model(spec, ("wiki", "indexes"), prefix="indexes/")
++    return files + below, links + below_links
+ 
+ 
+ def expected_old_index(spec):
+@@ -312,8 +408,9 @@ def expected_old_index(spec):
+ def expected_calls(spec, start, prefix="", skip_top=False, top_index=False):
+     """走査が呼ぶはずの口の呼び出しと、その役割を、木の表から計算する。
+ 
+-    戻り値は {(名前, wiki からの相対パス): 役割の集合}。役割は ("list", X)、("entry", E)、("file", X)、
+-    ("self", X)（ディレクトリの識別子）、("chain", J)（ジャンクション J のための道筋の識別子）。
++    戻り値は {(名前, wiki からの相対パス): 役割の集合}。役割は ("list", X)、("entry", E)、("file", X)、("top", X)
++    （最上位の index.md と indexes の os.lstat()）。口は、scandir、scandir.next、項目の stat(follow_symlinks=False)
++    （entry_stat）、POSIX でリンクの項目の is_dir()、os.lstat() である。
+     """
+     calls = {}
+ 
+@@ -321,21 +418,20 @@ def expected_calls(spec, start, prefix="", skip_top=False, top_index=False):
+         calls.setdefault((op, rel), set()).add(role)
+ 
+     if top_index:
+-        add("stat", "index.md", ("file", "index.md"))
++        add("lstat", "index.md", ("top", "index.md"))
++        add("lstat", "indexes", ("top", "indexes"))
++        value = spec["wiki"].get("indexes")
++        if isinstance(value, tuple) and value[0] != "hlink":
++            return calls  # ディレクトリのリンクなどは、走査の起点にも渡さない
++        if value is None:
++            return calls
+     start_rel = prefix.rstrip("/") or "."
+     kind, real = resolve(spec, start)
+     add("scandir", start_rel, ("list", start_rel))
+     if kind != "dir":
+         return calls
+ 
+-    def chain_rels(pre):
+-        rels = [start_rel]
+-        parts = [p for p in pre[len(prefix):].split("/") if p]
+-        for i in range(1, len(parts) + 1):
+-            rels.append(prefix + "/".join(parts[:i]))
+-        return rels
+-
+-    def descend(real, pre, path, through):
++    def descend(real, pre):
+         rel_dir = pre.rstrip("/") or "."
+         add("scandir", rel_dir, ("list", rel_dir))
+         add("scandir.next", rel_dir, ("list", rel_dir))
+@@ -343,41 +439,37 @@ def expected_calls(spec, start, prefix="", skip_top=False, top_index=False):
+             rel = pre + name
+             if skip_top and pre == prefix and name in wiki_pages.SKIP_TOP_LEVEL_DIRS:
+                 continue
+-            add("is_symlink", rel, ("entry", rel))
+-            add("is_dir", rel, ("entry", rel))
+-            junction = isinstance(value, tuple) and value[0] == "junction"
+-            child = None
++            if name.startswith("."):
++                continue
++            add("entry_stat", rel, ("entry", rel))
+             if isinstance(value, dict):
+-                child = real + (name,)
+-            elif junction:
+-                target_kind, target = link_target(spec, value)
+-                child = target if target_kind == "dir" else None
+-            if child is not None:
+-                if junction or through:
+-                    add("file_id", rel, ("self", rel))
+-                    if junction and not through:
+-                        for c in chain_rels(pre):
+-                            add("file_id", c, ("chain", rel))
+-                if child not in path:
+-                    descend(child, rel + "/", path + (child,), through or junction)
+-            elif not (isinstance(value, tuple) and value[0] in ("dlink", "rawlink")) and name.lower().endswith(".md"):
+-                # 解けないリンクは is_dir() が送出し、そこで「ない」になるので、os.stat() を呼ばない
+-                add("stat", rel, ("file", rel))
+-    descend(real, prefix, (real,), False)
++                add("lstat", rel, ("entry", rel))  # 降りる前に、リンクに替わっていないかを確かめる
++                descend(real + (name,), rel + "/")
++            elif isinstance(value, str) or value[0] in ("hlink", "fifo"):
++                if name.lower().endswith(".md"):
++                    add("lstat", rel, ("file", rel))
++            elif not NT and (not name.lower().endswith(".md") or (skip_top and pre == prefix and name == "README.md")):
++                # POSIX で、名前が .md でないリンク（と起点の直下の README.md のリンク）は、先がディレクトリかを見る
++                add("is_dir", rel, ("entry", rel))
++    descend(real, prefix)
+     return calls
+ 
+ 
+-def answers_with_failure(answer, roles, behavior):
+-    """失敗を入れた呼び出しの役割から、ありうる答え (files, unlistable, unknown) を計算する。"""
++def answers_with_failure(answer, links, roles, behavior):
++    """失敗を入れた呼び出しの役割から、ありうる答え (files, unlistable, unknown, links) を計算する。"""
+     out = []
+     for what, place in sorted(roles):
++        def keep(rel):
++            if what == "list":
++                return not (place == "." or rel.startswith(place + "/"))
++            return not (rel == place or rel.startswith(place + "/"))
++        files = [rel for rel in answer if keep(rel)]
++        kept = [item for item in links if keep(item[0])]
+         if what == "list":
+-            files = [rel for rel in answer if not (place == "." or rel.startswith(place + "/"))]
+             notices = ([place], [])
+         else:
+-            files = [rel for rel in answer if not (rel == place or rel.startswith(place + "/"))]
+             notices = ([], [place])
+-        out.append((files, [], []) if behavior == "absent" else (files, notices[0], notices[1]))
++        out.append((files, [], [], kept) if behavior == "absent" else (files, notices[0], notices[1], kept))
+     return out
+ 
+ 
+@@ -395,11 +487,10 @@ FAILURES = {
+ if NT:
+     FAILURES["badname"] = lambda: OSError(None, "入れた失敗", None, 123)
+     FAILURES["notready"] = lambda: OSError(None, "入れた失敗", None, 21)
+-    FAILURES["noid"] = lambda: wiki_pages.NoFileId(None, "入れた失敗", None, 50)
+-    FAILURES["blk"] = None  # 例外ではなく、os.stat() が S_IFBLK の成功を返す
+-ONLY_FOR = {"blk": ("stat",), "noid": ("file_id",)}
++    FAILURES["blk"] = None  # 例外ではなく、os.lstat() が S_IFBLK の成功を返す
++ONLY_FOR = {"blk": ("lstat",)}
+ EXPECT = {"absent": "absent", "denied": "denied", "eio": "raise", "loop": "absent", "ebadf": "denied",
+-          "badname": "absent", "notready": "denied", "noid": "denied", "blk": "denied"}
++          "badname": "absent", "notready": "denied", "blk": "denied"}
+ BLOCK_DEVICE = os.stat_result((0x6000, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+ 
+ 
+@@ -412,7 +503,7 @@ class Injector:
+         self.count = 0
+         self.failed = None
+         self.calls = []
+-        self.real = {"scandir": os.scandir, "stat": os.stat, "file_id": wiki_pages.win_file_id}
++        self.real = {"scandir": os.scandir, "lstat": os.lstat}
+ 
+     def rel(self, path):
+         text = os.fspath(path)
+@@ -440,22 +531,22 @@ class Injector:
+         injector = self
+ 
+         class Entry:
++            # 走査が呼んでよい項目の口は stat(follow_symlinks=False) と is_dir() だけである。is_symlink() や
++            # is_junction() を持たせないので、走査がそれらを呼ぶと AttributeError で落ちる。
+             def __init__(self, entry):
+                 self._entry = entry
+                 self.name, self.path = entry.name, entry.path
+ 
+-            def is_symlink(self):
+-                injector.hit("is_symlink", self.path)
+-                return self._entry.is_symlink()
++            def stat(self, *, follow_symlinks=True):
++                if follow_symlinks:
++                    raise AssertionError("走査が、リンクをたどる DirEntry.stat() を呼んだ")
++                injector.hit("entry_stat", self.path)
++                return self._entry.stat(follow_symlinks=False)
+ 
+             def is_dir(self, **kwargs):
+                 injector.hit("is_dir", self.path)
+                 return self._entry.is_dir(**kwargs)
+ 
+-            def is_junction(self):
+-                # Windows では一覧の情報（再解析のタグ）から答え、OS を呼ばない（3.12 から）。失敗を入れる先がないので数えない。
+-                return self._entry.is_junction()
+-
+         class Listing:
+             def __enter__(self):
+                 self.it = injector.real["scandir"](path)
+@@ -475,26 +566,20 @@ class Injector:
+ 
+         return Listing()
+ 
+-    def stat(self, path, *args, **kwargs):
+-        if self.hit("stat", path):
++    def lstat(self, path, *args, **kwargs):
++        if self.hit("lstat", path):
+             return BLOCK_DEVICE
+-        return self.real["stat"](path, *args, **kwargs)
+-
+-    def file_id(self, path):
+-        self.hit("file_id", path)
+-        return self.real["file_id"](path)
++        return self.real["lstat"](path, *args, **kwargs)
+ 
+     def __enter__(self):
+-        os.scandir, os.stat = self.scandir, self.stat
+-        wiki_pages.win_file_id = self.file_id
++        os.scandir, os.lstat = self.scandir, self.lstat
+         return self
+ 
+     def __exit__(self, *exc):
+-        os.scandir, os.stat = self.real["scandir"], self.real["stat"]
+-        wiki_pages.win_file_id = self.real["file_id"]
++        os.scandir, os.lstat = self.real["scandir"], self.real["lstat"]
+ 
+ 
+-def explore(wiki, function, answer, expected, first_only=False):
++def explore(wiki, function, answer, expected, first_only=False, links=()):
+     """function(wiki) -> Walk に失敗を 1 つずつ入れ、木から計算した答えと比べる。破られた決まりの並びと、実行の数を返す。
+ 
+     first_only が真なら、最初の破れで止める（対照が見つかることを確かめるときに使う）。
+@@ -505,8 +590,11 @@ def explore(wiki, function, answer, expected, first_only=False):
+             baseline = function(wiki)
+         except OSError as exc:
+             return [f"失敗なし: 送出した（{type(exc).__name__}）"], 0
++    links = list(links)
+     if [f.rel for f in baseline.files] != answer or baseline.unlistable or baseline.unknown:
+         violations.append(f"失敗なし: 答えと違う {[f.rel for f in baseline.files]}")
++    if list(baseline.links) != links:
++        violations.append(f"失敗なし: 拒んだリンクが違う {list(baseline.links)}")
+     made = set(base_run.calls)
+     extra, missing = sorted(made - set(expected)), sorted(set(expected) - made)
+     if extra:
+@@ -542,8 +630,8 @@ def explore(wiki, function, answer, expected, first_only=False):
+             if not roles:
+                 violations.append(f"{where}: 木から決まらない呼び出し")
+                 continue
+-            wants = answers_with_failure(answer, roles, behavior)
+-            got = ([f.rel for f in result.files], result.unlistable, result.unknown)
++            wants = answers_with_failure(answer, links, roles, behavior)
++            got = ([f.rel for f in result.files], result.unlistable, result.unknown, list(result.links))
+             if got not in wants:
+                 violations.append(f"{where}: 答えと違う。答え {wants[0]}、走査 {got}")
+     return violations, runs
+@@ -571,25 +659,19 @@ def control_swallow_all(root):
+ 
+ def control_silent(root):
+     found = wiki_pages.walk_pages(root)
+-    return wiki_pages.Walk(found.files, [], [])
++    return wiki_pages.Walk(found.files, [], [], found.links)
+ 
+ 
+ def control_discard_all(root):
+     found = wiki_pages.walk_pages(root)
+     if found.unlistable or found.unknown:
+-        return wiki_pages.Walk([], ["."], [])
++        return wiki_pages.Walk([], ["."], [], [])
+     return found
+ 
+ 
+-def control_path_string_identity(root):
+-    """識別子の代わりに、パスの文字列を使う（文字列の比較への逃げ道）。"""
+-    with swapped(wiki_pages, "_identity", lambda path: ("ok", ("path", os.path.normcase(path)))):
+-        return wiki_pages.walk_pages(root)
+-
+-
+ def control_ignore_block_device(root):
+-    """os.stat() が返した S_IFBLK の成功を、そのまま受け取る（ページを知らせなしに落とす）。"""
+-    with swapped(wiki_pages, "_stat_entry", lambda path: wiki_pages.read_os(os.stat, path)):
++    """os.lstat() が返した S_IFBLK の成功を、そのまま受け取る（ページを知らせなしに落とす）。"""
++    with swapped(wiki_pages, "_stat_entry", lambda path: wiki_pages.read_os(os.lstat, path)):
+         return wiki_pages.walk_pages(root)
+ 
+ 
+@@ -606,35 +688,42 @@ def control_raise_on_unresolvable(root):
+         return wiki_pages.walk_pages(root)
+ 
+ 
+-def control_identity_everywhere(root):
+-    """ジャンクションでないディレクトリにも、識別子を取る呼び出しをする（道筋の識別子が兄弟に漏れるのと同じ形）。"""
+-    with swapped(wiki_pages, "_is_junction", lambda entry: ("ok", True)):
++def control_follow_links(root):
++    """リンクを見ず、0.25 までのように、リンクの先をたどって、ジャンクションに降り、ファイルのシンボリックリンクを読む
++    （ADR-0029 の前の形）。項目の属性を、リンクをたどる os.stat() で取る（POSIX でも S_IFLNK のまま残らない）。"""
++    with swapped(wiki_pages, "link_kind", lambda st, nlink_known=True: None), \
++            swapped(wiki_pages, "_entry_lstat", lambda entry: wiki_pages.read_os(os.stat, entry.path)), \
++            swapped(wiki_pages, "_stat_entry", lambda path: wiki_pages.read_os(os.stat, path)):
+         return wiki_pages.walk_pages(root)
+ 
+ 
+-def control_os_stat_identity(root):
+-    """識別子を os.stat() から取る（3.12 以降、識別子の取得の失敗で形が変わる）。"""
+-    def identity(path):
+-        st = os.stat(path)
+-        return "ok", (st.st_dev, st.st_ino)
+-    with swapped(wiki_pages, "_identity", identity):
++def control_ignore_hardlinks(root):
++    """ハードリンクを見ない（Windows の DirEntry.stat() の st_nlink はいつも 0 なので、一覧の情報だけで決めるのと同じ形）。"""
++    real = wiki_pages.link_kind
++    with swapped(wiki_pages, "link_kind", lambda st, nlink_known=True: real(st, nlink_known=False)):
+         return wiki_pages.walk_pages(root)
+ 
+ 
++def control_hide_links(root):
++    """リンクを拒むが、知らせない（拒んだことを「ない」に変える。ADR-0029 の I4）。"""
++    found = wiki_pages.walk_pages(root)
++    return wiki_pages.Walk(found.files, found.unlistable, found.unknown, [])
++
++
+ def control_nfc_key(root):
+     found = wiki_pages.walk_pages(root)
+     files = sorted(found.files, key=lambda f: (unicodedata.normalize("NFC", f.rel), f.rel))
+-    return wiki_pages.Walk(files, found.unlistable, found.unknown)
++    return wiki_pages.Walk(files, found.unlistable, found.unknown, found.links)
+ 
+ 
+ CONTROLS = [("どの失敗も「ない」にする", control_swallow_all), ("権限を知らせずに飛ばす", control_silent),
+             ("知らせがあったら全ページを捨てる", control_discard_all),
+-            ("解けないリンクで送出する", control_raise_on_unresolvable)]
++            ("解けないリンクで送出する", control_raise_on_unresolvable),
++            ("リンクに降り、リンクの先を読む", control_follow_links),
++            ("ハードリンクを見ない", control_ignore_hardlinks),
++            ("拒んだリンクを知らせない", control_hide_links)]
+ if NT:
+-    CONTROLS += [("識別子の代わりにパスの文字列を使う", control_path_string_identity),
+-                 ("os.stat() の S_IFBLK の成功を、そのまま受け取る", control_ignore_block_device),
+-                 ("ジャンクションでないディレクトリにも識別子を取る", control_identity_everywhere),
+-                 ("識別子を os.stat() から取る", control_os_stat_identity)]
++    CONTROLS += [("os.lstat() の S_IFBLK の成功を、そのまま受け取る", control_ignore_block_device)]
+ else:
+     CONTROLS.append(("並びの鍵を NFC だけにする", control_nfc_key))
+ 
+@@ -724,11 +813,11 @@ class AnswerTests(TreeCase):
+                 if wiki is None:
+                     self.skipTest(f"{label}: 表と同じ木を作れない（リンクを作れないか、名前を区別しないファイルシステム）")
+                 pages, index = wiki_pages.walk_pages(wiki), wiki_pages.walk_index_files(wiki)
+-                self.assertEqual([f.rel for f in pages.files], model_pages(spec))
+-                self.assertEqual([f.rel for f in index.files], model_index(spec))
++                self.assertEqual(([f.rel for f in pages.files], list(pages.links)), model_pages(spec))
++                self.assertEqual(([f.rel for f in index.files], list(index.links)), model_index(spec))
+                 self.assertEqual((pages.unlistable, pages.unknown, index.unlistable, index.unknown), ([], [], [], []))
+-                if label in CYCLIC:
+-                    continue  # 今の実装は、循環するジャンクションで壊れる（3.12〜3.14 は、同じページを何度も返す）
++                if not plain(spec):
++                    continue  # リンクか、名前が . で始まる項目がある木の答えは、ADR-0029 で意図して変わった
+                 self.assertTrue(same_up_to_ties(old_pages(wiki), new_pages(wiki), wiki_text.posix_rel),
+                                 (old_pages(wiki), new_pages(wiki)))
+                 old_idx, new_idx = old_index(wiki), new_index(wiki)
+@@ -777,9 +866,9 @@ class ExploreTests(TreeCase):
+             targets = (("ページ", wiki_pages.walk_pages, model_pages(spec), expected_calls(spec, ("wiki",), "", True)),
+                        ("索引", wiki_pages.walk_index_files, model_index(spec),
+                         expected_calls(spec, ("wiki", "indexes"), "indexes/", False, True)))
+-            for name, function, answer, expected in targets:
++            for name, function, (answer, links), expected in targets:
+                 with self.subTest(tree=label, target=name):
+-                    found, runs = explore(wiki, function, answer, expected)
++                    found, runs = explore(wiki, function, answer, expected, links=links)
+                     total += runs
+                     self.assertEqual(found, [], "\n".join(found[:5]))
+         self.assertGreater(total, 500)
+@@ -795,88 +884,76 @@ class ExploreTests(TreeCase):
+             with self.subTest(control=name):
+                 caught = False
+                 for wiki, spec in built.values():
+-                    found, _runs = explore(wiki, function, model_pages(spec), expected_calls(spec, ("wiki",), "", True),
+-                                           first_only=True)
++                    answer, links = model_pages(spec)
++                    found, _runs = explore(wiki, function, answer, expected_calls(spec, ("wiki",), "", True),
++                                           first_only=True, links=links)
+                     if found:
+                         caught = True
+                         break
+                 self.assertTrue(caught, f"対照「{name}」を、探索が見つけなかった")
+ 
+ 
+-@unittest.skipUnless(NT, "Windows だけ")
+-class IdentityTests(TreeCase):
+-    """識別子を取れない場合と、Windows の os.stat() の読み替え。"""
+-
+-    def walk(self, wiki, **patch):
+-        stack = contextlib.ExitStack()
+-        with stack:
+-            for name, value in patch.items():
+-                if name == "stat":
+-                    stack.enter_context(swapped(os, "stat", value))
+-                else:
+-                    stack.enter_context(swapped(wiki_pages, name, value))
+-            return wiki_pages.walk_pages(wiki)
+-
+-    def test_identity(self):
+-        real = wiki_pages.win_file_id
+-        wiki = self.make("t1", {"wiki": {"a.md": "a", "junc": ("junction", "ext")}, "ext": {"c.md": "c"}})
+-        if wiki is None:
+-            self.skipTest("ジャンクションを作れない")
+-        junc = str(wiki / "junc")
+-
+-        def zero(path):
+-            value = real(path)
+-            return (value[0], bytes(16)) if os.fspath(path) == junc else value
+-
+-        def noid(path):
+-            if os.fspath(path) == junc:
+-                raise wiki_pages.NoFileId(None, "入れた失敗", path, 50)
+-            return real(path)
+-
+-        def zero_start(path):
+-            value = real(path)
+-            return (value[0], bytes(16)) if os.fspath(path) == str(wiki) else value
+-
+-        found = self.walk(wiki)
+-        self.assertEqual(([f.rel for f in found.files], found.unknown), (["a.md", "junc/c.md"], []))
+-        for label, fake in (("FileId が 0", zero), ("識別子を持たない", noid), ("起点の FileId が 0", zero_start)):
+-            with self.subTest(case=label):
+-                found = self.walk(wiki, win_file_id=fake)
+-                self.assertEqual(([f.rel for f in found.files], found.unknown), (["a.md"], ["junc"]))
+-
+-    def test_sibling_has_no_identity_call(self):
+-        real = wiki_pages.win_file_id
+-        wiki = self.make("t2", {"wiki": {"j": ("junction", "ext"), "plain": {"x.md": "x"}}, "ext": {"c.md": "c"}})
+-        if wiki is None:
+-            self.skipTest("ジャンクションを作れない")
+-        calls = []
+-
+-        def recording(path):
+-            calls.append(os.fspath(path))
+-            return real(path)
+-        found = self.walk(wiki, win_file_id=recording)
+-        self.assertEqual([f.rel for f in found.files], ["j/c.md", "plain/x.md"])
+-        self.assertNotIn(str(wiki / "plain"), calls)
++class LinkTests(TreeCase):
++    """リンクを拒むこと（ADR-0029）、記事を読む口、Windows の os.lstat() の読み替え。"""
+ 
+-    def test_os_stat_rewrites(self):
++    def test_os_lstat_rewrites(self):
+         wiki = self.make("t3", {"wiki": {"a.md": "a", "locked.md": "l"}})
+-        real_stat = os.stat
++        real_lstat = os.lstat
+         locked = str(wiki / "locked.md")
+ 
+-        def zero(path, *args, **kwargs):
+-            st = real_stat(path, *args, **kwargs)
+-            if os.fspath(path) == locked:
+-                return os.stat_result((st.st_mode, 0, 0, st.st_nlink, st.st_uid, st.st_gid, st.st_size,
+-                                       st.st_atime, st.st_mtime, st.st_ctime))
+-            return st
+-
+         def block(path, *args, **kwargs):
+-            return BLOCK_DEVICE if os.fspath(path) == locked else real_stat(path, *args, **kwargs)
+-        found = self.walk(wiki, stat=zero)  # 開けないファイル: 一覧の情報で成功する。ファイルとして返す
+-        self.assertEqual(([f.rel for f in found.files], found.unknown), (["a.md", "locked.md"], []))
+-        found = self.walk(wiki, stat=block)  # 属性の取得の失敗: S_IFBLK の成功。分からない
+-        self.assertEqual(([f.rel for f in found.files], found.unknown), (["a.md"], ["locked.md"]))
++            return BLOCK_DEVICE if os.fspath(path) == locked else real_lstat(path, *args, **kwargs)
++        if NT:
++            with swapped(os, "lstat", block):  # 属性の取得の失敗: S_IFBLK の成功。分からない
++                found = wiki_pages.walk_pages(wiki)
++            self.assertEqual(([f.rel for f in found.files], found.unknown), (["a.md"], ["locked.md"]))
++
++    def test_root_link_is_allowed(self):
++        """wiki の根そのもののリンク（と祖先のリンク）は許し、降りる。"""
++        spec = {"store": {"a.md": "a"}, "wiki": ("junction", "store") if NT else ("dlink", "store")}
++        base = self.tmp / "rootlink"
++        if not build(base, spec):
++            self.skipTest("リンクを作れない")
++        found = wiki_pages.walk_pages(base / "wiki")
++        self.assertEqual(([f.rel for f in found.files], list(found.links)), (["a.md"], []))
++        self.assertEqual(wiki_pages.article_path(base / "wiki", "a.md").state, "ok")
++
++    def test_article_path(self):
++        spec = {"wiki": {"a.md": "a", "SCHEMA.md": "s", "log.md": "l", "index.md": ("hlink", "ext/i.md"),
++                         "indexes": {"x.md": "x"}, "c": {"d.md": "d"}, "f.md": ("flink", "ext/p.md"),
++                         "j": ("junction", "ext") if NT else ("dlink", "ext"), ".git": {"n.md": "n"}},
++                "ext": {"i.md": "i", "p.md": "p", "q.md": "q"}}
++        wiki = self.make("ap", spec)
++        if wiki is None:
++            self.skipTest("リンクを作れない")
++        ap = wiki_pages.article_path
++        self.assertEqual(ap(wiki, "a.md").state, "ok")
++        self.assertEqual(ap(wiki, "a.md").path, wiki / "a.md")
++        self.assertEqual(ap(wiki, "SCHEMA.md").state, "ok")
++        self.assertEqual(ap(wiki, "indexes/x.md").state, "ok")
++        self.assertEqual(ap(wiki, "c\\d.md").state, "ok")
++        self.assertEqual(ap(wiki, "index.md"), wiki_pages.ArticlePath("link", None, ("index.md", "hardlink")))
++        self.assertEqual(ap(wiki, "f.md"), wiki_pages.ArticlePath("link", None, ("f.md", "symlink")))
++        self.assertEqual(ap(wiki, "j/q.md").state, "link")
++        self.assertEqual(ap(wiki, "j/q.md").link[0], "j")
++        self.assertEqual(ap(wiki, "none.md").state, "absent")
++        self.assertEqual(ap(wiki, "c").state, "not_article")
++        self.assertEqual(ap(wiki, ".git/n.md").state, "not_article")
++        self.assertEqual(ap(wiki, "raw/r.md").state, "not_article")
++        self.assertEqual(ap(wiki, "README.md").state, "not_article")
++
++    def test_link_warnings(self):
++        spec = {"wiki": {"a.md": "a", "h.md": ("hlink", "wiki/a.md"), "index.md": "i",
++                         "indexes": ("junction", "ext") if NT else ("dlink", "ext")}, "ext": {"s.md": "s"}}
++        wiki = self.make("lw", spec)
++        if wiki is None:
++            self.skipTest("リンクを作れない")
++        pages, index = wiki_pages.walk_pages(wiki), wiki_pages.walk_index_files(wiki)
++        warnings = wiki_pages.link_warnings(pages, index, pages)
++        self.assertEqual(warnings, [{"path": "a.md", "kind": "hardlink"}, {"path": "h.md", "kind": "hardlink"},
++                                    {"path": "indexes", "kind": "junction" if NT else "symlink"}])
+ 
++    @unittest.skipUnless(NT, "Windows だけ")
+     def test_win_file_id(self):
+         wiki = self.make("t4", {"wiki": {"sub": {"loop": ("junction", "wiki")}}})
+         if wiki is None:
+@@ -890,12 +967,12 @@ class IdentityTests(TreeCase):
+ class PortTests(unittest.TestCase):
+     """走査の関数の構文木に、口の一覧にない入出力の呼び出しと、read_os のほかの except OSError がない。"""
+ 
+-    FUNCTIONS = ("read_os", "win_file_id", "_stat_entry", "_list_dir", "_identity", "_chain_identities", "_is_junction",
+-                 "walk_markdown", "walk_pages", "walk_index_files")
++    FUNCTIONS = ("read_os", "_stat_entry", "_list_dir", "_entry_lstat", "_link_is_dir",
++                 "walk_markdown", "walk_pages", "walk_index_files", "article_path")
+     # 走査の関数が参照してよい os の名前（口と、OS を呼ばない文字列の操作）
+-    ALLOWED_OS = {"os.scandir", "os.stat", "os.fspath", "os.path.join"}
+-    FORBIDDEN_NAMES = {"open", "walk", "isfile", "isdir", "exists", "realpath", "samefile", "lstat", "rglob", "glob",
+-                       "iterdir", "resolve", "is_file", "read_text", "read_bytes"}
++    ALLOWED_OS = {"os.scandir", "os.lstat", "os.fspath", "os.path.join"}
++    FORBIDDEN_NAMES = {"open", "walk", "isfile", "isdir", "exists", "realpath", "samefile", "rglob", "glob",
++                       "iterdir", "resolve", "is_file", "read_text", "read_bytes", "is_symlink", "is_junction"}
+ 
+     def violations(self, source):
+         tree = ast.parse(source)
+@@ -934,15 +1011,15 @@ class PortTests(unittest.TestCase):
+ 
+     def test_check_finds_a_planted_violation(self):
+         source = (SCRIPTS / "wiki_pages.py").read_text(encoding="utf-8")
+-        planted = source.replace("    files, unlistable, unknown = [], [], []\n",
+-                                 "    files, unlistable, unknown = [], [], []\n    os.path.isfile(start)\n", 1)
++        planted = source.replace("    files, unlistable, unknown, links = [], [], [], []\n",
++                                 "    files, unlistable, unknown, links = [], [], [], []\n    os.path.isfile(start)\n", 1)
+         self.assertNotEqual(planted, source)
+         self.assertIn("walk_markdown: isfile()", self.violations(planted))
+-        planted = source.replace("    files, unlistable, unknown = [], [], []\n",
+-                                 "    files, unlistable, unknown = [], [], []\n    os.listdir(start)\n", 1)
++        planted = source.replace("    files, unlistable, unknown, links = [], [], [], []\n",
++                                 "    files, unlistable, unknown, links = [], [], [], []\n    os.listdir(start)\n", 1)
+         self.assertIn("walk_markdown: os.listdir", self.violations(planted))
+-        planted = source.replace("    files, unlistable, unknown = [], [], []\n",
+-                                 "    files, unlistable, unknown = [], [], []\n    _extra_listing(start)\n", 1)
++        planted = source.replace("    files, unlistable, unknown, links = [], [], [], []\n",
++                                 "    files, unlistable, unknown, links = [], [], [], []\n    _extra_listing(start)\n", 1)
+         planted += "\n\ndef _extra_listing(start):\n    return os.listdir(start)\n"
+         self.assertIn("_extra_listing: os.listdir", self.violations(planted))
+         planted = source.replace("        state, entries = read_os(_list_dir, directory)\n",
+@@ -968,8 +1045,9 @@ class UseTests(TreeCase):
+         wiki = self.wiki_with_raw()
+         with Injector(wiki) as run:
+             result = wiki_stats.compute_stats(wiki)
+-        # 除く名前の下には、口のどれも呼ばない。indexes は、名前の項目への os.lstat() だけ（口の外）。
+-        touched = [rel for _op, rel in run.calls if rel.split("/")[0] in wiki_pages.SKIP_TOP_LEVEL_DIRS]
++        # 除く名前の下には、口のどれも呼ばない。indexes は、名前の項目への os.lstat() だけ。
++        touched = [(op, rel) for op, rel in run.calls if rel.split("/")[0] in wiki_pages.SKIP_TOP_LEVEL_DIRS]
++        touched = [(op, rel) for op, rel in touched if (op, rel) != ("lstat", "indexes")]
+         self.assertEqual(touched, [])
+         self.assertEqual(result["pages"], 2)
+         self.assertEqual(result["index_lines"], 4)
