@@ -137,6 +137,21 @@ class IntegrationReviewTests(Base):
                 wiki_pages.read_user_bytes(path, self.wiki)
         self.assertEqual(wiki_pages.source_wiki_root(view, self.wiki), self.wiki)
 
+    def test_external_file_aliases_inherit_the_wiki_checks(self):
+        self.write("outside/a.md", "OUTSIDE", base=self.ext)
+        jump = self.wiki / "concepts/jump"
+        jump.parent.mkdir()
+        if not junction(jump, self.ext / "outside"):
+            self.skipTest("リンクを作れない")
+        h = self.write("concepts/h.md", "HARDLINKED")
+        os.link(h, self.ext / "h-copy.md")
+        for name, target in (("x.md", jump / "a.md"), ("y.md", h)):
+            alias = self.tmp / name
+            if not symlink(alias, target):
+                self.skipTest("ファイルのシンボリックリンクを作れない")
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, "リンクなので読まない"):
+                wiki_pages.read_user_bytes(alias, self.wiki)
+
     @unittest.skipIf(NT, "POSIX の相対的なリンクの行き先を使う")
     def test_relative_alias_targets_and_cycles(self):
         self.write("concepts/a.md", page("a"))
