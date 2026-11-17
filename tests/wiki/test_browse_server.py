@@ -899,6 +899,59 @@ class SvgServeTest(InProcess):
         self.assertEqual(self.get(name)[1].encode("utf-8"), bigger)
 
 
+class FrameServeTest(InProcess):
+    """Mermaid の図の枠の同梱物を、トークンなしの /_frame/<版>/ から配る（図の描画の設計の 7.2、7.3）。"""
+
+    def setUp(self):
+        super().setUp()
+        self.app.frame_assets = core.load_frame_assets()
+        self.base = f"/{core.FRAME_PREFIX}/{core.FRAME_VERSION}/"
+
+    def raw(self, method: str, path: str) -> tuple:
+        conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=20)
+        try:
+            conn.putrequest(method, path, skip_host=True, skip_accept_encoding=True)
+            conn.putheader("Host", f"127.0.0.1:{self.port}")
+            conn.endheaders()
+            res = conn.getresponse()
+            return res.status, res.read(), dict(res.getheaders())
+        finally:
+            conn.close()
+
+    def test_frame_files_are_served_without_token(self):
+        for name in core.FRAME_ASSETS:
+            code, body, headers = self.raw("GET", self.base + name)
+            self.assertEqual(code, 200, name)
+            self.assertEqual(body, (SCRIPTS / "browse_assets" / name).read_bytes(), name)
+            self.assertEqual(headers["Cache-Control"], "private, max-age=86400", name)
+            self.assertEqual(headers["X-Content-Type-Options"], "nosniff", name)
+            if name.endswith(".html"):
+                self.assertTrue(headers["Content-Type"].startswith("text/html"))
+                self.assertEqual(headers["Content-Security-Policy"], core.frame_csp(self.port))
+            else:
+                self.assertTrue(headers["Content-Type"].startswith("text/javascript"))
+                self.assertEqual(headers["Content-Security-Policy"], core.CSP)
+        code, _b, headers = self.raw("HEAD", self.base + "mermaid-frame.html")
+        self.assertEqual((code, headers["Content-Length"]), (200, str(len(self.app.frame_assets["mermaid-frame.html"]))))
+
+    def test_other_paths_are_404_and_never_redirect(self):
+        for path in (f"/{core.FRAME_PREFIX}/mermaid-0.0.0-0/mermaid.tiny.js", self.base + "app.js",
+                     self.base + "style.css", self.base + "../mermaid.tiny.js", self.base + "%2e%2e/x",
+                     f"/{core.FRAME_PREFIX}/{core.FRAME_VERSION}", f"/{core.FRAME_PREFIX}/{core.FRAME_VERSION}/",
+                     self.base + "mermaid-frame.html/x", f"/{core.FRAME_PREFIX}/{core.FRAME_VERSION}/data/search.js"):
+            code, _b, headers = self.raw("GET", path)
+            self.assertEqual(code, 404, path)
+            self.assertNotIn("Location", headers, path)
+        self.assertEqual(self.raw("POST", self.base + "mermaid-frame.html")[0], 405)
+        code, _b, _h = request(self.port, "GET", self.base + "mermaid-frame.html", host="localhost")
+        self.assertEqual(code, 421)
+
+    def test_page_csp_allows_only_same_origin_frames(self):
+        _code, _body, headers = self.get("concepts/a.html")
+        self.assertEqual(headers["Content-Security-Policy"], core.CSP)
+        self.assertIn("frame-src 'self'", headers["Content-Security-Policy"])
+
+
 class ServeScopeTest(Base):
     """serve の出力の scope と、そのサーバーが描くスコープ（BrowseState.scope）の一致。
 

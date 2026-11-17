@@ -2,9 +2,9 @@
 type: "concept"
 title: "browse の画面を実際のブラウザで確かめる手順"
 tags: ["browse", "試験"]
-sources: ["browseのスコープ表示とリリース-wiki-0.12.0"]
+sources: ["browseのスコープ表示とリリース-wiki-0.12.0", "browseの図の描画とリリース-wiki-0.26.0-0.27.0"]
 created: 2026-11-13
-updated: 2026-11-16
+updated: 2026-11-17
 ---
 
 # browse の画面を実際のブラウザで確かめる手順
@@ -64,6 +64,10 @@ Fluent 2 にしたあとの画面（[[browseのデザインシステム]]）は�
 - **WebKit はリンクを押してもフォーカスを移さない。** フォーカスの移動で行う処理（左の木のローヴィングの同期）は、押したときにも自分でフォーカスを移さないと働かない。また、マウスで押した直後のリンクから Tab を押しても、WebKit ではフォーカスが動かない。Tab の入口の試験は、木の後ろの入力欄から Shift+Tab で入る操作で確かめる（[[browseのタグの段とTreeのリリース-wiki-0.25.0]]）。
 - **製品の Edge と Chrome は `/favicon.ico` を要求する。** Playwright に同梱の Chromium は要求しない。0.19.2 までのページは `<link rel="icon">` を持たず、サーバーの方式で 404 になり、コンソールにエラーが出ていた。0.19.3 で、ページと 404 の HTML に `<link rel="icon" href="data:,">` を出して直した。503 と 500 のテキストの画面では、今も要求する。CI では、この種の問題は見えないので、製品のブラウザで流して確かめる。
 - **WebKit では、撮るたびに CSP の違反が出る。** `page.screenshot` が足すスタイルシートを、ページの CSP が拒む。ページが出した違反ではないので、CSP の違反を数える試験では、撮る前に数える。
+
+- **図（ADR-0030）の画面は、ブラウザで組み方が違う。** WebKit は、幅を中身で決める入れ物（Card の flex と `fit-content`）の中の、読み込む前の画像を幅 0 のまま組み、読み込んだあとに組み直さなかった。Firefox は、根に大きさのない svg の画像を、幅を中身で決める入れ物の中で幅 0 にした。`<img>` に大きさの属性を付け、入れ物を `inline-block` にして直した（[[browseの図の描画とリリース-wiki-0.26.0-0.27.0]]）。画像の幅は、`naturalWidth` だけでなく表示の幅（`getBoundingClientRect`）でも確かめる。
+- **WebKit は、sandbox の文書の `'self'` を配信元と一致させない。** sandbox の枠の CSP の `script-src 'self'` では、WebKit（Playwright の 26.0）だけがスクリプトを止めた。`<meta>` に CSP があると、ヘッダーに配信元を書いても `<meta>` の側で止まる（[[browseの図の描画とリリース-wiki-0.26.0-0.27.0]]）。
+- **Chromium は、撮るときに入力欄へ空の `style` を付ける。** `[style]` を数える試験は、WebKit の違反と同じく、撮る前に数える。
 
 4 つのブラウザで両方の方式を同時に流すと、`findability.test.mjs` が 4〜8 分かかる。
 
