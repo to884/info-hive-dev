@@ -501,7 +501,6 @@ class EntranceInventoryTests(unittest.TestCase):
         "wiki_evolve_claude.py": "評価のランナー（Claude Code）",
     }
     NO_WIKI = {
-        "wiki_fetch_browser.py": "ブラウザから URL の本文を得る補助。wiki のパスは受け取らない",
         "wiki_codex.py": "Codex 向けの操作手順を表示する。wiki のパスは受け取らない",
         "wiki_encoding.py": "1 つのファイルの文字コードを調べる",
         "wiki_help.py": "コマンドの一覧と個別のヘルプを出す",
