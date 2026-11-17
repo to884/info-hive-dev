@@ -123,6 +123,17 @@ class AssetIntegrationTests(Base):
 
 
 class IntegrationReviewTests(Base):
+    def test_refused_index_article_matches_an_explicit_path_only(self):
+        import wiki_browse_core as core
+        index = self.write("indexes/topic.md", "# Topic\n")
+        os.link(index, self.ext / "index-copy.md")
+        self.write("index.md", "# Index\n\n- [[indexes/topic|Topic]]\n")
+        self.write("concepts/a.md", page("a"))
+        c = core.Core(core.take_snapshot(self.wiki))
+        self.assertEqual(c.resolve("indexes/topic")["state"], "refused")
+        self.assertEqual(c.resolve("topic")["state"], "unresolved")
+        self.assertIn('title="リンクなので読まない">Topic', c.render_index())
+
     def test_external_alias_never_resolves_through_a_forbidden_wiki_directory(self):
         self.write("outside/a.md", "OUTSIDE", base=self.ext)
         jump = self.wiki / "concepts/jump"
