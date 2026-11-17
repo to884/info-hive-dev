@@ -500,6 +500,63 @@ def ran(tools: list[dict], results: dict[str, dict], out_re: re.Pattern) -> list
             and t.get("id") in results and out_re.search(results[t["id"]]["text"])]
 
 
+def verified_completion(value: dict) -> bool:
+    """W8 の完了と翻訳の検査を確認する。旧形式や写しの消失だけから完了を推定しない。"""
+    required = value.get("needs_translation")
+    translation = value.get("translation")
+    if not isinstance(required, bool) or not isinstance(translation, dict):
+        return False
+    blocks = translation.get("checked_blocks")
+    if type(blocks) is not int or blocks < 0:
+        return False
+    pending = translation.get("pending_reviews")
+    reviewed = translation.get("reviewed_passages")
+    decisions = translation.get("decisions")
+    basis = translation.get("basis")
+    if (type(pending) is not int or pending != 0 or type(reviewed) is not int or reviewed < 0
+            or not isinstance(decisions, list) or len(decisions) != reviewed
+            or not isinstance(basis, dict)
+            or any(not isinstance(basis.get(k), str) or not re.fullmatch(r"[0-9a-f]{64}", basis[k])
+                   for k in ("source_sha256", "raw_sha256"))):
+        return False
+    if reviewed and (not isinstance(translation.get("reviewed_by"), str) or not translation["reviewed_by"].strip()):
+        return False
+    ids = set()
+    for item in decisions:
+        if not isinstance(item, dict) or any(not isinstance(item.get(k), str) or not item[k].strip()
+                                             for k in ("id", "text", "kind", "reason")):
+            return False
+        if (not re.fullmatch(r"[0-9a-f]{64}", item["id"]) or item["id"] in ids
+                or item["kind"] not in {"proper_name", "identifier", "ui_text", "error_message", "bibliography", "term", "quotation", "japanese_text"}):
+            return False
+        ids.add(item["id"])
+    warnings = value.get("warnings")
+    if not isinstance(warnings, list) or any(not isinstance(w, dict) for w in warnings):
+        return False
+    confirmations = [w for w in warnings if w.get("kind") == "translation_reviewed"]
+    if (len(confirmations) != reviewed or any(not isinstance(w.get("review_id"), str) for w in confirmations)
+            or {w["review_id"] for w in confirmations} != ids):
+        return False
+    translator = value.get("translated_by")
+    if not isinstance(translator, str) or (required and not translator.strip()):
+        return False
+    override = value.get("language_override")
+    if required and isinstance(override, dict) and override.get("value") == "keep":
+        return False
+    state = translation.get("state")
+    valid_state = ((state == "checked" and blocks > 0) or (state == "no_prose" and blocks == 0)) if required else state == "not_required"
+    return (value.get("stage") == "check" and value.get("ok") is True
+            and value.get("completed") is True and value.get("work_dir_removed") is True
+            and value.get("errors") == []
+            and valid_state)
+
+
+def verified_agent_completion(value: dict) -> bool:
+    """委譲先は保持の確認や他の警告を自分で受理して done にできない。"""
+    return (verified_completion(value) and value.get("warnings") == []
+            and value["translation"]["reviewed_passages"] == 0)
+
+
 def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_model: str) -> dict:
     # 記録の書き込み先は絶対パスなので、相対パスで渡されたプロジェクトも絶対パスにしてから比べる
     project = Path(project).resolve()
@@ -631,14 +688,18 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     # 終えても、違反は消えない）。コマンドの文字列ではなく、出力で決める。
     agent_accepted = [r["command"] for r in agent_runs if r["accepted"]]
     check("wiki:web-raw は警告を受け入れて終えていない（check --finish の出力。どの回も）", not agent_accepted, agent_accepted)
+    unverified = [{"actor": r["actor"], "command": r["command"], "result": r["json"]}
+                  for r in agent_runs + main_runs if r["removed"] and r["json"] is not None
+                  and not (verified_agent_completion(r["json"]) if r["actor"] == AGENT_TYPE else verified_completion(r["json"]))]
+    check("写しを消したすべての JSON に、完了と翻訳の検査結果がある", not unverified, unverified)
     # W8 の終わりは、写しを消した回のうち、時刻と記録の順で最後のもので決める。エージェントが警告なしで終えたか、
     # 警告を受け入れる流れ（references/web-raw.md の warnings）でメインが警告の残ったまま終えたなら通す。W8 は
     # --json で動かす（0.18.1 の手順）ので、最後の回は JSON でなければならない。文字の出力の回は、上の違反を
     # 見つけるためだけに読む。
     final = max([r for r in agent_runs + main_runs if r["removed"]], key=lambda r: r["key"], default=None)
     w8_by = []
-    if final is not None and final["json"] is not None:
-        if final["actor"] == AGENT_TYPE and not final["warnings"]:
+    if final is not None and final["json"] is not None and verified_completion(final["json"]):
+        if final["actor"] == AGENT_TYPE and verified_agent_completion(final["json"]):
             w8_by = [AGENT_TYPE]
         elif final["actor"] == "main" and final["warnings"]:
             w8_by = ["main"]

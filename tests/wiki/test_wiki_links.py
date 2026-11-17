@@ -1275,6 +1275,7 @@ class ReadSiteInventoryTests(unittest.TestCase):
         ("wiki_pages.py", "read_user_bytes"): GATEWAY,
         ("wiki_pages.py", "user_directory_path"): GATEWAY,
         ("wiki_pdf.py", "main"): RAW,
+        ("wiki_rawcheck.py", "apply_translation_review"): NOT_ARTICLE,  # 作業用の確認の JSON
         ("wiki_rawcheck.py", "check"): RAW,
         ("wiki_rawcheck.py", "freeze"): RAW,
         ("wiki_rawcheck.py", "load_fetch"): RAW,
