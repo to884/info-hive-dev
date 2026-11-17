@@ -2048,5 +2048,148 @@ class ResumeBeforeFetchTest(FetchCase):
                 self.assertFalse(result["work_dir"])
 
 
+class TranslationCompletionTest(RawCheckCase):
+    """翻訳を省略して W8 を完了にした事例の回帰試験。ネットには接続しない。"""
+
+    ENGLISH = "The engine searches existing links and reads the source documents before producing an answer."
+    JAPANESE = "エンジンは既存のリンクを検索し、回答を作る前に出典の文書を読む。"
+
+    def prepare(self, body=None, *, images=(), required=True):
+        self.setup_fetch(body or ("# Graph\n\n" + self.ENGLISH + "\n"),
+                         images=images, needs_translation=required)
+        self.assertTrue(self.freeze()["ok"])
+
+    def run_check(self, *options):
+        out = io.StringIO()
+        argv = ["check", "--wiki", str(self.wiki), "--raw-root", str(self.raw), "--slug", "a", "--json", *options]
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            code = wiki_rawcheck.main(argv)
+        return code, json.loads(out.getvalue()) if out.getvalue() else {}
+
+    def assert_incomplete(self, result, kind):
+        code, data = result
+        self.assertEqual(code, 1, data)
+        self.assertIn(kind, self.kinds(data), data)
+        self.assertFalse(data["completed"])
+        self.assertEqual(data["work_dir_kept"], "errors")
+        self.assertEqual(data["translation"]["state"], "incomplete")
+        self.assertTrue((self.wd / "cleaned.md").is_file())
+
+    def test_keep_cannot_remove_translation_requirement(self):
+        self.prepare()
+        self.assert_incomplete(self.run_check("--language-override", "keep", "--reason", "原文を保存する",
+                                             "--finish", "--accept-warnings"), "translation_required")
+        self.assertTrue(self.check(override="keep")["needs_translation"])
+
+    def test_translator_name_alone_cannot_finish(self):
+        self.prepare()
+        self.write_raw("# Graph\n\n" + self.ENGLISH + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_one_translated_paragraph_does_not_cover_another(self):
+        self.prepare("# Graph\n\n" + self.ENGLISH + "\n\n" + self.ENGLISH + "\n")
+        self.write_raw("# Graph\n\n" + self.JAPANESE + "\n\n" + self.ENGLISH + "\n", fm=FM_T)
+        result = self.run_check("--finish", "--accept-warnings")
+        self.assert_incomplete(result, "untranslated")
+        self.assertEqual(result[1]["translation"]["checked_blocks"], 2)
+        self.assertEqual(sum(x["kind"] == "untranslated" for x in result[1]["errors"]), 1)
+
+    def test_caption_does_not_count_as_body_translation(self):
+        image = '![i](assets/a/1.png "https://x.example/i.png")\n'
+        self.prepare("# Graph\n\n" + self.ENGLISH + "\n\n" + image, images=["assets/a/1.png"])
+        self.write_raw("# Graph\n\n" + self.ENGLISH + "\n\n" + image
+                       + "\n> Claude Sonnet 5.5 補足: 図の説明である。\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_small_japanese_addition_is_not_translation(self):
+        self.prepare()
+        self.write_raw("# Graph\n\n" + self.ENGLISH + " 訳。\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_english_rewording_is_not_japanese_translation(self):
+        self.prepare()
+        self.write_raw("# Graph\n\nThe system retrieves pages and checks their links before it generates answers.\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_all_caps_prose_is_not_a_list_of_protected_names(self):
+        body = self.ENGLISH.upper()
+        self.prepare("# Graph\n\n" + body + "\n")
+        self.write_raw("# Graph\n\n" + body + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_japanese_in_the_same_paragraph_does_not_hide_copied_english(self):
+        japanese = "この文書では既存のリンクを使う検索方式を説明し、根拠を示して回答する方法を扱う。"
+        self.prepare("# Graph\n\n" + japanese + self.ENGLISH + "\n")
+        self.write_raw("# Graph\n\n" + japanese + self.ENGLISH + "\n", fm=FM_T)
+        self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_headings_lists_quotes_and_table_cells_are_checked(self):
+        for body in ("## " + self.ENGLISH + "\n", "- " + self.ENGLISH + "\n",
+                     "> " + self.ENGLISH + "\n", "| text |\n| --- |\n| " + self.ENGLISH + " |\n"):
+            with self.subTest(body=body):
+                self.prepare("# Graph\n\n" + body)
+                self.write_raw("# Graph\n\n" + body, fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_unchanged_long_chinese_prose_is_not_translation(self):
+        body = "这是一个使用已有文档之间的链接来查找相关资料并在回答之前检查引用的系统。"
+        for tail in ("", "日本語の訳である。"):
+            with self.subTest(tail=tail):
+                self.prepare("# Graph\n\n" + body + "\n")
+                self.write_raw("# Graph\n\n" + body + tail + "\n", fm=FM_T)
+                self.assert_incomplete(self.run_check("--finish", "--accept-warnings"), "untranslated")
+
+    def test_names_code_and_japanese_prose_can_be_kept(self):
+        source = ("# Graph\n\nDuckDB\n\n[Alan Turing](https://x.example/a)\n\n"
+                  "既存の日本語の説明である。\n\n`" + self.ENGLISH + "`\n\n```python\n"
+                  + "print('" + self.ENGLISH + "')\n```\n\n" + self.ENGLISH + "\n")
+        self.prepare(source)
+        self.write_raw(source.rsplit(self.ENGLISH, 1)[0] + self.JAPANESE + "\n", fm=FM_T)
+        code, data = self.run_check()
+        self.assertEqual(code, 0, data)
+        self.assertFalse(data["completed"])
+        self.assertEqual(data["translation"], {"state": "checked", "checked_blocks": 1})
+        self.assertTrue(self.wd.exists())
+        code, data = self.run_check("--finish")
+        self.assertEqual(code, 0, data)
+        self.assertTrue(data["completed"])
+        self.assertTrue(data["work_dir_removed"])
+        self.assertFalse(self.wd.exists())
+
+    def test_missing_or_non_boolean_requirement_is_not_optional(self):
+        for value in (None, "false", 0, 1, [], {}):
+            with self.subTest(value=value):
+                self.prepare()
+                fetch = self.wd / "fetch.json"
+                data = json.loads(fetch.read_text(encoding="utf-8"))
+                if value is None:
+                    data.pop("needs_translation")
+                else:
+                    data["needs_translation"] = value
+                fetch.write_text(json.dumps(data), encoding="utf-8")
+                code, data = self.run_check("--finish", "--accept-warnings")
+                self.assertEqual(code, 1)
+                self.assertFalse(data.get("completed", False))
+                self.assertTrue((self.wd / "cleaned.md").is_file())
+
+    def test_japanese_original_completes_without_a_translator(self):
+        self.prepare("# 題名\n\nもともと日本語で書かれた本文である。\n", required=False)
+        code, data = self.run_check("--finish")
+        self.assertEqual(code, 0, data)
+        self.assertTrue(data["completed"])
+        self.assertEqual(data["translation"]["state"], "not_required")
+
+    def test_warnings_alone_are_not_a_completed_result(self):
+        self.prepare("# Graph\n\nThe town of Greenwich is old.\n")
+        self.write_raw("# Graph\n\nグリニッジの町は古い。\n", fm=FM_T)
+        code, data = self.run_check("--finish")
+        self.assertEqual(code, 0, data)
+        self.assertFalse(data["completed"])
+        self.assertEqual(data["work_dir_kept"], "warnings")
+        code, data = self.run_check("--finish", "--accept-warnings")
+        self.assertEqual(code, 0, data)
+        self.assertTrue(data["completed"])
+
+
 if __name__ == "__main__":
     unittest.main()

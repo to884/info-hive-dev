@@ -1,0 +1,49 @@
+{
+  "fixture": "saved article in isolated temporary wiki; original files are not modified",
+  "cases": [
+    {
+      "case": "original incident: keep and English raw",
+      "exit_code": 1,
+      "completed": false,
+      "translation": {
+        "state": "incomplete",
+        "checked_blocks": 117
+      },
+      "error_kinds": {
+        "translation_required": 1,
+        "translated_by": 1,
+        "untranslated": 117
+      },
+      "warnings": 0,
+      "work_dir_exists": true
+    },
+    {
+      "case": "translator name with English raw",
+      "exit_code": 1,
+      "completed": false,
+      "translation": {
+        "state": "incomplete",
+        "checked_blocks": 117
+      },
+      "error_kinds": {
+        "untranslated": 117
+      },
+      "warnings": 0,
+      "work_dir_exists": true
+    },
+    {
+      "case": "Japanese raw with documented warning acceptance",
+      "exit_code": 0,
+      "completed": true,
+      "translation": {
+        "state": "checked",
+        "checked_blocks": 117
+      },
+      "error_kinds": {},
+      "warnings": 4,
+      "work_dir_exists": false
+    }
+  ],
+  "source_sha256": "6c94d056cd53f3080122821320be4b39141cb67b72f5cfb9a93bc8cd7f197c2c",
+  "translation_sha256": "5523cc95aa1fe7844727b7314884d6459e3db9b600554bf4953f37affadc79bf"
+}

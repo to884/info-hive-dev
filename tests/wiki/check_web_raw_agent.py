@@ -500,6 +500,27 @@ def ran(tools: list[dict], results: dict[str, dict], out_re: re.Pattern) -> list
             and t.get("id") in results and out_re.search(results[t["id"]]["text"])]
 
 
+def verified_completion(value: dict) -> bool:
+    """W8 の完了と翻訳の検査を確認する。旧形式や写しの消失だけから完了を推定しない。"""
+    required = value.get("needs_translation")
+    translation = value.get("translation")
+    if not isinstance(required, bool) or not isinstance(translation, dict):
+        return False
+    blocks = translation.get("checked_blocks")
+    if type(blocks) is not int or blocks < 0:
+        return False
+    translator = value.get("translated_by")
+    if not isinstance(translator, str) or (required and not translator.strip()):
+        return False
+    override = value.get("language_override")
+    if required and isinstance(override, dict) and override.get("value") == "keep":
+        return False
+    return (value.get("stage") == "check" and value.get("ok") is True
+            and value.get("completed") is True and value.get("work_dir_removed") is True
+            and value.get("errors") == []
+            and translation.get("state") == ("checked" if required else "not_required"))
+
+
 def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_model: str) -> dict:
     # 記録の書き込み先は絶対パスなので、相対パスで渡されたプロジェクトも絶対パスにしてから比べる
     project = Path(project).resolve()
@@ -631,13 +652,17 @@ def analyze_paths(main_path: Path, sub_paths: list[Path], project: Path, main_mo
     # 終えても、違反は消えない）。コマンドの文字列ではなく、出力で決める。
     agent_accepted = [r["command"] for r in agent_runs if r["accepted"]]
     check("wiki:web-raw は警告を受け入れて終えていない（check --finish の出力。どの回も）", not agent_accepted, agent_accepted)
+    unverified = [{"actor": r["actor"], "command": r["command"], "result": r["json"]}
+                  for r in agent_runs + main_runs if r["removed"] and r["json"] is not None
+                  and not verified_completion(r["json"])]
+    check("写しを消したすべての JSON に、完了と翻訳の検査結果がある", not unverified, unverified)
     # W8 の終わりは、写しを消した回のうち、時刻と記録の順で最後のもので決める。エージェントが警告なしで終えたか、
     # 警告を受け入れる流れ（references/web-raw.md の warnings）でメインが警告の残ったまま終えたなら通す。W8 は
     # --json で動かす（0.18.1 の手順）ので、最後の回は JSON でなければならない。文字の出力の回は、上の違反を
     # 見つけるためだけに読む。
     final = max([r for r in agent_runs + main_runs if r["removed"]], key=lambda r: r["key"], default=None)
     w8_by = []
-    if final is not None and final["json"] is not None:
+    if final is not None and final["json"] is not None and verified_completion(final["json"]):
         if final["actor"] == AGENT_TYPE and not final["warnings"]:
             w8_by = [AGENT_TYPE]
         elif final["actor"] == "main" and final["warnings"]:
