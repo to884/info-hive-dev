@@ -32,7 +32,7 @@ Path(begin['request_path']).write_bytes(json.dumps({'format':2,'action':'create'
 ready=ov.prepare(wiki)
 draft=Path(ready['draft_dir'])
 (draft/'overview.md').write_bytes('### 保存した概要\n\n![図](#fig-flow)\n'.encode('utf-8'))
-svg=b'<svg xmlns="http://www.w3.org/2000/svg" width="720" height="120"><text x="20" y="40">overview</text></svg>'
+svg=b'<svg xmlns="http://www.w3.org/2000/svg" width="720" height="120"><text x="20" y="40">overview</text></svg>\n'
 (draft/'flow.svg').write_bytes(svg)
 assert ov.check(wiki,ready['work_id'])=={'status':'ok'}
 written=ov.write(wiki,ready['work_id'])
@@ -41,7 +41,9 @@ built=core.Core(core.take_snapshot(wiki))
 html=built.body_html('concepts/sample')
 assert '</h1>\n<details class="wiki-overview' in html
 assert 'data-overview-state="fresh" open' in html
-assert list(built.overview_assets.values())==[svg]
+saved=ov.embedded_figures((wiki/written['sidecar']).read_bytes())['flow']
+assert saved.rstrip(b'\n')==svg.rstrip(b'\n')
+assert list(built.overview_assets.values())==[saved]
 assert len(built.drawn)==1
 after={p.relative_to(wiki).as_posix():p.read_bytes() for p in wiki.rglob('*') if p.is_file()}
 assert before==after
@@ -52,7 +54,7 @@ html=built.body_html('concepts/sample')
 assert 'data-overview-state="stale"' in html
 assert 'data-overview-state="stale" open' not in html
 assert ov.inspect_wiki(wiki)['overviews'][0]['state']=='stale'
-print(json.dumps({'written':written['status'],'fresh':True,'stale_closed':True,'svg_sha256':hashlib.sha256(svg).hexdigest(),'browse_unchanged':True}))
+print(json.dumps({'written':written['status'],'fresh':True,'stale_closed':True,'svg_sha256':hashlib.sha256(saved).hexdigest(),'browse_unchanged':True}))
 '''
 
 
