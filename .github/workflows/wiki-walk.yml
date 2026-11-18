@@ -18,6 +18,9 @@ on:
       - tests/wiki/test_page_set.py
       - tests/wiki/test_wiki_lint.py
       - tests/wiki/test_wiki_links.py
+      - tests/wiki/test_raw_links.py
+      - tests/wiki/test_wiki_youtube.py
+      - tests/wiki/test_wiki_session.py
       - tests/wiki/test_prompt_hook.py
       - tests/wiki/test_prompt_launcher.py
       - tests/wiki/bench_prompt_hook.py
@@ -87,7 +90,7 @@ jobs:
         run: uv run --python ${{ matrix.python }} python -X utf8 -B -m unittest tests/wiki/test_page_set.py tests/wiki/test_wiki_lint.py -v
       - name: 記事のリンク拒否の回帰試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
-        run: uv run --python ${{ matrix.python }} --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_wiki_links.py -v
+        run: uv run --python ${{ matrix.python }} --with numpy==2.5.4 --with usearch==2.26.6 --with tantivy==0.27.0 --with pyyaml==6.0.3 python -X utf8 -B -m unittest tests/wiki/test_wiki_links.py tests/wiki/test_raw_links.py tests/wiki/test_wiki_youtube.py tests.wiki.test_wiki_session.ReadOnlyVerifyTests.test_post_write_check_refuses_shared_raw_before_chmod tests.wiki.test_wiki_session.ReadOnlyVerifyTests.test_post_write_check_uses_session_base_despite_unrelated_wiki_raw_link -v
       # プロンプトのフック（ADR-0034）。入口が、どの OS でも、どんな入力でも終了コード 0 で終わることを確かめる。
       # 実際の wiki での評価（EvaluationGateTests）は、浅い取得では評価のコミットがないので飛ぶ。
       - name: プロンプトのフックの試験

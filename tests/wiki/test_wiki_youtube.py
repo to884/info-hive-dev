@@ -115,7 +115,7 @@ BASIC = json3((0, "こんにちは"), (1200, "今日は 15 人が来た"), (6100
 
 class Workspace(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
+        self.tmp = Path(tempfile.mkdtemp()).resolve()  # macOS の /var -> /private/var は書き手の対象外の別名
         self.wiki = self.tmp / "wiki"
         self.raw = self.tmp / "raw"
         self.wiki.mkdir()
@@ -936,7 +936,7 @@ class VerifyTests(Workspace):
             self.write_page(f"sources/{composed}.md", self.page("b", "y"))
         except OSError:
             self.skipTest("このファイルシステムは、この名前を作れない")
-        if len([p for p in (self.wiki / "sources").iterdir() if p.suffix == ".md"]) == 2:
+        if not (self.wiki / "sources" / f"{decomposed}.md").samefile(self.wiki / "sources" / f"{composed}.md"):
             result = wc.check_wiki(self.wiki, {})
             self.assertIn("ambiguous_page_path", [f.code for f in result.findings])
         # 名前を正規化するファイルシステムでも確かめられるよう、一覧と読み込みを差し替えて同じ状態を作る。
@@ -1105,6 +1105,84 @@ class VerifyTests(Workspace):
         # 画像の代替の文字は、閲覧では本文として表示されるので、目印の対象にする（レビューの 5 回目）。
         overlay = {"sources/動画.md": self.page("動画", "![999](https://example.com/image.png)")}
         self.assertIn("999", self.check(overlay).unknown_words["sources/動画.md"])
+
+    def test_verify_refuses_primary_hardlink_before_parsing_raw(self):
+        os.link(self.raw / "動画.md", self.tmp / "raw-copy.md")
+        with mock.patch.object(wc, "parse_raw", side_effect=AssertionError("リンクの本文を読んだ")):
+            code, out = self.run_main("verify", "--wiki", str(self.wiki), "--raw-root", str(self.raw),
+                                      "--slug", "動画", "--json")
+        self.assertNotEqual(code, 0)
+        self.assertIn("link", json.dumps(out, ensure_ascii=False))
+
+    def test_write_rejects_parent_in_root_before_fetch(self):
+        from types import SimpleNamespace
+        args = SimpleNamespace(wiki=str(self.wiki), raw_root=str(self.wiki / "../raw"))
+        with mock.patch.object(wy, "take", side_effect=AssertionError("取得に進んだ")):
+            with self.assertRaises(wy.Fail):
+                wy.cmd_write(args)
+
+    def test_rejected_evidence_is_not_called_missing(self):
+        os.link(self.raw / "記事.md", self.tmp / "article-copy.md")
+        self.write_page("sources/動画.md", self.page("動画", "トヨダ〔訂正 L3-1〕の話", confidence="medium",
+            defs="- L3-1: 字幕 `トヨタ` を `トヨダ` に訂正（根拠 wiki_source:記事）"))
+        result = wc.check_wiki(self.wiki, raw_roots=[self.raw])
+        messages = [f.message for f in result.findings if f.code == "bad_definition"]
+        self.assertTrue(any("リンクなので読まない" in m for m in messages), messages)
+        self.assertFalse(any("見つからない" in m for m in messages), messages)
+
+    def test_partial_evidence_keeps_refusal_after_filtering(self):
+        os.link(self.raw / "記事.md", self.tmp / "article-copy.md")
+        (self.raw / "other.md").write_text("訂正した語のない別の原本", encoding="utf-8")
+        refs = ["raw/記事.md", "raw/other.md"]
+        source = self.page("記事", "本文", raw=None, kind=None, confidence=None)
+        source = source.replace("created: 2026-11-16", "raw: " + json.dumps(refs, ensure_ascii=False) + "\ncreated: 2026-11-16")
+        self.write_page("sources/記事.md", source)
+        self.write_page("sources/動画.md", self.page("動画", "トヨダ〔訂正 L3-1〕の話", confidence="medium",
+            defs="- L3-1: 字幕 `トヨタ` を `トヨダ` に訂正（根拠 wiki_source:記事）"))
+        for text, has_witness in (("別の原本", False), (self.raw_text, False), ("トヨダ", True)):
+            (self.raw / "other.md").write_text(text, encoding="utf-8")
+            result = wc.check_wiki(self.wiki, raw_roots=[self.raw])
+            messages = [f.message for f in result.findings if f.code == "bad_definition"]
+            if has_witness:
+                self.assertEqual(messages, [])
+            else:
+                self.assertTrue(any("リンクなので読まない" in m for m in messages), messages)
+                self.assertFalse(any("見つからない" in m or "raw にない" in m for m in messages), messages)
+
+    def test_verify_passes_raw_root_for_auxiliary_raw(self):
+        from tests.wiki.test_wiki_links import junction
+        external = self.tmp / "external"
+        external.mkdir()
+        (external / "other.md").write_text(self.raw_text, encoding="utf-8")
+        jump = self.raw / "jump"
+        if not junction(jump, external):
+            self.skipTest("ディレクトリのリンクを作れない")
+        def cleanup_jump():
+            if os.path.lexists(jump):
+                os.rmdir(jump) if os.name == "nt" else jump.unlink()
+        self.addCleanup(cleanup_jump)
+        self.write_page("sources/動画.md", self.page("動画", "本文"))
+        self.write_page("sources/別.md", self.page("別", "本文", raw="raw/jump/other.md"))
+        original = Path.read_text
+        def checked_read(path, *args, **kwargs):
+            if "jump" in path.parts:
+                raise AssertionError("途中のリンクを通って読んだ")
+            return original(path, *args, **kwargs)
+        with mock.patch.object(Path, "read_text", checked_read):
+            code, out = self.run_main("verify", "--wiki", str(self.wiki), "--raw-root", str(self.raw),
+                                      "--slug", "動画", "--json")
+        self.assertEqual(code, 1)
+        self.assertTrue(any(f["code"] == "unreadable_raw" and f["path"] == "sources/別.md" for f in out["findings"]))
+
+    def test_verify_warns_about_unrelated_ambiguity_without_blocking(self):
+        self.write_page("sources/動画.md", self.page("動画", "本文"))
+        self.write_page("sources/別.md", self.page("別", "本文", raw="other.md", kind=None, confidence=None))
+        (self.wiki / "other.md").write_text("A", encoding="utf-8")
+        (self.wiki.parent / "other.md").write_text("B", encoding="utf-8")
+        code, out = self.run_main("verify", "--wiki", str(self.wiki), "--raw-root", str(self.raw),
+                                  "--slug", "動画", "--json")
+        self.assertEqual((code, out["findings"]), (0, []))
+        self.assertTrue(any(w["state"] == "ambiguous" for w in out["raw_warnings"]))
 
     def test_verify_cli_and_lint(self):
         summary = self.page("動画", "講義では 50〔訂正 L2-1〕 人", confidence="medium",

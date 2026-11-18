@@ -437,9 +437,9 @@ class BasicFixtureTests(unittest.TestCase):
 
 class CliCase(unittest.TestCase):
     def setUp(self):
-        self.base = Path(tempfile.mkdtemp())
+        self.base = Path(tempfile.mkdtemp()).resolve()  # macOS の一時領域の別名を、書き手のリンク拒否と混同しない
         self.addCleanup(force_rmtree, self.base)
-        self.outside = Path(tempfile.mkdtemp())
+        self.outside = Path(tempfile.mkdtemp()).resolve()
         self.addCleanup(force_rmtree, self.outside)
         self.wiki, self.raw = make_wiki(self.base)
         self.transcript = self.outside / "5f1c2d3e-aaaa-4bbb-8ccc-0123456789ab.jsonl"
@@ -833,6 +833,40 @@ class ReadOnlyVerifyTests(CliCase):
         self.assertEqual(out["raw_ref"], "raw/会話.md")
         self.assertEqual(self.verify(sha), {"raw_path": str(path), "sha256_matches": True, "read_only": True})
         self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), sha)
+
+    def test_post_write_check_refuses_shared_raw_before_chmod(self):
+        dec = self.init()
+        sha = self.meta(dec)["render_sha256"]
+        patch = '''
+import os, stat
+original_write_raw = m.write_raw
+def shared_raw(*args, **kwargs):
+    state, path = original_write_raw(*args, **kwargs)
+    os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+    os.link(path, path.parent / "shared-copy.md")
+    return state, path
+m.write_raw = shared_raw
+def must_not_chmod(path):
+    raise AssertionError("共有の inode の属性を変えた")
+m.make_read_only = must_not_chmod
+'''
+        done = self.write(dec, sha, code=1, patch=patch)
+        self.assertIn("link", done.stderr.decode("utf-8"))
+
+    def test_post_write_check_uses_session_base_despite_unrelated_wiki_raw_link(self):
+        if not make_junction(self.wiki / "raw", self.raw):
+            self.skipTest("ディレクトリのリンクを作れない")
+        sha, path, out = self.written()
+        self.assertEqual(out["raw_ref"], "raw/会話.md")
+        self.assertTrue(ws.is_read_only(path))
+        self.assertTrue(self.verify(sha)["read_only"])
+
+    def test_parent_in_root_is_rejected_before_raw_is_created(self):
+        dec = self.init()
+        sha = self.meta(dec)["render_sha256"]
+        done = self.write(dec, sha, code=1, raw=self.wiki / "../raw")
+        self.assertIn("..", done.stderr.decode("utf-8"))
+        self.assertFalse((self.raw / "会話.md").exists())
 
     def test_clearing_read_only_fails_verify(self):
         sha, path, _out = self.written()

@@ -446,6 +446,25 @@ class ScriptToolTests(ServerCase):
         lines = (self.wiki / "graph" / "nodes.jsonl").read_text(encoding="utf-8").splitlines()
         return [json.loads(line)["id"] for line in lines if line.strip()]
 
+    def test_lint_raw_root_matches_cli_and_reports_links(self):
+        raw = self.root / "raw"
+        raw.mkdir()
+        target = raw / "original.txt"
+        target.write_text("原本", encoding="utf-8")
+        os.link(target, raw / "alias.txt")
+        source = self.wiki / "sources/raw-links-test.md"
+        source.parent.mkdir(exist_ok=True)
+        source.write_text('---\ntype: "source"\ntitle: "リンクの試料"\nraw: '
+                          + json.dumps(target.as_posix(), ensure_ascii=False) + '\n---\n# 試料\n', encoding="utf-8")
+        found = self.call("lint", graph=False, raw_root=str(raw))
+        found.pop("graph")
+        cli = run_cli(SCRIPTS / "wiki_lint.py", self.wiki, "--raw-root", raw, "--json")
+        self.assertEqual(found, cli)
+        self.assertEqual(found["summary"]["links_raw"], 1)
+        self.assertEqual(found["links"][-1]["source"], "sources/raw-links-test.md")
+        self.assertFalse(any(f["path"] == "sources/raw-links-test.md" for f in found["missing_raw"]))
+        self.assertEqual(target.read_text(encoding="utf-8"), "原本")
+
     def test_lint_matches_cli(self):
         # 概要の所見も CLI と同じになる。初期化済みのコーパスに、古い概要と壊れた孤立概要を置く。
         import wiki_overview
