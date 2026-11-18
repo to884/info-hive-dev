@@ -43,7 +43,7 @@ updated: 2026-11-13
 
 ## 取り込んだ内容と載せたページ
 
-| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |
+| 番号 | 取り込んだ内容 | 出典の該当箇所 | 掲載方法 | 掲載ページと理由 |
 | --- | --- | --- | --- | --- |
 | 1 | パーサーが返す値の形と、リストの値をそろえる関数ごとの違い | `wiki_text.py`、`wiki_pages.py`、`wiki_graph_extract.py`、作業の記録 | create | [[frontmatterのリストの値]] |
 | 2 | `title`、`type`、`updated` を配列で書いたときの欠陥と、MCP の `get_page` の `meta` | `review-sol.md`、作業の記録 | update | [[frontmatterのリストの値]] の「残っている欠陥」 |

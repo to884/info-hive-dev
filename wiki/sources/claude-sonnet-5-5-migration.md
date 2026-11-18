@@ -29,7 +29,7 @@ Anthropic の公式ガイド。Claude Sonnet 5、Sonnet 4.6、Sonnet 4.5、Sonne
 
 ## 取り込んだ内容と載せたページ
 
-| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |
+| 番号 | 取り込んだ内容 | 出典の該当箇所 | 掲載方法 | 掲載ページと理由 |
 | --- | --- | --- | --- | --- |
 | c1 | Sonnet 5.5 への変更項目は移行元によって異なる | 「移行元モデル別のチェックリスト」 | `update` | [[claude-api-model-migration]] の Sonnet 5.5 の項目から移行元別の手順へつないだ |
 | c2 | `between_tools` は `high` 以下で使える。追加の推論フィールドや適用中と異なるメッセージ単位の effort を拒否する | 「最初の応答前の推論を省く」 | `update` | [[claude-thinking-troubleshooting]] に Sonnet 5.5 の設定エラーと移行例への参照を追加した |

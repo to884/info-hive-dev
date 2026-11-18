@@ -31,7 +31,7 @@ PAGE = SKILL / "assets/page.md.template"
 DOCS = (INGEST, CONVENTIONS, SCHEMA, PAGE)
 
 HEADING = "## 取り込んだ内容と載せたページ"
-HEADER = "| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |"
+HEADER = "| 番号 | 取り込んだ内容 | 出典の該当箇所 | 掲載方法 | 掲載ページと理由 |"
 DESTINATIONS = ("create", "update", "source_only")
 WIKILINK = re.compile(r"\[\[([^\]]+)\]\]")
 
