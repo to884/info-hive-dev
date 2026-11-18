@@ -11,3 +11,7 @@
 最初の実行では依存なしのため PyYAML の試験が実行できず、段階1の「raw の検査はまだない」という2つの期待値と、読み取り箇所の目録も落ちた。依存を入れ、意図して変わった期待値を更新し、上記の実行で成功した。失敗を含めた数を成功数に加算していない。
 
 他 OS の CI と、Opus の敵対的レビューは別の記録とする。これらを手元の成功から推定しない。
+
+## 0.33.0のmainとの統合後
+
+プラグイン51313a6。依存を明示した `uv run --with PyYAML --with numpy --with usearch --with tantivy python -X utf8 -B -m unittest tests.wiki.test_raw_links tests.wiki.test_wiki_youtube tests.wiki.test_wiki_lint tests.wiki.test_wiki_session.ReadOnlyVerifyTests tests.wiki.test_page_set tests.wiki.test_wiki_links -q` は241件、skip6で成功。初回の統合実行はPyYAMLの不足、0.33.0で変わった遅延初期化の順と読み取りの分類で止まった。公開されたプラグインに対応する親PR#179の2試験ファイルの差分を取り込み、依存を入れて成功した。製品の拒否は緩めていない。
