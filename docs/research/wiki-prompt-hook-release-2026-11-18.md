@@ -30,7 +30,17 @@
 
 ## PRと公開の確認
 
-子PRは https://github.com/to884/info-hive-wiki/pull/91 。Opusの統合レビューと親PRのCIを確認し、子PRを先にマージしてから親のサブモジュール参照を実際のmainへ更新する。タグ、GitHubリリース、公開カタログからの導入の結果は、完了後に追記する。
+子PRは https://github.com/to884/info-hive-wiki/pull/91 、親PRは https://github.com/to884/info-hive-dev/pull/179 。Opusの統合レビュー、子の4件と親の17件のCI成功を確認し、子PRを先にマージした。親のサブモジュール参照を実際のmainのマージコミット `bf01cbdf131f20f20bec009f98136e4a95c02637` へ更新した。
+
+同コミットへ注釈付きタグ `v0.33.0` を付け、GitHubリリース https://github.com/to884/info-hive-wiki/releases/tag/v0.33.0 を2026-11-18T00:18:52Zに公開した。公開カタログからの隔離導入は3通りとも成功し、一時設定も削除した。
+
+| 導入 | タグとの照合 | 動作の確認 |
+| --- | --- | --- |
+| Claude Code | 全17変更ファイルが一致 | 候補2件、sonnet/lowの指示、次ターンの既出抑制、無効時の無出力 |
+| Codex | 全17変更ファイルが一致 | 2スキル、7 MCPツール、統計、日本語の語彙検索、wiki不変 |
+| スキル単体 | 全170ファイルが一致 | プロジェクト用導入で照合 |
+
+Codexの検索では埋め込みの準備中の警告があり、語彙検索として成功した。導入確認は埋め込み検索の完了や候補を読むモデルの推論を試すものではない。各ファイルのSHA-256と実行した確認は `claude-marketplace.json`、`codex-marketplace.json`、`skill-marketplace.json` にある。wikiのソースと版ごとの導入の記録へ追加し、索引とグラフを更新した。
 
 ## 統合レビューとCIの移植性
 
