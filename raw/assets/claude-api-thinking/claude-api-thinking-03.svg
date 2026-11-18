@@ -1,0 +1,302 @@
+<svg lang="en" width="960" height="540" viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Diagram of thinking on a model that strips previous thinking blocks: each turn's thinking block is generated in the output and not carried into later turns' input">
+  <style>
+    /* Type: the page's fonts when the page inlines this diagram; the listed fallbacks otherwise, for example in a code review */
+    .sans { font-family: var(--cds-font-sans, "Anthropic Sans", system-ui, -apple-system, "PingFang SC", "PingFang TC", "Hiragino Sans", "Apple SD Gothic Neo", sans-serif); font-size: 12.8px; }
+    .serif { font-family: var(--cds-font-voice, "Anthropic Serif", ui-serif, Georgia, "Times New Roman", serif); font-size: 11.8px; }
+    /* Chinese, Japanese and Korean have no serif in the docs fonts, and browsers pick different serif fallbacks for them, so their serif labels use the sans fonts, like the page's sans text */
+    .serif:is(:lang(ja), :lang(ko), :lang(zh)) { font-family: var(--cds-font-sans, "Anthropic Sans", system-ui, -apple-system, "PingFang SC", "PingFang TC", "Hiragino Sans", "Apple SD Gothic Neo", sans-serif); }
+    .middle { text-anchor: middle; }
+    /* Heavier text sets its weight axis too: in dark mode the page sets "wght" 360, which this text inherits and which overrides font-weight */
+    .medium { font-weight: 500; font-variation-settings: var(--cds-font-wght-medium, normal); }
+    .bold { font-weight: 600; font-variation-settings: var(--cds-font-wght-bold, normal); }
+    .side { font-size: 13.6px; }
+    /* In Chinese, Japanese and Korean, rotated text is written top to bottom with upright characters instead. The shift of a third of the font size puts it about where the English rotated text is drawn. */
+    .rotated:lang(ja), .rotated:lang(ko), .rotated:lang(zh) { writing-mode: vertical-rl; transform: translate(-0.33em); }
+    .turn { font-size: 13px; }
+    /* Colors: the docs theme's CSS variables when the page inlines this diagram; the light values otherwise */
+    .canvas { fill: var(--cds-surface-1, #fcfcfb); }
+    .primary { fill: var(--cds-text-primary, #0b0b0b); }
+    .muted { fill: var(--cds-text-muted, #898781); }
+    .panel-input { fill: var(--cds-bg-tint-yellow-opaque, #f9dca4); fill-opacity: 0.75; }
+    .panel-output { fill: var(--cds-alpha-2, #e4e4e3); }
+    .block-user { fill: var(--cds-clay, #d97757); fill-opacity: 0.6; }
+    .block-text { fill: var(--cds-chart-muted, #c3c2b7); }
+    /* Black at 50% over a rect in the canvas color: one gray on every panel, and the darkest block in both themes, since the page says "thinking blocks (shown in dark gray)" */
+    .block-thinking { fill: var(--cds-gray-900, #0b0b0b); fill-opacity: 0.5; }
+    .brace { fill: none; stroke: var(--cds-text-muted, #898781); stroke-width: 1.7; stroke-linecap: round; }
+    .brace-head { fill: var(--cds-text-muted, #898781); stroke: var(--cds-text-muted, #898781); stroke-width: 1.2; stroke-linejoin: round; }
+    .dashed { fill: none; stroke: var(--cds-text-primary, #0b0b0b); stroke-width: 1; stroke-dasharray: 4 3; }
+    /* Fades the boxes beyond the context window; the words on them are drawn after it, in the muted color */
+    .veil { fill: var(--cds-surface-1, #fcfcfb); fill-opacity: 0.77; }
+    .scissors { fill: var(--cds-text-primary, #0b0b0b); }
+    .scissors-ring { fill: none; stroke: var(--cds-text-primary, #0b0b0b); stroke-width: 7; }
+    /* Labels are HTML text in an area, so that a longer translation wraps inside it */
+    :where(foreignObject) { overflow: visible; }
+    .area { box-sizing: border-box; width: 100%; height: 100%; display: flex; align-items: center; padding: 4px 6px; }
+    .area.center { justify-content: center; text-align: center; }
+    .area.start { justify-content: flex-start; text-align: start; }
+    .area.top { align-items: flex-start; }
+    .area.bottom { align-items: flex-end; }
+    .label { line-height: 1.3; overflow-wrap: anywhere; }
+    /* Box labels: tighter lines and less padding above and below in the shortest boxes, so that a translation fits on two lines */
+    .label.sans { line-height: 1.15; }
+    .area.pad-y-2 { padding-top: 2px; padding-bottom: 2px; }
+    .area.pad-right-0 { padding-right: 0; } /* no padding on the right, so that a translation has room before the dashed line */
+    /* Only translations hyphenate, and only words of 10 or more letters, with 5 on each side of the hyphen. They also try to avoid a single word on their last line. A translated copy has its language on the root. */
+    .label:not(:lang(en)) { hyphens: auto; hyphenate-limit-chars: 10 5 5; -webkit-hyphenate-limit-before: 5; -webkit-hyphenate-limit-after: 5; }
+    .label:not(:lang(en)):not(.balance) { text-wrap: pretty; }
+    /* Firefox has no text-wrap: pretty. There a translation balances its lines instead, which also keeps a single word off its last line, and has no automatic hyphens. */
+    @supports not (text-wrap: pretty) { .label:not(:lang(en)) { hyphens: manual; } .label:not(:lang(en)):not(.balance) { text-wrap: balance; } }
+    .label .mono, .label .code { hyphens: none; overflow-wrap: normal; }
+    /* Chinese, Japanese and Korean labels break lines only at spaces and punctuation, and at the zero-width spaces that the docs translator adds to Chinese and Japanese text */
+    .label:is(:lang(ja), :lang(ko), :lang(zh)) { word-break: keep-all; }
+    /* Chinese, Japanese and Korean fonts have no italics, so the browser would slant the glyphs. This overrides the diagram's italic classes. */
+    :is(:lang(ja), :lang(ko), :lang(zh)) { font-style: normal !important; }
+    .label.primary { color: var(--cds-text-primary, #0b0b0b); }
+    .label.muted { color: var(--cds-text-muted, #898781); }
+  </style>
+  <rect class="canvas" aria-hidden="true" width="960" height="540"/>
+  <foreignObject x="3" y="15.21" width="67" height="222.97">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="area start top pad-right-0">
+      <span class="label serif primary">0 tokens</span>
+    </div>
+  </foreignObject>
+  <path class="dashed" role="img" aria-label="The context window starts empty; each turn's blocks fill it from here down" d="M74 30.6 H936.3"/>
+  <g role="list" aria-label="Turns">
+    <g role="listitem">
+      <foreignObject x="151" y="4.44" width="225.6" height="25.55">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="area center bottom">
+          <span class="label serif bold turn primary">Turn 1</span>
+        </div>
+      </foreignObject>
+      <rect class="panel-input" aria-hidden="true" x="170.6" y="40.2" width="184.1" height="124.4" rx="14.3"/>
+      <g transform="translate(194 102.2)">
+        <text class="sans bold side primary middle rotated" aria-hidden="true" transform="rotate(-90)">Input</text>
+      </g>
+      <g role="list" aria-label="Turn 1 input">
+        <g role="listitem">
+          <rect class="block-user" x="209.7" y="48.3" width="137.1" height="65.3" rx="9.6"/>
+          <foreignObject x="209.7" y="48.3" width="137.1" height="65.3">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">System</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g role="listitem">
+          <rect class="block-user" x="209.7" y="118.2" width="137.1" height="38.4" rx="7.3"/>
+          <foreignObject x="209.7" y="118.2" width="137.1" height="38.4">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center pad-y-2">
+              <span class="label sans medium primary">User message</span>
+            </div>
+          </foreignObject>
+        </g>
+      </g>
+      <rect class="panel-output" aria-hidden="true" x="170.6" y="171.2" width="184.1" height="130.3" rx="15"/>
+      <g transform="translate(194 236.4)">
+        <text class="sans bold side primary middle rotated" aria-hidden="true" transform="rotate(-90)">Output</text>
+      </g>
+      <g role="list" aria-label="Turn 1 output">
+        <g role="listitem">
+          <rect class="canvas" x="209.7" y="181.7" width="137.1" height="36.2" rx="7.9"/>
+          <rect class="block-thinking" x="209.7" y="181.7" width="137.1" height="36.2" rx="7.9"/>
+          <foreignObject x="209.7" y="181.7" width="137.1" height="36.2">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">Thinking</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g role="listitem">
+          <rect class="block-text" x="209.7" y="224.8" width="137.1" height="65.4" rx="8.6"/>
+          <foreignObject x="209.7" y="224.8" width="137.1" height="65.4">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">Text response</span>
+            </div>
+          </foreignObject>
+        </g>
+      </g>
+      <g role="img" aria-label="The input and the text response of turn 1 become part of the input of turn 2; the thinking block does not">
+        <path class="brace" d="M361.2 39.8 a10.4 10.4 0 0 1 10.4 10.4 V157.3 a10.4 10.4 0 0 0 10.4 10.4 a10.4 10.4 0 0 0 -10.4 10.4 V279.8 a10.4 10.4 0 0 1 -10.4 10.4 M382 167.7 H388.6"/>
+        <path class="brace-head" d="M388.4 164 L394.6 167.7 L388.4 171.4 Z"/>
+      </g>
+    </g>
+    <g role="listitem">
+      <foreignObject x="380.6" y="4.44" width="225.6" height="25.55">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="area center bottom">
+          <span class="label serif bold turn primary">Turn 2</span>
+        </div>
+      </foreignObject>
+      <rect class="panel-input" aria-hidden="true" x="401.5" y="38.6" width="185.3" height="250.3" rx="21.4"/>
+      <g transform="translate(424.9 163.6)">
+        <text class="sans bold side primary middle rotated" aria-hidden="true" transform="rotate(-90)">Input</text>
+      </g>
+      <g role="list" aria-label="Turn 2 input">
+        <g role="listitem">
+          <rect class="block-user" x="441.9" y="47.2" width="137.1" height="65.4" rx="9.1"/>
+          <foreignObject x="441.9" y="47.2" width="137.1" height="65.4">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">System</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g role="listitem">
+          <rect class="block-user" x="441.9" y="117.8" width="137.1" height="38.4" rx="7.3"/>
+          <foreignObject x="441.9" y="117.8" width="137.1" height="38.4">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center pad-y-2">
+              <span class="label sans medium primary">User message</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g role="listitem">
+          <rect class="block-text" x="441.9" y="161.3" width="137.1" height="65.4" rx="12.2"/>
+          <foreignObject x="441.9" y="161.3" width="137.1" height="65.4">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">Text response</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g role="listitem">
+          <rect class="block-user" x="441.9" y="231.9" width="137.1" height="48.5" rx="11.1"/>
+          <foreignObject x="441.9" y="231.9" width="137.1" height="48.5">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">User message</span>
+            </div>
+          </foreignObject>
+        </g>
+      </g>
+      <rect class="panel-output" aria-hidden="true" x="402.8" y="297.7" width="184" height="115.4" rx="13.3"/>
+      <g transform="translate(426.1 354.9)">
+        <text class="sans bold side primary middle rotated" aria-hidden="true" transform="rotate(-90)">Output</text>
+      </g>
+      <g role="list" aria-label="Turn 2 output">
+        <g role="listitem">
+          <rect class="canvas" x="441.9" y="304.4" width="137.1" height="52.9" rx="11.1"/>
+          <rect class="block-thinking" x="441.9" y="304.4" width="137.1" height="52.9" rx="11.1"/>
+          <foreignObject x="441.9" y="304.4" width="137.1" height="52.9">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">Thinking</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g role="listitem">
+          <rect class="block-text" x="441.9" y="362.7" width="137.1" height="41.1" rx="9"/>
+          <foreignObject x="441.9" y="362.7" width="137.1" height="41.1">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">Text response</span>
+            </div>
+          </foreignObject>
+        </g>
+      </g>
+      <g role="img" aria-label="The input and the text response of turn 2 become part of the input of turn 3; the thinking block does not">
+        <path class="brace" d="M596.6 39.8 a10.4 10.4 0 0 1 10.4 10.4 V217.5 a10.4 10.4 0 0 0 10.4 10.4 a10.4 10.4 0 0 0 -10.4 10.4 V403.7 a10.4 10.4 0 0 1 -10.4 10.4 M617.4 227.9 H624"/>
+        <path class="brace-head" d="M623.8 224.2 L630 227.9 L623.8 231.6 Z"/>
+      </g>
+    </g>
+    <g role="listitem">
+      <foreignObject x="615.4" y="4.44" width="236" height="25.55">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="area center bottom">
+          <span class="label serif bold turn primary">Turn 3</span>
+        </div>
+      </foreignObject>
+      <rect class="panel-input" aria-hidden="true" x="642.8" y="38.6" width="184.1" height="354.8" rx="21.2"/>
+      <g transform="translate(666.2 215)">
+        <text class="sans bold side primary middle rotated" aria-hidden="true" transform="rotate(-90)">Input</text>
+      </g>
+      <g role="list" aria-label="Turn 3 input">
+        <g role="listitem">
+          <rect class="block-user" x="680.3" y="47.3" width="137.1" height="65.3" rx="9.8"/>
+          <foreignObject x="680.3" y="47.3" width="137.1" height="65.3">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">System</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g role="listitem">
+          <rect class="block-user" x="680.3" y="118.7" width="137.1" height="38.4" rx="7.3"/>
+          <foreignObject x="680.3" y="118.7" width="137.1" height="38.4">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center pad-y-2">
+              <span class="label sans medium primary">User message</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g role="listitem">
+          <rect class="block-text" x="680.3" y="163.2" width="137.1" height="65.4" rx="9.8"/>
+          <foreignObject x="680.3" y="163.2" width="137.1" height="65.4">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">Text response</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g role="listitem">
+          <rect class="block-user" x="680.3" y="234.6" width="137.1" height="48.4" rx="8.8"/>
+          <foreignObject x="680.3" y="234.6" width="137.1" height="48.4">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">User message</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g role="listitem">
+          <rect class="block-text" x="680.3" y="289.1" width="137.1" height="41.1" rx="9"/>
+          <foreignObject x="680.3" y="289.1" width="137.1" height="41.1">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">Text response</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g role="listitem">
+          <rect class="block-user" x="680.3" y="336.3" width="137.1" height="48.4" rx="9.8"/>
+          <foreignObject x="680.3" y="336.3" width="137.1" height="48.4">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">User message</span>
+            </div>
+          </foreignObject>
+        </g>
+      </g>
+      <rect class="panel-output" aria-hidden="true" x="644.1" y="402.1" width="184" height="127" rx="14.7"/>
+      <g role="list" aria-label="Turn 3 output">
+        <g role="listitem">
+          <rect class="canvas" x="680.3" y="410.7" width="137.1" height="28.1" rx="8.8"/>
+          <rect class="block-thinking" x="680.3" y="410.7" width="137.1" height="28.1" rx="8.8"/>
+          <foreignObject x="680.3" y="410.7" width="137.1" height="28.1">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium primary">Thinking</span>
+            </div>
+          </foreignObject>
+        </g>
+        <g role="listitem">
+          <rect class="block-text" x="680.3" y="445.6" width="137.1" height="75.5" rx="8.9"/>
+          <rect class="veil" aria-hidden="true" x="604.9" y="476.5" width="249.4" height="58.5"/>
+          <foreignObject x="680.3" y="445.6" width="137.1" height="75.5">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+              <span class="label sans medium muted">Text response</span>
+            </div>
+          </foreignObject>
+        </g>
+      </g>
+      <!-- After the veil, so that the word stays readable -->
+      <g transform="translate(666.1 468.1)">
+        <text class="sans bold side primary middle rotated" aria-hidden="true" transform="rotate(-90)">Output</text>
+      </g>
+    </g>
+  </g>
+  <foreignObject x="3" y="242.17" width="143" height="230.17">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="area start bottom">
+      <span class="label serif bold primary">Context window</span>
+    </div>
+  </foreignObject>
+  <foreignObject x="3" y="463.5" width="143" height="72.67">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="area start top">
+      <span class="label serif primary">1M (or 200k) tokens</span>
+    </div>
+  </foreignObject>
+  <g role="img" aria-label="The context window limit cuts off the output of turn 3">
+    <path class="dashed" d="M174.6 477 L936.6 477.9"/>
+    <g transform="translate(182.2 484.9) rotate(157.3) scale(0.157)">
+      <path class="scissors" d="M42 47 Q78 58 111 88 L91 89 Z"/>
+      <path class="scissors" d="M26 91.5 L131 90.5 L137 97 Q121 100 118 106 Q70 104 26 91.5 Z"/>
+      <path class="scissors" d="M111 106 L121 102 L132 118 L123 119 Z"/>
+      <circle class="canvas" cx="110.5" cy="98" r="2.2"/>
+      <rect class="scissors-ring" x="134" y="74.3" width="36.8" height="22" rx="11" transform="rotate(2 152.4 85.3)"/>
+      <rect class="scissors-ring" x="115.5" y="122.9" width="37" height="23" rx="11.5" transform="rotate(36 134 134.4)"/>
+    </g>
+  </g>
+</svg>

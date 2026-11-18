@@ -1,0 +1,207 @@
+<svg lang="en" width="920" height="728" viewBox="0 0 920 728" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Diagram: Claude determines whether to think up front, may think between tool calls, and returns thinking blocks before text">
+  <style>
+    .sans { font-family: var(--cds-font-sans, "Anthropic Sans", system-ui, -apple-system, "PingFang SC", "PingFang TC", "Hiragino Sans", "Apple SD Gothic Neo", sans-serif); }
+    .mono { font-family: var(--cds-font-mono, "Anthropic Mono", ui-monospace, monospace); }
+    /* Colors: the docs theme's CSS variables when the page inlines this diagram; the light values otherwise */
+    .canvas { fill: var(--cds-surface-1, #fcfcfb); }
+    .box { fill: var(--cds-surface-2, #ffffff); stroke: var(--cds-border-stronger, #9c9c9b); stroke-width: 1.5; }
+    .box-shaded { fill: var(--cds-alpha-2, #e4e4e3); stroke: var(--cds-border-stronger, #9c9c9b); stroke-width: 1.5; }
+    .zone { fill: var(--cds-alpha-2, #e4e4e3); fill-opacity: 0.35; stroke: var(--cds-border-stronger, #9c9c9b); stroke-width: 1; stroke-dasharray: 4 3; }
+    .arrow { fill: none; stroke: var(--cds-text-secondary, #52514e); stroke-width: 1.5; }
+    .arrow-head { fill: var(--cds-text-secondary, #52514e); }
+    /* Labels are HTML text in an area, so that a longer translation wraps inside it */
+    :where(foreignObject) { overflow: visible; }
+    .area { box-sizing: border-box; width: 100%; height: 100%; display: flex; align-items: center; padding: 4px 6px; }
+    .area.center { justify-content: center; text-align: center; }
+    .area.start { justify-content: flex-start; text-align: start; }
+    .area.top { align-items: flex-start; }
+    .area.bottom { align-items: flex-end; }
+    /* Areas with no room to spare above and below: a translation that needs one more line uses the padding */
+    .area.pad-y-0 { padding-top: 0; padding-bottom: 0; }
+    /* The two labels of the response box, as one column, so that a longer second label moves the first one up */
+    .area.column { flex-direction: column; justify-content: center; gap: 2.6px; padding: 4.5px 6px 4px; }
+    .label { line-height: 1.3; overflow-wrap: anywhere; }
+    /* Only translations hyphenate, and only words of 10 or more letters, with 5 on each side of the hyphen. They also try to avoid a single word on their last line. A translated copy has its language on the root. */
+    .label:not(:lang(en)) { hyphens: auto; hyphenate-limit-chars: 10 5 5; -webkit-hyphenate-limit-before: 5; -webkit-hyphenate-limit-after: 5; }
+    .label:not(:lang(en)):not(.balance) { text-wrap: pretty; }
+    /* Firefox has no text-wrap: pretty. There a translation balances its lines instead, which also keeps a single word off its last line, and has no automatic hyphens. */
+    @supports not (text-wrap: pretty) { .label:not(:lang(en)) { hyphens: manual; } .label:not(:lang(en)):not(.balance) { text-wrap: balance; } }
+    .label.balance-translation:not(:lang(en)) { text-wrap: balance; } /* a translated label with lines of about the same length */
+    .label .mono, .label .code { hyphens: none; overflow-wrap: normal; }
+    .label code { font-family: var(--cds-font-mono, "Anthropic Mono", ui-monospace, monospace); font-size: 12px; line-height: inherit; color: inherit; background: none; border: 0; border-radius: 0; padding: 0; white-space: inherit; }
+    /* Chinese, Japanese and Korean labels break lines only at spaces and punctuation, and at the zero-width spaces that the docs translator adds to Chinese and Japanese text */
+    .label:is(:lang(ja), :lang(ko), :lang(zh)) { word-break: keep-all; }
+    /* Chinese, Japanese and Korean fonts have no italics, so the browser would slant the glyphs. This overrides the diagram's italic classes. */
+    :is(:lang(ja), :lang(ko), :lang(zh)) { font-style: normal !important; }
+    /* Sizes, weights, line spacing and colors, from the attributes the labels had as SVG text */
+    .size-10-5 { font-size: 10.5px; }
+    .size-11 { font-size: 11px; }
+    .size-12 { font-size: 12px; }
+    .size-13 { font-size: 13px; }
+    /* Bold text sets its weight axis too: in dark mode the page sets "wght" 360, which this text inherits and which overrides font-weight */
+    .weight-550 { font-weight: 550; font-variation-settings: var(--cds-font-wght-bold, normal); }
+    /* Anthropic Sans has no Chinese, Japanese, Korean or Cyrillic letters, and the fonts used for them can draw weight 550 as regular */
+    .weight-550:is(:lang(ja), :lang(ko), :lang(zh), :lang(ru)) { font-weight: 600; }
+    .italic { font-style: italic; }
+    /* Line heights of labels whose lines were drawn closer or farther apart than 1.3 (lh-N is N/100) */
+    .lh-133 { line-height: 1.33; }
+    .lh-138 { line-height: 1.38; }
+    .lh-154 { line-height: 1.54; }
+    /* On a label: lines of about the same length */
+    .balance { text-wrap: balance; }
+    /* The English keeps the line width it was drawn with; a translation may use the whole box */
+    .en-134:lang(en) { max-width: 134px; }
+    .en-46:lang(en) { max-width: 45.5px; }
+    .label.primary { color: var(--cds-text-primary, #0b0b0b); }
+    .label.secondary { color: var(--cds-text-secondary, #52514e); }
+  </style>
+  <defs>
+    <marker id="tarrow" viewBox="0 0 10 6" markerWidth="10" markerHeight="6" refX="10" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <polygon class="arrow-head" points="0 0, 10 3, 0 6"/>
+    </marker>
+  </defs>
+  <rect class="canvas" width="920" height="728" rx="6" aria-hidden="true"/>
+  <!-- Arrows that follow the list order are hidden from screen readers. The three that jump to another step have a label that names that step -->
+  <g role="list" aria-label="Steps">
+    <g role="listitem">
+      <rect class="box" x="170" y="28" width="300" height="48" rx="6"/>
+      <foreignObject x="170" y="28" width="300" height="48">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+          <span class="label sans size-13 primary">API request</span>
+        </div>
+      </foreignObject>
+      <line class="arrow" x1="320" y1="76" x2="320" y2="108" marker-end="url(#tarrow)" aria-hidden="true"/>
+    </g>
+    <g role="listitem">
+      <rect class="box" x="170" y="108" width="300" height="48" rx="6"/>
+      <foreignObject x="170" y="108" width="300" height="48">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+          <span class="label sans size-13 primary">Claude evaluates the prompt</span>
+        </div>
+      </foreignObject>
+      <g role="list" aria-label="Then one of these two">
+        <g role="listitem">
+          <line class="arrow" x1="180" y1="156" x2="180" y2="196" marker-end="url(#tarrow)" aria-hidden="true"/>
+          <foreignObject x="184" y="160" width="272" height="32">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area start">
+              <span class="label sans size-10-5 italic secondary">thinks up front</span>
+            </div>
+          </foreignObject>
+          <rect class="box-shaded" x="30" y="196" width="300" height="64" rx="6"/>
+          <foreignObject x="30" y="196" width="300" height="64">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center pad-y-0">
+              <span class="label sans size-13 primary lh-154 balance">Claude thinks up front, then distills a&#160;summary&#160;into the <code>&quot;thinking&quot;</code> block</span>
+            </div>
+          </foreignObject>
+          <path class="arrow" d="M 180 260 L 180 282 L 320 282" aria-hidden="true"/>
+        </g>
+        <g role="listitem">
+          <line class="arrow" x1="460" y1="156" x2="460" y2="196" marker-end="url(#tarrow)" aria-hidden="true"/>
+          <foreignObject x="464" y="160" width="436" height="32">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area start">
+              <span class="label sans size-10-5 italic secondary">skips up-front thinking</span>
+            </div>
+          </foreignObject>
+          <rect class="box" x="340" y="196" width="240" height="64" rx="6"/>
+          <foreignObject x="344" y="196" width="232" height="64">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center pad-y-0">
+              <span class="label sans size-13 primary lh-154 balance-translation en-134">no <code>&quot;thinking&quot;</code> block is produced</span>
+            </div>
+          </foreignObject>
+          <path class="arrow" d="M 460 260 L 460 282 L 320 282" aria-hidden="true"/>
+        </g>
+      </g>
+      <line class="arrow" x1="320" y1="282" x2="320" y2="300" marker-end="url(#tarrow)" aria-hidden="true"/>
+    </g>
+    <g role="listitem">
+      <rect class="box" x="241" y="300" width="158" height="48" rx="6"/>
+      <foreignObject x="241" y="300" width="158" height="48">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+          <span class="label sans size-13 primary weight-550">Tool use?</span>
+        </div>
+      </foreignObject>
+      <g role="list" aria-label="Possible answers">
+        <g role="listitem">
+          <path class="arrow" d="M 399 324 L 740 324 L 740 416" marker-end="url(#tarrow)" aria-hidden="true"/>
+          <foreignObject x="403" y="286" width="122" height="38.82">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center bottom">
+              <span class="label sans size-10-5 italic secondary">yes</span>
+            </div>
+          </foreignObject>
+          <!-- The heading is the list's label, so it is hidden from screen readers and not read twice -->
+          <g aria-hidden="true">
+            <rect class="zone" x="425" y="380" width="480" height="248" rx="10"/>
+            <foreignObject x="435" y="384" width="271" height="25.15">
+              <div xmlns="http://www.w3.org/1999/xhtml" class="area start bottom">
+                <span class="label sans size-11 weight-550 secondary">tool loop · one assistant turn</span>
+              </div>
+            </foreignObject>
+          </g>
+          <g role="list" aria-label="tool loop · one assistant turn">
+            <g role="listitem">
+              <rect class="box" x="445" y="416" width="320" height="40" rx="6"/>
+              <foreignObject x="445" y="416" width="320" height="40">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+                  <span class="label sans size-13 primary">Claude calls a tool</span>
+                </div>
+              </foreignObject>
+              <line class="arrow" x1="605" y1="456" x2="605" y2="482" marker-end="url(#tarrow)" aria-hidden="true"/>
+            </g>
+            <g role="listitem">
+              <rect class="box" x="445" y="482" width="320" height="40" rx="6"/>
+              <foreignObject x="445" y="482" width="320" height="40">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+                  <span class="label sans size-13 primary">Tool result comes back</span>
+                </div>
+              </foreignObject>
+              <line class="arrow" x1="605" y1="522" x2="605" y2="548" marker-end="url(#tarrow)" aria-hidden="true"/>
+            </g>
+            <g role="listitem">
+              <rect class="box-shaded" x="445" y="548" width="320" height="62" rx="6"/>
+              <foreignObject x="461" y="548" width="288" height="62">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="area center pad-y-0">
+                  <span class="label sans size-13 primary lh-138">Claude evaluates the result — may think again, adding a <code>&quot;thinking&quot;</code> summary</span>
+                </div>
+              </foreignObject>
+              <g role="list" aria-label="Then one of these two">
+                <g role="listitem">
+                  <foreignObject x="793" y="487.02" width="108" height="136.98">
+                    <div xmlns="http://www.w3.org/1999/xhtml" class="area start top">
+                      <span class="label sans size-10-5 italic secondary lh-133 en-46">more tool calls</span>
+                    </div>
+                  </foreignObject>
+                  <path class="arrow" d="M 765 579 L 789 579 L 789 436 L 769 436" marker-end="url(#tarrow)" role="img" aria-label="Back to “Claude calls a tool”"/>
+                </g>
+                <g role="listitem">
+                  <foreignObject x="611" y="631.17" width="290" height="92.83">
+                    <div xmlns="http://www.w3.org/1999/xhtml" class="area start top">
+                      <span class="label sans size-10-5 italic secondary">done</span>
+                    </div>
+                  </foreignObject>
+                  <path class="arrow" d="M 605 610 L 605 672 L 524 672" marker-end="url(#tarrow)" role="img" aria-label="On to “One response is returned”"/>
+                </g>
+              </g>
+            </g>
+          </g>
+        </g>
+        <g role="listitem">
+          <foreignObject x="324" y="479.18" width="97" height="156.82">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area start top">
+              <span class="label sans size-10-5 italic secondary">no</span>
+            </div>
+          </foreignObject>
+          <line class="arrow" x1="320" y1="348" x2="320" y2="640" marker-end="url(#tarrow)" role="img" aria-label="On to “One response is returned”"/>
+        </g>
+      </g>
+    </g>
+    <g role="listitem">
+      <rect class="box" x="120" y="640" width="400" height="64" rx="6"/>
+      <foreignObject x="124" y="640" width="392" height="64">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="area center column">
+          <span class="label sans size-13 primary weight-550">One response is returned:</span>
+          <span class="label sans size-13 primary"><code>&quot;thinking&quot;</code> block(s), then final <code>&quot;text&quot;</code> blocks</span>
+        </div>
+      </foreignObject>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,138 @@
+<svg lang="en" width="920" height="648" viewBox="0 0 920 648" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Diagram of the streaming event sequence with thinking: the thinking block opens, thinking deltas carry text only when the display setting returns text (summarized, or updates for progress-update blocks), a single signature delta closes the block, then text deltas stream">
+  <style>
+    .sans { font-family: var(--cds-font-sans, "Anthropic Sans", system-ui, -apple-system, "PingFang SC", "PingFang TC", "Hiragino Sans", "Apple SD Gothic Neo", sans-serif); }
+    .mono { font-family: var(--cds-font-mono, "Anthropic Mono", ui-monospace, monospace); }
+    /* Colors: the docs theme's CSS variables when the page inlines this diagram; the light values otherwise */
+    .canvas { fill: var(--cds-surface-1, #fcfcfb); }
+    .muted { fill: var(--cds-text-secondary, #52514e); }
+    .box { fill: var(--cds-surface-2, #ffffff); stroke: var(--cds-border-stronger, #9c9c9b); stroke-width: 1.5; }
+    .box-shaded { fill: var(--cds-alpha-2, #e4e4e3); stroke: var(--cds-border-stronger, #9c9c9b); stroke-width: 1.5; }
+    .arrow { fill: none; stroke: var(--cds-text-secondary, #52514e); stroke-width: 1.5; }
+    .arrow-head { fill: var(--cds-text-secondary, #52514e); }
+    /* Labels are HTML text in an area, so that a longer translation wraps inside it */
+    :where(foreignObject) { overflow: visible; }
+    .area { box-sizing: border-box; width: 100%; height: 100%; display: flex; align-items: center; padding: 4px 6px; }
+    .area.center { justify-content: center; text-align: center; }
+    .area.top { align-items: flex-start; }
+    .area.bottom { align-items: flex-end; }
+    /* Labels stacked in one area, such as a heading above its text, so that a label that wraps moves the others instead of leaving the area */
+    .area.column { flex-direction: column; gap: 3px; }
+    /* Less padding above and below for a two-line label in a 64-unit box, so that a translation has room for a third line; the label is centered, so the English does not move */
+    .area.pad-y-1 { padding-top: 1px; padding-bottom: 1px; }
+    .label { line-height: 1.3; overflow-wrap: anywhere; }
+    /* Only translations hyphenate, and only words of 10 or more letters, with 5 on each side of the hyphen. They also try to avoid a single word on their last line. A translated copy has its language on the root. */
+    .label:not(:lang(en)) { hyphens: auto; hyphenate-limit-chars: 10 5 5; -webkit-hyphenate-limit-before: 5; -webkit-hyphenate-limit-after: 5; }
+    .label:not(:lang(en)):not(.balance) { text-wrap: pretty; }
+    /* Firefox has no text-wrap: pretty. There a translation balances its lines instead, which also keeps a single word off its last line, and has no automatic hyphens. */
+    @supports not (text-wrap: pretty) { .label:not(:lang(en)) { hyphens: manual; } .label:not(:lang(en)):not(.balance) { text-wrap: balance; } }
+    .label.balance-translation:not(:lang(en)) { text-wrap: balance; } /* a translated label with lines of about the same length */
+    .label .mono, .label .code { hyphens: none; overflow-wrap: normal; }
+    .label code { font-family: var(--cds-font-mono, "Anthropic Mono", ui-monospace, monospace); font-size: 12px; line-height: inherit; color: inherit; background: none; border: 0; border-radius: 0; padding: 0; white-space: inherit; }
+    /* Chinese, Japanese and Korean labels break lines only at spaces and punctuation, and at the zero-width spaces that the docs translator adds to Chinese and Japanese text */
+    .label:is(:lang(ja), :lang(ko), :lang(zh)) { word-break: keep-all; }
+    /* Chinese, Japanese and Korean fonts have no italics, so the browser would slant the glyphs. This overrides the diagram's italic classes. */
+    :is(:lang(ja), :lang(ko), :lang(zh)) { font-style: normal !important; }
+    /* Type and colors of the labels */
+    .size-13 { font-size: 13px; }
+    .size-12 { font-size: 12px; }
+    /* Bold text sets its weight axis too: in dark mode the page sets "wght" 360, which this text inherits and which overrides font-weight */
+    .heading { font-weight: 550; font-variation-settings: var(--cds-font-wght-bold, normal); }
+    /* Anthropic Sans has no Chinese, Japanese, Korean or Cyrillic letters, and the fonts used for them can draw weight 550 as regular */
+    .heading:is(:lang(ja), :lang(ko), :lang(zh), :lang(ru)) { font-weight: 600; }
+    .label.ink { color: var(--cds-text-primary, #0b0b0b); }
+    /* Line heights of labels whose lines were drawn closer or farther apart than 1.3 (lh-N is N/100) */
+    .lh-154 { line-height: 1.54; }
+    /* On a label: lines of about the same length */
+    .balance { text-wrap: balance; }
+    /* The English keeps the line width it was drawn with; a translation may use the whole box */
+    .en-173:lang(en) { max-width: 172.8px; }
+    .en-202:lang(en) { max-width: 202.5px; }
+    .en-231:lang(en) { max-width: 231px; }
+  </style>
+  <defs>
+    <marker id="sarrow" viewBox="0 0 10 6" markerWidth="10" markerHeight="6" refX="10" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <polygon class="arrow-head" points="0 0, 10 3, 0 6"/>
+    </marker>
+  </defs>
+  <rect class="canvas" width="920" height="648" rx="6" aria-hidden="true"/>
+  <g role="list" aria-label="Stream events" transform="translate(150,0)">
+    <g role="listitem">
+      <rect class="box" x="170" y="28" width="300" height="48" rx="6"/>
+      <foreignObject x="170" y="28" width="300" height="48">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+          <span class="label sans size-13 ink">Stream opens: <code>message_start</code></span>
+        </div>
+      </foreignObject>
+      <line class="arrow" x1="320" y1="76" x2="320" y2="108" marker-end="url(#sarrow)" aria-hidden="true"/>
+    </g>
+    <g role="listitem">
+      <rect class="box" x="137" y="108" width="366" height="48" rx="6"/>
+      <foreignObject x="137" y="108" width="366" height="48">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+          <span class="label sans size-13 ink">Thinking block opens: <code>content_block_start</code></span>
+        </div>
+      </foreignObject>
+      <g role="list" aria-label="Then, by the display setting">
+        <g role="listitem">
+          <line class="arrow" x1="180" y1="156" x2="180" y2="196" marker-end="url(#sarrow)" aria-hidden="true"/>
+          <text x="190" y="176" text-anchor="start" dominant-baseline="central" class="mono muted" font-size="10.5">display: &quot;summarized&quot;</text>
+          <rect class="box-shaded" x="30" y="196" width="300" height="64" rx="6"/>
+          <foreignObject x="34.1" y="196" width="291.9" height="64">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center pad-y-1">
+              <span class="label sans size-13 lh-154 ink balance-translation en-202"><code>thinking_delta</code> events stream the thinking summary</span>
+            </div>
+          </foreignObject>
+          <path class="arrow" d="M 180 260 L 180 282 L 320 282" aria-hidden="true"/>
+        </g>
+        <g role="listitem">
+          <line class="arrow" x1="460" y1="156" x2="460" y2="196" marker-end="url(#sarrow)" aria-hidden="true"/>
+          <text x="470" y="176" text-anchor="start" dominant-baseline="central" class="mono muted" font-size="10.5">display: &quot;omitted&quot;</text>
+          <rect class="box" x="340" y="196" width="240" height="64" rx="6"/>
+          <foreignObject x="344" y="196" width="232" height="64">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="area center pad-y-1">
+              <span class="label sans size-13 lh-154 ink balance en-173">an empty <code>thinking_delta</code>, no thinking text</span>
+            </div>
+          </foreignObject>
+          <path class="arrow" d="M 460 260 L 460 282 L 320 282" aria-hidden="true"/>
+        </g>
+      </g>
+      <line class="arrow" x1="320" y1="282" x2="320" y2="300" marker-end="url(#sarrow)" aria-hidden="true"/>
+    </g>
+    <g role="listitem">
+      <rect class="box" x="137" y="300" width="366" height="64" rx="6"/>
+      <foreignObject x="141" y="300" width="358" height="64">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="area center pad-y-1">
+          <span class="label sans size-13 lh-154 ink balance-translation en-231">a single <code>signature_delta</code> arrives, then <code>content_block_stop</code> closes it</span>
+        </div>
+      </foreignObject>
+      <line class="arrow" x1="320" y1="364" x2="320" y2="396" marker-end="url(#sarrow)" aria-hidden="true"/>
+    </g>
+    <g role="listitem">
+      <rect class="box" x="137" y="396" width="366" height="48" rx="6"/>
+      <foreignObject x="137" y="396" width="366" height="48">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+          <span class="label sans size-13 ink">Text block opens: <code>content_block_start</code></span>
+        </div>
+      </foreignObject>
+      <line class="arrow" x1="320" y1="444" x2="320" y2="476" marker-end="url(#sarrow)" aria-hidden="true"/>
+    </g>
+    <g role="listitem">
+      <rect class="box" x="137" y="476" width="366" height="48" rx="6"/>
+      <foreignObject x="137" y="476" width="366" height="48">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="area center">
+          <span class="label sans size-13 ink"><code>text_delta</code> events stream the response</span>
+        </div>
+      </foreignObject>
+      <line class="arrow" x1="320" y1="524" x2="320" y2="556" marker-end="url(#sarrow)" aria-hidden="true"/>
+    </g>
+    <g role="listitem">
+      <rect class="box" x="100" y="556" width="440" height="64" rx="6"/>
+      <foreignObject x="104.8" y="557" width="430.5" height="63">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="area center column">
+          <span class="label sans size-13 heading ink">Stream closes:</span>
+          <span class="label sans size-13 ink"><code>message_delta</code> with stop reason, then <code>message_stop</code></span>
+        </div>
+      </foreignObject>
+    </g>
+  </g>
+</svg>
