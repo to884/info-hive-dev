@@ -1,0 +1,16 @@
+{
+ "id": "r2-wordcom",
+ "class": "R2",
+ "model": "opus",
+ "effort": "high",
+ "run": 1,
+ "model_used": "claude-opus-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/officeのcomでの書き出し.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/office-com-word-export-2026-11-15.md"
+ ],
+ "result": "## 答え\nwiki に書かれている注意点は次のとおりです。\n\n1. **`Documents.Open` にはパスだけを渡す。** 読み取り専用の引数を付けた `Documents.Open(パス, $false, $true)` は 300 秒たっても終わらず、PDF もできませんでした。あとには `/Automation -Embedding` の WINWORD.EXE が残っていました。wiki は、画面に出ない確認を待ったまま止まったと見ています。ただしこれは仮説で、確かめてはいません。\n2. **`DisplayAlerts = 0` にしてから開く。**\n3. **pwsh 7 で動かす。** Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返しました。原因は分かっていません。直前の試しで開いた Word が残っていた影響かもしれない、とも書かれています。\n4. **戻り値と後始末を確かめる。** wiki の手順の案は次のとおりです。\n   - 戻り値が null なら止める。\n   - `ExportAsFixedFormat($pdf, 17)` で書き出す。\n   - `Close(0)` と `Quit()` で閉じる。\n   - 全体を `Start-Job` と `Wait-Job -Timeout` で包み、止まったときに備えて時間の上限を付ける。\n   - 終わったあと、`/Automation -Embedding` の WINWORD.EXE が残っていないかを見る。\n\nこの知見には限界があります。\n- ページの status は `hypothesis` です。成功した例は 1 回の作業だけで、同じ条件でくり返してはいません。\n- 観測した環境は Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 です。\n- `pwsh -File` でスクリプト全体を最後まで通せるかは確かめていません。\n- PowerPoint と Excel では、同じスクリプトで問題が出ませんでした。\n\n## 根拠\n- [[officeのcomでの書き出し]]（concepts/officeのcomでの書き出し.md）: 手順の案と、時間の上限・残ったプロセスの確認は、このページに書かれています。原文は「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」です。\n- [[office-com-word-export-2026-11-15]]（sources/office-com-word-export-2026-11-15.md）: 経験の記録（結果は failure）です。300 秒で止まったこと、5.1 で null が返ったこと、pwsh 7 の `Start-Job` で 2 つの PDF を書き出せたことが書かれています。原文は「`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。」です。\n\n## 開いたページ\n1. concepts/officeのcomでの書き出し.md\n2. sources/office-com-word-export-2026-11-15.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nOpus 5.5（claude-opus-5-5）\n\n`✶ Insight ─────────────────────────────────────`\n- この wiki は、観測した事実（sources/）と、そこから一般化した手順（concepts/、`kind: experience-pattern`）を別のページに分けています。concept のページの `status: \"hypothesis\"` は、そこに書かれた手順がまだ 1 回の観測に頼っていることを示します。\n- `ExportAsFixedFormat` の第 2 引数の `17` は、Word の PDF 形式を指す列挙値として、手順の案に書かれています。\n`─────────────────────────────────────────────────`\n\n使用した MCP サーバー: なし（wiki の MCP は接続が間に合わず、`Read` で読みました）\n使用した Agent Skills: なし",
+ "cost_usd": 0.1684458,
+ "duration_ms": 19182
+}

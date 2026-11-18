@@ -1,0 +1,16 @@
+{
+ "id": "r1-powershell",
+ "class": "R1",
+ "model": "haiku",
+ "effort": "low",
+ "run": 1,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/powershellのパイプの打ち切り.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md"
+ ],
+ "result": "## 答え\n\nスクリプトが止まったのは、`Select-Object -First` が必要な行数を受け取ったあとに上流のパイプラインを止めたためで、最後の書き込みの前に止まったと考えられている（仮説）。避けるには `Select-Object -Last N` を使うか、出力をファイルに書いてから読む。実行後は、書くはずのファイルが変わったかを確かめる。\n\n## 根拠\n\n- [[powershell-select-first-stops-writer-2026-11-15]]（sources/powershell-select-first-stops-writer-2026-11-15.md）: 「`Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止めるので、ファイルを書く前にスクリプトが止まったと考えられる（仮説）。」 同じコマンドを `-Last 1` で実行し直すと `results.json` が書き直された。結果は failure。\n- [[powershellのパイプの打ち切り]]（concepts/powershellのパイプの打ち切り.md）: 「ファイルを書くスクリプトには `-First` を付けない。付けるなら、書き込みを出力より先にするか、実行のあとでファイルの更新を確かめる。」 エラーは出ず、1 行目は正しく出たため、止まったことに気づきにくいとしている。\n\nただし、どちらのページも原因は仮説として扱っており、status は `hypothesis`。Bash の `head` で同じことが起きるか、Windows PowerShell 5.1 で起きるかは確かめていない。\n\n## 開いたページ\n1. wiki/concepts/powershellのパイプの打ち切り.md\n2. wiki/sources/powershell-select-first-stops-writer-2026-11-15.md\n\n## 関係のなかった候補\nなし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.00430275,
+ "duration_ms": 10896
+}

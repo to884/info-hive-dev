@@ -14,6 +14,7 @@ import contextlib
 import importlib
 import io
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -347,6 +348,36 @@ class LinkTests(Wiki):
 class VendoredParserTests(unittest.TestCase):
     """wiki_pages は、同梱した markdown-it-py（_vendor/）で本文を読む。閲覧の PoC と同じ版であること。"""
 
+    def test_walk_does_not_load_or_hash_the_markdown_parser(self):
+        # 既に解析器を使っているテストプロセスとは分け、初回の走査で余分な I/O がないことを見る。
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "example.md").write_text("# ページ\n", encoding="utf-8")
+            code = f"""
+import sys
+from pathlib import Path
+from unittest.mock import patch
+sys.path.insert(0, {str(SCRIPTS)!r})
+original = Path.read_bytes
+def read_bytes(path):
+    if '_vendor' in path.parts:
+        raise AssertionError('走査が解析器を読んだ')
+    return original(path)
+with patch.object(Path, 'read_bytes', read_bytes):
+    import wiki_pages
+    assert [f.rel for f in wiki_pages.walk_pages(Path({str(root)!r})).files] == ['example.md']
+    assert 'markdown_it' not in sys.modules and 'mdurl' not in sys.modules
+# 初回の解析を複数のスレッドから呼んでも、同じ解析器と規則を使う。
+from concurrent.futures import ThreadPoolExecutor
+with ThreadPoolExecutor(max_workers=4) as pool:
+    result = list(pool.map(lambda _: wiki_pages.extract_wikilinks('[[a]] `[[b]]`'), range(8)))
+assert result == [['a']] * 8
+assert wiki_pages.markdown_it.__version__ == wiki_pages.MARKDOWN_IT_VERSION
+assert wiki_pages.PARSER_ID.endswith(wiki_pages._vendor_digest())
+"""
+            result = subprocess.run([sys.executable, "-I", "-S", "-c", code], capture_output=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8", "replace"))
+
     def test_uses_vendored_markdown_it(self):
         vendor = SCRIPTS / "_vendor"
         self.assertEqual(wiki_pages.markdown_it.__version__, wiki_pages.MARKDOWN_IT_VERSION)
@@ -373,12 +404,46 @@ class VendoredParserTests(unittest.TestCase):
             fake.__version__ = "9.9.9"
             sys.modules["mdurl"] = fake
             reloaded = importlib.import_module("wiki_pages")
-            self.assertIn((SCRIPTS / "_vendor").resolve(), Path(sys.modules["mdurl"].__file__).resolve().parents)
             self.assertEqual(reloaded.extract_wikilinks("[[a]] `[[b]]`"), ["a"])
+            self.assertIn((SCRIPTS / "_vendor").resolve(), Path(sys.modules["mdurl"].__file__).resolve().parents)
         finally:
             for k in [k for k in sys.modules if k.split(".")[0] in names]:
                 del sys.modules[k]
             sys.modules.update(saved)
+
+    def test_rawcheck_and_fetch_load_vendored_modules_before_using_them(self):
+        # import順の偶然を避ける。外部版のない場合と、既に外部版が読まれた場合を新しいプロセスで試す。
+        for foreign in (False, True):
+            with self.subTest(foreign=foreign):
+                code = f"""
+import sys, types
+from pathlib import Path
+sys.path.insert(0, {str(SCRIPTS)!r})
+if {foreign!r}:
+    for name in ('markdown_it', 'markdown_it.token', 'markdown_it.rules_block', 'markdown_it.rules_block.table', 'mdurl'):
+        mod = types.ModuleType(name)
+        mod.__file__ = '/foreign/' + name.replace('.', '/') + '.py'
+        mod.__version__ = '9.9.9'
+        mod.Token = object()
+        sys.modules[name] = mod
+import wiki_rawcheck, wiki_fetch, wiki_browse_core, wiki_pages
+assert wiki_rawcheck._Token is wiki_browse_core.Token is wiki_pages.markdown_module('token').Token
+assert wiki_pages.VENDOR_DIR.resolve() in Path(wiki_rawcheck._TABLE_RULE.__file__).resolve().parents
+assert type(wiki_rawcheck._PARSER) is wiki_pages.markdown_it.MarkdownIt
+assert wiki_rawcheck._PARSER.parse('| A | B |\\n| --- | --- |\\n| x | y |')
+# 初期化したあとに外部のサブモジュールが紛れ込んだ場合も返さない。
+foreign_token = types.ModuleType('markdown_it.token')
+foreign_token.__file__ = '/foreign/token.py'
+sys.modules['markdown_it.token'] = foreign_token
+try:
+    wiki_pages.markdown_module('token')
+except ImportError:
+    pass
+else:
+    raise AssertionError('外部のサブモジュールを返した')
+"""
+                result = subprocess.run([sys.executable, "-I", "-S", "-c", code], capture_output=True, timeout=30)
+                self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8", "replace"))
 
     def test_code_version_includes_vendor(self):
         """同梱したファイルだけを変えても、MCP サーバーの版が変わる（動いているサーバーが入れ替わる）。"""

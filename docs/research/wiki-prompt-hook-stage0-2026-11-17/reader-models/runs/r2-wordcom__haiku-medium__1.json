@@ -1,0 +1,16 @@
+{
+ "id": "r2-wordcom",
+ "class": "R2",
+ "model": "haiku",
+ "effort": "medium",
+ "run": 1,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/officeのcomでの書き出し.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/office-com-word-export-2026-11-15.md"
+ ],
+ "result": "## 答え\n\nWord の COM で PDF に書き出すときは、`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にして、pwsh 7 の `Start-Job` で時間の上限を付けて動かす。読み取り専用の引数（`Documents.Open($path, $false, $true)`）は、300 秒で終わらなかった。Windows PowerShell 5.1 でパスだけを渡すと `Documents.Open` が null を返した。ただし、この知見は 1 回の作業の観測で、原因は分かっていない（確信度は `hypothesis`）。\n\n## 根拠\n\n- [[officeのcomでの書き出し]]（`wiki/concepts/officeのcomでの書き出し.md`）: 「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす」。止まったときに備えて、時間の上限を付けて別のジョブで動かし、残った `/Automation -Embedding` の WINWORD.EXE を確かめる。\n- [[officeのcomでの書き出し]]: 読み取り専用の引数を渡した `Documents.Open` は、300 秒で終わらなかった。パスだけを渡し、pwsh 7 の `Start-Job` で動かすと書き出せた。Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返した。\n- [[officeのcomでの書き出し]]: 手順の案は `$w.DisplayAlerts = 0`、`$w.Documents.Open($path)`、戻り値が null なら止まる、`ExportAsFixedFormat($pdf, 17)`、`Close(0)`、`Quit()`。全体を `Start-Job` と `Wait-Job -Timeout` で包む。\n- [[office-com-word-export-2026-11-15]]（`wiki/sources/office-com-word-export-2026-11-15.md`）: `Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。`/Automation -Embedding` の WINWORD.EXE が残っていた。\n- [[office-com-word-export-2026-11-15]]: 原因の仮説は、読み取り専用の引数で、画面に出ない確認を待ったまま止まったこと。直前の試しで開いた Word が残っていた影響の可能性もある（どちらも確かめていない）。\n- [[office-com-word-export-2026-11-15]]: `pwsh -File` で最後まで通るかは確かめていない。PowerPoint と Excel では問題がなかった。\n\n## 開いたページ\n1. `wiki/concepts/officeのcomでの書き出し.md`（開いた順 1）\n2. `wiki/sources/office-com-word-export-2026-11-15.md`（開いた順 2）\n\n## 関係のなかった候補\nなし\n\n## 注意点（wiki に書かれている範囲）\n- 引数はパスだけにする。読み取り専用のフラグは避ける。\n- 実行環境は pwsh 7 を使い、`Start-Job` と `Wait-Job -Timeout` で時間を区切る。\n- 失敗して残った `WINWORD.EXE` があれば、次の試しの前に終わらせる（残存が結果に影響した可能性は未確認）。\n- 適用範囲は Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 のみ。他の PC や Office の版では確かめていない。\n\n`✶ Insight ─────────────────────────────────────`\n- wiki の 2 ページは同じ観測を扱っている。`concepts` のページは手順にまとめた「やり方」、`sources` のページは観測と反例を記録した「出典」。根拠を引くときは、手順は concepts、事実は sources に当たるとよい。\n- 両ページとも `status: hypothesis`（仮説）で、原因は未確定。手順は一度の成功例にもとづく。\n`─────────────────────────────────────────────────`\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.0031156400000000002,
+ "duration_ms": 16573
+}

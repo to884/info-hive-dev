@@ -1,0 +1,16 @@
+{
+ "id": "r2-blind",
+ "class": "R2",
+ "model": "sonnet",
+ "effort": "medium",
+ "run": 2,
+ "model_used": "claude-sonnet-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/抽出の品質の測り方.md"
+ ],
+ "result": "## 答え\n2026-11-15 の抽出方式ベンチマークで、外部モデル（GPT-6.1 Sol）に方式名を伏せて出力を採点させた。このとき、判定が採点した中身に結び付かなかった。\n\n**何が起きたか**\n- 判定のファイルと出力をファイル名だけで結び付けていた。\n- 集計は最初、写しと出力のバイト列を比べるだけだった。Sol の 2 回目のレビューは、写しと出力を同時に差し替えると、古い判定でも集計が通ることを示した。\n- 同じ判定で、Sol は改ページの文字（U+000C）を読み飛ばした。pdftotext と pdfminer の出力には U+000C が 5 個あった。Sol は「明示的なページ境界はない」として、位置を 2 点にした。\n\n**原因（どちらも仮説）**\n- 判定のファイルに、採点した中身の識別子がなかった。\n- モデルは、画面に見えない制御文字を読み飛ばす。\n\n**直し方**\n- 写しごとの SHA-256 とそのダイジェストを `manifest.json` に書いた。\n- Sol に、読んだダイジェストを `judge_digest` に書かせた。\n- 集計では、ダイジェスト、写し、出力、対応表がすべて一致するときだけ集計する。\n- 依頼に、改ページの文字の数え方を書いた。\n- 判定をやり直した結果、`judge_digest` は `manifest.json` の値と一致し、集計が通った。pdftotext と pdfminer の位置は、4 つの PDF のすべてで 5 点になった。\n\n**未確認のこと**\n- ダイジェストは、モデルが `manifest.json` から書き写した値にすぎない。写しを実際に読んだことの証明ではない。\n- ダイジェストを入れたあとの版で、出力を変えると集計が止まることは確かめていない。\n- 判定は 1 回ずつで、点のぶれは測っていない。\n- 直した結び付けは、3 回目のレビューを受けていない。\n\n## 根拠\n- [[blind-judge-binding-and-form-feed-2026-11-15]]（sources/blind-judge-binding-and-form-feed-2026-11-15.md）: 経験の記録で、結果は failure。「判定のファイルに、採点した中身の識別子がなかった。」「Sol の 2 回目のレビューが、写しと出力を同時に差し替えると古い判定で集計が通ることを、メモリ上で示した。」\n- [[抽出の品質の測り方]]（concepts/抽出の品質の測り方.md）: 「判定を、採点した中身に結び付ける」の節に一般化した手順がある。「モデルが見落とすもの」の節には、「制御文字で表す目印は、数え方を依頼に書く」とある。\n\n## 開いたページ\n1. wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md\n2. wiki/concepts/抽出の品質の測り方.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）",
+ "cost_usd": 0.055142500000000004,
+ "duration_ms": 13929
+}

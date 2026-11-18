@@ -1,0 +1,16 @@
+{
+ "id": "r1-schema",
+ "class": "R1",
+ "model": "sonnet",
+ "effort": "medium",
+ "run": 1,
+ "model_used": "claude-sonnet-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/初期化されたwikiの判定.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md"
+ ],
+ "result": "## 答え\n判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所で決めている。ルートの直下に `SCHEMA.md` が通常のファイルとして（リンクなら、その先が通常のファイルとして）あれば、初期化済みの wiki とみなす。`SCHEMA.md` がなければ wiki とみなさない。\n\nこの規則を採用した決定は ADR-0019 にある。ただし ADR の本文は開いていない。状態は「提案」と書かれている。\n\n規則を重複して持つ場所が 1 つある。rag の `rag_config.py` も同じ規則を自分で持っているので、規則を変えるときは両方をそろえる。\n\n各入口は、この判定を呼んで未初期化なら止まる。判定を呼ぶ場所は入口ごとに違う。\n- CLI は、引数を読んだ直後に判定する。\n- サブコマンドを持つ入口は、振り分けの前で判定する。\n- MCP のサーバーと閲覧のサーバーは、要求のたびに判定する。\n\n## 根拠\n- [[初期化されたwikiの判定]]（concepts/初期化されたwikiの判定.md）: 「判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。」「rag の `rag_config.py` も同じ規則を自分で持つ。規則を変えるときは両方をそろえる。」\n- [[初期化していないディレクトリの扱い-wiki-0.13.0]]（sources/初期化していないディレクトリの扱い-wiki-0.13.0.md）: 判定を `SCHEMA.md` の有無に決めた経緯が書かれている。「初期化された wiki の判定を、ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた」。決定は ADR-0019（状態は提案）、設計は `docs/plans/wiki-uninitialized-root-2026-11-13.md` にあると書かれている。\n\n## 開いたページ\n1. concepts/初期化されたwikiの判定.md\n2. sources/初期化していないディレクトリの扱い-wiki-0.13.0.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）",
+ "cost_usd": 0.0630459,
+ "duration_ms": 11982
+}

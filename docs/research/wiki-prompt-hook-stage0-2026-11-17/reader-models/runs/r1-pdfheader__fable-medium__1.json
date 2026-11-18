@@ -1,0 +1,17 @@
+{
+ "id": "r1-pdfheader",
+ "class": "R1",
+ "model": "fable",
+ "effort": "medium",
+ "run": 1,
+ "model_used": "claude-fable-5-2",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/pdfのヘッダーの条件.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3.md"
+ ],
+ "result": "## 答え\n\nrag（0.5.1 以降）は、**`%PDF-` の前にあるバイトが 1024 バイト以下**の PDF を受け付ける。\n\n- **判定の実装**: `has_pdf_header` が `data.find(b\"%PDF-\", 0, 1024 + 5)` で探す。`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。\n- **境界の値**: 前置きが 1024 バイトなら受け付け、1025 バイトなら拒む。pypdfium2 5.14.0（PDFium 156）で、改行、CRLF、空白、NUL などの前置きについて確かめてある。\n- **上限の由来**: PDFium にそろえた。PDFium は `%PDF` を位置 0〜1024 で探す。\n- **拒む条件（ADR-0013 と 0.5.3 のエラーメッセージの書き方）**: 「`%PDF-` がないか、最初の `%PDF-` の前に 1024 バイトを超えるバイトがある」。\n- **確かめる段階**: ヘッダーを読むのは登録のときではなく、ワーカーの `Engine.ingest_pdf` → `read_pdf`（`rag_index.py`）である。外れるとジョブが `failed` になる。`register_pdf` は拡張子やパスの条件だけを見て、PDF の中身を読まない。\n- **書き方の注意**: 「先頭から 1024 バイト目まで」は、1 始まりで読むと実装より 1 バイト狭くなる。開始位置が 1024 の `%PDF-` は 1025 バイト目から始まるからである。\n- **判定を通ったあと**: PDFium で開けるとは限らない。開けないものは抽出で失敗する。\n\n版による違いは次のとおり。\n\n| rag の版 | ヘッダーの条件 |\n| --- | --- |\n| 0.5.0 以前 | 先頭がちょうど `%PDF-` |\n| 0.5.1 以降 | `%PDF-` の前のバイトが 1024 バイト以下 |\n\nrag 0.5.0 でこの理由で失敗したジョブは、0.5.1 に更新しても自動では再開しない。`retry_job` で再試行するか、取り込み直す。\n\nwiki に書かれていないこともある。実データの 2 件を MCP の `register_pdf` から索引化までの経路で取り込むことは、確かめていないと記録されている。\n\n## 根拠\n\n- [[pdfのヘッダーの条件]]（concepts/pdfのヘッダーの条件.md）: 境界、段階、書き方、版による違いの本体。「`has_pdf_header` は `data.find(b\"%PDF-\", 0, 1024 + 5)` で探す。」\n- [[pdfのヘッダーの判定の修正-rag-0.5.1]]（sources/pdfのヘッダーの判定の修正-rag-0.5.1.md）: 0.5.0 は先頭がちょうど `%PDF-` でないと拒んでいた経緯と、0.5.1 での修正。「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けるように直した。」\n- [[pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3]]（sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3.md）: 0.5.2 で文書の書き方をそろえ、0.5.3 でエラーメッセージを「%PDF- がないか、最初の %PDF- の前に 1024 バイトを超えるバイトがある」に直した記録。\n\n## 開いたページ\n\n1. concepts/pdfのヘッダーの条件.md\n2. sources/pdfのヘッダーの判定の修正-rag-0.5.1.md\n3. sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3.md\n\n## 関係のなかった候補\n\n- なし\n\n## モデル\n\nFable 5.2（claude-fable-5-2）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.403163,
+ "duration_ms": 19506
+}

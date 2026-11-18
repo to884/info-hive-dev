@@ -1,0 +1,16 @@
+{
+ "id": "r1-powershell",
+ "class": "R1",
+ "model": "fable",
+ "effort": "medium",
+ "run": 2,
+ "model_used": "claude-fable-5-2",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/powershellのパイプの打ち切り.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md"
+ ],
+ "result": "## 答え\n\n**原因（wiki では仮説の扱い）**: `Select-Object -First N` は、必要な数の行を受け取るとパイプラインの上流を止める。最後にファイルを書くスクリプトは、その書き込みの前に止まると考えられる。エラーは出ず、1 行目は正しく出るので、止まったことに気づきにくい。\n\n**避け方**:\n- 出力を短く見たいときは `Select-Object -Last N` にする。\n- または、出力をファイルに書いてから読む。\n- ファイルを書くスクリプトには `-First` を付けない。付けるなら、書き込みを出力より先にする。\n- 実行のあとで、書くはずのファイルが変わったかを確かめる。\n\n**適用範囲**: 観測したのは PowerShell 7.6.9（Claude Code の PowerShell ツール）で、uv 0.12.2 と Python 3.12.13 の子プロセスを動かしたときの 1 件だけである。ページの `status` は `hypothesis` で、原因は確かめられていない。Windows PowerShell 5.1 と Bash の `head` では確かめていない。\n\n## 根拠\n\n- [[powershellのパイプの打ち切り]]（concepts/powershellのパイプの打ち切り.md）: 原因の仮説、避け方、適用範囲を書いている。「仮説: `Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止める。」\n- [[powershell-select-first-stops-writer-2026-11-15]]（sources/powershell-select-first-stops-writer-2026-11-15.md）: もとの観測である。`uv run --script scripts/run_bench.py --metrics-only 2>&1 | Select-Object -First 1` では `results.json` が書き直されず、`-Last 1` で実行し直すと書き直された。「スクリプトは、すべての行を出したあとに `results.json` を書く。」\n\n## 開いたページ\n\n1. concepts/powershellのパイプの打ち切り.md\n2. sources/powershell-select-first-stops-writer-2026-11-15.md\n\n## 関係のなかった候補\n\n- なし\n\n## モデル\n\nFable 5.2（claude-fable-5-2）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.187566,
+ "duration_ms": 15966
+}

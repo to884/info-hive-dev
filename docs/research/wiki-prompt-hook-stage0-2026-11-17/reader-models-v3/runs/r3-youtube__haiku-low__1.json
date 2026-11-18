@@ -1,0 +1,713 @@
+{
+ "protocol": 3,
+ "fingerprint": "c7b9e69a443a55c8807dd832222250a65db2f07b3b28e2e9c6ba3ed219e6dc40",
+ "id": "r3-youtube",
+ "class": "R3",
+ "model": "haiku",
+ "effort": "low",
+ "run": 1,
+ "requested_effort": "low",
+ "prompt_sha256": "2201b51b02e77dfa62cf1ee9a275ff9317a66e872fdf4eb221288f34bb4606b0",
+ "argv": [
+  "claude",
+  "-p",
+  "問い: YouTube の字幕の取り込みの設計と実装で、自動字幕の訂正の扱いはどう変わった？\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0\", \"path\": \"sources/youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md\"}\n{\"slug\": \"youtubeの字幕の取り込みの設計-2026-11-15\", \"path\": \"sources/youtubeの字幕の取り込みの設計-2026-11-15.md\"}",
+  "--agent",
+  "wiki:wiki-reader",
+  "--model",
+  "haiku",
+  "--effort",
+  "low",
+  "--plugin-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--tools",
+  "Read,Glob,Grep",
+  "--allowedTools",
+  "Read,Glob,Grep",
+  "--max-budget-usd",
+  "2",
+  "--permission-mode",
+  "auto",
+  "--no-session-persistence",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "{\"mcpServers\":{}}",
+  "--settings",
+  "{\"autoMemoryEnabled\": false, \"claudeMdExcludes\": [\"**/CLAUDE.md\", \"**/CLAUDE.local.md\", \"**/AGENTS.md\", \"**/.claude/rules/**\"]}",
+  "--add-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+ ],
+ "events": [
+  {
+   "type": "system",
+   "subtype": "init",
+   "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "tools": [
+    "Read",
+    "Glob",
+    "Grep"
+   ],
+   "mcp_servers": [],
+   "model": "claude-haiku-5-5",
+   "permissionMode": "auto",
+   "slash_commands": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring",
+    "advisor",
+    "agents",
+    "auto-mode-setup",
+    "autocompact",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "output-style",
+    "context",
+    "effort",
+    "fast",
+    "focus",
+    "heapdump",
+    "init",
+    "mcp",
+    "import",
+    "model",
+    "__remote-workflow",
+    "workflow-launch-exec",
+    "reload-plugins",
+    "reload-skills",
+    "rename",
+    "ultrareview",
+    "security-review",
+    "usage-credits",
+    "extra-usage",
+    "usage",
+    "insights",
+    "recap",
+    "skill-doctor",
+    "goal",
+    "design-consent",
+    "design-revoke",
+    "list-agents",
+    "team-onboarding"
+   ],
+   "terminal_slash_commands": [
+    "doctor",
+    "color",
+    "focus",
+    "reload-plugins"
+   ],
+   "apiKeySource": "none",
+   "claude_code_version": "2.1.325",
+   "output_style": "default",
+   "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup",
+    "web-fetch",
+    "wiki:wiki-reader"
+   ],
+   "skills": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring"
+   ],
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+     "source": "wiki@inline",
+     "version": "0.0.0"
+    },
+    {
+     "name": "cc-plugin-agents-md",
+     "path": "builtin",
+     "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+     "name": "cc-plugin-telemetry",
+     "path": "builtin",
+     "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+     "name": "cc-plugin-privacy",
+     "path": "builtin",
+     "source": "cc-plugin-privacy@builtin"
+    },
+    {
+     "name": "cc-plugin-plugin-authoring",
+     "path": "builtin",
+     "source": "cc-plugin-plugin-authoring@builtin"
+    }
+   ],
+   "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1"
+   ],
+   "analytics_disabled": false,
+   "product_feedback_disabled": false,
+   "uuid": "da60913e-5031-4fa5-b023-06be625cae2c",
+   "original_cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "additional_directories": [
+    "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+   ],
+   "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-3740f4883c4b69ff1ea56450f9794e2c",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "per_turn_effort_active": true,
+   "ultrathink_available": false,
+   "ultrathink_typed_raises": false,
+   "view_mode": "default",
+   "powershell_path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8k29TcnPDr9Ma9DJc6f",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01LfE368yYvbFWKitYM9oMdS",
+      "name": "Read",
+      "input": {
+       "file_path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project\\wiki\\sources\\youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 4863,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "uuid": "935a4b3a-a779-468f-8490-d6ff82e4d677",
+   "timestamp": "2026-11-17T15:32:40.365Z",
+   "request_id": "req_011Ch8k29DVBi3JRfSMjj7bw",
+   "wire_tool_inputs": {
+    "toolu_01LfE368yYvbFWKitYM9oMdS": {
+     "file_path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project\\wiki\\sources\\youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md"
+    }
+   }
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01LfE368yYvbFWKitYM9oMdS",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"YouTube の字幕の取り込み（ADR-0027）の実装と wiki 0.23.0 のリリース\"\n4\ttags: [\"リリース\", \"取り込み\", \"wiki設計\", \"試験\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-16-adr-0027-impl-review\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# YouTube の字幕の取り込み（ADR-0027）の実装と wiki 0.23.0 のリリース\n13\t\n14\t作者が ADR-0027（[[youtubeの字幕の取り込みの設計-2026-11-15]]）を承認し、実装を求めた（2026-11-16）。この記録は、その実装と、それを出した wiki 0.23.0 のものである。Sol の 17 回の敵対的レビューの依頼、結果、レビューした差分は `docs/agent-runs/2026-11-16-adr-0027-impl-review/` にある。\n15\t\n16\t## したこと\n17\t\n18\t- wiki に次の 3 つのスクリプトを足した（to884/info-hive-wiki#74）。\n19\t  - `wiki_youtube.py`：PEP 723 で `yt-dlp==2026.8.19` を固定する。サブコマンドは `inspect`、`write`、`verify`、`define` の 4 つである。\n20\t  - `wiki_captions.py`：raw の生成と読み取り、印と定義の照合、confidence の計算を受け持つ。lint と共有する。\n21\t  - `wiki_youtube_url.py`：URL が YouTube の動画かを判定する。`wiki_fetch.py` と共有する。\n22\t- 既存のスクリプトを直した。\n23\t  - `wiki_fetch.py` は、YouTube の URL を本文を読む前に拒む（終了コード 4）。\n24\t  - lint と MCP の `lint` は `caption_corrections` を返す。\n25\t  - `wiki_pages.walk_markdown` は、降りたディレクトリを返す引数 `visited` を持つ。\n26\t- 取り込みの手順に V1〜V10 を足した。確信度の上限の表（`query-confidence.md`）には、動画のソースの行を足した。\n27\t- info-hive-dev に試験 64 件（`tests/wiki/test_wiki_youtube.py`）と CI の段を足した。ADR-0027 を「承認」にし、要件定義書に F-I16 を足した（to884/info-hive-dev#148）。\n28\t- 固定した yt-dlp で、2 本の公開動画を取った。\n29\t  - トラックは ADR の観測どおりに選ばれた。\n30\t  - json3 の SHA-256 は 11-15 と同じで、日をまたいでも変わらなかった。\n31\t  - raw に字幕の URL（`ip`、署名）は入らなかった。\n32\t\n33\t## レビューで分かったこと\n34\t\n35\tSol の敵対的レビューは 17 回で、どれも却下だった。進め方は [[敵対的レビューで設計を直す進め方]] と同じである。指摘は、出どころで 3 つの段に分かれた。\n36\t\n37\t| 回 | 重大の数 | 指摘の出どころ | 直した作り |\n38\t| --- | --- | --- | --- |\n39\t| 1〜5 | 3、4、3、3、1 | 印の読み方（原文の字面、書式のかけら、原文と表示の突き合わせ）と、1 つの raw に関わる指摘への絞り込み | 印を、閲覧と同じ規則で作った表示の文字だけで読む。指摘を絞らず wiki 全体で返す。読めないものは除かず誤りにする |\n40\t| 6〜10 | 3、3、2、2、2 | 語の境目の文字（結合文字、半角の濁点、目に見えない文字、補助面のカタカナ）と、用意したページの場所の字面 | 境目を、目に見える文字の並び（NFKC、改行を空白、目に見えない文字を除く）と、文字の名前の文字体系で照らす |\n41\t| 11〜17 | 1 ずつ | 用意したページの場所が、書いたあとの状態とずれること（ジャンクションの別名、大文字と小文字を区別するディレクトリ、NFC で重なる別のファイル） | 場所を、綴りで推さずにファイルシステムに尋ね、実体の識別子（`st_dev`、`st_ino`）で照らす。ページの一覧そのものが降りたディレクトリを使う |\n42\t\n43\t> 表 補足: 1〜5 回目に印の読み方を 3 度作り直し、4 回目に「絞り込み」と「2 通りの読み方の突き合わせ」の 2 つの仕組みを外すと、その形の指摘は出なくなった。6 回目からは、照合が自分で作った写し（文字の分類、名前の綴り）と、実物（Unicode、ファイルシステム）の食い違いが続いた。\n44\t\n45\t- 写しの規則を 1 つずつ足すたびに、別の形の食い違いが出た。結合の濁点を拒むと半角の濁点、半角の濁点を拒むと WORD JOINER、という具合である。種類で拒むか、実物に尋ねる形に替えると、その形は出なくなった。\n46\t- 区切りの判断：11〜17 回目は、重大の指摘が 1 件ずつで、どれも `verify` に渡す用意したページの場所に限られていた。前提は珍しいファイルシステムの構成である。作者が 17 回目で区切り、残りうる同じ種類の穴を ADR に受け入れた限界として書いた。書いたあとの lint は、これまでの反例をどれも指摘した。字幕の取得、raw の生成、印と定義の照合、confidence の計算は、10 回目のあとのレビューで崩れていない。\n47\t- 写しの漏れ：`Write` ツールは、ファイルの中身の `\\u2028` などのエスケープを、そのままの文字に変えた。その結果、ソースと試験に見えない文字が入った。Python のスクリプトで `chr(92)` を使って書き直した。\n48\t\n49\t## マージの前の Codex の指摘\n50\t\n51\twiki の PR に、Codex の自動レビューが 2 つの指摘を付けた。どちらも直してからマージした。\n52\t\n53\t- **P1：** PDF などのほかの原本も UTF-8 として読み、`unreadable_raw` にしていた。lint と `verify` は wiki 全体の指摘を返すので、PDF のソースがあるだけで YouTube の取り込みが通らなくなる。動画の raw はいつも `.md` なので、`.md` でない原本は照らさない。\n54\t- **P2：** 同じ資料の raw がすでにあるとき（`same`）に、読み取り専用に戻していなかった。セッションの取り込みと同じく、行き先を確かめてから戻す。\n55\t\n56\t## リリース\n57\t\n58\t- 版は 0.23.0 にした。main が 0.21.2 に進んでいたうえ、オープンの to884/info-hive-wiki#71 が 0.22.0 を名乗っていたためである（[[リリースの確かめ方]]）。\n59\t- 0.21.1 で確信度の上限の表が `query-confidence.md` に移ったので、載せ直すときに行をそちらへ移した。ADR-0028 のセッションと、行き先を決めて合わせた。\n60\t- `v0.23.0` は注釈付きのタグで、#74 のマージコミット（`1252fda`）を指す。GitHub リリースの本文は、CHANGELOG の 0.23.0 の節と同じである。\n61\t- 使い捨ての設定フォルダーで、マーケットプレイスから `wiki@info-hive` を入れると 0.23.0 が入った。v0.21.2 から v0.23.0 までに変わった 21 のファイルは、すべてタグの中身と一致した。入った `wiki_youtube.py define` も動いた。\n62\t\n63\t## そのあと\n64\t\n65\t使い捨ての wiki で手順どおりに最後まで通し、見つけた 2 つの不便（取得の時刻、「raw にない語」に混ざる行き先の値）をwiki 0.23.2 で直した（[[youtubeの取り込みの試しと直しとリリース-wiki-0.23.2]]）。\n66\t\n67\t## 主張と行き先\n68\t\n69\t| 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n70\t| --- | --- | --- | --- |\n71\t| 写しの規則を 1 つずつ足すより、種類で拒むか実物（ファイルシステム）に尋ねる | 「レビューで分かったこと」 | update | [[敵対的レビューで設計を直す進め方]] に足した |\n72\t| オープンの PR が名乗った版も、使われているとみなして振り直す | 「リリース」 | update | [[リリースの確かめ方]] の「版を決めるとき」に足した |\n73\t| ADR-0027 は承認され、0.23.0 で出荷された | 「したこと」 | update | [[youtubeの字幕の取り込みの設計-2026-11-15]] の状態を改めた |\n74\t| 17 回の各回の指摘と直し | `review-1.md`〜`review-17.md` | source_only | 細部はレビューの記録で足りる |\n75\t\n76\t## 関係するページ\n77\t\n78\t- [[youtubeの字幕の取り込みの設計-2026-11-15]]\n79\t- [[youtubeの字幕の取り込みの選択肢-2026-11-15]]\n80\t- [[敵対的レビューで設計を直す進め方]]\n81\t- [[リリースの確かめ方]]\n82\t- [[youtubeの取り込みの試しと直しとリリース-wiki-0.23.2]]\n83\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "uuid": "1dd9202e-d464-4e07-acb8-4ffd33305b22",
+   "timestamp": "2026-11-17T15:32:40.482Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project\\wiki\\sources\\youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md",
+     "content": "---\ntype: \"source\"\ntitle: \"YouTube の字幕の取り込み（ADR-0027）の実装と wiki 0.23.0 のリリース\"\ntags: [\"リリース\", \"取り込み\", \"wiki設計\", \"試験\"]\nauthors: [\"to884\"]\nraw: \"docs/agent-runs/2026-11-16-adr-0027-impl-review\"\ningested: 2026-11-16\ncreated: 2026-11-16\nupdated: 2026-11-16\n---\n\n# YouTube の字幕の取り込み（ADR-0027）の実装と wiki 0.23.0 のリリース\n\n作者が ADR-0027（[[youtubeの字幕の取り込みの設計-2026-11-15]]）を承認し、実装を求めた（2026-11-16）。この記録は、その実装と、それを出した wiki 0.23.0 のものである。Sol の 17 回の敵対的レビューの依頼、結果、レビューした差分は `docs/agent-runs/2026-11-16-adr-0027-impl-review/` にある。\n\n## したこと\n\n- wiki に次の 3 つのスクリプトを足した（to884/info-hive-wiki#74）。\n  - `wiki_youtube.py`：PEP 723 で `yt-dlp==2026.8.19` を固定する。サブコマンドは `inspect`、`write`、`verify`、`define` の 4 つである。\n  - `wiki_captions.py`：raw の生成と読み取り、印と定義の照合、confidence の計算を受け持つ。lint と共有する。\n  - `wiki_youtube_url.py`：URL が YouTube の動画かを判定する。`wiki_fetch.py` と共有する。\n- 既存のスクリプトを直した。\n  - `wiki_fetch.py` は、YouTube の URL を本文を読む前に拒む（終了コード 4）。\n  - lint と MCP の `lint` は `caption_corrections` を返す。\n  - `wiki_pages.walk_markdown` は、降りたディレクトリを返す引数 `visited` を持つ。\n- 取り込みの手順に V1〜V10 を足した。確信度の上限の表（`query-confidence.md`）には、動画のソースの行を足した。\n- info-hive-dev に試験 64 件（`tests/wiki/test_wiki_youtube.py`）と CI の段を足した。ADR-0027 を「承認」にし、要件定義書に F-I16 を足した（to884/info-hive-dev#148）。\n- 固定した yt-dlp で、2 本の公開動画を取った。\n  - トラックは ADR の観測どおりに選ばれた。\n  - json3 の SHA-256 は 11-15 と同じで、日をまたいでも変わらなかった。\n  - raw に字幕の URL（`ip`、署名）は入らなかった。\n\n## レビューで分かったこと\n\nSol の敵対的レビューは 17 回で、どれも却下だった。進め方は [[敵対的レビューで設計を直す進め方]] と同じである。指摘は、出どころで 3 つの段に分かれた。\n\n| 回 | 重大の数 | 指摘の出どころ | 直した作り |\n| --- | --- | --- | --- |\n| 1〜5 | 3、4、3、3、1 | 印の読み方（原文の字面、書式のかけら、原文と表示の突き合わせ）と、1 つの raw に関わる指摘への絞り込み | 印を、閲覧と同じ規則で作った表示の文字だけで読む。指摘を絞らず wiki 全体で返す。読めないものは除かず誤りにする |\n| 6〜10 | 3、3、2、2、2 | 語の境目の文字（結合文字、半角の濁点、目に見えない文字、補助面のカタカナ）と、用意したページの場所の字面 | 境目を、目に見える文字の並び（NFKC、改行を空白、目に見えない文字を除く）と、文字の名前の文字体系で照らす |\n| 11〜17 | 1 ずつ | 用意したページの場所が、書いたあとの状態とずれること（ジャンクションの別名、大文字と小文字を区別するディレクトリ、NFC で重なる別のファイル） | 場所を、綴りで推さずにファイルシステムに尋ね、実体の識別子（`st_dev`、`st_ino`）で照らす。ページの一覧そのものが降りたディレクトリを使う |\n\n> 表 補足: 1〜5 回目に印の読み方を 3 度作り直し、4 回目に「絞り込み」と「2 通りの読み方の突き合わせ」の 2 つの仕組みを外すと、その形の指摘は出なくなった。6 回目からは、照合が自分で作った写し（文字の分類、名前の綴り）と、実物（Unicode、ファイルシステム）の食い違いが続いた。\n\n- 写しの規則を 1 つずつ足すたびに、別の形の食い違いが出た。結合の濁点を拒むと半角の濁点、半角の濁点を拒むと WORD JOINER、という具合である。種類で拒むか、実物に尋ねる形に替えると、その形は出なくなった。\n- 区切りの判断：11〜17 回目は、重大の指摘が 1 件ずつで、どれも `verify` に渡す用意したページの場所に限られていた。前提は珍しいファイルシステムの構成である。作者が 17 回目で区切り、残りうる同じ種類の穴を ADR に受け入れた限界として書いた。書いたあとの lint は、これまでの反例をどれも指摘した。字幕の取得、raw の生成、印と定義の照合、confidence の計算は、10 回目のあとのレビューで崩れていない。\n- 写しの漏れ：`Write` ツールは、ファイルの中身の `\\u2028` などのエスケープを、そのままの文字に変えた。その結果、ソースと試験に見えない文字が入った。Python のスクリプトで `chr(92)` を使って書き直した。\n\n## マージの前の Codex の指摘\n\nwiki の PR に、Codex の自動レビューが 2 つの指摘を付けた。どちらも直してからマージした。\n\n- **P1：** PDF などのほかの原本も UTF-8 として読み、`unreadable_raw` にしていた。lint と `verify` は wiki 全体の指摘を返すので、PDF のソースがあるだけで YouTube の取り込みが通らなくなる。動画の raw はいつも `.md` なので、`.md` でない原本は照らさない。\n- **P2：** 同じ資料の raw がすでにあるとき（`same`）に、読み取り専用に戻していなかった。セッションの取り込みと同じく、行き先を確かめてから戻す。\n\n## リリース\n\n- 版は 0.23.0 にした。main が 0.21.2 に進んでいたうえ、オープンの to884/info-hive-wiki#71 が 0.22.0 を名乗っていたためである（[[リリースの確かめ方]]）。\n- 0.21.1 で確信度の上限の表が `query-confidence.md` に移ったので、載せ直すときに行をそちらへ移した。ADR-0028 のセッションと、行き先を決めて合わせた。\n- `v0.23.0` は注釈付きのタグで、#74 のマージコミット（`1252fda`）を指す。GitHub リリースの本文は、CHANGELOG の 0.23.0 の節と同じである。\n- 使い捨ての設定フォルダーで、マーケットプレイスから `wiki@info-hive` を入れると 0.23.0 が入った。v0.21.2 から v0.23.0 までに変わった 21 のファイルは、すべてタグの中身と一致した。入った `wiki_youtube.py define` も動いた。\n\n## そのあと\n\n使い捨ての wiki で手順どおりに最後まで通し、見つけた 2 つの不便（取得の時刻、「raw にない語」に混ざる行き先の値）をwiki 0.23.2 で直した（[[youtubeの取り込みの試しと直しとリリース-wiki-0.23.2]]）。\n\n## 主張と行き先\n\n| 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n| --- | --- | --- | --- |\n| 写しの規則を 1 つずつ足すより、種類で拒むか実物（ファイルシステム）に尋ねる | 「レビューで分かったこと」 | update | [[敵対的レビューで設計を直す進め方]] に足した |\n| オープンの PR が名乗った版も、使われているとみなして振り直す | 「リリース」 | update | [[リリースの確かめ方]] の「版を決めるとき」に足した |\n| ADR-0027 は承認され、0.23.0 で出荷された | 「したこと」 | update | [[youtubeの字幕の取り込みの設計-2026-11-15]] の状態を改めた |\n| 17 回の各回の指摘と直し | `review-1.md`〜`review-17.md` | source_only | 細部はレビューの記録で足りる |\n\n## 関係するページ\n\n- [[youtubeの字幕の取り込みの設計-2026-11-15]]\n- [[youtubeの字幕の取り込みの選択肢-2026-11-15]]\n- [[敵対的レビューで設計を直す進め方]]\n- [[リリースの確かめ方]]\n- [[youtubeの取り込みの試しと直しとリリース-wiki-0.23.2]]\n",
+     "numLines": 83,
+     "startLine": 1,
+     "totalLines": 83
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01LfE368yYvbFWKitYM9oMdS",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8k29TcnPDr9Ma9DJc6f",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01AAZa7G2Styfafx13HgD6WC",
+      "name": "Read",
+      "input": {
+       "file_path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project\\wiki\\sources\\youtubeの字幕の取り込みの設計-2026-11-15.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 4863,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "uuid": "89e00550-9599-4aab-9a19-86fdbea70287",
+   "timestamp": "2026-11-17T15:32:40.737Z",
+   "request_id": "req_011Ch8k29DVBi3JRfSMjj7bw",
+   "wire_tool_inputs": {
+    "toolu_01AAZa7G2Styfafx13HgD6WC": {
+     "file_path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project\\wiki\\sources\\youtubeの字幕の取り込みの設計-2026-11-15.md"
+    }
+   }
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.93,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.78,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.93,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "2a87f0ac-5c38-4603-9fd3-fbdde785cfa9",
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01AAZa7G2Styfafx13HgD6WC",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"YouTube の字幕の取り込みの設計の記録（ADR-0027）\"\n4\ttags: [\"取り込み\", \"wiki設計\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/adr/0027-youtube-captions-via-pinned-yt-dlp.md\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# YouTube の字幕の取り込みの設計の記録（ADR-0027）\n13\t\n14\t2026-11-15 の、YouTube の動画の字幕を `/wiki:ingest` で取り込む設計の記録である。原本は ADR-0027（提案、PR #134 でマージし、2026-11-16 に字幕の訂正と confidence を足した）で、GPT-6.1 Sol の 8 回の敵対的レビューと、固定した yt-dlp で確かめたスクリプトと結果は `docs/agent-runs/2026-11-15-adr-0027-review/` にある。[[youtubeの字幕の取り込みの選択肢-2026-11-15]] の A2（yt-dlp で字幕だけを取る）と B2（取り込みに動画の分岐とスクリプトを足す）を組み合わせた。作者は 2026-11-16 に ADR を承認し、wiki 0.23.0 で実装して出荷した（[[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]）。実装のレビューで、印の読み方と照合の決まりを改めた。\n15\t\n16\t## 経緯\n17\t\n18\t1. 1 版目は、トラックの名前の `-orig` で元の自動字幕と自動翻訳を見分け、字幕を Markdown の行にし、raw のバイト列で同じ取り込みを決めていた。1 回目のレビューは却下（重大 4）だった。名前の推し方、字幕の中の記法、道具の版を上げるだけで別版になること、予告編の動画に移った結果に気づけないことを突かれた。\n19\t2. 2 版目は、トラックの種類を字幕の URL の引数（`tlang` の有無）で決め、外から来た文字をフェンスと引用符の中にだけ置き、json3 の SHA-256 で同じ資料を決め、返った動画の ID を照らす形にした。2 回目のレビューは却下（重大 1）だった。同一性の判定にトラックの名前が残っていて、同じ字幕に `-orig` が付くかどうかで別版になった。\n20\t3. 3 版目は、同一性を `video_id` と json3 の SHA-256 の 2 つだけにし、スラッグによらず同じ動画の raw を探す形にした。3 回目のレビューは採用可（軽微 3）だった。軽微な指摘は仕様の書き漏れを埋めて直し、4 回目は行わなかった。その直しはレビューを受けていないと ADR に書いた（[[敵対的レビューで設計を直す進め方]]）。\n21\t4. Sol が挙げた yt-dlp の振る舞い（元の字幕を `-orig` の付いた名前と付かない名前の両方で登録する、訳したトラックに `tlang` を付ける、予告編の結果を返す）は、固定した 2026.08.19 のソースを読んで確かめ、ADR に行の番号を書いた。\n22\t5. 2026-11-16 に作者が、自動字幕の聞き違いを取り込むときに訂正し、何を訂正したかを利用者に伝え、訂正の多いソースは confidence を下げるよう求めた。4〜7 回目のレビューはどれも却下（重大 4、3、3、1）で、重大の多くは直しで足した記録の形から出た。表を要約ページごとに持つとページを分けるだけで値が下がり、raw ごとに 1 つにするとページの大きさの上限を超え、時刻と語で出現を指すと同じ秒の 2 つの行を区別できなかった。raw の行に番号を振り、文の中の印と、ページの下の定義で残す形にして、8 回目で採用可（軽微 2）になった。軽微な 2 件への直しはレビューを受けていない（[[敵対的レビューで設計を直す進め方]]）。\n23\t\n24\t## 決めたこと\n25\t\n26\t| 項目 | 決めたこと |\n27\t| --- | --- |\n28\t| 取り方と依存 | `wiki_youtube.py` を `uv run --script` で動かし、PEP 723 で yt-dlp の版を 1 つに固定して、字幕だけを取る。Python の範囲は ADR-0026 に合わせる。JS の実行環境は求めず、yt-dlp の警告を利用者に伝える |\n29\t| 経路 | `/wiki:ingest` は、Web ページの経路より先に動画の分岐に進む。`wiki_fetch.py` は、リダイレクトの先も含めて YouTube の URL を拒む。再生リストとチャンネルは止まる。返った動画の ID が URL の ID と違えば止まる |\n30\t| トラック | 投稿者の字幕（`subtitles`）と、`kind=asr` で `tlang` のない元の自動字幕だけを使う。自動翻訳は使わない。決まらなければ推して選ばずに止まり、利用者が `--track` で選ぶ |\n31\t| raw | スクリプトだけが `inspect`（何も書かない）と `write`（1 回で、重ねて書かない形で書き、読み取り専用にする）の 2 段で作る。字幕、題名、チャプターの題名は、フェンスか frontmatter の引用符の中にだけ置く。字幕の各行に、スクリプトが番号（`L123`）を振る。説明文、取得の時刻、字幕の URL は入れない |\n32\t| 同じ資料 | `video_id` と json3 の SHA-256 で決め、`<RAW_ROOT>` の直下をスラッグによらず探す。違う字幕なら別版のスラッグで書くかを利用者に聞く |\n33\t| 自動字幕 | 要約ページの冒頭に自動字幕から書いたと書く。聞き違いと考えた語は、raw でなく要約ページと関係するページの文で訂正し、語の直後に `〔訂正 L123-1〕` の印、ページの下に字幕の語と訂正した語と根拠の定義を置く。正しい語を決められない語と、利用者が退けた訂正には `〔留保 L123-1〕` を付ける。取り込みの計画の承認を求めるときに、定義の一覧を利用者に示す。`asr` のソースからは型付きのエッジを書かない |\n34\t| confidence | 親の要約ページの frontmatter に `high`、`medium`、`low` で書く。出発点は字幕の種類（投稿者の字幕は `high`、自動字幕は `medium`）で、下げる方向だけに動かす。raw に根拠のある訂正は重み 1、モデルの知識だけの訂正と留保は重み 3 で、合計が字幕の行数の 3% 以上なら `low` にする（仮の値）。`wiki_youtube.py verify` と lint が照らす。ADR-0028（回答の確信度、承認）の上限の行は、実装の PR（wiki 0.23.0）で `query-confidence.md` の表に足した（0.21.1 で手順 5b から移った） |\n35\t\n36\t## 主張と行き先\n37\t\n38\t| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n39\t| --- | --- | --- | --- | --- |\n40\t| 名前で推す作りが崩れた | トラックの種類を名前で推す作りと、同一性に別名（トラックの名前）を使う作りが、続けて崩れた。字幕の URL の引数と、原本のバイト列に替えると崩れなかった | `review-1.md`、`review-2.md`、ADR の「理由」 | update | [[敵対的レビューで設計を直す進め方]] の「状態を推す作り」の項に、3 つ目の設計として足した |\n41\t| 選択肢の調査の行き先 | A2 と B2 を組み合わせた ADR を提案した | ADR の「背景」 | update | [[youtubeの字幕の取り込みの選択肢-2026-11-15]] の「まだ何も決めていない」を、ADR への案内に改めた |\n42\t| トラックの見分け方 | 字幕の URL に `tlang` がなければ元の言語の字幕である。yt-dlp と YouTube の公開の仕様ではない | ADR の「背景」、固定した yt-dlp の `_video.py` の L4305〜L4327 | source_only | yt-dlp の 1 つの版のソースと 2 本の動画で確かめただけで、実装もまだである |\n43\t| json3 のバイト列の安定 | 同じ動画の json3 は、別々に取った 2 回で SHA-256 が一致した。日をまたいだときは試していない | ADR の「背景」、`probe/` の結果 | source_only | 観測が少なく、同じ資料の決め方の前提として見直す条件に挙げてある |\n44\t| 記録の形から重大が出続けた | 訂正の記録の形（表の単位、出現の指し方、印の読み方）を直すたびに、その形から次の重大が出た。スクリプトが振る行の番号を識別子にすると止まった | `review-4.md`〜`review-8.md` | update | [[敵対的レビューで設計を直す進め方]] の「直しで足した仕組みから、次の指摘が出る」の項に例を足した |\n45\t| 訂正と confidence の決まり | 上の表の「自動字幕」と「confidence」の行のとおり | ADR の「字幕の訂正と confidence」 | source_only | 重みとしきい値は較正しておらず、実装もまだである |\n46\t| 外から来た文字の置き場所 | フェンスか引用符の中にだけ置けば、字幕の中の記法が Markdown として読まれない | ADR の「理由」、`review-3.md` の「検証した事実」 | source_only | ADR-0020 のセッションの raw と同じ決まりで、実装の試験で確かめる前である |\n47\t\n48\t## 関係するページ\n49\t\n50\t- [[youtubeの字幕の取り込みの選択肢-2026-11-15]]（選択肢の調査）\n51\t- [[敵対的レビューで設計を直す進め方]]\n52\t- [[セッションの取り込みの設計-2026-11-14]]（raw を 1 回で作る前例、ADR-0020）\n53\t- [[wikiの書く段の設計-2026-11-15]]（wiki の書き込みの排他、ADR-0023）\n54\t- [[ingestに使うモデル]]（raw の段をエージェントに任せる形。B3 は採らなかった）\n55\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "uuid": "e78678cf-1106-48ea-9d58-38b6972197c6",
+   "timestamp": "2026-11-17T15:32:40.839Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project\\wiki\\sources\\youtubeの字幕の取り込みの設計-2026-11-15.md",
+     "content": "---\ntype: \"source\"\ntitle: \"YouTube の字幕の取り込みの設計の記録（ADR-0027）\"\ntags: [\"取り込み\", \"wiki設計\"]\nauthors: [\"to884\"]\nraw: \"docs/adr/0027-youtube-captions-via-pinned-yt-dlp.md\"\ningested: 2026-11-16\ncreated: 2026-11-16\nupdated: 2026-11-16\n---\n\n# YouTube の字幕の取り込みの設計の記録（ADR-0027）\n\n2026-11-15 の、YouTube の動画の字幕を `/wiki:ingest` で取り込む設計の記録である。原本は ADR-0027（提案、PR #134 でマージし、2026-11-16 に字幕の訂正と confidence を足した）で、GPT-6.1 Sol の 8 回の敵対的レビューと、固定した yt-dlp で確かめたスクリプトと結果は `docs/agent-runs/2026-11-15-adr-0027-review/` にある。[[youtubeの字幕の取り込みの選択肢-2026-11-15]] の A2（yt-dlp で字幕だけを取る）と B2（取り込みに動画の分岐とスクリプトを足す）を組み合わせた。作者は 2026-11-16 に ADR を承認し、wiki 0.23.0 で実装して出荷した（[[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]）。実装のレビューで、印の読み方と照合の決まりを改めた。\n\n## 経緯\n\n1. 1 版目は、トラックの名前の `-orig` で元の自動字幕と自動翻訳を見分け、字幕を Markdown の行にし、raw のバイト列で同じ取り込みを決めていた。1 回目のレビューは却下（重大 4）だった。名前の推し方、字幕の中の記法、道具の版を上げるだけで別版になること、予告編の動画に移った結果に気づけないことを突かれた。\n2. 2 版目は、トラックの種類を字幕の URL の引数（`tlang` の有無）で決め、外から来た文字をフェンスと引用符の中にだけ置き、json3 の SHA-256 で同じ資料を決め、返った動画の ID を照らす形にした。2 回目のレビューは却下（重大 1）だった。同一性の判定にトラックの名前が残っていて、同じ字幕に `-orig` が付くかどうかで別版になった。\n3. 3 版目は、同一性を `video_id` と json3 の SHA-256 の 2 つだけにし、スラッグによらず同じ動画の raw を探す形にした。3 回目のレビューは採用可（軽微 3）だった。軽微な指摘は仕様の書き漏れを埋めて直し、4 回目は行わなかった。その直しはレビューを受けていないと ADR に書いた（[[敵対的レビューで設計を直す進め方]]）。\n4. Sol が挙げた yt-dlp の振る舞い（元の字幕を `-orig` の付いた名前と付かない名前の両方で登録する、訳したトラックに `tlang` を付ける、予告編の結果を返す）は、固定した 2026.08.19 のソースを読んで確かめ、ADR に行の番号を書いた。\n5. 2026-11-16 に作者が、自動字幕の聞き違いを取り込むときに訂正し、何を訂正したかを利用者に伝え、訂正の多いソースは confidence を下げるよう求めた。4〜7 回目のレビューはどれも却下（重大 4、3、3、1）で、重大の多くは直しで足した記録の形から出た。表を要約ページごとに持つとページを分けるだけで値が下がり、raw ごとに 1 つにするとページの大きさの上限を超え、時刻と語で出現を指すと同じ秒の 2 つの行を区別できなかった。raw の行に番号を振り、文の中の印と、ページの下の定義で残す形にして、8 回目で採用可（軽微 2）になった。軽微な 2 件への直しはレビューを受けていない（[[敵対的レビューで設計を直す進め方]]）。\n\n## 決めたこと\n\n| 項目 | 決めたこと |\n| --- | --- |\n| 取り方と依存 | `wiki_youtube.py` を `uv run --script` で動かし、PEP 723 で yt-dlp の版を 1 つに固定して、字幕だけを取る。Python の範囲は ADR-0026 に合わせる。JS の実行環境は求めず、yt-dlp の警告を利用者に伝える |\n| 経路 | `/wiki:ingest` は、Web ページの経路より先に動画の分岐に進む。`wiki_fetch.py` は、リダイレクトの先も含めて YouTube の URL を拒む。再生リストとチャンネルは止まる。返った動画の ID が URL の ID と違えば止まる |\n| トラック | 投稿者の字幕（`subtitles`）と、`kind=asr` で `tlang` のない元の自動字幕だけを使う。自動翻訳は使わない。決まらなければ推して選ばずに止まり、利用者が `--track` で選ぶ |\n| raw | スクリプトだけが `inspect`（何も書かない）と `write`（1 回で、重ねて書かない形で書き、読み取り専用にする）の 2 段で作る。字幕、題名、チャプターの題名は、フェンスか frontmatter の引用符の中にだけ置く。字幕の各行に、スクリプトが番号（`L123`）を振る。説明文、取得の時刻、字幕の URL は入れない |\n| 同じ資料 | `video_id` と json3 の SHA-256 で決め、`<RAW_ROOT>` の直下をスラッグによらず探す。違う字幕なら別版のスラッグで書くかを利用者に聞く |\n| 自動字幕 | 要約ページの冒頭に自動字幕から書いたと書く。聞き違いと考えた語は、raw でなく要約ページと関係するページの文で訂正し、語の直後に `〔訂正 L123-1〕` の印、ページの下に字幕の語と訂正した語と根拠の定義を置く。正しい語を決められない語と、利用者が退けた訂正には `〔留保 L123-1〕` を付ける。取り込みの計画の承認を求めるときに、定義の一覧を利用者に示す。`asr` のソースからは型付きのエッジを書かない |\n| confidence | 親の要約ページの frontmatter に `high`、`medium`、`low` で書く。出発点は字幕の種類（投稿者の字幕は `high`、自動字幕は `medium`）で、下げる方向だけに動かす。raw に根拠のある訂正は重み 1、モデルの知識だけの訂正と留保は重み 3 で、合計が字幕の行数の 3% 以上なら `low` にする（仮の値）。`wiki_youtube.py verify` と lint が照らす。ADR-0028（回答の確信度、承認）の上限の行は、実装の PR（wiki 0.23.0）で `query-confidence.md` の表に足した（0.21.1 で手順 5b から移った） |\n\n## 主張と行き先\n\n| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n| --- | --- | --- | --- | --- |\n| 名前で推す作りが崩れた | トラックの種類を名前で推す作りと、同一性に別名（トラックの名前）を使う作りが、続けて崩れた。字幕の URL の引数と、原本のバイト列に替えると崩れなかった | `review-1.md`、`review-2.md`、ADR の「理由」 | update | [[敵対的レビューで設計を直す進め方]] の「状態を推す作り」の項に、3 つ目の設計として足した |\n| 選択肢の調査の行き先 | A2 と B2 を組み合わせた ADR を提案した | ADR の「背景」 | update | [[youtubeの字幕の取り込みの選択肢-2026-11-15]] の「まだ何も決めていない」を、ADR への案内に改めた |\n| トラックの見分け方 | 字幕の URL に `tlang` がなければ元の言語の字幕である。yt-dlp と YouTube の公開の仕様ではない | ADR の「背景」、固定した yt-dlp の `_video.py` の L4305〜L4327 | source_only | yt-dlp の 1 つの版のソースと 2 本の動画で確かめただけで、実装もまだである |\n| json3 のバイト列の安定 | 同じ動画の json3 は、別々に取った 2 回で SHA-256 が一致した。日をまたいだときは試していない | ADR の「背景」、`probe/` の結果 | source_only | 観測が少なく、同じ資料の決め方の前提として見直す条件に挙げてある |\n| 記録の形から重大が出続けた | 訂正の記録の形（表の単位、出現の指し方、印の読み方）を直すたびに、その形から次の重大が出た。スクリプトが振る行の番号を識別子にすると止まった | `review-4.md`〜`review-8.md` | update | [[敵対的レビューで設計を直す進め方]] の「直しで足した仕組みから、次の指摘が出る」の項に例を足した |\n| 訂正と confidence の決まり | 上の表の「自動字幕」と「confidence」の行のとおり | ADR の「字幕の訂正と confidence」 | source_only | 重みとしきい値は較正しておらず、実装もまだである |\n| 外から来た文字の置き場所 | フェンスか引用符の中にだけ置けば、字幕の中の記法が Markdown として読まれない | ADR の「理由」、`review-3.md` の「検証した事実」 | source_only | ADR-0020 のセッションの raw と同じ決まりで、実装の試験で確かめる前である |\n\n## 関係するページ\n\n- [[youtubeの字幕の取り込みの選択肢-2026-11-15]]（選択肢の調査）\n- [[敵対的レビューで設計を直す進め方]]\n- [[セッションの取り込みの設計-2026-11-14]]（raw を 1 回で作る前例、ADR-0020）\n- [[wikiの書く段の設計-2026-11-15]]（wiki の書き込みの排他、ADR-0023）\n- [[ingestに使うモデル]]（raw の段をエージェントに任せる形。B3 は採らなかった）\n",
+     "numLines": 55,
+     "startLine": 1,
+     "totalLines": 55
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01AAZa7G2Styfafx13HgD6WC",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "uuid": "9c8dcd8b-7848-40ad-9a4f-d6043e1c43ab"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 200,
+   "estimated_tokens_delta": 150,
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "uuid": "92b314a7-e929-4cdc-bf89-d4ec2b350d81"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 450,
+   "estimated_tokens_delta": 250,
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "uuid": "8e7cc817-9747-420c-a1c2-5d642a710e97"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 700,
+   "estimated_tokens_delta": 250,
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "uuid": "8ba77653-ee74-4c4c-8241-a53d0f8f93da"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 900,
+   "estimated_tokens_delta": 200,
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "uuid": "752e3494-9278-4eef-9130-2eb2b7da81ba"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 1150,
+   "estimated_tokens_delta": 250,
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "uuid": "ace55370-291d-4a47-9a2f-933358dba4e7"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8k2JGSqdX5B7AzbUNkD",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "CAQSjSIKEAgTGAI4AUIIdGhpbmtpbmcSDEY0JwuE6zIh305V9hoMlZGwRWX++OOsOWaJIjBGz6l+XM7wI+2Gscp7aVvhE24+0OjxvB2ZXzeO2u9Vj+B3FSqGdPFbP+yHPT8karUqqiGZKpS04aaTfJ5XNdbRyfeBq6XbwMIgueDbBgA4qEus5M22T6kSw0GlhJ9QKBhRVhoySa8zqjiqdsyeV5hizS0gSbEm05qo4+QbGb+GC8wIE+N0xs27fdqKEHKTwQhL4MFCLxS49yaFAWCjrXDEBPDcjbYdEpqRs4oMEeKjzjurXEuHZZUZqlpB8smHJf/INZQLZe/9NyzdcdX4mZdmdqk93EIg0dwxhR2QwNR/ieIUgIsz4OwbCMsojrBKanPKFb6bhbMGBCy61i9dwWOQXST4Qc3RC61G4ehyum9Dh+2sBL8ZcR42HgqyxL4wuGB9pbW5YlTyPRuGoUqF0HdIGtFwCS4wLMo0gdwiyivbGZ/RGdsb60yee0rSbiaLyKlpIWwRgYtXQI44YSbVFQXqzybvEqBNuLTwt2jvIvAe0Vs8VIxwMeg0Ur85Rkq8OF2QSlm5EA/lx5DO7FpCOlhw0fe5omYaFwR4w+bSAJJJJ4pNO8g65B6ZI1dDD+rVt/NiuOZhsG8zUSKALJo8D4FcU9MC+9+3XTST8yukMNZMod/8+HSs0EluUB+TRkKLghufJgOs0ddhVhb7Bk6GUTqjwDLOZl3FUhMLMyiTqQaQH9I9ubLoG30hIjtU7EmvmNBexbRMjjkGI00YaKO64ujfws6YBxDKlS3Mzj7KXT0HNCeaK+S3pRn+aJsPnPWvyNGQ5Ia2ahvZNIzzjmDXE8ZyH3luIns3+fLZdVWAmCg+tDYDwD30FejEc3+qfA40oz5C9Yl6oEcG2Rm0db8Zy6nrs+TrseEKdvI38HHHoUSUi8Rb3ysaLQ1LDArB8GqCpBDZL3SODINoWCuAIbtx0r8sQu9abRwg+yzcx+5G4stVq5K8+aYbOBfW5zE+7bvdXVnTcCOr8e5awa6K7Iz7N/VjqPzCRMpIpPBsGMednovq5zZlr1Kv5VA8uxMFzD2rTD2MY8zE4DKD7YOmbqeA/8XMfTL1N5Q/xT73STj8kTcaqAAlY6YPgZdzDIdKtkMLzLgth0PYL3Z0myRP8bfxyHEsc6XQvCzpuTDsd7AizoyrAe4/KWA8duh7Yc5oGaJ5F1rSr9b7uaGiOH5Rr2Du5SS03CTdeHOlvXixEvbQWM5TPPVWFyfyh3oPUur1V/9zbqjmt1BLG3tWCT7e7zODXKSeUAB7TO+Lk0cWkJlUhRsdeX8P0bd3AE+q8a9Q3P8RWYRuTVKHkyn6Zsl27Ut0MPI1xTAcI1o4HoI1o/gxN1ToefyE0NB9Qw1pLmCYNxWHUMpYVFqAqBhy5+At5YvrLt3DfbeyZPKewtzWsnEq5N01TEP2gCBu6VR8WvqUnqUJ9zD+J89ZSVW7azzDQMmOFDffI7vJ5vOmSc5yKGOh96JQKKtOFnPgoJW2sTrAyTJvKxMYSzMmffIzUbuRy1i4mtZl7mJpO3S8zRP275CMzafdcHowCbMLXhPSHE53xOxoCu24cvTDRi4SHr40BBYT2ClalJoonfptE7JN0Z5iOJCnyqOyr2I/alzUuvK/1+KjBioqszHe58USzO+XN232xN5eDbcOYU1MLuML+/GPqbYLDlCReqdn3q4IpLHLvhRzkSSYguZObyT+0NbqC6SFyxyooa3HrwU/ZmoZTLEPSnTfoS0/Pqo9qhpfE3ozHRTTWVC4Nfm3AgSAKDbavqrxwN6RlS1Vh7+sjzSoCZDv746vzNjz0muj8uKU9WKVEL4DvDYqo0BODZIForIfkOlZRhYvEhYft7f9TAtzjVWA0TfG/kjYeYeK7AdVjgocJQkRJMqGHwjFbAVsfqQUEDhGxH7fCvAymTPRbQK39zIq7TOvH2Ma8T1T9QfmakqkXJADJaFK7AFH58Wng3xouI+YRjuMPG9afpq5U3s7UJJbjPHREqsEcyxnzEFwdiW5T0V0YCiNSSRGSyoZiLBZ98c2CcUirE5R4lbUZCEEyu8qaPZqkaqmKC8cLK8AXtGZ7yUcHYdAf5iUiP8L3Bm85BD6rw1cOPq4zMDtYj0xNtwM1MRRZzliQFpB8cVzIe3UatP2t++NybK+VAfZobjy7RcYoAAFHLsarb5XxknFTLNcAut37BoyfXzy2B2FEXnLsp7vwuBQLANcvrqyHM4xZ8n4gDJd6ahy/5ywzvA5EvBZ9cDB3mFysBFJYQ48VdvWFPyzLiST2heZg8mX0P55k6VslCDWEzbzJpASWI+Q5OLoBsC099tT/hmPboy/Ml0zLogyn1poabxdggrmtOwwAkUgxOrhvCO3Pc9yZwv91Eb+/wXg/tIy9H4a22rpwulRn1QvN5tx2wIA3QDzlFleoUOdy3dM3dKLbl4y/AliQh+/M1gyuvNmPd1eeVE+5oKRzm+s8d4llQi1SyhWBBX9YWL8F/AyLXr9ZqTIJVDcjyYtxmtUBgnP3DnyuoFBjO0FLnOy5fi81/+qhVLzO6bxKmA/GNRJIbZCi4RVU5Zxc/q5Bu+mL3j3x0A5SIbbpfRcKncOyqs7s/557BQutxzvzVvrA5LGs0x1vZvFIueLZRDqiGIh7EkxygjeDfUeTnmc6xQvUlU1axPKzzOLCuvbisrjntkspeUDSO6b/4gsZDTJt0epETZfi2PZUMr8GFPZOUsBORE6xznooCBEr+S+4GUD347CamXU7qS2A6ZsLPjKsvnCV3A5xfhvn2EZj5jM61uolts26fqNYvgUXaEun09LyHqsm4Um+NZGWahL4aNOzOEy4RnHWGxLEMseJJdF8luqdcN2rgLjXP8MrtfYr3Wm8DU1pWx78ERQq8L9RYeG+XEjLMOidllbh0GyI4kLq2b1Rm1l6sDd/aN536NCI8N7fU9bDeHLQc08asLABlwKLaCi5vglQUc8F9AeksKsf07sjqhFiQrm1ksAgcps/fqdaf07ud0hmFsCtWaiJHxHKoibKuqM6aBbhmrnkYH7iEUCOx4krVgSczJ+dABGWiwAQgcCfpyD/2iolBPNMdittg6vRC+A63PMJaHWMYhG2/sK7jr09x0NsadtjcMC5uN2+6neN90h334iAq/n/+JQYb6NRpiI2W8EUocmGIX/tIbBeRhYMzEy3qeY10CRPYgPyxJ4e2gqtc504BqMFYkXy/GvE3BkYFoSuGSRKG5G7cf8Sx5JVfNfXhVOZEU1hkTkX6hsRiyKAZeFjsmbwPV4c/OUA/5BXqPMSRdIieKJQV+abIM3ZkMu64M8y1NTWpQa38O4ubPQb/Qwd6p+9Jn6cENJcMD5EfVagKz8/H+oLgPTZCJIlJGbGjhSf88LsZrE7xSzoVcfCF8pe06uR4xGxZmphIO5qk7BdanTeTh0qh66SAiBFAZMoC1TWta8KYEQuUuyG04xQZlbX8BafOFKGU0/pRYiRe1WLI0UJp5cE/LF6IwHzXww3/m/P7FDfAKz2tyz4wZcQo0sCBNRoG9aczIvRgpkHljSYdg3HRlOzj/sO4AFM/vZWJzakDbzZOFv9w/27d+ssHv2Za/HQRBcNEzP/TsE1Oy/Yu5CcxTddNN/9frQ89sxrTaq8NSBolVGmWCU0fMHKaFlQvgRz+s2LlTTWUyRQsxBS8bgLSzoZoHAy7z2BumB1+xlgsf3wueMi2hwJ2PuM715yLYKZVmobYvZ5wm1AFNa6amaGN5ucW4xWV1KkbiMOZpVjy9Hz0M4mKrbMLlgdsdXWGQ6pqzAvCG9cJrV6autfvImbx9FalGF0HiMlo847hEL9ytwSiqx/STf6bvJ/oMnMiShbaLIUBR6jiXU2s8TLYAYTCk4lngtiRAY5z2tOtvW9bqG/NhRdcl6TN22gO/hRYWm2EdD+VqzifMzBpDv9JxDgyQ4bq8Tbk1f6pS0leKEN8nFCpHck9DoMlwhJ1ULjLrOm1Wf2zMQfBmXDbMeG4ZiUobyvBy7rKKKIVA9Ztk+2p/2XBv0IdjXb/NFg5AxgL3jPUzv821ZiQeg5FVI4xH0nU3mS/5zXKf2U0OaFLwTvBfuRUXXfAbBFWvunv+jHh69EZhF9JrCuWIg/ql7+jFI/MWVC4vXSK5LRpqCe8YXDJE5exnYodk+0k6ZQXcxqXNRzfcE/x25erqAWiFuY4ND0HNny/so4ZV1Qlhr13IInHnQU3Cc3Xd0tUhbIS55QhMnwq4TeV7Jhfh5qSO8Ouy5mV+wAhAHysrvNSooG356utKeorZPuwySh6EVuWwVU/QZvkexpfda3AuzgwtpgDQppdbApYA8bsRO/RiYyHiiTqy+1+06MvmNtaQy2qnqBh7fTP1g98jiGBczSOpQaIvPZcjO6e2Uhucxj9RtMDboeUtNcysVWoSNLMRs0EDb1TSDXNxb0C5oiT1nfYCkyMRXcNfvIaCJiiCL7iARdKyN9outh/HO9HeAIEJTIL3Lp+OczwfycwU4JgaAZpqJaxHVZzADjYXbi+zlcPBKmfg9lL16lHH6Z2DrnNNf5BAoB1FhbrXxn0H79IzTff9IsET8WLOSSpRdeErpME0BM6MXgZEKRtTq0H5jBKJtn+YTxT0jvAI5isCH2fJNjE1nsCKCyFv4RIY/a/ODKzApU6sW+io2mW1luNFydKqzwZP3M6B6eU69sUDHS0DTH97pWUPyGOZInMGdjSmTEWs3vaQlIrpT52qsHRBs3txoqQiwMKgeBz3sIrcxku0F8/ocMYnobXu5giEwsu/MBoaCFRiXeOsKtg9O9waIv+yokb30otz4Lj8/aIVTT9BT8xXBiBY5rCB0HlMUYVTijIB62D0P3SiabBE646MDViJ48I2dX0Ru23bkDspCIs4c0oc8MrOVcb5BQ6Ri5835nOQEGy8pPHqUpcaXV9feRy+RNP9YJCwxM9dxozKB1qGv2HmODm/fAiQoSj+basOexkeytk0fDZgKpf+FKMTL89RD/nV0LTtsP97f5hf0iwAuyrlFozVinns9iGQo07qS0QbxtGxcC34ea/VEpgCEtH1/L91/kd2zXFGxJwefb8DTWUgmSBkiXazBb7hI2zZ/Oj98OXSrtV30jECBqkQlUwbDql5b8DDOrM+aOcMfIC+wd9Sm/knJ4Hwsn5nMEBT2Ehan5V1/p2A+o/CBS6BNv7buSEDWrHCs5OmGOyg/g5VticM8/INBBbChsY1mWpEOScpsLh58kNiUyN3qmQtvqXenrOE0HFryH/QaSKX2OipCbKiuWTkLbL4jWL6QCP9aZuomOjKEYXFsNnvP58x67em/F6HGPuMM3MSnlwu5/oIsWQNJbhR3YIkPQzWUpfbkh+CUQwqn50tfhUagoZ63CCZrMnQrngaua0YAHSqsBXeHt+aodDbxAhLFYOUvoYbeHhKqaawRang73LmQQiXHtoxBH7bbZvPpOAFclKMkerUJKWhAJ+GfV+Xk8xIxSLpR/WGitaUt7cbbgyxYhMfcfaIdz4tZB5ryGeabalbCb38cz8mswZLiGap4hbvyyj7O+QXM4Ko51v3T9CWa65q6gukEU8RwURDrniNHTK/ib5zvDC2Mz8vqeTWUi4cr6TgD7NdZxaUl6zWR9aW9N5FD3GqOE2nELSZJYpqlIVBDTd/hr3UcY844/ynsxhdXNcUF553o5apnZYDjFy+wmZrNmyPds85Yet8tVikvwLCg6jXmJYdyFbAb5qudXVQvKPkrExjA7DWv08w9HQE435OOMSLW+8CI3792uAUPq96ZQ7yKidllo0hoYxjpK44YAQ=="
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 7589,
+     "cache_read_input_tokens": 4863,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 7589
+     },
+     "output_tokens": 5,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "uuid": "69e3cc02-e4f3-4e62-a862-560334e38c9d",
+   "timestamp": "2026-11-17T15:32:48.900Z",
+   "request_id": "req_011Ch8k2Hzpx3a67UohRkPzw",
+   "thinking_duration_ms": 6831,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8k2JGSqdX5B7AzbUNkD",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "## 答え\n\nwiki の 2 ページから言えるのは次のとおりである。設計（2026-11-15、11-16 に訂正と confidence を追加）で決めた自動字幕の訂正の形は、実装（0.23.0）でも残っている。変わったのは、印の読み方と照合の決まりである。\n\n- **設計**では、訂正は要約ページの文の中に `〔訂正 L123-1〕` の印で書き、ページの下に定義を置くとしていた。正しい語を決められない語と退けられた訂正には `〔留保〕` を付けるとしていた。\n- **実装のレビュー**で、印の読み方と照合の決まりを改めた。印は、閲覧と同じ規則で作った表示の文字だけで読むことになった。読めない印は除かず誤りとして扱う。`verify` と lint は、用意したページの指摘を絞らず wiki 全体で返す。文字の境目は、NFKC、改行の空白化、目に見えない文字の除去で照らす。ファイルの場所は綴りでなく実体の識別子（`st_dev`、`st_ino`）で照らす。\n- **confidence**（重み、字幕の行数の 3% のしきい値）について、0.23.0 のページは「confidence の計算は、10 回目のあとのレビューで崩れていない」と書くのみで、値の変更には触れていない。\n\n## 根拠\n- [[youtubeの字幕の取り込みの設計-2026-11-15]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/youtubeの字幕の取り込みの設計-2026-11-15.md`）: 「自動字幕」の行で、訂正は raw でなく要約ページと関係するページの文に書き、語の直後に `〔訂正 L123-1〕`、ページの下に定義を置くと決めている。留保は `〔留保 L123-1〕` とし、confidence は重み 1 と 3、合計が行数の 3% 以上で `low` としている（「仮の値」）。冒頭の経緯に、実装のレビューで「印の読み方と照合の決まりを改めた」とある。\n- [[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md`）: 1〜5 回目の表に「印を、閲覧と同じ規則で作った表示の文字だけで読む。指摘を絞らず wiki 全体で返す。読めないものは除かず誤りにする」とある。6〜10 回目には「境目を、目に見える文字の並び（NFKC、改行を空白、目に見えない文字を除く）と、文字の名前の文字体系で照らす」とある。11〜17 回目には「場所を、綴りで推さずにファイルシステムに尋ね、実体の識別子（`st_dev`、`st_ino`）で照らす」とある。`caption_corrections` は lint と MCP の `lint` が返すとも書かれている（「したこと」）。\n\n## 開いたページ\n1. `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md`\n2. `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/youtubeの字幕の取り込みの設計-2026-11-15.md`\n\n## 未確認の出典\n- [[youtubeの取り込みの試しと直しとリリース-wiki-0.23.2]]: 0.23.0 のページが言及している。未読であり、訂正の扱いについての記述は確認していない。0.23.0 のページでは「取得の時刻」「「raw にない語」に混ざる行き先の値」の直しとされている。\n- [[敵対的レビューで設計を直す進め方]]: 両ページが参照しているが、未読である。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 7589,
+     "cache_read_input_tokens": 4863,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 7589
+     },
+     "output_tokens": 5,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "uuid": "3209a39d-ffaf-45c9-96af-f537e8145694",
+   "timestamp": "2026-11-17T15:32:54.898Z",
+   "request_id": "req_011Ch8k2Hzpx3a67UohRkPzw"
+  },
+  {
+   "duration_api_ms": 16018,
+   "stop_reason": "end_turn",
+   "session_id": "45a620d3-cde9-46bc-9b3e-e3c7f8194d9b",
+   "total_cost_usd": 0.00326646,
+   "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 7589,
+    "cache_read_input_tokens": 9726,
+    "output_tokens": 3302,
+    "output_tokens_details": {
+     "thinking_tokens": 1382
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 7589,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 2992,
+      "cache_read_input_tokens": 4863,
+      "cache_creation_input_tokens": 7589,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 7589
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-haiku-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 3302,
+     "cacheReadInputTokens": 9726,
+     "cacheCreationInputTokens": 7589,
+     "webSearchRequests": 0,
+     "costUSD": 0.00326646,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 1382,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 7589,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+     "background": 0,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {}
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 3,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "## 答え\n\nwiki の 2 ページから言えるのは次のとおりである。設計（2026-11-15、11-16 に訂正と confidence を追加）で決めた自動字幕の訂正の形は、実装（0.23.0）でも残っている。変わったのは、印の読み方と照合の決まりである。\n\n- **設計**では、訂正は要約ページの文の中に `〔訂正 L123-1〕` の印で書き、ページの下に定義を置くとしていた。正しい語を決められない語と退けられた訂正には `〔留保〕` を付けるとしていた。\n- **実装のレビュー**で、印の読み方と照合の決まりを改めた。印は、閲覧と同じ規則で作った表示の文字だけで読むことになった。読めない印は除かず誤りとして扱う。`verify` と lint は、用意したページの指摘を絞らず wiki 全体で返す。文字の境目は、NFKC、改行の空白化、目に見えない文字の除去で照らす。ファイルの場所は綴りでなく実体の識別子（`st_dev`、`st_ino`）で照らす。\n- **confidence**（重み、字幕の行数の 3% のしきい値）について、0.23.0 のページは「confidence の計算は、10 回目のあとのレビューで崩れていない」と書くのみで、値の変更には触れていない。\n\n## 根拠\n- [[youtubeの字幕の取り込みの設計-2026-11-15]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/youtubeの字幕の取り込みの設計-2026-11-15.md`）: 「自動字幕」の行で、訂正は raw でなく要約ページと関係するページの文に書き、語の直後に `〔訂正 L123-1〕`、ページの下に定義を置くと決めている。留保は `〔留保 L123-1〕` とし、confidence は重み 1 と 3、合計が行数の 3% 以上で `low` としている（「仮の値」）。冒頭の経緯に、実装のレビューで「印の読み方と照合の決まりを改めた」とある。\n- [[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md`）: 1〜5 回目の表に「印を、閲覧と同じ規則で作った表示の文字だけで読む。指摘を絞らず wiki 全体で返す。読めないものは除かず誤りにする」とある。6〜10 回目には「境目を、目に見える文字の並び（NFKC、改行を空白、目に見えない文字を除く）と、文字の名前の文字体系で照らす」とある。11〜17 回目には「場所を、綴りで推さずにファイルシステムに尋ね、実体の識別子（`st_dev`、`st_ino`）で照らす」とある。`caption_corrections` は lint と MCP の `lint` が返すとも書かれている（「したこと」）。\n\n## 開いたページ\n1. `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md`\n2. `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/youtubeの字幕の取り込みの設計-2026-11-15.md`\n\n## 未確認の出典\n- [[youtubeの取り込みの試しと直しとリリース-wiki-0.23.2]]: 0.23.0 のページが言及している。未読であり、訂正の扱いについての記述は確認していない。0.23.0 のページでは「取得の時刻」「「raw にない語」に混ざる行き先の値」の直しとされている。\n- [[敵対的レビューで設計を直す進め方]]: 両ページが参照しているが、未読である。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+   "ttft_ms": 2120,
+   "type": "result",
+   "duration_ms": 16673,
+   "uuid": "0c34014b-3212-4837-8e20-6f205e815e40",
+   "ttft_stream_ms": 1721,
+   "time_to_request_ms": 542,
+   "first_content_frame_ms": 1721,
+   "queued_turn_count": 0,
+   "result_index": 0,
+   "model_usage_since_last_result": {
+    "claude-haiku-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 3302,
+     "cacheReadInputTokens": 9726,
+     "cacheCreationInputTokens": 7589,
+     "webSearchRequests": 0,
+     "costUSD": 0.00326646,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 1382,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 7589,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "credential_expires_at": "2026-12-06T22:17:39.049Z"
+  }
+ ],
+ "opened": [
+  "project:sources/youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md",
+  "project:sources/youtubeの字幕の取り込みの設計-2026-11-15.md"
+ ],
+ "model_used": "claude-haiku-5-5",
+ "result": "## 答え\n\nwiki の 2 ページから言えるのは次のとおりである。設計（2026-11-15、11-16 に訂正と confidence を追加）で決めた自動字幕の訂正の形は、実装（0.23.0）でも残っている。変わったのは、印の読み方と照合の決まりである。\n\n- **設計**では、訂正は要約ページの文の中に `〔訂正 L123-1〕` の印で書き、ページの下に定義を置くとしていた。正しい語を決められない語と退けられた訂正には `〔留保〕` を付けるとしていた。\n- **実装のレビュー**で、印の読み方と照合の決まりを改めた。印は、閲覧と同じ規則で作った表示の文字だけで読むことになった。読めない印は除かず誤りとして扱う。`verify` と lint は、用意したページの指摘を絞らず wiki 全体で返す。文字の境目は、NFKC、改行の空白化、目に見えない文字の除去で照らす。ファイルの場所は綴りでなく実体の識別子（`st_dev`、`st_ino`）で照らす。\n- **confidence**（重み、字幕の行数の 3% のしきい値）について、0.23.0 のページは「confidence の計算は、10 回目のあとのレビューで崩れていない」と書くのみで、値の変更には触れていない。\n\n## 根拠\n- [[youtubeの字幕の取り込みの設計-2026-11-15]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/youtubeの字幕の取り込みの設計-2026-11-15.md`）: 「自動字幕」の行で、訂正は raw でなく要約ページと関係するページの文に書き、語の直後に `〔訂正 L123-1〕`、ページの下に定義を置くと決めている。留保は `〔留保 L123-1〕` とし、confidence は重み 1 と 3、合計が行数の 3% 以上で `low` としている（「仮の値」）。冒頭の経緯に、実装のレビューで「印の読み方と照合の決まりを改めた」とある。\n- [[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md`）: 1〜5 回目の表に「印を、閲覧と同じ規則で作った表示の文字だけで読む。指摘を絞らず wiki 全体で返す。読めないものは除かず誤りにする」とある。6〜10 回目には「境目を、目に見える文字の並び（NFKC、改行を空白、目に見えない文字を除く）と、文字の名前の文字体系で照らす」とある。11〜17 回目には「場所を、綴りで推さずにファイルシステムに尋ね、実体の識別子（`st_dev`、`st_ino`）で照らす」とある。`caption_corrections` は lint と MCP の `lint` が返すとも書かれている（「したこと」）。\n\n## 開いたページ\n1. `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0.md`\n2. `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/youtubeの字幕の取り込みの設計-2026-11-15.md`\n\n## 未確認の出典\n- [[youtubeの取り込みの試しと直しとリリース-wiki-0.23.2]]: 0.23.0 のページが言及している。未読であり、訂正の扱いについての記述は確認していない。0.23.0 のページでは「取得の時刻」「「raw にない語」に混ざる行き先の値」の直しとされている。\n- [[敵対的レビューで設計を直す進め方]]: 両ページが参照しているが、未読である。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+ "cost_usd": 0.00326646,
+ "duration_ms": 16673,
+ "is_error": false,
+ "terminal_reason": "completed",
+ "api_error": null,
+ "api_error_status": null,
+ "model_usage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 4,
+   "outputTokens": 3302,
+   "cacheReadInputTokens": 9726,
+   "cacheCreationInputTokens": 7589,
+   "webSearchRequests": 0,
+   "costUSD": 0.00326646,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 1382,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 7589,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "cli_version": "2.1.325",
+ "memory_paths": {},
+ "exit": 0,
+ "stderr": ""
+}

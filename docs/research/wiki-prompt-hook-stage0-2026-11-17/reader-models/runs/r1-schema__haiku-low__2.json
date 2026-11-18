@@ -1,0 +1,16 @@
+{
+ "id": "r1-schema",
+ "class": "R1",
+ "model": "haiku",
+ "effort": "low",
+ "run": 2,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/初期化されたwikiの判定.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md"
+ ],
+ "result": "## 答え\n\n判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所で決めている。ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル（リンクなら、先が通常のファイル）であれば初期化済みの wiki とみなす。中身は読まない。判定は `os.stat()` で行う。\n\n判定するかどうかは入口ごとに決まっている。1 回で終わる CLI は引数を読んだ直後に判定し、未初期化なら終了コード 1 で止まる。MCP と閲覧のサーバーは要求のたびに判定する。`wiki_fetch.py` は `--wiki` を必須で受け取り、ネットにつなぐ前に判定する。ライブラリの関数（`wiki_lint.lint()` など）と、評価のランナーが受け取る `wiki_root` は判定の対象外である。\n\n## 根拠\n\n- [[初期化されたwikiの判定]]（`wiki/concepts/初期化されたwikiの判定.md`）: 「ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル…であれば初期化済みである。中身は読まない。」「判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。」\n- 同じページ「判定する場所」: 「1 回で終わる CLI は、引数を読んだ直後に判定する。未初期化なら、理由と案内を標準エラーに書いて終了コード 1 で止まる。」\n- 同じページ「判定しないもの」: 「ライブラリの関数（`wiki_lint.lint()`、`collect_pages()`、`WikiIndex` など）。」\n- [[初期化していないディレクトリを wiki として扱わない修正と、wiki 0.13.0 のリリースの記録]]（`wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md`）: 「判定を、ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた」。判定の決めた経緯を示すが、判定の場所そのものは概念ページの記述に依る。\n- 補足: 概念ページは、rag の `rag_config.py` も同じ規則を自分で持つと書いている。規則を変えるときは両方をそろえる必要がある。\n\n## 開いたページ\n1. wiki/concepts/初期化されたwikiの判定.md\n2. wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.00357779,
+ "duration_ms": 13491
+}

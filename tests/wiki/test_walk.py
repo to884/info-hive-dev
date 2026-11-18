@@ -1043,6 +1043,9 @@ class UseTests(TreeCase):
 
     def test_stats_does_not_touch_excluded(self):
         wiki = self.wiki_with_raw()
+        # 本文を解析する統計では同梱パーサーを使う。wikiのI/Oだけを監視する前に初期化を済ませる。
+        # 走査だけで初期化しないことはVendoredParserTestsのfreshプロセスの試験で確認する。
+        wiki_pages.new_parser()
         with Injector(wiki) as run:
             result = wiki_stats.compute_stats(wiki)
         # 除く名前の下には、口のどれも呼ばない。indexes は、名前の項目への os.lstat() だけ。

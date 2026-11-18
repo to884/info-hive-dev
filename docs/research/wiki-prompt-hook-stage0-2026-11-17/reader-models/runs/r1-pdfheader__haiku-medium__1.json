@@ -1,0 +1,17 @@
+{
+ "id": "r1-pdfheader",
+ "class": "R1",
+ "model": "haiku",
+ "effort": "medium",
+ "run": 1,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/pdfのヘッダーの条件.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3.md"
+ ],
+ "result": "## 答え\n\nrag が受け付ける PDF のヘッダーの境界は、**`%PDF-` の前にあるバイトが 1024 バイト以下**である。`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付け、1025 以降なら拒む。これは rag 0.5.1 以降の条件で、0.5.0 以前は先頭がちょうど `%PDF-` でなければならなかった。\n\n判定は 2 つの段階に分かれる。登録（`register_pdf`）ではヘッダーを読まず、拡張子などだけを確かめる。ヘッダーは、ワーカーが PDF を読むときに確かめ、範囲の外なら `failed` になる。\n\n## 根拠\n\n- [[pdfのヘッダーの条件]]（`wiki/concepts/pdfのヘッダーの条件.md`）:\n  - 境界の節: 「`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。言い換えると、`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。」\n  - 同じ節: 「pypdfium2 5.14.0（PDFium 156）で、…前置きが 1024 バイトなら開け、1025 バイトでは開けないことを確かめた」\n  - 段階の表: 処理の段階で「`%PDF-` の前にあるバイトが 1024 バイト以下」を確かめ、外れると「ジョブが `failed` になる」。登録の段階は「拡張子が `.pdf`…、通常のファイル、UNC パスでない…」を確かめ、ヘッダーは見ない。\n  - 版の表: 0.5.0 以前は「先頭がちょうど `%PDF-`」、0.5.1 以降は「`%PDF-` の前のバイトが 1024 バイト以下」。\n  - 書き方の節: 「1024 バイト目まで」と 1 始まりで読むと、実装より 1 バイト狭く読めてしまうため、「`%PDF-` の前にあるバイトが 1024 バイト以下」と書く。\n- [[pdfのヘッダーの判定の修正-rag-0.5.1]]（`wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md`）: 0.5.1 で `%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けるように直し、上限を PDFium にそろえたと書いてある。判定を通っても PDFium で開けるとは限らず、開けないものは抽出で失敗する。\n- [[pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3]]（`wiki/sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3.md`）: 0.5.2 で文書の書き方をそろえ、0.5.3 でエラーメッセージを「%PDF- がないか、最初の %PDF- の前に 1024 バイトを超えるバイトがある」に直したと書いてある。境界の数値は変わっていない。\n\n## 開いたページ\n\n1. `wiki/concepts/pdfのヘッダーの条件.md`\n2. `wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md`\n3. `wiki/sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3.md`\n\n## 関係のなかった候補\n\n- なし。2 件の source は、境界が 0.5.1 で決まったことと、0.5.2・0.5.3 で文言だけが変わったことの経緯を示す根拠として関係する。\n\n## モデル\n\nHaiku 5.5（claude-haiku-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.004042260000000001,
+ "duration_ms": 17018
+}

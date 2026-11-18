@@ -1,0 +1,17 @@
+{
+ "id": "r1-pdfheader",
+ "class": "R1",
+ "model": "sonnet",
+ "effort": "low",
+ "run": 1,
+ "model_used": "claude-sonnet-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/pdfのヘッダーの条件.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3.md"
+ ],
+ "result": "## 答え\nrag は PDF のヘッダーを 2 段階で確かめる。境界は処理の段階にある。\n\n- **登録（`register_pdf`）**: ヘッダーを読まない。見るのは拡張子が `.pdf` であることなどだけで、外れたら登録を拒む。\n- **処理（ワーカーの `read_pdf`）**: `%PDF-` の前にあるバイトが **1024 バイト以下**なら受け付ける。実装は `data.find(b\"%PDF-\", 0, 1024 + 5)` で、`%PDF-` の開始位置（0 始まり）が 0〜1024 なら通る。開始位置が 1025 以上なら、ジョブは `failed` になる。\n- 上限は PDFium にそろえた。pypdfium2 5.14.0 で、前置きが 1024 バイトなら開け、1025 バイトでは開けないことを確かめている。\n- 「先頭から 1024 バイト目まで」と 1 始まりで読むと、実装より 1 バイト狭くなる。開始位置が 1024 の `%PDF-` は 1025 バイト目から始まるためである。\n- ヘッダーの判定を通っても、PDFium で開けるとは限らない。開けないものは抽出で失敗する。\n\n版による違いもある。\n\n- rag 0.5.0 以前は、先頭がちょうど `%PDF-` の PDF だけを受け付けた。\n- 0.5.1 以降は、上記の 1024 バイト以下を受け付ける。\n- 0.5.0 で失敗したジョブは、更新しても自動では再開しない。`retry_job` か取り込み直しが要る。\n- エラーメッセージは 0.5.3 で直した。現在は「%PDF- がないか、最初の %PDF- の前に 1024 バイトを超えるバイトがある」である。0.5.2 までは「先頭の 1024 バイトに %PDF- がない」だった。\n\n## 根拠\n- [[pdfのヘッダーの条件]]（concepts/pdfのヘッダーの条件.md）: 「`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける。言い換えると、`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける。」段階の表、書き方の節、版による違いの表もここにある。\n- [[pdfのヘッダーの判定の修正-rag-0.5.1]]（sources/pdfのヘッダーの判定の修正-rag-0.5.1.md）: 0.5.1 で先頭に改行があるだけの PDF 2 件が失敗したため、前置き 1024 バイト以下を受け付けるように直した。上限は PDFium にそろえた。抽出の版は上げていない。\n- [[pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3]]（sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3.md）: 0.5.2 で文書の書き方を、0.5.3 でエラーメッセージを、同じ書き方にそろえた。\n\n## 開いたページ\n1. concepts/pdfのヘッダーの条件.md\n2. sources/pdfのヘッダーの判定の修正-rag-0.5.1.md\n3. sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.1000355,
+ "duration_ms": 14711
+}

@@ -1,0 +1,16 @@
+{
+ "id": "r1-schema",
+ "class": "R1",
+ "model": "opus",
+ "effort": "high",
+ "run": 1,
+ "model_used": "claude-opus-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/初期化されたwikiの判定.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md"
+ ],
+ "result": "`✶ Insight ─────────────────────────────────────`\n- 判定は「中身を読まず、`SCHEMA.md` が通常のファイルかどうかを `os.stat()` で見るだけ」にしています。初期化の印として使えるのは、`init_wiki.py` が必ず作り、上書きしないファイルだからです。\n- 「調べたうえで決まった（`certain`）」と「調べられなかった」を分けています。閲覧のサーバーは、調べられないときに 503 を返さず、前の内容を古いと示して出します。\n- 判定はパスを解決する前に、渡されたとおりのパスで行います。`kb/ない/..` が `kb` に縮んで別の wiki に書き込む穴を、`resolve()` で塞いだ経緯があります。\n`─────────────────────────────────────────────────`\n\n## 答え\n判定の本体は 1 か所で、`info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` にあります。決定は ADR-0019（状態は提案）で、wiki 0.13.0 から入りました。\n\n- **規則**: ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイルなら初期化済みです。`SCHEMA.md` がリンクなら、リンク先が通常のファイルであれば初期化済みとみなします。中身は読みません。調べ方は `os.stat()` の 1 回ずつです。`Path.is_file()` は使いません。\n- **結果の形**: `check()` は、理由の種類と、判定が決まったか（`certain`）を返します。判定と解決を一度に行う `resolve()` もあり、パスを解決して使う入口は自分で解決せずにこの戻り値を使います。\n- **例外**: rag の `rag_config.py` は同じ規則を自分で持っています。規則を変えるときは両方をそろえる必要があります。\n- **呼び出す側**: 判定の結果を受けて、入口ごとに止め方が決まっています。\n  - 1 回で終わる CLI は、引数を読んだ直後に判定し、未初期化なら終了コード 1 で止まります。\n  - サブコマンドを持つ入口は、振り分けの前に判定します。判定しないサブコマンドは名前で除きます（`wiki_evolve.py` の `WIKI_FREE_ACTIONS`）。\n  - MCP のサーバーと閲覧のサーバーは、要求のたびに判定します。\n  - `wiki_fetch.py` と `init_wiki.py --upgrade` でも判定します。\n- **判定しないもの**: ライブラリの関数（`wiki_lint.lint()` など）、評価のランナーの `wiki_root`、`--upgrade` なしの初期化です。\n\n## 根拠\n- [[初期化されたwikiの判定]]（concepts/初期化されたwikiの判定.md）: 「判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。」規則、`check()` と `resolve()`、`rag_config.py` との対応、判定する場所と判定しないものも、このページに書かれています。\n- [[初期化していないディレクトリの扱い-wiki-0.13.0]]（sources/初期化していないディレクトリの扱い-wiki-0.13.0.md）: 「初期化された wiki の判定を、ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた」。決定は ADR-0019、設計は `docs/plans/wiki-uninitialized-root-2026-11-13.md` にあると書かれています。\n\n## 開いたページ\n1. concepts/初期化されたwikiの判定.md\n2. sources/初期化していないディレクトリの扱い-wiki-0.13.0.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nOpus 5.5（claude-opus-5-5）\n\n---\nタスクに合うモデルとエフォート: Haiku / low（候補の 2 ページを読んで要約するだけの作業のため）\n\n使用した MCP サーバー: なし（ページは `Read` で開いた）\n使用した Agent Skills: なし",
+ "cost_usd": 0.2007386,
+ "duration_ms": 19412
+}

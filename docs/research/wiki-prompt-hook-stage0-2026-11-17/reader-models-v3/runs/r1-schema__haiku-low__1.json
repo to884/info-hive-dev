@@ -1,0 +1,681 @@
+{
+ "protocol": 3,
+ "fingerprint": "c7b9e69a443a55c8807dd832222250a65db2f07b3b28e2e9c6ba3ed219e6dc40",
+ "id": "r1-schema",
+ "class": "R1",
+ "model": "haiku",
+ "effort": "low",
+ "run": 1,
+ "requested_effort": "low",
+ "prompt_sha256": "c3eaa71a64fba12eb902f5616248f0e3539e5c93d882c07e7b690c532ee8cc53",
+ "argv": [
+  "claude",
+  "-p",
+  "問い: SCHEMA.md がないディレクトリを wiki とみなさない判定はどこで決めている？\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"初期化されたwikiの判定\", \"path\": \"concepts/初期化されたwikiの判定.md\"}\n{\"slug\": \"初期化していないディレクトリの扱い-wiki-0.13.0\", \"path\": \"sources/初期化していないディレクトリの扱い-wiki-0.13.0.md\"}",
+  "--agent",
+  "wiki:wiki-reader",
+  "--model",
+  "haiku",
+  "--effort",
+  "low",
+  "--plugin-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--tools",
+  "Read,Glob,Grep",
+  "--allowedTools",
+  "Read,Glob,Grep",
+  "--max-budget-usd",
+  "2",
+  "--permission-mode",
+  "auto",
+  "--no-session-persistence",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "{\"mcpServers\":{}}",
+  "--settings",
+  "{\"autoMemoryEnabled\": false, \"claudeMdExcludes\": [\"**/CLAUDE.md\", \"**/CLAUDE.local.md\", \"**/AGENTS.md\", \"**/.claude/rules/**\"]}",
+  "--add-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+ ],
+ "events": [
+  {
+   "type": "system",
+   "subtype": "init",
+   "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "session_id": "3e254210-6c5a-41ba-9968-ce954c64f49f",
+   "tools": [
+    "Read",
+    "Glob",
+    "Grep"
+   ],
+   "mcp_servers": [],
+   "model": "claude-haiku-5-5",
+   "permissionMode": "auto",
+   "slash_commands": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring",
+    "advisor",
+    "agents",
+    "auto-mode-setup",
+    "autocompact",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "output-style",
+    "context",
+    "effort",
+    "fast",
+    "focus",
+    "heapdump",
+    "init",
+    "mcp",
+    "import",
+    "model",
+    "__remote-workflow",
+    "workflow-launch-exec",
+    "reload-plugins",
+    "reload-skills",
+    "rename",
+    "ultrareview",
+    "security-review",
+    "usage-credits",
+    "extra-usage",
+    "usage",
+    "insights",
+    "recap",
+    "skill-doctor",
+    "goal",
+    "design-consent",
+    "design-revoke",
+    "list-agents",
+    "team-onboarding"
+   ],
+   "terminal_slash_commands": [
+    "doctor",
+    "color",
+    "focus",
+    "reload-plugins"
+   ],
+   "apiKeySource": "none",
+   "claude_code_version": "2.1.325",
+   "output_style": "default",
+   "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup",
+    "web-fetch",
+    "wiki:wiki-reader"
+   ],
+   "skills": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring"
+   ],
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+     "source": "wiki@inline",
+     "version": "0.0.0"
+    },
+    {
+     "name": "cc-plugin-agents-md",
+     "path": "builtin",
+     "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+     "name": "cc-plugin-telemetry",
+     "path": "builtin",
+     "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+     "name": "cc-plugin-privacy",
+     "path": "builtin",
+     "source": "cc-plugin-privacy@builtin"
+    },
+    {
+     "name": "cc-plugin-plugin-authoring",
+     "path": "builtin",
+     "source": "cc-plugin-plugin-authoring@builtin"
+    }
+   ],
+   "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1"
+   ],
+   "analytics_disabled": false,
+   "product_feedback_disabled": false,
+   "uuid": "377dedac-52d7-443b-b0a3-3f377a089d1d",
+   "original_cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "additional_directories": [
+    "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+   ],
+   "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-fb9864136a5a55d85c5674f4f43d5e78",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "per_turn_effort_active": true,
+   "ultrathink_available": false,
+   "ultrathink_typed_raises": false,
+   "view_mode": "default",
+   "powershell_path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "3e254210-6c5a-41ba-9968-ce954c64f49f",
+   "uuid": "b8fea850-fe4f-4e39-aa7a-d8e9295ea66a"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 196,
+   "estimated_tokens_delta": 146,
+   "session_id": "3e254210-6c5a-41ba-9968-ce954c64f49f",
+   "uuid": "59d57542-43ed-48d6-a29d-70571d9dc5c7"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jcMWVMdZJfkotny1B4",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "CAQShwYKEAgTGAI4AUIIdGhpbmtpbmcSDEJzqisI7ylwZ4b7jRoM4ewcMvyBXEYliEFSIjCSsdLWkrAPIwgt5n3si6PBv2+BEGiLa927EHrcfMYbDqoOWTrpWpKPh1mRyxI/n/AqpAVCRISybXljgHBZ6+2LfyB4P8QnWFAclnYu1mIY2kCsBzwa5Kf2kr5Xu615CUCM0RliEmFOQR1A2UwzNoUTYsHemiNd225vhEOR643yPr0N/Bei1aXwhM6q86LXKmCm25tDVHIXl7UklP8bzn+wc2d32323zJXceuJ3po9i0zUOHJ6vOYM0zPlZm+kb5IwbyKeZS2oSTwH0rsAut506AkWHR+aOqALHaXyeWSAt3B1yrMQPKOa9WTIy2nWm/TIJvoGrgW0FYz8q5ytn+y2rj++1zsosROXHV887ISGqUNElMiS48HeGoSMazLyz7R6H2mXcPMNpNBjmGXIHFThCzBn3rKtx8sWx9CJT8D6OGhw3NZw79Ri3L+TG8oDvYJOxgCOYBDeeBTnGUiOaD8h6V3m5W4TNQ+5z3L46++jK7COVmMWQtp4FvGoJcnseDdocsb7mLuHQmfsF9o7wcZQQCZ3fXfrSyuWjXO7vSdulWfMOSFLb9d2h4TDblJQpPR4bYDCZflHJN5XvaN/bwOGLMIaIdLtwqufnS+xoOCMOkrNSBvqxUx9dsVlkpJs0CbuAn1nVIqcDwq2ytmdSuo4uKTctZEwUCuRMBYO9meoXgLZVfimGI1A30OqMEMp5fAtbUNHNi4ugm+cTWHAyeekDKwPZBSDZ/F9fdho+2GtsOVndlQ+Z1WJ6MiWl1DRJ3uWj80dmdhX5QEh2+usCUPXXjR3bLO7q09pBbf3UBDnE+J7C8KZzC1PSyAOg4Pxq/F5L9sizMWciFQnm5BXHRjeOCAwOIf7suZhvYJ78ZeNspVzEZNzTssQZ7hL3fSzhhtrDgZOC7JZF5GMTx3t9cezn+M9zL38m2CjZoQQeQEEHyVxpHfW+5DjpUOweBkfhp1ir6/wZDZuQGAE="
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 807,
+     "cache_read_input_tokens": 4014,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 807
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "3e254210-6c5a-41ba-9968-ce954c64f49f",
+   "uuid": "6ababf6b-fd5a-40ef-ac2f-50afd36ab9d7",
+   "timestamp": "2026-11-17T15:27:17.927Z",
+   "request_id": "req_011Ch8jcMHber8YruWbnuGqP",
+   "thinking_duration_ms": 377,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jcMWVMdZJfkotny1B4",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01FpUYBHY4KorLgn16MvJ3wC",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/初期化されたwikiの判定.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 807,
+     "cache_read_input_tokens": 4014,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 807
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "3e254210-6c5a-41ba-9968-ce954c64f49f",
+   "uuid": "67ab5bc6-c747-48c8-8dd0-d3c6966f29c0",
+   "timestamp": "2026-11-17T15:27:18.149Z",
+   "request_id": "req_011Ch8jcMHber8YruWbnuGqP",
+   "wire_tool_inputs": {
+    "toolu_01FpUYBHY4KorLgn16MvJ3wC": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/初期化されたwikiの判定.md"
+    }
+   }
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01FpUYBHY4KorLgn16MvJ3wC",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"concept\"\n3\ttitle: \"初期化された wiki の判定（SCHEMA.md）\"\n4\ttags: [\"試験\", \"browse\"]\n5\tsources: [\"初期化していないディレクトリの扱い-wiki-0.13.0\"]\n6\tcreated: 2026-11-13\n7\tupdated: 2026-11-13\n8\t---\n9\t\n10\t# 初期化された wiki の判定（SCHEMA.md）\n11\t\n12\twiki 0.13.0 から、プラグインのどの入口も、ルートに `SCHEMA.md` がある（初期化された）ディレクトリだけを wiki として扱う（ADR-0019）。判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。入口や試験の素材を足すときは、ここに書いた決まりに従う（[[初期化していないディレクトリの扱い-wiki-0.13.0]]）。\n13\t\n14\t## 判定\n15\t\n16\t- ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル（リンクなら、先が通常のファイル）であれば初期化済みである。中身は読まない。\n17\t- 調べ方は `os.stat()` の 1 回ずつである。`Path.is_file()` は、失敗の扱いが Python の版で違うので使わない。大文字と小文字はファイルシステムに任せる（Windows と macOS では `schema.md` も見つかる）。\n18\t- 結果（`check()`）は、理由の種類と、調べたうえで決まったか（`certain`）を持つ。ない、ディレクトリでない、`SCHEMA.md` がないか通常のファイルでないは「決まった」、アクセス権や循環するリンクで調べられないは「決まっていない」である。\n19\t- rag の `rag_config.py` も同じ規則を自分で持つ。規則を変えるときは両方をそろえる。\n20\t\n21\t## 判定する場所\n22\t\n23\t```mermaid\n24\tflowchart LR\n25\t  A[wiki のパスを受け取る] --> B{判定}\n26\t  B -- 未初期化 --> C[何も書かずに止まる<br>/wiki:init を案内]\n27\t  B -- 初期化済み --> D[同じパスを解決して使う]\n28\t```\n29\t\n30\t> 判定の流れ 補足: 判定は wiki を読み始める前、パスを解決する前に、渡されたとおりのパスで行う。パスを解決して使う入口は、自分で解決せず、判定と解決を一度に行う `resolve()` の戻り値を使う。\n31\t\n32\t- 1 回で終わる CLI は、引数を読んだ直後に判定する。未初期化なら、理由と案内を標準エラーに書いて終了コード 1 で止まる。\n33\t- サブコマンドを持つ入口は、振り分けの前の 1 か所で判定し、判定しないサブコマンドを名前で除く（`wiki_evolve.py` の `WIKI_FREE_ACTIONS`）。新しいサブコマンドは、既定で判定を通る。\n34\t- 長く動く MCP のサーバーと閲覧のサーバーは、要求のたびに判定する。MCP は索引のキャッシュを引く前に判定し、エラーを返す。閲覧のサーバーは、決まった未初期化なら 503（パスを含まない理由の文）、決まっていなければ新しい内容を組み立てず、前の内容を古いと示して出す。閲覧の `core` は、要求ごとに `no_wiki` を返す。\n35\t- `wiki_fetch.py` は `--wiki` を必須で受け取り、ネットにつなぐ前に判定する。raw のルートは作らない。`capture` と評価ループも、raw のディレクトリを作らない。\n36\t- `init_wiki.py --upgrade` は、基準のディレクトリを解決する前に `<base>/<wiki-dir>` を判定する。`--upgrade` なしの初期化は判定しない。\n37\t\n38\t## 判定しないもの\n39\t\n40\t- ライブラリの関数（`wiki_lint.lint()`、`collect_pages()`、`WikiIndex` など）。MCP のサーバーと試験が、素のディレクトリに対して呼ぶ。\n41\t- 評価のランナー（`wiki_evolve_agent.py` など）が受け取る `wiki_root`。評価ループが事実情報のコーパスを一時ディレクトリに写したもので、利用者の wiki ではない。info-hive のスキルを評価するコーパスには、スキルが止まらないよう `SCHEMA.md` を置く。\n42\t- Python が入口を読み込むときにプラグインの置き場所に書くバイトコードのキャッシュ。初期化済みの wiki でも同じに起きるので、判定とは別の話である。\n43\t\n44\t## 試験の素材\n45\t\n46\t- CLI、MCP のツール、閲覧に渡す試験用の wiki には、`SCHEMA.md` を置く。`SCHEMA.md` はページに数えないので、lint、検索、グラフの結果は変わらない。0.13.0 では、親の `tests/` と子の `eval/` の素材に足した。0.12.2 で入った素材にも、マージのときに足した。\n47\t- 親の `tests/wiki/test_uninitialized_wiki.py` は、`scripts/` の `__main__` を持つスクリプトを構文木で見つけ、閉じた一覧（wiki を受け取る、評価のランナー、wiki を受け取らない）に分類させる。入口のスクリプトを足したら、この一覧に入れ、wiki を受け取るなら `wiki_initialized` の関数を呼び、`ReaderEntryTests` の表に呼び出し方を足す。\n48\t- `<wiki>/ない/..` を渡す試験は、Windows では `..` がファイルシステムを呼ぶ前に縮むので飛ばされる。Linux（CI か WSL）で確かめる。\n49\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "3e254210-6c5a-41ba-9968-ce954c64f49f",
+   "uuid": "70eb86ad-66d4-4270-821c-4bff6a1736bf",
+   "timestamp": "2026-11-17T15:27:18.530Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/初期化されたwikiの判定.md",
+     "content": "---\ntype: \"concept\"\ntitle: \"初期化された wiki の判定（SCHEMA.md）\"\ntags: [\"試験\", \"browse\"]\nsources: [\"初期化していないディレクトリの扱い-wiki-0.13.0\"]\ncreated: 2026-11-13\nupdated: 2026-11-13\n---\n\n# 初期化された wiki の判定（SCHEMA.md）\n\nwiki 0.13.0 から、プラグインのどの入口も、ルートに `SCHEMA.md` がある（初期化された）ディレクトリだけを wiki として扱う（ADR-0019）。判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。入口や試験の素材を足すときは、ここに書いた決まりに従う（[[初期化していないディレクトリの扱い-wiki-0.13.0]]）。\n\n## 判定\n\n- ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル（リンクなら、先が通常のファイル）であれば初期化済みである。中身は読まない。\n- 調べ方は `os.stat()` の 1 回ずつである。`Path.is_file()` は、失敗の扱いが Python の版で違うので使わない。大文字と小文字はファイルシステムに任せる（Windows と macOS では `schema.md` も見つかる）。\n- 結果（`check()`）は、理由の種類と、調べたうえで決まったか（`certain`）を持つ。ない、ディレクトリでない、`SCHEMA.md` がないか通常のファイルでないは「決まった」、アクセス権や循環するリンクで調べられないは「決まっていない」である。\n- rag の `rag_config.py` も同じ規則を自分で持つ。規則を変えるときは両方をそろえる。\n\n## 判定する場所\n\n```mermaid\nflowchart LR\n  A[wiki のパスを受け取る] --> B{判定}\n  B -- 未初期化 --> C[何も書かずに止まる<br>/wiki:init を案内]\n  B -- 初期化済み --> D[同じパスを解決して使う]\n```\n\n> 判定の流れ 補足: 判定は wiki を読み始める前、パスを解決する前に、渡されたとおりのパスで行う。パスを解決して使う入口は、自分で解決せず、判定と解決を一度に行う `resolve()` の戻り値を使う。\n\n- 1 回で終わる CLI は、引数を読んだ直後に判定する。未初期化なら、理由と案内を標準エラーに書いて終了コード 1 で止まる。\n- サブコマンドを持つ入口は、振り分けの前の 1 か所で判定し、判定しないサブコマンドを名前で除く（`wiki_evolve.py` の `WIKI_FREE_ACTIONS`）。新しいサブコマンドは、既定で判定を通る。\n- 長く動く MCP のサーバーと閲覧のサーバーは、要求のたびに判定する。MCP は索引のキャッシュを引く前に判定し、エラーを返す。閲覧のサーバーは、決まった未初期化なら 503（パスを含まない理由の文）、決まっていなければ新しい内容を組み立てず、前の内容を古いと示して出す。閲覧の `core` は、要求ごとに `no_wiki` を返す。\n- `wiki_fetch.py` は `--wiki` を必須で受け取り、ネットにつなぐ前に判定する。raw のルートは作らない。`capture` と評価ループも、raw のディレクトリを作らない。\n- `init_wiki.py --upgrade` は、基準のディレクトリを解決する前に `<base>/<wiki-dir>` を判定する。`--upgrade` なしの初期化は判定しない。\n\n## 判定しないもの\n\n- ライブラリの関数（`wiki_lint.lint()`、`collect_pages()`、`WikiIndex` など）。MCP のサーバーと試験が、素のディレクトリに対して呼ぶ。\n- 評価のランナー（`wiki_evolve_agent.py` など）が受け取る `wiki_root`。評価ループが事実情報のコーパスを一時ディレクトリに写したもので、利用者の wiki ではない。info-hive のスキルを評価するコーパスには、スキルが止まらないよう `SCHEMA.md` を置く。\n- Python が入口を読み込むときにプラグインの置き場所に書くバイトコードのキャッシュ。初期化済みの wiki でも同じに起きるので、判定とは別の話である。\n\n## 試験の素材\n\n- CLI、MCP のツール、閲覧に渡す試験用の wiki には、`SCHEMA.md` を置く。`SCHEMA.md` はページに数えないので、lint、検索、グラフの結果は変わらない。0.13.0 では、親の `tests/` と子の `eval/` の素材に足した。0.12.2 で入った素材にも、マージのときに足した。\n- 親の `tests/wiki/test_uninitialized_wiki.py` は、`scripts/` の `__main__` を持つスクリプトを構文木で見つけ、閉じた一覧（wiki を受け取る、評価のランナー、wiki を受け取らない）に分類させる。入口のスクリプトを足したら、この一覧に入れ、wiki を受け取るなら `wiki_initialized` の関数を呼び、`ReaderEntryTests` の表に呼び出し方を足す。\n- `<wiki>/ない/..` を渡す試験は、Windows では `..` がファイルシステムを呼ぶ前に縮むので飛ばされる。Linux（CI か WSL）で確かめる。\n",
+     "numLines": 49,
+     "startLine": 1,
+     "totalLines": 49
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01FpUYBHY4KorLgn16MvJ3wC",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jcMWVMdZJfkotny1B4",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01TV6LDm85xdvzMQeby6DU6t",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 807,
+     "cache_read_input_tokens": 4014,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 807
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "3e254210-6c5a-41ba-9968-ce954c64f49f",
+   "uuid": "5d6f92a4-fcfc-4f44-8e23-d71b6716da5f",
+   "timestamp": "2026-11-17T15:27:18.540Z",
+   "request_id": "req_011Ch8jcMHber8YruWbnuGqP",
+   "wire_tool_inputs": {
+    "toolu_01TV6LDm85xdvzMQeby6DU6t": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md"
+    }
+   }
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.92,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.65,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.92,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "181a8f88-2736-431d-8ae5-0efb550ebde9",
+   "session_id": "3e254210-6c5a-41ba-9968-ce954c64f49f"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01TV6LDm85xdvzMQeby6DU6t",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"初期化していないディレクトリを wiki として扱わない修正と、wiki 0.13.0 のリリースの記録\"\n4\ttags: [\"試験\", \"リリース\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-13-wiki-uninitialized-root\"\n7\tingested: 2026-11-13\n8\tcreated: 2026-11-13\n9\tupdated: 2026-11-13\n10\t---\n11\t\n12\t# 初期化していないディレクトリを wiki として扱わない修正と、wiki 0.13.0 のリリースの記録\n13\t\n14\t2026-11-13 の、`/wiki:init` をしていないディレクトリを wiki として扱っていた穴の修正と、そのリリースの記録である。原本は、GPT-6.1 Sol の敵対的レビューの依頼と結果を残した `docs/agent-runs/2026-11-13-wiki-uninitialized-root/` である。設計は `docs/plans/wiki-uninitialized-root-2026-11-13.md`（4 版目）、決定は ADR-0019（状態は提案）にある。マージとリリースの経過は、作業の記録から書いた。\n15\t\n16\t## 経緯\n17\t\n18\t1. 作者が「`/wiki:init` をしていないときに、ほかのコマンドを実行するとどうなるか」を尋ねた。調べると、何もない場所では止まるが、`SCHEMA.md` のない `wiki/`（GitHub の wiki の写しなど）があると、それを wiki として扱っていた。lint と統計は普通に報告し、検索の `--cache` はその中に `.wiki-cache/` を書いた。`init_wiki.py --upgrade` は実質の初期化になり、`wiki_fetch.py` は raw のルートを作った。\n19\t2. 初期化された wiki の判定を、ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた（[[初期化されたwikiの判定]]）。`init_wiki.py` が必ず作って上書きしないファイルで、`wiki_evolve.py` と rag の `rag_config.py` がすでに同じ規則を使っていた。ADR の番号は、0017 を Raw の大きさの設計が予約していたので 0019 にした。\n20\t3. 試験を先に書き、古い実装で落ちることを確かめた。MCP の `query` と `stats` が、`SCHEMA.md` のないディレクトリの索引をデータの場所に作ることも、この試験で初めて確かめた。\n21\t4. Sol の敵対的レビューを 4 回頼んだ。設計の 1 回目、実装の 1 回目、2 回目は却下で、指摘を 1 つずつ塞がず、崩れた前提ごとに直した（下の表）。2 回目の重大の直しを、同じセッションの続きで確かめてもらい、採用可（確信度：高）になった。\n22\t5. 作業の途中で、別のセッションが子の main に 0.12.2 を入れた（タグはまだだった）。子のブランチに `origin/main` をマージし（force push はしない）、版は 0.13.0 のままにして、CHANGELOG の 0.13.0 の節を 0.12.2 の上に置いた。0.12.2 で足された試験の素材にも `SCHEMA.md` を足した。\n23\t6. どちらを先に出すかを作者に聞くと、「0.12.2 を先に出す」だった。このセッションで、注釈付きのタグ `v0.12.2`（`6db310e`）と GitHub リリースを作り、マーケットプレイスから 0.12.2 が入ることを確かめた（[[titleが値なしや配列のときの修正-wiki-0.12.2]]）。\n24\t7. マージとリリースの承認は、はじめ別のセッションの伝言で届いた。`gh pr merge` を、auto mode の判定が「レビューなしのマージ」として止めた。作者がこのセッションで許可してから進めた（[[リリースの確かめ方]]）。\n25\t8. 子の CI の 4 つ（`0a7b681`）と、それを指す親の CI の 9 つ（`d0e4571`）が通ったのを確かめて、子の to884/info-hive-wiki#52 をマージした（`8cb49d6`、木の差はない）。親の参照を付け替え（`731f714`）、その CI の 9 つが通ってから、親の to884/info-hive-dev#90 をマージした（`1dce1ba`）。\n26\t9. 注釈付きのタグ `v0.13.0`（`8cb49d6`）と GitHub リリースを作った。使い捨ての設定でマーケットプレイスから入れると 0.13.0 になった。0.12.2 から変わった 45 のファイルの SHA-256 がタグの中身と一致した。入った `wiki_lint.py` と `wiki_search.py --cache` は、`SCHEMA.md` のないディレクトリを何も書かずに断り、置くと答えた。2 つの PR のリモートブランチを消した。\n27\t\n28\t## 決めたこと\n29\t\n30\t- 版はマイナー（0.13.0）にした。今まで答えていたディレクトリを断り、`wiki_fetch.py` の `--wiki` が必須になるので、0.x の互換でない変更である。\n31\t- 初期化（`init_wiki.py` を `--upgrade` なしで）は止めない。中身のある、`SCHEMA.md` のない `wiki/` があるときに、そこを使うかは `/wiki:init` の文章でユーザーに聞く。\n32\t- 評価のランナーが受け取るコーパスの写しと、Python のバイトコードのキャッシュは、判定の対象の外にした。理由は [[初期化されたwikiの判定]] にある。\n33\t- コマンド 9 つとスキルの指示に、同じ文で「`SCHEMA.md` がなければ何もせず `/wiki:init` を提案する」を入れた。スキルの「下の初期化の手順を実行する」は、提案してからにした。\n34\t\n35\t## レビューの指摘と直し方\n36\t\n37\t| 回 | 崩れた前提 | 直し方 |\n38\t| --- | --- | --- |\n39\t| 設計の 1 回目 | 入口で 1 回確かめれば足りる。入口は手で表にできる | 長く動くサーバーは要求ごとに判定する。入口を試験で数える。`--stop` も判定する |\n40\t| 実装の 1 回目 | 判定の前に解決しないのは MCP と閲覧だけでよい | 判定と解決を一度に行う `resolve()` を足した。POSIX では `kb/ない/..` が解決で `kb` に縮み、別の wiki に `.evolution/` を作りえた |\n41\t| 実装の 1 回目 | 入口は正規表現で数えれば漏れない | `__main__` を持つスクリプトを構文木で見つけ、閉じた一覧に分類させた。サブコマンドは振り分けの前で判定する |\n42\t| 実装の 2 回目 | 調べられないなら本文も読めない | `SCHEMA.md` だけが循環するリンクだと本文は読める。閲覧のサーバーは「調べられない」ときに新しい内容を組み立てない |\n43\t\n44\t## 途中で起きたこと\n45\t\n46\t- 試験の基準を取るための一括の実行の途中で、ファイルを書き換え始めたので、後半の結果が変更の入ったものになった。一括の実行中は書き換えない。\n47\t- 手元の親の `main` は古く（to884/info-hive-dev#60 のマージ）、1 回目の実装のレビューの依頼の `git diff main..HEAD` に関係のない変更が混ざった。2 回目からは分岐点（`d100dfd`）と比べた。\n48\t- `Edit` で、`old_string` と `new_string` を空白で終わらせると、その空白が落ちた（`action = \"...\"` が `action =\"...\"` になった）。行の中の空白だけが変わった行を差分から探して見つけた。\n49\t- `<wiki>/ない/..` の試験は、Windows ではファイルシステムを呼ぶ前に `..` が縮むので当てはまらない。WSL の Ubuntu で動かして確かめた。\n50\t- Auto-fix のある PR で、親の CI を待ってからマージするときは、作者の「CI のあとで続けて」を受けて、実行の終わりを 1 回だけ待った（`gh run watch` を裏で）。\n51\t\n52\t## 主張と行き先\n53\t\n54\t| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n55\t| --- | --- | --- | --- | --- |\n56\t| 1 | 初期化された wiki の判定、判定する場所、例外、試験の素材 | 設計、ADR-0019、差分 | create | [[初期化されたwikiの判定]] |\n57\t| 2 | 0.12.2 と 0.13.0 が重なったとき、マージして版を保ち、出す順を作者に聞いた | 作業の記録 | update | [[リリースの確かめ方]] の「版を決めるとき」 |\n58\t| 3 | 別のセッションの伝言の承認では、auto mode がマージを止めた | 作業の記録 | update | [[リリースの確かめ方]] の「マージの承認」 |\n59\t| 4 | 0.13.0 も、親の CI を待って子をマージし、付け替えたあとの CI を待って親をマージした | 作業の記録 | update | [[リリースの確かめ方]] の「リポジトリをまたぐマージの順番」 |\n60\t| 5 | v0.13.0 も注釈付きのタグだった | 作業の記録 | update | [[リリースの確かめ方]] の「タグとリリースの形」 |\n61\t| 6 | v0.12.2 のタグとリリースは、このセッションが作った | 作業の記録 | update | [[titleが値なしや配列のときの修正-wiki-0.12.2]] の経緯の 10 |\n62\t| 7 | 一括の実行中の書き換え、古い `main`、`Edit` の空白、CI を 1 回だけ待つこと | 作業の記録 | source_only | 作業の進め方の細部で、今のところほかのページから引く話ではない |\n63\t\n64\t## 関係するページ\n65\t\n66\t- [[初期化されたwikiの判定]]\n67\t- [[リリースの確かめ方]]\n68\t- [[titleが値なしや配列のときの修正-wiki-0.12.2]]\n69\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "3e254210-6c5a-41ba-9968-ce954c64f49f",
+   "uuid": "4d751d10-4dc0-4a8a-9774-9df3fda7afd7",
+   "timestamp": "2026-11-17T15:27:18.669Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md",
+     "content": "---\ntype: \"source\"\ntitle: \"初期化していないディレクトリを wiki として扱わない修正と、wiki 0.13.0 のリリースの記録\"\ntags: [\"試験\", \"リリース\"]\nauthors: [\"to884\"]\nraw: \"docs/agent-runs/2026-11-13-wiki-uninitialized-root\"\ningested: 2026-11-13\ncreated: 2026-11-13\nupdated: 2026-11-13\n---\n\n# 初期化していないディレクトリを wiki として扱わない修正と、wiki 0.13.0 のリリースの記録\n\n2026-11-13 の、`/wiki:init` をしていないディレクトリを wiki として扱っていた穴の修正と、そのリリースの記録である。原本は、GPT-6.1 Sol の敵対的レビューの依頼と結果を残した `docs/agent-runs/2026-11-13-wiki-uninitialized-root/` である。設計は `docs/plans/wiki-uninitialized-root-2026-11-13.md`（4 版目）、決定は ADR-0019（状態は提案）にある。マージとリリースの経過は、作業の記録から書いた。\n\n## 経緯\n\n1. 作者が「`/wiki:init` をしていないときに、ほかのコマンドを実行するとどうなるか」を尋ねた。調べると、何もない場所では止まるが、`SCHEMA.md` のない `wiki/`（GitHub の wiki の写しなど）があると、それを wiki として扱っていた。lint と統計は普通に報告し、検索の `--cache` はその中に `.wiki-cache/` を書いた。`init_wiki.py --upgrade` は実質の初期化になり、`wiki_fetch.py` は raw のルートを作った。\n2. 初期化された wiki の判定を、ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた（[[初期化されたwikiの判定]]）。`init_wiki.py` が必ず作って上書きしないファイルで、`wiki_evolve.py` と rag の `rag_config.py` がすでに同じ規則を使っていた。ADR の番号は、0017 を Raw の大きさの設計が予約していたので 0019 にした。\n3. 試験を先に書き、古い実装で落ちることを確かめた。MCP の `query` と `stats` が、`SCHEMA.md` のないディレクトリの索引をデータの場所に作ることも、この試験で初めて確かめた。\n4. Sol の敵対的レビューを 4 回頼んだ。設計の 1 回目、実装の 1 回目、2 回目は却下で、指摘を 1 つずつ塞がず、崩れた前提ごとに直した（下の表）。2 回目の重大の直しを、同じセッションの続きで確かめてもらい、採用可（確信度：高）になった。\n5. 作業の途中で、別のセッションが子の main に 0.12.2 を入れた（タグはまだだった）。子のブランチに `origin/main` をマージし（force push はしない）、版は 0.13.0 のままにして、CHANGELOG の 0.13.0 の節を 0.12.2 の上に置いた。0.12.2 で足された試験の素材にも `SCHEMA.md` を足した。\n6. どちらを先に出すかを作者に聞くと、「0.12.2 を先に出す」だった。このセッションで、注釈付きのタグ `v0.12.2`（`6db310e`）と GitHub リリースを作り、マーケットプレイスから 0.12.2 が入ることを確かめた（[[titleが値なしや配列のときの修正-wiki-0.12.2]]）。\n7. マージとリリースの承認は、はじめ別のセッションの伝言で届いた。`gh pr merge` を、auto mode の判定が「レビューなしのマージ」として止めた。作者がこのセッションで許可してから進めた（[[リリースの確かめ方]]）。\n8. 子の CI の 4 つ（`0a7b681`）と、それを指す親の CI の 9 つ（`d0e4571`）が通ったのを確かめて、子の to884/info-hive-wiki#52 をマージした（`8cb49d6`、木の差はない）。親の参照を付け替え（`731f714`）、その CI の 9 つが通ってから、親の to884/info-hive-dev#90 をマージした（`1dce1ba`）。\n9. 注釈付きのタグ `v0.13.0`（`8cb49d6`）と GitHub リリースを作った。使い捨ての設定でマーケットプレイスから入れると 0.13.0 になった。0.12.2 から変わった 45 のファイルの SHA-256 がタグの中身と一致した。入った `wiki_lint.py` と `wiki_search.py --cache` は、`SCHEMA.md` のないディレクトリを何も書かずに断り、置くと答えた。2 つの PR のリモートブランチを消した。\n\n## 決めたこと\n\n- 版はマイナー（0.13.0）にした。今まで答えていたディレクトリを断り、`wiki_fetch.py` の `--wiki` が必須になるので、0.x の互換でない変更である。\n- 初期化（`init_wiki.py` を `--upgrade` なしで）は止めない。中身のある、`SCHEMA.md` のない `wiki/` があるときに、そこを使うかは `/wiki:init` の文章でユーザーに聞く。\n- 評価のランナーが受け取るコーパスの写しと、Python のバイトコードのキャッシュは、判定の対象の外にした。理由は [[初期化されたwikiの判定]] にある。\n- コマンド 9 つとスキルの指示に、同じ文で「`SCHEMA.md` がなければ何もせず `/wiki:init` を提案する」を入れた。スキルの「下の初期化の手順を実行する」は、提案してからにした。\n\n## レビューの指摘と直し方\n\n| 回 | 崩れた前提 | 直し方 |\n| --- | --- | --- |\n| 設計の 1 回目 | 入口で 1 回確かめれば足りる。入口は手で表にできる | 長く動くサーバーは要求ごとに判定する。入口を試験で数える。`--stop` も判定する |\n| 実装の 1 回目 | 判定の前に解決しないのは MCP と閲覧だけでよい | 判定と解決を一度に行う `resolve()` を足した。POSIX では `kb/ない/..` が解決で `kb` に縮み、別の wiki に `.evolution/` を作りえた |\n| 実装の 1 回目 | 入口は正規表現で数えれば漏れない | `__main__` を持つスクリプトを構文木で見つけ、閉じた一覧に分類させた。サブコマンドは振り分けの前で判定する |\n| 実装の 2 回目 | 調べられないなら本文も読めない | `SCHEMA.md` だけが循環するリンクだと本文は読める。閲覧のサーバーは「調べられない」ときに新しい内容を組み立てない |\n\n## 途中で起きたこと\n\n- 試験の基準を取るための一括の実行の途中で、ファイルを書き換え始めたので、後半の結果が変更の入ったものになった。一括の実行中は書き換えない。\n- 手元の親の `main` は古く（to884/info-hive-dev#60 のマージ）、1 回目の実装のレビューの依頼の `git diff main..HEAD` に関係のない変更が混ざった。2 回目からは分岐点（`d100dfd`）と比べた。\n- `Edit` で、`old_string` と `new_string` を空白で終わらせると、その空白が落ちた（`action = \"...\"` が `action =\"...\"` になった）。行の中の空白だけが変わった行を差分から探して見つけた。\n- `<wiki>/ない/..` の試験は、Windows ではファイルシステムを呼ぶ前に `..` が縮むので当てはまらない。WSL の Ubuntu で動かして確かめた。\n- Auto-fix のある PR で、親の CI を待ってからマージするときは、作者の「CI のあとで続けて」を受けて、実行の終わりを 1 回だけ待った（`gh run watch` を裏で）。\n\n## 主張と行き先\n\n| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n| --- | --- | --- | --- | --- |\n| 1 | 初期化された wiki の判定、判定する場所、例外、試験の素材 | 設計、ADR-0019、差分 | create | [[初期化されたwikiの判定]] |\n| 2 | 0.12.2 と 0.13.0 が重なったとき、マージして版を保ち、出す順を作者に聞いた | 作業の記録 | update | [[リリースの確かめ方]] の「版を決めるとき」 |\n| 3 | 別のセッションの伝言の承認では、auto mode がマージを止めた | 作業の記録 | update | [[リリースの確かめ方]] の「マージの承認」 |\n| 4 | 0.13.0 も、親の CI を待って子をマージし、付け替えたあとの CI を待って親をマージした | 作業の記録 | update | [[リリースの確かめ方]] の「リポジトリをまたぐマージの順番」 |\n| 5 | v0.13.0 も注釈付きのタグだった | 作業の記録 | update | [[リリースの確かめ方]] の「タグとリリースの形」 |\n| 6 | v0.12.2 のタグとリリースは、このセッションが作った | 作業の記録 | update | [[titleが値なしや配列のときの修正-wiki-0.12.2]] の経緯の 10 |\n| 7 | 一括の実行中の書き換え、古い `main`、`Edit` の空白、CI を 1 回だけ待つこと | 作業の記録 | source_only | 作業の進め方の細部で、今のところほかのページから引く話ではない |\n\n## 関係するページ\n\n- [[初期化されたwikiの判定]]\n- [[リリースの確かめ方]]\n- [[titleが値なしや配列のときの修正-wiki-0.12.2]]\n",
+     "numLines": 69,
+     "startLine": 1,
+     "totalLines": 69
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01TV6LDm85xdvzMQeby6DU6t",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jcZsP6mhFxvxEaHaKd",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "## 答え\n判定は、`info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所で決めている。ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル（リンクなら先が通常のファイル）であれば初期化済みとして扱う。中身は読まない（ADR-0019）。\n\nただし、このページが書いているのは判定の規則と、判定を呼ぶ場所である。`wiki_initialized.py` の中身そのものは開いていない。\n\n## 根拠\n- [[初期化されたwikiの判定]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/初期化されたwikiの判定.md）: 「判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。」\n- 同ページ: 「ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル（リンクなら、先が通常のファイル）であれば初期化済みである。中身は読まない。」\n- 同ページ: 判定を呼ぶ場所は、1 回で終わる CLI が引数を読んだ直後、サブコマンドを持つ入口は振り分けの前の 1 か所、MCP と閲覧のサーバーは要求ごと、`wiki_fetch.py` はネットにつなぐ前、`init_wiki.py --upgrade` は基準の解決の前である。\n- 同ページ: ライブラリの関数（`wiki_lint.lint()`、`collect_pages()`、`WikiIndex` など）と評価のランナーの `wiki_root` は判定しない。\n- [[初期化していないディレクトリを wiki として扱わない修正と、wiki 0.13.0 のリリースの記録]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md）: 「ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた」。rag の `rag_config.py` も同じ規則を持つ、とも書いている（判定ページの 19 行目）。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/初期化されたwikiの判定.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md\n\n## 未確認の出典\n- `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` 本体は未読である。判定の実装は、このページの記述からは確かめていない。\n- 判定の原典として挙がっている ADR-0019 と `docs/plans/wiki-uninitialized-root-2026-11-13.md` は未読である。\n- rag の `rag_config.py` は未読である。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 6165,
+     "cache_read_input_tokens": 4821,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 6165
+     },
+     "output_tokens": 5,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "3e254210-6c5a-41ba-9968-ce954c64f49f",
+   "uuid": "23dcd113-bb04-4030-a4f4-fda507d7bcc6",
+   "timestamp": "2026-11-17T15:27:25.194Z",
+   "request_id": "req_011Ch8jcZdkNyUhPSNkN36ZF"
+  },
+  {
+   "duration_api_ms": 8784,
+   "stop_reason": "end_turn",
+   "session_id": "3e254210-6c5a-41ba-9968-ce954c64f49f",
+   "total_cost_usd": 0.00229515,
+   "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 6972,
+    "cache_read_input_tokens": 8835,
+    "output_tokens": 1624,
+    "output_tokens_details": {
+     "thinking_tokens": 52
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 6972,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 1278,
+      "cache_read_input_tokens": 4821,
+      "cache_creation_input_tokens": 6165,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 6165
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-haiku-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 1624,
+     "cacheReadInputTokens": 8835,
+     "cacheCreationInputTokens": 6972,
+     "webSearchRequests": 0,
+     "costUSD": 0.00229515,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 52,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 6972,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+     "background": 0,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {}
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 3,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "## 答え\n判定は、`info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所で決めている。ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル（リンクなら先が通常のファイル）であれば初期化済みとして扱う。中身は読まない（ADR-0019）。\n\nただし、このページが書いているのは判定の規則と、判定を呼ぶ場所である。`wiki_initialized.py` の中身そのものは開いていない。\n\n## 根拠\n- [[初期化されたwikiの判定]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/初期化されたwikiの判定.md）: 「判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。」\n- 同ページ: 「ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル（リンクなら、先が通常のファイル）であれば初期化済みである。中身は読まない。」\n- 同ページ: 判定を呼ぶ場所は、1 回で終わる CLI が引数を読んだ直後、サブコマンドを持つ入口は振り分けの前の 1 か所、MCP と閲覧のサーバーは要求ごと、`wiki_fetch.py` はネットにつなぐ前、`init_wiki.py --upgrade` は基準の解決の前である。\n- 同ページ: ライブラリの関数（`wiki_lint.lint()`、`collect_pages()`、`WikiIndex` など）と評価のランナーの `wiki_root` は判定しない。\n- [[初期化していないディレクトリを wiki として扱わない修正と、wiki 0.13.0 のリリースの記録]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md）: 「ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた」。rag の `rag_config.py` も同じ規則を持つ、とも書いている（判定ページの 19 行目）。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/初期化されたwikiの判定.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md\n\n## 未確認の出典\n- `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` 本体は未読である。判定の実装は、このページの記述からは確かめていない。\n- 判定の原典として挙がっている ADR-0019 と `docs/plans/wiki-uninitialized-root-2026-11-13.md` は未読である。\n- rag の `rag_config.py` は未読である。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+   "ttft_ms": 2581,
+   "type": "result",
+   "duration_ms": 9892,
+   "uuid": "18c5eec8-bb0e-42fa-bba0-8177ff39d1ab",
+   "ttft_stream_ms": 2202,
+   "time_to_request_ms": 746,
+   "first_content_frame_ms": 2203,
+   "queued_turn_count": 0,
+   "result_index": 0,
+   "model_usage_since_last_result": {
+    "claude-haiku-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 1624,
+     "cacheReadInputTokens": 8835,
+     "cacheCreationInputTokens": 6972,
+     "webSearchRequests": 0,
+     "costUSD": 0.00229515,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 52,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 6972,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "credential_expires_at": "2026-12-06T22:17:39.049Z"
+  }
+ ],
+ "opened": [
+  "project:concepts/初期化されたwikiの判定.md",
+  "project:sources/初期化していないディレクトリの扱い-wiki-0.13.0.md"
+ ],
+ "model_used": "claude-haiku-5-5",
+ "result": "## 答え\n判定は、`info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所で決めている。ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル（リンクなら先が通常のファイル）であれば初期化済みとして扱う。中身は読まない（ADR-0019）。\n\nただし、このページが書いているのは判定の規則と、判定を呼ぶ場所である。`wiki_initialized.py` の中身そのものは開いていない。\n\n## 根拠\n- [[初期化されたwikiの判定]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/初期化されたwikiの判定.md）: 「判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。」\n- 同ページ: 「ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル（リンクなら、先が通常のファイル）であれば初期化済みである。中身は読まない。」\n- 同ページ: 判定を呼ぶ場所は、1 回で終わる CLI が引数を読んだ直後、サブコマンドを持つ入口は振り分けの前の 1 か所、MCP と閲覧のサーバーは要求ごと、`wiki_fetch.py` はネットにつなぐ前、`init_wiki.py --upgrade` は基準の解決の前である。\n- 同ページ: ライブラリの関数（`wiki_lint.lint()`、`collect_pages()`、`WikiIndex` など）と評価のランナーの `wiki_root` は判定しない。\n- [[初期化していないディレクトリを wiki として扱わない修正と、wiki 0.13.0 のリリースの記録]]（C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md）: 「ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた」。rag の `rag_config.py` も同じ規則を持つ、とも書いている（判定ページの 19 行目）。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/初期化されたwikiの判定.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md\n\n## 未確認の出典\n- `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` 本体は未読である。判定の実装は、このページの記述からは確かめていない。\n- 判定の原典として挙がっている ADR-0019 と `docs/plans/wiki-uninitialized-root-2026-11-13.md` は未読である。\n- rag の `rag_config.py` は未読である。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+ "cost_usd": 0.00229515,
+ "duration_ms": 9892,
+ "is_error": false,
+ "terminal_reason": "completed",
+ "api_error": null,
+ "api_error_status": null,
+ "model_usage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 4,
+   "outputTokens": 1624,
+   "cacheReadInputTokens": 8835,
+   "cacheCreationInputTokens": 6972,
+   "webSearchRequests": 0,
+   "costUSD": 0.00229515,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 52,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 6972,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "cli_version": "2.1.325",
+ "memory_paths": {},
+ "exit": 0,
+ "stderr": ""
+}

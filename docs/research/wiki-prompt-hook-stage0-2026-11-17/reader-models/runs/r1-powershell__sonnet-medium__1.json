@@ -1,0 +1,16 @@
+{
+ "id": "r1-powershell",
+ "class": "R1",
+ "model": "sonnet",
+ "effort": "medium",
+ "run": 1,
+ "model_used": "claude-sonnet-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/powershellのパイプの打ち切り.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md"
+ ],
+ "result": "## 答え\n`Select-Object -First N` は、N 行を受け取るとパイプラインの上流を止める。wiki ではこれを**仮説**として扱っている。ファイルを最後に書くスクリプトの出力を `-First` でしぼると、書き込みの前にスクリプトが止まり、ファイルが書き直されないことがある。エラーは出ず、1 行目は正しく出るので、止まったことに気づきにくい。\n\n避け方は次のとおり。\n- ファイルを書くスクリプトには `-First` を付けない。\n- 出力を短く見たいときは `Select-Object -Last N` にする。または、出力をファイルに書いてから読む。\n- `-First` を付けるなら、書き込みを出力より先にする。\n- 実行のあとで、書くはずのファイルが変わったかを確かめる。\n\n観測した範囲は次のとおり。\n- 環境は PowerShell 7.6.9（Claude Code の PowerShell ツール）で、uv と Python の子プロセスを動かしたときである。\n- `-Last` では止まらなかった。\n- Bash の `head` で同じことが起きるかは確かめていない。\n- Windows PowerShell 5.1 でも確かめていない。\n\n## 根拠\n- [[powershellのパイプの打ち切り]]（concepts/powershellのパイプの打ち切り.md）: 「`Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止める。」（status は hypothesis）。避け方は「ファイルを書くスクリプトには `-First` を付けない。」\n- [[powershell-select-first-stops-writer-2026-11-15]]（sources/powershell-select-first-stops-writer-2026-11-15.md）: 観測の記録。`... --metrics-only 2>&1 | Select-Object -First 1` では `results.json` の `versions.pdftotext` が書き直されなかった。`Select-Object -Last 1` で実行し直すと書き直された。スクリプトは、すべての行を出したあとに `results.json` を書く。\n\n## 開いたページ\n1. concepts/powershellのパイプの打ち切り.md\n2. sources/powershell-select-first-stops-writer-2026-11-15.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）",
+ "cost_usd": 0.0461297,
+ "duration_ms": 12107
+}

@@ -1,0 +1,689 @@
+{
+ "protocol": 3,
+ "fingerprint": "c7b9e69a443a55c8807dd832222250a65db2f07b3b28e2e9c6ba3ed219e6dc40",
+ "id": "r1-rag051",
+ "class": "R1",
+ "model": "haiku",
+ "effort": "low",
+ "run": 1,
+ "requested_effort": "low",
+ "prompt_sha256": "79646bcad8ea1966dea16da127cc37211ba989acd905fc9cca71442d767d2af6",
+ "argv": [
+  "claude",
+  "-p",
+  "問い: 取り込み手順を rag 0.5.1 に合わせた変更で何が変わった？\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"pdfのヘッダーの判定の修正-rag-0.5.1\", \"path\": \"sources/pdfのヘッダーの判定の修正-rag-0.5.1.md\"}\n{\"slug\": \"取り込み手順の追従とリリース-wiki-0.11.1\", \"path\": \"sources/取り込み手順の追従とリリース-wiki-0.11.1.md\"}",
+  "--agent",
+  "wiki:wiki-reader",
+  "--model",
+  "haiku",
+  "--effort",
+  "low",
+  "--plugin-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--tools",
+  "Read,Glob,Grep",
+  "--allowedTools",
+  "Read,Glob,Grep",
+  "--max-budget-usd",
+  "2",
+  "--permission-mode",
+  "auto",
+  "--no-session-persistence",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "{\"mcpServers\":{}}",
+  "--settings",
+  "{\"autoMemoryEnabled\": false, \"claudeMdExcludes\": [\"**/CLAUDE.md\", \"**/CLAUDE.local.md\", \"**/AGENTS.md\", \"**/.claude/rules/**\"]}",
+  "--add-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+ ],
+ "events": [
+  {
+   "type": "system",
+   "subtype": "init",
+   "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "session_id": "f2dc646e-caee-4183-9be3-d96ad4c060d8",
+   "tools": [
+    "Read",
+    "Glob",
+    "Grep"
+   ],
+   "mcp_servers": [],
+   "model": "claude-haiku-5-5",
+   "permissionMode": "auto",
+   "slash_commands": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring",
+    "advisor",
+    "agents",
+    "auto-mode-setup",
+    "autocompact",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "output-style",
+    "context",
+    "effort",
+    "fast",
+    "focus",
+    "heapdump",
+    "init",
+    "mcp",
+    "import",
+    "model",
+    "__remote-workflow",
+    "workflow-launch-exec",
+    "reload-plugins",
+    "reload-skills",
+    "rename",
+    "ultrareview",
+    "security-review",
+    "usage-credits",
+    "extra-usage",
+    "usage",
+    "insights",
+    "recap",
+    "skill-doctor",
+    "goal",
+    "design-consent",
+    "design-revoke",
+    "list-agents",
+    "team-onboarding"
+   ],
+   "terminal_slash_commands": [
+    "doctor",
+    "color",
+    "focus",
+    "reload-plugins"
+   ],
+   "apiKeySource": "none",
+   "claude_code_version": "2.1.325",
+   "output_style": "default",
+   "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup",
+    "web-fetch",
+    "wiki:wiki-reader"
+   ],
+   "skills": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring"
+   ],
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+     "source": "wiki@inline",
+     "version": "0.0.0"
+    },
+    {
+     "name": "cc-plugin-agents-md",
+     "path": "builtin",
+     "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+     "name": "cc-plugin-telemetry",
+     "path": "builtin",
+     "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+     "name": "cc-plugin-privacy",
+     "path": "builtin",
+     "source": "cc-plugin-privacy@builtin"
+    },
+    {
+     "name": "cc-plugin-plugin-authoring",
+     "path": "builtin",
+     "source": "cc-plugin-plugin-authoring@builtin"
+    }
+   ],
+   "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1"
+   ],
+   "analytics_disabled": false,
+   "product_feedback_disabled": false,
+   "uuid": "fffff11f-1df0-43d7-bc9a-621fef3b0a0b",
+   "original_cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "additional_directories": [
+    "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+   ],
+   "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-3fe140e447cf8171bceb81a3d3fcc8bb",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "per_turn_effort_active": true,
+   "ultrathink_available": false,
+   "ultrathink_typed_raises": false,
+   "view_mode": "default",
+   "powershell_path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jFDUxnAbPWDysS3X6X",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01UgViasdXvJPeR8pt3rariZ",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1315,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1315
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "f2dc646e-caee-4183-9be3-d96ad4c060d8",
+   "uuid": "54d0a637-bf8c-4bcd-9cba-72b48373a55d",
+   "timestamp": "2026-11-17T15:22:31.237Z",
+   "request_id": "req_011Ch8jFDEKdH8uMNMsaaCKX",
+   "wire_tool_inputs": {
+    "toolu_01UgViasdXvJPeR8pt3rariZ": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md"
+    }
+   }
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jFDUxnAbPWDysS3X6X",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_0149NTMqGcx2QnamPqhCcaUp",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/取り込み手順の追従とリリース-wiki-0.11.1.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1315,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1315
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "f2dc646e-caee-4183-9be3-d96ad4c060d8",
+   "uuid": "7b9ca7c7-d849-410d-a96d-199fec8d77e4",
+   "timestamp": "2026-11-17T15:22:31.403Z",
+   "request_id": "req_011Ch8jFDEKdH8uMNMsaaCKX",
+   "wire_tool_inputs": {
+    "toolu_0149NTMqGcx2QnamPqhCcaUp": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/取り込み手順の追従とリリース-wiki-0.11.1.md"
+    }
+   }
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.92,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.55,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.92,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "651ca65c-4f28-4265-8245-8931ae91c09f",
+   "session_id": "f2dc646e-caee-4183-9be3-d96ad4c060d8"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01UgViasdXvJPeR8pt3rariZ",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"rag 0.5.1 の PDF のヘッダーの判定の修正の記録\"\n4\ttags: [\"rag\", \"リリース\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-12-rag-pdf-header-offset\"\n7\tingested: 2026-11-12\n8\tcreated: 2026-11-12\n9\tupdated: 2026-11-13\n10\t---\n11\t\n12\t# rag 0.5.1 の PDF のヘッダーの判定の修正の記録\n13\t\n14\t2026-11-12 の、`info-hive-rag` の `read_pdf`（`scripts/rag_index.py`）の修正の記録である。原本は、Sol の敵対的レビューの依頼と結果、境界を確かめたスクリプト（`probe_header_offset.py` など）を残した `docs/agent-runs/2026-11-12-rag-pdf-header-offset/` である。\n15\t\n16\t## 経緯\n17\t\n18\t- rag 0.5.0 の `read_pdf` は、ファイルの先頭がちょうど `%PDF-` でないと「PDF の形式ではありません」として拒んでいた。\n19\t- 全量の OCR（`docs/research/rag-full-ocr-v050-2026-11-09.md`）で、先頭に改行が 1 バイトあるだけの 2 文書（`L4/` の下の seL4 の論文）が、この理由で失敗した。\n20\t- `%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けるように直した。上限は PDFium にそろえた（[[pdfのヘッダーの条件]]）。\n21\t- Sol のレビューの判定は「採用可」（確信度：中）。軽微な指摘の 1 つが、wiki の取り込み手順が古い条件のままだということで、wiki 0.11.1 で別に直した（[[取り込み手順の追従とリリース-wiki-0.11.1]]）。\n22\t- to884/info-hive-rag#7 を 2026-11-12 にマージし（b3f45e3）、CHANGELOG に日付を入れた #8（0dea049）のあと、v0.5.1 をリリースした。\n23\t\n24\t## 判断\n25\t\n26\t- 版は 0.5.1（パッチ）。今まで受け付けていた入力の扱いを変えず、受け付ける範囲を広げるだけである。\n27\t- 抽出の版（`EXTRACT_REVISION`、ADR-0014）は上げない。SHA-256 と抽出は、前置きを含む読んだままのバイト列に対して行う。今まで受け付けていた PDF は判定の結果が変わらず、新たに受け付ける PDF は前の版では抽出まで進まないので、既存の抽出の結果と食い違わない。\n28\t- ヘッダーの判定を通っても、PDFium で開けるとは限らない（ヘッダーだけで本体がないなど）。開けないものは抽出で失敗する。前の判定も同じだったので変えない。\n29\t\n30\t## 確かめたこと\n31\t\n32\t- 実データの 2 件を、直した `read_pdf` と `extract_pages`（`ocr_mode` は `off`）に通した。70 ページと 18 ページで、すべてテキストのページだった。前置きの改行を取り除いても、先頭の 3 ページのテキストは同じだった。\n33\t- Windows の `.rag-venv` で、`tests/rag/` の `test_jobs.py`、`test_indexes.py`、`test_extraction.py` の 67 件が通った。\n34\t- 実データの 2 件を、MCP の `register_pdf` から索引化までの経路で取り込むことは確かめていない。\n35\t\n36\t## 主張と行き先\n37\t\n38\t| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n39\t| --- | --- | --- | --- | --- |\n40\t| 1 | rag が受け付ける PDF の条件、境界、確かめる段階、版による違い | README.md の「判断」、`probe_header_offset.py` | create | [[pdfのヘッダーの条件]] |\n41\t| 2 | 抽出の版を上げない理由 | README.md の「判断」 | create | [[pdfのヘッダーの条件]] に、取り込み直しが要らない理由として載せた |\n42\t| 3 | 全量の OCR で失敗した 2 文書と、実データで確かめた結果 | README.md の「確かめたこと」 | source_only | この修正だけの記録で、ほかのページから引く話ではない |\n43\t| 4 | Codex の読み取り専用のサンドボックスから、作業フォルダーの外の差分を読めなかった | README.md | source_only | `ask-codex` の使い方の話で、この wiki の話題ではない |\n44\t\n45\t## 関係するページ\n46\t\n47\t- [[pdfのヘッダーの条件]]\n48\t- [[取り込み手順の追従とリリース-wiki-0.11.1]]\n49\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "f2dc646e-caee-4183-9be3-d96ad4c060d8",
+   "uuid": "c478ac30-e396-4da5-bdcc-e269bd5c4693",
+   "timestamp": "2026-11-17T15:22:32.564Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md",
+     "content": "---\ntype: \"source\"\ntitle: \"rag 0.5.1 の PDF のヘッダーの判定の修正の記録\"\ntags: [\"rag\", \"リリース\"]\nauthors: [\"to884\"]\nraw: \"docs/agent-runs/2026-11-12-rag-pdf-header-offset\"\ningested: 2026-11-12\ncreated: 2026-11-12\nupdated: 2026-11-13\n---\n\n# rag 0.5.1 の PDF のヘッダーの判定の修正の記録\n\n2026-11-12 の、`info-hive-rag` の `read_pdf`（`scripts/rag_index.py`）の修正の記録である。原本は、Sol の敵対的レビューの依頼と結果、境界を確かめたスクリプト（`probe_header_offset.py` など）を残した `docs/agent-runs/2026-11-12-rag-pdf-header-offset/` である。\n\n## 経緯\n\n- rag 0.5.0 の `read_pdf` は、ファイルの先頭がちょうど `%PDF-` でないと「PDF の形式ではありません」として拒んでいた。\n- 全量の OCR（`docs/research/rag-full-ocr-v050-2026-11-09.md`）で、先頭に改行が 1 バイトあるだけの 2 文書（`L4/` の下の seL4 の論文）が、この理由で失敗した。\n- `%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けるように直した。上限は PDFium にそろえた（[[pdfのヘッダーの条件]]）。\n- Sol のレビューの判定は「採用可」（確信度：中）。軽微な指摘の 1 つが、wiki の取り込み手順が古い条件のままだということで、wiki 0.11.1 で別に直した（[[取り込み手順の追従とリリース-wiki-0.11.1]]）。\n- to884/info-hive-rag#7 を 2026-11-12 にマージし（b3f45e3）、CHANGELOG に日付を入れた #8（0dea049）のあと、v0.5.1 をリリースした。\n\n## 判断\n\n- 版は 0.5.1（パッチ）。今まで受け付けていた入力の扱いを変えず、受け付ける範囲を広げるだけである。\n- 抽出の版（`EXTRACT_REVISION`、ADR-0014）は上げない。SHA-256 と抽出は、前置きを含む読んだままのバイト列に対して行う。今まで受け付けていた PDF は判定の結果が変わらず、新たに受け付ける PDF は前の版では抽出まで進まないので、既存の抽出の結果と食い違わない。\n- ヘッダーの判定を通っても、PDFium で開けるとは限らない（ヘッダーだけで本体がないなど）。開けないものは抽出で失敗する。前の判定も同じだったので変えない。\n\n## 確かめたこと\n\n- 実データの 2 件を、直した `read_pdf` と `extract_pages`（`ocr_mode` は `off`）に通した。70 ページと 18 ページで、すべてテキストのページだった。前置きの改行を取り除いても、先頭の 3 ページのテキストは同じだった。\n- Windows の `.rag-venv` で、`tests/rag/` の `test_jobs.py`、`test_indexes.py`、`test_extraction.py` の 67 件が通った。\n- 実データの 2 件を、MCP の `register_pdf` から索引化までの経路で取り込むことは確かめていない。\n\n## 主張と行き先\n\n| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n| --- | --- | --- | --- | --- |\n| 1 | rag が受け付ける PDF の条件、境界、確かめる段階、版による違い | README.md の「判断」、`probe_header_offset.py` | create | [[pdfのヘッダーの条件]] |\n| 2 | 抽出の版を上げない理由 | README.md の「判断」 | create | [[pdfのヘッダーの条件]] に、取り込み直しが要らない理由として載せた |\n| 3 | 全量の OCR で失敗した 2 文書と、実データで確かめた結果 | README.md の「確かめたこと」 | source_only | この修正だけの記録で、ほかのページから引く話ではない |\n| 4 | Codex の読み取り専用のサンドボックスから、作業フォルダーの外の差分を読めなかった | README.md | source_only | `ask-codex` の使い方の話で、この wiki の話題ではない |\n\n## 関係するページ\n\n- [[pdfのヘッダーの条件]]\n- [[取り込み手順の追従とリリース-wiki-0.11.1]]\n",
+     "numLines": 49,
+     "startLine": 1,
+     "totalLines": 49
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01UgViasdXvJPeR8pt3rariZ",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_0149NTMqGcx2QnamPqhCcaUp",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"wiki 0.11.1 の取り込み手順の追従と、wiki 0.11.1・rag 0.5.1 のリリースの記録\"\n4\ttags: [\"rag\", \"リリース\", \"試験\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-12-wiki-rag-pdf-header-docs\"\n7\tingested: 2026-11-12\n8\tcreated: 2026-11-12\n9\tupdated: 2026-11-13\n10\t---\n11\t\n12\t# wiki 0.11.1 の取り込み手順の追従と、wiki 0.11.1・rag 0.5.1 のリリースの記録\n13\t\n14\t2026-11-12 の、rag 0.5.1 の修正（[[pdfのヘッダーの判定の修正-rag-0.5.1]]）に wiki の文書を合わせ、両プラグインをリリースするまでの記録である。原本は、Sol の敵対的レビューの依頼と結果、レビューした差分を残した `docs/agent-runs/2026-11-12-wiki-rag-pdf-header-docs/` である。\n15\t\n16\t## 経緯\n17\t\n18\t1. wiki の `skills/info-hive/references/ingest-workflow.md` の 18 行目が「拡張子が `.pdf` で先頭が `%PDF-` の通常のファイルだけを受け付け」と書いていた。`info-hive-wiki` の中で古い条件を書いていたのは、この 1 箇所だけだった。\n19\t2. rag の README の書き方に合わせて直し、版を 0.11.1 にした（014593f）。main はすでに 0.11.0 で、タグと GitHub リリースもあったので、次のパッチにした。\n20\t3. Sol のレビューは「条件付きで採用可」。版の条件がないことと、境界の書き方が 1 バイト狭く読めることを直した（6f8b688）。ヘッダーを確かめる段階が登録ではなく処理であることも、rag の main で確かめて書いた（[[pdfのヘッダーの条件]]）。\n21\t4. レビューの途中で to884/info-hive-rag#7 がマージされたので、wiki の文書が rag より先走ることはなくなった。\n22\t5. to884/info-hive-wiki#47 をマージし（59af357）、v0.11.1 をリリースした。親の to884/info-hive-dev#78 は、wiki の参照を PR の head からマージコミットに付け替えてからマージした（c457312）。\n23\t6. rag の v0.5.1 をリリースした（タグは 0dea049）。両方とも、使い捨ての設定でマーケットプレイスから入れて確かめた（[[リリースの確かめ方]]）。\n24\t\n25\t## 途中で起きたこと\n26\t\n27\t- 別のセッション（wiki の走査の修正）が、同じ wiki の 0.11.0 を準備していると知らせてきた。main ではすでに 0.11.0 が公開済みで、こちらが 0.11.1 を使ったので、相手は 0.11.2 以降になると伝えた。\n28\t- 親の #78 の CI で、`browse (windows-latest)` の静的版の試験が、`file://` のページの `page.goto` で 30 秒のタイムアウトになった。同じジョブで Playwright の導入に 6 分かかっていた（いつもはジョブ全体で 5 分ほど）。再実行で通った。ランナーの遅さによる一時的な失敗と見ているが、観測は 1 回だけである。\n29\t- Git Bash で `git show origin/main:.claude-plugin/plugin.json` を実行すると、引数が `origin\\main;.claude-plugin\\plugin.json` に書き換えられて失敗した。`MSYS_NO_PATHCONV=1` を付けて確かめ直した（[[git-bashのパス変換]]）。\n30\t- to884/info-hive-dev#77（rag の参照の付け替え）を「まだマージされていない」と報告したが、実際には 2026-11-12 21:54（日本時間。GitHub の記録では 12:54Z）にマージされていた。状態を確かめた後に、取り直さないまま報告していた。\n31\t- この記録を wiki に足す作業（#82）で、ファイルを Python で書き戻すと、LF の改行が CRLF に変わった。コミットの前に `git diff --stat` で気づいて戻した（[[pythonの書き戻しの改行]]）。\n32\t\n33\t## 残したこと\n34\t\n35\t- rag の README、CHANGELOG、v0.5.1 の GitHub リリースの本文は、まだ「先頭から 1024 バイト目までに」の書き方である。wiki だけを「前置きが 1024 バイト以下」に直した。2026-11-13 に rag 0.5.2 でそろえた（[[pdfのヘッダーの条件]]）。\n36\t- wiki の CHANGELOG の末尾の比較リンクは v0.7.0 で止まったままで、`[0.11.1]` の行も足していない。CONTRIBUTING.md のリリースの手順のうち、スモークテストもしていない。\n37\t- `tests/wiki` を全部流したときの 2 件の失敗と 16 件の例外は、変更前の main で同じになるかを確かめていない。\n38\t\n39\t## 主張と行き先\n40\t\n41\t| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n42\t| --- | --- | --- | --- | --- |\n43\t| 1 | ヘッダーを確かめる段階、境界の書き方、rag の版による違い | review-sol.md、README.md の「判断」 | create | [[pdfのヘッダーの条件]] の、書き方と確かめる段階の節 |\n44\t| 2 | リリースの完了の条件、タグとリリースの形、使い捨ての設定での導入の確かめ方 | README.md、作業の記録 | create | [[リリースの確かめ方]] |\n45\t| 3 | マージの順番（rag → wiki → 親の参照） | 作業の記録 | create | [[リリースの確かめ方]] |\n46\t| 4 | 並行するセッションの版の衝突と、報告の前に状態を取り直すこと | 作業の記録 | create | [[リリースの確かめ方]] |\n47\t| 5 | `browse (windows-latest)` の一時的なタイムアウト | 作業の記録 | source_only | 観測が 1 回で、傾向とは言えない |\n48\t| 6 | CHANGELOG の比較リンクが v0.7.0 で止まっている | review-sol.md | source_only | 既存の食い違いで、直す作業は別にする |\n49\t| 7 | Git Bash のパス変換で `git show <リビジョン>:<パス>` が壊れ、`MSYS_NO_PATHCONV=1` で避けられる | 作業の記録（2026-11-13 に形を変えて確かめ直した） | create | [[git-bashのパス変換]] |\n50\t| 8 | Windows の Python の `write_text` が LF を CRLF に変え、Git Bash の `grep` は `-U` なしでは CR を数えない | 作業の記録（2026-11-13 に確かめ直した） | create | [[pythonの書き戻しの改行]] |\n51\t\n52\t## 関係するページ\n53\t\n54\t- [[pdfのヘッダーの判定の修正-rag-0.5.1]]\n55\t- [[pdfのヘッダーの条件]]\n56\t- [[リリースの確かめ方]]\n57\t- [[git-bashのパス変換]]\n58\t- [[pythonの書き戻しの改行]]\n59\t- [[pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3]]\n60\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "f2dc646e-caee-4183-9be3-d96ad4c060d8",
+   "uuid": "fcd29294-fbe4-486d-962a-6eb3b1acf1c1",
+   "timestamp": "2026-11-17T15:22:32.580Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/取り込み手順の追従とリリース-wiki-0.11.1.md",
+     "content": "---\ntype: \"source\"\ntitle: \"wiki 0.11.1 の取り込み手順の追従と、wiki 0.11.1・rag 0.5.1 のリリースの記録\"\ntags: [\"rag\", \"リリース\", \"試験\"]\nauthors: [\"to884\"]\nraw: \"docs/agent-runs/2026-11-12-wiki-rag-pdf-header-docs\"\ningested: 2026-11-12\ncreated: 2026-11-12\nupdated: 2026-11-13\n---\n\n# wiki 0.11.1 の取り込み手順の追従と、wiki 0.11.1・rag 0.5.1 のリリースの記録\n\n2026-11-12 の、rag 0.5.1 の修正（[[pdfのヘッダーの判定の修正-rag-0.5.1]]）に wiki の文書を合わせ、両プラグインをリリースするまでの記録である。原本は、Sol の敵対的レビューの依頼と結果、レビューした差分を残した `docs/agent-runs/2026-11-12-wiki-rag-pdf-header-docs/` である。\n\n## 経緯\n\n1. wiki の `skills/info-hive/references/ingest-workflow.md` の 18 行目が「拡張子が `.pdf` で先頭が `%PDF-` の通常のファイルだけを受け付け」と書いていた。`info-hive-wiki` の中で古い条件を書いていたのは、この 1 箇所だけだった。\n2. rag の README の書き方に合わせて直し、版を 0.11.1 にした（014593f）。main はすでに 0.11.0 で、タグと GitHub リリースもあったので、次のパッチにした。\n3. Sol のレビューは「条件付きで採用可」。版の条件がないことと、境界の書き方が 1 バイト狭く読めることを直した（6f8b688）。ヘッダーを確かめる段階が登録ではなく処理であることも、rag の main で確かめて書いた（[[pdfのヘッダーの条件]]）。\n4. レビューの途中で to884/info-hive-rag#7 がマージされたので、wiki の文書が rag より先走ることはなくなった。\n5. to884/info-hive-wiki#47 をマージし（59af357）、v0.11.1 をリリースした。親の to884/info-hive-dev#78 は、wiki の参照を PR の head からマージコミットに付け替えてからマージした（c457312）。\n6. rag の v0.5.1 をリリースした（タグは 0dea049）。両方とも、使い捨ての設定でマーケットプレイスから入れて確かめた（[[リリースの確かめ方]]）。\n\n## 途中で起きたこと\n\n- 別のセッション（wiki の走査の修正）が、同じ wiki の 0.11.0 を準備していると知らせてきた。main ではすでに 0.11.0 が公開済みで、こちらが 0.11.1 を使ったので、相手は 0.11.2 以降になると伝えた。\n- 親の #78 の CI で、`browse (windows-latest)` の静的版の試験が、`file://` のページの `page.goto` で 30 秒のタイムアウトになった。同じジョブで Playwright の導入に 6 分かかっていた（いつもはジョブ全体で 5 分ほど）。再実行で通った。ランナーの遅さによる一時的な失敗と見ているが、観測は 1 回だけである。\n- Git Bash で `git show origin/main:.claude-plugin/plugin.json` を実行すると、引数が `origin\\main;.claude-plugin\\plugin.json` に書き換えられて失敗した。`MSYS_NO_PATHCONV=1` を付けて確かめ直した（[[git-bashのパス変換]]）。\n- to884/info-hive-dev#77（rag の参照の付け替え）を「まだマージされていない」と報告したが、実際には 2026-11-12 21:54（日本時間。GitHub の記録では 12:54Z）にマージされていた。状態を確かめた後に、取り直さないまま報告していた。\n- この記録を wiki に足す作業（#82）で、ファイルを Python で書き戻すと、LF の改行が CRLF に変わった。コミットの前に `git diff --stat` で気づいて戻した（[[pythonの書き戻しの改行]]）。\n\n## 残したこと\n\n- rag の README、CHANGELOG、v0.5.1 の GitHub リリースの本文は、まだ「先頭から 1024 バイト目までに」の書き方である。wiki だけを「前置きが 1024 バイト以下」に直した。2026-11-13 に rag 0.5.2 でそろえた（[[pdfのヘッダーの条件]]）。\n- wiki の CHANGELOG の末尾の比較リンクは v0.7.0 で止まったままで、`[0.11.1]` の行も足していない。CONTRIBUTING.md のリリースの手順のうち、スモークテストもしていない。\n- `tests/wiki` を全部流したときの 2 件の失敗と 16 件の例外は、変更前の main で同じになるかを確かめていない。\n\n## 主張と行き先\n\n| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n| --- | --- | --- | --- | --- |\n| 1 | ヘッダーを確かめる段階、境界の書き方、rag の版による違い | review-sol.md、README.md の「判断」 | create | [[pdfのヘッダーの条件]] の、書き方と確かめる段階の節 |\n| 2 | リリースの完了の条件、タグとリリースの形、使い捨ての設定での導入の確かめ方 | README.md、作業の記録 | create | [[リリースの確かめ方]] |\n| 3 | マージの順番（rag → wiki → 親の参照） | 作業の記録 | create | [[リリースの確かめ方]] |\n| 4 | 並行するセッションの版の衝突と、報告の前に状態を取り直すこと | 作業の記録 | create | [[リリースの確かめ方]] |\n| 5 | `browse (windows-latest)` の一時的なタイムアウト | 作業の記録 | source_only | 観測が 1 回で、傾向とは言えない |\n| 6 | CHANGELOG の比較リンクが v0.7.0 で止まっている | review-sol.md | source_only | 既存の食い違いで、直す作業は別にする |\n| 7 | Git Bash のパス変換で `git show <リビジョン>:<パス>` が壊れ、`MSYS_NO_PATHCONV=1` で避けられる | 作業の記録（2026-11-13 に形を変えて確かめ直した） | create | [[git-bashのパス変換]] |\n| 8 | Windows の Python の `write_text` が LF を CRLF に変え、Git Bash の `grep` は `-U` なしでは CR を数えない | 作業の記録（2026-11-13 に確かめ直した） | create | [[pythonの書き戻しの改行]] |\n\n## 関係するページ\n\n- [[pdfのヘッダーの判定の修正-rag-0.5.1]]\n- [[pdfのヘッダーの条件]]\n- [[リリースの確かめ方]]\n- [[git-bashのパス変換]]\n- [[pythonの書き戻しの改行]]\n- [[pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3]]\n",
+     "numLines": 60,
+     "startLine": 1,
+     "totalLines": 60
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_0149NTMqGcx2QnamPqhCcaUp",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "f2dc646e-caee-4183-9be3-d96ad4c060d8",
+   "uuid": "c7a5523e-4cb1-4e96-af4c-df5e507d4ce9"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 300,
+   "estimated_tokens_delta": 250,
+   "session_id": "f2dc646e-caee-4183-9be3-d96ad4c060d8",
+   "uuid": "883a3280-324e-4ad1-8f6e-a94cdc382eb2"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 550,
+   "estimated_tokens_delta": 250,
+   "session_id": "f2dc646e-caee-4183-9be3-d96ad4c060d8",
+   "uuid": "bc6b0659-7bf1-4b48-9643-861487587951"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jFWpVb3mDgRC9VnXHy",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "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"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 4802,
+     "cache_read_input_tokens": 4841,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 4802
+     },
+     "output_tokens": 5,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "f2dc646e-caee-4183-9be3-d96ad4c060d8",
+   "uuid": "531c8855-3665-4300-adfd-d99d335507d3",
+   "timestamp": "2026-11-17T15:22:37.514Z",
+   "request_id": "req_011Ch8jFWbrkB3FHDxoUYEGM",
+   "thinking_duration_ms": 2464,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jFWpVb3mDgRC9VnXHy",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "## 答え\n\nrag 0.5.1 に合わせて、wiki 側で変わったのは取り込み手順の 1 箇所だけです。`skills/info-hive/references/ingest-workflow.md` の 18 行目にあった「拡張子が `.pdf` で先頭が `%PDF-` の通常のファイルだけを受け付け」という古い条件を直しました。新しい条件は、`%PDF-` の前に置かれたバイトが 1024 バイト以下なら受け付ける、というものです。版は 0.11.1 のパッチです（014593f）。\n\nrag 側の変更は、`read_pdf` が先頭の改行など 1024 バイト以下の前置きを許すようにしたことです。抽出の版（`EXTRACT_REVISION`）は上げていません。今まで受け付けていた入力の扱いは変わらず、受け付ける範囲だけが広がっています。\n\n## 根拠\n\n- [[取り込み手順の追従とリリース-wiki-0.11.1]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/取り込み手順の追従とリリース-wiki-0.11.1.md）: 「wiki の `skills/info-hive/references/ingest-workflow.md` の 18 行目が『拡張子が `.pdf` で先頭が `%PDF-` の通常のファイルだけを受け付け』と書いていた」「`info-hive-wiki` の中で古い条件を書いていたのは、この 1 箇所だけだった」。直した後は「前置きが 1024 バイト以下」の書き方になった。\n- [[pdfのヘッダーの判定の修正-rag-0.5.1]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md）: 「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けるように直した」「版は 0.5.1（パッチ）。今まで受け付けていた入力の扱いを変えず、受け付ける範囲を広げるだけである」「抽出の版（`EXTRACT_REVISION`、ADR-0014）は上げない」。\n\n## 開いたページ\n1. /C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md\n2. /C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/取り込み手順の追従とリリース-wiki-0.11.1.md\n\n## 未確認の出典\n- [[pdfのヘッダーの条件]]、[[リリースの確かめ方]]、[[pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3]] は、この 2 ページから引かれているだけで、開いていません（未読）。\n- 同じ記録に、rag 0.5.2 で書き方をそろえたとあります。この点は未読のページに由来するため、ここでは確認していません。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 4802,
+     "cache_read_input_tokens": 4841,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 4802
+     },
+     "output_tokens": 5,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "f2dc646e-caee-4183-9be3-d96ad4c060d8",
+   "uuid": "6a0405d3-6548-4f07-97b6-1c7988c65389",
+   "timestamp": "2026-11-17T15:22:41.760Z",
+   "request_id": "req_011Ch8jFWbrkB3FHDxoUYEGM"
+  },
+  {
+   "duration_api_ms": 11053,
+   "stop_reason": "end_turn",
+   "session_id": "f2dc646e-caee-4183-9be3-d96ad4c060d8",
+   "total_cost_usd": 0.0023869700000000004,
+   "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 6117,
+    "cache_read_input_tokens": 8367,
+    "output_tokens": 2159,
+    "output_tokens_details": {
+     "thinking_tokens": 568
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 6117,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 1855,
+      "cache_read_input_tokens": 4841,
+      "cache_creation_input_tokens": 4802,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 4802
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-haiku-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 2159,
+     "cacheReadInputTokens": 8367,
+     "cacheCreationInputTokens": 6117,
+     "webSearchRequests": 0,
+     "costUSD": 0.0023869700000000004,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 568,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 6117,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+     "background": 0,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {}
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 3,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "## 答え\n\nrag 0.5.1 に合わせて、wiki 側で変わったのは取り込み手順の 1 箇所だけです。`skills/info-hive/references/ingest-workflow.md` の 18 行目にあった「拡張子が `.pdf` で先頭が `%PDF-` の通常のファイルだけを受け付け」という古い条件を直しました。新しい条件は、`%PDF-` の前に置かれたバイトが 1024 バイト以下なら受け付ける、というものです。版は 0.11.1 のパッチです（014593f）。\n\nrag 側の変更は、`read_pdf` が先頭の改行など 1024 バイト以下の前置きを許すようにしたことです。抽出の版（`EXTRACT_REVISION`）は上げていません。今まで受け付けていた入力の扱いは変わらず、受け付ける範囲だけが広がっています。\n\n## 根拠\n\n- [[取り込み手順の追従とリリース-wiki-0.11.1]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/取り込み手順の追従とリリース-wiki-0.11.1.md）: 「wiki の `skills/info-hive/references/ingest-workflow.md` の 18 行目が『拡張子が `.pdf` で先頭が `%PDF-` の通常のファイルだけを受け付け』と書いていた」「`info-hive-wiki` の中で古い条件を書いていたのは、この 1 箇所だけだった」。直した後は「前置きが 1024 バイト以下」の書き方になった。\n- [[pdfのヘッダーの判定の修正-rag-0.5.1]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md）: 「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けるように直した」「版は 0.5.1（パッチ）。今まで受け付けていた入力の扱いを変えず、受け付ける範囲を広げるだけである」「抽出の版（`EXTRACT_REVISION`、ADR-0014）は上げない」。\n\n## 開いたページ\n1. /C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md\n2. /C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/取り込み手順の追従とリリース-wiki-0.11.1.md\n\n## 未確認の出典\n- [[pdfのヘッダーの条件]]、[[リリースの確かめ方]]、[[pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3]] は、この 2 ページから引かれているだけで、開いていません（未読）。\n- 同じ記録に、rag 0.5.2 で書き方をそろえたとあります。この点は未読のページに由来するため、ここでは確認していません。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+   "ttft_ms": 4031,
+   "type": "result",
+   "duration_ms": 14593,
+   "uuid": "a91da34c-7e25-40c2-acf4-b3edf1033975",
+   "ttft_stream_ms": 4029,
+   "time_to_request_ms": 1778,
+   "first_content_frame_ms": 4029,
+   "queued_turn_count": 0,
+   "result_index": 0,
+   "model_usage_since_last_result": {
+    "claude-haiku-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 2159,
+     "cacheReadInputTokens": 8367,
+     "cacheCreationInputTokens": 6117,
+     "webSearchRequests": 0,
+     "costUSD": 0.0023869700000000004,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 568,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 6117,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "credential_expires_at": "2026-12-06T22:17:39.049Z"
+  }
+ ],
+ "opened": [
+  "project:sources/pdfのヘッダーの判定の修正-rag-0.5.1.md",
+  "project:sources/取り込み手順の追従とリリース-wiki-0.11.1.md"
+ ],
+ "model_used": "claude-haiku-5-5",
+ "result": "## 答え\n\nrag 0.5.1 に合わせて、wiki 側で変わったのは取り込み手順の 1 箇所だけです。`skills/info-hive/references/ingest-workflow.md` の 18 行目にあった「拡張子が `.pdf` で先頭が `%PDF-` の通常のファイルだけを受け付け」という古い条件を直しました。新しい条件は、`%PDF-` の前に置かれたバイトが 1024 バイト以下なら受け付ける、というものです。版は 0.11.1 のパッチです（014593f）。\n\nrag 側の変更は、`read_pdf` が先頭の改行など 1024 バイト以下の前置きを許すようにしたことです。抽出の版（`EXTRACT_REVISION`）は上げていません。今まで受け付けていた入力の扱いは変わらず、受け付ける範囲だけが広がっています。\n\n## 根拠\n\n- [[取り込み手順の追従とリリース-wiki-0.11.1]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/取り込み手順の追従とリリース-wiki-0.11.1.md）: 「wiki の `skills/info-hive/references/ingest-workflow.md` の 18 行目が『拡張子が `.pdf` で先頭が `%PDF-` の通常のファイルだけを受け付け』と書いていた」「`info-hive-wiki` の中で古い条件を書いていたのは、この 1 箇所だけだった」。直した後は「前置きが 1024 バイト以下」の書き方になった。\n- [[pdfのヘッダーの判定の修正-rag-0.5.1]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md）: 「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けるように直した」「版は 0.5.1（パッチ）。今まで受け付けていた入力の扱いを変えず、受け付ける範囲を広げるだけである」「抽出の版（`EXTRACT_REVISION`、ADR-0014）は上げない」。\n\n## 開いたページ\n1. /C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md\n2. /C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/取り込み手順の追従とリリース-wiki-0.11.1.md\n\n## 未確認の出典\n- [[pdfのヘッダーの条件]]、[[リリースの確かめ方]]、[[pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3]] は、この 2 ページから引かれているだけで、開いていません（未読）。\n- 同じ記録に、rag 0.5.2 で書き方をそろえたとあります。この点は未読のページに由来するため、ここでは確認していません。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+ "cost_usd": 0.0023869700000000004,
+ "duration_ms": 14593,
+ "is_error": false,
+ "terminal_reason": "completed",
+ "api_error": null,
+ "api_error_status": null,
+ "model_usage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 4,
+   "outputTokens": 2159,
+   "cacheReadInputTokens": 8367,
+   "cacheCreationInputTokens": 6117,
+   "webSearchRequests": 0,
+   "costUSD": 0.0023869700000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 568,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 6117,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "cli_version": "2.1.325",
+ "memory_paths": {},
+ "exit": 0,
+ "stderr": ""
+}
