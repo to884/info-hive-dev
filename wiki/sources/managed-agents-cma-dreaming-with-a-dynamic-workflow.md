@@ -79,7 +79,7 @@ Claude の cookbook の 1 本で、[[components-of-agent-memory]] が紹介す�
 - メモリの形は、この wiki の規約と近い。`_index.md` は `index.md`、`[[slug]]` は wikilink、`CONFLICT:` は「矛盾を上書きしない」に当たる。frontmatter の `name`、`description`、`metadata` は、Claude Code の auto memory のファイルと同じ形である。
 - 同時の書き込みは、この wiki ではロック（ADR-0023）で防ぐ設計を承認している。cookbook は、ロックを持たずに、読み戻しと段の分け方で防ぐ。どちらが確かかは、この wiki では確かめていない。
 
-## 主張と行き先
+## 取り込んだ内容と載せたページ
 
 | 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |
 | --- | --- | --- | --- | --- |
