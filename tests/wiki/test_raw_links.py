@@ -431,6 +431,45 @@ class RawTests(Base):
         checked = wiki_captions.check_wiki(self.wiki, raw_roots=[self.raw])
         self.assertFalse(any(w["state"] == "parents_unchecked" for w in checked.raw_warnings))
 
+    def test_caption_checker_reports_raw_version_and_identity_mismatches(self):
+        target = self.write("a.md", '---\nurl: "https://actual"\n---\n内容', self.raw)
+        for meta, kind in (({"raw_sha256": "0" * 64}, "version"), ({"url": "https://other"}, "identity")):
+            for related in ("unrelated", "video", "selected"):
+                with self.subTest(kind=kind, related=related):
+                    self.source_page(str(target), **meta, **({"caption_kind": "asr"} if related == "video" else {}))
+                    result = wiki_captions.check_wiki(self.wiki, raw_roots=[self.raw],
+                                                     only_raw=str(target) if related == "selected" else None)
+                    warnings = [w for w in result.raw_warnings if w["state"] == "missing"]
+                    self.assertEqual(len(warnings), 1)
+                    self.assertEqual(warnings[0]["mismatches"][0]["kind"], kind)
+                    errors = [f for f in result.findings if f.code == "unreadable_raw"]
+                    self.assertEqual(len(errors), 0 if related == "unrelated" else 1)
+
+    def test_queued_directory_replaced_by_link_is_not_read(self):
+        queued = self.raw / "a"
+        queued.mkdir()
+        trigger = self.write("z.txt", "後の項目", self.raw)
+        self.write("secret.txt", "外の原本", self.ext)
+        original_stat = wiki_pages._stat_entry
+        original_list = wiki_pages._list_dir
+        changed = []
+
+        def replace_queued(path):
+            if Path(path) == trigger and not changed:
+                queued.rmdir()
+                if not junction(queued, self.ext):
+                    self.skipTest("ディレクトリのリンクを作れない")
+                changed.append(True)
+            return original_stat(path)
+
+        with mock.patch.object(wiki_pages, "_stat_entry", side_effect=replace_queued), \
+             mock.patch.object(wiki_pages, "_list_dir", side_effect=lambda p: sorted(original_list(p), key=lambda e: e.name)), \
+             mock.patch.object(wiki_raw, "_digest", side_effect=AssertionError("リンクを検出せず本文を読んだ")):
+            result = self.resolve(str(self.raw), raw_sha256="0" * 64)[0]
+        self.assertTrue(changed)
+        self.assertEqual(result.state, "link")
+        self.assertEqual(Path(result.links[0]["path"]), queued)
+
 
 if __name__ == "__main__":
     unittest.main()

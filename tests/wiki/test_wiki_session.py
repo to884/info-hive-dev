@@ -853,6 +853,14 @@ m.make_read_only = must_not_chmod
         done = self.write(dec, sha, code=1, patch=patch)
         self.assertIn("link", done.stderr.decode("utf-8"))
 
+    def test_post_write_check_uses_session_base_despite_unrelated_wiki_raw_link(self):
+        if not make_junction(self.wiki / "raw", self.raw):
+            self.skipTest("ディレクトリのリンクを作れない")
+        sha, path, out = self.written()
+        self.assertEqual(out["raw_ref"], "raw/会話.md")
+        self.assertTrue(ws.is_read_only(path))
+        self.assertTrue(self.verify(sha)["read_only"])
+
     def test_parent_in_root_is_rejected_before_raw_is_created(self):
         dec = self.init()
         sha = self.meta(dec)["render_sha256"]
