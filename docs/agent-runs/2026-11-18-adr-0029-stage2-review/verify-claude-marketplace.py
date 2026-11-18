@@ -30,7 +30,7 @@ with tempfile.TemporaryDirectory(prefix="wiki-0340-marketplace-") as tmp:
     dest = Path(entry["installPath"])
     for host in (".claude-plugin", ".codex-plugin"):
         assert json.loads((dest / host / "plugin.json").read_text(encoding="utf-8"))["version"] == version
-    names = subprocess.check_output(["git", "diff", "--name-only", "--diff-filter=ACMR", "v0.32.0", "v" + version], cwd=plugin, encoding="utf-8").splitlines()
+    names = subprocess.check_output(["git", "diff", "--name-only", "--diff-filter=ACMR", "v0.33.0", "v" + version], cwd=plugin, encoding="utf-8").splitlines()
     checked = {}
     for name in names:
         expected = subprocess.check_output(["git", "show", "v" + version + ":" + name], cwd=plugin)

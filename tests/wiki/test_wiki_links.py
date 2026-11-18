@@ -1213,6 +1213,11 @@ class ReadSiteInventoryTests(unittest.TestCase):
     URL = "ファイルではなく URL を開く"
 
     SITES = {
+        ("wiki_prompt_context.py", "read_text"): WALKED,  # scan_wiki/read_indexが共通の走査で得た記事だけを渡す
+        ("wiki_prompt_context.py", "read_page"): WALKED,
+        ("wiki_prompt_context.py", "read_index"): WALKED,
+        ("wiki_prompt_context.py", "load_state"): NOT_ARTICLE,
+        ("wiki_prompt_context.py", "state_lock"): NOT_ARTICLE,
         ("wiki_overview.py", "_page_state"): GATEWAY,
         ("wiki_overview.py", "_source"): GATEWAY,
         ("wiki_overview.py", "_read"): NOT_ARTICLE,  # 概要・下書き。記事の読み取りは _source を通す
