@@ -66,6 +66,18 @@
 - [[2つのwikiを引く問い合わせの設計-2026-11-16]]: `/wiki:query --both` で 2 つの wiki を引く設計、書かない問い合わせ、2 つの根を受け取る読み手、11 回の敵対的レビューと 4 体の見直し、18 版目で止めた
 - [[queryの確からしさのsonnetでの測定-2026-11-16]]: wiki 0.20.0 の `/wiki:query` の確信度を Sonnet 5.5 で 11 問 × 3 回測った結果（一致 24/33、手順 5b を開いた回は 0）と、規則の直しの案
 - [[components-of-agent-memory]]: Anthropic の記事。エージェントのメモリの 4 層とドリーミング、CL-Bench、Pokémon、wiki と検索の組み合わせ、共有ページの書き込みの欠け
+- [[claude-api-effort]]: Anthropic の公式ガイド。effort の段階、モデル別の推奨、推論モードとプロンプトキャッシュの条件
+- [[claude-api-effort-per-message]]: 会話途中で effort を変えるベータ機能。メッセージの配置、適用時点、対応モデルとエラー条件
+- [[claude-api-thinking]]: Anthropic の公式ガイド。推論モード、表示、ツール利用、推論ブロックの保持とプロンプトキャッシュ
+- [[claude-thinking-steering-and-cost]]: 適応型推論の調整と評価、リクエスト単位の出力上限、推論トークンの計上、キャッシュの検証例
+- [[claude-thinking-tool-workflows]]: ツール結果の返送、推論ブロックを含む応答の保持、呼び出し間の推論の例
+- [[claude-thinking-troubleshooting]]: 推論設定の 400 エラー、返送した推論ブロックの署名、空の推論フィールド、停止とキャッシュミスの診断
+- [[claude-api-extended-thinking]]: 手動の推論予算、ツール呼び出し間の推論、キャッシュ、適応型推論への移行
+- [[claude-api-model-migration]]: Claude Fable 5.2・Mythos 5.2、Opus 5.5、Sonnet 5.5、Haiku 5.5 のモデル別移行ガイド一覧
+- [[claude-fable-5-2-migration]]: Fable 5.2・Mythos 5.2 への移行。推論の設定と保持、会話履歴の照合、ツールの互換性
+- [[claude-opus-5-5-migration]]: Opus 5.5 への移行。常に有効な適応型推論、応答ブロックの処理、移行元別チェックリスト
+- [[claude-sonnet-5-5-migration]]: Sonnet 5.5 への移行。between_tools の制約、推論の表示と保持、移行元別チェックリスト
+- [[claude-haiku-5-5-migration]]: Haiku 5.5 への移行。手動予算から適応型推論への切り替え、トークンの再計測、推論ブロックの保持
 - [[managed-agents-cma-dreaming-with-a-dynamic-workflow]]: ドリーミングを Managed Agents の動的ワークフローで組む cookbook。3 種のエージェント、wiki 型のメモリ、同時の書き込みの扱い、信頼できない入力への守り、費用
 - [[claude-quickstarts-managed-agents-knowledge-wiki]]: 変化の遅い文書群から一度作るナレッジ wiki のクイックスタート（README）。作る段と問う段、出所と矛盾の保ち方、費用の主張、共有ページの約 5% の損失
 - [[queryの確からしさの未測定の規則の測定-2026-11-16]]: wiki 0.21.1 の確信度の未測定の規則（シンセシス、矛盾、superseded、エッジ、検索の縮退、複数の結論）を試験用の wiki で 15 問 × 3 回測った結果（一致 40/45、グラフを引いた回は 0）と、規則の直しの案
@@ -104,6 +116,8 @@
 - [[frontmatterのリストの値]]: パーサーがリストの欄を文字のまま、1 つの文字の欄（`title`、`type`、`updated` など）を配列で返す形と、そろえる関数の違い、残っている欠陥
 - [[初期化されたwikiの判定]]: ルートの `SCHEMA.md` で初期化された wiki を見分ける規則、判定する場所と例外、試験の素材の決まり
 - [[ingestに使うモデル]]: /wiki:ingest の raw の段は Sonnet 5.5 で行う決定と、その理由、受け入れた弱点。0.15.0 からはエージェント wiki:web-raw が行う
+- [[claude-effort]]: Claude API で応答に使うトークン量を調整する設定。モデル別の既定値、出力上限、会話途中の変更
+- [[claude-thinking]]: Claude API の推論モードと表示、手動予算と適応型への移行、トークンの計上、推論ブロックの返送
 - [[コマンドの引数の渡し方]]: コマンドが利用者の引数をスクリプトに渡すとき、シェルに届く文字を限る決まりと、対話のセッションでの展開
 - [[コマンドの出力のリンク]]: コマンドの出力に載せる文書のリンクを GitHub の版のタグにした理由と、書き換えを独立した読み方で確かめる作り
 - [[記事作成の5区分]]: 記事作成を発見、構造化、体系化、執筆、維持に分け、きっかけごとに使う手法と使わない手法を決める整理

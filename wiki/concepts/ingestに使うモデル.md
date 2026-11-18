@@ -2,9 +2,9 @@
 type: "concept"
 title: "/wiki:ingest に使うモデル"
 tags: ["取り込み"]
-sources: ["ingestのモデルの比較-2026-11-13", "rawの段を任せるエージェントの確かめ-2026-11-14"]
+sources: ["ingestのモデルの比較-2026-11-13", "rawの段を任せるエージェントの確かめ-2026-11-14", "claude-api-effort"]
 created: 2026-11-13
-updated: 2026-11-14
+updated: 2026-11-18
 ---
 
 # /wiki:ingest に使うモデル
@@ -37,3 +37,5 @@ Sonnet で取り込んだ raw には、次のような誤りが入りうる。�
 
 - 図の多い英語のページで、補足の読み違いが目立つようになったら、英語のページだけ Opus を使う案を考え直す。
 - 新しいモデルが出たら、同じ 4 ページで比べ直せる。スクリプトは `docs/agent-runs/2026-11-13-wiki-ingest-model-comparison/scripts/` にある。
+
+Claude API で同じモデルの段階を変えて評価する場合は、[[claude-effort]] にモデルごとの既定値と設定の範囲がある。Anthropic は、用途に合う評価で段階を比較するよう案内している（[[claude-api-effort]]）。
