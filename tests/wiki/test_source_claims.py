@@ -1,6 +1,6 @@
-"""ソースの要約ページの `## 主張と行き先`（wiki 0.8.0、ADR-0015 の段階 2）の規定の試験。
+"""ソースの要約ページの `## 取り込んだ内容と載せたページ` の規定の試験。
 
-段階 2 は記録だけで、スクリプトは変えず、取り込みの手順書とひな形だけを改める。
+この表の記録は wiki 0.8.0（ADR-0015 の段階 2）で加わった。
 この試験は、手順書、ページの規約、`SCHEMA.md` のひな形、ページのひな形の 4 つが同じ形を示していること、
 作例の表が規定どおりの形で lint を通ること、`init_wiki.py --upgrade` が新しいセクションを案内することを確かめる。
 段階 3 の規定（`kind: "claim"`、行き先どおりにページを更新させる規定）が混ざっていないことも確かめる。
@@ -30,7 +30,7 @@ SCHEMA = SKILL / "assets/SCHEMA.md.template"
 PAGE = SKILL / "assets/page.md.template"
 DOCS = (INGEST, CONVENTIONS, SCHEMA, PAGE)
 
-HEADING = "## 主張と行き先"
+HEADING = "## 取り込んだ内容と載せたページ"
 HEADER = "| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |"
 DESTINATIONS = ("create", "update", "source_only")
 WIKILINK = re.compile(r"\[\[([^\]]+)\]\]")
@@ -62,8 +62,8 @@ def tables(text: str) -> list[list[list[str]]]:
 
 
 def example_section(text: str) -> str:
-    """手順書の作例（```markdown のコードブロックの中の `## 主張と行き先` の節）を取り出す。"""
-    match = re.search(r"```markdown\n(## 主張と行き先\n.*?)```", text, re.S)
+    """手順書の作例（```markdown のコードブロックの中の `## 取り込んだ内容と載せたページ` の節）を取り出す。"""
+    match = re.search(r"```markdown\n(## 取り込んだ内容と載せたページ\n.*?)```", text, re.S)
     assert match, "手順書に作例のコードブロックがない"
     return match.group(1)
 

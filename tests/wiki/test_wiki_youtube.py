@@ -1077,10 +1077,10 @@ class VerifyTests(Workspace):
             result = wc.check_wiki(self.wiki, {"SOURCES/動画.md": self.page("動画", "999 人")}, only_raw="raw/動画.md",
                                    unknown_for={"SOURCES/動画.md"})
             self.assertIn("999", result.unknown_words["sources/動画.md"])
-        # `## 主張と行き先` の表の「行き先」の列で、中身がちょうど手順の値のセルだけを目印から外す。表の主張、
+        # `## 取り込んだ内容と載せたページ` の表の「行き先」の列で、中身がちょうど手順の値のセルだけを目印から外す。表の主張、
         # 関係するページの下の本文、本文の同じ語は残す（0.23.2 のレビューの 1 回目と 2 回目）。
         claims = self.page("動画", "命令は update である").replace(
-            "命令は update である", "命令は update である\n\n## 主張と行き先\n\n| 主張 | 行き先 | 理由 |\n| --- | --- | --- |\n"
+            "命令は update である", "命令は update である\n\n## 取り込んだ内容と載せたページ\n\n| 主張 | 行き先 | 理由 |\n| --- | --- | --- |\n"
             "| 参加者は 999 人 | create | x |\n| 命令は delete | update | y |\n| z | source_only | create の理由 |\n\n"
             "## 関係するページ\n\n### 概要\n\nサンプル")
         words = self.check({"sources/動画.md": claims}).unknown_words["sources/動画.md"]
@@ -1088,12 +1088,16 @@ class VerifyTests(Workspace):
             self.assertIn(present, words)
         self.assertNotIn("source", words)
         # 行き先の値がその列にしかないページで、外す処理そのものを確かめる（0.23.2 のレビューの 3 回目）。
-        only_dest = self.page("動画", "本文は x").replace(
-            "本文は x", "本文は x\n\n## 主張と行き先\n\n| 主張 | 行き先 |\n| --- | --- |\n| a | create |\n| b | update |\n"
-            "| c | source_only |")
-        words = self.check({"sources/動画.md": only_dest}).unknown_words.get("sources/動画.md", [])
-        for absent in ("create", "update", "only"):
-            self.assertNotIn(absent, words)
+        for heading in ("取り込んだ内容と載せたページ", "主張と行き先"):
+            with self.subTest(heading=heading):
+                only_dest = self.page(
+                    "動画",
+                    f"本文は x\n\n## {heading}\n\n| 主張 | 行き先 |\n| --- | --- |\n"
+                    "| a | create |\n| b | update |\n| c | source_only |",
+                )
+                words = self.check({"sources/動画.md": only_dest}).unknown_words.get("sources/動画.md", [])
+                for absent in ("create", "update", "source", "only"):
+                    self.assertNotIn(absent, words)
         plain = self.page("動画", "| 主張 | 行き先 |\n| --- | --- |\n| a | create |")
         self.assertIn("create", self.check({"sources/動画.md": plain}).unknown_words["sources/動画.md"])
         # 印のない関係するページも、sources の要約ページの raw と照らす（レビューの 10 回目）。

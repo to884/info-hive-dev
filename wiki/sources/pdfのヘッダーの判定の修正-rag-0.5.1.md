@@ -33,7 +33,7 @@ updated: 2026-11-13
 - Windows の `.rag-venv` で、`tests/rag/` の `test_jobs.py`、`test_indexes.py`、`test_extraction.py` の 67 件が通った。
 - 実データの 2 件を、MCP の `register_pdf` から索引化までの経路で取り込むことは確かめていない。
 
-## 主張と行き先
+## 取り込んだ内容と載せたページ
 
 | 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |
 | --- | --- | --- | --- | --- |
