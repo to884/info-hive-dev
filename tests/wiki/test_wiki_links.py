@@ -18,6 +18,7 @@ import contextlib
 import io
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -34,6 +35,7 @@ import wiki_links  # noqa: E402
 import wiki_lint  # noqa: E402
 import wiki_mcp_common  # noqa: E402
 import wiki_pages  # noqa: E402
+import wiki_search  # noqa: E402
 import wiki_stats  # noqa: E402
 
 NT = os.name == "nt"
@@ -432,6 +434,197 @@ class ReaderTests(Base):
                 self.assertEqual(index.search("本文", top=5)["results"], [])
             finally:
                 index.close()
+
+
+class SearchCacheTests(Base):
+    def setUp(self):
+        super().setUp()
+        self.write("concepts/a.md", page("本文の題名", "検索する目印"))
+        self.cache_dir = self.wiki / ".wiki-cache"
+        self.cache = self.cache_dir / "search-index.json"
+
+    def search(self, *options, wiki=None):
+        args = ["wiki_search.py", "目印", "--wiki", str(wiki or self.wiki), "--json", *options]
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with mock.patch.object(sys, "argv", args), contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            wiki_search.main()
+        return json.loads(stdout.getvalue()), stderr.getvalue()
+
+    def assert_fallback(self, result, baseline, kind, location):
+        payload, stderr = result
+        warnings = payload.pop("link_warnings")
+        self.assertTrue(any(warning["kind"] == kind and Path(warning["path"]) == location
+                            for warning in warnings), warnings)
+        self.assertEqual({**payload, "link_warnings": []}, baseline)
+        self.assertIn(str(location), stderr)
+        return stderr
+
+    def test_parse_cache_refusal_skips_the_link_and_parses_pages(self):
+        baseline, _ = self.search("--no-embed")
+        outside = self.write("cache.json", "外側のファイル", self.ext)
+        self.cache_dir.mkdir()
+        os.link(outside, self.cache)
+        with mock.patch.object(wiki_search, "load_parse_cache", side_effect=AssertionError("キャッシュを開いた")):
+            stderr = self.assert_fallback(self.search("--no-embed", "--cache"), baseline, "hardlink", self.cache)
+        self.assertIn("記事を解析する", stderr)
+        self.assertEqual(outside.read_text(encoding="utf-8"), "外側のファイル")
+        self.assertTrue(outside.samefile(self.cache))
+
+    def test_parse_cache_write_refusal_reparses_even_after_a_cache_hit(self):
+        baseline, _ = self.search("--no-embed", "--cache")
+        before = self.cache.read_bytes()
+        with mock.patch.object(wiki_search, "write_parse_cache", side_effect=PermissionError("書けない")), \
+             mock.patch.object(wiki_search, "parse_frontmatter", wraps=wiki_search.parse_frontmatter) as parse:
+            stderr = self.assert_fallback(self.search("--no-embed", "--cache"), baseline, "unknown", self.cache)
+        parse.assert_called_once()
+        self.assertIn("書けない", stderr)
+        self.assertEqual(self.cache.read_bytes(), before)
+
+    def test_parse_cache_uses_a_fresh_temporary_name_and_accepts_an_explicit_external_path(self):
+        target = self.ext / "search" / "cache.json"
+        target.parent.mkdir()
+        outside = self.write("kept.txt", "残す", self.ext)
+        old_tmp = target.with_name(target.name + ".tmp")
+        os.link(outside, old_tmp)
+        baseline, _ = self.search("--no-embed")
+        cached, _ = self.search("--no-embed", "--cache", str(target))
+        self.assertEqual(cached, baseline)
+        self.assertIn("concepts/a.md", json.loads(target.read_text(encoding="utf-8"))["files"])
+        self.assertTrue(outside.samefile(old_tmp))
+        self.assertEqual(outside.read_text(encoding="utf-8"), "残す")
+
+    def test_cache_path_through_an_alias_to_wiki_checks_the_inside_path(self):
+        view = self.tmp / "view"
+        if not junction(view, self.wiki):
+            self.skipTest("wiki の根の別名を作れない")
+        # wiki の根までの別名は使え、キャッシュの経路は wiki の根から検査する。
+        self.search("--no-embed", "--cache", wiki=view)
+        self.assertTrue(self.cache.is_file())
+        away = self.ext / "outside-cache"
+        away.mkdir()
+        self.cache.unlink()
+        self.cache_dir.rmdir()
+        if not junction(self.cache_dir, away):
+            self.skipTest("キャッシュのディレクトリのリンクを作れない")
+        baseline, _ = self.search("--no-embed")
+        actual = self.search("--no-embed", "--cache", str(view / ".wiki-cache" / self.cache.name))
+        self.assert_fallback(actual, baseline, "junction" if NT else "symlink", self.cache_dir)
+        self.assertEqual(list(away.iterdir()), [])
+
+    def test_vector_database_and_sidecars_are_checked_before_loading_or_connecting(self):
+        baseline, _ = self.search("--no-embed")
+        self.cache_dir.mkdir()
+        side = self.write("saved", "保存した内容", self.ext)
+        for suffix in ("", "-journal", "-wal", "-shm"):
+            with self.subTest(suffix=suffix):
+                path = self.cache_dir / (wiki_search.VECTOR_INDEX_NAME + suffix)
+                os.link(side, path)
+                try:
+                    with mock.patch.object(wiki_search, "load_local_embedding_backend") as load, \
+                         mock.patch.object(sqlite3, "connect") as connect:
+                        stderr = self.assert_fallback(self.search(), baseline, "hardlink", path)
+                    load.assert_not_called()
+                    connect.assert_not_called()
+                    self.assertIn("語彙検索", stderr)
+                    self.assertTrue(path.samefile(side))
+                finally:
+                    path.unlink()
+
+    def test_sqlite_readonly_after_connect_falls_back_and_closes_connection(self):
+        baseline, _ = self.search("--no-embed")
+        self.cache_dir.mkdir()
+        path = self.cache_dir / wiki_search.VECTOR_INDEX_NAME
+        connection = sqlite3.connect(path)
+        self.addCleanup(connection.close)
+        connection.execute("PRAGMA query_only=ON")
+        with mock.patch.object(wiki_search, "load_local_embedding_backend",
+                               return_value=(object(), mock.Mock(), 2)), \
+             mock.patch.object(sqlite3, "connect", return_value=connection):
+            self.assert_fallback(self.search(), baseline, "SQLITE_READONLY", path)
+        with self.assertRaises(sqlite3.ProgrammingError):
+            connection.execute("SELECT 1")
+
+    def test_setup_reports_a_failed_sync_as_lexical(self):
+        try:
+            import setup_wiki
+        except ImportError as exc:
+            self.skipTest(f"セットアップの依存がない: {exc}")
+        connection = sqlite3.connect(":memory:")
+        self.addCleanup(connection.close)
+        connection.execute("PRAGMA query_only=ON")
+        args = ["setup_wiki.py", "--wiki", str(self.wiki)]
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with mock.patch.object(sys, "argv", args), contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr), \
+             mock.patch.object(wiki_search, "load_local_embedding_backend", return_value=(object(), mock.Mock(), 2)), \
+             mock.patch.object(wiki_search, "open_vector_index", return_value=connection), \
+             mock.patch.object(wiki_search, "sync_vector_index",
+                               side_effect=lambda conn, *_: conn.execute("CREATE TABLE entry (id INTEGER)")):
+            self.assertEqual(setup_wiki.main(), 1)
+        result = json.loads(stdout.getvalue())
+        self.assertEqual(result["status"], "lexical")
+        self.assertEqual(result["pages"], 1)
+        self.assertEqual(result["link_warnings"][0]["kind"], "SQLITE_READONLY")
+        self.assertIn("語彙検索", stderr.getvalue())
+        with self.assertRaises(sqlite3.ProgrammingError):
+            connection.execute("SELECT 1")
+
+    def test_setup_prepares_the_vector_index_when_only_the_parse_cache_is_refused(self):
+        try:
+            import setup_wiki
+        except ImportError as exc:
+            self.skipTest(f"セットアップの依存がない: {exc}")
+        outside = self.write("kept.json", "残す", self.ext)
+        self.cache_dir.mkdir()
+        os.link(outside, self.cache)
+        connection = mock.Mock()
+        connection.execute.return_value.fetchone.return_value = (1,)
+        with contextlib.redirect_stderr(io.StringIO()), mock.patch.object(setup_wiki, "version", return_value="test"), \
+             mock.patch.object(wiki_search, "load_local_embedding_backend", return_value=(object(), mock.Mock(), 2)), \
+             mock.patch.object(wiki_search, "open_vector_index", return_value=connection), \
+             mock.patch.object(wiki_search, "sync_vector_index", return_value={"concepts/a.md": 1}):
+            result = setup_wiki.prepare(self.wiki, self.cache)
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["vectors"], 1)
+        self.assertEqual(result["link_warnings"][0]["kind"], "hardlink")
+        self.assertEqual(outside.read_text(encoding="utf-8"), "残す")
+        connection.close.assert_called_once()
+
+    def test_init_does_not_write_the_cache_gitignore_through_a_link(self):
+        import init_wiki
+        away = self.ext / "outside-cache"
+        away.mkdir()
+        if not junction(self.cache_dir, away):
+            self.skipTest("キャッシュのディレクトリのリンクを作れない")
+        stderr = io.StringIO()
+        with mock.patch.object(init_wiki, "install_runtime") as setup, contextlib.redirect_stdout(io.StringIO()), \
+             contextlib.redirect_stderr(stderr):
+            init_wiki.init_wiki(self.tmp, "wiki", "raw")
+        setup.assert_called_once_with(self.wiki)
+        self.assertIn("検索キャッシュ用の .gitignore を書けない", stderr.getvalue())
+        self.assertEqual(list(away.iterdir()), [])
+
+    def test_mcp_retains_parse_cache_warning_when_the_wiki_is_unchanged(self):
+        try:
+            import numpy  # noqa: F401
+            import tantivy  # noqa: F401
+            import usearch  # noqa: F401
+            import wiki_index
+        except (ImportError, SystemExit) as exc:
+            self.skipTest(f"索引の依存がない: {exc}")
+        with mock.patch.dict(os.environ, {"INFO_HIVE_DATA_DIR": str(self.tmp / "data")}):
+            index = wiki_index.WikiIndex(self.wiki)
+            self.addCleanup(index.close)
+            outside = self.write("cache.json", "外側のキャッシュ", self.ext)
+            cache = index.dir / "parse-cache.json"
+            os.link(outside, cache)
+            with contextlib.redirect_stderr(io.StringIO()):
+                self.assertTrue(index.refresh()["changed"])
+            for _ in range(2):
+                self.assertEqual(index.refresh(), {"changed": False})
+                found = index.search("目印", top=5)
+                self.assertEqual([row["rel_path"] for row in found["results"]], ["concepts/a.md"])
+                self.assertEqual(found["link_warnings"][0]["kind"], "hardlink")
+            self.assertTrue(cache.samefile(outside))
 
 
 class ReviewOneTests(Base):
@@ -1213,6 +1406,9 @@ class ReadSiteInventoryTests(unittest.TestCase):
     URL = "ファイルではなく URL を開く"
 
     SITES = {
+        ("wiki_fsguard.py", "WriteGuard.hold_lock"): WRITE,
+        ("wiki_fsguard.py", "_mount_points"): NOT_ARTICLE,
+        ("wiki_raw_roots.py", "_record_paths"): NOT_ARTICLE,
         ("wiki_prompt_context.py", "read_text"): WALKED,  # scan_wiki/read_indexが共通の走査で得た記事だけを渡す
         ("wiki_prompt_context.py", "read_page"): WALKED,
         ("wiki_prompt_context.py", "read_index"): WALKED,
@@ -1242,7 +1438,7 @@ class ReadSiteInventoryTests(unittest.TestCase):
         ("wiki_decide.py", "load_questions"): NOT_ARTICLE,
         ("wiki_encoding.py", "convert"): USER_FILE,
         ("wiki_encoding.py", "main"): USER_FILE,
-        ("wiki_evolve.py", "capture"): RAW,
+        ("wiki_evolve.py", "capture_record"): RAW,
         ("wiki_evolve.py", "evaluate"): GATEWAY,
         ("wiki_evolve.py", "main"): NOT_ARTICLE,
         ("wiki_evolve.py", "promote"): NOT_ARTICLE,
@@ -1257,6 +1453,8 @@ class ReadSiteInventoryTests(unittest.TestCase):
         ("wiki_evolve_loop.py", "artifact_checks"): WORK_COPY,
         ("wiki_evolve_loop.py", "calibrate"): NOT_ARTICLE,
         ("wiki_evolve_loop.py", "publish_learning"): GATEWAY,
+        ("wiki_evolve_loop.py", "publish_observation"): WALKED,  # publish_learning が全ページを article_path で検査する
+        ("wiki_evolve_loop.py", "publish_observation.unchanged"): WALKED,
         ("wiki_evolve_loop.py", "rollout"): WORK_COPY,
         ("wiki_evolve_loop.py", "run"): GATEWAY,
         ("wiki_evolve_loop.py", "skill_text"): NOT_ARTICLE,
@@ -1269,9 +1467,8 @@ class ReadSiteInventoryTests(unittest.TestCase):
         ("wiki_help.py", "collect_commands"): NOT_ARTICLE,
         ("wiki_help.py", "command_details"): NOT_ARTICLE,
         ("wiki_help.py", "read_manifest"): NOT_ARTICLE,
-        ("wiki_index.py", "ChunkStore.__init__"): NOT_ARTICLE,
+        ("wiki_index.py", "ChunkStore._read_tokenizer"): NOT_ARTICLE,
         ("wiki_index.py", "WikiIndex.get_page"): GATEWAY,
-        ("wiki_index.py", "WriterLock.__init__"): NOT_ARTICLE,
         ("wiki_index.py", "ensure_model_files"): NOT_ARTICLE,
         ("wiki_index.py", "sha256_file"): NOT_ARTICLE,
         ("wiki_index.py", "list_index"): GATEWAY,
@@ -1280,13 +1477,17 @@ class ReadSiteInventoryTests(unittest.TestCase):
         ("wiki_mcp_common.py", "FileLock.__enter__"): NOT_ARTICLE,
         ("wiki_mcp_common.py", "code_version"): NOT_ARTICLE,
         ("wiki_mcp_common.py", "env_problems"): NOT_ARTICLE,
-        ("wiki_mcp_common.py", "read_server_info"): NOT_ARTICLE,
-        ("wiki_mcp_common.py", "record_failure"): NOT_ARTICLE,
-        ("wiki_mcp_relay.py", "ensure_server"): NOT_ARTICLE,
+        ("wiki_mcp_common.py", "ServerFiles._read_info"): NOT_ARTICLE,
+        ("wiki_mcp_common.py", "ServerFiles.release_start"): NOT_ARTICLE,
+        ("wiki_mcp_common.py", "ServerFiles.write_info"): NOT_ARTICLE,
         ("wiki_pages.py", "_vendor_digest"): NOT_ARTICLE,
         ("wiki_pages.py", "read_user_file"): GATEWAY,
         ("wiki_pages.py", "read_user_bytes"): GATEWAY,
-        ("wiki_raw.py", "_digest"): RAW,  # _inspect が全候補のリンクを検査したあとだけ読む
+        ("wiki_raw.py", "_file_digest"): RAW,  # _inspect が全候補のリンクを検査したあとだけ読む
+        ("wiki_raw_ingest.py", "_source_info"): GATEWAY,
+        ("wiki_raw_ingest.py", "_copy_tree.copy"): RAW,  # _source_info が記事と raw の道を検査する
+        ("wiki_raw_ingest.py", "save"): RAW,  # _source_info が記事と raw の道を検査する
+        ("wiki_raw_ingest.py", "encoding"): GATEWAY,
         ("wiki_raw.py", "_raw_meta"): RAW,
         ("wiki_pages.py", "user_directory_path"): GATEWAY,
         ("wiki_pdf.py", "main"): RAW,
@@ -1295,11 +1496,12 @@ class ReadSiteInventoryTests(unittest.TestCase):
         ("wiki_rawcheck.py", "freeze"): RAW,
         ("wiki_rawcheck.py", "load_fetch"): RAW,
         ("wiki_rawcheck.py", "read_text"): RAW,
+        ("wiki_rawcheck.py", "read_raw_version"): RAW,
         ("wiki_rawcheck.py", "resumable_fetch"): RAW,
         ("wiki_rawcheck.py", "resume_fields"): RAW,
         ("wiki_rawcheck.py", "work_dir_complete"): RAW,
         ("wiki_rawcheck.py", "work_dir_matches_raw"): RAW,
-        ("wiki_search.py", "collect_pages"): WALKED,
+        ("wiki_search.py", "_collect_pages"): WALKED,
         ("wiki_search.py", "decision_default_threshold"): NOT_ARTICLE,
         ("wiki_search.py", "load_parse_cache"): NOT_ARTICLE,
         ("wiki_session.py", "_raw_frontmatter"): RAW,
@@ -1315,19 +1517,17 @@ class ReadSiteInventoryTests(unittest.TestCase):
         ("wiki_workspace.py", "read_json"): NOT_ARTICLE,
         ("wiki_youtube.py", "cmd_verify"): RAW,
         ("wiki_youtube.py", "parse_page_args"): GATEWAY,
-        ("wiki_youtube.py", "cmd_write"): RAW,
         ("wiki_youtube.py", "existing_raws"): RAW,
         ("wiki_browse.py", "_emit"): URL,  # webbrowser.open
         ("wiki_browse_fs.py", "Os.open_excl"): WRITE,
+        ("wiki_browse_fs.py", "Os.open_append"): WRITE,
         ("wiki_browse_fs.py", "Os.open_lock"): WRITE,
+        ("wiki_browse_fs.py", "Os.open_plain_read"): NOT_ARTICLE,
         ("wiki_browse_fs.py", "Os.open_read"): WALKED,
         ("wiki_evolve.py", "create"): WRITE,
         ("wiki_fetch.py", "fetch"): URL,
-        ("wiki_fetch.py", "write_outputs"): WRITE,
         ("wiki_graph_common.py", "extract_lock.__enter__"): WRITE,
         ("wiki_graph_extract.py", "_write_lines"): WRITE,
-        ("wiki_mcp_common.py", "write_server_info"): WRITE,
-        ("wiki_youtube.py", "publish"): WRITE,
     }
 
     def sites(self):

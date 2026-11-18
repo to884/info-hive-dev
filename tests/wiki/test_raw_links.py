@@ -1,7 +1,9 @@
 """ADR-0029 段階2。raw の解決、読まずに拒否する順番、lint と字幕検査の共通の境界。"""
 from __future__ import annotations
 
+import contextlib
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -11,10 +13,15 @@ from unittest import mock
 import unittest
 
 from tests.wiki.test_wiki_links import Base, junction, symlink, SCRIPTS
+import init_wiki
 import wiki_captions
 import wiki_lint
 import wiki_pages
 import wiki_raw
+import wiki_raw_ingest
+import wiki_raw_roots
+from wiki_fsguard import WriteGuard
+from wiki_raw_roots import record_raw_root
 
 
 class RawTests(Base):
@@ -51,6 +58,15 @@ class RawTests(Base):
         self.assertEqual(wiki_pages.resolve_raw({"type": "concept", "raw": "x"}, self.source, self.wiki), [])
         for ref in ("https://example.com/x", "file:///tmp/x"):
             self.assertEqual(self.resolve(ref)[0].state, "outside")
+
+    def test_unrelated_recorded_root_does_not_hide_unverified_rag_scope(self):
+        record_raw_root(self.wiki, self.raw, writer="wiki_session")
+        target = self.write("document.pdf", "原本", self.ext)
+        self.source_page(target.as_posix(), rag_job_id="job")
+        found = self.lint(root=False)
+        warning, = found["raw_paths_unchecked"]
+        self.assertTrue(warning["scope_unverified"])
+        self.assertEqual(Path(warning["candidate"]), target)
 
     def test_ambiguity_and_hash_selects_version(self):
         a = self.write("dup.txt", "A", self.wiki)
@@ -103,7 +119,7 @@ class RawTests(Base):
 
     def test_sole_file_does_not_require_identity(self):
         target = self.write("a", "A", self.raw)
-        with mock.patch.object(wiki_raw, "_identity", side_effect=OSError("FileIdInfo がない")):
+        with mock.patch.object(wiki_raw, "file_identity", side_effect=OSError("FileIdInfo がない")):
             self.assertEqual(self.resolve(str(target))[0].state, "resolved")
 
     def test_unknown_external_scope_is_reported_without_raw_root(self):
@@ -157,7 +173,7 @@ class RawTests(Base):
 
     def test_external_original_does_not_require_file_id(self):
         target = self.write("book.pdf", "PDF", self.ext)
-        with mock.patch.object(wiki_raw, "_identity", side_effect=OSError("FileIdInfo がない")):
+        with mock.patch.object(wiki_raw, "file_identity", side_effect=OSError("FileIdInfo がない")):
             self.assertEqual(self.resolve(str(target), rag_job_id="job")[0].state, "resolved")
 
     def test_hash_arrays_and_bad_alignment(self):
@@ -469,6 +485,352 @@ class RawTests(Base):
         self.assertTrue(changed)
         self.assertEqual(result.state, "link")
         self.assertEqual(Path(result.links[0]["path"]), queued)
+
+
+class LocalRawTests(Base):
+    def setUp(self):
+        super().setUp()
+        self.raw = self.tmp / "raw"
+        self.raw.mkdir()
+
+    def command(self, action, source, *extra):
+        return subprocess.run(
+            [sys.executable, "-X", "utf8", "-B", str(SCRIPTS / "wiki_raw_ingest.py"), action,
+             "--wiki", str(self.wiki), "--raw-root", str(self.raw), "--source", str(source), *extra],
+            check=False, capture_output=True, encoding="utf-8", timeout=60,
+        )
+
+    def test_cli_saves_link_contents_and_lints_a_previous_raw_root(self):
+        outside = self.write("clip.md", "取り込む内容", self.ext)
+        asset = self.wiki / "assets" / "clip.md"
+        asset.parent.mkdir()
+        os.link(outside, asset)
+        done = self.command("save", asset, "--name", "clip.md")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        result = json.loads(done.stdout)
+        self.assertEqual(result["raw_ref"], "raw/clip.md")
+        stored = self.raw / "clip.md"
+        self.assertEqual(stored.read_bytes(), outside.read_bytes())
+        self.assertFalse(stored.samefile(asset))
+        self.assertTrue(outside.samefile(asset))
+        page = self.write("sources/clip.md", "---\ntype: source\ntitle: クリップ\n"
+                          f"raw: {json.dumps(result['raw_ref'], ensure_ascii=False)}\n"
+                          f"raw_sha256: {result['raw_sha256']}\n---\n")
+        raw_now = self.tmp / "new-raw"
+        raw_now.mkdir()
+        found = wiki_lint.lint(wiki_lint.collect_pages(self.wiki), 100, 200, [], False, 5,
+                               wiki_root=self.wiki, raw_root=raw_now)
+        self.assertFalse(found["raw_paths_unchecked"])
+        self.assertFalse(found["missing_raw"])
+        self.assertFalse(found["raw_version_unverified"])
+        self.assertTrue(page.exists())
+
+    def test_wiki_article_and_raw_in_place_links_are_refused(self):
+        article = self.write("sources/linked.md", "記事")
+        os.link(article, self.ext / "article.md")
+        raw = self.raw / "linked.md"
+        os.link(article, raw)
+        for source in (article, raw):
+            with self.subTest(source=source):
+                with self.assertRaisesRegex((ValueError, OSError), "hardlink"):
+                    wiki_raw_ingest.save(self.wiki, self.raw, source, None)
+        self.assertEqual(list(self.raw.iterdir()), [raw])
+
+    def test_copies_directory_links_and_reuses_saved_tree(self):
+        source = self.ext / "bundle"
+        source.mkdir()
+        data = self.write("data.txt", "同じ中身", self.ext / "material")
+        for name in ("a", "b"):
+            if not junction(source / name, data.parent):
+                self.skipTest("ディレクトリのリンクを作れない")
+        self.write(".note", "隠し項目", source)
+        result = wiki_raw_ingest.save(self.wiki, self.raw, source, None)
+        stored = self.raw / "bundle"
+        for name in ("a", "b"):
+            self.assertEqual((stored / name / "data.txt").read_bytes(), data.read_bytes())
+            self.assertFalse((stored / name).samefile(data.parent))
+        self.assertTrue((stored / ".note").is_file())
+        self.assertEqual(result["raw_sha256"], wiki_raw.raw_digest(stored, self.raw))
+        again = wiki_raw_ingest.save(self.wiki, self.raw, stored, None)
+        self.assertEqual((again["status"], again["raw_sha256"]), ("existing", result["raw_sha256"]))
+
+    def test_refuses_existing_empty_directory_and_cyclic_copy(self):
+        empty = self.ext / "empty"
+        empty.mkdir()
+        target = self.raw / "empty"
+        target.mkdir()
+        with self.assertRaises(FileExistsError):
+            wiki_raw_ingest.save(self.wiki, self.raw, empty, None)
+        self.assertEqual(list(target.iterdir()), [])
+        source = self.ext / "cyclic"
+        source.mkdir()
+        if not junction(source / "back", source):
+            self.skipTest("ディレクトリのリンクを作れない")
+        with self.assertRaisesRegex(ValueError, "循環"):
+            wiki_raw_ingest.save(self.wiki, self.raw, source, None)
+        self.assertFalse((self.raw / "cyclic").exists())
+        self.assertEqual(list(self.raw.glob(".wiki-raw-ingest-*.tmp")), [])
+
+    def test_directory_copy_checks_a_recorded_root_inside_the_input(self):
+        source = self.ext / "collection"
+        old_raw = source / "raw"
+        old_raw.mkdir(parents=True)
+        outside = self.write("book.txt", "出典", self.ext)
+        os.link(outside, old_raw / "book.txt")
+        record_raw_root(self.wiki, old_raw, writer="test")
+        with self.assertRaisesRegex(OSError, "hardlink"):
+            wiki_raw_ingest.save(self.wiki, self.raw, source, None)
+        self.assertFalse((self.raw / source.name).exists())
+        self.assertEqual(list(self.raw.glob(".wiki-raw-ingest-*.tmp")), [])
+
+    def test_directory_save_uses_the_same_lock_for_the_raw_root(self):
+        source = self.ext / "bundle"
+        source.mkdir()
+        with WriteGuard(self.raw).hold_lock(self.raw / ".wiki-raw-ingest.lock"):
+            blocked = self.command("save", source)
+            self.assertEqual(blocked.returncode, 1)
+            self.assertIn("同じ対象の処理が動いている", blocked.stderr)
+            self.assertFalse((self.raw / source.name).exists())
+        done = self.command("save", source)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertTrue((self.raw / source.name).is_dir())
+
+    def test_copy_rejects_a_branch_that_contains_the_destination(self):
+        source = self.ext / "bundle"
+        source.mkdir()
+        if not junction(source / "destination", self.raw):
+            self.skipTest("ディレクトリのリンクを作れない")
+        with self.assertRaisesRegex(ValueError, "一時ディレクトリと取り込み元が重なる"):
+            wiki_raw_ingest.save(self.wiki, self.raw, source, None)
+        self.assertFalse((self.raw / source.name).exists())
+        self.assertFalse(list(self.raw.glob(".wiki-raw-ingest-*.tmp")))
+
+    def test_unknown_recorded_scope_stops_external_copy_and_pdf_registration(self):
+        self.write(".wiki-cache/raw-roots.d/broken.json", "{")
+        source = self.write("book.pdf", "%PDF-1.7", self.ext)
+        for action in ("save", "pdf"):
+            with self.subTest(action=action):
+                done = self.command(action, source)
+                self.assertEqual(done.returncode, 1)
+                self.assertIn("過去の raw の根を確認できない", done.stderr)
+        self.assertFalse(list(self.raw.iterdir()))
+
+    def test_failed_root_record_leaves_no_copy_or_derivative(self):
+        source = self.ext / "encoded.txt"
+        source.write_bytes("文字コードを確認する。\r\n".encode("cp932"))
+        fault = OSError("根を記録できない")
+        with mock.patch.object(wiki_raw_ingest, "record_raw_root", side_effect=fault):
+            with self.assertRaisesRegex(OSError, "根を記録できない"):
+                wiki_raw_ingest.save(self.wiki, self.raw, source, None)
+        self.assertEqual(list(self.raw.iterdir()), [])
+        first = wiki_raw_ingest.save(self.wiki, self.raw, source, None)
+        stored = self.raw / source.name
+        args = (self.wiki, self.raw, stored, first["raw_sha256"], "encoded.utf8.txt")
+        with mock.patch.object(wiki_raw_ingest, "record_raw_root", side_effect=fault):
+            with self.assertRaisesRegex(OSError, "根を記録できない"):
+                wiki_raw_ingest.encoding(*args)
+        self.assertEqual(list(self.raw.iterdir()), [stored])
+        for status in ("created", "existing"):
+            second = wiki_raw_ingest.encoding(*args)
+            data = (self.raw / "encoded.utf8.txt").read_bytes()
+            self.assertEqual(data.decode("utf-8"), "文字コードを確認する。\r\n")
+            self.assertEqual(second["raw_sha256"], hashlib.sha256(data).hexdigest())
+            self.assertEqual(second["status"], status)
+        self.assertEqual(stored.read_bytes(), source.read_bytes())
+        page = self.wiki / "sources" / "encoded.md"
+        evidence = [first, second]
+        refs = wiki_raw.resolve_raw(
+            {"type": "source", "raw": [item["raw_ref"] for item in evidence],
+             "raw_sha256": [item["raw_sha256"] for item in evidence]},
+            page, self.wiki, raw_roots=[self.raw],
+        )
+        self.assertEqual([ref.state for ref in refs], ["resolved", "resolved"])
+        self.assertFalse(any(ref.version_unverified for ref in refs))
+
+    def test_pdf_preflight_preserves_external_path_and_checks_historical_root(self):
+        sample = self.write("book.pdf", "%PDF-1.7", self.ext)
+        outside = self.ext / "alias.pdf"
+        os.link(sample, outside)
+        done = self.command("pdf", outside)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(Path(json.loads(done.stdout)["source"]), outside)
+        self.assertFalse((self.wiki / ".wiki-cache").exists())
+        old = self.tmp / "old"
+        old.mkdir()
+        record_raw_root(self.wiki, old, writer="test")
+        os.link(sample, old / "book.pdf")
+        hidden = self.write(".folder/book.pdf", "%PDF-1.7", old)
+        for source in (old / "book.pdf", hidden, self.ext / "unused" / ".." / "book.pdf"):
+            with self.subTest(source=source):
+                self.assertEqual(self.command("pdf", source).returncode, 1)
+
+        external_hidden = self.write(".book.pdf", "%PDF-1.7", self.ext)
+        self.assertEqual(self.command("pdf", external_hidden).returncode, 0)
+        result = wiki_raw.resolve_raw({"type": "source", "raw": str(external_hidden), "rag_job_id": "example"},
+                                      self.wiki / "sources/book.md", self.wiki, raw_roots=[self.raw])
+        self.assertEqual(result[0].state, "resolved")
+
+
+class UpgradeRawRootsTests(Base):
+    def upgrade(self, *options, base=None):
+        args = ["init_wiki.py", str(base or self.tmp), "--upgrade", *map(str, options)]
+        with mock.patch.object(sys, "argv", args), mock.patch.object(init_wiki, "install_runtime") as install, \
+             contextlib.redirect_stdout(io.StringIO()):
+            init_wiki.main()
+        install.assert_called_once()
+
+    def lint(self, current):
+        done = subprocess.run([sys.executable, "-X", "utf8", "-B", str(SCRIPTS / "wiki_lint.py"), str(self.wiki),
+                               "--raw-root", str(current), "--json"], capture_output=True, encoding="utf-8", timeout=60)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        return json.loads(done.stdout)
+
+    def test_upgrade_feeds_lint_after_switching_roots_and_preserves_existing_pages(self):
+        current = self.tmp / "raw"
+        archive = self.ext / "old"
+        targets = [self.write("folder/a.txt", "原本", root) for root in (current, archive)]
+        for number, target in enumerate(targets):
+            sha = hashlib.sha256(target.read_bytes()).hexdigest()
+            ref = json.dumps(target.as_posix(), ensure_ascii=False)
+            self.write(f"sources/s{number}.md", f"---\ntype: source\ntitle: 出典\nraw: {ref}\nraw_sha256: {sha}\n---\n")
+        self.write("sources/legacy.md",
+                   f"---\ntype: source\ntitle: 旧版\nraw: {json.dumps(targets[1].as_posix(), ensure_ascii=False)}\n---\n")
+        before = {path: path.read_bytes() for path in (self.wiki / "sources").iterdir()}
+        self.upgrade("--previous-raw-root", "ext/old")
+        next_root = self.tmp / "new-raw"
+        self.upgrade("--raw-dir", "new-raw")
+        self.assertEqual(set(wiki_raw_roots.read_raw_roots(self.wiki)[0]), {current, archive, next_root})
+        report = self.lint(next_root)
+        self.assertFalse(report["raw_paths_unchecked"])
+        self.assertFalse(report["missing_raw"])
+        self.assertEqual(len(report["raw_version_unverified"]), 1)
+        self.assertEqual({path: path.read_bytes() for path in before}, before)
+
+        original = targets[1]
+        external = self.write("destination/a.txt", "原本", self.ext)
+        original.unlink()
+        original.parent.rmdir()
+        if not junction(original.parent, external.parent):
+            self.skipTest("ディレクトリのリンクを作れない")
+        report = self.lint(next_root)
+        self.assertTrue(any(item["scope"] == "raw" and Path(item["path"]) == original.parent
+                            for item in report["links"]), report["links"])
+        self.assertFalse(report["raw_paths_unchecked"])
+
+    def test_absolute_roots_outside_base_and_repeated_upgrade(self):
+        current = self.ext / "raw"
+        previous = self.ext / "old"
+        previous.mkdir()
+        base = self.tmp / "different-base"
+        base.mkdir()
+        args = ("--wiki-dir", self.wiki, "--raw-dir", current, "--previous-raw-root", previous,
+                "--previous-raw-root", previous)
+        self.upgrade(*args, base=base)
+        records = self.wiki / wiki_raw_roots.RECORDS
+        before = {path: path.read_bytes() for path in records.glob("*.json")}
+        self.assertEqual(len(before), 2)
+        self.assertTrue((current / "assets").is_dir())
+        self.upgrade(*args, base=base)
+        self.assertEqual({path: path.read_bytes() for path in records.glob("*.json")}, before)
+
+    def test_preserves_given_spelling_through_a_base_alias(self):
+        alias = self.tmp / "view"
+        actual = self.ext / "project"
+        (actual / "wiki").mkdir(parents=True)
+        (actual / "wiki" / "SCHEMA.md").write_text("# 根の確認", encoding="utf-8")
+        if not junction(alias, actual):
+            self.skipTest("ベースディレクトリへのリンクを作れない")
+        self.upgrade(base=alias)
+        found = list((actual / "wiki" / wiki_raw_roots.RECORDS).glob("*.json"))
+        self.assertEqual(len(found), 1)
+        record = json.loads(found[0].read_text(encoding="utf-8"))
+        self.assertEqual(Path(record["given"]), alias / "raw")
+        self.assertEqual(Path(record["resolved"]), actual / "raw")
+
+    def test_invalid_previous_root_is_rejected_before_creating_anything(self):
+        before = set(self.tmp.rglob("*"))
+        previous = (self.tmp / "missing", self.ext / "file", self.ext / "child" / "..")
+        self.write("file", "ディレクトリ以外", self.ext)
+        before.add(self.ext / "file")
+        for root in previous:
+            with self.subTest(path=root), mock.patch.object(init_wiki, "install_runtime") as install, \
+                 contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()) as stderr:
+                with self.assertRaises(SystemExit) as failure:
+                    init_wiki.init_wiki(self.tmp, "wiki", "raw", upgrade=True, previous_raw_roots=(root,))
+                self.assertEqual(failure.exception.code, 1)
+                self.assertIn("raw の根を記録できない", stderr.getvalue())
+                install.assert_not_called()
+            self.assertEqual(set(self.tmp.rglob("*")), before)
+
+    def test_guard_refusal_leaves_the_link_target_untouched(self):
+        cache = self.wiki / ".wiki-cache"
+        cache.mkdir()
+        records = self.wiki / wiki_raw_roots.RECORDS
+        if not junction(records, self.ext):
+            self.skipTest("記録先へのリンクを作れない")
+        with mock.patch.object(init_wiki, "install_runtime") as install, contextlib.redirect_stdout(io.StringIO()), \
+             contextlib.redirect_stderr(io.StringIO()) as stderr, self.assertRaises(SystemExit):
+            init_wiki.init_wiki(self.tmp, "wiki", "raw", upgrade=True)
+        self.assertIn("raw の根を記録できない", stderr.getvalue())
+        self.assertFalse((self.tmp / "raw").exists())
+        self.assertFalse(list(self.ext.iterdir()))
+        install.assert_not_called()
+
+    def test_partial_registration_is_reused_and_tampered_record_is_preserved(self):
+        old = self.ext / "old"
+        old.mkdir()
+        real_write = wiki_raw_roots._write_record
+
+        def fail_old(guard, path, pair, writer):
+            if pair[0] == old:
+                raise PermissionError("過去の根を登録できない")
+            real_write(guard, path, pair, writer)
+
+        with mock.patch.object(wiki_raw_roots, "_write_record", side_effect=fail_old), \
+             mock.patch.object(init_wiki, "install_runtime") as install, contextlib.redirect_stdout(io.StringIO()), \
+             contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            init_wiki.init_wiki(self.tmp, "wiki", "raw", upgrade=True, previous_raw_roots=(old,))
+        install.assert_not_called()
+        folder = self.wiki / wiki_raw_roots.RECORDS
+        first, = folder.glob("*.json")
+        registered = first.read_bytes()
+        self.upgrade("--previous-raw-root", old)
+        self.assertEqual(first.read_bytes(), registered)
+        self.assertEqual(len(list(folder.glob("*.json"))), 2)
+
+        data = json.loads(registered)
+        data["writer"] = "別の書き手"
+        first.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        tampered = first.read_bytes()
+        with mock.patch.object(init_wiki, "install_runtime") as install, contextlib.redirect_stdout(io.StringIO()), \
+             contextlib.redirect_stderr(io.StringIO()) as stderr, self.assertRaises(SystemExit):
+            init_wiki.init_wiki(self.tmp, "wiki", "raw", upgrade=True)
+        self.assertIn("書き手が一致しない", stderr.getvalue())
+        self.assertEqual(first.read_bytes(), tampered)
+        install.assert_not_called()
+
+    def test_parallel_registrations_keep_distinct_roots_and_share_the_common_record(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Barrier
+
+        roots = [self.ext / name for name in ("current", "first", "second")]
+        for root in roots:
+            root.mkdir()
+        current, first, second = [wiki_raw_roots.raw_root_pair(root) for root in roots]
+        ready = Barrier(2)
+
+        def register(previous):
+            ready.wait(5)
+            wiki_raw_roots.register_upgrade_roots(WriteGuard(self.wiki), [current, previous])
+
+        with mock.patch.object(wiki_raw_roots, "_write_record", wraps=wiki_raw_roots._write_record) as write, \
+             ThreadPoolExecutor(max_workers=2) as executor:
+            list(executor.map(register, (first, second)))
+        self.assertEqual(write.call_count, 3)
+        self.assertEqual(len(list((self.wiki / wiki_raw_roots.RECORDS).glob("*.json"))), 3)
+        paths, unchecked = wiki_raw_roots.read_raw_roots(self.wiki)
+        self.assertEqual(set(paths), set(roots))
+        self.assertEqual(unchecked, [])
 
 
 if __name__ == "__main__":
