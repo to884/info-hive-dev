@@ -1,0 +1,626 @@
+{
+ "protocol": 2,
+ "fingerprint": "26bb919255ead6aa9b3b3f9e4ac1319ed2b635f0d62d5f9bf42cac3e07f90e8f",
+ "id": "r1-powershell",
+ "class": "R1",
+ "model": "fable",
+ "effort": "medium",
+ "run": 2,
+ "requested_effort": "medium",
+ "prompt_sha256": "4ce3933cab0feaae1f2a1d5db13a2734edbb1c48c5740905b1540562cf7b971e",
+ "argv": [
+  "claude",
+  "-p",
+  "問い: PowerShell で Select-Object -First を使ったらスクリプトが途中で止まった。原因と避け方は？\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v2/snapshot/project/wiki\"）\n{\"slug\": \"powershellのパイプの打ち切り\", \"path\": \"concepts/powershellのパイプの打ち切り.md\"}\n{\"slug\": \"powershell-select-first-stops-writer-2026-11-15\", \"path\": \"sources/powershell-select-first-stops-writer-2026-11-15.md\"}",
+  "--agent",
+  "wiki:wiki-reader",
+  "--model",
+  "fable",
+  "--effort",
+  "medium",
+  "--plugin-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v2\\plugin",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--tools",
+  "Read,Glob,Grep",
+  "--allowedTools",
+  "Read,Glob,Grep",
+  "--max-budget-usd",
+  "2",
+  "--permission-mode",
+  "auto",
+  "--no-session-persistence",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "{\"mcpServers\":{}}",
+  "--add-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v2\\snapshot\\user\\wiki"
+ ],
+ "events": [
+  {
+   "type": "system",
+   "subtype": "init",
+   "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v2\\snapshot\\project",
+   "session_id": "6b0a330d-43c7-4513-8e9d-becd05c77113",
+   "tools": [
+    "Read",
+    "Glob",
+    "Grep"
+   ],
+   "mcp_servers": [],
+   "model": "claude-fable-5-2",
+   "permissionMode": "auto",
+   "slash_commands": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring",
+    "advisor",
+    "agents",
+    "auto-mode-setup",
+    "autocompact",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "output-style",
+    "context",
+    "effort",
+    "fast",
+    "focus",
+    "heapdump",
+    "init",
+    "mcp",
+    "import",
+    "model",
+    "__remote-workflow",
+    "workflow-launch-exec",
+    "reload-plugins",
+    "reload-skills",
+    "rename",
+    "ultrareview",
+    "security-review",
+    "usage-credits",
+    "extra-usage",
+    "usage",
+    "insights",
+    "recap",
+    "skill-doctor",
+    "goal",
+    "design-consent",
+    "design-revoke",
+    "list-agents",
+    "team-onboarding"
+   ],
+   "terminal_slash_commands": [
+    "doctor",
+    "color",
+    "focus",
+    "reload-plugins"
+   ],
+   "apiKeySource": "none",
+   "claude_code_version": "2.1.325",
+   "output_style": "default",
+   "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup",
+    "web-fetch",
+    "wiki:wiki-reader"
+   ],
+   "skills": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring"
+   ],
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v2\\plugin",
+     "source": "wiki@inline",
+     "version": "0.0.0"
+    },
+    {
+     "name": "cc-plugin-agents-md",
+     "path": "builtin",
+     "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+     "name": "cc-plugin-telemetry",
+     "path": "builtin",
+     "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+     "name": "cc-plugin-privacy",
+     "path": "builtin",
+     "source": "cc-plugin-privacy@builtin"
+    },
+    {
+     "name": "cc-plugin-plugin-authoring",
+     "path": "builtin",
+     "source": "cc-plugin-plugin-authoring@builtin"
+    }
+   ],
+   "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1"
+   ],
+   "analytics_disabled": false,
+   "product_feedback_disabled": false,
+   "uuid": "df6b0329-48f0-4051-b081-3b9661231f35",
+   "memory_paths": {
+    "auto": "C:\\Users\\toshiki\\.claude\\projects\\C--Works-info-hive-dev\\memory\\"
+   },
+   "original_cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v2\\snapshot\\project",
+   "additional_directories": [
+    "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v2\\snapshot\\user\\wiki"
+   ],
+   "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-a924b91c73a4d1ff05f96abf6f7b45c5",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "per_turn_effort_active": true,
+   "ultrathink_available": false,
+   "ultrathink_typed_raises": false,
+   "view_mode": "default",
+   "powershell_path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-fable-5-2",
+    "id": "msg_011Ch8fri9tdQHs9dHKs6bD4",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_015CdXnmDVqrwuoET6iCmaqf",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v2/snapshot/project/wiki/concepts/powershellのパイプの打ち切り.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 2698,
+     "cache_read_input_tokens": 3404,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 2698
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "6b0a330d-43c7-4513-8e9d-becd05c77113",
+   "uuid": "cc15de98-6de1-41b9-8e53-9655d66c65c6",
+   "timestamp": "2026-11-17T14:38:05.120Z",
+   "request_id": "req_011Ch8frhwEmTXLmLXB1sqv4",
+   "wire_tool_inputs": {
+    "toolu_015CdXnmDVqrwuoET6iCmaqf": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v2/snapshot/project/wiki/concepts/powershellのパイプの打ち切り.md"
+    }
+   }
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_015CdXnmDVqrwuoET6iCmaqf",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"concept\"\n3\tkind: \"experience-pattern\"\n4\ttitle: \"PowerShell の Select-Object -First は、上流のスクリプトを止める\"\n5\ttags: [\"windows\"]\n6\tsources: [\"powershell-select-first-stops-writer-2026-11-15\"]\n7\tcreated: 2026-11-15\n8\tupdated: 2026-11-15\n9\tstatus: \"hypothesis\"\n10\t---\n11\t\n12\t# PowerShell の Select-Object -First は、上流のスクリプトを止める\n13\t\n14\tPowerShell で、最後にファイルを書くスクリプトの出力を `Select-Object -First N` でしぼると、N 行を受け取ったところで上流が止まり、ファイルが書かれないことがある。出力を短く見たいときは、`Select-Object -Last N` にするか、出力をファイルに書いてから読む。実行のあとで、書くはずのファイルが変わったかを確かめる。\n15\t\n16\t## 根拠\n17\t\n18\t- 観測（[[powershell-select-first-stops-writer-2026-11-15]]）: `uv run --script run_bench.py --metrics-only 2>&1 | Select-Object -First 1` のあと、`results.json` は書き直されていなかった。`Select-Object -Last 1` で実行し直すと書き直された。エラーは出ず、1 行目は正しく出たので、止まったことに気づきにくい。\n19\t\n20\t## 原因と手順\n21\t\n22\t- 仮説: `Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止める。上流のスクリプトは、最後の書き込みの前に止まる。\n23\t- 手順の案: ファイルを書くスクリプトには `-First` を付けない。付けるなら、書き込みを出力より先にするか、実行のあとでファイルの更新を確かめる。\n24\t\n25\t## 適用範囲と反例\n26\t\n27\tPowerShell 7.6.9（Claude Code の PowerShell ツール）で、uv と Python の子プロセスを動かしたときに観測した。`-Last` では止まらなかった。Bash の `head` で同じことが起きるかは確かめていない。Windows PowerShell 5.1 では確かめていない。\n28\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "6b0a330d-43c7-4513-8e9d-becd05c77113",
+   "uuid": "44bebe39-31fb-4335-89a6-ecdc8e633bb1",
+   "timestamp": "2026-11-17T14:38:05.450Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v2/snapshot/project/wiki/concepts/powershellのパイプの打ち切り.md",
+     "content": "---\ntype: \"concept\"\nkind: \"experience-pattern\"\ntitle: \"PowerShell の Select-Object -First は、上流のスクリプトを止める\"\ntags: [\"windows\"]\nsources: [\"powershell-select-first-stops-writer-2026-11-15\"]\ncreated: 2026-11-15\nupdated: 2026-11-15\nstatus: \"hypothesis\"\n---\n\n# PowerShell の Select-Object -First は、上流のスクリプトを止める\n\nPowerShell で、最後にファイルを書くスクリプトの出力を `Select-Object -First N` でしぼると、N 行を受け取ったところで上流が止まり、ファイルが書かれないことがある。出力を短く見たいときは、`Select-Object -Last N` にするか、出力をファイルに書いてから読む。実行のあとで、書くはずのファイルが変わったかを確かめる。\n\n## 根拠\n\n- 観測（[[powershell-select-first-stops-writer-2026-11-15]]）: `uv run --script run_bench.py --metrics-only 2>&1 | Select-Object -First 1` のあと、`results.json` は書き直されていなかった。`Select-Object -Last 1` で実行し直すと書き直された。エラーは出ず、1 行目は正しく出たので、止まったことに気づきにくい。\n\n## 原因と手順\n\n- 仮説: `Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止める。上流のスクリプトは、最後の書き込みの前に止まる。\n- 手順の案: ファイルを書くスクリプトには `-First` を付けない。付けるなら、書き込みを出力より先にするか、実行のあとでファイルの更新を確かめる。\n\n## 適用範囲と反例\n\nPowerShell 7.6.9（Claude Code の PowerShell ツール）で、uv と Python の子プロセスを動かしたときに観測した。`-Last` では止まらなかった。Bash の `head` で同じことが起きるかは確かめていない。Windows PowerShell 5.1 では確かめていない。\n",
+     "numLines": 28,
+     "startLine": 1,
+     "totalLines": 28
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_015CdXnmDVqrwuoET6iCmaqf",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-fable-5-2",
+    "id": "msg_011Ch8fri9tdQHs9dHKs6bD4",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01CgiTgoniGR1AFMQUpZCgjW",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v2/snapshot/project/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 2698,
+     "cache_read_input_tokens": 3404,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 2698
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "6b0a330d-43c7-4513-8e9d-becd05c77113",
+   "uuid": "c98ee1d4-737c-4796-8b0b-f9b8b41201db",
+   "timestamp": "2026-11-17T14:38:06.019Z",
+   "request_id": "req_011Ch8frhwEmTXLmLXB1sqv4",
+   "wire_tool_inputs": {
+    "toolu_01CgiTgoniGR1AFMQUpZCgjW": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v2/snapshot/project/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md"
+    }
+   }
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.9,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.21,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.9,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     },
+     "seven_day_overage_included": {
+      "utilization": 0.22,
+      "resetsAt": 1795028400,
+      "status": "allowed"
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "d3be4827-9d65-4e8e-ada3-7a2345c10024",
+   "session_id": "6b0a330d-43c7-4513-8e9d-becd05c77113"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01CgiTgoniGR1AFMQUpZCgjW",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"経験: PowerShell の Select-Object -First が、ファイルを書く前のスクリプトを止めた（2026-11-15）\"\n4\ttags: [\"windows\"]\n5\traw: \"raw/experiences/powershell-select-first-stops-writer-2026-11-15.json\"\n6\tingested: 2026-11-15\n7\tcreated: 2026-11-15\n8\tupdated: 2026-11-15\n9\t---\n10\t\n11\t# 経験: PowerShell の Select-Object -First が、ファイルを書く前のスクリプトを止めた（2026-11-15）\n12\t\n13\t`/wiki:learn` で記録した経験である。raw は `raw/experiences/powershell-select-first-stops-writer-2026-11-15.json`（ファイルの SHA-256 は `98166a9dffbcfda5d58b38156f594710ec2da64ca32e840288ffb00a6ef32f26`）。結果は failure。\n14\t\n15\t## 観測したこと\n16\t\n17\t- `uv run --script scripts/run_bench.py --metrics-only 2>&1 | Select-Object -First 1` で実行すると、1 行目は出たが、`results.json` の `versions.pdftotext` は書き直す前の文字列のままだった。\n18\t- 同じコマンドを `Select-Object -Last 1` で実行し直すと、`versions.pdftotext` が書き直された。\n19\t- スクリプトは、すべての行を出したあとに `results.json` を書く。\n20\t\n21\t## 原因についての仮説\n22\t\n23\t`Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止めるので、ファイルを書く前にスクリプトが止まったと考えられる（仮説）。\n24\t\n25\t## 適用範囲と反例\n26\t\n27\tPowerShell 7.6.9（Claude Code の PowerShell ツール）、uv 0.12.2、Python 3.12.13 で観測した。`-Last` では止まらなかった。Bash の `head` でも同じことが起きうるかは確かめていない。\n28\t\n29\t## 関係するページ\n30\t\n31\t- [[powershellのパイプの打ち切り]]\n32\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "6b0a330d-43c7-4513-8e9d-becd05c77113",
+   "uuid": "99bcfb2e-dd8f-42d2-9c5a-1ab31d409bef",
+   "timestamp": "2026-11-17T14:38:06.088Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v2/snapshot/project/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md",
+     "content": "---\ntype: \"source\"\ntitle: \"経験: PowerShell の Select-Object -First が、ファイルを書く前のスクリプトを止めた（2026-11-15）\"\ntags: [\"windows\"]\nraw: \"raw/experiences/powershell-select-first-stops-writer-2026-11-15.json\"\ningested: 2026-11-15\ncreated: 2026-11-15\nupdated: 2026-11-15\n---\n\n# 経験: PowerShell の Select-Object -First が、ファイルを書く前のスクリプトを止めた（2026-11-15）\n\n`/wiki:learn` で記録した経験である。raw は `raw/experiences/powershell-select-first-stops-writer-2026-11-15.json`（ファイルの SHA-256 は `98166a9dffbcfda5d58b38156f594710ec2da64ca32e840288ffb00a6ef32f26`）。結果は failure。\n\n## 観測したこと\n\n- `uv run --script scripts/run_bench.py --metrics-only 2>&1 | Select-Object -First 1` で実行すると、1 行目は出たが、`results.json` の `versions.pdftotext` は書き直す前の文字列のままだった。\n- 同じコマンドを `Select-Object -Last 1` で実行し直すと、`versions.pdftotext` が書き直された。\n- スクリプトは、すべての行を出したあとに `results.json` を書く。\n\n## 原因についての仮説\n\n`Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止めるので、ファイルを書く前にスクリプトが止まったと考えられる（仮説）。\n\n## 適用範囲と反例\n\nPowerShell 7.6.9（Claude Code の PowerShell ツール）、uv 0.12.2、Python 3.12.13 で観測した。`-Last` では止まらなかった。Bash の `head` でも同じことが起きうるかは確かめていない。\n\n## 関係するページ\n\n- [[powershellのパイプの打ち切り]]\n",
+     "numLines": 32,
+     "startLine": 1,
+     "totalLines": 32
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01CgiTgoniGR1AFMQUpZCgjW",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-fable-5-2",
+    "id": "msg_011Ch8fruWmBaw2DhZmYfW8E",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "## 答え\n**原因（wiki では仮説の扱い）**: `Select-Object -First N` は、必要な数の行を受け取るとパイプラインの上流を止める。そのため、すべての行を出したあとにファイルを書くスクリプトは、最後の書き込みの前に止まる。エラーは出ず、先頭の行は正しく出るので、止まったことに気づきにくい。\n\n**避け方**:\n- 出力を短く見たいときは `Select-Object -Last N` にするか、出力をファイルに書いてから読む。\n- ファイルを書くスクリプトには `-First` を付けない。\n- 付けるなら、スクリプトの側で書き込みを出力より先にするか、実行のあとでファイルの更新を確かめる。\n- いずれの場合も、実行のあとで、書くはずのファイルが変わったかを確かめる。\n\n**適用範囲**: 観測は PowerShell 7.6.9（Claude Code の PowerShell ツール）、uv 0.12.2、Python 3.12.13 で、uv と Python の子プロセスを動かしたときのもの。`-Last` では止まらなかった。Windows PowerShell 5.1 と、Bash の `head` で同じことが起きるかは確かめていない。概念ページの status は `hypothesis` である。\n\n## 根拠\n- [[powershellのパイプの打ち切り]]（concepts/powershellのパイプの打ち切り.md）: 原因の仮説と避け方の手順を書いている。「仮説: `Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止める。」\n- [[powershell-select-first-stops-writer-2026-11-15]]（sources/powershell-select-first-stops-writer-2026-11-15.md）: もとの観測。`uv run --script scripts/run_bench.py --metrics-only 2>&1 | Select-Object -First 1` では `results.json` が書き直されず、`-Last 1` で実行し直すと書き直された。「スクリプトは、すべての行を出したあとに `results.json` を書く。」\n\n## 開いたページ\n1. concepts/powershellのパイプの打ち切り.md\n2. sources/powershell-select-first-stops-writer-2026-11-15.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nFable 5.2（claude-fable-5-2）"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1882,
+     "cache_read_input_tokens": 6102,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1882
+     },
+     "output_tokens": 731,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "6b0a330d-43c7-4513-8e9d-becd05c77113",
+   "uuid": "773ad3aa-cfdd-4f70-8aae-e9e73c462242",
+   "timestamp": "2026-11-17T14:38:13.157Z",
+   "request_id": "req_011Ch8fruHNKqzcENBwghoNA"
+  },
+  {
+   "duration_api_ms": 9486,
+   "stop_reason": "end_turn",
+   "session_id": "6b0a330d-43c7-4513-8e9d-becd05c77113",
+   "total_cost_usd": 0.11901320000000001,
+   "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 4580,
+    "cache_read_input_tokens": 9506,
+    "output_tokens": 1095,
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 4580,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 804,
+      "cache_read_input_tokens": 6102,
+      "cache_creation_input_tokens": 1882,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 1882
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-fable-5-2": {
+     "inputTokens": 4,
+     "outputTokens": 1095,
+     "cacheReadInputTokens": 9506,
+     "cacheCreationInputTokens": 4580,
+     "webSearchRequests": 0,
+     "costUSD": 0.11901320000000001,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 0,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 4580,
+     "canonicalModel": "claude-fable-5-2",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+     "background": 0,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {}
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 3,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "## 答え\n**原因（wiki では仮説の扱い）**: `Select-Object -First N` は、必要な数の行を受け取るとパイプラインの上流を止める。そのため、すべての行を出したあとにファイルを書くスクリプトは、最後の書き込みの前に止まる。エラーは出ず、先頭の行は正しく出るので、止まったことに気づきにくい。\n\n**避け方**:\n- 出力を短く見たいときは `Select-Object -Last N` にするか、出力をファイルに書いてから読む。\n- ファイルを書くスクリプトには `-First` を付けない。\n- 付けるなら、スクリプトの側で書き込みを出力より先にするか、実行のあとでファイルの更新を確かめる。\n- いずれの場合も、実行のあとで、書くはずのファイルが変わったかを確かめる。\n\n**適用範囲**: 観測は PowerShell 7.6.9（Claude Code の PowerShell ツール）、uv 0.12.2、Python 3.12.13 で、uv と Python の子プロセスを動かしたときのもの。`-Last` では止まらなかった。Windows PowerShell 5.1 と、Bash の `head` で同じことが起きるかは確かめていない。概念ページの status は `hypothesis` である。\n\n## 根拠\n- [[powershellのパイプの打ち切り]]（concepts/powershellのパイプの打ち切り.md）: 原因の仮説と避け方の手順を書いている。「仮説: `Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止める。」\n- [[powershell-select-first-stops-writer-2026-11-15]]（sources/powershell-select-first-stops-writer-2026-11-15.md）: もとの観測。`uv run --script scripts/run_bench.py --metrics-only 2>&1 | Select-Object -First 1` では `results.json` が書き直されず、`-Last 1` で実行し直すと書き直された。「スクリプトは、すべての行を出したあとに `results.json` を書く。」\n\n## 開いたページ\n1. concepts/powershellのパイプの打ち切り.md\n2. sources/powershell-select-first-stops-writer-2026-11-15.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nFable 5.2（claude-fable-5-2）",
+   "ttft_ms": 2171,
+   "type": "result",
+   "duration_ms": 10226,
+   "uuid": "b6fbd886-c8aa-43a2-bfc7-ec16b672e855",
+   "ttft_stream_ms": 1258,
+   "time_to_request_ms": 594,
+   "first_content_frame_ms": 1258,
+   "queued_turn_count": 0,
+   "result_index": 0,
+   "model_usage_since_last_result": {
+    "claude-fable-5-2": {
+     "inputTokens": 4,
+     "outputTokens": 1095,
+     "cacheReadInputTokens": 9506,
+     "cacheCreationInputTokens": 4580,
+     "webSearchRequests": 0,
+     "costUSD": 0.11901320000000001,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 0,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 4580,
+     "canonicalModel": "claude-fable-5-2",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "credential_expires_at": "2026-12-06T22:17:39.049Z"
+  }
+ ],
+ "opened": [
+  "project:concepts/powershellのパイプの打ち切り.md",
+  "project:sources/powershell-select-first-stops-writer-2026-11-15.md"
+ ],
+ "model_used": "claude-fable-5-2",
+ "result": "## 答え\n**原因（wiki では仮説の扱い）**: `Select-Object -First N` は、必要な数の行を受け取るとパイプラインの上流を止める。そのため、すべての行を出したあとにファイルを書くスクリプトは、最後の書き込みの前に止まる。エラーは出ず、先頭の行は正しく出るので、止まったことに気づきにくい。\n\n**避け方**:\n- 出力を短く見たいときは `Select-Object -Last N` にするか、出力をファイルに書いてから読む。\n- ファイルを書くスクリプトには `-First` を付けない。\n- 付けるなら、スクリプトの側で書き込みを出力より先にするか、実行のあとでファイルの更新を確かめる。\n- いずれの場合も、実行のあとで、書くはずのファイルが変わったかを確かめる。\n\n**適用範囲**: 観測は PowerShell 7.6.9（Claude Code の PowerShell ツール）、uv 0.12.2、Python 3.12.13 で、uv と Python の子プロセスを動かしたときのもの。`-Last` では止まらなかった。Windows PowerShell 5.1 と、Bash の `head` で同じことが起きるかは確かめていない。概念ページの status は `hypothesis` である。\n\n## 根拠\n- [[powershellのパイプの打ち切り]]（concepts/powershellのパイプの打ち切り.md）: 原因の仮説と避け方の手順を書いている。「仮説: `Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止める。」\n- [[powershell-select-first-stops-writer-2026-11-15]]（sources/powershell-select-first-stops-writer-2026-11-15.md）: もとの観測。`uv run --script scripts/run_bench.py --metrics-only 2>&1 | Select-Object -First 1` では `results.json` が書き直されず、`-Last 1` で実行し直すと書き直された。「スクリプトは、すべての行を出したあとに `results.json` を書く。」\n\n## 開いたページ\n1. concepts/powershellのパイプの打ち切り.md\n2. sources/powershell-select-first-stops-writer-2026-11-15.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nFable 5.2（claude-fable-5-2）",
+ "cost_usd": 0.11901320000000001,
+ "duration_ms": 10226,
+ "is_error": false,
+ "terminal_reason": "completed",
+ "api_error": null,
+ "api_error_status": null,
+ "model_usage": {
+  "claude-fable-5-2": {
+   "inputTokens": 4,
+   "outputTokens": 1095,
+   "cacheReadInputTokens": 9506,
+   "cacheCreationInputTokens": 4580,
+   "webSearchRequests": 0,
+   "costUSD": 0.11901320000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 4580,
+   "canonicalModel": "claude-fable-5-2",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "exit": 0,
+ "stderr": ""
+}

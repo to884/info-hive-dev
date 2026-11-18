@@ -1,0 +1,756 @@
+{
+ "protocol": 3,
+ "fingerprint": "c7b9e69a443a55c8807dd832222250a65db2f07b3b28e2e9c6ba3ed219e6dc40",
+ "id": "r2-blind",
+ "class": "R2",
+ "model": "haiku",
+ "effort": "medium",
+ "run": 1,
+ "requested_effort": "medium",
+ "prompt_sha256": "df072271b45555b18a33c0d6140d007130e9ff3edd60e5b5e25aa05c68c72569",
+ "argv": [
+  "claude",
+  "-p",
+  "問い: 伏せた判定が採点した中身に結び付かなかった失敗\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"抽出の品質の測り方\", \"path\": \"concepts/抽出の品質の測り方.md\"}\n{\"slug\": \"blind-judge-binding-and-form-feed-2026-11-15\", \"path\": \"sources/blind-judge-binding-and-form-feed-2026-11-15.md\"}",
+  "--agent",
+  "wiki:wiki-reader",
+  "--model",
+  "haiku",
+  "--effort",
+  "medium",
+  "--plugin-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--tools",
+  "Read,Glob,Grep",
+  "--allowedTools",
+  "Read,Glob,Grep",
+  "--max-budget-usd",
+  "2",
+  "--permission-mode",
+  "auto",
+  "--no-session-persistence",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "{\"mcpServers\":{}}",
+  "--settings",
+  "{\"autoMemoryEnabled\": false, \"claudeMdExcludes\": [\"**/CLAUDE.md\", \"**/CLAUDE.local.md\", \"**/AGENTS.md\", \"**/.claude/rules/**\"]}",
+  "--add-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+ ],
+ "events": [
+  {
+   "type": "system",
+   "subtype": "init",
+   "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "tools": [
+    "Read",
+    "Glob",
+    "Grep"
+   ],
+   "mcp_servers": [],
+   "model": "claude-haiku-5-5",
+   "permissionMode": "auto",
+   "slash_commands": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring",
+    "advisor",
+    "agents",
+    "auto-mode-setup",
+    "autocompact",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "output-style",
+    "context",
+    "effort",
+    "fast",
+    "focus",
+    "heapdump",
+    "init",
+    "mcp",
+    "import",
+    "model",
+    "__remote-workflow",
+    "workflow-launch-exec",
+    "reload-plugins",
+    "reload-skills",
+    "rename",
+    "ultrareview",
+    "security-review",
+    "usage-credits",
+    "extra-usage",
+    "usage",
+    "insights",
+    "recap",
+    "skill-doctor",
+    "goal",
+    "design-consent",
+    "design-revoke",
+    "list-agents",
+    "team-onboarding"
+   ],
+   "terminal_slash_commands": [
+    "doctor",
+    "color",
+    "focus",
+    "reload-plugins"
+   ],
+   "apiKeySource": "none",
+   "claude_code_version": "2.1.325",
+   "output_style": "default",
+   "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup",
+    "web-fetch",
+    "wiki:wiki-reader"
+   ],
+   "skills": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring"
+   ],
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+     "source": "wiki@inline",
+     "version": "0.0.0"
+    },
+    {
+     "name": "cc-plugin-agents-md",
+     "path": "builtin",
+     "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+     "name": "cc-plugin-telemetry",
+     "path": "builtin",
+     "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+     "name": "cc-plugin-privacy",
+     "path": "builtin",
+     "source": "cc-plugin-privacy@builtin"
+    },
+    {
+     "name": "cc-plugin-plugin-authoring",
+     "path": "builtin",
+     "source": "cc-plugin-plugin-authoring@builtin"
+    }
+   ],
+   "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1"
+   ],
+   "analytics_disabled": false,
+   "product_feedback_disabled": false,
+   "uuid": "de37bba1-f657-4393-a4be-c36dc7c24d61",
+   "original_cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "additional_directories": [
+    "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+   ],
+   "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-1e4c77c654a25a75b66a227e164195b1",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "per_turn_effort_active": true,
+   "ultrathink_available": false,
+   "ultrathink_typed_raises": false,
+   "view_mode": "default",
+   "powershell_path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "uuid": "8f681837-9376-4246-b691-c1806d68b333"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 261,
+   "estimated_tokens_delta": 211,
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "uuid": "43cc19c8-97a3-4ea6-964a-c952c6515f10"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8j4NzuA6UaBnFKLwKbU",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "CAQSiggKEAgTGAI4AUIIdGhpbmtpbmcSDNS7snrsgpz1DcZg/hoMB1YyCLHFnk7jVY3XIjBSAbIZkm901Yr6TXUyt6HEd8N2O2yfKQUV1W+l2THjDCBeYNlQq11fqwQSTx15d38qpwfEj1n5Y3F3xhsoFL+E7x8+vLC9ItFDrtD1yZg/fcsVYHvBa/PwyWkv1fif7nYe0Sbq2VMszIki9IDm+VKMNYxE8lb8eJJeNa/Sz5AocTuY2OyUrzjkHekrAvMMTq/5CyzqNvYS6JT79SsFuCCj7VGmbP7N55TLJ3krdtj8G0GNM+qpENZDwq0lqgREuRBJe+t+SU0p2FAlXmLdOTzKZbVfGZ7Ogj+TFeP//DCgpvogy2QMY6t90CRdagPa5XclD5Is/oOTqg2pyXuQzJ/tEfWpxSP7P01BGtVe6Y1IrZVu1RHsywpazjiq9F4SzB163ebmlJjPoMYVwrPUVjGyolwxClkq7OWq/txHjWcN3O8jpW2trGpausjCYEL3vfoP1Jq0/az0FePxJfzP4foy0YOFjhc8J+V+sEeELWdkDb34eLYr/pQ6yDBkjmhnqCFFukJwc4ItlnqBaJWToqawKwcn3GVOYCvaiEd6dXqpZdCzgN3+KlPoyAkMHBLQ8JCA1y1bJutFb+jZEFgcdkZO5p9QG2WYkKs1rBwbl08D/KGvsgFAXP+NFQ2tv08BBp8HigGLPy91Z43pPbyZEz4NPTAssNBdQqlDyaTFyn5EyiHg/HIYjPPltCHLNoDtEANriEIwXY2AbubcF3bzp+EtAFmRoG+nD1FKpbor60KekU88u7YMFsVvIshKToLFlLZV/7LPjy/GBpF0/K1vafqrw0bBzMg88KWzWaRK/MNobtqXpZqZNhL2dCP5FLht57UpxCUvHg5xzH3Cyz1iPRqY1snW5RxgkDHPTf4gQdWXMROXhwRBo+1WcwkDhUs8Ptnr4zKY1PQgPTBdIYwFq+ZkV4C2XM9T7VI200BOdwhis9rKj7gGR1F/qgTALfB2uFWgHNvh/J+iNh6pd/1dNCU/Dqg6f/3evsudJeSejT+OzS6efJApGn/D6HeBwxlR1PqHCedtcd6Lsg4lHq+7gtSp/otM4ffknv9+E+VcV+o6LFyVRbmHeCH7H/haWc88suNTXw16cvL2BRgaLnRfqf2Eoe/iPHHSviMPDMmM0gk91x+W1LRjlxgXLjTD6mNCrdVfrKcPdUUPvoPhPG29h8MRM6kLrvhcAoVwXwFanc+Q/QDeVfG4LoPOB6KRgtNxfZJa8WLGJhUmeE1d6oySIDtg3g39+l206zIEiGSB6uJFdV1Ef+xy/12w7C1JkcJ0VW+tD8hTfjxVp/5MzH37tMv81YftDdiDKaj35hgB"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1279,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1279
+     },
+     "output_tokens": 4,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "uuid": "5fa8b7a2-d0c2-453b-8a57-9dbd5138e8fd",
+   "timestamp": "2026-11-17T15:20:05.401Z",
+   "request_id": "req_011Ch8j4NmFSUKxb6WsXSd92",
+   "thinking_duration_ms": 1,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8j4NzuA6UaBnFKLwKbU",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_014ZViCHeammeDDiTzCtH9iZ",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/抽出の品質の測り方.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1279,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1279
+     },
+     "output_tokens": 4,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "uuid": "b9b85b26-dc2f-45d6-9528-7492054dbaa6",
+   "timestamp": "2026-11-17T15:20:05.407Z",
+   "request_id": "req_011Ch8j4NmFSUKxb6WsXSd92",
+   "wire_tool_inputs": {
+    "toolu_014ZViCHeammeDDiTzCtH9iZ": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/抽出の品質の測り方.md"
+    }
+   }
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8j4NzuA6UaBnFKLwKbU",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_019KYtDziR3yCqUrriDVyrtX",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1279,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1279
+     },
+     "output_tokens": 4,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "uuid": "aa92ee43-5791-4008-b148-7910a2730df0",
+   "timestamp": "2026-11-17T15:20:05.750Z",
+   "request_id": "req_011Ch8j4NmFSUKxb6WsXSd92",
+   "wire_tool_inputs": {
+    "toolu_019KYtDziR3yCqUrriDVyrtX": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md"
+    }
+   }
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.91,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.5,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.91,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "73fb5152-9f4e-4dc3-ba6c-3d0d2d11db19",
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_019KYtDziR3yCqUrriDVyrtX",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"経験: 伏せた判定が採点した中身に結び付かず、改ページの文字も読み飛ばされた（2026-11-15）\"\n4\ttags: [\"試験\"]\n5\traw: \"raw/experiences/blind-judge-binding-and-form-feed-2026-11-15.json\"\n6\tingested: 2026-11-15\n7\tcreated: 2026-11-15\n8\tupdated: 2026-11-15\n9\t---\n10\t\n11\t# 経験: 伏せた判定が採点した中身に結び付かず、改ページの文字も読み飛ばされた（2026-11-15）\n12\t\n13\t`/wiki:learn` で記録した経験である。raw は `raw/experiences/blind-judge-binding-and-form-feed-2026-11-15.json`（ファイルの SHA-256 は `a6fbc84563d4112306787f891d1662ecffe82d7c3987be9ab86bfe7e828d1a12`）。結果は failure。判定の仕組みは [[抽出の方式の比較-markitdown-2026-11-15]] の試料のディレクトリの `judge/` にある。\n14\t\n15\t## 観測したこと\n16\t\n17\t- 最初の判定で、Sol は、pdftotext と pdfminer の出力に改ページの文字（U+000C）が 5 個あるのに、「明示的なページ境界はない」として位置を 2 点にした。\n18\t- 集計は、最初は写しと出力のバイト列を比べるだけだった。Sol の 2 回目のレビューが、写しと出力を同時に差し替えると古い判定で集計が通ることを、メモリ上で示した。\n19\t- 写しの SHA-256 とダイジェストを `manifest.json` に書き、Sol に読んだダイジェストを `judge_digest` に書かせ、集計で照らすようにした。依頼に改ページの文字の数え方を書き、判定をやり直した。\n20\t- やり直した判定の `judge_digest` は `manifest.json` の値と一致し、集計が通った。pdftotext と pdfminer の位置は、4 つの PDF のすべてで 5 点になった。\n21\t\n22\t## 原因についての仮説\n23\t\n24\t判定のファイルに、採点した中身の識別子がなかった。モデルは画面に見えない制御文字を読み飛ばす（どちらも仮説）。\n25\t\n26\t## 適用範囲と反例\n27\t\n28\t外部のモデルに伏せた出力を採点させ、判定を出力と組にして集計するとき。ダイジェストは、モデルが `manifest.json` から書き写した値で、写しを実際に読んだことの証明ではない。ダイジェストを入れたあとの版で、出力を変えると集計が止まることは確かめていない。判定は 1 回ずつで、点のぶれは測っていない。\n29\t\n30\tモデルは Claude Opus 5.5 と GPT-6.1 Sol（effort high）。道具は Codex CLI 0.166.0（読み取り専用）、Python 3.12.13 と 3.14.6。\n31\t\n32\t## 関係するページ\n33\t\n34\t- [[抽出の品質の測り方]]\n35\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "uuid": "898016d2-c122-4700-80c8-849fa61f28e7",
+   "timestamp": "2026-11-17T15:20:07.252Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md",
+     "content": "---\ntype: \"source\"\ntitle: \"経験: 伏せた判定が採点した中身に結び付かず、改ページの文字も読み飛ばされた（2026-11-15）\"\ntags: [\"試験\"]\nraw: \"raw/experiences/blind-judge-binding-and-form-feed-2026-11-15.json\"\ningested: 2026-11-15\ncreated: 2026-11-15\nupdated: 2026-11-15\n---\n\n# 経験: 伏せた判定が採点した中身に結び付かず、改ページの文字も読み飛ばされた（2026-11-15）\n\n`/wiki:learn` で記録した経験である。raw は `raw/experiences/blind-judge-binding-and-form-feed-2026-11-15.json`（ファイルの SHA-256 は `a6fbc84563d4112306787f891d1662ecffe82d7c3987be9ab86bfe7e828d1a12`）。結果は failure。判定の仕組みは [[抽出の方式の比較-markitdown-2026-11-15]] の試料のディレクトリの `judge/` にある。\n\n## 観測したこと\n\n- 最初の判定で、Sol は、pdftotext と pdfminer の出力に改ページの文字（U+000C）が 5 個あるのに、「明示的なページ境界はない」として位置を 2 点にした。\n- 集計は、最初は写しと出力のバイト列を比べるだけだった。Sol の 2 回目のレビューが、写しと出力を同時に差し替えると古い判定で集計が通ることを、メモリ上で示した。\n- 写しの SHA-256 とダイジェストを `manifest.json` に書き、Sol に読んだダイジェストを `judge_digest` に書かせ、集計で照らすようにした。依頼に改ページの文字の数え方を書き、判定をやり直した。\n- やり直した判定の `judge_digest` は `manifest.json` の値と一致し、集計が通った。pdftotext と pdfminer の位置は、4 つの PDF のすべてで 5 点になった。\n\n## 原因についての仮説\n\n判定のファイルに、採点した中身の識別子がなかった。モデルは画面に見えない制御文字を読み飛ばす（どちらも仮説）。\n\n## 適用範囲と反例\n\n外部のモデルに伏せた出力を採点させ、判定を出力と組にして集計するとき。ダイジェストは、モデルが `manifest.json` から書き写した値で、写しを実際に読んだことの証明ではない。ダイジェストを入れたあとの版で、出力を変えると集計が止まることは確かめていない。判定は 1 回ずつで、点のぶれは測っていない。\n\nモデルは Claude Opus 5.5 と GPT-6.1 Sol（effort high）。道具は Codex CLI 0.166.0（読み取り専用）、Python 3.12.13 と 3.14.6。\n\n## 関係するページ\n\n- [[抽出の品質の測り方]]\n",
+     "numLines": 35,
+     "startLine": 1,
+     "totalLines": 35
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_019KYtDziR3yCqUrriDVyrtX",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_014ZViCHeammeDDiTzCtH9iZ",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"concept\"\n3\ttitle: \"抽出の品質の測り方\"\n4\ttags: [\"取り込み\", \"試験\"]\n5\tsources: [\"抽出の方式の比較-markitdown-2026-11-15\", \"extraction-metrics-string-presence-2026-11-15\", \"blind-judge-binding-and-form-feed-2026-11-15\"]\n6\tcreated: 2026-11-15\n7\tupdated: 2026-11-15\n8\t---\n9\t\n10\t# 抽出の品質の測り方\n11\t\n12\tソースを Markdown かテキストに変える方式（PDF の抽出、MarkItDown など）を比べるときの測り方である。今の取り込みと MarkItDown を比べたとき（[[抽出の方式の比較-markitdown-2026-11-15]]）に、最初の指標が GPT-6.1 Sol の敵対的レビューで 2 回崩れた。そこで分かったことをまとめる。スクリプトは `docs/research/markitdown-benchmark-2026-11-15/scripts/run_bench.py` にある。\n13\t\n14\t## 正解が分かる試料を作る\n15\t\n16\t試料は、正解の文を持つファイル（`content.py`）から作る。Office の形式はスクリプトで作り、PDF は Office の COM で書き出す。正解が分かっていれば、網羅率、読み順、表の列を機械的に数えられ、作者の書籍を外部のモデルに送らずに済む。Office の COM では、Word の `Documents.Open` に読み取り専用の引数を渡すと、自動化の Word が応答しなくなった。\n17\t\n18\t## 文字列の有無だけでは足りない\n19\t\n20\t最初の指標は、空白を消してから正解の文字列があるかを見ていた。これでは次の誤りを見逃した。\n21\t\n22\t- 空白を消すと、数値の境目が消える。「3000 1500」が「30001500」になり、「3000」が「30000」の一部に当たる。値を 10 倍にした出力も、網羅率は 1.0 のままだった。空白は 1 つにまとめて残し、数字で始まる（終わる）正解は、前（後ろ）に数字が続く位置に当てない。\n23\t- 表の行のセルが 1 行に並んでいても、列がそろっているとは限らない。見出しを残して本体だけ右へ 1 列ずれた表も、満点になった。表は、区切りの行（`|---|`）のあるものだけを Markdown の表とみなし、正解の見出しの列と照らして数える。見出しの行は表の 1 行目とは限らない（MarkItDown は DOCX の表の前に空の見出しの行を足す）。\n24\t- 読み順を「見つかった文の中で順に並ぶ割合」にすると、混線して照合できなくなった文が分母から消え、壊れた出力ほど高く出る。欠けた文も分母に入れる。貪欲に前から探すと、先頭の 1 つが後ろへ移っただけで後ろが全部落ちるので、原本の順に並べられる最長の部分列で数える。同じ値が何度も出てくる表では、正解ごとにどの出現位置を使ってもよいことにする。\n25\t\n26\t反例は、指標を使う前に自己試験として流す。\n27\t\n28\t## 機械の指標と、モデルの判定を分ける\n29\t\n30\t機械の指標は、文字列が、どこに、どの順で、どの列にあるかしか見ない。意味の取り違え（文の混線、値の取り違え）は、方式の名前を伏せてモデルに判定させる。表の形をしていても列がずれていると、表がない出力より誤解を招く。モデルの判定では、構造があることを良いとはみなさないように依頼に書く。\n31\t\n32\t## 判定を、採点した中身に結び付ける\n33\t\n34\t判定のファイルと出力を、ファイル名だけで結び付けると、計測をやり直したあとに古い判定が新しい出力に付く。写しと出力を一緒に差し替えると、写しと出力の照合もすり抜ける。写しごとの SHA-256 と、それらのダイジェストを一覧（`manifest.json`）に書き、モデルに、読んだダイジェストを判定に書かせる。集計のときに、ダイジェスト、写し、出力、対応表がすべて一致するときだけ集計する。\n35\t\n36\t## モデルが見落とすもの\n37\t\n38\t画面に見えない改ページの文字（U+000C）を、Sol は「ページの境界がない」と読み違えた。制御文字で表す目印は、数え方を依頼に書く。\n39\t\n40\t## 来歴を分ける\n41\t\n42\t保存した出力から指標だけを計算し直すときに、計測したときの版の記録を上書きしない。計算し直した環境は別に残す。比べる道具の実体も記録する。wiki の手順の `pdftotext` は、PATH によって Xpdf にも Poppler にもなる。\n43\t\n44\t## 根拠と、確かめていないこと\n45\t\n46\t- 指標の失敗と直したあとの自己試験は、[[extraction-metrics-string-presence-2026-11-15]] に記録した。\n47\t- 判定の結び付けと改ページの文字の見落としは、[[blind-judge-binding-and-form-feed-2026-11-15]] に記録した。\n48\t- 観測したのは 1 つのベンチマーク（Office で作った 15 の試料）だけである。直した指標と判定の結び付けは、3 回目のレビューを受けていない。ダイジェストは、モデルが一覧から書き写した値で、写しを実際に読んだことの証明ではない。短い数値の正解は、境目を見ても別の場所の同じ数値に当たりうる。\n49\t\n50\t## 関係するページ\n51\t\n52\t- [[抽出の方式の比較-markitdown-2026-11-15]]\n53\t- [[敵対的レビューで設計を直す進め方]]\n54\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "uuid": "dfee7f8d-cafb-446c-a918-454569b974b0",
+   "timestamp": "2026-11-17T15:20:07.310Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/抽出の品質の測り方.md",
+     "content": "---\ntype: \"concept\"\ntitle: \"抽出の品質の測り方\"\ntags: [\"取り込み\", \"試験\"]\nsources: [\"抽出の方式の比較-markitdown-2026-11-15\", \"extraction-metrics-string-presence-2026-11-15\", \"blind-judge-binding-and-form-feed-2026-11-15\"]\ncreated: 2026-11-15\nupdated: 2026-11-15\n---\n\n# 抽出の品質の測り方\n\nソースを Markdown かテキストに変える方式（PDF の抽出、MarkItDown など）を比べるときの測り方である。今の取り込みと MarkItDown を比べたとき（[[抽出の方式の比較-markitdown-2026-11-15]]）に、最初の指標が GPT-6.1 Sol の敵対的レビューで 2 回崩れた。そこで分かったことをまとめる。スクリプトは `docs/research/markitdown-benchmark-2026-11-15/scripts/run_bench.py` にある。\n\n## 正解が分かる試料を作る\n\n試料は、正解の文を持つファイル（`content.py`）から作る。Office の形式はスクリプトで作り、PDF は Office の COM で書き出す。正解が分かっていれば、網羅率、読み順、表の列を機械的に数えられ、作者の書籍を外部のモデルに送らずに済む。Office の COM では、Word の `Documents.Open` に読み取り専用の引数を渡すと、自動化の Word が応答しなくなった。\n\n## 文字列の有無だけでは足りない\n\n最初の指標は、空白を消してから正解の文字列があるかを見ていた。これでは次の誤りを見逃した。\n\n- 空白を消すと、数値の境目が消える。「3000 1500」が「30001500」になり、「3000」が「30000」の一部に当たる。値を 10 倍にした出力も、網羅率は 1.0 のままだった。空白は 1 つにまとめて残し、数字で始まる（終わる）正解は、前（後ろ）に数字が続く位置に当てない。\n- 表の行のセルが 1 行に並んでいても、列がそろっているとは限らない。見出しを残して本体だけ右へ 1 列ずれた表も、満点になった。表は、区切りの行（`|---|`）のあるものだけを Markdown の表とみなし、正解の見出しの列と照らして数える。見出しの行は表の 1 行目とは限らない（MarkItDown は DOCX の表の前に空の見出しの行を足す）。\n- 読み順を「見つかった文の中で順に並ぶ割合」にすると、混線して照合できなくなった文が分母から消え、壊れた出力ほど高く出る。欠けた文も分母に入れる。貪欲に前から探すと、先頭の 1 つが後ろへ移っただけで後ろが全部落ちるので、原本の順に並べられる最長の部分列で数える。同じ値が何度も出てくる表では、正解ごとにどの出現位置を使ってもよいことにする。\n\n反例は、指標を使う前に自己試験として流す。\n\n## 機械の指標と、モデルの判定を分ける\n\n機械の指標は、文字列が、どこに、どの順で、どの列にあるかしか見ない。意味の取り違え（文の混線、値の取り違え）は、方式の名前を伏せてモデルに判定させる。表の形をしていても列がずれていると、表がない出力より誤解を招く。モデルの判定では、構造があることを良いとはみなさないように依頼に書く。\n\n## 判定を、採点した中身に結び付ける\n\n判定のファイルと出力を、ファイル名だけで結び付けると、計測をやり直したあとに古い判定が新しい出力に付く。写しと出力を一緒に差し替えると、写しと出力の照合もすり抜ける。写しごとの SHA-256 と、それらのダイジェストを一覧（`manifest.json`）に書き、モデルに、読んだダイジェストを判定に書かせる。集計のときに、ダイジェスト、写し、出力、対応表がすべて一致するときだけ集計する。\n\n## モデルが見落とすもの\n\n画面に見えない改ページの文字（U+000C）を、Sol は「ページの境界がない」と読み違えた。制御文字で表す目印は、数え方を依頼に書く。\n\n## 来歴を分ける\n\n保存した出力から指標だけを計算し直すときに、計測したときの版の記録を上書きしない。計算し直した環境は別に残す。比べる道具の実体も記録する。wiki の手順の `pdftotext` は、PATH によって Xpdf にも Poppler にもなる。\n\n## 根拠と、確かめていないこと\n\n- 指標の失敗と直したあとの自己試験は、[[extraction-metrics-string-presence-2026-11-15]] に記録した。\n- 判定の結び付けと改ページの文字の見落としは、[[blind-judge-binding-and-form-feed-2026-11-15]] に記録した。\n- 観測したのは 1 つのベンチマーク（Office で作った 15 の試料）だけである。直した指標と判定の結び付けは、3 回目のレビューを受けていない。ダイジェストは、モデルが一覧から書き写した値で、写しを実際に読んだことの証明ではない。短い数値の正解は、境目を見ても別の場所の同じ数値に当たりうる。\n\n## 関係するページ\n\n- [[抽出の方式の比較-markitdown-2026-11-15]]\n- [[敵対的レビューで設計を直す進め方]]\n",
+     "numLines": 54,
+     "startLine": 1,
+     "totalLines": 54
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_014ZViCHeammeDDiTzCtH9iZ",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "uuid": "2ae492dd-66c5-4bb1-a7cb-dae64156f16a"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 350,
+   "estimated_tokens_delta": 300,
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "uuid": "1fae4adc-325d-4de3-aa60-719c19c2b723"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 550,
+   "estimated_tokens_delta": 200,
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "uuid": "afaab1eb-f496-4a10-971d-3fc7ed42975b"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 608,
+   "estimated_tokens_delta": 58,
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "uuid": "c27a819b-3511-4576-be87-d3b018a9a743"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8j4pKeS7GPZ5mRJLRLv",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "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"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 3675,
+     "cache_read_input_tokens": 4805,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 3675
+     },
+     "output_tokens": 8,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "uuid": "43adcd29-cdf5-472d-9968-85876800c9ac",
+   "timestamp": "2026-11-17T15:20:14.394Z",
+   "request_id": "req_011Ch8j4p23Ke53Ey3oRsudg",
+   "thinking_duration_ms": 2708,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8j4pKeS7GPZ5mRJLRLv",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "## 答え\n\nwiki には答えがある。失敗は、判定のファイルと出力を**ファイル名だけで結び付けた**ことである。計測をやり直すと、古い判定が新しい出力に付いてしまった。さらに、写しと出力を同時に差し替えると、照合がすり抜けた。対策は、写しごとの SHA-256 と `manifest.json` を作り、モデルに読んだダイジェストを判定に書かせ、集計でダイジェスト、写し、出力、対応表が一致するときだけ集計することである。ただし、この対策は 3 回目のレビューを受けておらず、有効性は確かめられていない。\n\n## 根拠\n- [[抽出の品質の測り方]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/抽出の品質の測り方.md`）: 「判定のファイルと出力を、ファイル名だけで結び付けると、計測をやり直したあとに古い判定が新しい出力に付く。」と書いている。写しと出力を一緒に差し替えると照合もすり抜けると述べ、対策として写しごとの SHA-256 と `manifest.json`、モデルに読んだダイジェストを書かせることを挙げる。集計は、ダイジェスト、写し、出力、対応表がすべて一致するときだけ行う。\n- [[blind-judge-binding-and-form-feed-2026-11-15]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md`）: 集計は最初、写しと出力のバイト列を比べるだけだった。Sol の 2 回目のレビューが、写しと出力を同時に差し替えると古い判定で集計が通ることを示した、と書いている。原因は「判定のファイルに、採点した中身の識別子がなかった」ことだとする。同じ経験の記録は、直したあとの判定で `judge_digest` が `manifest.json` の値と一致し、集計が通ったとも記す。\n- 同じ記録の「適用範囲と反例」: ダイジェストは、モデルが `manifest.json` から書き写した値なので、写しを実際に読んだことの証明ではない。ダイジェストを入れたあとの版で出力を変えると集計が止まることは確かめていない。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/抽出の品質の測り方.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md\n\n## 未確認の出典\n- raw の `raw/experiences/blind-judge-binding-and-form-feed-2026-11-15.json`（SHA-256 `a6fbc84563d4112306787f891d1662ecffe82d7c3987be9ab86bfe7e828d1a12`）は未読。内容は、開いた source ページの要約に基づく。\n- [[extraction-metrics-string-presence-2026-11-15]] と [[抽出の方式の比較-markitdown-2026-11-15]] は未読。\n\n## 関係のなかった候補\n- なし。ただし、同じ source ページの改ページの文字（U+000C）の見落としは、判定の結び付けとは別の失敗である。問いは結び付けの失敗に限られるため、答えには含めなかった。\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 3675,
+     "cache_read_input_tokens": 4805,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 3675
+     },
+     "output_tokens": 8,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "uuid": "b4b24eb3-0b0c-4d03-b29a-cc70e5ad6336",
+   "timestamp": "2026-11-17T15:20:19.062Z",
+   "request_id": "req_011Ch8j4p23Ke53Ey3oRsudg"
+  },
+  {
+   "duration_api_ms": 14673,
+   "stop_reason": "end_turn",
+   "session_id": "a03f95ce-5b21-49a9-a48a-6b33d89641b7",
+   "total_cost_usd": 0.00231951,
+   "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 4954,
+    "cache_read_input_tokens": 8331,
+    "output_tokens": 2490,
+    "output_tokens_details": {
+     "thinking_tokens": 794
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 4954,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 2024,
+      "cache_read_input_tokens": 4805,
+      "cache_creation_input_tokens": 3675,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 3675
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-haiku-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 2490,
+     "cacheReadInputTokens": 8331,
+     "cacheCreationInputTokens": 4954,
+     "webSearchRequests": 0,
+     "costUSD": 0.00231951,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 794,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 4954,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+     "background": 0,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {}
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 3,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "## 答え\n\nwiki には答えがある。失敗は、判定のファイルと出力を**ファイル名だけで結び付けた**ことである。計測をやり直すと、古い判定が新しい出力に付いてしまった。さらに、写しと出力を同時に差し替えると、照合がすり抜けた。対策は、写しごとの SHA-256 と `manifest.json` を作り、モデルに読んだダイジェストを判定に書かせ、集計でダイジェスト、写し、出力、対応表が一致するときだけ集計することである。ただし、この対策は 3 回目のレビューを受けておらず、有効性は確かめられていない。\n\n## 根拠\n- [[抽出の品質の測り方]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/抽出の品質の測り方.md`）: 「判定のファイルと出力を、ファイル名だけで結び付けると、計測をやり直したあとに古い判定が新しい出力に付く。」と書いている。写しと出力を一緒に差し替えると照合もすり抜けると述べ、対策として写しごとの SHA-256 と `manifest.json`、モデルに読んだダイジェストを書かせることを挙げる。集計は、ダイジェスト、写し、出力、対応表がすべて一致するときだけ行う。\n- [[blind-judge-binding-and-form-feed-2026-11-15]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md`）: 集計は最初、写しと出力のバイト列を比べるだけだった。Sol の 2 回目のレビューが、写しと出力を同時に差し替えると古い判定で集計が通ることを示した、と書いている。原因は「判定のファイルに、採点した中身の識別子がなかった」ことだとする。同じ経験の記録は、直したあとの判定で `judge_digest` が `manifest.json` の値と一致し、集計が通ったとも記す。\n- 同じ記録の「適用範囲と反例」: ダイジェストは、モデルが `manifest.json` から書き写した値なので、写しを実際に読んだことの証明ではない。ダイジェストを入れたあとの版で出力を変えると集計が止まることは確かめていない。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/抽出の品質の測り方.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md\n\n## 未確認の出典\n- raw の `raw/experiences/blind-judge-binding-and-form-feed-2026-11-15.json`（SHA-256 `a6fbc84563d4112306787f891d1662ecffe82d7c3987be9ab86bfe7e828d1a12`）は未読。内容は、開いた source ページの要約に基づく。\n- [[extraction-metrics-string-presence-2026-11-15]] と [[抽出の方式の比較-markitdown-2026-11-15]] は未読。\n\n## 関係のなかった候補\n- なし。ただし、同じ source ページの改ページの文字（U+000C）の見落としは、判定の結び付けとは別の失敗である。問いは結び付けの失敗に限られるため、答えには含めなかった。\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+   "ttft_ms": 4351,
+   "type": "result",
+   "duration_ms": 18068,
+   "uuid": "e38686b0-dead-497e-8ab5-0cbb597a33bd",
+   "ttft_stream_ms": 4349,
+   "time_to_request_ms": 1203,
+   "first_content_frame_ms": 4349,
+   "queued_turn_count": 0,
+   "result_index": 0,
+   "model_usage_since_last_result": {
+    "claude-haiku-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 2490,
+     "cacheReadInputTokens": 8331,
+     "cacheCreationInputTokens": 4954,
+     "webSearchRequests": 0,
+     "costUSD": 0.00231951,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 794,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 4954,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "credential_expires_at": "2026-12-06T22:17:39.049Z"
+  }
+ ],
+ "opened": [
+  "project:sources/blind-judge-binding-and-form-feed-2026-11-15.md",
+  "project:concepts/抽出の品質の測り方.md"
+ ],
+ "model_used": "claude-haiku-5-5",
+ "result": "## 答え\n\nwiki には答えがある。失敗は、判定のファイルと出力を**ファイル名だけで結び付けた**ことである。計測をやり直すと、古い判定が新しい出力に付いてしまった。さらに、写しと出力を同時に差し替えると、照合がすり抜けた。対策は、写しごとの SHA-256 と `manifest.json` を作り、モデルに読んだダイジェストを判定に書かせ、集計でダイジェスト、写し、出力、対応表が一致するときだけ集計することである。ただし、この対策は 3 回目のレビューを受けておらず、有効性は確かめられていない。\n\n## 根拠\n- [[抽出の品質の測り方]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/抽出の品質の測り方.md`）: 「判定のファイルと出力を、ファイル名だけで結び付けると、計測をやり直したあとに古い判定が新しい出力に付く。」と書いている。写しと出力を一緒に差し替えると照合もすり抜けると述べ、対策として写しごとの SHA-256 と `manifest.json`、モデルに読んだダイジェストを書かせることを挙げる。集計は、ダイジェスト、写し、出力、対応表がすべて一致するときだけ行う。\n- [[blind-judge-binding-and-form-feed-2026-11-15]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md`）: 集計は最初、写しと出力のバイト列を比べるだけだった。Sol の 2 回目のレビューが、写しと出力を同時に差し替えると古い判定で集計が通ることを示した、と書いている。原因は「判定のファイルに、採点した中身の識別子がなかった」ことだとする。同じ経験の記録は、直したあとの判定で `judge_digest` が `manifest.json` の値と一致し、集計が通ったとも記す。\n- 同じ記録の「適用範囲と反例」: ダイジェストは、モデルが `manifest.json` から書き写した値なので、写しを実際に読んだことの証明ではない。ダイジェストを入れたあとの版で出力を変えると集計が止まることは確かめていない。\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/抽出の品質の測り方.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md\n\n## 未確認の出典\n- raw の `raw/experiences/blind-judge-binding-and-form-feed-2026-11-15.json`（SHA-256 `a6fbc84563d4112306787f891d1662ecffe82d7c3987be9ab86bfe7e828d1a12`）は未読。内容は、開いた source ページの要約に基づく。\n- [[extraction-metrics-string-presence-2026-11-15]] と [[抽出の方式の比較-markitdown-2026-11-15]] は未読。\n\n## 関係のなかった候補\n- なし。ただし、同じ source ページの改ページの文字（U+000C）の見落としは、判定の結び付けとは別の失敗である。問いは結び付けの失敗に限られるため、答えには含めなかった。\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+ "cost_usd": 0.00231951,
+ "duration_ms": 18068,
+ "is_error": false,
+ "terminal_reason": "completed",
+ "api_error": null,
+ "api_error_status": null,
+ "model_usage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 4,
+   "outputTokens": 2490,
+   "cacheReadInputTokens": 8331,
+   "cacheCreationInputTokens": 4954,
+   "webSearchRequests": 0,
+   "costUSD": 0.00231951,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 794,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 4954,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "cli_version": "2.1.325",
+ "memory_paths": {},
+ "exit": 0,
+ "stderr": ""
+}

@@ -1,0 +1,16 @@
+{
+ "id": "r1-schema",
+ "class": "R1",
+ "model": "fable",
+ "effort": "medium",
+ "run": 1,
+ "model_used": "claude-fable-5-2",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/初期化されたwikiの判定.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md"
+ ],
+ "result": "## 答え\n\n判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所で決めている。設計上の決定は ADR-0019（wiki 0.13.0 から）にある。\n\n- **規則**: ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイル（リンクなら、先が通常のファイル）であれば初期化済みとする。中身は読まない。\n- **関数**: `check()` は、理由の種類と、調べたうえで決まったか（`certain`）を返す。`resolve()` は、判定とパスの解決を一度に行う。パスを解決して使う入口は、自分で解決せずに `resolve()` の戻り値を使う。\n- **呼ぶ時点**: wiki を読み始める前、パスを解決する前に、渡されたとおりのパスで判定する。\n  - 1 回で終わる CLI は、引数を読んだ直後に判定する。\n  - サブコマンドを持つ入口は、振り分けの前の 1 か所で判定する。\n  - MCP のサーバーと閲覧のサーバーは、要求のたびに判定する。\n- **同じ規則の別の実装**: rag の `rag_config.py` も同じ規則を自分で持っている。規則を変えるときは両方をそろえる。\n- **判定しないもの**: ライブラリの関数（`wiki_lint.lint()`、`collect_pages()`、`WikiIndex` など）、評価のランナーが受け取る `wiki_root`、`--upgrade` なしの `init_wiki.py` は判定しない。\n\nADR-0019 の状態は、取り込みの記録の時点（2026-11-13）では「提案」と書かれている。ADR の本文は wiki の外にあり、開いていない。\n\n## 根拠\n\n- [[初期化されたwikiの判定]]（concepts/初期化されたwikiの判定.md）: 「判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。」規則、`check()` と `resolve()`、判定する時点、判定しないもの、`rag_config.py` が同じ規則を持つことも、このページにある。\n- [[初期化していないディレクトリの扱い-wiki-0.13.0]]（sources/初期化していないディレクトリの扱い-wiki-0.13.0.md）: 「初期化された wiki の判定を、ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた」。決定が ADR-0019（状態は提案）にあること、設計が `docs/plans/wiki-uninitialized-root-2026-11-13.md` にあること、`resolve()` を足した経緯（実装の 1 回目のレビュー）も、このページにある。\n\n## 開いたページ\n\n1. concepts/初期化されたwikiの判定.md\n2. sources/初期化していないディレクトリの扱い-wiki-0.13.0.md\n\n## 関係のなかった候補\n\n- なし\n\n## モデル\n\nFable 5.2（claude-fable-5-2）\n\n`✶ Insight ─────────────────────────────────────`\n- 判定を 1 つのモジュールに集め、入口はそれを呼ぶだけにしている。入口が漏れていないかは、試験が `__main__` を持つスクリプトを構文木で数えて確かめる。\n- `resolve()` があるのは、判定の前にパスを解決すると `kb/ない/..` が `kb` に縮み、別の wiki に書き込みうるからである。\n`─────────────────────────────────────────────────`\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.3894544,
+ "duration_ms": 17235
+}

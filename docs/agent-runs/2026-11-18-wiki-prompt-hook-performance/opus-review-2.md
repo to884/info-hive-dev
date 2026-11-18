@@ -1,0 +1,65 @@
+## 判定
+
+**採用可**。前回の致命の指摘（rawcheck と fetch の import の失敗）と重大の指摘（外部版の型と規則の混在）は、どちらも閉じていました。新しい Python で確かめています。優先度が二重に掛かる問題も直っていました。新たに見つかったのは軽微な問題と、既知の測定範囲の限界だけです。確信度は中です。全 393 件の試験は再実行せず、関係する 167 件だけを実行しました。
+
+## 致命的・重大な欠陥
+
+なし。
+
+## 崩れる前提
+
+- **「同梱のディレクトリの中のファイルなら、パーサーが使っているモジュールと同じオブジェクトである」**: `markdown_module` は所在しか見ておらず、同一のオブジェクトかどうかは見ていません（`wiki_pages.py` の `markdown_module`）。初期化のあとで `sys.modules` から `markdown_it.*` を消すと、同梱版が読み直されて別のクラスになり、検査はそれを通してしまいます。
+  - 再現の手順: `new_parser()` を呼んだあと、`markdown_it.*` を `sys.modules` から全部消し、`markdown_module('token').Token` を取ります。パーサーが作るトークンについて `type(tok) is T` も `isinstance(tok, T)` も `False` になり、`ImportError` は出ません。
+  - この削除をするのは試験のコードだけです（`test_page_set.py` の外部 `mdurl` の試験の `finally`）。製品の経路では起きないと見て、軽微とします。
+- **「優先度を上げても、利用者の設定を損なわない」**: 呼び出し元が `IDLE` や `BELOW_NORMAL` の場合に崩れます。たとえば、利用者が Claude Code を意図的に低い優先度で起動した場合です。それでも入口は `SetPriorityClass(ABOVE_NORMAL)` を無条件に呼びます。子は `creationflags` で AboveNormal になります。フックが、利用者の下げた先祖より上で動くことになります。期間は最長で約 2.5 秒です。コードから導いた推論で、実機では確かめていません。
+- **「`venv: active` の測定は、有効な仮想環境の一般の場合を表す」**: `bench_prompt_parallel.py` の `active` は、`VIRTUAL_ENV` に cwd の `project/.venv` と同じパスを入れています。cwd の外にある有効な venv の場合は測っていません。
+  - 測定のデータには、実際に選ばれた interpreter が記録されていません。プロファイルを取らないためです。
+  - venv が選ばれたことは、`test_existing_project_and_active_virtualenvs_are_supported` が別に確かめています。こちらも cwd の中の venv です。
+- **「検索の経路も、負荷の下で締め切りに収まる」**: 明示参照のない題の一致の場合、8 本の負荷で p95 が 3,178.7ms、最大が 3,258.8ms でした。明示参照の場合（1,153ms）の約 2.8 倍です。16 本の負荷では、この経路を測っていません。
+  - 内部の期限は Python の入口から 2.5 秒で、`select` は締め切りを過ぎると全部を捨てます。16 本の負荷では、この経路の候補が落ちる可能性があります（推測）。
+  - 報告書は 16 本の負荷で検索の経路が収まるとは主張していないので、既知の限界の範囲です。
+
+## 見落としと軽微な問題
+
+- **【軽微】起動の判定と、子への振り分けの条件がずれている**: 優先度を飛ばす条件は `sys.argv[1:2] != ["--worker"]` です。子に振り分ける条件は `len(sys.argv) == 3 and sys.argv[1] == "--worker"` です。`hook.py --worker` のように引数が 2 個や 4 個のときは、優先度を変えないまま `main()` が動きます。手で起動したときにしか起きず、害はありません。
+- **【軽微】`validation.json` の `"one_second_goal_met": true` に条件が付いていない**: 報告書は「このバッチでは届いたが、前の 1.17 秒も残しており幅がある」と留保しています。JSON の真偽値だけを読むと、達成したと誤読されます。
+- **【軽微・既知の限界】同じコードでの数値の差が大きい**: 初回のレビューの版（`foreground-parallel-16`、p95 2,661ms）と今回の `review2-parallel-16-a/b`（p95 1,356ms と 1,626ms）の間で、性能に効くコードはほとんど変わっていません。変わったのは、子が優先度を自分で設定しなくなったことと、測定のシェルの cwd です。それでもおよそ 1 秒縮んでいます。周りの負荷の変動が支配的だということで、表の版どうしの差をコードの効果とは読めません。報告書はこのことを明記しており、速度向上率も主張していません。
+- **【軽微・既知の限界】`RUST_LOG` を外して測っている**: このホストは `RUST_LOG=warn` です。実際のセッションでは、pyproject がない cwd で uv が標準エラーに警告を出します。測定はこれを外しています。報告書に明記されています。
+- **【確認】未初期化の wiki の試験の残り 9 件**: 手元の Python 3.14（PyYAML なし）では、`test_uninitialized_wiki.py` の 9 件が失敗しました（graph-lint、graph-extract、setup）。原因は「`wiki_graph_lint.py` には PyYAML が必要である」による終了コード 2 で、環境によるものです。`markdown_it` の欠落は 0 件でした。前回の未切り分けの 9 件は、今回の差分によるものではありませんでした。
+
+## 検証した事実
+
+- **新しい Python での import**: `python -I -S` の新しいプロセスで、`wiki_fetch`、`wiki_rawcheck`、`wiki_browse_core`、`wiki_session`、`wiki_youtube` の import がすべて成功しました。**一致**。
+- **実際の外部版が先に読まれた場合**: `uv run --with markdown-it-py`（4.3.0）で、外部の `markdown_it`、`markdown_it.token`、`rules_block.table` を先に import してから読み込みました。結果は次のとおりで、**一致**です。
+  - `wiki_rawcheck._Token`、`wiki_browse_core.Token`、`wiki_pages.markdown_it.token.Token` が同じクラスでした。
+  - `_TABLE_RULE.__file__` は `_vendor\markdown_it\rules_block\table.py` でした。
+- **初期化のあとに外部のものが入った場合**: `markdown_it.rules_inline.text` に外部のモジュールを差し込むと、`ImportError` で拒否されました。トップの `markdown_it` を外部版に戻しても、`markdown_module('token')` は同梱版を返し、`new_parser()` は同梱の `MarkdownIt` のままでした。**一致**。
+- **動的な import の検索**: `info-hive-wiki` と `info-hive-rag` で、`markdown_it` を直接 import する箇所と `import_module` を探しました。残っているのは `wiki_mcp_common.require_env` だけで、引数は `SERVER_MODULES` と `RELAY_MODULES` です。`markdown_it` を直接取る経路はありませんでした。**一致**。
+- **狭い範囲の試験**: 次の 2 回の実行が成功しました。
+  - `VendoredParserTests`、優先度の試験（親の API を拒否した場合に親子とも `0x20` になることを含む）、`test_wiki_web_check`: 134 件。
+  - `test_wiki_fetch`: 33 件。
+- **優先度の親子**: 子は 36 行目の条件で `_foreground_priority()` を呼びません。AboveNormal になるのは、親が成功して `_FOREGROUND` が真のときの `creationflags` だけです。試験は、子がこの関数を呼んだら失敗するようにした複製で確かめています。**一致**。
+- **`validation.json` のハッシュ**: 13 個のソースファイルの SHA-256 は、すべて現在の作業ツリーと**一致**。7 個の測定ファイルの SHA-256 も**一致**。
+- **最終データの中身**: `review2-*` の 6 ファイル（`names-8` を除く）は、それぞれ 20 回の試行を持っていました。
+  - 全試行で exit 0、stderr が空、候補が届いています。合計 120 件です。
+  - hook、context、pages のハッシュは現在のファイルと同じです。
+  - 負荷の反復数は全 worker で 8〜11 です。
+  - 最大は 3,258.8ms（`names-corrected`）です。
+  - 逐次の測定でも、3 つのハッシュが記録され、一致しました（前回の軽微の指摘が閉じた）。
+  - 報告書の表の p95 と最大の値はすべて生データと同じです。**一致**。
+- **報告書の venv の説明**: 原因 1 に「`VIRTUAL_ENV` や cwd の `.venv` があると、入口のランチャーのコストは残る」と明記されています。**一致**（前回の前提の指摘を反映）。
+
+## 崩せなかった点
+
+- **`markdown_module` の排他**: `_PARSER_LOCK`（RLock）の中で `_parser()` を済ませてから submodule を import します。並列の初回呼び出しで、二重の初期化やデッドロックになる経路は見つかりませんでした。import のロックと互いに待ち合う経路もありません。
+- **rawcheck の表の規則の差し替え**: 同梱の table の規則と同梱の Token で動き、表の解析が通ります（新しいプロセスの試験と、外部版が先に読まれた環境の両方）。
+- **優先度の失敗経路**: API が例外を出しても `False` を返し、子は通常の優先度で起動されます。import しただけでは呼び出し元の優先度は変わりません。
+- **成功の判定**: 空の出力、壊れた JSON、候補が 1 件だけの出力は、`valid_candidate_output` と exit・stderr の検査で不成立になります。無効な fixture の `review2-names-8.json`（0/20）も、最終の集計から外したうえで記録として残しています。
+
+---
+
+- 次の作業（軽微な点を直すかを決め、コミットとリリースの手順へ進む）に適したモデルとエフォート: Sonnet、medium
+- 今回の再レビューに適したモデルとエフォート: Opus、high
+
+使用した MCP サーバー: なし
+使用した Agent Skills: なし

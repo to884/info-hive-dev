@@ -1,0 +1,748 @@
+{
+ "protocol": 3,
+ "fingerprint": "c7b9e69a443a55c8807dd832222250a65db2f07b3b28e2e9c6ba3ed219e6dc40",
+ "id": "r3-extract",
+ "class": "R3",
+ "model": "haiku",
+ "effort": "medium",
+ "run": 1,
+ "requested_effort": "medium",
+ "prompt_sha256": "4d6c0a2b949ed8660d22d1fbce2b07d8f14f9903bd4d19ce4be027a9bb325a4b",
+ "argv": [
+  "claude",
+  "-p",
+  "問い: MarkItDown と今の抽出の比較と、pdfminer の本文の揺れを合わせて、抽出の方式をどう選ぶべきか\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"pdfminerの本文の並びの揺れ\", \"path\": \"concepts/pdfminerの本文の並びの揺れ.md\"}\n{\"slug\": \"抽出の方式の比較-markitdown-2026-11-15\", \"path\": \"sources/抽出の方式の比較-markitdown-2026-11-15.md\"}",
+  "--agent",
+  "wiki:wiki-reader",
+  "--model",
+  "haiku",
+  "--effort",
+  "medium",
+  "--plugin-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--tools",
+  "Read,Glob,Grep",
+  "--allowedTools",
+  "Read,Glob,Grep",
+  "--max-budget-usd",
+  "2",
+  "--permission-mode",
+  "auto",
+  "--no-session-persistence",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "{\"mcpServers\":{}}",
+  "--settings",
+  "{\"autoMemoryEnabled\": false, \"claudeMdExcludes\": [\"**/CLAUDE.md\", \"**/CLAUDE.local.md\", \"**/AGENTS.md\", \"**/.claude/rules/**\"]}",
+  "--add-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+ ],
+ "events": [
+  {
+   "type": "system",
+   "subtype": "init",
+   "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "tools": [
+    "Read",
+    "Glob",
+    "Grep"
+   ],
+   "mcp_servers": [],
+   "model": "claude-haiku-5-5",
+   "permissionMode": "auto",
+   "slash_commands": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring",
+    "advisor",
+    "agents",
+    "auto-mode-setup",
+    "autocompact",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "output-style",
+    "context",
+    "effort",
+    "fast",
+    "focus",
+    "heapdump",
+    "init",
+    "mcp",
+    "import",
+    "model",
+    "__remote-workflow",
+    "workflow-launch-exec",
+    "reload-plugins",
+    "reload-skills",
+    "rename",
+    "ultrareview",
+    "security-review",
+    "usage-credits",
+    "extra-usage",
+    "usage",
+    "insights",
+    "recap",
+    "skill-doctor",
+    "goal",
+    "design-consent",
+    "design-revoke",
+    "list-agents",
+    "team-onboarding"
+   ],
+   "terminal_slash_commands": [
+    "doctor",
+    "color",
+    "focus",
+    "reload-plugins"
+   ],
+   "apiKeySource": "none",
+   "claude_code_version": "2.1.325",
+   "output_style": "default",
+   "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup",
+    "web-fetch",
+    "wiki:wiki-reader"
+   ],
+   "skills": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring"
+   ],
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+     "source": "wiki@inline",
+     "version": "0.0.0"
+    },
+    {
+     "name": "cc-plugin-agents-md",
+     "path": "builtin",
+     "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+     "name": "cc-plugin-telemetry",
+     "path": "builtin",
+     "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+     "name": "cc-plugin-privacy",
+     "path": "builtin",
+     "source": "cc-plugin-privacy@builtin"
+    },
+    {
+     "name": "cc-plugin-plugin-authoring",
+     "path": "builtin",
+     "source": "cc-plugin-plugin-authoring@builtin"
+    }
+   ],
+   "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1"
+   ],
+   "analytics_disabled": false,
+   "product_feedback_disabled": false,
+   "uuid": "f6f6eeea-c1c1-453c-aa82-3ef14689d988",
+   "original_cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "additional_directories": [
+    "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+   ],
+   "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-5e8b7144d6e145d23b77e06e9b5f2925",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "per_turn_effort_active": true,
+   "ultrathink_available": false,
+   "ultrathink_typed_raises": false,
+   "view_mode": "default",
+   "powershell_path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "uuid": "012364c9-9efb-48cd-ba62-d5725e345609"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 226,
+   "estimated_tokens_delta": 176,
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "uuid": "b85b787f-289e-4d2a-82a0-e8469ba27688"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8j2Mc1BJqGQZx17Ugoz",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "CAQS/gYKEAgTGAI4AUIIdGhpbmtpbmcSDCefkdl9lFNIAP7tUBoMvSHrno9NVEjZIrb8IjCzHDAcWSgjOZlf7GGv87R6krzFz7qslC3X7wRjWSX4nqnPft6QtZcvr6Vyzwcl/FUqmwZllIwhKY23gfncjbgIJn+MyTSvQnorL/jwN0AdCXJaT20FxnJhg6IOZmfClN4Ig356FVb/udlRUglOYeMHkbZyI5pYtDeTz1DsdYAfHBVmUR8tAa+e88sZghwgt5MdhJ6zdY1rFFINHFt7Fh6XLZ7vbzIrxpwdRLsTFMWYQPDyVJhMMrT/HaPV5u8LlN9NLbsS7CvtpM9hNH3gbt5BKbD6BIxxmHae+fS5wB6Lg7ix8BjMTl6TnJfFT/Dk2kgfBUr3OV7HpEMsyeg85kLi/zJ/Oc8o2SYg9DvvC0zP8CDv66Txykpbi1v/xFtbZ0cWWKkE9DZSw9zSYfs3tI43/MW2kIoWETy35fHTNbz53warJakGJk2cm/PvTdM8k6S0puC/Fqei2PYUDWfJG+/FajgySbXMMO+O+KPgtaX6L3qzcSKLbEYfA4M3Z6DK1yICZKCcAeryIeHCJkJwjHZesGdF+t3mqz6cm4IOeMAK2mzn/6dZzMlvDvYEP7JqjEpafXieviOypI8eRS8mHZgdxWAaG5dxs/V5ZGXEAE6A/9+kS77zpcun3BT450R5/CqwTF0Yg8aVP1/A9RKE8sSJ8lcA1X415QqVQWCVwjdWh5aZ4iB8xsHXVkiuLSoLHTtB+J4my20bYZTp2tNI061lMPMvA9GBgcxZ2cb/Sdk+m7VkGprrvJ57bX2vJS+BmSnNRk0QT2dyq8/Jis732Dc1N9F+LZlmyPY5pZDIXuz9kSPWn6WGGl9FpwAuhYY4973K2MtxT+V5SrGqMMyTje48PzUQwCj11x/9BkaUljYrK+VvwS/mXvg6ut7cPse3lMOeYH2uO7gSUPjP2FqRSxel1t7R/HJtK+YDH2Tr8oYvpgquOOE8zsUlUthKU4b1EJDI7qTzf27K0FdqsebtVxUTjANodN91Oc9JBPTbCKMw3oxzPGjsyPeInzWE/VAGTrl4V0ydKK1u7zpM+fdVr9RhFj/K2DKorOf0At14eJrvbiICmAOEWRiphjqdh7AHprQrXViIvZinij7yxgm4vN4ql+OWZqwpVv7eLCG6UV4YAQ=="
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1316,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1316
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "uuid": "c12ee8d9-851f-48b1-9dbf-49ebb3c6e589",
+   "timestamp": "2026-11-17T15:19:36.530Z",
+   "request_id": "req_011Ch8j2MERR6gbmGCP5uv1V",
+   "thinking_duration_ms": 329,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8j2Mc1BJqGQZx17Ugoz",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01UBVKaAJRrzJ524gpFJHbMc",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfminerの本文の並びの揺れ.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1316,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1316
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "uuid": "77a19624-918a-4c49-b9c5-6118bdb531bf",
+   "timestamp": "2026-11-17T15:19:36.955Z",
+   "request_id": "req_011Ch8j2MERR6gbmGCP5uv1V",
+   "wire_tool_inputs": {
+    "toolu_01UBVKaAJRrzJ524gpFJHbMc": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfminerの本文の並びの揺れ.md"
+    }
+   }
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8j2Mc1BJqGQZx17Ugoz",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_017vwnCUc7ogrBKzCtQ5Ku1s",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/抽出の方式の比較-markitdown-2026-11-15.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 1316,
+     "cache_read_input_tokens": 3526,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 1316
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "uuid": "2d50b505-5df5-4cea-a0fa-f50187362560",
+   "timestamp": "2026-11-17T15:19:37.301Z",
+   "request_id": "req_011Ch8j2MERR6gbmGCP5uv1V",
+   "wire_tool_inputs": {
+    "toolu_017vwnCUc7ogrBKzCtQ5Ku1s": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/抽出の方式の比較-markitdown-2026-11-15.md"
+    }
+   }
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.91,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.5,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.91,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "761e7d6e-29fb-4af6-93f1-164db26b40a1",
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_017vwnCUc7ogrBKzCtQ5Ku1s",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"今の取り込みと MarkItDown の抽出の比較（2026-11-15）\"\n4\ttags: [\"取り込み\", \"rag\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/research/markitdown-benchmark-2026-11-15.md\"\n7\tingested: 2026-11-15\n8\tcreated: 2026-11-15\n9\tupdated: 2026-11-15\n10\t---\n11\t\n12\t# 今の取り込みと MarkItDown の抽出の比較（2026-11-15）\n13\t\n14\twiki と rag の取り込みで MarkItDown を使うかを決めるために、今の抽出と MarkItDown 0.1.9 を、速度、機械的な指標、GPT-6.1 Sol の判定で比べた調査である。原本は `docs/research/markitdown-benchmark-2026-11-15.md` で、試料、スクリプト、出力、判定は同じ名前のディレクトリにある。レビューの記録は `docs/agent-runs/2026-11-15-markitdown-benchmark-review/` にある。\n15\t\n16\tまだ何も決めていない。対応したい形式を MarkItDown で広げる構想（PDF、Office、HTML、CSV、JSON、XML、ZIP、EPUB、画像、音声、YouTube）の前に、手がかりを得るために測った。\n17\t\n18\t## 進め方\n19\t\n20\t- 試料は、架空の社内文書から作った 15 個である。DOCX、PPTX、XLSX、XLS、それらを Office で書き出した PDF 4 つ（2 段組みを含む）、HTML、UTF-8 と Shift_JIS の CSV、JSON、XML、EPUB、ZIP を作った。正解の文字列が分かっているので、機械的に数えられる。作者の書籍は使っていない。\n21\t- 今の方式として、pdftotext、pdfminer、rag 0.5.3 の PDFium の抽出（OCR なし）、`wiki_fetch.py`、`wiki_encoding.py` で判定してそのまま読む方法を比べた。作者の指示で OCR は使わず、画像、音声、YouTube は外した。\n22\t- 品質は、方式の名前を伏せて Sol に 6 つの軸で採点させた。指標と判定の作り方は、2 回の敵対的レビューで直した（[[抽出の品質の測り方]]）。\n23\t\n24\t## 分かったこと\n25\t\n26\t- Office が書き出した PDF では、rag の PDFium の抽出がもっとも良かった（Sol の総合 4、4、5、5、順に読めた割合はすべて 1.0）。2 段組みでも左の段から右の段へ読んだ。\n27\t- MarkItDown は、3 つの PDF で意味を変える誤りを作った。2 段組みでは左右の段を 1 つの表に混ぜ、スライドでは左右の本文を語の途中でつなぎ、表計算では値を隣の列に入れた。ページの区切りも出さない。\n28\t- MarkItDown は、DOCX、PPTX、XLSX、XLS、EPUB、ZIP（中身は DOCX、CSV、JSON）では総合 5 だった。XLSX と XLS の式の計算済みの値、PPTX のノートとスライドの区切りも残した。\n29\t- 同じ中身なら、元の形式のまま MarkItDown にかけるほうが、PDF にしてから抽出するより良かった。\n30\t- HTML では、`wiki_fetch.py` が雑音を除き、MarkItDown はナビ、広告、フッターを残した。CSV、JSON、XML は、どちらでも差がなかった。\n31\t- MarkItDown の起動は、`import` までで 3.3〜3.8 秒かかった。変換は 0.34 秒以下。依存は追加の依存を含めて 189 MiB で、今の wiki の抽出は標準ライブラリだけで動く。\n32\t- wiki の手順にある `pdftotext` は、この PC では Git for Windows の Xpdf 4.00 だった。Poppler ではない。\n33\t\n34\t## 主張と行き先\n35\t\n36\t| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n37\t| --- | --- | --- | --- | --- |\n38\t| 1 | Office が書き出した PDF では、PDFium の抽出が pdftotext、pdfminer、MarkItDown より読み順と表で良い。書籍などの PDF では確かめていない | レポートの「結果」の「PDF」 | source_only | まだ決定ではない。書籍の PDF で確かめてから決める |\n39\t| 2 | Office の形式と EPUB には MarkItDown が使える（今回の試料で総合 5） | レポートの「結果」の「Office の形式、EPUB、ZIP」 | source_only | 採るかどうかは、起動の時間と依存の置き場所と合わせて決める |\n40\t| 3 | 抽出の品質を文字列の有無で測ると、数値の境目、表の列、読み順を見誤る。判定は採点した中身に結び付ける | レポートの「計測の方法」と「レビュー」 | create | [[抽出の品質の測り方]]。次に別の抽出を比べるときにも使う |\n41\t| 4 | MarkItDown の起動は約 3.5 秒、依存は約 190 MiB | レポートの「速度」と「依存の大きさ」 | source_only | 数値で、ほかのページから引く場面がまだない |\n42\t\n43\t## 関係するページ\n44\t\n45\t- [[抽出の品質の測り方]]\n46\t- [[pdfのヘッダーの条件]]（rag が PDF を確かめる段階）\n47\t- [[敵対的レビューで設計を直す進め方]]\n48\t- [[youtubeの字幕の取り込みの選択肢-2026-11-15]]（構想の 1 つ、YouTube の字幕の取り方の調査）\n49\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "uuid": "31909829-7456-4909-b003-ae5dba4b822f",
+   "timestamp": "2026-11-17T15:19:38.382Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/抽出の方式の比較-markitdown-2026-11-15.md",
+     "content": "---\ntype: \"source\"\ntitle: \"今の取り込みと MarkItDown の抽出の比較（2026-11-15）\"\ntags: [\"取り込み\", \"rag\"]\nauthors: [\"to884\"]\nraw: \"docs/research/markitdown-benchmark-2026-11-15.md\"\ningested: 2026-11-15\ncreated: 2026-11-15\nupdated: 2026-11-15\n---\n\n# 今の取り込みと MarkItDown の抽出の比較（2026-11-15）\n\nwiki と rag の取り込みで MarkItDown を使うかを決めるために、今の抽出と MarkItDown 0.1.9 を、速度、機械的な指標、GPT-6.1 Sol の判定で比べた調査である。原本は `docs/research/markitdown-benchmark-2026-11-15.md` で、試料、スクリプト、出力、判定は同じ名前のディレクトリにある。レビューの記録は `docs/agent-runs/2026-11-15-markitdown-benchmark-review/` にある。\n\nまだ何も決めていない。対応したい形式を MarkItDown で広げる構想（PDF、Office、HTML、CSV、JSON、XML、ZIP、EPUB、画像、音声、YouTube）の前に、手がかりを得るために測った。\n\n## 進め方\n\n- 試料は、架空の社内文書から作った 15 個である。DOCX、PPTX、XLSX、XLS、それらを Office で書き出した PDF 4 つ（2 段組みを含む）、HTML、UTF-8 と Shift_JIS の CSV、JSON、XML、EPUB、ZIP を作った。正解の文字列が分かっているので、機械的に数えられる。作者の書籍は使っていない。\n- 今の方式として、pdftotext、pdfminer、rag 0.5.3 の PDFium の抽出（OCR なし）、`wiki_fetch.py`、`wiki_encoding.py` で判定してそのまま読む方法を比べた。作者の指示で OCR は使わず、画像、音声、YouTube は外した。\n- 品質は、方式の名前を伏せて Sol に 6 つの軸で採点させた。指標と判定の作り方は、2 回の敵対的レビューで直した（[[抽出の品質の測り方]]）。\n\n## 分かったこと\n\n- Office が書き出した PDF では、rag の PDFium の抽出がもっとも良かった（Sol の総合 4、4、5、5、順に読めた割合はすべて 1.0）。2 段組みでも左の段から右の段へ読んだ。\n- MarkItDown は、3 つの PDF で意味を変える誤りを作った。2 段組みでは左右の段を 1 つの表に混ぜ、スライドでは左右の本文を語の途中でつなぎ、表計算では値を隣の列に入れた。ページの区切りも出さない。\n- MarkItDown は、DOCX、PPTX、XLSX、XLS、EPUB、ZIP（中身は DOCX、CSV、JSON）では総合 5 だった。XLSX と XLS の式の計算済みの値、PPTX のノートとスライドの区切りも残した。\n- 同じ中身なら、元の形式のまま MarkItDown にかけるほうが、PDF にしてから抽出するより良かった。\n- HTML では、`wiki_fetch.py` が雑音を除き、MarkItDown はナビ、広告、フッターを残した。CSV、JSON、XML は、どちらでも差がなかった。\n- MarkItDown の起動は、`import` までで 3.3〜3.8 秒かかった。変換は 0.34 秒以下。依存は追加の依存を含めて 189 MiB で、今の wiki の抽出は標準ライブラリだけで動く。\n- wiki の手順にある `pdftotext` は、この PC では Git for Windows の Xpdf 4.00 だった。Poppler ではない。\n\n## 主張と行き先\n\n| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n| --- | --- | --- | --- | --- |\n| 1 | Office が書き出した PDF では、PDFium の抽出が pdftotext、pdfminer、MarkItDown より読み順と表で良い。書籍などの PDF では確かめていない | レポートの「結果」の「PDF」 | source_only | まだ決定ではない。書籍の PDF で確かめてから決める |\n| 2 | Office の形式と EPUB には MarkItDown が使える（今回の試料で総合 5） | レポートの「結果」の「Office の形式、EPUB、ZIP」 | source_only | 採るかどうかは、起動の時間と依存の置き場所と合わせて決める |\n| 3 | 抽出の品質を文字列の有無で測ると、数値の境目、表の列、読み順を見誤る。判定は採点した中身に結び付ける | レポートの「計測の方法」と「レビュー」 | create | [[抽出の品質の測り方]]。次に別の抽出を比べるときにも使う |\n| 4 | MarkItDown の起動は約 3.5 秒、依存は約 190 MiB | レポートの「速度」と「依存の大きさ」 | source_only | 数値で、ほかのページから引く場面がまだない |\n\n## 関係するページ\n\n- [[抽出の品質の測り方]]\n- [[pdfのヘッダーの条件]]（rag が PDF を確かめる段階）\n- [[敵対的レビューで設計を直す進め方]]\n- [[youtubeの字幕の取り込みの選択肢-2026-11-15]]（構想の 1 つ、YouTube の字幕の取り方の調査）\n",
+     "numLines": 49,
+     "startLine": 1,
+     "totalLines": 49
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_017vwnCUc7ogrBKzCtQ5Ku1s",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01UBVKaAJRrzJ524gpFJHbMc",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"concept\"\n3\ttitle: \"pdfminer の本文の並びの揺れ\"\n4\ttags: [\"取り込み\", \"pdf\", \"試験\"]\n5\tsources: [\"adr-0025の承認の条件の測定-2026-11-15\"]\n6\tcreated: 2026-11-15\n7\tupdated: 2026-11-16\n8\t---\n9\t\n10\t# pdfminer の本文の並びの揺れ\n11\t\n12\tpdfminer.six（20260107 で確かめた）は、`LAParams` のレイアウトの解析を使うと、同じ PDF と同じ設定から、プロセスによって違う本文を返すことがある。ADR-0025 の承認の条件の測定で見つけた（[[adr-0025の承認の条件の測定-2026-11-15]]）。\n13\t\n14\t## 観測したこと\n15\t\n16\t- 令和 7 年版防衛白書（546 ページ）を、3 つのプロセスで、ページごとの受け取りと文書全体の取り出しの 2 つの方法で取り出した。6 回のどれかで違ったのは 5 ページ（8、229、247、263、351）だった。\n17\t- 違うページでは、文字の数も行の集まりも同じで、行の並びだけが違った。\n18\t- 同じプロセスの中でも、ページごとの受け取りと文書全体の取り出しで違った。\n19\t\n20\t## 原因\n21\t\n22\t`pdfminer.layout.LTLayoutContainer.group_textboxes` は、テキストボックスの組を、距離の近い順にヒープからまとめる。ヒープの要素は `(skip_isany, dist, id(obj1), id(obj2), obj1, obj2)` である。距離が同じ組の順は `id(obj)`、つまりメモリーの番地で決まり、番地はプロセスごとに変わる。ソースを読んで突き止め、次の直しで揺れが消えたことで確かめた。\n23\t\n24\t## 直し方\n25\t\n26\t距離が同じ組の順を、ページの中で決まった順（テキストボックスを初めて見た順の番号）にする。試しに、`group_textboxes` を呼ぶあいだだけ `pdfminer.layout` の中の `id` を置きかえると、3 つのプロセスで 546 ページの本文がすべて同じになった（`docs/research/adr-0025-measurement-2026-11-15/scripts/stable_text.py`）。\n27\t\n28\t直しを入れても、取り出しは遅くならなかった（546 ページの平均で、直した版 0.267 秒/ページ、同じ日の直さない版 0.278 秒）。4 つ目のプロセスでも同じ本文になり、文書を 1 回だけ読む方法と文書全体の取り出しの本文も、546 ページすべてで一致した。\n29\t\n30\tこの置きかえはモジュールの変数を書きかえるので、2 つのスレッドから同時に呼ぶと壊れる。製品では、同じ手順を持つ別の関数にし、スレッドのあいだで状態を共有しない。\n31\t\n32\t製品の関数は、wiki の `wiki_pdf_layer.py` と rag の `rag_pdf_layer.py`（同じ中身）の `_stable_group_textboxes` である（2026-11-16、ADR-0025 の段階 1）。`LTPage` の子クラスで `group_textboxes` を上書きし、`TextConverter` の `begin_page` でその子クラスを使う。番号の振り方は試しの置きかえと同じなので、並びも同じになる（契約の試験で、正規化の前の本文を比べて確かめた）。\n33\t\n34\t## 揺れを確実に起こす試料\n35\t\n36\t距離の同じ組を合成の PDF で作るには、座標と大きさを誤差なく計算できるようにする。reportlab の標準のフォントでは、テキストボックスの高さが小数（ディセントが 0.194 em など）になり、距離が浮動小数点の誤差でずれて、同じにならない。\n37\t\n38\t- 字の幅（`/Widths`）と、`/FontDescriptor` の `Ascent` と `Descent` を自分で決めたフォントを手で書く（幅 0.5 em、高さ 1 em）。文字の大きさを 8 にすると、字の幅 4、高さ 8 で、座標がすべて整数になる。\n39\t- 8 文字の行を 2 行 2 列に並べ、縦の間隔を 8、横の間隔を 32 にすると、縦の組と横の組の距離（まとめたときの余白の面積）が、どちらも 256 になる。横の組を先にまとめると行の順、縦の組を先にまとめると列の順で本文が並ぶ。\n40\t- 同じ大きさの箱を等間隔の格子に並べただけでは、揺れは出なかった。横どうし、縦どうしの組の距離は同じでも、横と縦の組の距離が違うと、まとめる順が変わっても読む順は同じになる。\n41\t- この格子を 1 ページに 3 つ置いた 20 ページの PDF では、元の pdfminer（`id()` のまま）は、どのプロセスでも 16〜19 ページで、直した版と本文が違った（Windows 11、Python 3.12 で 8 回）。\n42\t\n43\t作り方は `tests/contract/pdf_fixtures.py` の `make_ties_pdf` にある。\n44\t\n45\t## 気をつけること\n46\t\n47\t- 本文の SHA-256、ページの中の文字の位置（続きを読む位置）、2 つの経路の本文が同じことを前提にするなら、この揺れを直してから比べる。1 回走らせて一致しても、毎回同じとは言えない。別々のプロセスで 3 回以上取り出して比べる。\n48\t- 直すと、距離の同じ組があるページで、直す前の出力と行の並びが変わる。直す前の出力で品質を判定していたら、そのページを比べ直す。ADR-0024 の検証で Sol が判定した 10 ページでは、直した版も判定に渡した本文と同じだった（2026-11-16）。\n49\t- 確かめたのは 1 つの PDF と 1 つの版だけである。pdfminer の版を上げたら、直しがまだ効くかを確かめる。\n50\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "uuid": "18f31d1e-76de-441a-afa7-03ec088f85aa",
+   "timestamp": "2026-11-17T15:19:38.443Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfminerの本文の並びの揺れ.md",
+     "content": "---\ntype: \"concept\"\ntitle: \"pdfminer の本文の並びの揺れ\"\ntags: [\"取り込み\", \"pdf\", \"試験\"]\nsources: [\"adr-0025の承認の条件の測定-2026-11-15\"]\ncreated: 2026-11-15\nupdated: 2026-11-16\n---\n\n# pdfminer の本文の並びの揺れ\n\npdfminer.six（20260107 で確かめた）は、`LAParams` のレイアウトの解析を使うと、同じ PDF と同じ設定から、プロセスによって違う本文を返すことがある。ADR-0025 の承認の条件の測定で見つけた（[[adr-0025の承認の条件の測定-2026-11-15]]）。\n\n## 観測したこと\n\n- 令和 7 年版防衛白書（546 ページ）を、3 つのプロセスで、ページごとの受け取りと文書全体の取り出しの 2 つの方法で取り出した。6 回のどれかで違ったのは 5 ページ（8、229、247、263、351）だった。\n- 違うページでは、文字の数も行の集まりも同じで、行の並びだけが違った。\n- 同じプロセスの中でも、ページごとの受け取りと文書全体の取り出しで違った。\n\n## 原因\n\n`pdfminer.layout.LTLayoutContainer.group_textboxes` は、テキストボックスの組を、距離の近い順にヒープからまとめる。ヒープの要素は `(skip_isany, dist, id(obj1), id(obj2), obj1, obj2)` である。距離が同じ組の順は `id(obj)`、つまりメモリーの番地で決まり、番地はプロセスごとに変わる。ソースを読んで突き止め、次の直しで揺れが消えたことで確かめた。\n\n## 直し方\n\n距離が同じ組の順を、ページの中で決まった順（テキストボックスを初めて見た順の番号）にする。試しに、`group_textboxes` を呼ぶあいだだけ `pdfminer.layout` の中の `id` を置きかえると、3 つのプロセスで 546 ページの本文がすべて同じになった（`docs/research/adr-0025-measurement-2026-11-15/scripts/stable_text.py`）。\n\n直しを入れても、取り出しは遅くならなかった（546 ページの平均で、直した版 0.267 秒/ページ、同じ日の直さない版 0.278 秒）。4 つ目のプロセスでも同じ本文になり、文書を 1 回だけ読む方法と文書全体の取り出しの本文も、546 ページすべてで一致した。\n\nこの置きかえはモジュールの変数を書きかえるので、2 つのスレッドから同時に呼ぶと壊れる。製品では、同じ手順を持つ別の関数にし、スレッドのあいだで状態を共有しない。\n\n製品の関数は、wiki の `wiki_pdf_layer.py` と rag の `rag_pdf_layer.py`（同じ中身）の `_stable_group_textboxes` である（2026-11-16、ADR-0025 の段階 1）。`LTPage` の子クラスで `group_textboxes` を上書きし、`TextConverter` の `begin_page` でその子クラスを使う。番号の振り方は試しの置きかえと同じなので、並びも同じになる（契約の試験で、正規化の前の本文を比べて確かめた）。\n\n## 揺れを確実に起こす試料\n\n距離の同じ組を合成の PDF で作るには、座標と大きさを誤差なく計算できるようにする。reportlab の標準のフォントでは、テキストボックスの高さが小数（ディセントが 0.194 em など）になり、距離が浮動小数点の誤差でずれて、同じにならない。\n\n- 字の幅（`/Widths`）と、`/FontDescriptor` の `Ascent` と `Descent` を自分で決めたフォントを手で書く（幅 0.5 em、高さ 1 em）。文字の大きさを 8 にすると、字の幅 4、高さ 8 で、座標がすべて整数になる。\n- 8 文字の行を 2 行 2 列に並べ、縦の間隔を 8、横の間隔を 32 にすると、縦の組と横の組の距離（まとめたときの余白の面積）が、どちらも 256 になる。横の組を先にまとめると行の順、縦の組を先にまとめると列の順で本文が並ぶ。\n- 同じ大きさの箱を等間隔の格子に並べただけでは、揺れは出なかった。横どうし、縦どうしの組の距離は同じでも、横と縦の組の距離が違うと、まとめる順が変わっても読む順は同じになる。\n- この格子を 1 ページに 3 つ置いた 20 ページの PDF では、元の pdfminer（`id()` のまま）は、どのプロセスでも 16〜19 ページで、直した版と本文が違った（Windows 11、Python 3.12 で 8 回）。\n\n作り方は `tests/contract/pdf_fixtures.py` の `make_ties_pdf` にある。\n\n## 気をつけること\n\n- 本文の SHA-256、ページの中の文字の位置（続きを読む位置）、2 つの経路の本文が同じことを前提にするなら、この揺れを直してから比べる。1 回走らせて一致しても、毎回同じとは言えない。別々のプロセスで 3 回以上取り出して比べる。\n- 直すと、距離の同じ組があるページで、直す前の出力と行の並びが変わる。直す前の出力で品質を判定していたら、そのページを比べ直す。ADR-0024 の検証で Sol が判定した 10 ページでは、直した版も判定に渡した本文と同じだった（2026-11-16）。\n- 確かめたのは 1 つの PDF と 1 つの版だけである。pdfminer の版を上げたら、直しがまだ効くかを確かめる。\n",
+     "numLines": 50,
+     "startLine": 1,
+     "totalLines": 50
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01UBVKaAJRrzJ524gpFJHbMc",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "uuid": "f4b4d515-048a-4324-8056-f1593fe09d25"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 350,
+   "estimated_tokens_delta": 300,
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "uuid": "4b214520-df48-4528-b603-2b405b21c642"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 600,
+   "estimated_tokens_delta": 250,
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "uuid": "09a71132-b280-4c3e-beaa-e645d3a910eb"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8j2gYnC84TfvmGGWivn",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "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"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 4715,
+     "cache_read_input_tokens": 4842,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 4715
+     },
+     "output_tokens": 6,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "uuid": "26a86cc2-1a12-4216-b335-57bfd5453593",
+   "timestamp": "2026-11-17T15:19:45.740Z",
+   "request_id": "req_011Ch8j2gJ9gHgUz6opxP8EL",
+   "thinking_duration_ms": 2920,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8j2gYnC84TfvmGGWivn",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "## 答え\nwiki に答えがない。wiki は、抽出の方式を選ぶ決定をまだ書いていない。比較の source は「まだ何も決めていない」と書き、採るかどうかは起動の時間と依存の置き場所と合わせて決める、としている（[[抽出の方式の比較-markitdown-2026-11-15]]）。以下は、開いたページに書かれた事実だけである。\n\n- **MarkItDown について**: Office 形式、EPUB、ZIP では総合 5 だった。PDF では 3 つの試料で意味を変える誤りを作った。2 段組みでは左右の段を 1 つの表に混ぜ、スライドでは語の途中でつなぎ、表計算では値を隣の列に入れた。同じ中身なら、PDF にしてから抽出するより元の形式のまま MarkItDown にかけるほうが良かった。起動は 3.3〜3.8 秒、依存は 189 MiB である。\n- **PDF の抽出について**: Office が書き出した PDF では、rag の PDFium の抽出がもっとも良かった。ただし書籍などの PDF では確かめていない。\n- **pdfminer の揺れについて**: 同じ PDF と設定でも、プロセスによって本文の行の並びが変わることがあった。原因は、距離が同じテキストボックスの組の順がメモリーの番地で決まることである。直した版（`_stable_group_textboxes`、2026-11-16 時点で wiki と rag の `*_pdf_layer.py` にある）では、546 ページの本文が 3 つ以上のプロセスで一致し、速度も落ちなかった（[[pdfminerの本文の並びの揺れ]]）。\n- **両者をつなぐ点**: 比較の source は 2026-11-15 の測定で、揺れの直しは 2026-11-16 に入った。source の pdfminer の結果が直す前の版かどうかは、wiki からは判断できない。揺れは 1 つの PDF と 1 つの版でしか確かめていないと concept に書かれている。\n\n## 根拠\n- [[抽出の方式の比較-markitdown-2026-11-15]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/抽出の方式の比較-markitdown-2026-11-15.md）: 「まだ何も決めていない。」「MarkItDown は、3 つの PDF で意味を変える誤りを作った。」「同じ中身なら、元の形式のまま MarkItDown にかけるほうが、PDF にしてから抽出するより良かった。」「Office が書き出した PDF では、rag の PDFium の抽出がもっとも良かった」\n- [[pdfminerの本文の並びの揺れ]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfminerの本文の並びの揺れ.md）: 「距離が同じ組の順は `id(obj)`、つまりメモリーの番地で決まり、番地はプロセスごとに変わる。」「直しを入れても、取り出しは遅くならなかった」「確かめたのは 1 つの PDF と 1 つの版だけである。」\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfminerの本文の並びの揺れ.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/抽出の方式の比較-markitdown-2026-11-15.md\n\n## 未確認の出典\n- 原本の `docs/research/markitdown-benchmark-2026-11-15.md` と、ADR-0025 の測定の出典 `adr-0025の承認の条件の測定-2026-11-15` は未読である。ここでは開いていない。\n- source の関係ページ（[[抽出の品質の測り方]]、[[pdfのヘッダーの条件]] など）も未読である。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 4715,
+     "cache_read_input_tokens": 4842,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 4715
+     },
+     "output_tokens": 6,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "uuid": "5e32da3c-37cb-4d01-bd3d-846159b457eb",
+   "timestamp": "2026-11-17T15:19:50.820Z",
+   "request_id": "req_011Ch8j2gJ9gHgUz6opxP8EL"
+  },
+  {
+   "duration_api_ms": 14809,
+   "stop_reason": "end_turn",
+   "session_id": "2d8d40f9-6682-45a0-92bd-398b1be8710a",
+   "total_cost_usd": 0.00261028,
+   "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 6031,
+    "cache_read_input_tokens": 8368,
+    "output_tokens": 2640,
+    "output_tokens_details": {
+     "thinking_tokens": 754
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 6031,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 2223,
+      "cache_read_input_tokens": 4842,
+      "cache_creation_input_tokens": 4715,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 4715
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-haiku-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 2640,
+     "cacheReadInputTokens": 8368,
+     "cacheCreationInputTokens": 6031,
+     "webSearchRequests": 0,
+     "costUSD": 0.00261028,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 754,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 6031,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+     "background": 0,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {}
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 3,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "## 答え\nwiki に答えがない。wiki は、抽出の方式を選ぶ決定をまだ書いていない。比較の source は「まだ何も決めていない」と書き、採るかどうかは起動の時間と依存の置き場所と合わせて決める、としている（[[抽出の方式の比較-markitdown-2026-11-15]]）。以下は、開いたページに書かれた事実だけである。\n\n- **MarkItDown について**: Office 形式、EPUB、ZIP では総合 5 だった。PDF では 3 つの試料で意味を変える誤りを作った。2 段組みでは左右の段を 1 つの表に混ぜ、スライドでは語の途中でつなぎ、表計算では値を隣の列に入れた。同じ中身なら、PDF にしてから抽出するより元の形式のまま MarkItDown にかけるほうが良かった。起動は 3.3〜3.8 秒、依存は 189 MiB である。\n- **PDF の抽出について**: Office が書き出した PDF では、rag の PDFium の抽出がもっとも良かった。ただし書籍などの PDF では確かめていない。\n- **pdfminer の揺れについて**: 同じ PDF と設定でも、プロセスによって本文の行の並びが変わることがあった。原因は、距離が同じテキストボックスの組の順がメモリーの番地で決まることである。直した版（`_stable_group_textboxes`、2026-11-16 時点で wiki と rag の `*_pdf_layer.py` にある）では、546 ページの本文が 3 つ以上のプロセスで一致し、速度も落ちなかった（[[pdfminerの本文の並びの揺れ]]）。\n- **両者をつなぐ点**: 比較の source は 2026-11-15 の測定で、揺れの直しは 2026-11-16 に入った。source の pdfminer の結果が直す前の版かどうかは、wiki からは判断できない。揺れは 1 つの PDF と 1 つの版でしか確かめていないと concept に書かれている。\n\n## 根拠\n- [[抽出の方式の比較-markitdown-2026-11-15]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/抽出の方式の比較-markitdown-2026-11-15.md）: 「まだ何も決めていない。」「MarkItDown は、3 つの PDF で意味を変える誤りを作った。」「同じ中身なら、元の形式のまま MarkItDown にかけるほうが、PDF にしてから抽出するより良かった。」「Office が書き出した PDF では、rag の PDFium の抽出がもっとも良かった」\n- [[pdfminerの本文の並びの揺れ]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfminerの本文の並びの揺れ.md）: 「距離が同じ組の順は `id(obj)`、つまりメモリーの番地で決まり、番地はプロセスごとに変わる。」「直しを入れても、取り出しは遅くならなかった」「確かめたのは 1 つの PDF と 1 つの版だけである。」\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfminerの本文の並びの揺れ.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/抽出の方式の比較-markitdown-2026-11-15.md\n\n## 未確認の出典\n- 原本の `docs/research/markitdown-benchmark-2026-11-15.md` と、ADR-0025 の測定の出典 `adr-0025の承認の条件の測定-2026-11-15` は未読である。ここでは開いていない。\n- source の関係ページ（[[抽出の品質の測り方]]、[[pdfのヘッダーの条件]] など）も未読である。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+   "ttft_ms": 3766,
+   "type": "result",
+   "duration_ms": 18092,
+   "uuid": "0e7315e9-6b99-4031-8538-34654fbb4a17",
+   "ttft_stream_ms": 3435,
+   "time_to_request_ms": 1876,
+   "first_content_frame_ms": 3435,
+   "queued_turn_count": 0,
+   "result_index": 0,
+   "model_usage_since_last_result": {
+    "claude-haiku-5-5": {
+     "inputTokens": 4,
+     "outputTokens": 2640,
+     "cacheReadInputTokens": 8368,
+     "cacheCreationInputTokens": 6031,
+     "webSearchRequests": 0,
+     "costUSD": 0.00261028,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 754,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 6031,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "credential_expires_at": "2026-12-06T22:17:39.049Z"
+  }
+ ],
+ "opened": [
+  "project:sources/抽出の方式の比較-markitdown-2026-11-15.md",
+  "project:concepts/pdfminerの本文の並びの揺れ.md"
+ ],
+ "model_used": "claude-haiku-5-5",
+ "result": "## 答え\nwiki に答えがない。wiki は、抽出の方式を選ぶ決定をまだ書いていない。比較の source は「まだ何も決めていない」と書き、採るかどうかは起動の時間と依存の置き場所と合わせて決める、としている（[[抽出の方式の比較-markitdown-2026-11-15]]）。以下は、開いたページに書かれた事実だけである。\n\n- **MarkItDown について**: Office 形式、EPUB、ZIP では総合 5 だった。PDF では 3 つの試料で意味を変える誤りを作った。2 段組みでは左右の段を 1 つの表に混ぜ、スライドでは語の途中でつなぎ、表計算では値を隣の列に入れた。同じ中身なら、PDF にしてから抽出するより元の形式のまま MarkItDown にかけるほうが良かった。起動は 3.3〜3.8 秒、依存は 189 MiB である。\n- **PDF の抽出について**: Office が書き出した PDF では、rag の PDFium の抽出がもっとも良かった。ただし書籍などの PDF では確かめていない。\n- **pdfminer の揺れについて**: 同じ PDF と設定でも、プロセスによって本文の行の並びが変わることがあった。原因は、距離が同じテキストボックスの組の順がメモリーの番地で決まることである。直した版（`_stable_group_textboxes`、2026-11-16 時点で wiki と rag の `*_pdf_layer.py` にある）では、546 ページの本文が 3 つ以上のプロセスで一致し、速度も落ちなかった（[[pdfminerの本文の並びの揺れ]]）。\n- **両者をつなぐ点**: 比較の source は 2026-11-15 の測定で、揺れの直しは 2026-11-16 に入った。source の pdfminer の結果が直す前の版かどうかは、wiki からは判断できない。揺れは 1 つの PDF と 1 つの版でしか確かめていないと concept に書かれている。\n\n## 根拠\n- [[抽出の方式の比較-markitdown-2026-11-15]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/抽出の方式の比較-markitdown-2026-11-15.md）: 「まだ何も決めていない。」「MarkItDown は、3 つの PDF で意味を変える誤りを作った。」「同じ中身なら、元の形式のまま MarkItDown にかけるほうが、PDF にしてから抽出するより良かった。」「Office が書き出した PDF では、rag の PDFium の抽出がもっとも良かった」\n- [[pdfminerの本文の並びの揺れ]]（/C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfminerの本文の並びの揺れ.md）: 「距離が同じ組の順は `id(obj)`、つまりメモリーの番地で決まり、番地はプロセスごとに変わる。」「直しを入れても、取り出しは遅くならなかった」「確かめたのは 1 つの PDF と 1 つの版だけである。」\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/concepts/pdfminerの本文の並びの揺れ.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/抽出の方式の比較-markitdown-2026-11-15.md\n\n## 未確認の出典\n- 原本の `docs/research/markitdown-benchmark-2026-11-15.md` と、ADR-0025 の測定の出典 `adr-0025の承認の条件の測定-2026-11-15` は未読である。ここでは開いていない。\n- source の関係ページ（[[抽出の品質の測り方]]、[[pdfのヘッダーの条件]] など）も未読である。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+ "cost_usd": 0.00261028,
+ "duration_ms": 18092,
+ "is_error": false,
+ "terminal_reason": "completed",
+ "api_error": null,
+ "api_error_status": null,
+ "model_usage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 4,
+   "outputTokens": 2640,
+   "cacheReadInputTokens": 8368,
+   "cacheCreationInputTokens": 6031,
+   "webSearchRequests": 0,
+   "costUSD": 0.00261028,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 754,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 6031,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "cli_version": "2.1.325",
+ "memory_paths": {},
+ "exit": 0,
+ "stderr": ""
+}

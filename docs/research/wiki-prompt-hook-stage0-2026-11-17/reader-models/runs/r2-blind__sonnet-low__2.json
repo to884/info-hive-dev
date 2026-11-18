@@ -1,0 +1,16 @@
+{
+ "id": "r2-blind",
+ "class": "R2",
+ "model": "sonnet",
+ "effort": "low",
+ "run": 2,
+ "model_used": "claude-sonnet-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/抽出の品質の測り方.md"
+ ],
+ "result": "## 答え\n2026-11-15 に、外部モデル（GPT-6.1 Sol）に方式名を伏せた出力を採点させたとき、判定が採点した中身に結び付かない失敗が起きた。結果は failure。\n\n- **何が起きたか**: 最初の集計は、写しと出力のバイト列を比べるだけだった。Sol の 2 回目のレビューが、写しと出力を同時に差し替えると、古い判定でも集計が通ることを、メモリ上で示した。判定のファイルに、採点した中身の識別子がなかった（原因は仮説）。\n- **同時に起きた別の失敗**: pdftotext と pdfminer の出力には改ページの文字（U+000C）が 5 個あった。Sol は「明示的なページ境界はない」として位置を 2 点にした。モデルは画面に見えない制御文字を読み飛ばす、というのが仮説である。\n- **直し方**: 次の 4 つをした。\n  - 写しごとの SHA-256 と、それらのダイジェストを `manifest.json` に書いた。\n  - Sol に、読んだダイジェストを `judge_digest` に書かせた。\n  - 集計では、ダイジェスト、写し、出力、対応表がすべて一致するときだけ集計する。\n  - 依頼に改ページの文字の数え方を書き、判定をやり直した。やり直したあと、`judge_digest` は `manifest.json` と一致した。位置は 4 つの PDF のすべてで 5 点になった。\n- **残っている限界**:\n  - ダイジェストは、モデルが `manifest.json` から書き写した値である。写しを実際に読んだことの証明ではない。\n  - ダイジェストを入れたあとの版で、出力を変えると集計が止まることは確かめていない。\n  - 判定は 1 回ずつで、点のぶれは測っていない。\n  - 直した結び付けは、3 回目のレビューを受けていない。\n\n## 根拠\n- [[blind-judge-binding-and-form-feed-2026-11-15]]（sources/blind-judge-binding-and-form-feed-2026-11-15.md）: 経過と仮説の原文は次のとおり。「判定のファイルに、採点した中身の識別子がなかった。」\n- [[抽出の品質の測り方]]（concepts/抽出の品質の測り方.md）: 一般化した教訓は次のとおり。「判定のファイルと出力を、ファイル名だけで結び付けると、計測をやり直したあとに古い判定が新しい出力に付く。」改ページの文字については、「制御文字で表す目印は、数え方を依頼に書く。」とある。\n\n## 開いたページ\n1. wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md\n2. wiki/concepts/抽出の品質の測り方.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）",
+ "cost_usd": 0.054562700000000006,
+ "duration_ms": 13467
+}

@@ -1,0 +1,16 @@
+{
+ "id": "r2-wordcom",
+ "class": "R2",
+ "model": "fable",
+ "effort": "medium",
+ "run": 1,
+ "model_used": "claude-fable-5-2",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/officeのcomでの書き出し.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/office-com-word-export-2026-11-15.md"
+ ],
+ "result": "## 答え\n\n`Documents.Open` にはパスだけを渡す。読み取り専用の引数（`Documents.Open(パス, $false, $true)`）を付けると、300 秒たっても終わらず、PDF もできなかった。\n\n引数まわりの手順の案は次のとおり。\n\n- `$w.DisplayAlerts = 0` にする。\n- `$w.Documents.Open($path)` で開き、戻り値が null なら止まる。\n- `ExportAsFixedFormat($pdf, 17)` で書き出し、`Close(0)`、`Quit()` で閉じる。\n- 全体を pwsh 7 の `Start-Job` と `Wait-Job -Timeout` で包み、時間の上限を付ける。\n- 止まったあとは、残った `/Automation -Embedding` の WINWORD.EXE を確かめる。\n\n引数をパスだけにしても、Windows PowerShell 5.1 では `Documents.Open` が null を返した。書き出せたのは pwsh 7 の `Start-Job` の中だけである。\n\nこの知見は確定していない。\n\n- ページの status は `hypothesis` で、成功した例は 1 回の作業だけである。同じ条件でくり返してはいない。\n- 止まった原因は「読み取り専用の引数で、画面に出ない確認を待ったまま止まった」という仮説で、確かめていない。\n- null が返った原因は分かっていない。直前の試しの Word が残っていた影響の可能性もある。\n- 観測した環境は Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 だけである。ほかの PC と Office の版では確かめていない。\n- `pwsh -File` でスクリプト全体を最後まで通せるかは確かめていない。\n- PowerPoint と Excel には、この問題は出なかった。\n\n## 根拠\n\n- [[officeのcomでの書き出し]]（concepts/officeのcomでの書き出し.md）: 引数の注意と手順の案、適用範囲。「スクリプトから Word の COM で文書を開き、PDF に書き出すときは、`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」\n- [[office-com-word-export-2026-11-15]]（sources/office-com-word-export-2026-11-15.md）: 観測の元の記録。「Windows PowerShell 5.1（`powershell -File`）で、`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。」\n\n## 開いたページ\n\n1. concepts/officeのcomでの書き出し.md\n2. sources/office-com-word-export-2026-11-15.md\n\n## 関係のなかった候補\n\n- なし\n\n## モデル\n\nFable 5.2（claude-fable-5-2）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.3173364,
+ "duration_ms": 13905
+}

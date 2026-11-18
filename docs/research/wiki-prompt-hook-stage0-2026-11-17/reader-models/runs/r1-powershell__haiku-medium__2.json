@@ -1,0 +1,16 @@
+{
+ "id": "r1-powershell",
+ "class": "R1",
+ "model": "haiku",
+ "effort": "medium",
+ "run": 2,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/powershellのパイプの打ち切り.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md"
+ ],
+ "result": "## 答え\n`Select-Object -First N` は、N 行を受け取った時点でパイプラインの上流を止める、と仮説が立てられている。そのため、最後にファイルを書くスクリプトに `-First` をかけると、ファイルを書く前に止まり、書き直されないことがある。エラーは出ないので気づきにくい。避け方は、`-Last N` を使うか、出力をファイルに書いてから読むことで、実行後に書くはずのファイルが更新されたかを確かめる。ただし、原因は仮説であり、wiki でも確かめ切れていない。\n\n## 根拠\n- [[powershellのパイプの打ち切り]]（concepts/powershellのパイプの打ち切り.md）: 「最後にファイルを書くスクリプトの出力を `Select-Object -First N` でしぼると、N 行を受け取ったところで上流が止まり、ファイルが書かれないことがある」。避け方として「出力を短く見たいときは、`Select-Object -Last N` にするか、出力をファイルに書いてから読む」。原因は「仮説」で、`status` も `hypothesis`。\n- [[powershellのパイプの打ち切り]]（同上）: 手順として「ファイルを書くスクリプトには `-First` を付けない。付けるなら、書き込みを出力より先にするか、実行のあとでファイルの更新を確かめる」。\n- [[powershell-select-first-stops-writer-2026-11-15]]（sources/powershell-select-first-stops-writer-2026-11-15.md）: 観測の要点は「`... | Select-Object -First 1` で実行すると、1 行目は出たが、`results.json` は書き直す前の文字列のままだった。同じコマンドを `Select-Object -Last 1` で実行し直すと書き直された」。結果は failure。\n- [[powershell-select-first-stops-writer-2026-11-15]]（同上）: 「スクリプトは、すべての行を出したあとに `results.json` を書く」。\n- [[powershell-select-first-stops-writer-2026-11-15]]（同上）: 適用範囲は「PowerShell 7.6.9、uv 0.12.2、Python 3.12.13 で観測」。「Bash の `head` でも同じことが起きうるかは確かめていない」。\n\n## 開いたページ\n1. wiki/concepts/powershellのパイプの打ち切り.md\n2. wiki/sources/powershell-select-first-stops-writer-2026-11-15.md\n\n## 関係のなかった候補\nなし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.00466014,
+ "duration_ms": 13565
+}

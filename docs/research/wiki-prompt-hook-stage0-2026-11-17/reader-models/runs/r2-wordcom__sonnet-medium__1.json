@@ -1,0 +1,16 @@
+{
+ "id": "r2-wordcom",
+ "class": "R2",
+ "model": "sonnet",
+ "effort": "medium",
+ "run": 1,
+ "model_used": "claude-sonnet-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/officeのcomでの書き出し.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/office-com-word-export-2026-11-15.md"
+ ],
+ "result": "## 答え\n`Documents.Open` には引数としてパスだけを渡す。読み取り専用などの追加引数は付けない。どちらも仮説の段階で、1 回の作業での観測にとどまる。\n\n- 読み取り専用の引数（`Documents.Open(パス, $false, $true)`）を渡すと、300 秒たっても終わらず、PDF もできなかった。画面に出ない確認を待って止まったと考えられるが、これは仮説である。\n- 書き出しに成功したのは、`DisplayAlerts = 0` にしてパスだけを渡し、pwsh 7 の `Start-Job` で動かしたときである。\n- 引数をパスだけにしても、Windows PowerShell 5.1 では `Documents.Open` が null を返した。原因は分かっていない。\n- 手順の案は次のとおり。\n  1. `$w.DisplayAlerts = 0`\n  2. `$w.Documents.Open($path)`\n  3. 戻り値が null なら止まる\n  4. `ExportAsFixedFormat($pdf, 17)`（第 2 引数の 17 は PDF の形式の指定）\n  5. `Close(0)`\n  6. `Quit()`\n- 全体を `Start-Job` と `Wait-Job -Timeout` で包む。止まった後に `/Automation -Embedding` の WINWORD.EXE が残っていないかも確かめる。\n\n適用範囲は、Office 16.0、Windows PowerShell 5.1.26100.9711、PowerShell 7.6.9、Windows 11 で観測した範囲に限る。`pwsh -File` でスクリプト全体が最後まで通るかは確かめていない。PowerPoint と Excel には、この問題は出なかった。\n\n## 根拠\n- [[officeのcomでの書き出し]]（concepts/officeのcomでの書き出し.md）: 「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」手順の案と、状態が `hypothesis` であることもここに書かれている。\n- [[office-com-word-export-2026-11-15]]（sources/office-com-word-export-2026-11-15.md）: 「`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。」null が返った観測と、原因が分かっていないことも、ここに書かれている。\n\n## 開いたページ\n1. concepts/officeのcomでの書き出し.md\n2. sources/office-com-word-export-2026-11-15.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nSonnet 5.5（claude-sonnet-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.0490019,
+ "duration_ms": 12548
+}

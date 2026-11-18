@@ -1,0 +1,1265 @@
+{
+ "protocol": 3,
+ "fingerprint": "c7b9e69a443a55c8807dd832222250a65db2f07b3b28e2e9c6ba3ed219e6dc40",
+ "id": "r3-confidence",
+ "class": "R3",
+ "model": "haiku",
+ "effort": "medium",
+ "run": 1,
+ "requested_effort": "medium",
+ "prompt_sha256": "c210c685ca411841961560047d19a674152d986dd7972b0dae95e751872701db",
+ "argv": [
+  "claude",
+  "-p",
+  "問い: query の確信度の規則は 0.20.0 から 0.24.0 までにどう変わった？版ごとに比べて\nproject の wiki（root: \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki\"）\n{\"slug\": \"queryの回答の確信度への名前の変更とリリース-wiki-0.24.0\", \"path\": \"sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\"}\n{\"slug\": \"queryの確からしさとリリース-wiki-0.20.0\", \"path\": \"sources/queryの確からしさとリリース-wiki-0.20.0.md\"}\n{\"slug\": \"queryの確からしさの決め方の分離とリリース-wiki-0.21.1\", \"path\": \"sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\"}",
+  "--agent",
+  "wiki:wiki-reader",
+  "--model",
+  "haiku",
+  "--effort",
+  "medium",
+  "--plugin-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+  "--output-format",
+  "stream-json",
+  "--verbose",
+  "--tools",
+  "Read,Glob,Grep",
+  "--allowedTools",
+  "Read,Glob,Grep",
+  "--max-budget-usd",
+  "2",
+  "--permission-mode",
+  "auto",
+  "--no-session-persistence",
+  "--setting-sources",
+  "",
+  "--strict-mcp-config",
+  "--mcp-config",
+  "{\"mcpServers\":{}}",
+  "--settings",
+  "{\"autoMemoryEnabled\": false, \"claudeMdExcludes\": [\"**/CLAUDE.md\", \"**/CLAUDE.local.md\", \"**/AGENTS.md\", \"**/.claude/rules/**\"]}",
+  "--add-dir",
+  "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+ ],
+ "events": [
+  {
+   "type": "system",
+   "subtype": "init",
+   "cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "tools": [
+    "Read",
+    "Glob",
+    "Grep"
+   ],
+   "mcp_servers": [],
+   "model": "claude-haiku-5-5",
+   "permissionMode": "auto",
+   "slash_commands": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring",
+    "advisor",
+    "agents",
+    "auto-mode-setup",
+    "autocompact",
+    "clear",
+    "color",
+    "compact",
+    "config",
+    "output-style",
+    "context",
+    "effort",
+    "fast",
+    "focus",
+    "heapdump",
+    "init",
+    "mcp",
+    "import",
+    "model",
+    "__remote-workflow",
+    "workflow-launch-exec",
+    "reload-plugins",
+    "reload-skills",
+    "rename",
+    "ultrareview",
+    "security-review",
+    "usage-credits",
+    "extra-usage",
+    "usage",
+    "insights",
+    "recap",
+    "skill-doctor",
+    "goal",
+    "design-consent",
+    "design-revoke",
+    "list-agents",
+    "team-onboarding"
+   ],
+   "terminal_slash_commands": [
+    "doctor",
+    "color",
+    "focus",
+    "reload-plugins"
+   ],
+   "apiKeySource": "none",
+   "claude_code_version": "2.1.325",
+   "output_style": "default",
+   "agents": [
+    "claude",
+    "Explore",
+    "general-purpose",
+    "Plan",
+    "statusline-setup",
+    "web-fetch",
+    "wiki:wiki-reader"
+   ],
+   "skills": [
+    "deep-research",
+    "design",
+    "design-sync",
+    "dataviz",
+    "update-config",
+    "verify",
+    "debug",
+    "code-review",
+    "simplify",
+    "batch",
+    "fewer-permission-prompts",
+    "doctor",
+    "loop",
+    "schedule",
+    "claude-api",
+    "workflow-authoring",
+    "run",
+    "run-skill-generator",
+    "plugin-authoring"
+   ],
+   "plugins": [
+    {
+     "name": "wiki",
+     "path": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\plugin",
+     "source": "wiki@inline",
+     "version": "0.0.0"
+    },
+    {
+     "name": "cc-plugin-agents-md",
+     "path": "builtin",
+     "source": "cc-plugin-agents-md@builtin"
+    },
+    {
+     "name": "cc-plugin-telemetry",
+     "path": "builtin",
+     "source": "cc-plugin-telemetry@builtin"
+    },
+    {
+     "name": "cc-plugin-privacy",
+     "path": "builtin",
+     "source": "cc-plugin-privacy@builtin"
+    },
+    {
+     "name": "cc-plugin-plugin-authoring",
+     "path": "builtin",
+     "source": "cc-plugin-plugin-authoring@builtin"
+    }
+   ],
+   "capabilities": [
+    "interrupt_receipt_v1",
+    "interrupt_cancel_queued_v1",
+    "interrupt_send_now_v1",
+    "interrupt_requeue_taken_v1",
+    "msg_lifecycle_v1",
+    "request_marker_lists_v1",
+    "ask_user_question_unanswered_v1",
+    "lifecycle_wakeup_source_v1",
+    "sdk_mcp_tools_list_changed",
+    "sdk_mcp_manifests",
+    "mcp_read_resource_v1",
+    "mcp_tool_ui_meta_v1",
+    "ui_surface_v1",
+    "mcp_call_result_not_for_model_v1",
+    "mcp_call_check_permissions_v1",
+    "voice_call_talk_line_v1",
+    "withdrawn_files_note_v2",
+    "ui_pane_widget_v1",
+    "reload_plugins_refuse_if_busy_v1"
+   ],
+   "analytics_disabled": false,
+   "product_feedback_disabled": false,
+   "uuid": "b0eda05b-fc59-45bf-8641-6abe868eb99d",
+   "original_cwd": "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\project",
+   "additional_directories": [
+    "C:\\Works\\info-hive-dev\\.claude\\worktrees\\prompt-context-hook\\docs\\research\\wiki-prompt-hook-stage0-2026-11-17\\reader-models-v3\\snapshot\\user\\wiki"
+   ],
+   "messaging_socket_path": "\\\\.\\pipe\\LOCAL\\cc-msg-1ad24fbbb7313ac6923fa779b79f7843",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "per_turn_effort_active": true,
+   "ultrathink_available": false,
+   "ultrathink_typed_raises": false,
+   "view_mode": "default",
+   "powershell_path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.9.0_x64__8wekyb3d8bbwe\\pwsh.exe"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "c9d6a046-efcb-4cf1-981f-59e59c21f1cd"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 263,
+   "estimated_tokens_delta": 213,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "5293e84a-80a6-4822-bfc0-4c674fa64987"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jYiHHXpFFVpe5Ymq2x",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "CAQSkwgKEAgTGAI4AUIIdGhpbmtpbmcSDNCc/x/0HxsBG3P9qhoMKp0XJw0KYbHAHtZ6IjA5A2PG3+mC8REnsbDQdtyfmjBsStyE2xXCPqhlEapWTWqqI3EFZ6vLZFmA5tQU+B8qsAd49uK8TfFwoz/jebj4bxGXsUHSwe9xHU3dAu0fMOOlddxv0ZwiH3p12XDqNM3s5Q6A49AxvJn8bMZxgMvDC3NDg7wilKiP0o7+gmu0/MACCntjaSHCgrBBjH2aUZqMTdAmoNPQgV/QKzqh0+0/SjT6fXTEOu7YXaLvgJjNXnaDe4c1u1FO7BWjGatvxTx0+TC6q1nT0YF3nvzj7ObJbpr534egBiNuxvXIVNCrckygkn/egGA2yblwalxY50bQ50maHc093viAJ7pMGSdeVUOWCSJY1gKNQeO1oTb+8deVtJsDQI+M/cT5ZHWElymHNNwCCRBDUlmy8cpvTuYkUTkaymq/usjztA3ifwRKEVfntNqJuRedq4VoKahBl2sjGIK28j1GxtmFWbUSY8Zo0heOwphyXpS+1uuJpOgMvnmMl6RhdOXA/yTdjc8I6yD/wUbQ9Ifs4YZWxFUmpfgW2UuOr8sqNW+kH3aNVpwO4dMi5nkc5d5jP6lkl5EY+dWaO5MYSAXcPs8yifRwatp7QKwhatM29tX4uGxBw4NyzxI11Fa7vfZzm/StHvW9aPDmjjkhfyyixZ+sOTjsoY+6nSQ/b75d60OxJaznbNBKvBYyRKp+jNI4H4bz3Ub/hjDNViqwsQ9Er4oD3pl1X9HiY/ySRDOs96CCTvxMV00hMtI/B43CitflLKDXqR16VZlUzRW3XOrnf4Bc+zMjEiLZ04uchPgtsVPOKMwC8CcvYeK3kBXQQ2ESUMnpMa7FAVAQVU5QWunw3QPo06w3k2TDOerzkui7bwSoC3mslNmZoXH2owrdsQxr6IcRyJen/iopFkVVIRr0GDMhm/FmUFynsDi6dK8roDEadORLuuGsmdRxa5xTatz0Xl2UrzOxgpBEc5PMI4Gc5K7o9Rz2QHXD+2gXt0A7O1q9ovD5ci4hgywpaqP5bbTwqqMcrzXC7vkUqDJ+yoP5oRYauf/rTlBUHq/wBC/jjVrhDK1IxdXeE6P0Ztb1detUDXj891vW3ejHeqGP9XVmPYSvrjDdRq7MvTKGehCHFDhtI2YCowSmQgZ/96RAi0iaVRnO5J+K4ervgzsWD0TCI95RY9PxsQolLdC+E3+8w5a0idMF8C1aX+478Xuc79FQ3NAfz0nh5791ez4+UL02Q5/A/SHKy5Sk1t066ELcXfVW+5Q0aZ4J/Bdphz3ZJw/uLWysdCd+FIRcq1SzvWD8vVMn4joFpPRH3QfXFaSlRKdkWWyU67RsstS7FBgB"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 4931,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "e138ed83-7ae2-4e1b-b962-97f6f6c259ae",
+   "timestamp": "2026-11-17T15:26:28.938Z",
+   "request_id": "req_011Ch8jYi4PfTguAsjQHETT1",
+   "thinking_duration_ms": 4,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jYiHHXpFFVpe5Ymq2x",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_015YZohdeZci5ywXq2FMxm8f",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 4931,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "c2654380-6fda-4fe5-8bd3-59b7eb5421fe",
+   "timestamp": "2026-11-17T15:26:29.142Z",
+   "request_id": "req_011Ch8jYi4PfTguAsjQHETT1",
+   "wire_tool_inputs": {
+    "toolu_015YZohdeZci5ywXq2FMxm8f": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md"
+    }
+   }
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jYiHHXpFFVpe5Ymq2x",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01ADFREf7mtCRDeQ6r3mqk3F",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 4931,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "72ed021d-7501-47a8-ba61-0f83f3d26e51",
+   "timestamp": "2026-11-17T15:26:29.598Z",
+   "request_id": "req_011Ch8jYi4PfTguAsjQHETT1",
+   "wire_tool_inputs": {
+    "toolu_01ADFREf7mtCRDeQ6r3mqk3F": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md"
+    }
+   }
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jYiHHXpFFVpe5Ymq2x",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01F9jFZ4QVqUG1igvsHNTNmV",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 0,
+     "cache_read_input_tokens": 4931,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "deffeb8e-30ab-4941-b07c-11b1df641c08",
+   "timestamp": "2026-11-17T15:26:29.968Z",
+   "request_id": "req_011Ch8jYi4PfTguAsjQHETT1",
+   "wire_tool_inputs": {
+    "toolu_01F9jFZ4QVqUG1igvsHNTNmV": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md"
+    }
+   }
+  },
+  {
+   "type": "rate_limit_event",
+   "rate_limit_info": {
+    "status": "allowed_warning",
+    "resetsAt": 1795028400,
+    "rateLimitType": "seven_day",
+    "utilization": 0.92,
+    "overageStatus": "rejected",
+    "overageDisabledReason": "org_level_disabled",
+    "isUsingOverage": false,
+    "surpassedThreshold": 0.75,
+    "unifiedWindows": {
+     "five_hour": {
+      "utilization": 0.64,
+      "resetsAt": 1794943800,
+      "status": "allowed"
+     },
+     "seven_day": {
+      "utilization": 0.92,
+      "resetsAt": 1795028400,
+      "status": "allowed_warning",
+      "surpassedThreshold": 0.75
+     }
+    },
+    "overageEnabled": false
+   },
+   "uuid": "3a1fa576-dda9-4151-8b04-b56088a2ae29",
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837"
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01F9jFZ4QVqUG1igvsHNTNmV",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の回答の「確からしさ」を「確信度」に変えた wiki 0.24.0 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"confidence\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-16-wiki-confidence-rename\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の回答の「確からしさ」を「確信度」に変えた wiki 0.24.0 のリリース\n13\t\n14\t作者の決定で、`/wiki:query` の回答に付ける「確からしさ（confidence）」の名前を「確信度」に変え、wiki 0.24.0 として出した記録である。決め方、上限、上げる方法は変えていない（[[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]）。レビューの原本は `docs/agent-runs/2026-11-16-wiki-confidence-rename/` にある。\n15\t\n16\t## 変えたこと\n17\t\n18\t- 回答の終わりの決まった 1 行は `**確信度（confidence）: 中**` になった。複数の結論の文の終わりは「（確信度: 高）」になった。\n19\t- プラグインでは、コマンド、決め方のファイル、ワークフロー、スキル、利用者向けの文書の 86 か所を変えた。browse のグラフのエッジの表の列名も「確信度」にした。\n20\t- 決まった 1 行の字句が変わり、前の字句を機械で数えている利用者には互換性のない変更になる。そこで minor を上げて 0.24.0 にした。0.24.0 を予定していた to884/info-hive-wiki#71 は、0.25.0 に振り直すことになる。\n21\t- ADR-0028 は承認済みなので、本文を書き換えず、「名前の追記」の節を足した。\n22\t\n23\t## 「確信度」が別の意味で使われていたこと\n24\t\n25\t「確信度」は、グラフのエッジの `confidence`（`low` など）と、判定モデルの答えの値（0〜1）で、すでに使われていた。回答の確信度とエッジの `confidence` が同じ文に出る箇所は、取り違えないよう「回答の確信度」「エッジの `confidence`」と書き分けた。\n26\t\n27\tこの重なりは、測定の要約のスクリプトでも問題になった。Sol のレビューでは、広い抽出式が「エッジの確信度: 低」も回答の印として拾う反例が、言い回しを変えて 3 回出た。字句の工夫では見分けきれないと判断し、作りを替えた。\n28\t\n29\t- 新しい名前は、決まった形（決まった 1 行と結論の文末の印）だけを機械で読む。\n30\t- 広い抽出は、回答の意味でしか使っていない前の名前だけを読む。\n31\t- 新しい名前の崩れた書き方は、回答を読んで判断する。\n32\t\n33\t3 回目の判定は採用可だった。残った反例は、エッジの値を決まった形（「（確信度: 低）」）で書いた回答だけである。これは回答の書き方の誤りなので、読めば見分けられる。\n34\t\n35\t## wiki のページの直し方\n36\t\n37\t確からしさを扱う 11 ページ（index を含む）の地の文と title を「確信度」にした。変えていないものは次の 4 つである。\n38\t\n39\t| 変えないもの | 理由 |\n40\t| --- | --- |\n41\t| ページ名（スラッグ）と `[[リンク]]` | 変えるとリンクが切れる |\n42\t| frontmatter の `sources` のページ名 | ページ名と同じ |\n43\t| 当時の版の字句（バッククォートの中、「（確からしさ: 高）」） | その版で実際に使っていた字句という事実である |\n44\t| `log.md` の過去の行 | 時系列の記録である。名前を変えたことは 1 行足した |\n45\t\n46\t> 変えないもの 補足：親の main を取り込んだとき、main 側で同じ行が書き換わっていたページが 1 つあった。main の行を取り、同じ規則で置き換え直した。\n47\t\n48\t## リリース\n49\t\n50\t1. 子の PR（to884/info-hive-wiki#77）と、親の PR（to884/info-hive-dev#156）を作った。子の CI 4 件と、子の先頭を指した親の CI 17 件が通ってから、子の PR をマージした（`2eb8ac4`）。Codex の PR レビューは、どちらも指摘なしだった。\n51\t2. 注釈付きのタグ `v0.24.0` と GitHub リリースを作った。本文は CHANGELOG の 0.24.0 の節である。\n52\t3. 使い捨ての設定でマーケットプレイスから入れ、0.24.0 が入ることを確かめた。v0.23.2 から変わった 10 個のファイルの SHA-256 は、タグの中身と一致した。\n53\t4. 親の参照をマージコミットに付け替えて、親の PR をマージした。\n54\t\n55\t## 関係するページ\n56\t\n57\t- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]\n58\t- [[queryの確からしさとリリース-wiki-0.20.0]]\n59\t- [[リリースの確かめ方]]\n60\t- [[敵対的レビューで設計を直す進め方]]\n61\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "1679822a-5676-4a31-9f2b-2322c62783ca",
+   "timestamp": "2026-11-17T15:26:33.371Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md",
+     "content": "---\ntype: \"source\"\ntitle: \"/wiki:query の回答の「確からしさ」を「確信度」に変えた wiki 0.24.0 のリリース\"\ntags: [\"リリース\", \"query\", \"confidence\"]\nauthors: [\"to884\"]\nraw: \"docs/agent-runs/2026-11-16-wiki-confidence-rename\"\ningested: 2026-11-16\ncreated: 2026-11-16\nupdated: 2026-11-16\n---\n\n# /wiki:query の回答の「確からしさ」を「確信度」に変えた wiki 0.24.0 のリリース\n\n作者の決定で、`/wiki:query` の回答に付ける「確からしさ（confidence）」の名前を「確信度」に変え、wiki 0.24.0 として出した記録である。決め方、上限、上げる方法は変えていない（[[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]）。レビューの原本は `docs/agent-runs/2026-11-16-wiki-confidence-rename/` にある。\n\n## 変えたこと\n\n- 回答の終わりの決まった 1 行は `**確信度（confidence）: 中**` になった。複数の結論の文の終わりは「（確信度: 高）」になった。\n- プラグインでは、コマンド、決め方のファイル、ワークフロー、スキル、利用者向けの文書の 86 か所を変えた。browse のグラフのエッジの表の列名も「確信度」にした。\n- 決まった 1 行の字句が変わり、前の字句を機械で数えている利用者には互換性のない変更になる。そこで minor を上げて 0.24.0 にした。0.24.0 を予定していた to884/info-hive-wiki#71 は、0.25.0 に振り直すことになる。\n- ADR-0028 は承認済みなので、本文を書き換えず、「名前の追記」の節を足した。\n\n## 「確信度」が別の意味で使われていたこと\n\n「確信度」は、グラフのエッジの `confidence`（`low` など）と、判定モデルの答えの値（0〜1）で、すでに使われていた。回答の確信度とエッジの `confidence` が同じ文に出る箇所は、取り違えないよう「回答の確信度」「エッジの `confidence`」と書き分けた。\n\nこの重なりは、測定の要約のスクリプトでも問題になった。Sol のレビューでは、広い抽出式が「エッジの確信度: 低」も回答の印として拾う反例が、言い回しを変えて 3 回出た。字句の工夫では見分けきれないと判断し、作りを替えた。\n\n- 新しい名前は、決まった形（決まった 1 行と結論の文末の印）だけを機械で読む。\n- 広い抽出は、回答の意味でしか使っていない前の名前だけを読む。\n- 新しい名前の崩れた書き方は、回答を読んで判断する。\n\n3 回目の判定は採用可だった。残った反例は、エッジの値を決まった形（「（確信度: 低）」）で書いた回答だけである。これは回答の書き方の誤りなので、読めば見分けられる。\n\n## wiki のページの直し方\n\n確からしさを扱う 11 ページ（index を含む）の地の文と title を「確信度」にした。変えていないものは次の 4 つである。\n\n| 変えないもの | 理由 |\n| --- | --- |\n| ページ名（スラッグ）と `[[リンク]]` | 変えるとリンクが切れる |\n| frontmatter の `sources` のページ名 | ページ名と同じ |\n| 当時の版の字句（バッククォートの中、「（確からしさ: 高）」） | その版で実際に使っていた字句という事実である |\n| `log.md` の過去の行 | 時系列の記録である。名前を変えたことは 1 行足した |\n\n> 変えないもの 補足：親の main を取り込んだとき、main 側で同じ行が書き換わっていたページが 1 つあった。main の行を取り、同じ規則で置き換え直した。\n\n## リリース\n\n1. 子の PR（to884/info-hive-wiki#77）と、親の PR（to884/info-hive-dev#156）を作った。子の CI 4 件と、子の先頭を指した親の CI 17 件が通ってから、子の PR をマージした（`2eb8ac4`）。Codex の PR レビューは、どちらも指摘なしだった。\n2. 注釈付きのタグ `v0.24.0` と GitHub リリースを作った。本文は CHANGELOG の 0.24.0 の節である。\n3. 使い捨ての設定でマーケットプレイスから入れ、0.24.0 が入ることを確かめた。v0.23.2 から変わった 10 個のファイルの SHA-256 は、タグの中身と一致した。\n4. 親の参照をマージコミットに付け替えて、親の PR をマージした。\n\n## 関係するページ\n\n- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]\n- [[queryの確からしさとリリース-wiki-0.20.0]]\n- [[リリースの確かめ方]]\n- [[敵対的レビューで設計を直す進め方]]\n",
+     "numLines": 61,
+     "startLine": 1,
+     "totalLines": 61
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01F9jFZ4QVqUG1igvsHNTNmV",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_015YZohdeZci5ywXq2FMxm8f",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の回答の確信度と wiki 0.20.0 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"confidence\", \"プロンプト\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-16-wiki-query-confidence\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の回答の確信度と wiki 0.20.0 のリリース\n13\t\n14\t`/wiki:query` の回答に確信度（confidence）を付け、低いときは上げる方法を提案するようにして、wiki 0.20.0 として出した記録である。原本（Sol の 6 回のレビュー）は `docs/agent-runs/2026-11-16-wiki-query-confidence/` にあり、決定は ADR-0028（2026年11月16日に承認）にある。決め方の正本は、プラグインの `skills/info-hive/references/query-workflow.md` の手順 5b である。\n15\t\n16\t## 付ける場所を回答にした理由\n17\t\n18\t作者の依頼は「wiki:query の結果に confidence を足す」だった。付ける場所は、回答と検索の結果の行の 2 つが考えられた。\n19\t\n20\t- 検索の行の `score` は RRF の値で、順位だけから決まる。クエリをまたいで比べられない。\n21\t- ADR-0011 の較正データ（日本語の自然な質問）では、答えのない 12 問の最も近い距離は 0.151〜0.163 だった。答えのある 47 問のうち 6 問は、答えに届くのに 0.151 以上を要した。距離 0.15 未満を「高い」とする粗い区分なら作れるが、評価は小さく、MCP（ruri）と CLI（e5）でモデルが違う。\n22\t- 回答の正誤を確かめた評価のデータがない。\n23\t\n24\t作者は回答に付ける案を選んだ。数値にはせず、規則で決める「高」「中」「低」と理由にした。\n25\t\n26\t## 決め方\n27\t\n28\t- 判定するのは、回答の結論と、結論を導いた前提である。\n29\t- 前提は、その事柄の正本に書かれていたかで出発点を決める。表は上から順に見て、最初に当たった行を取る。\n30\t  - ソースの要約ページか raw で確かめた前提は「高」、コンセプトのページだけにある前提は「中」になる。\n31\t  - wiki 自身の事柄は、`log.md` などの記録で答えれば「高」になる。\n32\t  - シンセシスのページは根拠に数えない。\n33\t- 結論は導き方で決める。そのまま述べたもの、計算などの決まった手順で導いたもの、判断を加えたものに分ける。\n34\t- 上限（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）を当て、もっとも低いものに合わせる。\n35\t- 「中」か「低」のときは、要因ごとに上げる方法を提案する。wiki を書き換える方法は提案だけにする。\n36\t- wiki の外の知識は前提に使わない（作者の決定）。問いの一部だけ wiki に答えがないときも、その部分は答えない。\n37\t\n38\t## レビューで崩れた前提\n39\t\n40\tSol の敵対的レビューを 6 回受けた。1、2 回目は却下、3〜6 回目は採用可だった。\n41\t\n42\t1. ページの `sources` からソースまでたどれれば「高」としていた。これでは、推論の回答をシンセシスとして保存すると、次のクエリで「高」になる。ページ単位の `sources` は、個々の主張の出所を保証しない。\n43\t2. 根拠の形を「1 ページか、複数のページか」で分けたので、1 ページの値から計算する回答（8 件と 2 件から 80%）がどの行にも当たらなかった。前提と結論を分け、結論は導き方で決めることにした。\n44\t3. 場合を並べた表に、もれと重なりがあった。`log.md` を根拠にする回答の行がなく、検索の縮退の理由を `index.state` から推し量っていた。`index.state` は、埋め込み済みの件数が足りているかしか表さない。どの表も上から順に当てはめる形にし、最後に「どれにも当たらない」の行を置いた。\n45\t4. 外の知識を添えない決まりを質問全体の単位で書くと、「A と B は？」のように問いをまとめるだけで、wiki が扱っていない B を外の知識で埋められた。結論ごとに当てる形にした。\n46\t\n47\t## プロンプトの監査\n48\t\n49\t`commands/query.md` を、claude-api スキルの prompt-audit で、Claude Sonnet 5.5 を対象に監査した。\n50\t\n51\t- Sonnet 5.5 は、知識を問う質問で、検索を使わずに自分の知識で答えることがある。そこで「答えは wiki から取り、知っていると思う質問でも wiki を確かめる」を足した。\n52\t- 理由のない「0 件でも CLI でやり直さない」は、書かれたとおりに受け取られるので、「同じ検索語で」に限り、探し直しは 2 回までにした。\n53\t- `warning` の説明がコードと食い違っていた。被リンクの探し方も、コマンドと手順書で食い違っていた（コマンドの方が新しい）。どちらも直した。\n54\t\n55\t## 実際に動かした確かめ\n56\t\n57\tworktree のプラグインを `claude --plugin-dir` で読み込み、この wiki に 3 問を問い合わせた。エージェントは 3 問とも手順 5b を開いて従った。\n58\t\n59\t- 仮説のページ（[[officeのcomでの書き出し]]）に頼る質問は「中」だった。上げる方法として、仮説を確かめて `/wiki:learn` で記録することが出た。\n60\t- コンセプトのページにある質問では、ソースの要約ページで確かめきれず「中」になった。上げる方法として raw を読むことが出た。\n61\t- wiki が扱っていない質問には、確信度を付けなかった。ただし、外の知識を添えていた。これが作者の「添えない」の決定のきっかけになった。\n62\t\n63\tリリースのあとで、Sonnet 5.5 で 11 問を 3 回ずつ流して測った（[[queryの確からしさのsonnetでの測定-2026-11-16]]）。こちらでは、33 回のどれも手順 5b を開かず、`commands/query.md` の手順 6b の要約だけで判定した。判定の一致は 24/33 で、外れた 9 回はすべて期待より低く、規則にない上限（観測が 1 回だけ、raw 未確認）によるものだった。\n64\t\n65\t## リリース\n66\t\n67\t1. 子の PR（to884/info-hive-wiki#69）と親の PR（to884/info-hive-dev#136）の CI が、どちらも最新のコミットで通ってから、子をマージした（`08d60aa`）。\n68\t2. 注釈付きのタグ `v0.20.0` と GitHub リリースを作った。\n69\t3. 使い捨ての設定でマーケットプレイスから入れ、0.20.0 が入ること、v0.19.5 から変わった 7 つのファイルの SHA-256 がタグの中身と一致することを確かめた。\n70\t4. 親の参照をマージコミットに付け替えて、親をマージした。\n71\t\n72\t親の `tests/wiki` を手元の素の Python で流すと、`yaml` と `psutil` がないために 36 件が落ちた。変更は文書だけで、依存を入れて動く子の CI は通った。\n73\t\n74\t## ADR-0027 との関係\n75\t\n76\tリリースのあとで、YouTube の字幕の取り込みのセッションから連絡があった。ADR-0027（提案）が、ADR-0028 の上限の表に、動画のソースの行を足すよう求めていた。\n77\t\n78\t- 動画の raw の `confidence` が `medium` なら「中」、`low` なら「低」を上限にする。\n79\t- モデルの知識だけによる訂正や、留保した語に頼る前提は「低」を上限にする。\n80\t\n81\tADR-0028 は承認済みで、規則は 0.20.0 で出荷済みだった。承認した ADR は書き換えない決まりなので（`docs/adr/README.md`）、次のように分担した。\n82\t\n83\t- 上限の行と、それぞれを解消する「上げる方法」の行は、ADR-0027 を実装する PR で `query-workflow.md` の手順 5b に足す。\n84\t- その判断は ADR-0027 に書く。to884/info-hive-dev#139 でマージ済み。\n85\t\n86\t先に足さなかったのは、`confidence` の欄と訂正の印が ADR-0027 の実装で初めてできるからである。先に足すと、まだない欄を指す規則になる。上限の表は、当てはまる行をすべて当ててもっとも低いものを取る形なので、行を足しても既存の行と衝突しない。\n87\t\n88\t## 後始末\n89\t\n90\t`git worktree remove --force` は登録を外したが、`Permission denied` で空のフォルダーを残した。このセッションのシェルの作業ディレクトリが、まだその中にあったためと見られる。外に出てから `rmdir` で消えた。\n91\t\n92\t## 関係するページ\n93\t\n94\t- [[リリースの確かめ方]]\n95\t- [[敵対的レビューで設計を直す進め方]]\n96\t- [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n97\t- [[youtubeの字幕の取り込みの設計-2026-11-15]]\n98\t- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n99\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "2765ad70-83bf-47f2-9b90-68827dfa691f",
+   "timestamp": "2026-11-17T15:26:33.396Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md",
+     "content": "---\ntype: \"source\"\ntitle: \"/wiki:query の回答の確信度と wiki 0.20.0 のリリース\"\ntags: [\"リリース\", \"query\", \"confidence\", \"プロンプト\"]\nauthors: [\"to884\"]\nraw: \"docs/agent-runs/2026-11-16-wiki-query-confidence\"\ningested: 2026-11-16\ncreated: 2026-11-16\nupdated: 2026-11-16\n---\n\n# /wiki:query の回答の確信度と wiki 0.20.0 のリリース\n\n`/wiki:query` の回答に確信度（confidence）を付け、低いときは上げる方法を提案するようにして、wiki 0.20.0 として出した記録である。原本（Sol の 6 回のレビュー）は `docs/agent-runs/2026-11-16-wiki-query-confidence/` にあり、決定は ADR-0028（2026年11月16日に承認）にある。決め方の正本は、プラグインの `skills/info-hive/references/query-workflow.md` の手順 5b である。\n\n## 付ける場所を回答にした理由\n\n作者の依頼は「wiki:query の結果に confidence を足す」だった。付ける場所は、回答と検索の結果の行の 2 つが考えられた。\n\n- 検索の行の `score` は RRF の値で、順位だけから決まる。クエリをまたいで比べられない。\n- ADR-0011 の較正データ（日本語の自然な質問）では、答えのない 12 問の最も近い距離は 0.151〜0.163 だった。答えのある 47 問のうち 6 問は、答えに届くのに 0.151 以上を要した。距離 0.15 未満を「高い」とする粗い区分なら作れるが、評価は小さく、MCP（ruri）と CLI（e5）でモデルが違う。\n- 回答の正誤を確かめた評価のデータがない。\n\n作者は回答に付ける案を選んだ。数値にはせず、規則で決める「高」「中」「低」と理由にした。\n\n## 決め方\n\n- 判定するのは、回答の結論と、結論を導いた前提である。\n- 前提は、その事柄の正本に書かれていたかで出発点を決める。表は上から順に見て、最初に当たった行を取る。\n  - ソースの要約ページか raw で確かめた前提は「高」、コンセプトのページだけにある前提は「中」になる。\n  - wiki 自身の事柄は、`log.md` などの記録で答えれば「高」になる。\n  - シンセシスのページは根拠に数えない。\n- 結論は導き方で決める。そのまま述べたもの、計算などの決まった手順で導いたもの、判断を加えたものに分ける。\n- 上限（仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退）を当て、もっとも低いものに合わせる。\n- 「中」か「低」のときは、要因ごとに上げる方法を提案する。wiki を書き換える方法は提案だけにする。\n- wiki の外の知識は前提に使わない（作者の決定）。問いの一部だけ wiki に答えがないときも、その部分は答えない。\n\n## レビューで崩れた前提\n\nSol の敵対的レビューを 6 回受けた。1、2 回目は却下、3〜6 回目は採用可だった。\n\n1. ページの `sources` からソースまでたどれれば「高」としていた。これでは、推論の回答をシンセシスとして保存すると、次のクエリで「高」になる。ページ単位の `sources` は、個々の主張の出所を保証しない。\n2. 根拠の形を「1 ページか、複数のページか」で分けたので、1 ページの値から計算する回答（8 件と 2 件から 80%）がどの行にも当たらなかった。前提と結論を分け、結論は導き方で決めることにした。\n3. 場合を並べた表に、もれと重なりがあった。`log.md` を根拠にする回答の行がなく、検索の縮退の理由を `index.state` から推し量っていた。`index.state` は、埋め込み済みの件数が足りているかしか表さない。どの表も上から順に当てはめる形にし、最後に「どれにも当たらない」の行を置いた。\n4. 外の知識を添えない決まりを質問全体の単位で書くと、「A と B は？」のように問いをまとめるだけで、wiki が扱っていない B を外の知識で埋められた。結論ごとに当てる形にした。\n\n## プロンプトの監査\n\n`commands/query.md` を、claude-api スキルの prompt-audit で、Claude Sonnet 5.5 を対象に監査した。\n\n- Sonnet 5.5 は、知識を問う質問で、検索を使わずに自分の知識で答えることがある。そこで「答えは wiki から取り、知っていると思う質問でも wiki を確かめる」を足した。\n- 理由のない「0 件でも CLI でやり直さない」は、書かれたとおりに受け取られるので、「同じ検索語で」に限り、探し直しは 2 回までにした。\n- `warning` の説明がコードと食い違っていた。被リンクの探し方も、コマンドと手順書で食い違っていた（コマンドの方が新しい）。どちらも直した。\n\n## 実際に動かした確かめ\n\nworktree のプラグインを `claude --plugin-dir` で読み込み、この wiki に 3 問を問い合わせた。エージェントは 3 問とも手順 5b を開いて従った。\n\n- 仮説のページ（[[officeのcomでの書き出し]]）に頼る質問は「中」だった。上げる方法として、仮説を確かめて `/wiki:learn` で記録することが出た。\n- コンセプトのページにある質問では、ソースの要約ページで確かめきれず「中」になった。上げる方法として raw を読むことが出た。\n- wiki が扱っていない質問には、確信度を付けなかった。ただし、外の知識を添えていた。これが作者の「添えない」の決定のきっかけになった。\n\nリリースのあとで、Sonnet 5.5 で 11 問を 3 回ずつ流して測った（[[queryの確からしさのsonnetでの測定-2026-11-16]]）。こちらでは、33 回のどれも手順 5b を開かず、`commands/query.md` の手順 6b の要約だけで判定した。判定の一致は 24/33 で、外れた 9 回はすべて期待より低く、規則にない上限（観測が 1 回だけ、raw 未確認）によるものだった。\n\n## リリース\n\n1. 子の PR（to884/info-hive-wiki#69）と親の PR（to884/info-hive-dev#136）の CI が、どちらも最新のコミットで通ってから、子をマージした（`08d60aa`）。\n2. 注釈付きのタグ `v0.20.0` と GitHub リリースを作った。\n3. 使い捨ての設定でマーケットプレイスから入れ、0.20.0 が入ること、v0.19.5 から変わった 7 つのファイルの SHA-256 がタグの中身と一致することを確かめた。\n4. 親の参照をマージコミットに付け替えて、親をマージした。\n\n親の `tests/wiki` を手元の素の Python で流すと、`yaml` と `psutil` がないために 36 件が落ちた。変更は文書だけで、依存を入れて動く子の CI は通った。\n\n## ADR-0027 との関係\n\nリリースのあとで、YouTube の字幕の取り込みのセッションから連絡があった。ADR-0027（提案）が、ADR-0028 の上限の表に、動画のソースの行を足すよう求めていた。\n\n- 動画の raw の `confidence` が `medium` なら「中」、`low` なら「低」を上限にする。\n- モデルの知識だけによる訂正や、留保した語に頼る前提は「低」を上限にする。\n\nADR-0028 は承認済みで、規則は 0.20.0 で出荷済みだった。承認した ADR は書き換えない決まりなので（`docs/adr/README.md`）、次のように分担した。\n\n- 上限の行と、それぞれを解消する「上げる方法」の行は、ADR-0027 を実装する PR で `query-workflow.md` の手順 5b に足す。\n- その判断は ADR-0027 に書く。to884/info-hive-dev#139 でマージ済み。\n\n先に足さなかったのは、`confidence` の欄と訂正の印が ADR-0027 の実装で初めてできるからである。先に足すと、まだない欄を指す規則になる。上限の表は、当てはまる行をすべて当ててもっとも低いものを取る形なので、行を足しても既存の行と衝突しない。\n\n## 後始末\n\n`git worktree remove --force` は登録を外したが、`Permission denied` で空のフォルダーを残した。このセッションのシェルの作業ディレクトリが、まだその中にあったためと見られる。外に出てから `rmdir` で消えた。\n\n## 関係するページ\n\n- [[リリースの確かめ方]]\n- [[敵対的レビューで設計を直す進め方]]\n- [[Pythonの上限と依存の解決の失敗の直しとリリース-wiki-0.19.5]]\n- [[youtubeの字幕の取り込みの設計-2026-11-15]]\n- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n",
+     "numLines": 99,
+     "startLine": 1,
+     "totalLines": 99
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_015YZohdeZci5ywXq2FMxm8f",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01ADFREf7mtCRDeQ6r3mqk3F",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の確信度の決め方の分離と wiki 0.21.1 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"confidence\", \"プロンプト\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/agent-runs/2026-11-16-wiki-query-confidence-reach\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の確信度の決め方の分離と wiki 0.21.1 のリリース\n13\t\n14\t`/wiki:query` の確信度の決め方を別のファイルに分けて確実に読ませ、読み違いと外の知識の経路を直して、wiki 0.21.1 として出した記録である。きっかけは、Sonnet 5.5 で測ったときに、決め方の正本（手順 5b）が 1 回も読まれていなかったことである（[[queryの確からしさのsonnetでの測定-2026-11-16]]）。レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-confidence-reach/` にある。\n15\t\n16\t## 直したこと\n17\t\n18\t作者は、測定のレポートが示した案 1〜4 をすべて入れると決めた。\n19\t\n20\t1. 決め方の本文を `skills/info-hive/references/query-confidence.md` に分けた。コマンドの手順 6b では、確信度を書く前に、このファイルを `${CLAUDE_PLUGIN_ROOT}` のパスで Read するよう求めた。手順 5b は、このファイルへの案内として残した。\n21\t2. 6b の要約を、読み違いを生まない 3 点にした。\n22\t   - ソースの要約ページに書かれていれば高で、raw まで読まなくてよい。\n23\t   - wiki 自身の事柄を記録で答えたら高。\n24\t   - 上限は表の行だけで、回数、再現、raw や git で確かめていないことでは下げない。\n25\t3. wiki の外の知識に、会話に読み込まれたプロジェクトの指示と、wiki の外のファイルを含めた。思い付いた答えを、検索語として書くことも禁じた。\n26\t4. 1 行目は `**確からしさ（confidence）: 中**` の字句のまま書くことにした。\n27\t\n28\t判定の表の中身は変えていない。ADR-0028 は承認済みなので書き換えず、置き場所の行に日付つきで追記した。\n29\t\n30\t## レビューで直したこと\n31\t\n32\tSol の敵対的レビューを 3 回受けた。指摘はどれも、外の知識の例外の決め方に集まった。\n33\t\n34\t- 1 回目は、例外を frontmatter の `raw` の欄に限っていた。これでは、文字コードを変換した写しと、rag の抽出済みの Markdown が外れた。\n35\t- 2 回目は、「本文から参照している」という条件にしていた。これでは、`rag_job_id` で指す rag のページが外れた。\n36\t\n37\t最後は、要約ページがそのソースの raw として指しているもの、とした。指し方は 3 つ（`raw` の原本、`rag_job_id` のジョブ、本文の参照とその画像）である。欄や書き方の 1 つで例外を決めると、取り込みの手順が作る別の形を取りこぼした。\n38\t\n39\t## 測り直し\n40\t\n41\tリリースの前に、前回と同じ wiki（`4b3f578`）と 11 問で測り直した。\n42\t\n43\t- ラベルの一致：24/33 から 33/33 に上がった。\n44\t- 決め方のファイルを開いた回：0/30 から 30/30 になった。\n45\t- 判定のぶれ：なくなった。\n46\t\n47\t答えを検索語として書く漏れは残った。Q11 では減ったが、確信度を付けない Q09 で新しく起きた。この漏れは、0.21.2 で字句で決まる決まりにして直した（[[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]）。\n48\t\n49\t## リリース\n50\t\n51\t1. 子の PR の先頭を指した親の CI 17 件が通ってから、子の PR（to884/info-hive-wiki#72）をマージした（`4ffecc5`）。\n52\t2. 注釈付きのタグ `v0.21.1` と GitHub リリースを作った。\n53\t3. 使い捨ての設定でマーケットプレイスから入れ、0.21.1 が入ることを確かめた。v0.21.0 から変わった 7 つのファイルの SHA-256 は、タグの中身と一致した。\n54\t4. 親の参照をマージコミットに付け替えて、親の PR（to884/info-hive-dev#144）をマージした。\n55\t\n56\t並行して、to884/info-hive-wiki#71（rag の page_report）と ADR-0027 の実装が、どちらも 0.22.0 を予定している。\n57\t\n58\t## 関係するページ\n59\t\n60\t- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n61\t- [[queryの確からしさとリリース-wiki-0.20.0]]\n62\t- [[リリースの確かめ方]]\n63\t- [[敵対的レビューで設計を直す進め方]]\n64\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "30dfa2dd-7114-4ea6-be66-64bce5abe8cd",
+   "timestamp": "2026-11-17T15:26:33.417Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md",
+     "content": "---\ntype: \"source\"\ntitle: \"/wiki:query の確信度の決め方の分離と wiki 0.21.1 のリリース\"\ntags: [\"リリース\", \"query\", \"confidence\", \"プロンプト\"]\nauthors: [\"to884\"]\nraw: \"docs/agent-runs/2026-11-16-wiki-query-confidence-reach\"\ningested: 2026-11-16\ncreated: 2026-11-16\nupdated: 2026-11-16\n---\n\n# /wiki:query の確信度の決め方の分離と wiki 0.21.1 のリリース\n\n`/wiki:query` の確信度の決め方を別のファイルに分けて確実に読ませ、読み違いと外の知識の経路を直して、wiki 0.21.1 として出した記録である。きっかけは、Sonnet 5.5 で測ったときに、決め方の正本（手順 5b）が 1 回も読まれていなかったことである（[[queryの確からしさのsonnetでの測定-2026-11-16]]）。レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-confidence-reach/` にある。\n\n## 直したこと\n\n作者は、測定のレポートが示した案 1〜4 をすべて入れると決めた。\n\n1. 決め方の本文を `skills/info-hive/references/query-confidence.md` に分けた。コマンドの手順 6b では、確信度を書く前に、このファイルを `${CLAUDE_PLUGIN_ROOT}` のパスで Read するよう求めた。手順 5b は、このファイルへの案内として残した。\n2. 6b の要約を、読み違いを生まない 3 点にした。\n   - ソースの要約ページに書かれていれば高で、raw まで読まなくてよい。\n   - wiki 自身の事柄を記録で答えたら高。\n   - 上限は表の行だけで、回数、再現、raw や git で確かめていないことでは下げない。\n3. wiki の外の知識に、会話に読み込まれたプロジェクトの指示と、wiki の外のファイルを含めた。思い付いた答えを、検索語として書くことも禁じた。\n4. 1 行目は `**確からしさ（confidence）: 中**` の字句のまま書くことにした。\n\n判定の表の中身は変えていない。ADR-0028 は承認済みなので書き換えず、置き場所の行に日付つきで追記した。\n\n## レビューで直したこと\n\nSol の敵対的レビューを 3 回受けた。指摘はどれも、外の知識の例外の決め方に集まった。\n\n- 1 回目は、例外を frontmatter の `raw` の欄に限っていた。これでは、文字コードを変換した写しと、rag の抽出済みの Markdown が外れた。\n- 2 回目は、「本文から参照している」という条件にしていた。これでは、`rag_job_id` で指す rag のページが外れた。\n\n最後は、要約ページがそのソースの raw として指しているもの、とした。指し方は 3 つ（`raw` の原本、`rag_job_id` のジョブ、本文の参照とその画像）である。欄や書き方の 1 つで例外を決めると、取り込みの手順が作る別の形を取りこぼした。\n\n## 測り直し\n\nリリースの前に、前回と同じ wiki（`4b3f578`）と 11 問で測り直した。\n\n- ラベルの一致：24/33 から 33/33 に上がった。\n- 決め方のファイルを開いた回：0/30 から 30/30 になった。\n- 判定のぶれ：なくなった。\n\n答えを検索語として書く漏れは残った。Q11 では減ったが、確信度を付けない Q09 で新しく起きた。この漏れは、0.21.2 で字句で決まる決まりにして直した（[[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]）。\n\n## リリース\n\n1. 子の PR の先頭を指した親の CI 17 件が通ってから、子の PR（to884/info-hive-wiki#72）をマージした（`4ffecc5`）。\n2. 注釈付きのタグ `v0.21.1` と GitHub リリースを作った。\n3. 使い捨ての設定でマーケットプレイスから入れ、0.21.1 が入ることを確かめた。v0.21.0 から変わった 7 つのファイルの SHA-256 は、タグの中身と一致した。\n4. 親の参照をマージコミットに付け替えて、親の PR（to884/info-hive-dev#144）をマージした。\n\n並行して、to884/info-hive-wiki#71（rag の page_report）と ADR-0027 の実装が、どちらも 0.22.0 を予定している。\n\n## 関係するページ\n\n- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n- [[queryの確からしさとリリース-wiki-0.20.0]]\n- [[リリースの確かめ方]]\n- [[敵対的レビューで設計を直す進め方]]\n",
+     "numLines": 64,
+     "startLine": 1,
+     "totalLines": 64
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01ADFREf7mtCRDeQ6r3mqk3F",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "5863a6be-5e1d-4e0d-b908-7b81c7c33f98"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 300,
+   "estimated_tokens_delta": 250,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "f8aab0a7-5e3f-4020-ab06-c7ac597ddfa3"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 381,
+   "estimated_tokens_delta": 81,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "12908594-dd98-4c73-ac97-d215ec596c9f"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jZLmWCChWv7tzTrcXk",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "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"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 7922,
+     "cache_read_input_tokens": 4931,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 7922
+     },
+     "output_tokens": 4,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "9b707899-0eff-4e82-975a-3ea35b6f4cb7",
+   "timestamp": "2026-11-17T15:26:40.507Z",
+   "request_id": "req_011Ch8jZLWdtcPxf9oRN12zr",
+   "thinking_duration_ms": 1866,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jZLmWCChWv7tzTrcXk",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01V69NwCPBBUm68pV6B6u375",
+      "name": "Glob",
+      "input": {
+       "pattern": "*{0.23.1,0.21.2}*.md",
+       "path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 7922,
+     "cache_read_input_tokens": 4931,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 7922
+     },
+     "output_tokens": 4,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "241b4ad6-b5f7-47ea-8f1a-d3b14717076f",
+   "timestamp": "2026-11-17T15:26:40.877Z",
+   "request_id": "req_011Ch8jZLWdtcPxf9oRN12zr",
+   "wire_tool_inputs": {
+    "toolu_01V69NwCPBBUm68pV6B6u375": {
+     "pattern": "*{0.23.1,0.21.2}*.md",
+     "path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki"
+    }
+   }
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01V69NwCPBBUm68pV6B6u375",
+      "type": "tool_result",
+      "content": "wiki\\sources\\queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md\nwiki\\sources\\queryの確からしさの規則の直しとリリース-wiki-0.23.1.md"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "ccb297e1-a402-45d6-b51b-364d44849f41",
+   "timestamp": "2026-11-17T15:26:41.756Z",
+   "tool_use_result": {
+    "filenames": [
+     "wiki\\sources\\queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md",
+     "wiki\\sources\\queryの確からしさの規則の直しとリリース-wiki-0.23.1.md"
+    ],
+    "durationMs": 645,
+    "numFiles": 2,
+    "truncated": false,
+    "totalMatches": 2,
+    "countIsComplete": true
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01V69NwCPBBUm68pV6B6u375",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jZs2vBPeQitxksochK",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_01LFscEYHsGRGxmhYy8EmMvJ",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 723,
+     "cache_read_input_tokens": 12853,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 723
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "b41c9586-2054-4204-86cf-442a0682dd29",
+   "timestamp": "2026-11-17T15:26:43.825Z",
+   "request_id": "req_011Ch8jZrcsD8pydprvdxuPk",
+   "wire_tool_inputs": {
+    "toolu_01LFscEYHsGRGxmhYy8EmMvJ": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md"
+    }
+   }
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8jZs2vBPeQitxksochK",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "tool_use",
+      "id": "toolu_015c8X6hGtAfrfVMvrskhW2y",
+      "name": "Read",
+      "input": {
+       "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md"
+      },
+      "caller": {
+       "type": "direct"
+      }
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 723,
+     "cache_read_input_tokens": 12853,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 723
+     },
+     "output_tokens": 16,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "9bd9c9a5-d096-40fb-b0e1-95e4047d98a9",
+   "timestamp": "2026-11-17T15:26:44.229Z",
+   "request_id": "req_011Ch8jZrcsD8pydprvdxuPk",
+   "wire_tool_inputs": {
+    "toolu_015c8X6hGtAfrfVMvrskhW2y": {
+     "file_path": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md"
+    }
+   }
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_015c8X6hGtAfrfVMvrskhW2y",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の検索の説明への外の語の漏れの直しと wiki 0.21.2 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"プロンプト\", \"測定\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/research/wiki-query-confidence-sonnet-2026-11-16.md\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の検索の説明への外の語の漏れの直しと wiki 0.21.2 のリリース\n13\t\n14\t`/wiki:query` の回答で、どう探したかを説明する文に wiki の外の知識が入る漏れを直し、wiki 0.21.2 として出した記録である。0.21.1 の測り直しで残った問題を扱った（[[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]）。測定の原本は `docs/research/wiki-query-confidence-sonnet-2026-11-16.md` の「検索の説明への外の語の漏れの直し」の節にある。レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-search-terms/` にある。\n15\t\n16\t## 原因\n17\t\n18\t- 0.21.1 の決まりは「自分の知識で思い付いた答えを、検索に使った語として回答に書かない」だった。\n19\t- 漏れた回は、この決まりの書かれた手順（コマンドの手順 7、`query-confidence.md`）を読んだうえで破っていた。原因は決まりの置き場所ではなく、文面にあると見た。\n20\t- この文面では、どの語が答えに当たるかを、エージェント自身が判断することになる。Claude Sonnet 5.5 が書いた語は、略語を展開した語（Command Query Responsibility Segregation）、訳した語、ライブラリの別名（`fitz`、`MuPDF`）、答えの語（Rust）だった。\n21\t\n22\t## 直したこと\n23\t\n24\t- 回答のうち wiki の内容を述べない部分を、1 つの決まりにまとめた。どう探したかの説明と、取り込むとよいソースの提案の 2 つである。どちらにも、自分で選んだ語を書かない。\n25\t  - 探した語として示すのは、質問文にそのままある語だけにする。ほかの語は「言い換えた語でも探した」とだけ書く。\n26\t  - ソースは、資料の種類と、質問文か wiki にある語で示す。自分の知識で、題名、著者、URL を挙げない。\n27\t- 判断に頼らず、字句で決まる決まりにした。置き場所は、コマンドの手順 4c とクエリのワークフローの手順 5 である。手順 7 と `query-confidence.md` からは、そこを指す。\n28\t- 答えの語を含む否定の例（「『Rust』で検索したが…」）は、答えを含まない書き方の例に替えた。否定の例は、避けたい型そのものを見せてしまう。\n29\t\n30\t## レビューで直したこと\n31\t\n32\tSol の敵対的レビューを 2 回受けた。決まりの文は 2 回とも崩されなかった。指摘は、測定の照合の作りに集まった。\n33\t\n34\t- 1 回目の照合は、回答から「検索を述べた文」を推し量り、その中の引用を数えていた。これでは、引用符のない語、「調べた」「照合した」の言い回し、箇条書きを見逃した。そこで、問いごとに「出てはならない外の語」を決め、回答のどこかに出たかで判定するようにした。\n35\t- 2 回目の指摘は 2 つだった。\n36\t  - 答えが「C」の 1 文字の問いは、字句で見分けられない。そこで、問いを答えに特徴のあるもの（sqlite-vec の作者）に替えた。\n37\t  - 最終の回答がない回を「漏れなし」と数えていた。そこで、こうした回は判定できない回として分けた。\n38\t- 取り込む候補から題名、著者、URL を外したのは、Sol の指摘を受けて足した部分である（候補の名前に答えが入る経路。再現はしていない）。この部分だけの効き目は、測定では切り分けられていない。\n39\t\n40\t## 測り直し\n41\t\n42\t| 確かめたこと | 0.21.1 | 0.21.2 |\n43\t| --- | --- | --- |\n44\t| 外の語が回答に出た（Q09〜Q11） | 5/9 | 0/9 |\n45\t| 外の語が回答に出た（足した Q12、Q13） | ― | 0/6 |\n46\t| 外の語が回答に出た（Q11、記録のページを含まない wiki） | ― | 0/3 |\n47\t\n48\t> 測り直しの表 補足：0.21.1 の 5/9 は、新しい照合で数え直した値である。目視で数えた 3/6 では、Q10 の `fitz` と `MuPDF` を見落としていた。費用は合わせて 4.04 USD だった。\n49\t\n50\t- 合否は、照合のスクリプトだけでなく、回答をすべて読んで決めた。照合が見つけられるのは、登録した表記だけだからである。\n51\t- 最初の 15 回は、最新の wiki で流した。この wiki には、0.21.1 の測定の記録のページが入っている。Q11 の 2 回は、Grep の結果で、その記録の「答え（Rust）を検索語として回答に書いた」という行を見ていた。そこで、記録のページを含まない wiki（`4b3f578`）で Q11 を流し直し、3 回とも漏れがないことを確かめた。\n52\t- Q09 の 1 回目は、自分の知識で訳した語で検索したが、回答には書かなかった。検索に使うのはよく、回答に書かない、という決まりのとおりの形である。\n53\t- 決まりの文のとおりではない書き方が 2 つあった。どちらも答えは含まない。\n54\t  - 質問を言い換えた語を、探した語として書いた回（Q13 の 3 回目）。\n55\t  - 取り込む候補に「PKCE を定めた仕様（RFC）」を挙げた回（Q12 の 3 回）。\n56\t- 答えのある問い（Q01〜Q08）は流していない。\n57\t\n58\t## リリース\n59\t\n60\t1. 子の PR（to884/info-hive-wiki#73）と、親の PR（to884/info-hive-dev#146）を作った。子の CI 4 件と、子の先頭を指した親の CI 17 件が通ってから、子の PR をマージした（`9fa01b6`）。Codex の PR レビューは、どちらも指摘なしだった。\n61\t2. 注釈付きのタグ `v0.21.2` と GitHub リリースを作った。本文は CHANGELOG の 0.21.2 の節である。\n62\t3. 使い捨ての設定でマーケットプレイスから入れ、0.21.2 が入ることを確かめた。v0.21.1 から変わった 5 つのファイルの SHA-256 は、タグの中身と一致した。\n63\t4. 親の参照をマージコミットに付け替えて、親の PR をマージした。\n64\t\n65\t並行して、同じ `query-confidence.md` と `query.md` に触れる確信度の規則の直し（案 1〜4）が、別のセッションで進んでいた。そちらは、この版のあとに合わせることになる。\n66\t\n67\t## 関係するページ\n68\t\n69\t- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]\n70\t- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n71\t- [[エージェントに守らせる決まりの書き方]]\n72\t- [[リリースの確かめ方]]\n73\t- [[敵対的レビューで設計を直す進め方]]\n74\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "bcac021d-5eb5-41f0-8a4b-49e7bb0aee38",
+   "timestamp": "2026-11-17T15:26:44.617Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md",
+     "content": "---\ntype: \"source\"\ntitle: \"/wiki:query の検索の説明への外の語の漏れの直しと wiki 0.21.2 のリリース\"\ntags: [\"リリース\", \"query\", \"プロンプト\", \"測定\"]\nauthors: [\"to884\"]\nraw: \"docs/research/wiki-query-confidence-sonnet-2026-11-16.md\"\ningested: 2026-11-16\ncreated: 2026-11-16\nupdated: 2026-11-16\n---\n\n# /wiki:query の検索の説明への外の語の漏れの直しと wiki 0.21.2 のリリース\n\n`/wiki:query` の回答で、どう探したかを説明する文に wiki の外の知識が入る漏れを直し、wiki 0.21.2 として出した記録である。0.21.1 の測り直しで残った問題を扱った（[[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]）。測定の原本は `docs/research/wiki-query-confidence-sonnet-2026-11-16.md` の「検索の説明への外の語の漏れの直し」の節にある。レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-search-terms/` にある。\n\n## 原因\n\n- 0.21.1 の決まりは「自分の知識で思い付いた答えを、検索に使った語として回答に書かない」だった。\n- 漏れた回は、この決まりの書かれた手順（コマンドの手順 7、`query-confidence.md`）を読んだうえで破っていた。原因は決まりの置き場所ではなく、文面にあると見た。\n- この文面では、どの語が答えに当たるかを、エージェント自身が判断することになる。Claude Sonnet 5.5 が書いた語は、略語を展開した語（Command Query Responsibility Segregation）、訳した語、ライブラリの別名（`fitz`、`MuPDF`）、答えの語（Rust）だった。\n\n## 直したこと\n\n- 回答のうち wiki の内容を述べない部分を、1 つの決まりにまとめた。どう探したかの説明と、取り込むとよいソースの提案の 2 つである。どちらにも、自分で選んだ語を書かない。\n  - 探した語として示すのは、質問文にそのままある語だけにする。ほかの語は「言い換えた語でも探した」とだけ書く。\n  - ソースは、資料の種類と、質問文か wiki にある語で示す。自分の知識で、題名、著者、URL を挙げない。\n- 判断に頼らず、字句で決まる決まりにした。置き場所は、コマンドの手順 4c とクエリのワークフローの手順 5 である。手順 7 と `query-confidence.md` からは、そこを指す。\n- 答えの語を含む否定の例（「『Rust』で検索したが…」）は、答えを含まない書き方の例に替えた。否定の例は、避けたい型そのものを見せてしまう。\n\n## レビューで直したこと\n\nSol の敵対的レビューを 2 回受けた。決まりの文は 2 回とも崩されなかった。指摘は、測定の照合の作りに集まった。\n\n- 1 回目の照合は、回答から「検索を述べた文」を推し量り、その中の引用を数えていた。これでは、引用符のない語、「調べた」「照合した」の言い回し、箇条書きを見逃した。そこで、問いごとに「出てはならない外の語」を決め、回答のどこかに出たかで判定するようにした。\n- 2 回目の指摘は 2 つだった。\n  - 答えが「C」の 1 文字の問いは、字句で見分けられない。そこで、問いを答えに特徴のあるもの（sqlite-vec の作者）に替えた。\n  - 最終の回答がない回を「漏れなし」と数えていた。そこで、こうした回は判定できない回として分けた。\n- 取り込む候補から題名、著者、URL を外したのは、Sol の指摘を受けて足した部分である（候補の名前に答えが入る経路。再現はしていない）。この部分だけの効き目は、測定では切り分けられていない。\n\n## 測り直し\n\n| 確かめたこと | 0.21.1 | 0.21.2 |\n| --- | --- | --- |\n| 外の語が回答に出た（Q09〜Q11） | 5/9 | 0/9 |\n| 外の語が回答に出た（足した Q12、Q13） | ― | 0/6 |\n| 外の語が回答に出た（Q11、記録のページを含まない wiki） | ― | 0/3 |\n\n> 測り直しの表 補足：0.21.1 の 5/9 は、新しい照合で数え直した値である。目視で数えた 3/6 では、Q10 の `fitz` と `MuPDF` を見落としていた。費用は合わせて 4.04 USD だった。\n\n- 合否は、照合のスクリプトだけでなく、回答をすべて読んで決めた。照合が見つけられるのは、登録した表記だけだからである。\n- 最初の 15 回は、最新の wiki で流した。この wiki には、0.21.1 の測定の記録のページが入っている。Q11 の 2 回は、Grep の結果で、その記録の「答え（Rust）を検索語として回答に書いた」という行を見ていた。そこで、記録のページを含まない wiki（`4b3f578`）で Q11 を流し直し、3 回とも漏れがないことを確かめた。\n- Q09 の 1 回目は、自分の知識で訳した語で検索したが、回答には書かなかった。検索に使うのはよく、回答に書かない、という決まりのとおりの形である。\n- 決まりの文のとおりではない書き方が 2 つあった。どちらも答えは含まない。\n  - 質問を言い換えた語を、探した語として書いた回（Q13 の 3 回目）。\n  - 取り込む候補に「PKCE を定めた仕様（RFC）」を挙げた回（Q12 の 3 回）。\n- 答えのある問い（Q01〜Q08）は流していない。\n\n## リリース\n\n1. 子の PR（to884/info-hive-wiki#73）と、親の PR（to884/info-hive-dev#146）を作った。子の CI 4 件と、子の先頭を指した親の CI 17 件が通ってから、子の PR をマージした（`9fa01b6`）。Codex の PR レビューは、どちらも指摘なしだった。\n2. 注釈付きのタグ `v0.21.2` と GitHub リリースを作った。本文は CHANGELOG の 0.21.2 の節である。\n3. 使い捨ての設定でマーケットプレイスから入れ、0.21.2 が入ることを確かめた。v0.21.1 から変わった 5 つのファイルの SHA-256 は、タグの中身と一致した。\n4. 親の参照をマージコミットに付け替えて、親の PR をマージした。\n\n並行して、同じ `query-confidence.md` と `query.md` に触れる確信度の規則の直し（案 1〜4）が、別のセッションで進んでいた。そちらは、この版のあとに合わせることになる。\n\n## 関係するページ\n\n- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]\n- [[queryの確からしさのsonnetでの測定-2026-11-16]]\n- [[エージェントに守らせる決まりの書き方]]\n- [[リリースの確かめ方]]\n- [[敵対的レビューで設計を直す進め方]]\n",
+     "numLines": 74,
+     "startLine": 1,
+     "totalLines": 74
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_015c8X6hGtAfrfVMvrskhW2y",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "user",
+   "message": {
+    "role": "user",
+    "content": [
+     {
+      "tool_use_id": "toolu_01LFscEYHsGRGxmhYy8EmMvJ",
+      "type": "tool_result",
+      "content": "1\t---\n2\ttype: \"source\"\n3\ttitle: \"/wiki:query の確信度の規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース\"\n4\ttags: [\"リリース\", \"query\", \"測定\", \"レビュー\"]\n5\tauthors: [\"to884\"]\n6\traw: \"docs/research/wiki-query-confidence-0-21-3-2026-11-16.md\"\n7\tingested: 2026-11-16\n8\tcreated: 2026-11-16\n9\tupdated: 2026-11-16\n10\t---\n11\t\n12\t# /wiki:query の確信度の規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース\n13\t\n14\t[[queryの確からしさの未測定の規則の測定-2026-11-16]] で作者が決めた直しの向き（案 1-A、2-B、3、4）を `/wiki:query` の確信度の規則に入れ、Claude Sonnet 5.5 で測り直して、wiki 0.23.1 として出した記録である。測定の原本は `docs/research/wiki-query-confidence-0-21-3-2026-11-16.md`、決定は ADR-0028 の「0.23.1 の追記」、レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-confidence-0-21-2/` にある。\n15\t\n16\t## 直したこと\n17\t\n18\t| 項目 | 決めたこと | 決めた人 |\n19\t| --- | --- | --- |\n20\t| エッジの上限（案 1-A） | エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。エッジの `source` のソースの要約ページか raw の本文が関係を直接述べていれば数えない | 作者 |\n21\t| エッジだけの前提 | 本文で確かめられないときは、エッジを書いたページの frontmatter で確かめて引用し、出発点を「中」にする。グラフの行だけを前提にしない | 提案を作者が承認 |\n22\t| 推測を答えにする | 根拠に推測や記憶として書かれたこと（「〜だったと思う」）を答えとして述べたら、留保を添えても上限は「低」 | 作者（提案は「中」） |\n23\t| グラフを必ず呼ぶ | 関係を問う質問では、ページを読む前に必ず `graph` の `neighbors` を呼ぶ。手順を 5b から 2b に移し、ノードの ID の作り方（`graph.node_id` の上書き、結果の `path` の確かめ）を書いた | 作者 |\n24\t| `Grep` で見つけたら縮退（案 2-B） | 縮退の理由に「0. 語彙だけの道具で見つけた」を足した。見つけ方は道具を呼んだ順だけで決める | 作者が「開く前に呼んだか」を選んだ |\n25\t| その場の検索し直し | 縮退に当たったページは、答える前に MCP の `query` で検索し直してよく、正常な hybrid の結果にそのページが出れば上限は外れる | 作者 |\n26\t| 縮退の目的（案 3）と複数の結論（案 4） | 縮退は見落としを表すのでページを読んでも外れない。結論の文の終わりに「（確からしさ: 高）」、決まった 1 行は 1 つの値 | 作者 |\n27\t| 何が結論か | 質問が問う事柄について、前提に使えるもの（出発点が決まるもの）が wiki にあるかで決める。前提に使えるものがない問いには付けず、どの問いにもなければ決まった 1 行も書かない | 作者が「直してから出す」と決めた |\n28\t\n29\t> 直したこと 補足: 「見つけ方」の文は、Sol の敵対的レビューで 2〜7 回目まで毎回崩れた。インデックスの行の読みで決める形と、リンクのたどり元から引き継ぐ形は、どちらも同じ記録から高と中を導けた。道具を呼んだ順だけで決める形にして、5 回目で条件付きで採用可になった（[[エージェントに守らせる決まりの書き方]] の「読み手の判断に任せず、記録で決める」）。\n30\t\n31\t## 測り直し\n32\t\n33\t試験用の wiki（架空の製品 Tsuyukusa）で、前回の 15 問に `Grep` の経路の問い R16 を足し、16 問 × 3 回を流した。測ったのは出す版の 1 つ前のコミット `ea0a5b5` である。\n34\t\n35\t- 一致は 48 回中 41 回だった。事前に書いた別の読み（R16 の 3 回と R04 r2）が 4 回、規則の外れが 3 回である。前回と同じ 15 問に限ると 45 回中 41 回（前回は 40 回）だった。\n36\t- 関係を問う R07 と R08 の 6 回とも、グラフの `neighbors` を呼んだ（前回は 0 回）。R07 は 3 回とも「推測を答えにした」で「低」、R08 は 3 回中 2 回が「高」だった。\n37\t- 複数の結論の書き方は 6 回とも規則どおりだった（前回は 6 回中 1 回）。\n38\t- `Grep` を答えのページを開く前に呼んだ回は 2 回だけで、R16 でも Sonnet は先に hybrid の MCP の検索を呼んだ。理由 0 の「中」と、その場の検索し直しの経路は、ほとんど測れていない。\n39\t- R02（主張がシンセシスにしかない）が 3 回中 2 回、「答えられない」に「低」を付けた。直しの前の v0.23.0 でも、3 回中 1 回が補足に「中」を付けた。作者は直してから出すと決め、「何が結論か」を足した。直した版（`f5b99d3`）で R02、R03、R04 を 3 回ずつ流すと、9 回とも期待どおりだった。\n40\t\n41\t費用は合計 15.1 USD だった（本番の 48 回が 11.52、取り込む前の版の試しが 0.84、v0.23.0 の R02 が 0.65、直した版の確かめが 2.10）。\n42\t\n43\t## 版と順番\n44\t\n45\t作者は「この直しを先に出す」と決めていた。作業中に、検索語の漏れの直し（0.21.2、to884/info-hive-wiki#73、[[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]）と YouTube の字幕（0.23.0、to884/info-hive-wiki#74、[[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]）が先に出たので、2 回取り込んで 0.23.1 にした。順番は作者の決定と逆になった。0.23.0 が上限の表に足した動画のソースの 3 行は、そのまま残した。\n46\t\n47\t## リリース\n48\t\n49\t1. 子の PR（to884/info-hive-wiki#75）の CI 4 件が通ってから、マージした（`955c15a`）。\n50\t2. 注釈付きのタグ `v0.23.1` と GitHub リリースを作った。本文は CHANGELOG の 0.23.1 の節である。\n51\t3. 使い捨ての設定でマーケットプレイスから入れ、0.23.1 が入ることを確かめた。変えた 5 つのファイル（`commands/query.md`、`query-confidence.md`、`query-workflow.md`、`graph-workflow.md`、`plugin.json`）の SHA-256 は、タグの中身と一致した。\n52\t4. 親の参照をマージコミットに付け替えた。\n53\t\n54\t## 残った直しの候補\n55\t\n56\t作者の判断を待つもの。\n57\t\n58\t- 時期や版の上限の行に、「より新しい記述がないことは当たらない」を足す（R08 r2 が、新しい記述がないことを上限に数えた）。\n59\t- 時期や版の不明の行で、`/wiki:lint` の提案が抜けやすい。\n60\t\n61\t## 主張と行き先\n62\t\n63\t| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n64\t| --- | --- | --- | --- | --- |\n65\t| c1 | 0.23.1 の規則の直しの中身と、それぞれを決めた人 | ADR-0028 の「0.23.1 の追記」 | `source_only` | 規則の正本はプラグインの `query-confidence.md` にある |\n66\t| c2 | 判定を読み手の判断に任せる文は、敵対的レビューで同じ記録から 2 通りの判定を導かれる。道具の記録や表で決まる形にすると閉じた | 原本の「測った版と出す版の違い」と ADR の追記の各行 | `update` | [[エージェントに守らせる決まりの書き方]] に節を足した |\n67\t| c3 | 測り直しの結果（41/48、グラフを呼んだ 6/6、R02 の外れと直しの確かめ） | 原本の「結論」「R02 の直しと、その確かめ」 | `source_only` | この版の測定に限った結果である |\n68\t| c4 | 新しい規則を足すときに、既存の上限や出発点を言い直すと、既存の表とぶつかる | ADR の追記の「何が結論か」の行（10 回目のレビュー） | `update` | [[エージェントに守らせる決まりの書き方]] の同じ節に書いた |\n69\t\n70\t## 関係するページ\n71\t\n72\t- [[queryの確からしさの未測定の規則の測定-2026-11-16]]（前回の測定と、直しの案）\n73\t- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]\n74\t- [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]\n75\t- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（このあと、名前を「確信度」に変えた）\n76\t- [[エージェントに守らせる決まりの書き方]]\n77\t- [[リリースの確かめ方]]\n78\t- [[敵対的レビューで設計を直す進め方]]\n79\t"
+     }
+    ]
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "cec84d45-2fb8-43f0-84cb-0dd32ee5e3eb",
+   "timestamp": "2026-11-17T15:26:44.628Z",
+   "tool_use_result": {
+    "type": "text",
+    "file": {
+     "filePath": "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md",
+     "content": "---\ntype: \"source\"\ntitle: \"/wiki:query の確信度の規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース\"\ntags: [\"リリース\", \"query\", \"測定\", \"レビュー\"]\nauthors: [\"to884\"]\nraw: \"docs/research/wiki-query-confidence-0-21-3-2026-11-16.md\"\ningested: 2026-11-16\ncreated: 2026-11-16\nupdated: 2026-11-16\n---\n\n# /wiki:query の確信度の規則の直し（エッジ、Grep、何が結論か）と wiki 0.23.1 のリリース\n\n[[queryの確からしさの未測定の規則の測定-2026-11-16]] で作者が決めた直しの向き（案 1-A、2-B、3、4）を `/wiki:query` の確信度の規則に入れ、Claude Sonnet 5.5 で測り直して、wiki 0.23.1 として出した記録である。測定の原本は `docs/research/wiki-query-confidence-0-21-3-2026-11-16.md`、決定は ADR-0028 の「0.23.1 の追記」、レビューの原本は `docs/agent-runs/2026-11-16-wiki-query-confidence-0-21-2/` にある。\n\n## 直したこと\n\n| 項目 | 決めたこと | 決めた人 |\n| --- | --- | --- |\n| エッジの上限（案 1-A） | エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。エッジの `source` のソースの要約ページか raw の本文が関係を直接述べていれば数えない | 作者 |\n| エッジだけの前提 | 本文で確かめられないときは、エッジを書いたページの frontmatter で確かめて引用し、出発点を「中」にする。グラフの行だけを前提にしない | 提案を作者が承認 |\n| 推測を答えにする | 根拠に推測や記憶として書かれたこと（「〜だったと思う」）を答えとして述べたら、留保を添えても上限は「低」 | 作者（提案は「中」） |\n| グラフを必ず呼ぶ | 関係を問う質問では、ページを読む前に必ず `graph` の `neighbors` を呼ぶ。手順を 5b から 2b に移し、ノードの ID の作り方（`graph.node_id` の上書き、結果の `path` の確かめ）を書いた | 作者 |\n| `Grep` で見つけたら縮退（案 2-B） | 縮退の理由に「0. 語彙だけの道具で見つけた」を足した。見つけ方は道具を呼んだ順だけで決める | 作者が「開く前に呼んだか」を選んだ |\n| その場の検索し直し | 縮退に当たったページは、答える前に MCP の `query` で検索し直してよく、正常な hybrid の結果にそのページが出れば上限は外れる | 作者 |\n| 縮退の目的（案 3）と複数の結論（案 4） | 縮退は見落としを表すのでページを読んでも外れない。結論の文の終わりに「（確からしさ: 高）」、決まった 1 行は 1 つの値 | 作者 |\n| 何が結論か | 質問が問う事柄について、前提に使えるもの（出発点が決まるもの）が wiki にあるかで決める。前提に使えるものがない問いには付けず、どの問いにもなければ決まった 1 行も書かない | 作者が「直してから出す」と決めた |\n\n> 直したこと 補足: 「見つけ方」の文は、Sol の敵対的レビューで 2〜7 回目まで毎回崩れた。インデックスの行の読みで決める形と、リンクのたどり元から引き継ぐ形は、どちらも同じ記録から高と中を導けた。道具を呼んだ順だけで決める形にして、5 回目で条件付きで採用可になった（[[エージェントに守らせる決まりの書き方]] の「読み手の判断に任せず、記録で決める」）。\n\n## 測り直し\n\n試験用の wiki（架空の製品 Tsuyukusa）で、前回の 15 問に `Grep` の経路の問い R16 を足し、16 問 × 3 回を流した。測ったのは出す版の 1 つ前のコミット `ea0a5b5` である。\n\n- 一致は 48 回中 41 回だった。事前に書いた別の読み（R16 の 3 回と R04 r2）が 4 回、規則の外れが 3 回である。前回と同じ 15 問に限ると 45 回中 41 回（前回は 40 回）だった。\n- 関係を問う R07 と R08 の 6 回とも、グラフの `neighbors` を呼んだ（前回は 0 回）。R07 は 3 回とも「推測を答えにした」で「低」、R08 は 3 回中 2 回が「高」だった。\n- 複数の結論の書き方は 6 回とも規則どおりだった（前回は 6 回中 1 回）。\n- `Grep` を答えのページを開く前に呼んだ回は 2 回だけで、R16 でも Sonnet は先に hybrid の MCP の検索を呼んだ。理由 0 の「中」と、その場の検索し直しの経路は、ほとんど測れていない。\n- R02（主張がシンセシスにしかない）が 3 回中 2 回、「答えられない」に「低」を付けた。直しの前の v0.23.0 でも、3 回中 1 回が補足に「中」を付けた。作者は直してから出すと決め、「何が結論か」を足した。直した版（`f5b99d3`）で R02、R03、R04 を 3 回ずつ流すと、9 回とも期待どおりだった。\n\n費用は合計 15.1 USD だった（本番の 48 回が 11.52、取り込む前の版の試しが 0.84、v0.23.0 の R02 が 0.65、直した版の確かめが 2.10）。\n\n## 版と順番\n\n作者は「この直しを先に出す」と決めていた。作業中に、検索語の漏れの直し（0.21.2、to884/info-hive-wiki#73、[[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]）と YouTube の字幕（0.23.0、to884/info-hive-wiki#74、[[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]）が先に出たので、2 回取り込んで 0.23.1 にした。順番は作者の決定と逆になった。0.23.0 が上限の表に足した動画のソースの 3 行は、そのまま残した。\n\n## リリース\n\n1. 子の PR（to884/info-hive-wiki#75）の CI 4 件が通ってから、マージした（`955c15a`）。\n2. 注釈付きのタグ `v0.23.1` と GitHub リリースを作った。本文は CHANGELOG の 0.23.1 の節である。\n3. 使い捨ての設定でマーケットプレイスから入れ、0.23.1 が入ることを確かめた。変えた 5 つのファイル（`commands/query.md`、`query-confidence.md`、`query-workflow.md`、`graph-workflow.md`、`plugin.json`）の SHA-256 は、タグの中身と一致した。\n4. 親の参照をマージコミットに付け替えた。\n\n## 残った直しの候補\n\n作者の判断を待つもの。\n\n- 時期や版の上限の行に、「より新しい記述がないことは当たらない」を足す（R08 r2 が、新しい記述がないことを上限に数えた）。\n- 時期や版の不明の行で、`/wiki:lint` の提案が抜けやすい。\n\n## 主張と行き先\n\n| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |\n| --- | --- | --- | --- | --- |\n| c1 | 0.23.1 の規則の直しの中身と、それぞれを決めた人 | ADR-0028 の「0.23.1 の追記」 | `source_only` | 規則の正本はプラグインの `query-confidence.md` にある |\n| c2 | 判定を読み手の判断に任せる文は、敵対的レビューで同じ記録から 2 通りの判定を導かれる。道具の記録や表で決まる形にすると閉じた | 原本の「測った版と出す版の違い」と ADR の追記の各行 | `update` | [[エージェントに守らせる決まりの書き方]] に節を足した |\n| c3 | 測り直しの結果（41/48、グラフを呼んだ 6/6、R02 の外れと直しの確かめ） | 原本の「結論」「R02 の直しと、その確かめ」 | `source_only` | この版の測定に限った結果である |\n| c4 | 新しい規則を足すときに、既存の上限や出発点を言い直すと、既存の表とぶつかる | ADR の追記の「何が結論か」の行（10 回目のレビュー） | `update` | [[エージェントに守らせる決まりの書き方]] の同じ節に書いた |\n\n## 関係するページ\n\n- [[queryの確からしさの未測定の規則の測定-2026-11-16]]（前回の測定と、直しの案）\n- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]\n- [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]\n- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（このあと、名前を「確信度」に変えた）\n- [[エージェントに守らせる決まりの書き方]]\n- [[リリースの確かめ方]]\n- [[敵対的レビューで設計を直す進め方]]\n",
+     "numLines": 79,
+     "startLine": 1,
+     "totalLines": 79
+    }
+   },
+   "tool_result_meta": [
+    {
+     "id": "toolu_01LFscEYHsGRGxmhYy8EmMvJ",
+     "permission_decision": {
+      "decision": "accept",
+      "source": "config",
+      "reason_type": "rule"
+     }
+    }
+   ]
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 50,
+   "estimated_tokens_delta": 50,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "a6f4fbb6-1ee2-47f6-8c64-5b8e72b96ec8"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 250,
+   "estimated_tokens_delta": 200,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "5ff2fdf4-094a-44fa-b84f-1dd38a151c7d"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 450,
+   "estimated_tokens_delta": 200,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "f949f171-16ce-4763-8e70-ceaacf0872e3"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 700,
+   "estimated_tokens_delta": 250,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "bac18816-97d4-4daa-bd55-78c660010bd2"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 1000,
+   "estimated_tokens_delta": 300,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "7bcd71e9-6bf5-4961-8cbc-f286c2a7d136"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 1250,
+   "estimated_tokens_delta": 250,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "b6f2ed86-6329-434e-81da-51020fe9279a"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 1550,
+   "estimated_tokens_delta": 300,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "bafb5a1a-e299-469f-ad71-4eecae4ba19a"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 1800,
+   "estimated_tokens_delta": 250,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "14fc88b7-75d3-4d2d-8b46-3559b53dbfb7"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 2050,
+   "estimated_tokens_delta": 250,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "1e37c862-d679-4492-b180-8d6096529bc3"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 2300,
+   "estimated_tokens_delta": 250,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "b9964729-80f4-4980-8705-3dc8e3488e64"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 2700,
+   "estimated_tokens_delta": 400,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "3eab6832-8e45-43e3-90b5-399fd15ae68a"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 2950,
+   "estimated_tokens_delta": 250,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "573da323-1934-40ce-b2f1-5e857f533bc1"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 3200,
+   "estimated_tokens_delta": 250,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "a6474b7b-7093-42ae-930c-cfd59bd72ce5"
+  },
+  {
+   "type": "system",
+   "subtype": "thinking_tokens",
+   "estimated_tokens": 3400,
+   "estimated_tokens_delta": 200,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "7451854b-dc0d-4d89-9a94-3fd6427aab08"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8ja5HNASzZMEUzbHQy5",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "thinking",
+      "thinking": "",
+      "signature": "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"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 6683,
+     "cache_read_input_tokens": 13576,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 6683
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "5d3e7080-a080-421e-9be8-a8a3e79c04c7",
+   "timestamp": "2026-11-17T15:27:02.601Z",
+   "request_id": "req_011Ch8ja4pLpnPrZcG2FE31T",
+   "thinking_duration_ms": 16197,
+   "thinking_display": "updates"
+  },
+  {
+   "type": "assistant",
+   "message": {
+    "model": "claude-haiku-5-5",
+    "id": "msg_011Ch8ja5HNASzZMEUzbHQy5",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+     {
+      "type": "text",
+      "text": "## 答え\n\n0.20.0 で入った確信度の規則は、0.21.1 から 0.23.1 までに決め方の置き場所、外の知識の扱い、検索語の書き方、エッジとグラフの扱いが直された。0.24.0 では中身を変えずに名前だけを「確からしさ」から「確信度」に変えた。判定の表（出発点、導き方、上限、上げる方法）は、0.20.0 から 0.24.0 まで骨組みを保っている。\n\n版ごとの変化は次のとおり。\n\n- **0.20.0**: 回答に「高・中・低」の確からしさを付ける規則を作った。判定は、結論と、結論を導いた前提について行う。前提の出発点は、ソースの要約ページか raw で確かめたものは「高」、コンセプトのページだけにあるものは「中」とした。上限は、仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退を当て、もっとも低いものに合わせる。「中」か「低」のときは上げる方法を提案し、wiki の外の知識は前提に使わない。決め方の正本は `query-workflow.md` の手順 5b にあった。決まった 1 行の字句は、このページには書かれていない。\n- **0.21.1**: 決め方を `skills/info-hive/references/query-confidence.md` に分けた。コマンドの手順 6b で、確信度を書く前にこのファイルを Read するよう求めた。Sonnet 5.5 で測ったとき手順 5b が 1 回も読まれなかったためである。6b の要約は「要約ページで確かめた前提は raw まで読まなくてよい」「wiki 自身の事柄は記録で答えたら高」「上限は表の行だけで下げる」の 3 点にした。外の知識の範囲には、会話に読み込まれたプロジェクトの指示と wiki の外のファイルを含め、思い付いた答えを検索語として書くことを禁じた。1 行目は `**確からしさ（confidence）: 中**` の字句のまま書くことにした。判定の表は変えていない。\n- **0.21.2**: 0.21.1 の測り直しで残った「検索の説明に外の語が入る漏れ」を直した。回答で探し方を述べるときは、質問文にそのままある語だけを書く。ほかの語は「言い換えた語でも探した」とだけ書く。取り込む候補の題名、著者、URL は、自分の知識で挙げない。置き場所はコマンドの手順 4c とクエリのワークフローの手順 5 である。確信度の判定の表は変えていない。\n- **0.23.1**: 次の 4 点を直した。\n  - エッジの上限は、結論をエッジから導いたときだけ数える。要約ページか raw が関係を直接述べていれば数えない。\n  - 根拠が推測や記憶（「〜だったと思う」）を答えとして述べたら、留保を添えても上限は「低」にする。\n  - 関係を問う質問では、ページを読む前に必ずグラフの `neighbors` を呼ぶ。この手順は 5b から 2b に移した。\n  - 縮退の理由に「0. 語彙だけの道具で見つけた」を足した。縮退に当たったページは、答える前に MCP の `query` で検索し直してよい。\n  - 複数の結論は、文末に「（確からしさ: 高）」と書き、決まった 1 行は 1 つの値にする。前提に使えるものがない問いには付けず、どの問いにもなければ 1 行も書かない。\n- **0.24.0**: 名前を変えた。決まった 1 行は `**確信度（confidence）: 中**`、複数結論の文末は「（確信度: 高）」になった。決め方、上限、上げる方法は変えていない。字句が変わったので互換性のない変更として minor を上げた。当時の版の字句（「確からしさ」）、ページ名、リンク、`log.md` の過去の行は残した。\n- **0.20.0 から 0.24.0 まで変わらなかったもの**: 出発点の表、結論の導き方の 3 分類、上限の考え方（最も低いものに合わせる）、外の知識を前提に使わないこと、中か低のときに上げる方法を提案すること。\n\n## 根拠\n\n- [[queryの確からしさとリリース-wiki-0.20.0]]（`/home/...` ではなく `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md`）: 「ソースの要約ページか raw で確かめた前提は「高」、コンセプトのページだけにある前提は「中」になる。」 決め方の正本は手順 5b にあった。\n- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md`）: 「決め方の本文を `skills/info-hive/references/query-confidence.md` に分けた。」「判定の表の中身は変えていない。」\n- [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md`）: 「探した語として示すのは、質問文にそのままある語だけにする。」 判定の表については「判定の表の中身は変えていない」とは書いていないが、直したものは検索の説明と提案の書き方に限られる。\n- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md`）: 「エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。」「根拠に推測や記憶として書かれたこと……を答えとして述べたら、留保を添えても上限は「低」」「手順を 5b から 2b に移し」。\n- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md`）: 「決め方、上限、上げる方法は変えていない。」「回答の終わりの決まった 1 行は `**確信度（confidence）: 中**` になった。」\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\n3. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\n4. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md（0.24.0 からのリンク）\n5. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md（0.21.1 からのリンク）\n\n## 未確認の出典\n- 0.21.0、0.22.0、0.23.0 の変更は、開いたページに十分な記述がない。0.21.0 は未読。0.22.0 は 0.21.1 のページで「予定」とだけ書かれ、出たかどうか確認できない。0.23.0 は 0.23.1 のページに「上限の表に動画のソースの 3 行を足した」とあるだけで、その内容は未読である（[[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]）。\n- ADR-0027 の上限の行（動画のソース、モデルの知識による訂正）は、0.20.0 のページでは「実装する PR で手順 5b に足す」と書かれている。ADR 本体は未読。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）"
+     }
+    ],
+    "container": null,
+    "stop_reason": null,
+    "stop_sequence": null,
+    "stop_details": null,
+    "usage": {
+     "input_tokens": 2,
+     "cache_creation_input_tokens": 6683,
+     "cache_read_input_tokens": 13576,
+     "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 6683
+     },
+     "output_tokens": 3,
+     "service_tier": "standard",
+     "inference_geo": "global",
+     "speed": "standard"
+    },
+    "input_transformations": [],
+    "diagnostics": null,
+    "context_management": null
+   },
+   "parent_tool_use_id": null,
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "uuid": "1ffa093c-15f9-4ccc-95af-8c152925cd61",
+   "timestamp": "2026-11-17T15:27:14.757Z",
+   "request_id": "req_011Ch8ja4pLpnPrZcG2FE31T"
+  },
+  {
+   "duration_api_ms": 41904,
+   "stop_reason": "end_turn",
+   "session_id": "c3389187-1cc8-4f65-a178-afc6c5671837",
+   "total_cost_usd": 0.007732310000000001,
+   "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 15328,
+    "cache_read_input_tokens": 36291,
+    "output_tokens": 8606,
+    "output_tokens_details": {
+     "thinking_tokens": 4197
+    },
+    "server_tool_use": {
+     "web_search_requests": 0,
+     "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+     "ephemeral_1h_input_tokens": 15328,
+     "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+     {
+      "input_tokens": 2,
+      "output_tokens": 7072,
+      "cache_read_input_tokens": 13576,
+      "cache_creation_input_tokens": 6683,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 6683
+      },
+      "type": "message"
+     }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+   },
+   "modelUsage": {
+    "claude-haiku-5-5": {
+     "inputTokens": 8,
+     "outputTokens": 8606,
+     "cacheReadInputTokens": 36291,
+     "cacheCreationInputTokens": 15328,
+     "webSearchRequests": 0,
+     "costUSD": 0.007732310000000001,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 4197,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 15328,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "permission_denials": [],
+   "terminal_reason": "completed",
+   "fast_mode_state": "off",
+   "fast_mode_disabled_reason": "sdk_opt_in_required",
+   "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+     "background": 0,
+     "foreground": 0,
+     "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+     "parent": 0,
+     "user": 0,
+     "system": 0
+    },
+    "refused": {
+     "depth_limit": 0,
+     "concurrency_limit": 0,
+     "budget": 0
+    },
+    "by_type": {}
+   },
+   "safety_stops": 0,
+   "is_error": false,
+   "num_turns": 7,
+   "subtype": "success",
+   "api_error_status": null,
+   "result": "## 答え\n\n0.20.0 で入った確信度の規則は、0.21.1 から 0.23.1 までに決め方の置き場所、外の知識の扱い、検索語の書き方、エッジとグラフの扱いが直された。0.24.0 では中身を変えずに名前だけを「確からしさ」から「確信度」に変えた。判定の表（出発点、導き方、上限、上げる方法）は、0.20.0 から 0.24.0 まで骨組みを保っている。\n\n版ごとの変化は次のとおり。\n\n- **0.20.0**: 回答に「高・中・低」の確からしさを付ける規則を作った。判定は、結論と、結論を導いた前提について行う。前提の出発点は、ソースの要約ページか raw で確かめたものは「高」、コンセプトのページだけにあるものは「中」とした。上限は、仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退を当て、もっとも低いものに合わせる。「中」か「低」のときは上げる方法を提案し、wiki の外の知識は前提に使わない。決め方の正本は `query-workflow.md` の手順 5b にあった。決まった 1 行の字句は、このページには書かれていない。\n- **0.21.1**: 決め方を `skills/info-hive/references/query-confidence.md` に分けた。コマンドの手順 6b で、確信度を書く前にこのファイルを Read するよう求めた。Sonnet 5.5 で測ったとき手順 5b が 1 回も読まれなかったためである。6b の要約は「要約ページで確かめた前提は raw まで読まなくてよい」「wiki 自身の事柄は記録で答えたら高」「上限は表の行だけで下げる」の 3 点にした。外の知識の範囲には、会話に読み込まれたプロジェクトの指示と wiki の外のファイルを含め、思い付いた答えを検索語として書くことを禁じた。1 行目は `**確からしさ（confidence）: 中**` の字句のまま書くことにした。判定の表は変えていない。\n- **0.21.2**: 0.21.1 の測り直しで残った「検索の説明に外の語が入る漏れ」を直した。回答で探し方を述べるときは、質問文にそのままある語だけを書く。ほかの語は「言い換えた語でも探した」とだけ書く。取り込む候補の題名、著者、URL は、自分の知識で挙げない。置き場所はコマンドの手順 4c とクエリのワークフローの手順 5 である。確信度の判定の表は変えていない。\n- **0.23.1**: 次の 4 点を直した。\n  - エッジの上限は、結論をエッジから導いたときだけ数える。要約ページか raw が関係を直接述べていれば数えない。\n  - 根拠が推測や記憶（「〜だったと思う」）を答えとして述べたら、留保を添えても上限は「低」にする。\n  - 関係を問う質問では、ページを読む前に必ずグラフの `neighbors` を呼ぶ。この手順は 5b から 2b に移した。\n  - 縮退の理由に「0. 語彙だけの道具で見つけた」を足した。縮退に当たったページは、答える前に MCP の `query` で検索し直してよい。\n  - 複数の結論は、文末に「（確からしさ: 高）」と書き、決まった 1 行は 1 つの値にする。前提に使えるものがない問いには付けず、どの問いにもなければ 1 行も書かない。\n- **0.24.0**: 名前を変えた。決まった 1 行は `**確信度（confidence）: 中**`、複数結論の文末は「（確信度: 高）」になった。決め方、上限、上げる方法は変えていない。字句が変わったので互換性のない変更として minor を上げた。当時の版の字句（「確からしさ」）、ページ名、リンク、`log.md` の過去の行は残した。\n- **0.20.0 から 0.24.0 まで変わらなかったもの**: 出発点の表、結論の導き方の 3 分類、上限の考え方（最も低いものに合わせる）、外の知識を前提に使わないこと、中か低のときに上げる方法を提案すること。\n\n## 根拠\n\n- [[queryの確からしさとリリース-wiki-0.20.0]]（`/home/...` ではなく `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md`）: 「ソースの要約ページか raw で確かめた前提は「高」、コンセプトのページだけにある前提は「中」になる。」 決め方の正本は手順 5b にあった。\n- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md`）: 「決め方の本文を `skills/info-hive/references/query-confidence.md` に分けた。」「判定の表の中身は変えていない。」\n- [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md`）: 「探した語として示すのは、質問文にそのままある語だけにする。」 判定の表については「判定の表の中身は変えていない」とは書いていないが、直したものは検索の説明と提案の書き方に限られる。\n- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md`）: 「エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。」「根拠に推測や記憶として書かれたこと……を答えとして述べたら、留保を添えても上限は「低」」「手順を 5b から 2b に移し」。\n- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md`）: 「決め方、上限、上げる方法は変えていない。」「回答の終わりの決まった 1 行は `**確信度（confidence）: 中**` になった。」\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\n3. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\n4. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md（0.24.0 からのリンク）\n5. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md（0.21.1 からのリンク）\n\n## 未確認の出典\n- 0.21.0、0.22.0、0.23.0 の変更は、開いたページに十分な記述がない。0.21.0 は未読。0.22.0 は 0.21.1 のページで「予定」とだけ書かれ、出たかどうか確認できない。0.23.0 は 0.23.1 のページに「上限の表に動画のソースの 3 行を足した」とあるだけで、その内容は未読である（[[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]）。\n- ADR-0027 の上限の行（動画のソース、モデルの知識による訂正）は、0.20.0 のページでは「実装する PR で手順 5b に足す」と書かれている。ADR 本体は未読。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+   "ttft_ms": 4298,
+   "type": "result",
+   "duration_ms": 50155,
+   "uuid": "6d180916-e53f-421d-88a8-b1cfc873ed9b",
+   "ttft_stream_ms": 4292,
+   "time_to_request_ms": 1923,
+   "first_content_frame_ms": 4293,
+   "queued_turn_count": 0,
+   "result_index": 0,
+   "model_usage_since_last_result": {
+    "claude-haiku-5-5": {
+     "inputTokens": 8,
+     "outputTokens": 8606,
+     "cacheReadInputTokens": 36291,
+     "cacheCreationInputTokens": 15328,
+     "webSearchRequests": 0,
+     "costUSD": 0.007732310000000001,
+     "contextWindow": 1000000,
+     "maxOutputTokens": 128000,
+     "thinkingTokens": 4197,
+     "cacheCreationEphemeral5mInputTokens": 0,
+     "cacheCreationEphemeral1hInputTokens": 15328,
+     "canonicalModel": "claude-haiku-5-5",
+     "provider": "firstParty",
+     "costBasis": "list"
+    }
+   },
+   "credential_expires_at": "2026-12-06T22:17:39.049Z"
+  }
+ ],
+ "opened": [
+  "project:sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md",
+  "project:sources/queryの確からしさとリリース-wiki-0.20.0.md",
+  "project:sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md",
+  "project:sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md",
+  "project:sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md"
+ ],
+ "model_used": "claude-haiku-5-5",
+ "result": "## 答え\n\n0.20.0 で入った確信度の規則は、0.21.1 から 0.23.1 までに決め方の置き場所、外の知識の扱い、検索語の書き方、エッジとグラフの扱いが直された。0.24.0 では中身を変えずに名前だけを「確からしさ」から「確信度」に変えた。判定の表（出発点、導き方、上限、上げる方法）は、0.20.0 から 0.24.0 まで骨組みを保っている。\n\n版ごとの変化は次のとおり。\n\n- **0.20.0**: 回答に「高・中・低」の確からしさを付ける規則を作った。判定は、結論と、結論を導いた前提について行う。前提の出発点は、ソースの要約ページか raw で確かめたものは「高」、コンセプトのページだけにあるものは「中」とした。上限は、仮説、グラフのエッジ、矛盾、置き換えられた記述、時期の不明、検索の縮退を当て、もっとも低いものに合わせる。「中」か「低」のときは上げる方法を提案し、wiki の外の知識は前提に使わない。決め方の正本は `query-workflow.md` の手順 5b にあった。決まった 1 行の字句は、このページには書かれていない。\n- **0.21.1**: 決め方を `skills/info-hive/references/query-confidence.md` に分けた。コマンドの手順 6b で、確信度を書く前にこのファイルを Read するよう求めた。Sonnet 5.5 で測ったとき手順 5b が 1 回も読まれなかったためである。6b の要約は「要約ページで確かめた前提は raw まで読まなくてよい」「wiki 自身の事柄は記録で答えたら高」「上限は表の行だけで下げる」の 3 点にした。外の知識の範囲には、会話に読み込まれたプロジェクトの指示と wiki の外のファイルを含め、思い付いた答えを検索語として書くことを禁じた。1 行目は `**確からしさ（confidence）: 中**` の字句のまま書くことにした。判定の表は変えていない。\n- **0.21.2**: 0.21.1 の測り直しで残った「検索の説明に外の語が入る漏れ」を直した。回答で探し方を述べるときは、質問文にそのままある語だけを書く。ほかの語は「言い換えた語でも探した」とだけ書く。取り込む候補の題名、著者、URL は、自分の知識で挙げない。置き場所はコマンドの手順 4c とクエリのワークフローの手順 5 である。確信度の判定の表は変えていない。\n- **0.23.1**: 次の 4 点を直した。\n  - エッジの上限は、結論をエッジから導いたときだけ数える。要約ページか raw が関係を直接述べていれば数えない。\n  - 根拠が推測や記憶（「〜だったと思う」）を答えとして述べたら、留保を添えても上限は「低」にする。\n  - 関係を問う質問では、ページを読む前に必ずグラフの `neighbors` を呼ぶ。この手順は 5b から 2b に移した。\n  - 縮退の理由に「0. 語彙だけの道具で見つけた」を足した。縮退に当たったページは、答える前に MCP の `query` で検索し直してよい。\n  - 複数の結論は、文末に「（確からしさ: 高）」と書き、決まった 1 行は 1 つの値にする。前提に使えるものがない問いには付けず、どの問いにもなければ 1 行も書かない。\n- **0.24.0**: 名前を変えた。決まった 1 行は `**確信度（confidence）: 中**`、複数結論の文末は「（確信度: 高）」になった。決め方、上限、上げる方法は変えていない。字句が変わったので互換性のない変更として minor を上げた。当時の版の字句（「確からしさ」）、ページ名、リンク、`log.md` の過去の行は残した。\n- **0.20.0 から 0.24.0 まで変わらなかったもの**: 出発点の表、結論の導き方の 3 分類、上限の考え方（最も低いものに合わせる）、外の知識を前提に使わないこと、中か低のときに上げる方法を提案すること。\n\n## 根拠\n\n- [[queryの確からしさとリリース-wiki-0.20.0]]（`/home/...` ではなく `C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md`）: 「ソースの要約ページか raw で確かめた前提は「高」、コンセプトのページだけにある前提は「中」になる。」 決め方の正本は手順 5b にあった。\n- [[queryの確からしさの決め方の分離とリリース-wiki-0.21.1]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md`）: 「決め方の本文を `skills/info-hive/references/query-confidence.md` に分けた。」「判定の表の中身は変えていない。」\n- [[queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md`）: 「探した語として示すのは、質問文にそのままある語だけにする。」 判定の表については「判定の表の中身は変えていない」とは書いていないが、直したものは検索の説明と提案の書き方に限られる。\n- [[queryの確からしさの規則の直しとリリース-wiki-0.23.1]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md`）: 「エッジの `confidence` と `status` は、結論をエッジから導いたときだけ上限に数える。」「根拠に推測や記憶として書かれたこと……を答えとして述べたら、留保を添えても上限は「低」」「手順を 5b から 2b に移し」。\n- [[queryの回答の確信度への名前の変更とリリース-wiki-0.24.0]]（`C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md`）: 「決め方、上限、上げる方法は変えていない。」「回答の終わりの決まった 1 行は `**確信度（confidence）: 中**` になった。」\n\n## 開いたページ\n1. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさとリリース-wiki-0.20.0.md\n2. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの決め方の分離とリリース-wiki-0.21.1.md\n3. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの回答の確信度への名前の変更とリリース-wiki-0.24.0.md\n4. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの確からしさの規則の直しとリリース-wiki-0.23.1.md（0.24.0 からのリンク）\n5. C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/docs/research/wiki-prompt-hook-stage0-2026-11-17/reader-models-v3/snapshot/project/wiki/sources/queryの検索の説明への外の語の漏れの直しとリリース-wiki-0.21.2.md（0.21.1 からのリンク）\n\n## 未確認の出典\n- 0.21.0、0.22.0、0.23.0 の変更は、開いたページに十分な記述がない。0.21.0 は未読。0.22.0 は 0.21.1 のページで「予定」とだけ書かれ、出たかどうか確認できない。0.23.0 は 0.23.1 のページに「上限の表に動画のソースの 3 行を足した」とあるだけで、その内容は未読である（[[youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0]]）。\n- ADR-0027 の上限の行（動画のソース、モデルの知識による訂正）は、0.20.0 のページでは「実装する PR で手順 5b に足す」と書かれている。ADR 本体は未読。\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）",
+ "cost_usd": 0.007732310000000001,
+ "duration_ms": 50155,
+ "is_error": false,
+ "terminal_reason": "completed",
+ "api_error": null,
+ "api_error_status": null,
+ "model_usage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 8,
+   "outputTokens": 8606,
+   "cacheReadInputTokens": 36291,
+   "cacheCreationInputTokens": 15328,
+   "webSearchRequests": 0,
+   "costUSD": 0.007732310000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 4197,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 15328,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "cli_version": "2.1.325",
+ "memory_paths": {},
+ "exit": 0,
+ "stderr": ""
+}

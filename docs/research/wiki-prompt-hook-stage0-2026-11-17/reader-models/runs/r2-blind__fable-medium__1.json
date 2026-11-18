@@ -1,0 +1,16 @@
+{
+ "id": "r2-blind",
+ "class": "R2",
+ "model": "fable",
+ "effort": "medium",
+ "run": 1,
+ "model_used": "claude-fable-5-2",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/抽出の品質の測り方.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/blind-judge-binding-and-form-feed-2026-11-15.md"
+ ],
+ "result": "## 答え\n\n2026-11-15 の、抽出方式の比較（今の取り込みと MarkItDown）で、方式の名前を伏せて GPT-6.1 Sol に出力を採点させたときの失敗である。結果は failure として記録されている。\n\n**何が起きたか**\n\n- 集計は、最初は写しと出力のバイト列を比べるだけだった。\n- Sol の 2 回目のレビューが、写しと出力を同時に差し替えると古い判定のまま集計が通ることを、メモリ上で示した。\n- 判定のファイルと出力をファイル名だけで結び付けると、計測をやり直したあとに古い判定が新しい出力に付く。\n\n**原因（仮説）**\n\n判定のファイルに、採点した中身の識別子がなかった。wiki はこれを仮説として書いている。\n\n**直し方**\n\n- 写しごとの SHA-256 と、それらのダイジェストを `manifest.json` に書く。\n- モデルに、読んだダイジェストを判定の `judge_digest` に書かせる。\n- 集計は、ダイジェスト、写し、出力、対応表がすべて一致するときだけ行う。\n- やり直した判定の `judge_digest` は `manifest.json` の値と一致し、集計が通った。\n\n**確かめていないこと**\n\n- ダイジェストは、モデルが `manifest.json` から書き写した値で、写しを実際に読んだことの証明ではない。\n- ダイジェストを入れたあとの版で、出力を変えると集計が止まることは確かめていない。\n- 判定は 1 回ずつで、点のぶれは測っていない。\n- 判定の結び付けは 3 回目のレビューを受けていない。観測したのは 1 つのベンチマーク（Office で作った 15 の試料）だけである。\n\n**適用範囲**\n\n外部のモデルに伏せた出力を採点させ、判定を出力と組にして集計するとき。\n\n**同じ記録にある別の失敗**\n\n同じ経験のページに、Sol が改ページの文字（U+000C）を読み飛ばした失敗も記録されている。pdftotext と pdfminer の出力に 5 個あるのに「明示的なページ境界はない」として位置を 2 点にした。依頼に数え方を書いてやり直すと、4 つの PDF のすべてで 5 点になった。\n\n## 根拠\n\n- [[blind-judge-binding-and-form-feed-2026-11-15]]（sources/blind-judge-binding-and-form-feed-2026-11-15.md）: 観測、原因の仮説、適用範囲と反例の出どころ。「Sol の 2 回目のレビューが、写しと出力を同時に差し替えると古い判定で集計が通ることを、メモリ上で示した。」\n- [[抽出の品質の測り方]]（concepts/抽出の品質の測り方.md）: 節「判定を、採点した中身に結び付ける」と「根拠と、確かめていないこと」。「集計のときに、ダイジェスト、写し、出力、対応表がすべて一致するときだけ集計する。」\n\n## 開いたページ\n\n1. concepts/抽出の品質の測り方.md\n2. sources/blind-judge-binding-and-form-feed-2026-11-15.md\n\n## 関係のなかった候補\n\n- なし\n\n## モデル\n\nFable 5.2（claude-fable-5-2）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.3431798,
+ "duration_ms": 15208
+}

@@ -1,0 +1,119 @@
+{
+  "version": "0.33.0",
+  "adr": "ADR-0034",
+  "plugin_base": "d761c62f680e923751dd02e00e982c67a3e3be0e",
+  "plugin_head": "6e8f2c24b4957bc2358c760fed9f02e88d728284",
+  "source_sha256": {
+    ".claude-plugin/plugin.json": "ca7018132d0e026d40c7b1ac5a6cf2cee362d8fb186568918b5713c9fa77e7e9",
+    ".codex-plugin/plugin.json": "ac6033b2f19911241b02ffab5ec318123a96f36e21f2ffa47ad48685bccab7a2",
+    "CHANGELOG.md": "0ec4de08c6c98dda5a2db9012c78b775349da842836943788b81e59f467460b4",
+    "agents/wiki-reader.md": "51aa1b2c188fe53fde6cfbdd927a1542bc38dec6df483ad70b8ac54d86691b85",
+    "hooks/hooks.json": "8f06a230a49329e239cd143ea306a3958c4c437c5dd6de4c3a7268b9ea7588f7",
+    "skills/info-hive/SKILL.md": "b130ad42e7163d79436c92872fc8d5c8682cfe82cda1b1051ce192ca62c05ad9",
+    "skills/info-hive/references/agent-memory-integration.md": "2fffdd94eea7a8858e5eefb148f37e085e05c48a13f19bd9d53eb6813ce30a63",
+    "skills/info-hive/references/prompt-context.md": "0c4c990121e778313c09ee0a7ec7b13ba981eb6f8424ec9d29f7bb5e8bc96e15",
+    "skills/info-hive/references/query-confidence.md": "747c3b3810777de7d3370ee41027be23670afd65f0038fbf4b8dc91fb371e2ed",
+    "skills/info-hive/scripts/wiki_browse_core.py": "a1e1bc349a60be1c60ab71216060c7da917c26fe54f548473d2321b3bdded79f",
+    "skills/info-hive/scripts/wiki_mcp_common.py": "e8ad86e8b2a98c4c6ad11e55523c8221f18aac432b4306f36f6091d3cdcca7e4",
+    "skills/info-hive/scripts/wiki_pages.py": "1f3c3295407ab360b5d728475523edf2bf6bd77c2db1086bc7975fd9cff2178d",
+    "skills/info-hive/scripts/wiki_prompt_context.py": "5c3cf59110177a4890a6725107678c3d50563fd12580081b2bd35e78b1a62c09",
+    "skills/info-hive/scripts/wiki_prompt_hook.py": "93f449a1076b163d921355f57a39bcc2388810d68a5ff7b50bbb498ac191805f",
+    "skills/info-hive/scripts/wiki_rawcheck.py": "73eed5a4f4089dd0808cb7713e9a9353d7c422df3798feb705b293be0c17fa80",
+    "skills/info-hive/scripts/wiki_search.py": "d0d484c4a31017c360342a6441b66386571ba5eb2ada36d336d7c14d0f2c03b6",
+    "skills/info-hive/scripts/wiki_tokens.py": "c2a42cb4d3813e09d79ef30784f8686051ea34011c9d579edf3929424bdab847"
+  },
+  "tests": [
+    {
+      "path": "unit.log",
+      "sha256": "b3164206466f4295eba88d114e9c2599c5c4469b140a4c8802989177bb4908ab",
+      "total": 440,
+      "skipped": 1,
+      "failures": 0
+    },
+    {
+      "path": "integration.log",
+      "sha256": "34b9fb7376142a39bf9420b3a386e3e319452a3815d44e2d2146e377b2902279",
+      "total": 299,
+      "skipped": 14,
+      "failures": 0
+    }
+  ],
+  "parallel": [
+    {
+      "path": "parallel-8.json",
+      "sha256": "d1ad0f81a675ffadc7d5c8eaa1cd0289751a6d692845f0171865200391424c2d",
+      "timing": {
+        "n": 20,
+        "p50_ms": 860.6,
+        "p95_ms": 957.2,
+        "max_ms": 970.1
+      },
+      "delivered": 20
+    },
+    {
+      "path": "parallel-16.json",
+      "sha256": "5f636b585ba8fb359e4bf660d76061e86cf760f7879bf481ff81f3962ecb7df1",
+      "timing": {
+        "n": 20,
+        "p50_ms": 1090.3,
+        "p95_ms": 1265.9,
+        "max_ms": 1363.7
+      },
+      "delivered": 20
+    },
+    {
+      "path": "names-16.json",
+      "sha256": "ca37e72dfd3eecd745d4e413377cc8a06ec655a95b47bb621dd2abf06466566f",
+      "timing": {
+        "n": 20,
+        "p50_ms": 1045.1,
+        "p95_ms": 1189.7,
+        "max_ms": 1194.4
+      },
+      "delivered": 20
+    }
+  ],
+  "serial": {
+    "pages": 150,
+    "runs": 10,
+    "shell": "git_bash",
+    "deadline_seconds": 2.5,
+    "command": "uv run --no-project --no-config --quiet --quiet --offline --no-python-downloads --python \">=3.12,<3.15\" python -I -S \"C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/info-hive-wiki/skills/info-hive/scripts/wiki_prompt_hook.py\"; exit 0",
+    "source_sha256": "93f449a1076b163d921355f57a39bcc2388810d68a5ff7b50bbb498ac191805f",
+    "context_sha256": "5c3cf59110177a4890a6725107678c3d50563fd12580081b2bd35e78b1a62c09",
+    "pages_sha256": "1f3c3295407ab360b5d728475523edf2bf6bd77c2db1086bc7975fd9cff2178d",
+    "excluded_env": [
+      "RUST_LOG"
+    ],
+    "cases": {
+      "skip": {
+        "n": 10,
+        "p50_ms": 226.6,
+        "p95_ms": 255.9,
+        "max_ms": 267.3,
+        "delivered": 0,
+        "exit_codes": [
+          0
+        ],
+        "stderr": []
+      },
+      "search": {
+        "n": 10,
+        "p50_ms": 472.8,
+        "p95_ms": 551.0,
+        "max_ms": 575.9,
+        "delivered": 10,
+        "exit_codes": [
+          0
+        ],
+        "stderr": []
+      }
+    }
+  },
+  "limits": [
+    "合成150ページ、フック4本同時、通常優先度の負荷8本または16本。",
+    "他のセッションを止めずに測った有限回の値。一定の改善率や任意の負荷での上限は保証しない。"
+  ],
+  "model_measurement_unchanged": true,
+  "adr_migration": "readerのdescriptionの番号のみ0032から0034へ変更。試験はこの参照だけを戻して測定時のhashと本文を照合する。"
+}

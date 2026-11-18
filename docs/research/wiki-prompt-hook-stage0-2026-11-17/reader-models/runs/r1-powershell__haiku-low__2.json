@@ -1,0 +1,16 @@
+{
+ "id": "r1-powershell",
+ "class": "R1",
+ "model": "haiku",
+ "effort": "low",
+ "run": 2,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/powershellのパイプの打ち切り.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md"
+ ],
+ "result": "## 答え\n\nPowerShell で `Select-Object -First N` を使うと、N 行を受け取った時点でパイプラインの上流が止まる。そのため、最後にファイルを書くスクリプトが書き込み前に止まり、ファイルが更新されないことがある。エラーは出ず、1 行目は正しく表示されるので、止まったことに気づきにくい。避け方は、出力を短く見たいときは `Select-Object -Last N` を使うか、出力をいったんファイルに書いてから読むこと。実行後は、書くはずのファイルが実際に更新されたかを確かめる。\n\nただし、原因は観測から立てた仮説である。ページの status も `hypothesis` になっている。\n\n## 根拠\n- [[powershellのパイプの打ち切り]]（concepts/powershellのパイプの打ち切り.md）: 「最後にファイルを書くスクリプトの出力を `Select-Object -First N` でしぼると、N 行を受け取ったところで上流が止まり、ファイルが書かれないことがある」。避け方は「`Select-Object -Last N` にするか、出力をファイルに書いてから読む。実行のあとで、書くはずのファイルが変わったかを確かめる」。\n- [[powershellのパイプの打ち切り]]（同上）: 観測では `uv run --script run_bench.py --metrics-only 2>&1 | Select-Object -First 1` のあと `results.json` が書き直されず、`-Last 1` で実行し直すと書き直された。\n- [[powershell-select-first-stops-writer-2026-11-15]]（sources/powershell-select-first-stops-writer-2026-11-15.md）: 「`Select-Object -First` は、必要な数の行を受け取るとパイプラインの上流を止めるので、ファイルを書く前にスクリプトが止まったと考えられる（仮説）」。スクリプトはすべての行を出したあとに `results.json` を書く。\n- 適用範囲: PowerShell 7.6.9、uv 0.12.2、Python 3.12.13 で観測した。Bash の `head` で同じことが起きるか、Windows PowerShell 5.1 で起きるかは確かめていない。\n\n## 開いたページ\n1. wiki/concepts/powershellのパイプの打ち切り.md\n2. wiki/sources/powershell-select-first-stops-writer-2026-11-15.md\n\n## 関係のなかった候補\nなし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）\n\n`✶ Insight ─────────────────────────────────────`\n- PowerShell のパイプラインは下流が必要な数を受け取ると上流を打ち切る。`-First` は「先頭 N 行だけ欲しい」という意図でも、上流の処理そのものを止めてしまう。\n- 失敗は「エラーなしで、ファイルだけ古いまま」という形で出る。そのため、コマンドの終了ステータスだけでなく、書き出し先の更新時刻や内容を確かめるのが実践的な確認手段になる。\n- この wiki では、観測の記録（source）と一般化した手順（concept）を分けている。原因はまだ仮説なので、断定せずに読むのがよい。\n`─────────────────────────────────────────────────`\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.0046959,
+ "duration_ms": 14124
+}

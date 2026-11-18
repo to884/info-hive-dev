@@ -1,0 +1,17 @@
+{
+ "id": "r1-pdfheader",
+ "class": "R1",
+ "model": "haiku",
+ "effort": "low",
+ "run": 2,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/pdfのヘッダーの条件.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3.md"
+ ],
+ "result": "## 答え\n\nrag が受け付けるのは、`%PDF-` の開始位置が先頭から 1024 バイト以内（`%PDF-` の前にあるバイトが 1024 バイト以下）の PDF である。この条件は rag 0.5.1 以降のもので、0.5.0 以前は先頭がちょうど `%PDF-` の場合だけ受け付けていた。判定は登録ではなく、ワーカーの処理の段階（`read_pdf`）で行う。外れると、ジョブは `failed` になる。\n\n## 根拠\n\n- [[pdfのヘッダーの条件]]（`wiki/concepts/pdfのヘッダーの条件.md`）:\n  - 判定は `data.find(b\"%PDF-\", 0, 1024 + 5)` で行い、「`%PDF-` の開始位置（0 始まり）が 0〜1024 なら受け付ける」と書いている。言い換えると「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付ける」。\n  - 「先頭から 1024 バイト目まで」と 1 始まりで読むと、実装より 1 バイト狭く読んでしまう。開始位置 1024 の `%PDF-` は 1025 バイト目から始まるため。\n  - 上限は PDFium にそろえた。pypdfium2 5.14.0（PDFium 156）で、前置きが 1024 バイトなら開け、1025 バイトでは開けないことを確かめた。\n  - 登録の段階（`register_pdf`）はヘッダーを読まない。拡張子や通常のファイルかなどだけを確かめる。\n  - 版による違いの表は、0.5.0 以前が「先頭がちょうど `%PDF-`」、0.5.1 以降が「`%PDF-` の前のバイトが 1024 バイト以下」。\n- [[pdfのヘッダーの判定の修正-rag-0.5.1]]（`wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md`）: 0.5.1 の修正の記録。「`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けるように直した。上限は PDFium にそろえた」とある。判定の変更は受け付ける範囲を広げるだけで、抽出の版（ADR-0014）は上げていない。\n- [[pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3]]（`wiki/sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3.md`）: 0.5.2 で文書の書き方を「`%PDF-` の前にあるバイトが 1024 バイト以下」にそろえ、0.5.3 でエラーメッセージを「%PDF- がないか、最初の %PDF- の前に 1024 バイトを超えるバイトがある」に直した、とある。判定の境界は変えていない。\n\n## 開いたページ\n1. `wiki/concepts/pdfのヘッダーの条件.md`\n2. `wiki/sources/pdfのヘッダーの判定の修正-rag-0.5.1.md`\n3. `wiki/sources/pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3.md`\n\n## 関係のなかった候補\n- なし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.00388132,
+ "duration_ms": 14854
+}

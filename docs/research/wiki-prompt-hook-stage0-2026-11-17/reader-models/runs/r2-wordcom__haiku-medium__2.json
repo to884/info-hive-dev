@@ -1,0 +1,16 @@
+{
+ "id": "r2-wordcom",
+ "class": "R2",
+ "model": "haiku",
+ "effort": "medium",
+ "run": 2,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/officeのcomでの書き出し.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/office-com-word-export-2026-11-15.md"
+ ],
+ "result": "## 答え\n\nWord の COM で PDF に書き出すときは、`Documents.Open` の引数を**パスだけ**にし、`DisplayAlerts` を 0 にして、**pwsh 7** の `Start-Job` と時間の上限付きで動かす。読み取り専用の引数（`Open(パス, $false, $true)`）は、300 秒たっても終わらなかった。ただし、これは 1 回の観測にもとづく仮説で、ページの status も `hypothesis` である。\n\n- 観測では、読み取り専用の引数を渡すと止まり、残った `/Automation -Embedding` の WINWORD.EXE が出た。\n- パスだけを pwsh 7 の `Start-Job` で渡すと、開いて書き出せた。\n- Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返した。原因は分かっていない。\n- 止まったときに備え、残った WINWORD.EXE を確かめる。\n- 手順の案は、`$w.DisplayAlerts = 0`、`$w.Documents.Open($path)`、null なら止める、`ExportAsFixedFormat($pdf, 17)`、`Close(0)`、`Quit()`。\n\n`✶ Insight ─────────────────────────────────────`\nCOM の `Documents.Open` は、省略できる引数を画面に出ない確認の待ちに使うことがある。ここでは読み取り専用の指定が待ちを生んだと考えられている。引数を減らすのは、ダイアログを抑える `DisplayAlerts` と組み合わせて初めて効く。\n`─────────────────────────────────────────────────`\n\n## 根拠\n\n- [[officeのcomでの書き出し]]（`wiki/concepts/officeのcomでの書き出し.md`）: 「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす」。読み取り専用の引数では 300 秒で終わらなかったこと、Windows PowerShell 5.1 で null が返ったこと、Office 16.0・Windows 11 で観測したこと、`pwsh -File` で最後まで通るかは確かめていないことを書いている。\n- [[office-com-word-export-2026-11-15]]（`wiki/sources/office-com-word-export-2026-11-15.md`）: 「`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。`/Automation -Embedding` の WINWORD.EXE が残っていた」。「pwsh 7 の `Start-Job` の中で、`DisplayAlerts = 0` にし、パスだけを渡すと、開いて書き出せた」。結果は failure と記録されている。\n\n## 開いたページ\n1. wiki/concepts/officeのcomでの書き出し.md\n2. wiki/sources/office-com-word-export-2026-11-15.md\n\n## 関係のなかった候補\nなし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.00308544,
+ "duration_ms": 16392
+}

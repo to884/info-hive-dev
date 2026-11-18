@@ -1,0 +1,16 @@
+{
+ "id": "r2-wordcom",
+ "class": "R2",
+ "model": "haiku",
+ "effort": "low",
+ "run": 1,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/officeのcomでの書き出し.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/office-com-word-export-2026-11-15.md"
+ ],
+ "result": "## 答え\n\nWord の COM で PDF に書き出すときは、`Documents.Open` に**パスだけを渡し**、`DisplayAlerts` を 0 にして、**pwsh 7 の `Start-Job` で時間の上限を付けて**動かす。読み取り専用の引数（`$false, $true`）を付けた場合は 300 秒で終わらず、PDF もできなかった。Windows PowerShell 5.1 でパスだけを渡すと `Documents.Open` が null を返した。ただし、これは 1 回の作業での観測で、原因は分かっていない。\n\n`✶ Insight ─────────────────────────────────────`\n- 読み取り専用の引数は、Word が画面に出ない確認を待って止まる原因と考えられている。確認は仮説で、確かめられていない。\n- 止まったあとに `/Automation -Embedding` の WINWORD.EXE が残ると、次の試しに影響する可能性がある。実行の前後に残りを確かめておく。\n`─────────────────────────────────────────────────`\n\n## 根拠\n\n- [[officeのcomでの書き出し]]（concepts/officeのcomでの書き出し.md）: 「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす。」「止まったときに備えて、時間の上限を付けて別のジョブで動かし、残った `/Automation -Embedding` の WINWORD.EXE を確かめる。」 status は hypothesis。\n- [[officeのcomでの書き出し]]（同ページ）: 「Windows PowerShell 5.1 では、パスだけを渡しても `Documents.Open` が null を返した。」 原因は分かっていない。\n- [[officeのcomでの書き出し]]（同ページ）: 「`pwsh -File` でスクリプト全体を最後まで通せるかは確かめていない。」 確認した環境は Office 16.0、Windows 11 だけ。\n- [[office-com-word-export-2026-11-15]]（sources/office-com-word-export-2026-11-15.md）: 「読み取り専用の引数で、画面に出ない確認を待ったまま止まったと考えられる。」 原因の仮説は、直前の試しで残った Word の影響という可能性も挙げている（どちらも未確認）。\n- [[office-com-word-export-2026-11-15]]（同ページ）: 「Word の 2 つの PDF は、pwsh 7 の `Start-Job` で書き出した。」 成功例は 2 件の PDF。PowerPoint と Excel では問題がなかった。\n\n## 開いたページ\n1. concepts/officeのcomでの書き出し.md\n2. sources/office-com-word-export-2026-11-15.md\n\n## 関係のなかった候補\nなし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.0044639200000000006,
+ "duration_ms": 14157
+}

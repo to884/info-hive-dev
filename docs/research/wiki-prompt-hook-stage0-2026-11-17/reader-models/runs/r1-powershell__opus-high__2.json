@@ -1,0 +1,16 @@
+{
+ "id": "r1-powershell",
+ "class": "R1",
+ "model": "opus",
+ "effort": "high",
+ "run": 2,
+ "model_used": "claude-opus-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/powershellのパイプの打ち切り.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/powershell-select-first-stops-writer-2026-11-15.md"
+ ],
+ "result": "## 答え\nwiki の記録では、原因は**仮説**の段階です。概念ページの status も `hypothesis` になっています。\n\n- **原因（仮説）**: `Select-Object -First N` は、N 行を受け取るとパイプラインの上流を止めます。そのため、全部の行を出し終えてからファイルを書くスクリプトは、書き込みの前に止まります。エラーは出ず、1 行目も正しく出るので、止まったことに気づきにくいです。\n- **観測した例**: `uv run --script run_bench.py --metrics-only 2>&1 | Select-Object -First 1` のあと、`results.json` は書き直されていませんでした。同じコマンドを `Select-Object -Last 1` で実行し直すと、書き直されました。\n- **避け方**:\n  - 出力を短く見たいときは `Select-Object -Last N` を使うか、出力をいったんファイルに書いてから読みます。\n  - ファイルを書くスクリプトには `-First` を付けません。付けるなら、書き込みを出力より先にします。\n  - 実行のあとで、書くはずのファイルが更新されたかを確かめます。\n- **確かめた範囲**: PowerShell 7.6.9（Claude Code の PowerShell ツール）で、uv 0.12.2 と Python 3.12.13 の子プロセスを動かしたときに観測しました。Windows PowerShell 5.1 と、Bash の `head` で同じことが起きるかは確かめていません。\n\n## 根拠\n- [[powershellのパイプの打ち切り]]（concepts/powershellのパイプの打ち切り.md）: 「出力を短く見たいときは、`Select-Object -Last N` にするか、出力をファイルに書いてから読む。」原因は仮説で、避け方の手順は「案」として書かれています。\n- [[powershell-select-first-stops-writer-2026-11-15]]（sources/powershell-select-first-stops-writer-2026-11-15.md）: 元になった経験の記録で、結果は failure です。「スクリプトは、すべての行を出したあとに `results.json` を書く。」`-Last` で実行し直すと書き直されたことと、使ったバージョンも書かれています。\n\n## 開いたページ\n1. concepts/powershellのパイプの打ち切り.md\n2. sources/powershell-select-first-stops-writer-2026-11-15.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nOpus 5.5（claude-opus-5-5）\n\n`✶ Insight ─────────────────────────────────────`\n- この wiki は、1 回の経験を `sources/`（何を観測したか）に置き、そこから引き出した手順を `concepts/`（kind: `experience-pattern`）に分けて置いています。concept ページの `status: \"hypothesis\"` は、原因がまだ確かめられていないことを示します。答えでも、言い切らずに仮説として伝えました。\n- 「エラーが出ず、出力も正しく見える」ので、黙って失敗します。書いたファイルを確かめる手順が要るのはこのためです。\n`─────────────────────────────────────────────────`\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.099071,
+ "duration_ms": 18878
+}

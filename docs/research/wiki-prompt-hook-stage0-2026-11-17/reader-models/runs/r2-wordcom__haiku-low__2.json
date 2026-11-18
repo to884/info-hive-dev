@@ -1,0 +1,16 @@
+{
+ "id": "r2-wordcom",
+ "class": "R2",
+ "model": "haiku",
+ "effort": "low",
+ "run": 2,
+ "model_used": "claude-haiku-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/officeのcomでの書き出し.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/office-com-word-export-2026-11-15.md"
+ ],
+ "result": "## 答え\n\nWord の COM で PDF に書き出すとき、`Documents.Open` に渡す引数は**パスだけ**にする。読み取り専用の引数（`Documents.Open($path, $false, $true)`）を付けた実行は 300 秒で終わらず、PDF もできなかった。ただし、パスだけにすると Windows PowerShell 5.1 では `Documents.Open` が null を返したので、実行環境は pwsh 7 にする。そのほかの注意点は次のとおり。\n\n- `$w.DisplayAlerts = 0` にして、画面に出る確認で止まらないようにする。\n- 全体を `Start-Job` と `Wait-Job -Timeout` で包み、止まったときに備えて時間の上限を付ける。\n- 止まったあとは、`/Automation -Embedding` の WINWORD.EXE が残っていないかを確かめる。\n- 手順の案は、`DisplayAlerts = 0`、`Documents.Open($path)`、戻り値が null なら中断、`ExportAsFixedFormat($pdf, 17)`、`Close(0)`、`Quit()` の順。\n\nただし、これは 1 回の作業で観測された結果で、原因は確かめられていない。読み取り専用の引数が待ちの原因だという説は仮説で、null の原因も分かっていない。`pwsh -File` でスクリプト全体を最後まで通せたかも確かめられていない。PowerPoint と Excel では同じ問題は出なかった。\n\n`✶ Insight ─────────────────────────────────────`\n- COM の `Documents.Open` は、引数の書き方と実行する PowerShell のバージョンで挙動が変わる。確認が出ると、無人のスクリプトは止まる。だから `DisplayAlerts` と時間の上限を一緒に付ける。\n- 残った WINWORD.EXE が次の実行を妨げることがあるので、失敗のあとは必ずプロセスを確かめる。\n`─────────────────────────────────────────────────`\n\n## 根拠\n\n- [[officeのcomでの書き出し]]（`wiki/concepts/officeのcomでの書き出し.md`）: 「`Documents.Open` にパスだけを渡し、`DisplayAlerts` を 0 にし、pwsh 7 で動かす」。読み取り専用の引数を渡した実行は 300 秒で終わらなかった。Windows PowerShell 5.1 でパスだけを渡すと `Documents.Open` が null を返した。status は `hypothesis`。\n- [[office-com-word-export-2026-11-15]]（`wiki/sources/office-com-word-export-2026-11-15.md`）: 「`Documents.Open(パス, $false, $true)`（読み取り専用）で開くと、300 秒で終わらず、PDF もできなかった。`/Automation -Embedding` の WINWORD.EXE が残っていた」。結果は failure。「null を返した原因は分かっていない」。\n\n## 開いたページ\n1. `wiki/concepts/officeのcomでの書き出し.md`\n2. `wiki/sources/office-com-word-export-2026-11-15.md`\n\n## 関係のなかった候補\nなし\n\n## モデル\nHaiku 5.5（claude-haiku-5-5）\n\n使用した MCP サーバー: なし\n使用した Agent Skills: なし",
+ "cost_usd": 0.00288472,
+ "duration_ms": 14341
+}

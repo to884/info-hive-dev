@@ -1,0 +1,16 @@
+{
+ "id": "r1-schema",
+ "class": "R1",
+ "model": "opus",
+ "effort": "high",
+ "run": 2,
+ "model_used": "claude-opus-5-5",
+ "exit": 0,
+ "opened": [
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/concepts/初期化されたwikiの判定.md",
+  "C:/Works/info-hive-dev/.claude/worktrees/prompt-context-hook/wiki/sources/初期化していないディレクトリの扱い-wiki-0.13.0.md"
+ ],
+ "result": "`✶ Insight ─────────────────────────────────────`\n- 判定を 1 つのモジュールにまとめたので、入口が増えても規則は 1 か所にしかありません。ただし rag は同じ規則を自分で持っているので、変えるときはそこも直す必要があります。\n- 判定は、パスを解決する「前」に行います。`kb/ない/..` が解決されて別の wiki を指してしまう問題を、判定と解決を一度に行う `resolve()` で防いでいます。\n`─────────────────────────────────────────────────`\n\n## 答え\n判定の場所は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所だけです。wiki 0.13.0 で決まり、設計の決定は ADR-0019（状態は提案）です。\n- 規則は、ルートがディレクトリで、その直下の `SCHEMA.md` が通常のファイルであることです。リンクの場合は、リンク先が通常のファイルであれば初期化済みとみなします。中身は読みません。調べ方は `os.stat()` を 1 回ずつ使い、`Path.is_file()` は使いません。\n- `check()` の結果は、理由の種類と、判定が確定したかどうか（`certain`）を持ちます。\n- 各入口がこの判定を呼びます。\n  - 1 回で終わる CLI は、引数を読んだ直後に判定します。\n  - サブコマンドを持つ入口は、振り分けの前に判定します。除外するサブコマンドは `wiki_evolve.py` の `WIKI_FREE_ACTIONS` にあります。\n  - MCP のサーバーと閲覧のサーバーは、要求のたびに判定します。\n  - パスを解決して使う入口は、判定と解決を一度に行う `resolve()` の戻り値を使います。\n- rag の `rag_config.py` も同じ規則を自分で持っています。規則を変えるときは両方をそろえます。\n\n## 根拠\n- [[初期化されたwikiの判定]]（concepts/初期化されたwikiの判定.md）: 「判定は `info-hive-wiki/skills/info-hive/scripts/wiki_initialized.py` の 1 か所にある。」判定の規則、`check()`、`resolve()`、各入口で判定するタイミング、rag の `rag_config.py` とそろえることも、このページに書かれています。\n- [[初期化していないディレクトリの扱い-wiki-0.13.0]]（sources/初期化していないディレクトリの扱い-wiki-0.13.0.md）: 「初期化された wiki の判定を、ルートの `SCHEMA.md` の有無に決め、`wiki_initialized.py` の 1 か所に置いた」。この規則を選んだ理由も書かれています。`SCHEMA.md` は `init_wiki.py` が必ず作って上書きしないファイルで、`wiki_evolve.py` と `rag_config.py` がすでに同じ規則を使っていました。設計は `docs/plans/wiki-uninitialized-root-2026-11-13.md`、決定は ADR-0019 にあります。\n\n## 開いたページ\n1. concepts/初期化されたwikiの判定.md\n2. sources/初期化していないディレクトリの扱い-wiki-0.13.0.md\n\n## 関係のなかった候補\n- なし\n\n## モデル\nOpus 5.5（claude-opus-5-5）\n\n---\n- 次のタスクに向くモデルとエフォート: 実装を `wiki_initialized.py` で確かめるなら、Sonnet・low で足ります。\n\n使用した MCP サーバー: なし（`Read` で読んだ）\n使用した Agent Skills: なし",
+ "cost_usd": 0.1353354,
+ "duration_ms": 18195
+}

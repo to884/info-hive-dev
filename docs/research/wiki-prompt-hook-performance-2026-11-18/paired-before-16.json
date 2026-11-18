@@ -1,0 +1,1401 @@
+{
+  "pages": 150,
+  "runs": 20,
+  "load_workers": 16,
+  "concurrency": 4,
+  "profiled": true,
+  "excluded_env": [
+    "RUST_LOG"
+  ],
+  "load": "各workerが新しいPythonを繰り返し起動し、標準ライブラリの読込と合成wiki全ファイルの読込を行う。API・ネットワーク・他のプロセスの操作はない。",
+  "timing": {
+    "n": 20,
+    "p50_ms": 2826.2,
+    "p95_ms": 3628.9,
+    "max_ms": 4362.9
+  },
+  "delivered": 19,
+  "command": "uv run --quiet --offline --no-python-downloads --script \"C:/UserData/toshiki/Temp/wiki-hook-parallel-rt2mm4c1/profile_hook.py\"; exit 0",
+  "source_sha256": "84f639b153564c660e28cd9e634b5772895ee4ec355f99f8719aeeeb8e533f43",
+  "context_sha256": "b00a5e61f833a00582d6407e1baf97eaa8b587fcf926f34db78a9234130d4682",
+  "warmup": {
+    "ms": 3659.5,
+    "exit": 0,
+    "delivered": false,
+    "stdout_bytes": 0,
+    "stderr": "",
+    "profile": [
+      {
+        "phase": "parent_imported",
+        "at": 38900.6181443,
+        "entry": 38900.4508391,
+        "pid": 1768,
+        "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+        "since_launch_ms": 1063.0,
+        "import_ms": 167.3
+      },
+      {
+        "phase": "context_imported",
+        "at": 38900.9447548,
+        "entry": 38900.4508391,
+        "pid": 1768,
+        "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+        "since_launch_ms": 1389.6,
+        "import_ms": 493.9
+      },
+      {
+        "phase": "context_imported",
+        "at": 38901.7904615,
+        "entry": 38901.3735796,
+        "pid": 45860,
+        "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+        "since_launch_ms": 2235.4,
+        "import_ms": 416.9
+      },
+      {
+        "phase": "before_select",
+        "at": 38901.793233,
+        "entry": 38901.3735796,
+        "pid": 45860,
+        "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+        "since_launch_ms": 2238.1,
+        "import_ms": 419.7
+      }
+    ]
+  },
+  "trials": [
+    {
+      "ms": 3410.7,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38904.9761384,
+          "entry": 38904.8836444,
+          "pid": 46912,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1740.5,
+          "import_ms": 92.5
+        },
+        {
+          "phase": "context_imported",
+          "at": 38905.0812248,
+          "entry": 38904.8836444,
+          "pid": 46912,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1845.6,
+          "import_ms": 197.6
+        },
+        {
+          "phase": "context_imported",
+          "at": 38905.7598842,
+          "entry": 38905.5031736,
+          "pid": 27852,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2524.3,
+          "import_ms": 256.7
+        },
+        {
+          "phase": "before_select",
+          "at": 38905.7615727,
+          "entry": 38905.5031736,
+          "pid": 27852,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2526.0,
+          "import_ms": 258.4
+        },
+        {
+          "phase": "selected",
+          "at": 38906.4947045,
+          "entry": 38905.5031736,
+          "pid": 27852,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 3259.1,
+          "import_ms": 991.5
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38906.511205,
+          "entry": 38904.8836444,
+          "pid": 46912,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 3275.6,
+          "import_ms": 1627.6
+        }
+      ]
+    },
+    {
+      "ms": 3304.2,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38905.1263358,
+          "entry": 38904.894926,
+          "pid": 41788,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1870.9,
+          "import_ms": 231.4
+        },
+        {
+          "phase": "context_imported",
+          "at": 38905.2143654,
+          "entry": 38904.894926,
+          "pid": 41788,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1958.9,
+          "import_ms": 319.4
+        },
+        {
+          "phase": "context_imported",
+          "at": 38905.7603716,
+          "entry": 38905.5949034,
+          "pid": 30716,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2504.9,
+          "import_ms": 165.5
+        },
+        {
+          "phase": "before_select",
+          "at": 38905.7667321,
+          "entry": 38905.5949034,
+          "pid": 30716,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2511.3,
+          "import_ms": 171.8
+        },
+        {
+          "phase": "selected",
+          "at": 38906.4491027,
+          "entry": 38905.5949034,
+          "pid": 30716,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 3193.6,
+          "import_ms": 854.2
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38906.4726105,
+          "entry": 38904.894926,
+          "pid": 41788,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 3217.1,
+          "import_ms": 1577.7
+        }
+      ]
+    },
+    {
+      "ms": 3590.3,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38904.9178082,
+          "entry": 38904.8276397,
+          "pid": 7232,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1647.5,
+          "import_ms": 90.2
+        },
+        {
+          "phase": "context_imported",
+          "at": 38905.015744,
+          "entry": 38904.8276397,
+          "pid": 7232,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1745.4,
+          "import_ms": 188.1
+        },
+        {
+          "phase": "context_imported",
+          "at": 38905.8075682,
+          "entry": 38905.3880798,
+          "pid": 2212,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2537.2,
+          "import_ms": 419.5
+        },
+        {
+          "phase": "before_select",
+          "at": 38905.8091734,
+          "entry": 38905.3880798,
+          "pid": 2212,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2538.8,
+          "import_ms": 421.1
+        },
+        {
+          "phase": "selected",
+          "at": 38906.69746,
+          "entry": 38905.3880798,
+          "pid": 2212,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 3427.1,
+          "import_ms": 1309.4
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38906.7345701,
+          "entry": 38904.8276397,
+          "pid": 7232,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 3464.2,
+          "import_ms": 1906.9
+        }
+      ]
+    },
+    {
+      "ms": 4362.9,
+      "exit": 0,
+      "delivered": false,
+      "stdout_bytes": 0,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38905.1191039,
+          "entry": 38904.8706953,
+          "pid": 46784,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1845.1,
+          "import_ms": 248.4
+        },
+        {
+          "phase": "context_imported",
+          "at": 38905.2018054,
+          "entry": 38904.8706953,
+          "pid": 46784,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1927.8,
+          "import_ms": 331.1
+        },
+        {
+          "phase": "context_imported",
+          "at": 38906.1728844,
+          "entry": 38905.6645086,
+          "pid": 45372,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2898.9,
+          "import_ms": 508.4
+        },
+        {
+          "phase": "before_select",
+          "at": 38906.1757277,
+          "entry": 38905.6645086,
+          "pid": 45372,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2901.7,
+          "import_ms": 511.2
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38907.4604186,
+          "entry": 38904.8706953,
+          "pid": 46784,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 4186.4,
+          "import_ms": 2589.7
+        }
+      ]
+    },
+    {
+      "ms": 2434.1,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38907.1623133,
+          "entry": 38907.0811537,
+          "pid": 22460,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 591.8,
+          "import_ms": 81.2
+        },
+        {
+          "phase": "context_imported",
+          "at": 38907.2545648,
+          "entry": 38907.0811537,
+          "pid": 22460,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 684.0,
+          "import_ms": 173.4
+        },
+        {
+          "phase": "context_imported",
+          "at": 38908.0323566,
+          "entry": 38907.6035425,
+          "pid": 46952,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1461.8,
+          "import_ms": 428.8
+        },
+        {
+          "phase": "before_select",
+          "at": 38908.0358736,
+          "entry": 38907.6035425,
+          "pid": 46952,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1465.3,
+          "import_ms": 432.3
+        },
+        {
+          "phase": "selected",
+          "at": 38908.7900399,
+          "entry": 38907.6035425,
+          "pid": 46952,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2219.5,
+          "import_ms": 1186.5
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38908.8132735,
+          "entry": 38907.0811537,
+          "pid": 22460,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2242.7,
+          "import_ms": 1732.1
+        }
+      ]
+    },
+    {
+      "ms": 3318.3,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38907.6064648,
+          "entry": 38907.2609761,
+          "pid": 38704,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 945.6,
+          "import_ms": 345.5
+        },
+        {
+          "phase": "context_imported",
+          "at": 38907.8412855,
+          "entry": 38907.2609761,
+          "pid": 38704,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1180.4,
+          "import_ms": 580.3
+        },
+        {
+          "phase": "context_imported",
+          "at": 38908.8081614,
+          "entry": 38908.3908249,
+          "pid": 32636,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2147.3,
+          "import_ms": 417.3
+        },
+        {
+          "phase": "before_select",
+          "at": 38908.8095697,
+          "entry": 38908.3908249,
+          "pid": 32636,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2148.7,
+          "import_ms": 418.7
+        },
+        {
+          "phase": "selected",
+          "at": 38909.7165034,
+          "entry": 38908.3908249,
+          "pid": 32636,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 3055.6,
+          "import_ms": 1325.7
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38909.7882193,
+          "entry": 38907.2609761,
+          "pid": 38704,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 3127.3,
+          "import_ms": 2527.2
+        }
+      ]
+    },
+    {
+      "ms": 2892.7,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38907.6898618,
+          "entry": 38907.5560321,
+          "pid": 37400,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 818.7,
+          "import_ms": 133.8
+        },
+        {
+          "phase": "context_imported",
+          "at": 38907.9969577,
+          "entry": 38907.5560321,
+          "pid": 37400,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1125.8,
+          "import_ms": 440.9
+        },
+        {
+          "phase": "context_imported",
+          "at": 38908.6479633,
+          "entry": 38908.3469965,
+          "pid": 37596,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1776.8,
+          "import_ms": 301.0
+        },
+        {
+          "phase": "before_select",
+          "at": 38908.6494029,
+          "entry": 38908.3469965,
+          "pid": 37596,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1778.2,
+          "import_ms": 302.4
+        },
+        {
+          "phase": "selected",
+          "at": 38909.5664621,
+          "entry": 38908.3469965,
+          "pid": 37596,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2695.3,
+          "import_ms": 1219.5
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38909.6035416,
+          "entry": 38907.5560321,
+          "pid": 37400,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2732.4,
+          "import_ms": 2047.5
+        }
+      ]
+    },
+    {
+      "ms": 2974.5,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38908.4792746,
+          "entry": 38908.3631203,
+          "pid": 34208,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 832.9,
+          "import_ms": 116.2
+        },
+        {
+          "phase": "context_imported",
+          "at": 38908.5704905,
+          "entry": 38908.3631203,
+          "pid": 34208,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 924.1,
+          "import_ms": 207.4
+        },
+        {
+          "phase": "context_imported",
+          "at": 38909.3784446,
+          "entry": 38909.1398517,
+          "pid": 7252,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1732.0,
+          "import_ms": 238.6
+        },
+        {
+          "phase": "before_select",
+          "at": 38909.3798481,
+          "entry": 38909.1398517,
+          "pid": 7252,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1733.4,
+          "import_ms": 240.0
+        },
+        {
+          "phase": "selected",
+          "at": 38910.4943535,
+          "entry": 38909.1398517,
+          "pid": 7252,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2847.9,
+          "import_ms": 1354.5
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38910.5110855,
+          "entry": 38908.3631203,
+          "pid": 34208,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2864.7,
+          "import_ms": 2148.0
+        }
+      ]
+    },
+    {
+      "ms": 1884.9,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38909.7020326,
+          "entry": 38909.6241648,
+          "pid": 11780,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 688.2,
+          "import_ms": 77.9
+        },
+        {
+          "phase": "context_imported",
+          "at": 38909.8229951,
+          "entry": 38909.6241648,
+          "pid": 11780,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 809.2,
+          "import_ms": 198.8
+        },
+        {
+          "phase": "context_imported",
+          "at": 38910.2927522,
+          "entry": 38910.1145861,
+          "pid": 16748,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1278.9,
+          "import_ms": 178.2
+        },
+        {
+          "phase": "before_select",
+          "at": 38910.2945722,
+          "entry": 38910.1145861,
+          "pid": 16748,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1280.7,
+          "import_ms": 180.0
+        },
+        {
+          "phase": "selected",
+          "at": 38910.765925,
+          "entry": 38910.1145861,
+          "pid": 16748,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1752.1,
+          "import_ms": 651.3
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38910.7860268,
+          "entry": 38909.6241648,
+          "pid": 11780,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1772.2,
+          "import_ms": 1161.9
+        }
+      ]
+    },
+    {
+      "ms": 2626.2,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38910.5424182,
+          "entry": 38910.467376,
+          "pid": 31208,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 766.8,
+          "import_ms": 75.0
+        },
+        {
+          "phase": "context_imported",
+          "at": 38910.7127069,
+          "entry": 38910.467376,
+          "pid": 31208,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 937.1,
+          "import_ms": 245.3
+        },
+        {
+          "phase": "context_imported",
+          "at": 38911.328455,
+          "entry": 38911.1226399,
+          "pid": 18400,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1552.8,
+          "import_ms": 205.8
+        },
+        {
+          "phase": "before_select",
+          "at": 38911.3301666,
+          "entry": 38911.1226399,
+          "pid": 18400,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1554.5,
+          "import_ms": 207.5
+        },
+        {
+          "phase": "selected",
+          "at": 38912.2610463,
+          "entry": 38911.1226399,
+          "pid": 18400,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2485.4,
+          "import_ms": 1138.4
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38912.284859,
+          "entry": 38910.467376,
+          "pid": 31208,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2509.2,
+          "import_ms": 1817.5
+        }
+      ]
+    },
+    {
+      "ms": 2407.7,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38910.7107681,
+          "entry": 38910.5598443,
+          "pid": 42328,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 719.8,
+          "import_ms": 150.9
+        },
+        {
+          "phase": "context_imported",
+          "at": 38910.7918376,
+          "entry": 38910.5598443,
+          "pid": 42328,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 800.9,
+          "import_ms": 232.0
+        },
+        {
+          "phase": "context_imported",
+          "at": 38911.5043536,
+          "entry": 38911.1770397,
+          "pid": 30276,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1513.4,
+          "import_ms": 327.3
+        },
+        {
+          "phase": "before_select",
+          "at": 38911.5056115,
+          "entry": 38911.1770397,
+          "pid": 30276,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1514.7,
+          "import_ms": 328.6
+        },
+        {
+          "phase": "selected",
+          "at": 38912.2483712,
+          "entry": 38911.1770397,
+          "pid": 30276,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2257.4,
+          "import_ms": 1071.3
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38912.2990376,
+          "entry": 38910.5598443,
+          "pid": 42328,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2308.1,
+          "import_ms": 1739.2
+        }
+      ]
+    },
+    {
+      "ms": 2805.9,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38911.5899244,
+          "entry": 38911.4955317,
+          "pid": 23188,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 959.1,
+          "import_ms": 94.4
+        },
+        {
+          "phase": "context_imported",
+          "at": 38911.6658732,
+          "entry": 38911.4955317,
+          "pid": 23188,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1035.0,
+          "import_ms": 170.3
+        },
+        {
+          "phase": "context_imported",
+          "at": 38912.3154323,
+          "entry": 38912.0195175,
+          "pid": 31908,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1684.6,
+          "import_ms": 295.9
+        },
+        {
+          "phase": "before_select",
+          "at": 38912.317068,
+          "entry": 38912.0195175,
+          "pid": 31908,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1686.2,
+          "import_ms": 297.6
+        },
+        {
+          "phase": "selected",
+          "at": 38913.2848044,
+          "entry": 38912.0195175,
+          "pid": 31908,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2654.0,
+          "import_ms": 1265.3
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38913.3200151,
+          "entry": 38911.4955317,
+          "pid": 23188,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2689.2,
+          "import_ms": 1824.5
+        }
+      ]
+    },
+    {
+      "ms": 2512.1,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38911.9519032,
+          "entry": 38911.8321031,
+          "pid": 44364,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1038.2,
+          "import_ms": 119.8
+        },
+        {
+          "phase": "context_imported",
+          "at": 38912.0825645,
+          "entry": 38911.8321031,
+          "pid": 44364,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1168.8,
+          "import_ms": 250.5
+        },
+        {
+          "phase": "context_imported",
+          "at": 38912.7331748,
+          "entry": 38912.5782669,
+          "pid": 23228,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1819.5,
+          "import_ms": 154.9
+        },
+        {
+          "phase": "before_select",
+          "at": 38912.7346086,
+          "entry": 38912.5782669,
+          "pid": 23228,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1820.9,
+          "import_ms": 156.3
+        },
+        {
+          "phase": "selected",
+          "at": 38913.289332,
+          "entry": 38912.5782669,
+          "pid": 23228,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2375.6,
+          "import_ms": 711.1
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38913.3201406,
+          "entry": 38911.8321031,
+          "pid": 44364,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2406.4,
+          "import_ms": 1488.0
+        }
+      ]
+    },
+    {
+      "ms": 1797.1,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38913.0590048,
+          "entry": 38912.8138371,
+          "pid": 36376,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 648.7,
+          "import_ms": 245.2
+        },
+        {
+          "phase": "context_imported",
+          "at": 38913.1421103,
+          "entry": 38912.8138371,
+          "pid": 36376,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 731.8,
+          "import_ms": 328.3
+        },
+        {
+          "phase": "context_imported",
+          "at": 38913.6052083,
+          "entry": 38913.4207317,
+          "pid": 5228,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1194.9,
+          "import_ms": 184.5
+        },
+        {
+          "phase": "before_select",
+          "at": 38913.6081338,
+          "entry": 38913.4207317,
+          "pid": 5228,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1197.8,
+          "import_ms": 187.4
+        },
+        {
+          "phase": "selected",
+          "at": 38914.0527381,
+          "entry": 38913.4207317,
+          "pid": 5228,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1642.4,
+          "import_ms": 632.0
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38914.0992973,
+          "entry": 38912.8138371,
+          "pid": 36376,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1689.0,
+          "import_ms": 1285.5
+        }
+      ]
+    },
+    {
+      "ms": 1662.4,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38912.9203664,
+          "entry": 38912.8406719,
+          "pid": 38884,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 507.8,
+          "import_ms": 79.7
+        },
+        {
+          "phase": "context_imported",
+          "at": 38913.0049969,
+          "entry": 38912.8406719,
+          "pid": 38884,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 592.5,
+          "import_ms": 164.3
+        },
+        {
+          "phase": "context_imported",
+          "at": 38913.5340439,
+          "entry": 38913.3508811,
+          "pid": 39968,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1121.5,
+          "import_ms": 183.2
+        },
+        {
+          "phase": "before_select",
+          "at": 38913.5356658,
+          "entry": 38913.3508811,
+          "pid": 39968,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1123.1,
+          "import_ms": 184.8
+        },
+        {
+          "phase": "selected",
+          "at": 38914.008396,
+          "entry": 38913.3508811,
+          "pid": 39968,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1595.9,
+          "import_ms": 657.5
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38914.0258856,
+          "entry": 38912.8406719,
+          "pid": 38884,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1613.3,
+          "import_ms": 1185.2
+        }
+      ]
+    },
+    {
+      "ms": 2272.1,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38913.923603,
+          "entry": 38913.8459371,
+          "pid": 22024,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 488.4,
+          "import_ms": 77.7
+        },
+        {
+          "phase": "context_imported",
+          "at": 38914.1380741,
+          "entry": 38913.8459371,
+          "pid": 22024,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 702.9,
+          "import_ms": 292.1
+        },
+        {
+          "phase": "context_imported",
+          "at": 38914.7386599,
+          "entry": 38914.3465881,
+          "pid": 8876,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1303.5,
+          "import_ms": 392.1
+        },
+        {
+          "phase": "before_select",
+          "at": 38914.7413672,
+          "entry": 38914.3465881,
+          "pid": 8876,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1306.2,
+          "import_ms": 394.8
+        },
+        {
+          "phase": "selected",
+          "at": 38915.520438,
+          "entry": 38914.3465881,
+          "pid": 8876,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2085.3,
+          "import_ms": 1173.8
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38915.5655787,
+          "entry": 38913.8459371,
+          "pid": 22024,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2130.4,
+          "import_ms": 1719.6
+        }
+      ]
+    },
+    {
+      "ms": 3003.9,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38914.3071379,
+          "entry": 38914.0614284,
+          "pid": 9220,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 859.8,
+          "import_ms": 245.7
+        },
+        {
+          "phase": "context_imported",
+          "at": 38914.4354509,
+          "entry": 38914.0614284,
+          "pid": 9220,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 988.1,
+          "import_ms": 374.0
+        },
+        {
+          "phase": "context_imported",
+          "at": 38915.4209696,
+          "entry": 38915.0735706,
+          "pid": 1704,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1973.6,
+          "import_ms": 347.4
+        },
+        {
+          "phase": "before_select",
+          "at": 38915.4227927,
+          "entry": 38915.0735706,
+          "pid": 1704,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1975.4,
+          "import_ms": 349.2
+        },
+        {
+          "phase": "selected",
+          "at": 38916.3029783,
+          "entry": 38915.0735706,
+          "pid": 1704,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2855.6,
+          "import_ms": 1229.4
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38916.3489815,
+          "entry": 38914.0614284,
+          "pid": 9220,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2901.6,
+          "import_ms": 2287.6
+        }
+      ]
+    },
+    {
+      "ms": 2911.1,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38914.9847128,
+          "entry": 38914.719224,
+          "pid": 28024,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 898.8,
+          "import_ms": 265.5
+        },
+        {
+          "phase": "context_imported",
+          "at": 38915.1388877,
+          "entry": 38914.719224,
+          "pid": 28024,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1053.0,
+          "import_ms": 419.7
+        },
+        {
+          "phase": "context_imported",
+          "at": 38915.8700246,
+          "entry": 38915.3708488,
+          "pid": 31244,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1784.1,
+          "import_ms": 499.2
+        },
+        {
+          "phase": "before_select",
+          "at": 38915.8714557,
+          "entry": 38915.3708488,
+          "pid": 31244,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1785.5,
+          "import_ms": 500.6
+        },
+        {
+          "phase": "selected",
+          "at": 38916.7004475,
+          "entry": 38915.3708488,
+          "pid": 31244,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2614.5,
+          "import_ms": 1329.6
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38916.7650852,
+          "entry": 38914.719224,
+          "pid": 28024,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2679.2,
+          "import_ms": 2045.9
+        }
+      ]
+    },
+    {
+      "ms": 2846.5,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38915.0475715,
+          "entry": 38914.7340287,
+          "pid": 28160,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 829.3,
+          "import_ms": 313.5
+        },
+        {
+          "phase": "context_imported",
+          "at": 38915.1698588,
+          "entry": 38914.7340287,
+          "pid": 28160,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 951.6,
+          "import_ms": 435.8
+        },
+        {
+          "phase": "context_imported",
+          "at": 38915.8601535,
+          "entry": 38915.4234063,
+          "pid": 37804,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1641.9,
+          "import_ms": 436.7
+        },
+        {
+          "phase": "before_select",
+          "at": 38915.8628574,
+          "entry": 38915.4234063,
+          "pid": 37804,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1644.6,
+          "import_ms": 439.5
+        },
+        {
+          "phase": "selected",
+          "at": 38916.9037532,
+          "entry": 38915.4234063,
+          "pid": 37804,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2685.5,
+          "import_ms": 1480.3
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38916.9670612,
+          "entry": 38914.7340287,
+          "pid": 28160,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2748.8,
+          "import_ms": 2233.0
+        }
+      ]
+    },
+    {
+      "ms": 2418.2,
+      "exit": 0,
+      "delivered": true,
+      "stdout_bytes": 3366,
+      "stderr": "",
+      "profile": [
+        {
+          "phase": "parent_imported",
+          "at": 38916.4018631,
+          "entry": 38916.3435396,
+          "pid": 28212,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 684.3,
+          "import_ms": 58.3
+        },
+        {
+          "phase": "context_imported",
+          "at": 38916.5890683,
+          "entry": 38916.3435396,
+          "pid": 28212,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 871.5,
+          "import_ms": 245.5
+        },
+        {
+          "phase": "context_imported",
+          "at": 38917.2857482,
+          "entry": 38917.0993427,
+          "pid": 36308,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1568.1,
+          "import_ms": 186.4
+        },
+        {
+          "phase": "before_select",
+          "at": 38917.288157,
+          "entry": 38917.0993427,
+          "pid": 36308,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 1570.5,
+          "import_ms": 188.8
+        },
+        {
+          "phase": "selected",
+          "at": 38918.0174909,
+          "entry": 38917.0993427,
+          "pid": 36308,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2299.9,
+          "import_ms": 918.1
+        },
+        {
+          "phase": "worker_returned",
+          "at": 38918.0328973,
+          "entry": 38916.3435396,
+          "pid": 28212,
+          "python": "C:\\UserData\\toshiki\\Cache\\uv\\environments-v2\\profile-hook-e888bca0fe0e87fc\\Scripts\\python.exe",
+          "since_launch_ms": 2315.3,
+          "import_ms": 1689.4
+        }
+      ]
+    }
+  ],
+  "load_actual": [
+    {
+      "cycles": 19,
+      "bytes_read": 14367344,
+      "elapsed_ms": 18854.6
+    },
+    {
+      "cycles": 20,
+      "bytes_read": 15123520,
+      "elapsed_ms": 18820.9
+    },
+    {
+      "cycles": 19,
+      "bytes_read": 14367344,
+      "elapsed_ms": 18791.7
+    },
+    {
+      "cycles": 20,
+      "bytes_read": 15123520,
+      "elapsed_ms": 18745.2
+    },
+    {
+      "cycles": 20,
+      "bytes_read": 15123520,
+      "elapsed_ms": 18810.9
+    },
+    {
+      "cycles": 20,
+      "bytes_read": 15123520,
+      "elapsed_ms": 18802.5
+    },
+    {
+      "cycles": 20,
+      "bytes_read": 15123520,
+      "elapsed_ms": 18755.2
+    },
+    {
+      "cycles": 19,
+      "bytes_read": 14367344,
+      "elapsed_ms": 18877.7
+    },
+    {
+      "cycles": 20,
+      "bytes_read": 15123520,
+      "elapsed_ms": 18447.1
+    },
+    {
+      "cycles": 21,
+      "bytes_read": 15879696,
+      "elapsed_ms": 18761.2
+    },
+    {
+      "cycles": 19,
+      "bytes_read": 14367344,
+      "elapsed_ms": 18632.7
+    },
+    {
+      "cycles": 20,
+      "bytes_read": 15123520,
+      "elapsed_ms": 18666.8
+    },
+    {
+      "cycles": 22,
+      "bytes_read": 16635872,
+      "elapsed_ms": 18600.3
+    },
+    {
+      "cycles": 19,
+      "bytes_read": 14367344,
+      "elapsed_ms": 18651.9
+    },
+    {
+      "cycles": 18,
+      "bytes_read": 13611168,
+      "elapsed_ms": 18794.2
+    },
+    {
+      "cycles": 21,
+      "bytes_read": 15879696,
+      "elapsed_ms": 18519.3
+    }
+  ]
+}
