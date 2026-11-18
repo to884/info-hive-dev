@@ -1526,8 +1526,6 @@ class ReadSiteInventoryTests(unittest.TestCase):
         ("wiki_browse_fs.py", "Os.open_read"): WALKED,
         ("wiki_evolve.py", "create"): WRITE,
         ("wiki_fetch.py", "fetch"): URL,
-        ("wiki_graph_common.py", "extract_lock.__enter__"): WRITE,
-        ("wiki_graph_extract.py", "_write_lines"): WRITE,
     }
 
     def sites(self):

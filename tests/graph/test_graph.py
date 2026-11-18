@@ -109,6 +109,137 @@ class WikiCase(unittest.TestCase):
         return proc
 
 
+@unittest.skipUnless(HAS_YAML, "PyYAML が要る")
+class GraphWriteGuardTests(WikiCase):
+    def test_refuses_links_in_lock_outputs_and_stale_files(self):
+        self.extract()
+        out = self.wiki / "graph"
+        before = {name: (out / name).read_bytes() for name in extract.OUTPUT_NAMES}
+        original = Path(self.temp.name) / "original"
+        original.write_bytes(b"unchanged")
+        for name in (".extract.lock", "edges.jsonl", "graph.sqlite-shm", "nodes.jsonl.123.tmp"):
+            with self.subTest(name=name):
+                refused = out / name
+                refused.unlink(missing_ok=True)
+                os.link(original, refused)
+                result = run("wiki_graph_extract.py", self.wiki)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertIn(str(refused), result.stderr)
+                self.assertIn("hardlink", result.stderr)
+                self.assertTrue(refused.samefile(original))
+                self.assertEqual(original.read_bytes(), b"unchanged")
+                for other, content in before.items():
+                    if other != name:
+                        self.assertEqual((out / other).read_bytes(), content)
+                refused.unlink()
+                if name in before:
+                    refused.write_bytes(before[name])
+
+    def test_refuses_linked_directory_inside_wiki(self):
+        from tests.wiki.test_wiki_links import junction
+
+        external = Path(self.temp.name) / "elsewhere"
+        external.mkdir()
+        alias = self.wiki / "output"
+        if not junction(alias, external):
+            self.skipTest("ディレクトリのリンクを作れない")
+        result = run("wiki_graph_extract.py", self.wiki, "--out", alias / "nested")
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn(str(alias), result.stderr)
+        self.assertIn("junction" if os.name == "nt" else "symlink", result.stderr)
+        self.assertEqual(list(external.iterdir()), [])
+
+    def test_external_spelling_cannot_skip_the_wiki_path_check(self):
+        from tests.wiki.test_wiki_links import junction
+
+        external = Path(self.temp.name) / "elsewhere"
+        external.mkdir()
+        alias = self.wiki.parent / "alias"
+        if not junction(alias, self.wiki) or not junction(self.wiki / "redirect", external):
+            self.skipTest("ディレクトリのリンクを作れない")
+        result = run("wiki_graph_extract.py", self.wiki, "--out", alias / "redirect" / "nested")
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn(str(alias), result.stderr)
+        self.assertIn("wiki の根", result.stderr)
+        self.assertEqual(list(external.iterdir()), [])
+
+    def test_relative_output_keeps_extract_busy_diagnostic(self):
+        command = textwrap.dedent(f"""
+            import sys
+            sys.path.insert(0, {str(SCRIPTS)!r})
+            import wiki_graph_common as common
+            import wiki_graph_extract as extract
+            common.LOCK_WAIT_SECONDS = 0
+            sys.argv = ["wiki_graph_extract.py", "wiki"]
+            extract.main()
+        """)
+        with common.extract_lock(self.wiki / "graph"):
+            result = subprocess.run([sys.executable, "-c", command], cwd=self.wiki.parent,
+                                    capture_output=True, encoding="utf-8", env=ENV, timeout=30)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn("ほかの extract が動いている", result.stderr)
+
+    def test_does_not_remove_a_temp_name_it_could_not_create(self):
+        out = self.wiki / "graph"
+        collision = out / "collision.txt"
+        collision.write_bytes(b"unchanged")
+        with patch.object(common, "temp_path_for", return_value=collision):
+            with self.assertRaises(FileExistsError):
+                extract.write_outputs(out, ["sqlite"], [], [], [])
+        self.assertEqual(collision.read_bytes(), b"unchanged")
+        self.assertFalse((out / "graph.sqlite").exists())
+
+    def test_wiki_root_and_path_with_uri_characters_can_be_output(self):
+        for out in (self.wiki, self.wiki / "成果 # %"):
+            with self.subTest(out=out):
+                self.extract("--out", out)
+                with sqlite3.connect(out / "graph.sqlite") as db:
+                    self.assertEqual(db.execute("SELECT count(*) FROM nodes").fetchone()[0], 4)
+
+    def test_refuses_dotdot_without_making_the_output_directory(self):
+        for wiki, out in ((".", "../output"), ("../wiki", "output")):
+            with self.subTest(wiki=wiki, out=out):
+                result = run("wiki_graph_extract.py", wiki, "--out", out, cwd=self.wiki)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertIn(".. を含むパス", result.stderr)
+        self.assertFalse((self.wiki / "output").exists())
+        self.assertFalse((self.wiki.parent / "output").exists())
+
+    def test_refuses_sqlite_retry_if_sidecar_appears(self):
+        self.extract()
+        out = self.wiki / "graph"
+        before = {name: (out / name).read_bytes() for name in extract.OUTPUT_NAMES}
+        sidecar = out / "graph.sqlite-wal"
+        with patch.object(common.os, "replace") as replace, patch.object(common, "REPLACE_WAIT_SECONDS", 0):
+            def busy(_src, _dst):
+                sidecar.write_bytes(b"leave this file alone")
+                raise PermissionError("使用中")
+            replace.side_effect = busy
+            with self.assertRaisesRegex(OSError, "sqlite_sidecar"):
+                extract.write_outputs(out, extract.DEFAULT_FORMATS, [], [], [])
+            replace.assert_called_once()
+        self.assertEqual(sidecar.read_bytes(), b"leave this file alone")
+        self.assertEqual({name: (out / name).read_bytes() for name in extract.OUTPUT_NAMES}, before)
+        self.assertEqual(list(out.glob("*.tmp")), [])
+
+    def test_reports_which_outputs_were_published_when_replace_fails(self):
+        out = self.wiki / "graph"
+        original_replace = os.replace
+
+        def partial(src, dst):
+            if dst.name == "nodes.jsonl":
+                raise PermissionError("使用中")
+            original_replace(src, dst)
+
+        with patch.object(common.os, "replace", side_effect=partial), patch.object(common, "REPLACE_WAIT_SECONDS", 0):
+            with self.assertRaises(PermissionError) as caught:
+                extract.write_outputs(out, extract.DEFAULT_FORMATS, [], [], [])
+        self.assertIn("更新済みは graph.sqlite、未更新は nodes.jsonl, edges.jsonl, graph.graphml。", caught.exception.__notes__)
+        self.assertTrue((out / "graph.sqlite").exists())
+        self.assertFalse((out / "nodes.jsonl").exists())
+        self.assertEqual(list(out.glob("*.tmp")), [])
+
+
 class NoOntologyTests(WikiCase):
     """オントロジーがないときの扱いを 3 つの入口でそろえた（ADR-0009）。"""
 

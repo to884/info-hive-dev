@@ -271,6 +271,7 @@ ADR-0023 の決定（書く段の書き込みは `Writer` を通す、領域と�
   - パースキャッシュとローカルの SQLite ベクトル索引の実装の詳細は、[検索キャッシュ保護](adr-0029-stage3-search-cache.md) にある。
   - SQLite と Tantivy を開く経路と拒否時のツール応答は、[MCP 索引保護](adr-0029-stage3-mcp-index.md) にある。
   - サーバーの起動、再利用と終了時のロックと記録の扱いは、[MCP 起動ファイルの保護](adr-0029-stage3-mcp-startup.md) にある。
+  - グラフのロック、一時ファイル、公開先の扱いは、[グラフ成果物の保護](adr-0029-stage3-graph.md) にある。
   - 既存 wiki の現在と過去の raw の根は、[アップグレード時の登録](adr-0029-stage3-upgrade-raw-roots.md) で扱う。
 - `info-hive-rag`: `pdf_path()` と `result.raw` は変えない。`_mark_reviews()` が wiki のページを直接書くことを、wiki の書き込みの部品とどう合わせるかは、別に決める。
 - 開発用のリポジトリの試験（`tests/wiki/`）:
