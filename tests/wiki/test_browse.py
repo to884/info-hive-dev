@@ -445,6 +445,34 @@ class NamesTest(unittest.TestCase):
 
 
 class RenderTest(TempWiki):
+    def test_session_raw_marks_speakers_only_on_transcript_text(self):
+        raw = self.base / "raw"
+        transcript = (
+            "## T1 ユーザー（2026-11-18 10:00:00）\n\n"
+            "```text\n<script>文字として表示</script>\n  字下げ\n```\n\n"
+            "## T2 Codex（不明、2026-11-18 10:00:01、T1 への返答）\n\n"
+            "```text\n返答。\n```\n\n"
+            "## T3 ユーザー（2026-11-18 10:00:02）\n\n（確認で消した）\n\n"
+            "## T4 Codex（不明、2026-11-18 10:00:03、T3 への返答）\n\n"
+            "```python\nprint(1)\n```\n"
+        )
+        write(raw, "codex.md", page(transcript, source_kind="codex-session"))
+        write(raw, "claude.md", page(transcript.replace("Codex（", "Claude（"),
+                                     source_kind="claude-code-session"))
+        write(raw, "other.md", page(transcript))
+        write(self.wiki, "page.md", page(transcript, source_kind="codex-session"))
+        c = core.Core(core.take_snapshot(self.wiki, raw_root=raw))
+
+        for pid in ("raw/codex", "raw/claude"):
+            with self.subTest(pid=pid):
+                body = c.body_html(pid)
+                self.assertEqual(body.count('class="session-turn session-turn-user"'), 1)
+                self.assertEqual(body.count('class="session-turn session-turn-assistant"'), 1)
+                self.assertIn("&lt;script&gt;文字として表示&lt;/script&gt;\n  字下げ", body)
+                self.assertIn('<pre><code class="language-python">', body)
+        self.assertNotIn("session-turn", c.body_html("raw/other"))
+        self.assertNotIn("session-turn", c.body_html("page"))
+
     def test_headings(self):
         write(self.wiki, "a.md", page("# nav\n\n## **Definition**\n\n## [[other|Definition]]\n\n"
                                       "## ![Definition](d.png)\n\n## 例\n\n## 例\n\n## 例-1\n"))
@@ -1140,20 +1168,20 @@ class BuildTest(TempWiki):
         real = core.input_list
         calls = {"n": 0}
 
-        def changing(root):
+        def changing(root, raw_root=None):
             calls["n"] += 1
             if calls["n"] == 2:    # 1 回目の写しの、読んだあとの走査
                 write(self.wiki, "concepts/c.md", page("# C"))
-            return real(root)
+            return real(root, raw_root)
         with mock.patch.object(core, "input_list", changing):
             report = self.build(out)
         self.assertTrue((out / "concepts/c.html").is_file())
         self.assertEqual(report["pages"], 3)
 
-        def always(root):
+        def always(root, raw_root=None):
             write(self.wiki, "concepts/c.md", page("# C" + "x" * calls["n"]))
             calls["n"] += 1
-            return real(root)
+            return real(root, raw_root)
         before = (out / "index.html").read_bytes()
         with mock.patch.object(core, "input_list", always):
             with self.assertRaises(wiki_browse.Failed):

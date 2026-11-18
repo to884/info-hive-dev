@@ -1130,6 +1130,42 @@ class ProcessTest(Base):
         self.assertEqual(code, 200)
         return body
 
+    def test_raw_category_uses_second_tag_and_reloads(self):
+        raw = self.base / "raw"
+        write(raw, "own.md", '---\ntags: ["最初", "二番目", "三番目"]\n---\n# 原本\n\n原本の本文。\n')
+        write(raw, "nested/inherited.md", "# ソースのタグを使う原本\n")
+        write(raw, "single.md", '---\ntags: ["一つだけ"]\n---\n# タグが足りない原本\n')
+        write(raw, "assets/caption.md", "# アセット\n")
+        write(self.wiki, "sources/summary.md",
+              '---\ntype: "source"\nraw: "raw/nested/inherited.md"\ntags: ["分類", "継承"]\n---\n# 要約\n')
+        r = self.first_line(self.serve("--raw-root", str(raw)))
+        port = r["port"]
+        base = r["url"].split(str(port), 1)[1].removesuffix("index.html")
+
+        def groups():
+            status, body, _ = request(port, "GET", base + "nav.js")
+            self.assertEqual(status, 200)
+            return json.loads(body.split("=", 1)[1].strip().removesuffix(";"))["groups"]
+
+        def raw_group():
+            return next(g for g in groups() if g["title"] == "raw")
+
+        self.assertEqual({g["title"]: [it["id"] for it in g["items"]] for g in raw_group()["children"]},
+                         {"二番目": ["raw/own"], "継承": ["raw/nested/inherited"], "タグなし": ["raw/single"]})
+        rest = next(g for g in groups() if g["title"] == "Index にないページ")
+        source = next(g for g in rest["children"] if g["title"] == "ソース")
+        self.assertEqual([g["title"] for g in source["children"]], ["分類"])
+        self.assertIn('data-type="raw"', self.screen(r))
+        status, body, _ = request(port, "GET", base + "raw/own.html")
+        self.assertEqual(status, 200)
+        self.assertIn("原本の本文。", body)
+
+        write(raw, "own.md", '---\ntags: ["最初", "更新したグループ"]\n---\n# 更新\n')
+        self.assertIn("更新したグループ", [g["title"] for g in raw_group()["children"]])
+        other = self.serve("--raw-root", str(self.base / "other"))
+        self.assertNotEqual(other.wait(30), 0)
+        self.assertIn("raw の設定が異なる", other.stderr.read())
+
     def test_serve_reports_the_scope_the_server_draws(self):
         a = self.serve("--scope", "project")
         ra = self.first_line(a)
