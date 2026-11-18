@@ -52,7 +52,7 @@ updated: 2026-11-14
 
 ## 取り込んだ内容と載せたページ
 
-| 候補 | 主張と成り立つ条件 | 根拠の位置 | 行き先 | 理由 |
+| 番号 | 取り込んだ内容 | 出典の該当箇所 | 掲載方法 | 掲載ページと理由 |
 | --- | --- | --- | --- | --- |
 | 1 | `scalar_value()`、`type_value()`、`kind_value()` の規則と、読む箇所 | 差分、`README.md` | update | [[frontmatterのリストの値]] の「1 つの文字の欄」 |
 | 2 | `type` と `updated` の欠陥を直し、browse の表示だけが残った | `README.md`、`review-sol.md` | update | [[frontmatterのリストの値]] の「残っている欠陥」 |
