@@ -1,0 +1,162 @@
+{
+  "id": "browse-static-figures-2026-11-19",
+  "task": "Claude の static-mermaid worktree を引き継ぎ、静的版 browse の図の隔離、長時間の保持メモリ、静的画像の候補を検証する",
+  "outcome": "success",
+  "actions": [
+    "GPT の 2 モデルで実装候補を検討し、relay-srcdoc を図ごとの使い捨てにして pageDir 等を渡さず、同時に生きる描画枠を 1 組に制限した。",
+    "Astra の敵対的レビューで別図の枠間通信と時間切れの試験漏れを見つけ、修正後に 5 ブラウザで 60 項目を検証した。サーバー版の隔離修正も別に記録した。",
+    "Blob の作成元を配色ごとに破棄する試作を 5 ブラウザで測った。Windows WebKit で空白ページへの移動と追加 GC 後に残る私有コミットを libpas の確保範囲と照合した。",
+    "同じタブで配色切り替えと記事往復を分けて測った。可視範囲だけの先行描画と、同じ文書の明暗切り替えでの画像再利用を検証した。",
+    "同じ SVG から resvg で PNG を事前生成し、同一文書で 50 図を明暗で 10 周ずつ表示した。各形式を 2 回、順を反転して測り、初回デコードだけを別に 2 回ずつ追加した。"
+  ],
+  "verification": "画像のみの本測定 4 ケースと初回の追加測定 4 ケースを完了。保存した原標本から 2 組の集計を再生成して一致を確認した。描画前からのピーク私有コミット増分の中央値は SVG 63.08 MiB、PNG 33.34 MiB。書き出しの明暗計 100 枚は 1,282,530 B と 287,735 B。",
+  "model": "実験担当は Codex（個別のモデル ID は測定成果物から未確定）。比較・レビューには GPT-6.2 Sol と GPT-6.2 Astra を使用。最終画像比較の Opus のレビュー依頼は時間切れで、Astra が確認した。",
+  "tools": "Playwright 1.56.1、WebKit 26.0（r2215）、Node.js v24.15.0、Windows 10.0.26300、resvg 0.50.0、Windows PSAPI と PowerShell。",
+  "scope": "poc/browse-figures-static の合成フローチャート。画像比較は Windows の Playwright WebKit、file://、50 図・2 配色、同一タブ 10 周、手動 GC なし。ピークは採取した標本の最大で、画像サイズは HTTP 圧縮前のファイル合計。",
+  "hypothesis": "繰り返す負荷に Mermaid の再実行が関わり、空白ページで追加 GC 後の大きな保持には libpas の空き領域が関わる。領域別コミットに現れない 7.34〜8.20 MiB はページテーブルの課金と整合するが、直接測定は保留。",
+  "counterexamples": "SVG 2 回目は描画前から GPU プロセスが約 32 MiB 小さく、絶対ピークは PNG より小さい反復もあった。PNG の初回明色 4,450 ms は別の 3 回で再現しなかった。PNG の全図の画素一致、実機 Safari、他の図種と拡大時の画質、圧縮転送時のサイズは未検証。",
+  "evidence": [
+    {
+      "path": ".claude/worktrees/static-mermaid/docs/research/wiki-browse-relay-isolation-2026-11-17.md",
+      "sha256": "aeb52dd730ae2b654d1a8c47ca74a8a63b30ef006fb01363df73a5ff5a2ca847"
+    },
+    {
+      "path": ".claude/worktrees/static-mermaid/docs/research/wiki-browse-server-figure-isolation-2026-11-17.md",
+      "sha256": "dafd00eb0c7153b010f9fdff6bd627a6d444530d2c0f1693934f8ee14fe7b418"
+    },
+    {
+      "path": ".claude/worktrees/static-mermaid/docs/research/wiki-browse-blob-per-render-retention-2026-11-18.md",
+      "sha256": "efc0d1ad12b1711b1e0ab49060061090ecc55cc7da5af86b1a118b4630781e33"
+    },
+    {
+      "path": ".claude/worktrees/static-mermaid/docs/research/wiki-browse-webkit-libpas-retention-2026-11-18.md",
+      "sha256": "c38e7d20198a051019aabf0d846c5f9386336b82b57e67a95e54fd4f02bf2c10"
+    },
+    {
+      "path": ".claude/worktrees/static-mermaid/docs/research/wiki-browse-webkit-commit-accounting-2026-11-18.md",
+      "sha256": "51b37c450272a31166335910be9b91a91c5d0bd9236b8ad929ac36d87b079593"
+    },
+    {
+      "path": ".claude/worktrees/static-mermaid/docs/research/wiki-browse-repeat-tab-and-render-policy-2026-11-18.md",
+      "sha256": "d31fc28d354b8dcbb454e285d4e0e984fe68da41f8d6ed3c97a2f39080b30518"
+    },
+    {
+      "path": ".claude/worktrees/static-mermaid/docs/research/wiki-browse-static-svg-vs-png-2026-11-19.md",
+      "sha256": "4c31aeba06411ed9cd2a29b4aa10cab12520e1d81cf3c3ec4be63cd9a786c143"
+    },
+    {
+      "path": ".claude/worktrees/static-mermaid/docs/agent-runs/2026-11-19-wiki-static-svg-vs-png/ten-rounds/summary.json",
+      "sha256": "7956998f8538d46a2918a0cdf4bef5fd13af145254e05955f790ec315d1d69a8"
+    },
+    {
+      "path": ".claude/worktrees/static-mermaid/docs/agent-runs/2026-11-19-wiki-static-svg-vs-png/first-round/summary.json",
+      "sha256": "316bf820635f6e5552296f4f3e702ee6a08c9c71963e87b3193f45c5f6ec6cce"
+    },
+    {
+      "path": ".claude/worktrees/static-mermaid/docs/agent-runs/2026-11-19-wiki-static-svg-vs-png/images/manifest.json",
+      "sha256": "d727b13f49389d4478975a92fc7463f3d113cc292884629cf5ccee0dfa662ea2"
+    },
+    {
+      "path": ".claude/worktrees/static-mermaid/docs/agent-runs/2026-11-19-wiki-static-svg-vs-png/review.md",
+      "sha256": "ebd84e821f1c998e3d3ed71d477b070f67c78d4cf3a0fc4d8566b8935a2fa14c"
+    }
+  ],
+  "static_image_metrics": {
+    "svg": {
+      "peak_private_bytes": [
+        902950912,
+        868151296
+      ],
+      "peak_private_growth_bytes": [
+        66793472,
+        65495040
+      ],
+      "peak_working_set_sum_bytes": [
+        226877440,
+        224165888
+      ],
+      "retained_private_bytes_medians": [
+        883189760,
+        883001344,
+        882679808,
+        883783680,
+        882694144,
+        883105792,
+        882890752,
+        883353600,
+        883740672,
+        884008960
+      ],
+      "first_decode_ms": {
+        "light": [
+          348,
+          789,
+          209,
+          177
+        ],
+        "dark": [
+          368,
+          802,
+          234,
+          206.0
+        ]
+      },
+      "warm_first_decode_ms_medians": {
+        "light": 12.5,
+        "dark": 12.0
+      },
+      "asset_bytes": {
+        "light": 635890,
+        "dark": 646640
+      }
+    },
+    "png": {
+      "peak_private_bytes": [
+        870457344,
+        871747584
+      ],
+      "peak_private_growth_bytes": [
+        34783232,
+        35143680
+      ],
+      "peak_working_set_sum_bytes": [
+        212754432,
+        211730432
+      ],
+      "retained_private_bytes_medians": [
+        853415936,
+        849035264,
+        849281024,
+        849754112,
+        850042880,
+        850903040,
+        868038656,
+        868034560,
+        869132288,
+        869691392
+      ],
+      "first_decode_ms": {
+        "light": [
+          4450,
+          176,
+          213,
+          138
+        ],
+        "dark": [
+          1604,
+          215.0,
+          156,
+          170
+        ]
+      },
+      "warm_first_decode_ms_medians": {
+        "light": 14.5,
+        "dark": 14.0
+      },
+      "asset_bytes": {
+        "light": 141333,
+        "dark": 146402
+      }
+    }
+  }
+}
