@@ -1,6 +1,6 @@
 # SemaSynth wiki の Apache Ossie 書き出し PoC
 
-2026-11-19 に SemaSynth の `C:/path/to/semasynth/wiki` で検証した。入力は info-hive-wiki 0.35.1（`8c451e6`）の `graph/graph.sqlite`。同じ 63 ページを現行の抽出器で一時領域に再生成し、入力と全行・全列が一致することを確かめた。検証した Ossie は `0.3.0.dev0`（`0f458de`）。 [前回の置換調査](2026-11-19-apache-ossie-wiki-graph-replacement.md) · [Apache Ossie の検証対象コミット](https://github.com/apache/ossie/commit/0f458dee0718b701930bf4597e1d84e427f0c8fc)
+2026-11-19 に SemaSynth の `C:/Works/semasynth-dev/wiki` で検証した。入力は info-hive-wiki 0.35.1（`8c451e6`）の `graph/graph.sqlite`。同じ 63 ページを現行の抽出器で一時領域に再生成し、入力と全行・全列が一致することを確かめた。検証した Ossie は `0.3.0.dev0`（`0f458de`）。 [前回の置換調査](2026-11-19-apache-ossie-wiki-graph-replacement.md) · [Apache Ossie の検証対象コミット](https://github.com/apache/ossie/commit/0f458dee0718b701930bf4597e1d84e427f0c8fc)
 
 ## 実データで保持できたもの
 
@@ -34,7 +34,7 @@
 Python 3.9 以降の標準ライブラリで書き出せる。親リポジトリのルートから、入力 wiki の外にある新規ディレクトリを指定する。
 
 ```powershell
-python -B -X utf8 poc/ossie/export_wiki_graph.py --wiki C:/path/to/semasynth/wiki --output poc/ossie/runs/semasynth-rerun
+python -B -X utf8 poc/ossie/export_wiki_graph.py --wiki C:/Works/semasynth-dev/wiki --output poc/ossie/runs/semasynth-rerun
 uv run --with pyyaml==6.0.3 python -B -X utf8 -m unittest discover -s tests/wiki -p test_ossie_export.py -v
 ```
 
@@ -51,5 +51,5 @@ uv run --with pyyaml==6.0.3 python -B -X utf8 -m unittest discover -s tests/wiki
 公式の文書検証も行う場合は、上記コミットの Ossie チェックアウトを `--ossie-checkout` に指定する。PoC が `uv` で公式の検証器を実行し、結果を `verification.json` の `official_validation` に記録する。
 
 ```powershell
-python -B -X utf8 poc/ossie/export_wiki_graph.py --wiki C:/path/to/semasynth/wiki --output poc/ossie/runs/semasynth-validated --ossie-checkout C:/path/to/ossie
+python -B -X utf8 poc/ossie/export_wiki_graph.py --wiki C:/Works/semasynth-dev/wiki --output poc/ossie/runs/semasynth-validated --ossie-checkout C:/path/to/ossie
 ```

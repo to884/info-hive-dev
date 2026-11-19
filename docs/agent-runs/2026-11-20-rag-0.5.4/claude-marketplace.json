@@ -1,0 +1,77 @@
+{
+  "status": "passed",
+  "client": "2.1.325 (Claude Code)",
+  "marketplace": "to884/info-hive-marketplace",
+  "version": "0.5.4",
+  "wiki_dependency_version": "0.39.0",
+  "installed": true,
+  "enabled": true,
+  "release_files_sha256": {
+    ".claude-plugin/plugin.json": "d48975645c0403828020d2f0e28ab7cebbb6d4731db7f23d9ea0cf5aa19722b8",
+    ".gitattributes": "1489c093816cf18b9fc7ab33693b96a795d8a358f8fa5fc40f6e731ff30e31cc",
+    "CHANGELOG.md": "10a0e37c40f493662f91c028f8bd8040066ec033404f3f3d64705be18d2bcb66",
+    "scripts/rag_index.py": "021ea0774ec104f2b1b827498a6192bf64a68fc2d3dcb0d8d1d2373240aa7ab6",
+    "scripts/rag_pdf.py": "eca92f86ab4fb63f8866889ef571eb353f57e05679e1c5ea8154ac191efb11ae",
+    "scripts/rag_pdf_layer.py": "514990ed83d1d491fc83a4e150a4769ab05f3dfe3ac5636a37e9f57f43800b61"
+  },
+  "tag": "v0.5.4",
+  "commit": "9af30c3d46fd1699638ea87c908c8d1bb313bae8",
+  "steps": [
+    {
+      "command": [
+        "--version"
+      ],
+      "returncode": 0,
+      "stdout": "2.1.325 (Claude Code)\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "plugin",
+        "marketplace",
+        "add",
+        "to884/info-hive-marketplace",
+        "--scope",
+        "user",
+        "--json"
+      ],
+      "returncode": 0,
+      "stdout": "{\"command\":\"marketplace-add\",\"outcome\":\"ok\",\"marketplace\":\"info-hive\",\"message\":\"Cloning via SSH: git@github.com:to884/info-hive-marketplace.git\\nRefreshing marketplace cache (timeout: 120s)…\\nCloning repository (timeout: 120s): git@github.com:to884/info-hive-marketplace.git\\nClone complete, validating marketplace…\\nCleaning up old marketplace cache…\\nSuccessfully added marketplace: info-hive (declared in user settings)\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "plugin",
+        "install",
+        "rag@info-hive",
+        "--scope",
+        "user",
+        "--json"
+      ],
+      "returncode": 0,
+      "stdout": "{\"command\":\"install\",\"outcome\":\"ok\",\"plugin\":\"rag@info-hive\",\"pluginId\":\"rag@info-hive\",\"scope\":\"user\",\"message\":\"Successfully installed plugin: rag@info-hive (scope: user) (+ 1 dependency: wiki)\"}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "plugin",
+        "list",
+        "--json"
+      ],
+      "returncode": 0,
+      "stdout": "[\n  {\n    \"id\": \"rag@info-hive\",\n    \"version\": \"0.5.4\",\n    \"scope\": \"user\",\n    \"enabled\": true,\n    \"installPath\": \"C:\\\\Works\\\\info-hive-dev-data\\\\merge-20261120\\\\rag054-marketplace-60_m9xbh\\\\home\\\\plugins\\\\cache\\\\info-hive\\\\rag\\\\0.5.4\",\n    \"installedAt\": \"2026-11-19T20:25:06.266Z\",\n    \"lastUpdated\": \"2026-11-19T20:25:06.266Z\",\n    \"mcpServers\": {\n      \"rag\": {\n        \"command\": \"uv\",\n        \"args\": [\n          \"run\",\n          \"--no-project\",\n          \"--script\",\n          \"${CLAUDE_PLUGIN_ROOT}/scripts/rag_server.py\"\n        ],\n        \"env\": {\n          \"PYTHONUTF8\": \"1\",\n          \"PYTHONIOENCODING\": \"utf-8\",\n          \"PYTHONDONTWRITEBYTECODE\": \"1\"\n        }\n      }\n    },\n    \"projectEnabled\": false\n  },\n  {\n    \"id\": \"wiki@info-hive\",\n    \"version\": \"0.39.0\",\n    \"scope\": \"user\",\n    \"enabled\": true,\n    \"installPath\": \"C:\\\\Works\\\\info-hive-dev-data\\\\merge-20261120\\\\rag054-marketplace-60_m9xbh\\\\home\\\\plugins\\\\cache\\\\info-hive\\\\wiki\\\\0.39.0\",\n    \"installedAt\": \"2026-11-19T20:25:10.055Z\",\n    \"lastUpdated\": \"2026-11-19T20:25:10.055Z\",\n    \"mcpServers\": {\n      \"wiki\": {\n        \"command\": \"uv\",\n        \"args\": [\n          \"run\",\n          \"--quiet\",\n          \"--script\",\n          \"${CLAUDE_PLUGIN_ROOT}/skills/info-hive/scripts/wiki_mcp_launch.py\"\n        ]\n      }\n    },\n    \"projectEnabled\": false,\n    \"hasUserConfig\": true\n  }\n]\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "plugin",
+        "validate",
+        "C:\\Works\\info-hive-dev-data\\merge-20261120\\rag054-marketplace-60_m9xbh\\home\\plugins\\cache\\info-hive\\rag\\0.5.4"
+      ],
+      "returncode": 0,
+      "stdout": "Validating plugin manifest: C:\\Works\\info-hive-dev-data\\merge-20261120\\rag054-marketplace-60_m9xbh\\home\\plugins\\cache\\info-hive\\rag\\0.5.4\\.claude-plugin\\plugin.json\n\nPlugin directory checks for C:\\Works\\info-hive-dev-data\\merge-20261120\\rag054-marketplace-60_m9xbh\\home\\plugins\\cache\\info-hive\\rag\\0.5.4. The plugin directory is the catalog that plugins are submitted to; this is a subset of what it runs.\n\n‼ Found 1 plugin directory warning:\n\n  > .claude-plugin/plugin.json icon: No icon (ICON_MISSING). No icon found in the plugin. The validator looked for `icon` in plugin.json and for a file at .claude-plugin/icon.png or .svg, assets/icon.png or .svg, or a similar path.\n    Fix: Add a square PNG to the plugin folder at .claude-plugin/icon.png, or set `icon` in plugin.json to the path of a square PNG or JPEG in the plugin: 512 to 2048 px on each side, under 2 MB. SVG and WebP are not accepted. That file may become the listing icon only once: the first time the plugin is saved or submitted in the developer portal. Adding or changing it later does not change the icon.\n\nThese plugin directory checks do not change the result below.\n\nThe directory also runs a safety scan and a policy review that this command does not.\n\n√ Validation passed\n",
+      "stderr": ""
+    }
+  ],
+  "temporary_directory_removed": true
+}

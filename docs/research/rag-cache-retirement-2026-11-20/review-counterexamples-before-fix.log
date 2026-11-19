@@ -1,0 +1,56 @@
+test_cache_permission_errors_remain_retryable (test_jobs.JobTests.test_cache_permission_errors_remain_retryable) ... ERROR
+test_other_wiki_keeps_ocr_for_an_interrupted_reactivation (test_jobs.JobTests.test_other_wiki_keeps_ocr_for_an_interrupted_reactivation) ... FAIL
+test_pruned_reingest_cache_is_retried_after_unlock (test_jobs.JobTests.test_pruned_reingest_cache_is_retried_after_unlock) ... FAIL
+
+======================================================================
+ERROR: test_cache_permission_errors_remain_retryable (test_jobs.JobTests.test_cache_permission_errors_remain_retryable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Works\info-hive-dev\tests\rag\test_jobs.py", line 662, in test_cache_permission_errors_remain_retryable
+    engine.maintain_indexes(str(self.wiki))
+  File "C:\Works\info-hive-dev\info-hive-rag\scripts\rag_index.py", line 456, in maintain_indexes
+    self._finish_retirements(folder, connection)
+  File "C:\Works\info-hive-dev\info-hive-rag\scripts\rag_index.py", line 483, in _finish_retirements
+    removed = self._remove_extraction(doc_id)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Works\info-hive-dev\info-hive-rag\scripts\rag_index.py", line 418, in _remove_extraction
+    shutil.rmtree(self.config.extraction_root / doc_id)
+  File "C:\Works\info-hive-dev\tests\rag\test_jobs.py", line 659, in temporarily_denied
+    raise PermissionError('一時的なキャッシュの共有違反')
+PermissionError: 一時的なキャッシュの共有違反
+
+======================================================================
+FAIL: test_other_wiki_keeps_ocr_for_an_interrupted_reactivation (test_jobs.JobTests.test_other_wiki_keeps_ocr_for_an_interrupted_reactivation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Works\info-hive-dev\tests\rag\test_jobs.py", line 637, in test_other_wiki_keeps_ocr_for_an_interrupted_reactivation
+    result = engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Works\info-hive-dev\info-hive-rag\scripts\rag_index.py", line 575, in ingest_pdf
+    pages = self.extractor(data, self.config, cache, progress)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Works\info-hive-dev\info-hive-rag\scripts\rag_pdf.py", line 65, in extract_pages
+    text = ocr_page(page, config, cache,client=ocr)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Users\toshiki\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Users\toshiki\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Users\toshiki\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+AssertionError: 中断済みジョブの OCR を消した
+
+======================================================================
+FAIL: test_pruned_reingest_cache_is_retried_after_unlock (test_jobs.JobTests.test_pruned_reingest_cache_is_retried_after_unlock)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Works\info-hive-dev\tests\rag\test_jobs.py", line 606, in test_pruned_reingest_cache_is_retried_after_unlock
+    self.assertFalse(cache.parent.exists())
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 3 tests in 6.004s
+
+FAILED (failures=2, errors=1)

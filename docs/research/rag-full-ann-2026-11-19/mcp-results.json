@@ -1,0 +1,1584 @@
+{
+  "checks": [
+    {
+      "name": "bulk_input_has_no_indexes",
+      "passed": true,
+      "rows": 783117
+    },
+    {
+      "name": "ann_creation_interrupt_parent_death_stops_workers",
+      "passed": true,
+      "descendants": 3
+    },
+    {
+      "name": "ann_creation_interrupt_job_paused",
+      "passed": true,
+      "job_id": "8bdc49e3793747d7b63e781507a1ee5d",
+      "phase": "ANN の作成"
+    },
+    {
+      "name": "ann_creation_interrupt_stop_boundary_verified",
+      "passed": true,
+      "commit_state": "not_committed",
+      "version_before": 400,
+      "version_after": 400
+    },
+    {
+      "name": "initial_pdf_not_published_during_ann_creation",
+      "passed": true
+    },
+    {
+      "name": "ann_creation_has_saved_embedding_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "ann_creation_resumes_same_job",
+      "passed": true,
+      "job_id": "8bdc49e3793747d7b63e781507a1ee5d",
+      "attempts": 2
+    },
+    {
+      "name": "initial_extracted_pages_reused",
+      "passed": true
+    },
+    {
+      "name": "full_ann_created_after_reconnect",
+      "passed": true,
+      "rows": 783557,
+      "expected_rows": 783557,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783557,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783557,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783557,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      }
+    },
+    {
+      "name": "ann_creation_keeps_saved_rows",
+      "passed": true
+    },
+    {
+      "name": "ann_creation_history_matches_stop",
+      "passed": true,
+      "commit_state": "not_committed",
+      "history": {
+        "kind": "ANN の作成",
+        "rows": 783557,
+        "version_before": 400,
+        "version_after": 401,
+        "recovered": false,
+        "at": 1795099922.2708962
+      }
+    },
+    {
+      "name": "ann_creation_vectors_reused",
+      "passed": true,
+      "saved_embedding_cursor": 440
+    },
+    {
+      "name": "ann_update_interrupt_parent_death_stops_workers",
+      "passed": true,
+      "descendants": 3
+    },
+    {
+      "name": "ann_update_interrupt_job_paused",
+      "passed": true,
+      "job_id": "79d632f9a63e4528aac8570064f02969",
+      "phase": "索引の更新"
+    },
+    {
+      "name": "ann_update_interrupt_stop_boundary_verified",
+      "passed": true,
+      "commit_state": "not_committed",
+      "version_before": 403,
+      "version_after": 403
+    },
+    {
+      "name": "appended_pdf_not_published_during_update",
+      "passed": true
+    },
+    {
+      "name": "ann_update_has_saved_embedding_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "ann_update_resumes_same_job",
+      "passed": true,
+      "job_id": "79d632f9a63e4528aac8570064f02969",
+      "attempts": 2
+    },
+    {
+      "name": "appended_extracted_pages_reused",
+      "passed": true
+    },
+    {
+      "name": "full_ann_updated_after_reconnect",
+      "passed": true,
+      "rows": 783601,
+      "expected_rows": 783601,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783601,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783601,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783601,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      }
+    },
+    {
+      "name": "ann_update_history_matches_stop",
+      "passed": true,
+      "commit_state": "not_committed",
+      "history": {
+        "kind": "索引の更新",
+        "rows": 783601,
+        "version_before": 403,
+        "version_after": 407,
+        "recovered": false,
+        "at": 1795100056.7709808
+      }
+    },
+    {
+      "name": "ann_update_vectors_reused",
+      "passed": true,
+      "saved_embedding_cursor": 44
+    },
+    {
+      "name": "replacement_interrupt_parent_death_stops_workers",
+      "passed": true
+    },
+    {
+      "name": "replacement_interrupt_after_publication",
+      "passed": true
+    },
+    {
+      "name": "replacement_old_rows_hidden_before_cleanup",
+      "passed": true,
+      "physical_old_rows": 440
+    },
+    {
+      "name": "replacement_resumes_same_job",
+      "passed": true,
+      "job_id": "f183590b1af642ee9616599bb6ecb138",
+      "attempts": 2
+    },
+    {
+      "name": "replacement_vectors_reused",
+      "passed": true
+    },
+    {
+      "name": "replacement_updates_full_indexes",
+      "passed": true,
+      "rows": 783645,
+      "expected_rows": 783645,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      }
+    },
+    {
+      "name": "replaced_generation_rows_removed",
+      "passed": true
+    },
+    {
+      "name": "replacement_marks_dependent_page",
+      "passed": true
+    },
+    {
+      "name": "replacement_has_no_cleanup_error",
+      "passed": true
+    },
+    {
+      "name": "retirement_queue_empty",
+      "passed": true
+    },
+    {
+      "name": "replacement_no_inactive_generations",
+      "passed": true
+    },
+    {
+      "name": "replacement_search_excludes_old_generation",
+      "passed": true
+    },
+    {
+      "name": "before_unchanged_registration",
+      "passed": true,
+      "rows": 783645,
+      "expected_rows": 783645,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      }
+    },
+    {
+      "name": "after_unchanged_registration",
+      "passed": true,
+      "rows": 783645,
+      "expected_rows": 783645,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      }
+    },
+    {
+      "name": "unchanged_registration_reuses_index",
+      "passed": true
+    },
+    {
+      "name": "ocr_page_searchable_d246f7a235ab",
+      "passed": true,
+      "page": 3,
+      "seconds": 13.676726100000451
+    },
+    {
+      "name": "ocr_page_searchable_dd08168b385b",
+      "passed": true,
+      "page": 7,
+      "seconds": 3.7085569000009855
+    },
+    {
+      "name": "ocr_page_searchable_71ef12e83c59",
+      "passed": true,
+      "page": 7,
+      "seconds": 3.500448499999038
+    },
+    {
+      "name": "ocr_search_sources_verified",
+      "passed": true,
+      "samples": 3
+    },
+    {
+      "name": "stored_vectors_match_cpu_reference",
+      "passed": true,
+      "samples": 16,
+      "min_cosine": 1.0,
+      "max_cosine": 1.0000001192092896
+    },
+    {
+      "name": "ann_only_returns_known_vectors",
+      "passed": true,
+      "samples": 8,
+      "min_top10_overlap": 1.0
+    },
+    {
+      "name": "final_table_has_no_duplicate_chunk_ids",
+      "passed": true
+    },
+    {
+      "name": "final_catalog_matches_table",
+      "passed": true,
+      "documents": 907,
+      "chunks": 783645
+    }
+  ],
+  "snapshots": [
+    {
+      "label": "full_ann_created_after_reconnect",
+      "rows": 783557,
+      "version": 401,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783557,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783557,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783557,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      },
+      "maintenance": {
+        "strategy": "ivf-sq-v1",
+        "trained_rows": 783557,
+        "deleted_since_training": 0,
+        "rows": 783557,
+        "history": [
+          {
+            "kind": "全文索引の作成",
+            "rows": 783557,
+            "version_before": 398,
+            "version_after": 399,
+            "recovered": false,
+            "at": 1795099851.0619464
+          },
+          {
+            "kind": "世代索引の作成",
+            "rows": 783557,
+            "version_before": 399,
+            "version_after": 400,
+            "recovered": false,
+            "at": 1795099852.3774283
+          },
+          {
+            "kind": "ANN の作成",
+            "rows": 783557,
+            "version_before": 400,
+            "version_after": 401,
+            "recovered": false,
+            "at": 1795099922.2708962
+          }
+        ],
+        "num_partitions": 886,
+        "training_metadata": "created_by_rag",
+        "table_version": 401,
+        "dimension": 512,
+        "indexes": {
+          "generation_idx": {
+            "num_indexed_rows": 783557,
+            "num_unindexed_rows": 0,
+            "index_type": "BITMAP",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "terms_idx": {
+            "num_indexed_rows": 783557,
+            "num_unindexed_rows": 0,
+            "index_type": "FTS",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "vector_idx": {
+            "num_indexed_rows": 783557,
+            "num_unindexed_rows": 0,
+            "index_type": "IVF_SQ",
+            "distance_type": "cosine",
+            "num_indices": 1
+          }
+        },
+        "ann_ready": true
+      },
+      "at": 1795099923.0204887
+    },
+    {
+      "label": "full_ann_updated_after_reconnect",
+      "rows": 783601,
+      "version": 407,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783601,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783601,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783601,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      },
+      "maintenance": {
+        "strategy": "ivf-sq-v1",
+        "trained_rows": 783557,
+        "deleted_since_training": 0,
+        "rows": 783601,
+        "history": [
+          {
+            "kind": "全文索引の作成",
+            "rows": 783557,
+            "version_before": 398,
+            "version_after": 399,
+            "recovered": false,
+            "at": 1795099851.0619464
+          },
+          {
+            "kind": "世代索引の作成",
+            "rows": 783557,
+            "version_before": 399,
+            "version_after": 400,
+            "recovered": false,
+            "at": 1795099852.3774283
+          },
+          {
+            "kind": "ANN の作成",
+            "rows": 783557,
+            "version_before": 400,
+            "version_after": 401,
+            "recovered": false,
+            "at": 1795099922.2708962
+          },
+          {
+            "kind": "索引の更新",
+            "rows": 783601,
+            "version_before": 403,
+            "version_after": 407,
+            "recovered": false,
+            "at": 1795100056.7709808
+          }
+        ],
+        "num_partitions": 886,
+        "training_metadata": "created_by_rag",
+        "table_version": 407,
+        "dimension": 512,
+        "indexes": {
+          "generation_idx": {
+            "num_indexed_rows": 783601,
+            "num_unindexed_rows": 0,
+            "index_type": "BITMAP",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "terms_idx": {
+            "num_indexed_rows": 783601,
+            "num_unindexed_rows": 0,
+            "index_type": "FTS",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "vector_idx": {
+            "num_indexed_rows": 783601,
+            "num_unindexed_rows": 0,
+            "index_type": "IVF_SQ",
+            "distance_type": "cosine",
+            "num_indices": 1
+          }
+        },
+        "ann_ready": true
+      },
+      "at": 1795100057.4253974
+    },
+    {
+      "label": "replacement_updates_full_indexes",
+      "rows": 783645,
+      "version": 428,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      },
+      "maintenance": {
+        "strategy": "ivf-sq-v1",
+        "trained_rows": 783557,
+        "deleted_since_training": 440,
+        "rows": 783645,
+        "history": [
+          {
+            "kind": "全文索引の作成",
+            "rows": 783557,
+            "version_before": 398,
+            "version_after": 399,
+            "recovered": false,
+            "at": 1795099851.0619464
+          },
+          {
+            "kind": "世代索引の作成",
+            "rows": 783557,
+            "version_before": 399,
+            "version_after": 400,
+            "recovered": false,
+            "at": 1795099852.3774283
+          },
+          {
+            "kind": "ANN の作成",
+            "rows": 783557,
+            "version_before": 400,
+            "version_after": 401,
+            "recovered": false,
+            "at": 1795099922.2708962
+          },
+          {
+            "kind": "索引の更新",
+            "rows": 783601,
+            "version_before": 403,
+            "version_after": 407,
+            "recovered": false,
+            "at": 1795100056.7709808
+          },
+          {
+            "kind": "索引の更新",
+            "rows": 784085,
+            "version_before": 423,
+            "version_after": 427,
+            "recovered": false,
+            "at": 1795100277.7850127
+          }
+        ],
+        "num_partitions": 886,
+        "training_metadata": "created_by_rag",
+        "table_version": 428,
+        "dimension": 512,
+        "indexes": {
+          "generation_idx": {
+            "num_indexed_rows": 783645,
+            "num_unindexed_rows": 0,
+            "index_type": "BITMAP",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "terms_idx": {
+            "num_indexed_rows": 783645,
+            "num_unindexed_rows": 0,
+            "index_type": "FTS",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "vector_idx": {
+            "num_indexed_rows": 783645,
+            "num_unindexed_rows": 0,
+            "index_type": "IVF_SQ",
+            "distance_type": "cosine",
+            "num_indices": 1
+          }
+        },
+        "ann_ready": true
+      },
+      "at": 1795100314.1072886
+    },
+    {
+      "label": "before_unchanged_registration",
+      "rows": 783645,
+      "version": 428,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      },
+      "maintenance": {
+        "strategy": "ivf-sq-v1",
+        "trained_rows": 783557,
+        "deleted_since_training": 440,
+        "rows": 783645,
+        "history": [
+          {
+            "kind": "全文索引の作成",
+            "rows": 783557,
+            "version_before": 398,
+            "version_after": 399,
+            "recovered": false,
+            "at": 1795099851.0619464
+          },
+          {
+            "kind": "世代索引の作成",
+            "rows": 783557,
+            "version_before": 399,
+            "version_after": 400,
+            "recovered": false,
+            "at": 1795099852.3774283
+          },
+          {
+            "kind": "ANN の作成",
+            "rows": 783557,
+            "version_before": 400,
+            "version_after": 401,
+            "recovered": false,
+            "at": 1795099922.2708962
+          },
+          {
+            "kind": "索引の更新",
+            "rows": 783601,
+            "version_before": 403,
+            "version_after": 407,
+            "recovered": false,
+            "at": 1795100056.7709808
+          },
+          {
+            "kind": "索引の更新",
+            "rows": 784085,
+            "version_before": 423,
+            "version_after": 427,
+            "recovered": false,
+            "at": 1795100277.7850127
+          }
+        ],
+        "num_partitions": 886,
+        "training_metadata": "created_by_rag",
+        "table_version": 428,
+        "dimension": 512,
+        "indexes": {
+          "generation_idx": {
+            "num_indexed_rows": 783645,
+            "num_unindexed_rows": 0,
+            "index_type": "BITMAP",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "terms_idx": {
+            "num_indexed_rows": 783645,
+            "num_unindexed_rows": 0,
+            "index_type": "FTS",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "vector_idx": {
+            "num_indexed_rows": 783645,
+            "num_unindexed_rows": 0,
+            "index_type": "IVF_SQ",
+            "distance_type": "cosine",
+            "num_indices": 1
+          }
+        },
+        "ann_ready": true
+      },
+      "at": 1795100326.7162533
+    },
+    {
+      "label": "after_unchanged_registration",
+      "rows": 783645,
+      "version": 428,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      },
+      "maintenance": {
+        "strategy": "ivf-sq-v1",
+        "trained_rows": 783557,
+        "deleted_since_training": 440,
+        "rows": 783645,
+        "history": [
+          {
+            "kind": "全文索引の作成",
+            "rows": 783557,
+            "version_before": 398,
+            "version_after": 399,
+            "recovered": false,
+            "at": 1795099851.0619464
+          },
+          {
+            "kind": "世代索引の作成",
+            "rows": 783557,
+            "version_before": 399,
+            "version_after": 400,
+            "recovered": false,
+            "at": 1795099852.3774283
+          },
+          {
+            "kind": "ANN の作成",
+            "rows": 783557,
+            "version_before": 400,
+            "version_after": 401,
+            "recovered": false,
+            "at": 1795099922.2708962
+          },
+          {
+            "kind": "索引の更新",
+            "rows": 783601,
+            "version_before": 403,
+            "version_after": 407,
+            "recovered": false,
+            "at": 1795100056.7709808
+          },
+          {
+            "kind": "索引の更新",
+            "rows": 784085,
+            "version_before": 423,
+            "version_after": 427,
+            "recovered": false,
+            "at": 1795100277.7850127
+          }
+        ],
+        "num_partitions": 886,
+        "training_metadata": "created_by_rag",
+        "table_version": 428,
+        "dimension": 512,
+        "indexes": {
+          "generation_idx": {
+            "num_indexed_rows": 783645,
+            "num_unindexed_rows": 0,
+            "index_type": "BITMAP",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "terms_idx": {
+            "num_indexed_rows": 783645,
+            "num_unindexed_rows": 0,
+            "index_type": "FTS",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "vector_idx": {
+            "num_indexed_rows": 783645,
+            "num_unindexed_rows": 0,
+            "index_type": "IVF_SQ",
+            "distance_type": "cosine",
+            "num_indices": 1
+          }
+        },
+        "ann_ready": true
+      },
+      "at": 1795100331.9514616
+    }
+  ],
+  "initial_job": "8bdc49e3793747d7b63e781507a1ee5d",
+  "ann_creation_interrupt": {
+    "job": {
+      "wiki": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\wiki",
+      "source": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\fixtures\\ann-initial.pdf",
+      "source_page": "sources/ann-initial.md",
+      "title": "",
+      "size": 38141,
+      "mtime_ns": 1795099572657294700,
+      "status": "running",
+      "phase": "ANN の作成",
+      "completed": 0,
+      "total": 1,
+      "attempts": 1,
+      "error": null,
+      "result": null,
+      "created_at": 1795099581.7844458,
+      "updated_at": 1795099852.4113598,
+      "publication_started": 0,
+      "job_id": "8bdc49e3793747d7b63e781507a1ee5d"
+    },
+    "pending": {
+      "kind": "ANN の作成",
+      "names": [
+        "vector_idx"
+      ],
+      "rows": 783557,
+      "version_before": 400,
+      "updates": {
+        "trained_rows": 783557,
+        "num_partitions": 886,
+        "deleted_since_training": 0,
+        "training_metadata": "created_by_rag"
+      }
+    },
+    "descendant_pids": [
+      40816,
+      38852,
+      21640
+    ],
+    "alive_after_parent_death": [],
+    "paused_job": {
+      "wiki": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\wiki",
+      "source": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\fixtures\\ann-initial.pdf",
+      "source_page": "sources/ann-initial.md",
+      "title": "",
+      "size": 38141,
+      "mtime_ns": 1795099572657294700,
+      "status": "paused",
+      "phase": "ANN の作成",
+      "completed": 0,
+      "total": 1,
+      "attempts": 1,
+      "error": null,
+      "result": null,
+      "created_at": 1795099581.7844458,
+      "updated_at": 1795099852.4950492,
+      "publication_started": 0,
+      "job_id": "8bdc49e3793747d7b63e781507a1ee5d"
+    },
+    "rows_after_stop": 783557,
+    "table_version_after_stop": 400,
+    "pending_after_stop": {
+      "kind": "ANN の作成",
+      "names": [
+        "vector_idx"
+      ],
+      "rows": 783557,
+      "version_before": 400,
+      "updates": {
+        "trained_rows": 783557,
+        "num_partitions": 886,
+        "deleted_since_training": 0,
+        "training_metadata": "created_by_rag"
+      }
+    },
+    "indexes_after_stop": {
+      "generation_idx": {
+        "num_indexed_rows": 783557,
+        "num_unindexed_rows": 0,
+        "index_type": "BITMAP",
+        "distance_type": null,
+        "num_indices": 1
+      },
+      "terms_idx": {
+        "num_indexed_rows": 783557,
+        "num_unindexed_rows": 0,
+        "index_type": "FTS",
+        "distance_type": null,
+        "num_indices": 1
+      }
+    },
+    "vector_stamp": {
+      "rows": 440,
+      "sha256": "321376ab9cb77898b4062edb1f46b44a64166268ea54cd54a2d1334db4dfd675",
+      "saved_embedding_cursor": 440
+    },
+    "commit_state": "not_committed"
+  },
+  "initial_extracted": {
+    "page-000001.json": [
+      1795099582529021800,
+      "5f208f5157630c97779a40dce0e29887ea81be53dd7849ab620b341ba6e29976"
+    ],
+    "page-000002.json": [
+      1795099582599248700,
+      "904b12bb089ef4fea3acd4cd87655b0252ca21468260bb8b3011e53b27b78d04"
+    ],
+    "page-000003.json": [
+      1795099582686453100,
+      "e7719082deeaf6915f340fc28649c7c820b34516a2e2c76bf4be2b3307c5d1f2"
+    ],
+    "page-000004.json": [
+      1795099582771369300,
+      "3ac1b60ec0855026fa71185a9ef1e27c91a0d5e158721f544b04ada2e2ac5e36"
+    ],
+    "page-000005.json": [
+      1795099582841098200,
+      "785a7b69c970ea5d7bf842cc3cc766a0143374f1a2022696676a0695cee205b4"
+    ],
+    "page-000006.json": [
+      1795099582936177500,
+      "4b32e1650df47cf2a599b6621fa2b3359957b6d712dd2c3d36c183c35f445f39"
+    ],
+    "page-000007.json": [
+      1795099582999066600,
+      "47f38eb1b0935f6969dea0bf765fe8e8c89c09d1c9b71f1042bac6897f2c45bd"
+    ],
+    "page-000008.json": [
+      1795099583068041500,
+      "447c478bd92dde1d376219317d45ca4edce9fbc581078230e04dca84d119c4b9"
+    ],
+    "page-000009.json": [
+      1795099583112497100,
+      "ac91c1e89e0ea565032b45043097a8bf453e076119689b0b4eb732c0b68c25c9"
+    ],
+    "page-000010.json": [
+      1795099583180032400,
+      "2e73ad9cea0855374de02eb17d9a9be3e9d2e8b6692dd85c0b5f414a521622f2"
+    ],
+    "page-000011.json": [
+      1795099583249062200,
+      "f7b8f7fe707d87eb5763c794f7d7b42ddee9ac1eddce9e183cf04943b846b192"
+    ],
+    "page-000012.json": [
+      1795099583312877900,
+      "e6651263537d06636ba115c8276fb3ecb3c2ef5e60785c009f9d2ea17806af01"
+    ],
+    "page-000013.json": [
+      1795099583388331200,
+      "341a9e467fd09c74e23513a7e6914699abf8885f573d90e240a40526a385066f"
+    ],
+    "page-000014.json": [
+      1795099583472597300,
+      "72dfde167759dee78b86f1b314322576cb01d57747727421da4bd469f3770e63"
+    ],
+    "page-000015.json": [
+      1795099583536961000,
+      "3383fea3bcd306d44454405fe573eac0f330d3691f9079359b4902324b1900e7"
+    ],
+    "page-000016.json": [
+      1795099583593914500,
+      "be4c983c85ff8439ad47bf68522d6ba1adaca44715ca556b2db6f520ec28000b"
+    ],
+    "page-000017.json": [
+      1795099583660365900,
+      "674b1e8e957726acabe14fba29cc6b431627d094eef4ff908b163abb5434340e"
+    ],
+    "page-000018.json": [
+      1795099583789247000,
+      "6c7a57c1496124da21185f6a0fd6855eef3bfd9bb2ae20908380f246cb449973"
+    ],
+    "page-000019.json": [
+      1795099583849049700,
+      "269226f45ee129e6ff22d100e682b5bb812d431485a893ec3110736e649737c9"
+    ],
+    "page-000020.json": [
+      1795099583898572200,
+      "7d1d29be1e24565e1da08482b38f3a588adb76c264b6ec683b4b23a65859144f"
+    ],
+    "page-000021.json": [
+      1795099583954063200,
+      "aa05ba3074856f8230efb04746c59541d602e90dccdf179c01fb6cdb04d6b7b2"
+    ],
+    "page-000022.json": [
+      1795099584006361200,
+      "38cdd940f1e690ba2193f1059dbbe029c74066fd1ab93d86912a7fa708b78b91"
+    ],
+    "page-000023.json": [
+      1795099584054350000,
+      "46471bed7407d39e64a7fedbffc945e14b4a1193570c20cde0d00b4805a38118"
+    ],
+    "page-000024.json": [
+      1795099584125519900,
+      "acbe11353d26a41b896a3c6573b40db474d3ff7f02812aa75387a680a6818d90"
+    ],
+    "page-000025.json": [
+      1795099584181058900,
+      "15c9576a9404cc99ffea68e9ce42c8dda69273636dafb0472340eba000a6f7fd"
+    ],
+    "page-000026.json": [
+      1795099584227723100,
+      "d85de65656cf87665d5c9dd99ae5e4f1c82b2fdbbe90443ef3014e0cc210ef4b"
+    ],
+    "page-000027.json": [
+      1795099584293047400,
+      "c2f55e88461543b4fca23b02d6c2e0296eba68a9025d5fb4040318a3fc5308d0"
+    ],
+    "page-000028.json": [
+      1795099584369059600,
+      "b1f2273a04a502c202ddfdd8730ec7cefd22cdb1722755f0edefc73084fd8f6c"
+    ],
+    "page-000029.json": [
+      1795099584423508600,
+      "021170ddf2e65105f33b1308bf10f4a8f3f0b269f25de0c29810673d81ca0ada"
+    ],
+    "page-000030.json": [
+      1795099584496833700,
+      "24c74111e9d98dee8c9e5444113337f45acb640847bf36fb637a9dc2cd4c7acb"
+    ],
+    "page-000031.json": [
+      1795099584558946500,
+      "8d706a71277615a112f647d335fdce56a9bd85ed27d05854861b31b2162cbd26"
+    ],
+    "page-000032.json": [
+      1795099584607420600,
+      "d28f7fcb8dfc776599db5415fdef74ee9bc21a48c93997a4f42636278d79ae5f"
+    ],
+    "page-000033.json": [
+      1795099584647254900,
+      "c5813a97a36d7e7088d22b30b00743c6c35cfa5fe95cee321333e500125711df"
+    ],
+    "page-000034.json": [
+      1795099584712832700,
+      "79e356effecbf670ca90373c47f9fed25252a3208a2e16a297c0f26e00e3161c"
+    ],
+    "page-000035.json": [
+      1795099584750875000,
+      "0c9743ffe905b355f8c2ce054a355cc9a03b343faced559477e27e67e1d0e922"
+    ],
+    "page-000036.json": [
+      1795099584831686500,
+      "6cce54534d6fe1e553e35ebc3f59577b5e4da4ca69169697ac37335c49f46b12"
+    ],
+    "page-000037.json": [
+      1795099584878055000,
+      "c14ee3ef6fa108493a84050d3f006e3980a92422fd1679d4763b9c654903c3f2"
+    ],
+    "page-000038.json": [
+      1795099584943108100,
+      "aaaecdf05d608113f16a9fa5a60a3c3451ede3d2c27fcdfea124b773e1e78d68"
+    ],
+    "page-000039.json": [
+      1795099585018159200,
+      "3d7071015c902a0a3daed4f5ad2aa8b52d90465dd8b201986c5078b018c6d2b8"
+    ],
+    "page-000040.json": [
+      1795099585085314100,
+      "6ad0c03295c5095a94538e73416736f53be5814d37734907d5e4d9a1b9ca313a"
+    ]
+  },
+  "initial_complete": {
+    "wiki": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\wiki",
+    "source": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\fixtures\\ann-initial.pdf",
+    "source_page": "sources/ann-initial.md",
+    "title": "",
+    "size": 38141,
+    "mtime_ns": 1795099572657294700,
+    "status": "completed",
+    "phase": "完了",
+    "completed": 1,
+    "total": 1,
+    "attempts": 2,
+    "error": null,
+    "result": {
+      "status": "indexed",
+      "document_id": "f7deb2fcef76b9c895de459355a8e05d41618fa9569d11008a910a37de51ef6a",
+      "raw": "C:/Works/info-hive-dev-data/rag-poc-data/full-ann-20261119/fixtures/ann-initial.pdf",
+      "sha256": "f7deb2fcef76b9c895de459355a8e05d41618fa9569d11008a910a37de51ef6a",
+      "pages": 40,
+      "chunks": 440,
+      "extracted_markdown": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\product-data\\extracted\\f7deb2fcef76b9c895de459355a8e05d41618fa9569d11008a910a37de51ef6a\\auto-150-e57f7c6bd9cf-extract-v1\\document.md",
+      "source_page": "sources/ann-initial.md",
+      "review_pages": [],
+      "cleanup_error": null,
+      "index_reset": false,
+      "indexes": {
+        "strategy": "ivf-sq-v1",
+        "trained_rows": 783557,
+        "deleted_since_training": 0,
+        "rows": 783557,
+        "history": [
+          {
+            "kind": "全文索引の作成",
+            "rows": 783557,
+            "version_before": 398,
+            "version_after": 399,
+            "recovered": false,
+            "at": 1795099851.0619464
+          },
+          {
+            "kind": "世代索引の作成",
+            "rows": 783557,
+            "version_before": 399,
+            "version_after": 400,
+            "recovered": false,
+            "at": 1795099852.3774283
+          },
+          {
+            "kind": "ANN の作成",
+            "rows": 783557,
+            "version_before": 400,
+            "version_after": 401,
+            "recovered": false,
+            "at": 1795099922.2708962
+          }
+        ],
+        "num_partitions": 886,
+        "training_metadata": "created_by_rag",
+        "table_version": 401,
+        "dimension": 512,
+        "indexes": {
+          "generation_idx": {
+            "num_indexed_rows": 783557,
+            "num_unindexed_rows": 0,
+            "index_type": "BITMAP",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "terms_idx": {
+            "num_indexed_rows": 783557,
+            "num_unindexed_rows": 0,
+            "index_type": "FTS",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "vector_idx": {
+            "num_indexed_rows": 783557,
+            "num_unindexed_rows": 0,
+            "index_type": "IVF_SQ",
+            "distance_type": "cosine",
+            "num_indices": 1
+          }
+        },
+        "ann_ready": true
+      }
+    },
+    "created_at": 1795099581.7844458,
+    "updated_at": 1795099922.77386,
+    "publication_started": 1,
+    "job_id": "8bdc49e3793747d7b63e781507a1ee5d"
+  },
+  "append_job": "79d632f9a63e4528aac8570064f02969",
+  "ann_update_interrupt": {
+    "job": {
+      "wiki": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\wiki",
+      "source": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\fixtures\\ann-appended.pdf",
+      "source_page": "sources/ann-appended.md",
+      "title": "",
+      "size": 4636,
+      "mtime_ns": 1795099859144571300,
+      "status": "running",
+      "phase": "索引の更新",
+      "completed": 0,
+      "total": 1,
+      "attempts": 1,
+      "error": null,
+      "result": null,
+      "created_at": 1795099925.357093,
+      "updated_at": 1795099976.9778805,
+      "publication_started": 0,
+      "job_id": "79d632f9a63e4528aac8570064f02969"
+    },
+    "pending": {
+      "kind": "索引の更新",
+      "names": [
+        "generation_idx",
+        "terms_idx",
+        "vector_idx"
+      ],
+      "rows": 783601,
+      "version_before": 403,
+      "updates": {}
+    },
+    "descendant_pids": [
+      38136,
+      21348,
+      28196
+    ],
+    "alive_after_parent_death": [],
+    "paused_job": {
+      "wiki": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\wiki",
+      "source": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\fixtures\\ann-appended.pdf",
+      "source_page": "sources/ann-appended.md",
+      "title": "",
+      "size": 4636,
+      "mtime_ns": 1795099859144571300,
+      "status": "paused",
+      "phase": "索引の更新",
+      "completed": 0,
+      "total": 1,
+      "attempts": 1,
+      "error": null,
+      "result": null,
+      "created_at": 1795099925.357093,
+      "updated_at": 1795099977.0692034,
+      "publication_started": 0,
+      "job_id": "79d632f9a63e4528aac8570064f02969"
+    },
+    "rows_after_stop": 783601,
+    "table_version_after_stop": 403,
+    "pending_after_stop": {
+      "kind": "索引の更新",
+      "names": [
+        "generation_idx",
+        "terms_idx",
+        "vector_idx"
+      ],
+      "rows": 783601,
+      "version_before": 403,
+      "updates": {}
+    },
+    "indexes_after_stop": {
+      "generation_idx": {
+        "num_indexed_rows": 783557,
+        "num_unindexed_rows": 44,
+        "index_type": "BITMAP",
+        "distance_type": null,
+        "num_indices": 1
+      },
+      "vector_idx": {
+        "num_indexed_rows": 783557,
+        "num_unindexed_rows": 44,
+        "index_type": "IVF_SQ",
+        "distance_type": "cosine",
+        "num_indices": 1
+      },
+      "terms_idx": {
+        "num_indexed_rows": 783557,
+        "num_unindexed_rows": 44,
+        "index_type": "FTS",
+        "distance_type": null,
+        "num_indices": 1
+      }
+    },
+    "vector_stamp": {
+      "rows": 44,
+      "sha256": "b13bf62e8e5458b8e6fefc45add0e92641f6620530ca1ce44595cd976da22d63",
+      "saved_embedding_cursor": 44
+    },
+    "commit_state": "not_committed"
+  },
+  "append_extracted": {
+    "page-000001.json": [
+      1795099926007970300,
+      "e8b30a8aacc0a1628a80e9a51165c2e673bb5fa6252497af9d53cca0c566363c"
+    ],
+    "page-000002.json": [
+      1795099926074935600,
+      "36a8384037b70a6eddb4cc66ca8a0d580626b5485f005ff7ab75d33b9b5f01b6"
+    ],
+    "page-000003.json": [
+      1795099926128637800,
+      "7f9e350df1b5c1bf5216eee601e51de80a77b5afec93e91eafaffde6c1333d70"
+    ],
+    "page-000004.json": [
+      1795099926169100700,
+      "0cd6b1bf35e357d6e33e91805981a49446c16e9690db33045e8e7a950006e9cf"
+    ]
+  },
+  "append_complete": {
+    "wiki": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\wiki",
+    "source": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\fixtures\\ann-appended.pdf",
+    "source_page": "sources/ann-appended.md",
+    "title": "",
+    "size": 4636,
+    "mtime_ns": 1795099859144571300,
+    "status": "completed",
+    "phase": "完了",
+    "completed": 1,
+    "total": 1,
+    "attempts": 2,
+    "error": null,
+    "result": {
+      "status": "indexed",
+      "document_id": "64be57123995ed65b70f8df1739f5fed7780e2802926b9e00652f4fa76da96dd",
+      "raw": "C:/Works/info-hive-dev-data/rag-poc-data/full-ann-20261119/fixtures/ann-appended.pdf",
+      "sha256": "64be57123995ed65b70f8df1739f5fed7780e2802926b9e00652f4fa76da96dd",
+      "pages": 4,
+      "chunks": 44,
+      "extracted_markdown": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\product-data\\extracted\\64be57123995ed65b70f8df1739f5fed7780e2802926b9e00652f4fa76da96dd\\auto-150-e57f7c6bd9cf-extract-v1\\document.md",
+      "source_page": "sources/ann-appended.md",
+      "review_pages": [],
+      "cleanup_error": null,
+      "index_reset": false,
+      "indexes": {
+        "strategy": "ivf-sq-v1",
+        "trained_rows": 783557,
+        "deleted_since_training": 0,
+        "rows": 783601,
+        "history": [
+          {
+            "kind": "全文索引の作成",
+            "rows": 783557,
+            "version_before": 398,
+            "version_after": 399,
+            "recovered": false,
+            "at": 1795099851.0619464
+          },
+          {
+            "kind": "世代索引の作成",
+            "rows": 783557,
+            "version_before": 399,
+            "version_after": 400,
+            "recovered": false,
+            "at": 1795099852.3774283
+          },
+          {
+            "kind": "ANN の作成",
+            "rows": 783557,
+            "version_before": 400,
+            "version_after": 401,
+            "recovered": false,
+            "at": 1795099922.2708962
+          },
+          {
+            "kind": "索引の更新",
+            "rows": 783601,
+            "version_before": 403,
+            "version_after": 407,
+            "recovered": false,
+            "at": 1795100056.7709808
+          }
+        ],
+        "num_partitions": 886,
+        "training_metadata": "created_by_rag",
+        "table_version": 407,
+        "dimension": 512,
+        "indexes": {
+          "generation_idx": {
+            "num_indexed_rows": 783601,
+            "num_unindexed_rows": 0,
+            "index_type": "BITMAP",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "terms_idx": {
+            "num_indexed_rows": 783601,
+            "num_unindexed_rows": 0,
+            "index_type": "FTS",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "vector_idx": {
+            "num_indexed_rows": 783601,
+            "num_unindexed_rows": 0,
+            "index_type": "IVF_SQ",
+            "distance_type": "cosine",
+            "num_indices": 1
+          }
+        },
+        "ann_ready": true
+      }
+    },
+    "created_at": 1795099925.357093,
+    "updated_at": 1795100057.1730974,
+    "publication_started": 1,
+    "job_id": "79d632f9a63e4528aac8570064f02969"
+  },
+  "replacement_job": "f183590b1af642ee9616599bb6ecb138",
+  "replacement_interrupt": {
+    "job": {
+      "wiki": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\wiki",
+      "source": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\fixtures\\ann-initial.pdf",
+      "source_page": "sources/ann-initial.md",
+      "title": "",
+      "size": 41883,
+      "mtime_ns": 1795100057924056500,
+      "status": "paused",
+      "phase": "索引の公開",
+      "completed": 1,
+      "total": 1,
+      "attempts": 1,
+      "error": null,
+      "result": null,
+      "created_at": 1795100061.458785,
+      "updated_at": 1795100282.4777188,
+      "publication_started": 1,
+      "job_id": "f183590b1af642ee9616599bb6ecb138"
+    },
+    "old_rows": 440,
+    "new_active": 1,
+    "old_active": 0,
+    "retirement_queued": 1,
+    "table_version_after_stop": 427,
+    "vector_stamp": {
+      "rows": 484,
+      "sha256": "66c9ba49c67252dc6d81ce563ee8bb0b4536b925b7027d8c0e1b28e0b575ea7b",
+      "saved_embedding_cursor": 484
+    },
+    "fault_injection": "製品の公開トランザクション確定後、後始末の入口で待機するテスト用フック",
+    "worker_pids": [
+      17820,
+      5020,
+      11748
+    ]
+  },
+  "replacement_complete": {
+    "wiki": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\wiki",
+    "source": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\fixtures\\ann-initial.pdf",
+    "source_page": "sources/ann-initial.md",
+    "title": "",
+    "size": 41883,
+    "mtime_ns": 1795100057924056500,
+    "status": "completed",
+    "phase": "完了",
+    "completed": 1,
+    "total": 1,
+    "attempts": 2,
+    "error": null,
+    "result": {
+      "status": "unchanged",
+      "document_id": "38f9769dc0a46cf852ce1a7629abe121efe64a7bde000b84d27702bb65c8bb8c",
+      "raw": "C:/Works/info-hive-dev-data/rag-poc-data/full-ann-20261119/fixtures/ann-initial.pdf",
+      "sha256": "38f9769dc0a46cf852ce1a7629abe121efe64a7bde000b84d27702bb65c8bb8c",
+      "pages": 44,
+      "chunks": 484,
+      "extracted_markdown": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\product-data\\extracted\\38f9769dc0a46cf852ce1a7629abe121efe64a7bde000b84d27702bb65c8bb8c\\auto-150-e57f7c6bd9cf-extract-v1\\document.md",
+      "source_page": "sources/ann-initial.md",
+      "review_pages": [],
+      "cleanup_error": null,
+      "index_reset": false,
+      "indexes": {
+        "strategy": "ivf-sq-v1",
+        "trained_rows": 783557,
+        "deleted_since_training": 440,
+        "rows": 783645,
+        "history": [
+          {
+            "kind": "全文索引の作成",
+            "rows": 783557,
+            "version_before": 398,
+            "version_after": 399,
+            "recovered": false,
+            "at": 1795099851.0619464
+          },
+          {
+            "kind": "世代索引の作成",
+            "rows": 783557,
+            "version_before": 399,
+            "version_after": 400,
+            "recovered": false,
+            "at": 1795099852.3774283
+          },
+          {
+            "kind": "ANN の作成",
+            "rows": 783557,
+            "version_before": 400,
+            "version_after": 401,
+            "recovered": false,
+            "at": 1795099922.2708962
+          },
+          {
+            "kind": "索引の更新",
+            "rows": 783601,
+            "version_before": 403,
+            "version_after": 407,
+            "recovered": false,
+            "at": 1795100056.7709808
+          },
+          {
+            "kind": "索引の更新",
+            "rows": 784085,
+            "version_before": 423,
+            "version_after": 427,
+            "recovered": false,
+            "at": 1795100277.7850127
+          }
+        ],
+        "num_partitions": 886,
+        "training_metadata": "created_by_rag",
+        "table_version": 428,
+        "dimension": 512,
+        "indexes": {
+          "generation_idx": {
+            "num_indexed_rows": 783645,
+            "num_unindexed_rows": 0,
+            "index_type": "BITMAP",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "terms_idx": {
+            "num_indexed_rows": 783645,
+            "num_unindexed_rows": 0,
+            "index_type": "FTS",
+            "distance_type": null,
+            "num_indices": 1
+          },
+          "vector_idx": {
+            "num_indexed_rows": 783645,
+            "num_unindexed_rows": 0,
+            "index_type": "IVF_SQ",
+            "distance_type": "cosine",
+            "num_indices": 1
+          }
+        },
+        "ann_ready": true
+      }
+    },
+    "created_at": 1795100061.458785,
+    "updated_at": 1795100313.816338,
+    "publication_started": 1,
+    "job_id": "f183590b1af642ee9616599bb6ecb138"
+  },
+  "reconnect_complete": true,
+  "ocr_search_complete": true,
+  "vector_verification_complete": true,
+  "status": "completed"
+}

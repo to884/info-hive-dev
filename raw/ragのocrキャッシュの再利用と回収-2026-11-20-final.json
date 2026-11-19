@@ -1,0 +1,132 @@
+{
+  "title": "RAG の OCR 結果の再利用と不要キャッシュの回収：最終検証",
+  "date": "2026-11-20",
+  "report": "docs/research/rag-cache-retirement-2026-11-20.md",
+  "initial_raw": {
+    "path": "raw/ragのocrキャッシュの再利用と回収-2026-11-20.json",
+    "sha256": "f340a751e06d7e7dcb8fca7229ffb748c69d81a4cc1cb4f49e4c18125a91957d"
+  },
+  "summary": {
+    "status": "passed",
+    "product_sha256": "021ea0774ec104f2b1b827498a6192bf64a68fc2d3dcb0d8d1d2373240aa7ab6",
+    "mcp_checks_passed": 21,
+    "jobs_completed": 13,
+    "actual_ocr_calls": 2,
+    "ocr_calls_in_forbidden_reuse_paths": 0,
+    "embedding_interruption": [
+      {
+        "kind": "embedding_interrupted",
+        "pid": 18424,
+        "target": "rag_worker.py",
+        "completed": 1,
+        "total": 1
+      }
+    ],
+    "windows": {
+      "tests": 84,
+      "passed": 84,
+      "skipped": 0
+    },
+    "linux": {
+      "tests": 84,
+      "passed": 82,
+      "skipped": 2
+    },
+    "own_mcp_processes_remaining": [],
+    "os_power_interruption": false,
+    "run_dir": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\cache-retirement-20261120\\mcp-1795103499219890700",
+    "review": "APPROVED (opus-review-2.md)",
+    "retention_policy": "未完了の内部ジョブは、明示的な再試行のために失敗・キャンセル後もOCRを保持する。",
+    "mcp_resume_scope": "全1チャンク保存後、索引公開前の失敗と同一ジョブの再試行。複数バッチ途中の再開は回帰試験。"
+  },
+  "checks": [
+    {
+      "name": "initial_real_ocr_saved",
+      "passed": true,
+      "doc_id": "b030bebf6a668c310ae8655c8523eddb747dee439992d38a5ff7ce4b4686da5a",
+      "text_chars": 47
+    },
+    {
+      "name": "cleanup_fault_persisted",
+      "passed": true
+    },
+    {
+      "name": "reactivation_reuses_original_ocr",
+      "passed": true
+    },
+    {
+      "name": "interrupted_reset_resumes_same_job",
+      "passed": true
+    },
+    {
+      "name": "reset_reactivation_reuses_ocr",
+      "passed": true
+    },
+    {
+      "name": "reset_reclaims_unshared_cache",
+      "passed": true
+    },
+    {
+      "name": "reset_reclaims_legacy_and_all_extraction_keys",
+      "passed": true
+    },
+    {
+      "name": "reset_keeps_current_document_cache",
+      "passed": true
+    },
+    {
+      "name": "reset_drains_unshared_retirement",
+      "passed": true
+    },
+    {
+      "name": "shared_real_ocr_saved",
+      "passed": true
+    },
+    {
+      "name": "second_wiki_reuses_ocr",
+      "passed": true
+    },
+    {
+      "name": "reset_preserves_other_wiki_cache",
+      "passed": true
+    },
+    {
+      "name": "reset_retains_cache_only_intent",
+      "passed": true
+    },
+    {
+      "name": "last_reference_reclaims_shared_cache",
+      "passed": true
+    },
+    {
+      "name": "reconnect_drains_cache_only_intent",
+      "passed": true
+    },
+    {
+      "name": "forbid_ocr_hook_loaded_in_workers",
+      "passed": true
+    },
+    {
+      "name": "reset_preserve_doc_id_witnessed",
+      "passed": true
+    },
+    {
+      "name": "only_initial_scans_called_ocr",
+      "passed": true,
+      "actual_calls": 2
+    },
+    {
+      "name": "all_jobs_completed",
+      "passed": true,
+      "jobs": 13
+    },
+    {
+      "name": "final_catalogs_match_tables",
+      "passed": true
+    },
+    {
+      "name": "product_sources_unchanged",
+      "passed": true
+    }
+  ]
+}

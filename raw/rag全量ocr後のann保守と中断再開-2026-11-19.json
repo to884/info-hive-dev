@@ -1,0 +1,434 @@
+{
+  "title": "全量 OCR 後の ANN 保守と中断・再開の検証",
+  "recorded_at": "2026-11-20",
+  "report": "docs/research/rag-full-ann-2026-11-19.md",
+  "summary": {
+    "status": "completed",
+    "completed_at": "2026-11-20T00:12:16+09:00",
+    "source_documents": 905,
+    "source_chunks": 783117,
+    "reused_vector_chunks": 628400,
+    "new_unique_vectors": 154616,
+    "ocr_pages": 22335,
+    "final_rows": 783645,
+    "table_version": 428,
+    "indexes": {
+      "terms_idx": {
+        "num_indexed_rows": 783645,
+        "num_unindexed_rows": 0,
+        "index_type": "FTS",
+        "distance_type": null,
+        "num_indices": 1
+      },
+      "generation_idx": {
+        "num_indexed_rows": 783645,
+        "num_unindexed_rows": 0,
+        "index_type": "BITMAP",
+        "distance_type": null,
+        "num_indices": 1
+      },
+      "vector_idx": {
+        "num_indexed_rows": 783645,
+        "num_unindexed_rows": 0,
+        "index_type": "IVF_SQ",
+        "distance_type": "cosine",
+        "num_indices": 1
+      }
+    },
+    "checks_passed": 45,
+    "bulk_preparation": true,
+    "stop_boundaries": {
+      "ann_creation_interrupt": "not_committed",
+      "ann_update_interrupt": "not_committed"
+    },
+    "replacement_stop_boundary": "catalog_published_cleanup_pending",
+    "index_bytes_including_retained_versions": 14179121325,
+    "config": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\product-config.json",
+    "wiki": "C:\\Works\\info-hive-dev-data\\rag-poc-data\\full-ann-20261119\\wiki"
+  },
+  "integrity_audit": {
+    "status": "passed",
+    "checked_documents": 905,
+    "checked_pages": 245346,
+    "ocr_pages": 22335,
+    "ocr_empty": 753,
+    "extraction_aggregate_sha256": "f1dd72a751b9eed2106a005398b9f88297dd01f90b0318dc167ef98b3ca2e90d",
+    "prepared_documents_digest": "9af238db7178485c2181b3b5ef7bfbc35239b7b3be7b50e34e10a9d576dd6fa9",
+    "original_locations_with_unchanged_size_mtime": 914,
+    "original_full_content_reread": false,
+    "seed_vector_unchanged": true,
+    "embedding_restart_prefix_vectors_verified": 79900,
+    "reader_threads": 4,
+    "seconds": 371.81308460000037
+  },
+  "mcp_checks": [
+    {
+      "name": "bulk_input_has_no_indexes",
+      "passed": true,
+      "rows": 783117
+    },
+    {
+      "name": "ann_creation_interrupt_parent_death_stops_workers",
+      "passed": true,
+      "descendants": 3
+    },
+    {
+      "name": "ann_creation_interrupt_job_paused",
+      "passed": true,
+      "job_id": "8bdc49e3793747d7b63e781507a1ee5d",
+      "phase": "ANN の作成"
+    },
+    {
+      "name": "ann_creation_interrupt_stop_boundary_verified",
+      "passed": true,
+      "commit_state": "not_committed",
+      "version_before": 400,
+      "version_after": 400
+    },
+    {
+      "name": "initial_pdf_not_published_during_ann_creation",
+      "passed": true
+    },
+    {
+      "name": "ann_creation_has_saved_embedding_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "ann_creation_resumes_same_job",
+      "passed": true,
+      "job_id": "8bdc49e3793747d7b63e781507a1ee5d",
+      "attempts": 2
+    },
+    {
+      "name": "initial_extracted_pages_reused",
+      "passed": true
+    },
+    {
+      "name": "full_ann_created_after_reconnect",
+      "passed": true,
+      "rows": 783557,
+      "expected_rows": 783557,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783557,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783557,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783557,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      }
+    },
+    {
+      "name": "ann_creation_keeps_saved_rows",
+      "passed": true
+    },
+    {
+      "name": "ann_creation_history_matches_stop",
+      "passed": true,
+      "commit_state": "not_committed",
+      "history": {
+        "kind": "ANN の作成",
+        "rows": 783557,
+        "version_before": 400,
+        "version_after": 401,
+        "recovered": false,
+        "at": 1795099922.2708962
+      }
+    },
+    {
+      "name": "ann_creation_vectors_reused",
+      "passed": true,
+      "saved_embedding_cursor": 440
+    },
+    {
+      "name": "ann_update_interrupt_parent_death_stops_workers",
+      "passed": true,
+      "descendants": 3
+    },
+    {
+      "name": "ann_update_interrupt_job_paused",
+      "passed": true,
+      "job_id": "79d632f9a63e4528aac8570064f02969",
+      "phase": "索引の更新"
+    },
+    {
+      "name": "ann_update_interrupt_stop_boundary_verified",
+      "passed": true,
+      "commit_state": "not_committed",
+      "version_before": 403,
+      "version_after": 403
+    },
+    {
+      "name": "appended_pdf_not_published_during_update",
+      "passed": true
+    },
+    {
+      "name": "ann_update_has_saved_embedding_checkpoint",
+      "passed": true
+    },
+    {
+      "name": "ann_update_resumes_same_job",
+      "passed": true,
+      "job_id": "79d632f9a63e4528aac8570064f02969",
+      "attempts": 2
+    },
+    {
+      "name": "appended_extracted_pages_reused",
+      "passed": true
+    },
+    {
+      "name": "full_ann_updated_after_reconnect",
+      "passed": true,
+      "rows": 783601,
+      "expected_rows": 783601,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783601,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783601,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783601,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      }
+    },
+    {
+      "name": "ann_update_history_matches_stop",
+      "passed": true,
+      "commit_state": "not_committed",
+      "history": {
+        "kind": "索引の更新",
+        "rows": 783601,
+        "version_before": 403,
+        "version_after": 407,
+        "recovered": false,
+        "at": 1795100056.7709808
+      }
+    },
+    {
+      "name": "ann_update_vectors_reused",
+      "passed": true,
+      "saved_embedding_cursor": 44
+    },
+    {
+      "name": "replacement_interrupt_parent_death_stops_workers",
+      "passed": true
+    },
+    {
+      "name": "replacement_interrupt_after_publication",
+      "passed": true
+    },
+    {
+      "name": "replacement_old_rows_hidden_before_cleanup",
+      "passed": true,
+      "physical_old_rows": 440
+    },
+    {
+      "name": "replacement_resumes_same_job",
+      "passed": true,
+      "job_id": "f183590b1af642ee9616599bb6ecb138",
+      "attempts": 2
+    },
+    {
+      "name": "replacement_vectors_reused",
+      "passed": true
+    },
+    {
+      "name": "replacement_updates_full_indexes",
+      "passed": true,
+      "rows": 783645,
+      "expected_rows": 783645,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      }
+    },
+    {
+      "name": "replaced_generation_rows_removed",
+      "passed": true
+    },
+    {
+      "name": "replacement_marks_dependent_page",
+      "passed": true
+    },
+    {
+      "name": "replacement_has_no_cleanup_error",
+      "passed": true
+    },
+    {
+      "name": "retirement_queue_empty",
+      "passed": true
+    },
+    {
+      "name": "replacement_no_inactive_generations",
+      "passed": true
+    },
+    {
+      "name": "replacement_search_excludes_old_generation",
+      "passed": true
+    },
+    {
+      "name": "before_unchanged_registration",
+      "passed": true,
+      "rows": 783645,
+      "expected_rows": 783645,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      }
+    },
+    {
+      "name": "after_unchanged_registration",
+      "passed": true,
+      "rows": 783645,
+      "expected_rows": 783645,
+      "indexes": {
+        "generation_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "BITMAP",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "terms_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "FTS",
+          "distance_type": null,
+          "num_indices": 1
+        },
+        "vector_idx": {
+          "num_indexed_rows": 783645,
+          "num_unindexed_rows": 0,
+          "index_type": "IVF_SQ",
+          "distance_type": "cosine",
+          "num_indices": 1
+        }
+      }
+    },
+    {
+      "name": "unchanged_registration_reuses_index",
+      "passed": true
+    },
+    {
+      "name": "ocr_page_searchable_d246f7a235ab",
+      "passed": true,
+      "page": 3,
+      "seconds": 13.676726100000451
+    },
+    {
+      "name": "ocr_page_searchable_dd08168b385b",
+      "passed": true,
+      "page": 7,
+      "seconds": 3.7085569000009855
+    },
+    {
+      "name": "ocr_page_searchable_71ef12e83c59",
+      "passed": true,
+      "page": 7,
+      "seconds": 3.500448499999038
+    },
+    {
+      "name": "ocr_search_sources_verified",
+      "passed": true,
+      "samples": 3
+    },
+    {
+      "name": "stored_vectors_match_cpu_reference",
+      "passed": true,
+      "samples": 16,
+      "min_cosine": 1.0,
+      "max_cosine": 1.0000001192092896
+    },
+    {
+      "name": "ann_only_returns_known_vectors",
+      "passed": true,
+      "samples": 8,
+      "min_top10_overlap": 1.0
+    },
+    {
+      "name": "final_table_has_no_duplicate_chunk_ids",
+      "passed": true
+    },
+    {
+      "name": "final_catalog_matches_table",
+      "passed": true,
+      "documents": 907,
+      "chunks": 783645
+    }
+  ],
+  "rag_base_commit": "4fabe3294d86a367e635bc18635af6e7132a8d93",
+  "rag_index_sha256": "791998a30ae0b473dab5590702a6230453ee8b87f83043cd8dd0fed532c6a638",
+  "product_fix_uncommitted": true,
+  "os_power_interruption": false,
+  "scope": "Windows 全量テーブルの実 MCP。Linux は回帰と小規模実 MCP。905 文書の入力は一括準備。",
+  "remaining_minor": [
+    "退役文書の再登録で OCR を再実行する場合がある",
+    "後始末保留中の索引リセットで未使用の抽出キャッシュが残る場合がある"
+  ]
+}

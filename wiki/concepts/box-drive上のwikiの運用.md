@@ -4,9 +4,9 @@ kind: "experience-pattern"
 status: "supported"
 title: "Box Drive 上の info-hive wiki の運用"
 tags: ["windows", "wiki設計", "試験"]
-sources: ["box-driveのwikiの競合と復旧-2026-11-19", "box-driveのオフライン編集と再同期-2026-11-19", "box-drive-wiki-compatibility-2026-11-19", "box-driveでのwiki互換性-2026-11-19"]
+sources: ["box-driveの2クライアント同時再接続-2026-11-20", "box-driveのwikiの競合と復旧-2026-11-19", "box-driveのオフライン編集と再同期-2026-11-19", "box-drive-wiki-compatibility-2026-11-19", "box-driveでのwiki互換性-2026-11-19"]
 created: 2026-11-19
-updated: 2026-11-19
+updated: 2026-11-20
 ---
 
 # Box Drive 上の info-hive wiki の運用
@@ -56,6 +56,20 @@ Windows 1 台で Box Drive と Box Web を書き手にした。共通版から�
 
 別々の記事が両方残っていても、片方の索引項目ともう片方のログが欠け得る。その状態をローカルで再現すると、lint のリンク切れと孤立ページは両方とも 0 件だった。元の版と照合して欠けた索引項目やログを確かめる。[[box-driveのwikiの競合と復旧-2026-11-19]]
 
+## Box Drive 2 台で別々の記事を編集したとき
+
+2026-11-20 に、Windows 11 ホストと Hyper-V の Windows 11 VM で、同じ Box アカウントの Box Drive 2.56.271.0（Cloud Files 方式）を使った。両端末で同じ初版を固定してから通信を切り、ホストと VM で別々の記事を編集した。両方で同じ `index.md` の別々の要約行を書き換え、同じ `log.md` に操作を 1 件ずつ追記した。[[box-driveの2クライアント同時再接続-2026-11-20]]
+
+| ファイル | 再接続後に両端末で確認した結果 |
+| --- | --- |
+| 記事 2 本 | それぞれの編集が正規名に反映された。 |
+| `index.md` | 正規名は VM 版で、VM が編集した記事の要約だけが更新された。ホスト版は別名コピーに残った。 |
+| `log.md` | 正規名は VM 版で、VM の操作だけが追記された。ホストの追記は別名コピーに残った。 |
+
+再接続操作の開始差は約 9 ミリ秒だった。基準時刻から約 1.8 秒後に正規名の VM 版、約 12.5～12.6 秒後にホスト版の別名コピーを Box API 応答の SHA-1 で照合した。約 27 秒後の観測では、記事と索引・ログの両版が両端末にそろった。[[box-driveの2クライアント同時再接続-2026-11-20]]
+
+この状態を復旧するときは、正規名の記事 2 本の内容を確認し、索引に両方の更新後の要約を反映する。ログには両端末の操作を 1 件ずつ残す。
+
 ## 競合後の復旧手順
 
 1. **編集を止め、版を保全する。** 両方で新しい編集や取り込みを止め、開いたままの下書きは Box の外に保存する。未同期のローカル版、正規名のファイル、別名コピーも Box の外にコピーする。Box の版履歴から共通版を取得できる場合は一緒に保存する。 [Box の版履歴](https://support.box.com/hc/en-us/articles/360043697054-Accessing-Version-History)
@@ -78,4 +92,4 @@ Windows 1 台で Box Drive と Box Web を書き手にした。共通版から�
 
 ## 適用範囲
 
-競合の実機試験は同一アカウントの Box Drive と Box Web の組み合わせで行った。Box Drive 2 台、別アカウント、同時再接続、端末全体の通信切断、切断中の初回セットアップと MCP 検索、Web・会話の取り込み全体、rag ジョブ、大規模 wiki は未検証。旧 Windows 方式にはローカル AI エージェントからのアクセスに既知の制限がある。 [Box Drive の Windows 固有の制限](https://support.box.com/hc/en-us/articles/360043695854-Windows-Specific-Limitations-for-Box-Drive)
+競合の実機試験は、同一アカウントの Box Drive と Box Web、および同一アカウントのホストと VM の Box Drive で行った。Box Drive 2 台の同時再接続はこの条件で 1 回確認した。別々の物理 PC の組み合わせ、別アカウント、両端末の通信を丸ごと切断する構成、切断中の初回セットアップと MCP 検索、Web・会話の取り込み全体、rag ジョブ、大規模 wiki は未検証。旧 Windows 方式にはローカル AI エージェントからのアクセスに既知の制限がある。 [Box Drive の Windows 固有の制限](https://support.box.com/hc/en-us/articles/360043695854-Windows-Specific-Limitations-for-Box-Drive)

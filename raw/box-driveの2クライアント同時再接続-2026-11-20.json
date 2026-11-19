@@ -1,0 +1,2851 @@
+{
+  "experiment": "ホストと Hyper-V ゲストの Box Drive で、別々の記事をオフライン編集して同じ時刻を基準に再接続",
+  "conditions": {
+    "clients": {
+      "host": {
+        "os": "Microsoft Windows 11 Enterprise",
+        "build": "26300",
+        "box_version": "2.56.271.0",
+        "cloud_files": 1,
+        "timezone": "Tokyo Standard Time"
+      },
+      "guest": {
+        "os": "Microsoft Windows 11 Enterprise LTSC Evaluation",
+        "build": "26100",
+        "box_version": "2.56.271.0",
+        "cloud_files": 1,
+        "timezone": "Tokyo Standard Time"
+      }
+    },
+    "same_box_account": true,
+    "wiki_init": "0.39.0",
+    "write": "既存の Markdown を直接上書き"
+  },
+  "baseline": {
+    "box_api_sha1_match": {
+      "concepts/north.md": true,
+      "concepts/south.md": true,
+      "index.md": true,
+      "log.md": true
+    },
+    "pinned_both_clients": {
+      "host": {
+        "base": {
+          "concepts/north.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "concepts/south.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "index.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "log.md": {
+            "matches": true,
+            "pinned": true
+          }
+        },
+        "cold_attrs": "0x500020"
+      },
+      "guest": {
+        "base": {
+          "concepts/north.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "concepts/south.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "index.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "log.md": {
+            "matches": true,
+            "pinned": true
+          }
+        },
+        "cold_attrs": "0x500020"
+      }
+    },
+    "hashes": {
+      "concepts/north.md": {
+        "sha1": "9f51f4f14c6d5dcb02a0039905bff59a88c8d2c2",
+        "sha256": "2f66b922d63fd484c31235f115650a1e2f48d770aa89d5fd408c91e77477d3d8"
+      },
+      "concepts/south.md": {
+        "sha1": "52a2f1bbba23449209c8c9fe9a59cc8ede6e8821",
+        "sha256": "7475d301a98b527ed75950ff0d36bdcc509d2b5731767d7d88cd72c838b8529b"
+      },
+      "index.md": {
+        "sha1": "43aafffdf87e1666336f683216e80ea5c6e3e02f",
+        "sha256": "34bdd456fc94220c6008ba02f4242bebe43785dfd3115bb1286bb0b8c9e7a0e6"
+      },
+      "log.md": {
+        "sha1": "5f22f6c74651ec383333da14a65c98538ce89464",
+        "sha256": "98c7ac68995f6b319368dea3691c9c2f6869d08a68839da2e58fa11edb164891"
+      }
+    }
+  },
+  "offline": {
+    "host_box_connect_rejections": 17,
+    "vm_nic_states": [
+      "Disconnected"
+    ],
+    "edits": {
+      "host": {
+        "label": "A",
+        "started": 1795101187.8281782,
+        "finished": 1795101187.8530746,
+        "edited": [
+          "concepts/north.md",
+          "index.md",
+          "log.md"
+        ],
+        "common_base": {
+          "concepts/north.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "concepts/south.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "index.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "log.md": {
+            "matches": true,
+            "pinned": true
+          }
+        }
+      },
+      "vm": {
+        "label": "B",
+        "started": 1795101187.9930894,
+        "finished": 1795101188.019141,
+        "edited": [
+          "concepts/south.md",
+          "index.md",
+          "log.md"
+        ],
+        "common_base": {
+          "concepts/north.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "concepts/south.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "index.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "log.md": {
+            "matches": true,
+            "pinned": true
+          }
+        }
+      }
+    },
+    "expected_hashes": {
+      "A": {
+        "concepts/north.md": {
+          "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f",
+          "sha256": "5bfd0a00387d75428dd6f60c2d9f105f1a2a7ea045719cf727e42d0a328f21d0"
+        },
+        "index.md": {
+          "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a",
+          "sha256": "27a445d938fba6e53b9b808edf8afb3c8452b80db1efb248dd2e78fb1015abc6"
+        },
+        "log.md": {
+          "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231",
+          "sha256": "bb1445da15cc3a00dea691e0c691536f1e912d266cec89f9fe61cb47be2d249c"
+        }
+      },
+      "B": {
+        "concepts/south.md": {
+          "sha1": "f58e2507875d6e66630887ac00f832f7458464c1",
+          "sha256": "2b00106c1c14f5afd5436988aa8af2eb68f6495192289f26151cba3b155dbb21"
+        },
+        "index.md": {
+          "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1",
+          "sha256": "cb9cea090a44e2c5c34a671c9d6c9c415ccef7af6eb1c1d581d57f2eb4e03580"
+        },
+        "log.md": {
+          "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94",
+          "sha256": "08d86511554e825a09de099823b19273d5cb99746791347a6b0a9969140e4b26"
+        }
+      }
+    }
+  },
+  "reconnect": {
+    "scheduled_utc": "2026-11-19T15:13:12.881+00:00",
+    "host_pac_restore_started_ms_from_trigger": 0.523,
+    "host_pac_restore_done_ms_from_trigger": 9.775,
+    "vm_nic_connect_started_ms_from_trigger": 9,
+    "vm_nic_connect_return_ms_from_trigger": 256,
+    "absolute_action_start_gap_ms": 8.477,
+    "host_proxy_restored": true
+  },
+  "observations": [
+    {
+      "timestamp_utc": "2026-11-19T15:13:23.5852286+00:00",
+      "both_articles": false,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "base",
+              "sha1": "52a2f1bbba23449209c8c9fe9a59cc8ede6e8821"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            }
+          }
+        }
+      },
+      "sequence": 1,
+      "shape_matches": false,
+      "both_shared_file_variants": false,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "base",
+              "sha1": "9f51f4f14c6d5dcb02a0039905bff59a88c8d2c2"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": false,
+      "seconds_after_trigger": 10.704
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:13:31.7366465+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 2,
+      "shape_matches": false,
+      "both_shared_file_variants": false,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 18.856
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:13:39.8666239+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 3,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 26.986
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:13:48.0070788+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 4,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 35.126
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:13:56.1444321+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 5,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 43.263
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:14:04.2737750+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 6,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 51.393
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:14:12.4665248+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 7,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 59.586
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:14:20.6117883+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 8,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 67.731
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:14:28.7568378+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 9,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 75.876
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:14:36.9899082+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 10,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 84.109
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:14:45.1330484+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 11,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 92.252
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:14:53.2633710+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 12,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 100.382
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:15:01.4357155+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 13,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 108.555
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:15:09.5946699+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 14,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 116.714
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:15:17.7300782+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 15,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 124.849
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:15:25.8865818+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 16,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 133.006
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:15:34.0204003+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 17,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 141.139
+    },
+    {
+      "timestamp_utc": "2026-11-19T15:15:42.1528427+00:00",
+      "both_articles": true,
+      "host": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/north.md": {
+            "A": {
+              "canonical": {
+                "after_trigger": 6.373
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.397
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.6
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 6.401
+              }
+            },
+            "A": {
+              "suffixed_copy": {
+                "after_trigger": 12.483
+              }
+            }
+          }
+        }
+      },
+      "sequence": 18,
+      "shape_matches": true,
+      "both_shared_file_variants": true,
+      "guest": {
+        "files": {
+          "concepts/north.md": [
+            {
+              "kind": "canonical",
+              "label": "A",
+              "sha1": "e16d2d00aaec5bf0151d5e4786756460e8123c9f"
+            }
+          ],
+          "concepts/south.md": [
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "f58e2507875d6e66630887ac00f832f7458464c1"
+            }
+          ],
+          "index.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "a69dd420d3b49e5f3be982415c15e61fda333d0a"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "62437e8e226159528d7d9febd9e387cb9eecd2b1"
+            }
+          ],
+          "log.md": [
+            {
+              "kind": "suffixed_copy",
+              "label": "A",
+              "sha1": "1e8f82c4fc65027440837848e1d7cc177abb5231"
+            },
+            {
+              "kind": "canonical",
+              "label": "B",
+              "sha1": "0c47c3f38c0fe65abf865babf5c514b7cd843f94"
+            }
+          ]
+        },
+        "box_responses": {
+          "concepts/south.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.559
+              }
+            }
+          },
+          "index.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.822
+              }
+            }
+          },
+          "log.md": {
+            "B": {
+              "canonical": {
+                "after_trigger": 1.849
+              }
+            }
+          }
+        }
+      },
+      "cloud_hash_matches_visible": true,
+      "seconds_after_trigger": 149.272
+    }
+  ]
+}

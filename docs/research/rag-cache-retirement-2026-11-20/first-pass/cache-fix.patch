@@ -1,0 +1,145 @@
+--- rag_index.py@791998a30ae0
++++ rag_index.py@cache-fix
+@@ -163,9 +163,16 @@
+                 generation TEXT PRIMARY KEY, completed INTEGER NOT NULL DEFAULT 0,
+                 status TEXT NOT NULL DEFAULT 'pending', error TEXT);
+             CREATE TABLE IF NOT EXISTS retired_documents (
+-                doc_id TEXT PRIMARY KEY, legacy_generations TEXT NOT NULL);
++                doc_id TEXT PRIMARY KEY, legacy_generations TEXT NOT NULL,
++                rows_pending INTEGER NOT NULL DEFAULT 1);
+         """)
+         with closing(connection), connection:
++            if 'rows_pending' not in {row[1] for row in connection.execute('PRAGMA table_info(retired_documents)')}:
++                # 複数の読み手が旧台帳を同時に開いても、移行の判定と変更を直列に行う。
++                connection.execute('BEGIN IMMEDIATE')
++                if 'rows_pending' not in {row[1] for row in connection.execute('PRAGMA table_info(retired_documents)')}:
++                    connection.execute('ALTER TABLE retired_documents ADD COLUMN rows_pending INTEGER NOT NULL DEFAULT 1')
++                connection.commit()
+             yield connection
+ 
+     def _table(self, folder: Path, create: bool = False):
+@@ -224,7 +231,7 @@
+             documents[row["doc_id"]] = {"sha256": row["doc_id"], "title": row["title"], "paths": paths, "source_pages": pages}
+         return documents
+ 
+-    def _reset_index(self, folder: Path, connection, stale: dict) -> None:
++    def _reset_index(self, folder: Path, connection, stale: dict, preserve_doc_id: str | None = None) -> None:
+         """方針が変わった索引を空にする。先に取り込み直す文書の一覧を残し、途中で止まっても、
+         次の取り込みでもう一度空にすれば同じ状態になるようにする（ADR-0014）。"""
+         documents = self._merge_documents(self._previous_documents(folder), self._catalog_documents(connection))
+@@ -235,8 +242,12 @@
+             policies.append(policy)
+         write_json(folder / "previous-index.json", {"fingerprint": stale["fingerprint"], "model": stale.get("model"),
+                                                     "policies": policies, "documents": list(documents.values())})
+-        for table in ("documents", "locations", "citations", "jobs", "retired_documents"):
++        for table in ("documents", "locations", "citations", "jobs"):
+             connection.execute(f"DELETE FROM {table}")
++        # 全行を捨てるため、残る後始末はキャッシュだけ。再開位置や新しい行を後で消さない。
++        connection.execute('UPDATE retired_documents SET rows_pending=0')
++        if preserve_doc_id is not None:
++            connection.execute('DELETE FROM retired_documents WHERE doc_id=?', (preserve_doc_id,))
+         connection.commit()
+         import lancedb
+         database = lancedb.connect(str(folder / "lance"), read_consistency_interval=timedelta(0))
+@@ -399,16 +410,18 @@
+                 self._remove_extraction(doc_id)
+                 self._remove_legacy_extraction(folder, legacy[doc_id])
+ 
+-    def _remove_extraction(self, doc_id: str) -> None:
++    def _remove_extraction(self, doc_id: str) -> bool:
+         """どの wiki も使わなくなった文書の抽出の結果を、抽出の設定によらずすべて消す。"""
+         try:
+             with self._extraction_lock(doc_id, timeout=0):
+                 if not self._extraction_in_use(doc_id):
+                     shutil.rmtree(self.config.extraction_root / doc_id)
++                    return True
++                return False
+         except Timeout:
+-            pass  # ほかの取り込みが使っている。消さずに残す
++            return False  # ほかの取り込みが使っている。回収の記録も残す
+         except FileNotFoundError:
+-            pass
++            return True
+ 
+     @staticmethod
+     def _location(connection, doc_id: str) -> str | None:
+@@ -444,27 +457,33 @@
+             table=self._table(folder)
+             return self._maintain_indexes(folder,table,progress) if table is not None else {'ann_ready':False,'rows':0}
+ 
+-    def _finish_retirements(self, folder: Path, connection, only_doc_id: str | None = None) -> None:
++    def _finish_retirements(self, folder: Path, connection, only_doc_id: str | None = None,
++                            keep_extraction: bool = False) -> None:
+         """公開と同じトランザクションで残した旧文書の後始末を、再試行可能な順序で完了する。"""
+-        pending = connection.execute('SELECT doc_id,legacy_generations FROM retired_documents'
++        pending = connection.execute('SELECT doc_id,legacy_generations,rows_pending FROM retired_documents'
+                                      + (' WHERE doc_id=?' if only_doc_id is not None else ''),
+                                      (only_doc_id,) if only_doc_id is not None else ()).fetchall()
+         for row in pending:
+             doc_id = row['doc_id']
+             if not connection.execute('SELECT 1 FROM documents WHERE doc_id=?', (doc_id,)).fetchone():
+-                generations = set(json.loads(row['legacy_generations'])) | {self.config.generation(doc_id)}
+-                # 保存位置を先に無効にする。行の削除後に止まっても、存在しない前半を飛ばさせない。
+-                connection.executemany('DELETE FROM jobs WHERE generation=?', [(value,) for value in generations])
+-                connection.commit()
+-                table = self._table(folder)
+-                if table is not None:
+-                    predicate = f"doc_id = '{doc_id}'"
+-                    if table.count_rows(predicate):
+-                        table.delete(predicate)
+-                    # 削除後、保守の途中で止まった場合も、索引の未反映分をここで処理する。
+-                    self._maintain_indexes(folder, table)
+-                self._remove_extraction(doc_id)
+-                self._remove_legacy_extraction(folder, json.loads(row['legacy_generations']))
++                if row['rows_pending']:
++                    generations = set(json.loads(row['legacy_generations'])) | {self.config.generation(doc_id)}
++                    # 保存位置を先に無効にする。行の削除後に止まっても、存在しない前半を飛ばさせない。
++                    connection.executemany('DELETE FROM jobs WHERE generation=?', [(value,) for value in generations])
++                    connection.commit()
++                    table = self._table(folder)
++                    if table is not None:
++                        predicate = f"doc_id = '{doc_id}'"
++                        if table.count_rows(predicate):
++                            table.delete(predicate)
++                        self._maintain_indexes(folder, table)
++                    connection.execute('UPDATE retired_documents SET rows_pending=0 WHERE doc_id=?', (doc_id,))
++                    connection.commit()
++                if not keep_extraction:
++                    removed = self._remove_extraction(doc_id)
++                    self._remove_legacy_extraction(folder, json.loads(row['legacy_generations']))
++                    if not removed:
++                        continue
+             # 同じ内容が再び公開された場合は、その文書の行や抽出結果を消さない。
+             connection.execute('DELETE FROM retired_documents WHERE doc_id=?', (doc_id,))
+             connection.commit()
+@@ -530,10 +549,10 @@
+                     progress("PDF の読み込み", 1, 1)
+                 doc_id = hashlib.sha256(data).hexdigest()
+                 generation = self.config.generation(doc_id)
+-                if not stale and connection.execute('SELECT 1 FROM retired_documents WHERE doc_id=?', (doc_id,)).fetchone():
+-                    self._finish_retirements(folder, connection, only_doc_id=doc_id)
+                 # 抽出の結果は wiki のあいだで共有する。使っているあいだは、ほかの取り込みの後始末で消させない。
+                 held.enter_context(self._extraction_lock(doc_id))
++                if not stale and connection.execute('SELECT 1 FROM retired_documents WHERE doc_id=?', (doc_id,)).fetchone():
++                    self._finish_retirements(folder, connection, only_doc_id=doc_id, keep_extraction=True)
+                 cache = self.config.extraction_dir(doc_id)
+                 self._adopt_legacy_extraction(folder, self._legacy_generations(folder, doc_id, stale), cache)
+                 markdown = cache / "document.md"
+@@ -582,7 +601,7 @@
+                                              "page": chunk["page"], "section": chunk["section"], "title": title,
+                                              "text": chunk["text"], "terms": self.tokenize(chunk["embedding_text"]), "vector": vector})
+                             if stale:
+-                                self._reset_index(folder, connection, stale)
++                                self._reset_index(folder, connection, stale, preserve_doc_id=doc_id)
+                                 stale, index_reset = None, True
+                                 connection.execute("INSERT OR IGNORE INTO jobs(generation) VALUES (?)", (generation,))
+                                 connection.commit()
+@@ -665,7 +684,7 @@
+                         # 記録した generation は、抽出の版を上げる前の式のこともあるので、今の式の値と両方を消す。
+                         old_generations = {self.config.generation(old_id), *(row[0] for row in old_rows.get(old_id, []))}
+                         connection.executemany("DELETE FROM jobs WHERE generation=?", [(value,) for value in old_generations])
+-                        connection.execute('INSERT OR REPLACE INTO retired_documents VALUES (?,?)',
++                        connection.execute('INSERT OR REPLACE INTO retired_documents(doc_id,legacy_generations) VALUES (?,?)',
+                                            (old_id, json.dumps(sorted(old_generations | set(self._legacy_generations(folder, old_id, None))))))
+                 connection.commit()
+                 # コミット後の保守が失敗しても、新版は検索できる。旧行は active generation の条件で除外する。
