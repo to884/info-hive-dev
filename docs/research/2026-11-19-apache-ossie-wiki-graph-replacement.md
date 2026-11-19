@@ -52,5 +52,5 @@ SemaSynth の同じ Markdown 63ページを現行の抽出器と lint に渡し�
 ## 調査資料
 
 - info-hive-wiki の [グラフワークフロー](../../info-hive-wiki/skills/info-hive/references/graph-workflow.md)、親 wiki の [[グラフの抽出の契約]]、[[エッジの識別子]]、[[グラフのlintの期待値]]。
-- SemaSynth wiki の [[apache-ossie-ontology-json-schema-4d82209]]、[[apache-ossie-flights-mapping-4d82209]]、[[duckdb-ossie-community-extension]]。
+- SemaSynth wiki での関連調査は、Ontology の JSON Schema、独立 Mapping の例、DuckDB 拡張の配布経路を扱う。
 - Apache Ossie の [レイヤー構成](https://github.com/apache/ossie/blob/0f458dee0718b701930bf4597e1d84e427f0c8fc/core-spec/spec_layers.md#the-layers)、[独立マッピング](https://github.com/apache/ossie/blob/0f458dee0718b701930bf4597e1d84e427f0c8fc/ontology/ontology.md#mapping-documents)、[式の評価に関する議論](https://github.com/apache/ossie/issues/361)。

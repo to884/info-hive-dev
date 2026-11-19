@@ -40,4 +40,6 @@ $env:INFO_HIVE_PUBLIC_SAVE_REPORT = Join-Path $env:TEMP 'info-hive-public-save-r
 uv run --offline --with pyyaml==6.0.3 python -B -X utf8 -m unittest tests/wiki/test_wiki_public_save.py -v
 ```
 
-[隔離試験コード](../../tests/wiki/test_wiki_public_save.py) · [試験の出力](../../raw/wiki公開版の通常保存-2026-11-19.json) · [プロジェクト wiki](../../wiki/sources/wiki公開版の通常保存-2026-11-19.md) · [ADR-0036](../adr/0036-wiki-published-release-journal-and-reader-pinning.md) · [運用手順](../../info-hive-wiki/skills/info-hive/references/write-workflow.md)
+[隔離試験コード](../../tests/wiki/test_wiki_public_save.py) · [試験の出力](../../raw/wiki公開版の通常保存-2026-11-19-共有版.json) · [プロジェクト wiki](../../wiki/sources/wiki公開版の通常保存-2026-11-19.md) · [ADR-0036](../adr/0036-wiki-published-release-journal-and-reader-pinning.md) · [運用手順](../../info-hive-wiki/skills/info-hive/references/write-workflow.md)
+
+共有版の試験記録では、関連 wiki の記事名に伏せ字を入れた。試験値と当時の所見を収録している。

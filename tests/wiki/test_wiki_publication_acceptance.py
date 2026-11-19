@@ -20,6 +20,7 @@ from urllib.request import urlopen
 ROOT = Path(__file__).resolve().parents[2]
 POC = ROOT / "poc" / "ossie"
 SCRIPTS = ROOT / "info-hive-wiki" / "skills" / "info-hive" / "scripts"
+LEGACY_OUTPUT = Path(__file__).with_name("fixtures") / "ossie-publication-legacy.json"
 sys.path[:0] = [str(POC), str(SCRIPTS)]
 
 HAS_YAML = importlib.util.find_spec("yaml") is not None
@@ -344,30 +345,24 @@ class PublicationAcceptance(unittest.TestCase):
         self.assertEqual(live.release_id, written["release_id"])
         self.assertTrue((live.root / "concepts" / "external.md").exists())
 
-    def test_existing_cli_query_lint_and_browse_use_identical_fixture(self):
-        for program, command in (
-            ("wiki_graph_query.py", ("facts", "--about", "concept:platform")),
-            ("wiki_graph_lint.py", ()),
-            ("wiki_lint.py", ()),
-        ):
+    def test_pinned_reads_preserve_legacy_outputs(self):
+        expected = json.loads(LEGACY_OUTPUT.read_text(encoding="utf-8"))
+        self.assertEqual(self.reads(self.wiki, release_id=self.base.release_id), expected["graph"])
+        for program, legacy in expected["lint"].items():
             with self.subTest(program=program):
-                old = json.loads(self.cli(program, self.legacy, "--json", *command))
                 pinned = json.loads(self.cli(program, self.wiki, "--release-id", self.base.release_id,
-                                             "--json", *command))
+                                             "--json"))
                 self.assertEqual(pinned.pop("release_id"), self.base.release_id)
-                self.assertEqual(pinned, old)
+                self.assertEqual(pinned, legacy)
         search = json.loads(self.cli("wiki_search.py", "KabutoMarker", "--wiki", self.wiki, "--json"))
         self.assertEqual(search["release_id"], self.base.release_id)
         self.assertEqual(search["results"][0]["rel_path"], "sources/seed.md")
-        renders = []
-        for label, wiki in (("legacy", self.legacy), ("pinned", self.wiki)):
-            target = self.root / f"html-{label}"
-            self.cli("wiki_browse.py", "build", wiki, "--out", target, "--raw", "none")
-            body = sorted(path.relative_to(target).as_posix() for path in target.rglob("*.html")
-                          if "KabutoMarker" in path.read_text(encoding="utf-8"))
-            self.assertTrue(body)
-            renders.append(body)
-        self.assertEqual(*renders)
+        target = self.root / "html-pinned"
+        self.cli("wiki_browse.py", "build", self.wiki, "--release-id", self.base.release_id,
+                 "--out", target, "--raw", "none")
+        renders = sorted(path.relative_to(target).as_posix() for path in target.rglob("*.html")
+                         if "KabutoMarker" in path.read_text(encoding="utf-8"))
+        self.assertEqual(renders, expected["rendered_seed"])
 
     def test_browse_serve_cli_starts_with_requested_release(self):
         work = self.root / "changed-for-serve"

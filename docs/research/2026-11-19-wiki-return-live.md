@@ -40,4 +40,6 @@ $env:INFO_HIVE_LIVE_RETURN_REPORT = Join-Path $env:TEMP 'info-hive-live-return-r
 uv run --offline --with pyyaml==6.0.3 --with mcp==1.30.0 --with uvicorn==0.54.0 --with tantivy==0.27.0 --with usearch==2.26.6 --with numpy==2.5.4 python -B -X utf8 -m unittest tests/wiki/test_wiki_live_return.py -v
 ```
 
-[試験コード](../../tests/wiki/test_wiki_live_return.py) · [試験の出力](../../raw/wiki公開版からライブへの切り戻し-2026-11-19.json) · [プロジェクト wiki](../../wiki/sources/wiki公開版からライブへの切り戻し-2026-11-19.md) · [ADR-0036](../adr/0036-wiki-published-release-journal-and-reader-pinning.md) · [運用手順](../../info-hive-wiki/skills/info-hive/references/write-workflow.md#運用者が公開版からライブに切り戻す)
+[試験コード](../../tests/wiki/test_wiki_live_return.py) · [試験の出力](../../raw/wiki公開版からライブへの切り戻し-2026-11-19-共有版.json) · [プロジェクト wiki](../../wiki/sources/wiki公開版からライブへの切り戻し-2026-11-19.md) · [ADR-0036](../adr/0036-wiki-published-release-journal-and-reader-pinning.md) · [運用手順](../../info-hive-wiki/skills/info-hive/references/write-workflow.md#運用者が公開版からライブに切り戻す)
+
+共有版の試験記録では、関連 wiki の記事名に伏せ字を入れた。試験値と当時の所見を収録している。

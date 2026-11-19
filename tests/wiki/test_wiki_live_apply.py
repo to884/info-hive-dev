@@ -411,6 +411,25 @@ apply(sys.argv[2], sys.argv[3], checkpoint=wait)
         records = list((self.wiki / ".wiki-cache/raw-roots.d").glob("*.json"))
         self.assertEqual(len(records), 1)
 
+    def test_live_save_preserves_raw_inside_the_wiki(self):
+        self.raw = self.wiki / "raw"
+        self.raw.mkdir()
+        original = b"# Original\n\nRaw bytes.\n"
+        source = self.base / "original.md"
+        source.write_bytes(original)
+        saved = json.loads(self.run_script("wiki_raw_ingest.py", "save", "--wiki", self.wiki,
+                                          "--raw-root", self.raw, "--source", source).stdout)
+        plan = self.begin("wiki 内の原本を参照する")
+        self.assertIn("使えない", self.within(plan, "new", "--path", "raw/original.md", status=1))
+        self.draft(plan, "sources/original.md", article("source", "原本", "要約を保存する。", raw=saved))
+        self.index(plan, "ソース", "original")
+        self.log(plan, "ingest", "原本")
+        checksum = self.approve(plan)
+        self.apply(plan, checksum)
+        self.assertEqual(self.apply(plan, checksum)["state"], "already_applied")
+        self.assertEqual((self.raw / "original.md").read_bytes(), original)
+        self.assertIn(saved["raw_sha256"], (self.wiki / "sources/original.md").read_text(encoding="utf-8"))
+
 
 if __name__ == "__main__":
     unittest.main()
