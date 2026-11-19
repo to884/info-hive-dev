@@ -4,9 +4,9 @@ kind: "product"
 title: "info-hive-rag"
 aliases: ["rag@info-hive", "info-hive rag"]
 tags: ["rag", "取り込み", "検索", "wiki設計"]
-sources: ["info-hive-ragのアーキテクチャ-4fabe32", "info-hive-marketplaceの配布構成-c709eb3"]
+sources: ["info-hive-ragのアーキテクチャ-4fabe32", "info-hive-marketplaceの配布構成-c709eb3", "rag全量ocr後のann保守と中断再開-2026-11-19", "ragのocrキャッシュの再利用と回収-2026-11-20", "rag-0.5.4の公開と導入確認-2026-11-20"]
 created: 2026-11-19
-updated: 2026-11-19
+updated: 2026-11-20
 graph:
   relationships:
     - predicate: "depends_on"
@@ -69,3 +69,14 @@ sequenceDiagram
 > Codex 補足: PDF は元の場所に置く。rag が検索用の索引と抽出本文を用意し、wiki のエージェントは抽出本文から出典付きの要約を書く。PDF 内のチャンクは `rag.search`、wiki の Markdown 記事は `wiki.query` で探す。
 
 同じ場所の PDF が別の内容に置き換わると、rag は旧版を出典とする wiki ページに `review_required` を付ける。wiki の Markdown を検索・閲覧する側の構成は [[info-hive-wiki]] を参照。
+
+## 全量 OCR 後の検証
+
+905 文書・22,335 OCR ページを含む入力で、全量 ANN の自動作成・追加時の更新と、公開直後を含む 3 回の中断・再開を確認した。
+実 MCP 45 項目と元データの最終監査は成功し、公開後の旧世代の回収と再開位置の不具合を修正した。
+この結果は `4fabe32` に未コミットの修正を加えた状態のもので、検証範囲は [[rag全量ocr後のann保守と中断再開-2026-11-19]] にある。
+残った 2 件のキャッシュ管理の問題は後続で修正し、実 MCP 21 項目で OCR の再利用と不要キャッシュの回収を確認した。[[ragのocrキャッシュの再利用と回収-2026-11-20]]
+
+## 0.5.4 の公開
+
+キャッシュの修正を 0.5.4 として main にマージし、タグ、GitHub リリース、公開マーケットプレイスからの新規導入を確認した。[[rag-0.5.4の公開と導入確認-2026-11-20]]
