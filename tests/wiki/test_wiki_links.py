@@ -1511,7 +1511,7 @@ class ReadSiteInventoryTests(unittest.TestCase):
         ("wiki_session.py", "cmd_decide"): RAW,
         ("wiki_session.py", "cmd_scan"): RAW,
         ("wiki_session.py", "cmd_verify"): RAW,
-        ("wiki_session.py", "cmd_write"): RAW,
+        ("wiki_session.py", "save_raw"): RAW,
         ("wiki_session.py", "load_decisions"): NOT_ARTICLE,
         ("wiki_session.py", "read_range"): RAW,
         ("wiki_session.py", "write_decisions"): NOT_ARTICLE,
