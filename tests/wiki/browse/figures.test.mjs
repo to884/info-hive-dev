@@ -205,12 +205,29 @@ async function mermaidScenario(browser, base, origin, mode) {
   const r = {};
   await page.goto(base + "concepts/" + encodeURIComponent("流れ") + ".html");
   if (mode === "static") {
-    await page.waitForTimeout(1500);
-    r.static = await page.evaluate(() => ({
-      frames: document.querySelectorAll("iframe").length, figures: document.querySelectorAll(".wiki-fig").length,
-      codes: document.querySelectorAll("#_body pre > code.language-mermaid").length,
-      styleAttrs: document.querySelectorAll("[style]").length, violations: window.__violations.slice() }));
-    r.tinyRequested = requested.some((u) => u.includes("mermaid"));
+    r.static = await page.evaluate(async () => {
+      const figures = [...document.querySelectorAll('#_body figure[data-fig="pele"]')];
+      const images = figures.flatMap(figure => [...figure.querySelectorAll("img")]);
+      await Promise.allSettled(images.map(image => image.decode()));
+      return {
+        frames: document.querySelectorAll("iframe").length, figures: figures.length,
+        images: images.map(image => [image.alt, image.naturalWidth]),
+        codes: document.querySelectorAll("#_body pre > code.language-mermaid").length,
+        fallbacks: document.querySelectorAll("#_body .wiki-fig-error").length,
+        sources: [...document.querySelectorAll("#_body details.wiki-fig-source")].map(detail =>
+          !detail.open && detail.querySelector("summary").textContent === "図のコード"),
+        styleAttrs: document.querySelectorAll("[style]").length, violations: window.__violations.slice(),
+      };
+    });
+    r.static.themes = {};
+    for (const [theme, osTheme] of [["light", "dark"], ["dark", "light"], ["auto", "dark"], ["auto", "light"]]) {
+      await page.emulateMedia({ colorScheme: osTheme });
+      await page.evaluate(value => document.documentElement.setAttribute("data-theme", value), theme);
+      r.static.themes[`${theme}/${osTheme}`] = await page.evaluate(() =>
+        [...document.querySelectorAll('figure[data-fig="pele"] img')].filter(img => getComputedStyle(img).display !== "none")
+          .map(img => img.dataset.figTheme));
+    }
+    r.engineRequested = requested.some(u => /mermaid|figures\.js|pele\.mjs|render-pele/.test(u));
     r.errors = errors;
     r.external = external;
     await context.close();
@@ -469,9 +486,18 @@ try {
         const m = await mermaidScenario(browser, b.base, b.origin, mode);
         run.mermaid = m;
         if (mode === "static") {
-          check(m.static.frames === 0 && m.static.figures === 0 && m.static.codes === MERMAID_OK + MERMAID_NG + 0,
-            `${tag}: 静的版で Mermaid に触れた: ${JSON.stringify(m.static)}`);
-          check(!m.tinyRequested, `${tag}: 静的版で Mermaid を読んだ`);
+          const staticOk = 5; // Pele はマインドマップと、外部画像を使わない形の図も描ける
+          check(m.static.frames === 0 && m.static.figures === staticOk && m.static.codes === MERMAID_OK + MERMAID_NG,
+            `${tag}: 静的版の図とコードの数が違う: ${JSON.stringify(m.static)}`);
+          check(m.static.images.length === staticOk * 2 && m.static.images.every(([, width]) => width > 0)
+            && m.static.images.some(([alt]) => alt === "取り込みの流れ"), `${tag}: 静的版の画像または代替テキストが違う`);
+          check(m.static.fallbacks === 1 && m.static.sources.length === staticOk && m.static.sources.every(Boolean),
+            `${tag}: 静的版の図のコードと警告が違う`);
+          for (const [selection, visible] of Object.entries(m.static.themes)) {
+            const chosen = selection.startsWith("auto/") ? selection.split("/")[1] : selection.split("/")[0];
+            check(visible.length === staticOk && visible.every(color => color === chosen), `${tag}: 配色 ${selection} の表示が違う`);
+          }
+          check(!m.engineRequested, `${tag}: 静的版で描画用のスクリプトを読んだ`);
           check(m.static.styleAttrs === 0 && m.static.violations.length === 0, `${tag}: 静的版の Mermaid のページに style か違反がある`);
           check(m.errors.length === 0 && m.external.length === 0, `${tag}: 静的版の Mermaid のページのエラーか外への要求: ${m.errors} ${m.external}`);
         } else {
