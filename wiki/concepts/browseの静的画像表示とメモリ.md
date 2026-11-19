@@ -34,6 +34,10 @@ Windows 版 Playwright WebKit で合成フローチャート 50 図を明暗 2 �
 
 代表のフロー図とシーケンス図の明暗を調べた。SVG のルート変数を試験的に展開し、矩形の `style="rx:4px"` を `rx="4"` にすると、resvg で色と角丸を表示できた。前回は PNG に Yu Gothic だけを読み込ませていた一方、Chromium は代表ラベルに Noto Sans JP Regular を使っていた。resvg にも Noto Sans JP を指定すると文字の見え方が近づいた。PNG の背景は透明で、固定したい場合は resvg の背景色を指定できる。一般的な CSS と他のフォント環境での再現性は未検証。 [調査記録](../../docs/agent-runs/2026-11-19-pele-resvg-investigation/report.md)
 
+### 図種と CSS の追加検証
+
+12 原稿の明暗と CSS の対照図 3 件、計 27 画像を両ブラウザで確認した。Chromium の解決済みスタイルを SVG 属性に固定し、rx・ry の auto 属性を省くと、元と変換後の SVG は全 54 条件で同じ RGB になった。text 要素の文字列の変化と SVG の表示領域外へのはみ出しは検出されなかった。PNG と SVG の画素差は残り、ラベルの図形内への収まりや PNG の全文字の確認は未実施。この方式は書き出し時にブラウザが必要で、一般の SVG・CSS の変換は保証していない。 [追加検証](../../docs/agent-runs/2026-11-19-pele-png-compatibility/report.md)
+
 ## 次のセッション
 
 SVG／PNG 比較の報告、原標本、集計スクリプト、再測定用画像は親リポジトリに保存した。親リポジトリのルートで次の2件を再集計できる。 [保存した原標本と画像](../../docs/agent-runs/2026-11-19-wiki-static-svg-vs-png/)
