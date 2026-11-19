@@ -27,7 +27,7 @@
 リポジトリのルートで実行する。既存 wiki の読み取りと再抽出には PyYAML が必要になる。新しい出力先を指定し、同じ wiki の比較では `--wiki-id` を固定する。
 
 ```powershell
-uv run --with pyyaml==6.0.3 python -B -X utf8 poc/ossie/semantic_trial.py --wiki C:/path/to/semasynth/wiki --wiki-id semasynth --output poc/ossie/runs/stages12-semasynth-rerun
+uv run --with pyyaml==6.0.3 python -B -X utf8 poc/ossie/semantic_trial.py --wiki C:/Works/semasynth-dev/wiki --wiki-id semasynth --output poc/ossie/runs/stages12-semasynth-rerun
 python -B -X utf8 poc/ossie/semantic_trial.py --demo --output poc/ossie/runs/stages12-synthetic-rerun
 uv run --with pyyaml==6.0.3 python -B -X utf8 -m unittest tests/wiki/test_ossie_semantic_trial.py tests/wiki/test_ossie_export.py -v
 ```
