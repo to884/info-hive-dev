@@ -6,9 +6,9 @@ url: "https://platform.claude.com/cookbook/managed-agents-cma-dreaming-with-a-dy
 raw: "raw/managed-agents-cma-dreaming-with-a-dynamic-workflow.md"
 ingested: 2026-11-16
 created: 2026-11-16
-updated: 2026-11-16
+updated: 2026-11-19
 tags: ["wiki設計"]
-concepts: ["エージェントのメモリの階層", "editとwriteの書き込みの競合"]
+concepts: ["エージェントのメモリの階層", "editとwriteの書き込みの競合", "動的ワークフロー"]
 ---
 
 # Dreaming with a dynamic workflow
@@ -96,3 +96,4 @@ Claude の cookbook の 1 本で、[[components-of-agent-memory]] が紹介す�
 - [[claude-quickstarts-managed-agents-knowledge-wiki]]: 文書から一度作るナレッジ wiki。最新に保つためにこの cookbook を案内している
 - [[エージェントのメモリの階層]]
 - [[editとwriteの書き込みの競合]]
+- [[動的ワークフロー]]: 動的ワークフローを一から組んで測った記事 [[building-dynamic-workflows-a-new-agentic-system]] と並べた概念ページ
