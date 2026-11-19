@@ -6,7 +6,7 @@ authors: ["to884"]
 raw: "docs/research/markitdown-benchmark-2026-11-15.md"
 ingested: 2026-11-15
 created: 2026-11-15
-updated: 2026-11-15
+updated: 2026-11-19
 ---
 
 # 今の取り込みと MarkItDown の抽出の比較（2026-11-15）
@@ -43,6 +43,7 @@ wiki と rag の取り込みで MarkItDown を使うかを決めるために、�
 ## 関係するページ
 
 - [[抽出の品質の測り方]]
+- [[mineru-readme]]（後日調べた別の候補。今回のベンチマークでは測っていない）
 - [[pdfのヘッダーの条件]]（rag が PDF を確かめる段階）
 - [[敵対的レビューで設計を直す進め方]]
 - [[youtubeの字幕の取り込みの選択肢-2026-11-15]]（構想の 1 つ、YouTube の字幕の取り方の調査）
