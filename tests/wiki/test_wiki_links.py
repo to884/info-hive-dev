@@ -538,9 +538,11 @@ class SearchCacheTests(Base):
         connection = sqlite3.connect(path)
         self.addCleanup(connection.close)
         connection.execute("PRAGMA query_only=ON")
+        # 拡張の読み込みを提供しない Python でも、実際の SQLite の書き込み拒否を確認する。
+        test_connection = mock.Mock(wraps=connection, enable_load_extension=mock.Mock())
         with mock.patch.object(wiki_search, "load_local_embedding_backend",
                                return_value=(object(), mock.Mock(), 2)), \
-             mock.patch.object(sqlite3, "connect", return_value=connection):
+             mock.patch.object(sqlite3, "connect", return_value=test_connection):
             self.assert_fallback(self.search(), baseline, "SQLITE_READONLY", path)
         with self.assertRaises(sqlite3.ProgrammingError):
             connection.execute("SELECT 1")
