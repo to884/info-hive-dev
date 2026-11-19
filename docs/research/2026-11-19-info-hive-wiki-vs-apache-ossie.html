@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>info-hive-wiki と Apache Ossie｜図で見る機能比較</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --ground: #f3f7fa;
+    --sheet: #ffffff;
+    --ink: #17283d;
+    --muted: #4f6279;
+    --rule: #c8d4e0;
+    --wiki: #08636a;
+    --wiki-bg: #e7f4f3;
+    --ossie: #534187;
+    --ossie-bg: #f1edf9;
+    --alert: #9b304c;
+    --alert-bg: #faedf1;
+    --mono: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+    --display: "Bahnschrift", "Aptos Display", "Yu Gothic UI", Meiryo, sans-serif;
+    --body: "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #141d2a;
+      --sheet: #1b2839;
+      --ink: #edf3fa;
+      --muted: #b5c5d9;
+      --rule: #455770;
+      --wiki: #87d9d6;
+      --wiki-bg: #1c373e;
+      --ossie: #ccb9f3;
+      --ossie-bg: #352c4f;
+      --alert: #ff9fb4;
+      --alert-bg: #492635;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { scroll-padding-top: 1.5rem; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font: 1rem/1.65 var(--body);
+  }
+  h1, h2, h3, p, ul, figure, dl, dd { margin: 0; }
+  h1, h2, h3 { line-height: 1.24; text-wrap: balance; }
+  h1, h2 { font-family: var(--display); }
+  h1 { font-size: clamp(2rem, 5.7vw, 4.9rem); letter-spacing: -.052em; }
+  h2 { font-size: clamp(1.7rem, 3.2vw, 2.65rem); letter-spacing: -.035em; }
+  h3 { font-size: 1.24rem; }
+  a { color: var(--wiki); text-underline-offset: .22em; }
+  a:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 3px solid var(--ossie);
+    outline-offset: 4px;
+  }
+  button { font: inherit; }
+  code, .numeral { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  code { overflow-wrap: anywhere; }
+  .page { width: min(74rem, calc(100% - 3rem)); margin-inline: auto; }
+  .topbar { border-bottom: 1px solid var(--rule); }
+  .topbar .page {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .8rem 1.2rem;
+    min-height: 3.95rem;
+  }
+  .topbar nav { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; font-size: .88rem; }
+  .topbar nav a { color: var(--ink); text-decoration: none; }
+  .topbar nav a:hover { text-decoration: underline; }
+  .date { color: var(--muted); font: .78rem var(--mono); white-space: nowrap; }
+  main.page { display: grid; gap: clamp(3.5rem, 7vw, 6.3rem); padding-block: clamp(2.3rem, 5vw, 4.6rem); }
+  section, .intro { display: grid; gap: 1.4rem; min-width: 0; }
+  .hero { display: grid; gap: 2rem; }
+  .lead { font-size: clamp(1.03rem, 2.1vw, 1.36rem); max-width: 44em; color: var(--muted); }
+  .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--rule); }
+  .panel {
+    --accent: var(--wiki);
+    --wash: var(--wiki-bg);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 1.25rem;
+    min-width: 0;
+    padding: clamp(1.15rem, 2.9vw, 2rem);
+    background: var(--sheet);
+  }
+  .panel + .panel { border-inline-start: 1px solid var(--rule); }
+  .panel.ossie { --accent: var(--ossie); --wash: var(--ossie-bg); }
+  .panel-header { display: grid; gap: .2rem; }
+  .panel-name { color: var(--accent); font: 700 clamp(1rem, 1.8vw, 1.35rem) var(--display); }
+  .panel-summary { font-size: clamp(1.1rem, 2vw, 1.65rem); }
+  .panel-note { display: flex; gap: .45rem 1rem; flex-wrap: wrap; font-size: .86rem; color: var(--muted); }
+  .panel-note span { border-bottom: 1px solid var(--rule); }
+  .scene {
+    min-height: 13.2rem;
+    display: grid;
+    place-content: center stretch;
+    padding: 1.15rem;
+    background:
+      radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--accent) 24%, transparent) 1px, transparent 1.1px) 0 0 / 15px 15px,
+      var(--wash);
+  }
+  .wiki-scene { grid-template-rows: auto 1.65rem auto; }
+  .paper {
+    justify-self: center;
+    padding: .48rem .85rem;
+    background: var(--sheet);
+    border: 1px solid var(--accent);
+    box-shadow: 4px 4px 0 var(--wash), 5px 5px 0 var(--accent);
+    color: var(--accent);
+    font-size: .84rem;
+    font-weight: 700;
+  }
+  .drop-line { justify-self: center; width: 0; height: 100%; border-inline-start: 2px dotted var(--accent); }
+  .network-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .95fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+    align-items: center;
+    gap: .35rem .58rem;
+  }
+  .node {
+    min-width: 0;
+    display: grid;
+    min-height: 3.4rem;
+    align-content: center;
+    justify-items: center;
+    padding: .45rem .35rem;
+    border: 1px solid var(--accent);
+    background: var(--sheet);
+    font-weight: 700;
+    font-size: clamp(.75rem, 1.6vw, 1rem);
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .network-row > .node { grid-row: 2 / 4; }
+  .network-row > .node:first-child { grid-column: 1; }
+  .network-row > .node:last-child { grid-column: 3; }
+  .line {
+    grid-row: 2; grid-column: 2;
+    position: relative;
+    height: 2px;
+    background: var(--accent);
+  }
+  .line::after {
+    position: absolute;
+    content: "";
+    right: 0; top: 50%;
+    width: .44rem; height: .44rem;
+    border-top: 2px solid var(--accent);
+    border-right: 2px solid var(--accent);
+    transform: translateY(-50%) rotate(45deg);
+  }
+  .edge-caption {
+    grid-row: 3; grid-column: 2;
+    color: var(--accent);
+    font-size: .73rem;
+    font-weight: 700;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .ossie-scene { grid-template-rows: auto 1.02rem auto auto; }
+  .roles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .45rem; }
+  .roles .node { min-height: 2.25rem; }
+  .merge { position: relative; border-bottom: 1px solid var(--accent); width: 67.5%; justify-self: center; }
+  .merge::before, .merge::after { content: ""; position: absolute; height: 100%; border-left: 1px solid var(--accent); }
+  .merge::after { right: 0; }
+  .join {
+    position: relative; justify-self: center;
+    margin-top: .62rem;
+    padding: .35rem .75rem;
+    color: var(--sheet); background: var(--accent);
+    font-size: .88rem; font-weight: 700;
+  }
+  .join::before { content: ""; position: absolute; inset: -.66rem 50% auto; height: .66rem; border-left: 1px solid var(--accent); }
+  .stat { justify-self: center; border-bottom: 1px solid var(--accent); font-size: .8rem; padding-top: .52rem; }
+  .section-title { display: grid; gap: .35rem; }
+  .section-title p { color: var(--muted); }
+  .experiment { display: grid; grid-template-columns: minmax(11rem, .6fr) minmax(0, 2fr); border: 1px solid var(--rule); background: var(--sheet); }
+  .counts {
+    display: grid;
+    align-content: center;
+    gap: 1rem;
+    background: var(--ink);
+    color: var(--sheet);
+    padding: clamp(1rem, 3vw, 2.2rem);
+  }
+  .counts > p { font-size: .86rem; }
+  .counts dl { display: grid; gap: .85rem; }
+  .counts dl > div { display: grid; gap: .05rem; }
+  .counts dd { grid-row: 1; font: 630 clamp(2.65rem, 4.3vw, 4.2rem)/1 var(--mono); letter-spacing: -.087em; }
+  .counts dt { font-size: .94rem; }
+  .traces { padding: clamp(1.05rem, 3vw, 2rem); display: grid; gap: 1rem; min-width: 0; }
+  .switch { display: flex; flex-wrap: wrap; gap: .42rem; }
+  .switch button {
+    border: 1px solid var(--rule);
+    padding: .4rem .76rem;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    font-size: .87rem;
+    font-weight: 670;
+  }
+  .switch button:hover { background: var(--ground); }
+  .switch button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+  .trace {
+    --accent: var(--wiki);
+    --wash: var(--wiki-bg);
+    padding: 1rem;
+    background: var(--wash);
+    display: grid;
+    gap: .84rem;
+  }
+  .trace[data-state="replaced"] { --accent: var(--alert); --wash: var(--alert-bg); }
+  .trace h3 { font-size: 1rem; }
+  .trace .edge-caption { font-family: var(--mono); font-size: .8rem; }
+  .trace[data-state="replaced"] .line { background: transparent; border-top: 2px dashed var(--accent); height: 0; }
+  .trace .node { font-size: .86rem; padding: .45rem; }
+  .trace small { font-size: .78rem; color: var(--accent); }
+  .trace p { color: var(--accent); font-size: .87rem; }
+  .experiment figcaption { grid-column: 1 / -1; padding: .65rem 1rem; border-top: 1px solid var(--rule); font-size: .84rem; color: var(--muted); }
+  .decision {
+    border-top: 1px solid var(--rule);
+    background: var(--sheet);
+    display: grid;
+    grid-template-columns: minmax(8rem, .53fr) repeat(2, minmax(0, 1fr));
+  }
+  .decision > * {
+    display: grid;
+    align-content: flex-start;
+    gap: .35rem;
+    padding: .95rem 1.12rem;
+    border-bottom: 1px solid var(--rule);
+    background: var(--sheet);
+    min-width: 0;
+  }
+  .decision dt { font-size: .95rem; font-weight: 720; }
+  .decision dd { font-size: .92rem; }
+  .decision dd + dd { border-inline-start: 1px solid var(--rule); }
+  .option-label { font-size: .73rem; font-weight: 700; color: var(--wiki); }
+  .decision dd + dd .option-label { color: var(--ossie); }
+  .route {
+    display: grid;
+    grid-template-columns: minmax(0, .92fr) 1.5rem minmax(0, 1.8fr);
+    gap: 1rem;
+    align-items: center;
+    padding: clamp(1rem, 3vw, 2rem);
+    border: 1px solid var(--rule);
+    background: var(--sheet);
+  }
+  .route-source { background: var(--wiki-bg); padding: 1.1rem; border-left: .3rem solid var(--wiki); }
+  .route-source strong, .route-destination strong { display: block; }
+  .route-source small, .route-destination small { color: var(--muted); font-size: .83rem; }
+  .route .arrows { color: var(--wiki); font: bold 1.4rem var(--mono); text-align: center; }
+  .route-output { display: grid; gap: .62rem; }
+  .route-destination { padding: .7rem 1rem; border: 1px solid var(--rule); }
+  .route-destination.export { background: var(--ossie-bg); border-color: var(--ossie); }
+  .route-destination.export strong { color: var(--ossie); }
+  .criterion { font-size: .95rem; max-width: 65ch; }
+  details { border-block: 1px solid var(--rule); }
+  details > summary {
+    padding: .85rem .15rem;
+    font-weight: 680;
+    cursor: pointer;
+  }
+  details > div { display: grid; gap: .9rem; padding: .2rem .15rem 1rem; font-size: .89rem; }
+  details ul { padding-left: 1.25rem; display: grid; gap: .5rem; max-width: 72ch; }
+  .sources { border-top: 1px solid var(--rule); padding-block: 1.35rem 2.3rem; }
+  .sources .page, .sources .links { display: flex; flex-wrap: wrap; gap: .55rem 1.15rem; align-items: center; font-size: .87rem; }
+  .sources strong { font-size: .85rem; }
+  @media (max-width: 47rem) {
+    .page { width: calc(100% - 1.75rem); }
+    .pair { grid-template-columns: 1fr; }
+    .panel + .panel { border-inline-start: 0; border-block-start: 1px solid var(--rule); }
+    .scene { min-height: 11.5rem; }
+    .experiment { grid-template-columns: minmax(0, 1fr); }
+    .counts { gap: .6rem; }
+    .counts dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .counts dd { font-size: 2.8rem; }
+    .decision { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .decision dt { grid-column: 1 / -1; padding-block: .55rem; background: var(--ground); }
+    .decision dd { padding: .7rem; }
+    .route { grid-template-columns: 1fr; gap: .45rem; align-items: stretch; }
+    .route .arrows { transform: rotate(90deg); justify-self: center; }
+  }
+  @media (max-width: 28rem) {
+    .topbar .page { flex-wrap: wrap; padding-block: .65rem; min-height: 0; }
+    .panel { padding: 1rem; }
+    .scene { padding: .66rem; }
+    .network-row { gap: .28rem .33rem; }
+    .trace { padding: .7rem; }
+    .trace .node { font-size: .78rem; }
+    .trace .edge-caption { font-size: .69rem; }
+  }
+  @media print {
+    :root {
+      color-scheme: light;
+      --ground: #ffffff; --sheet: #ffffff; --ink: #17283d; --muted: #4f6279;
+      --rule: #c8d4e0; --wiki: #08636a; --wiki-bg: #e7f4f3;
+      --ossie: #534187; --ossie-bg: #f1edf9; --alert: #9b304c; --alert-bg: #faedf1;
+    }
+    body { print-color-adjust: exact; }
+    .page { width: 100%; }
+    main.page { gap: 1.8rem; padding-block: 1rem; }
+    .topbar nav, .switch { display: none; }
+    .trace[hidden] { display: grid !important; }
+    .panel, .trace, .route, .decision dd, .decision dt { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="page">
+    <nav aria-label="ページ内の目次">
+      <a href="#comparison">比較</a>
+      <a href="#experiment">差し替え試験</a>
+      <a href="#approach">取り入れ方</a>
+    </nav>
+    <time class="date" datetime="2026-11-19">調査日 2026-11-19</time>
+  </div>
+</header>
+
+<main class="page">
+  <section class="hero" id="comparison" aria-labelledby="page-title">
+    <div class="intro">
+      <h1 id="page-title">info-hive-wiki と<br>Apache Ossie</h1>
+      <p class="lead">現行は記事から根拠をたどる。Ossie は実体の関係や集計の意味を定義する。<strong>定義ファイルの差し替えでは、既存のグラフを引き継げない。</strong></p>
+    </div>
+    <div class="pair">
+      <figure class="panel">
+        <div class="panel-header">
+          <p class="panel-name">現行 · info-hive-wiki</p>
+          <h2 class="panel-summary">根拠つきの関係をたどる</h2>
+        </div>
+        <div class="scene wiki-scene" role="img" aria-label="出典の検証メモが、変換器は仕様に依存するという関係の根拠になる">
+          <span class="paper">出典と引用</span>
+          <span class="drop-line" aria-hidden="true"></span>
+          <div class="network-row">
+            <span class="node">変換器</span>
+            <span class="line" aria-hidden="true"></span>
+            <span class="edge-caption">依存する</span>
+            <span class="node">仕様</span>
+          </div>
+        </div>
+        <figcaption class="panel-note"><span>近くの関係・最短経路</span><span>引用・状態・履歴</span></figcaption>
+      </figure>
+
+      <figure class="panel ossie">
+        <div class="panel-header">
+          <p class="panel-name">Apache Ossie</p>
+          <h2 class="panel-summary">関係と数え方を定義する</h2>
+        </div>
+        <div class="scene ossie-scene" role="img" aria-label="顧客、製品、契約を一組として利用関係を定義し、利用顧客数のような集計を定義する">
+          <div class="roles">
+            <span class="node">顧客</span>
+            <span class="node">製品</span>
+            <span class="node">契約</span>
+          </div>
+          <span class="merge" aria-hidden="true"></span>
+          <span class="join">利用関係</span>
+          <span class="stat">例 · 利用顧客数</span>
+        </div>
+        <figcaption class="panel-note"><span>複合 ID・多項関係</span><span>制約・導出・集計の定義</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="experiment" aria-labelledby="experiment-title">
+    <div class="section-title">
+      <h2 id="experiment-title">件数は同じ。経路は変わった。</h2>
+      <p>SemaSynth の同じ63ページで、定義ファイルだけを差し替えた試験。</p>
+    </div>
+    <figure class="experiment">
+      <div class="counts">
+        <p>両条件で同じ件数</p>
+        <dl>
+          <div><dt>ノード</dt><dd>63</dd></div>
+          <div><dt>エッジ</dt><dd>477</dd></div>
+        </dl>
+      </div>
+      <div class="traces">
+        <div class="switch" role="group" aria-label="試験条件を切り替える" hidden>
+          <button type="button" data-show="current" aria-pressed="true" aria-controls="trace-current">現行の定義</button>
+          <button type="button" data-show="replaced" aria-pressed="false" aria-controls="trace-replaced">Ossie に差し替え</button>
+        </div>
+        <div class="trace" id="trace-current" data-state="current">
+          <h3>現行では型付きの経路を取得</h3>
+          <div class="network-row" role="img" aria-label="変換器から Apache Ossie まで depends_on の経路が1本">
+            <span class="node">変換器 <small>product:</small></span>
+            <span class="line" aria-hidden="true"></span>
+            <span class="edge-caption">depends_on</span>
+            <span class="node">Apache Ossie <small>product:</small></span>
+          </div>
+          <p>依存関係を取得。根拠の記事までたどれる。</p>
+        </div>
+        <div class="trace" id="trace-replaced" data-state="replaced">
+          <h3>差し替え後は本文リンクに変化</h3>
+          <div class="network-row" role="img" aria-label="新しい concept 型の ID 同士では、変換器から Apache Ossie まで mentions の経路が1本">
+            <span class="node">変換器 <small>concept:</small></span>
+            <span class="line" aria-hidden="true"></span>
+            <span class="edge-caption">mentions</span>
+            <span class="node">Apache Ossie <small>concept:</small></span>
+          </div>
+          <p>旧 ID での問い合わせは失敗。新 ID では本文リンクを取得。</p>
+        </div>
+      </div>
+      <figcaption>検査で見つかった未定義の関係は <span class="numeral">0 → 2</span> 件。型と関係の定義は空として読み込まれた。</figcaption>
+    </figure>
+  </section>
+
+  <section aria-labelledby="details-title">
+    <div class="section-title"><h2 id="details-title">導入で増えること・引き継ぐこと</h2></div>
+    <dl class="decision">
+      <dt>実体の定義</dt>
+      <dd><span class="option-label">現行</span>記事の種類・設定から、型と ID を付ける。</dd>
+      <dd><span class="option-label">Apache Ossie</span>提供元と製品コードの組で識別するなど、用途に合わせたルールを定義できる。</dd>
+      <dt>出典と履歴</dt>
+      <dd><span class="option-label">現行</span>同じ関係でも、引用・確信度・状態・時期・訂正を区別して保存する。</dd>
+      <dd><span class="option-label">Apache Ossie</span>根拠を引き継ぐには、主張と根拠を別々に表す対応付けが要る。</dd>
+      <dt>問い合わせと表示</dt>
+      <dd><span class="option-label">現行</span>隣接、関係一覧、最短経路、ページごとの関係表を使える。</dd>
+      <dd><span class="option-label">Apache Ossie</span>集計の意味を外部と共有できる。既存の経路探索と閲覧には互換実装が要る。</dd>
+    </dl>
+    <details>
+      <summary>仕様と公開ツールの検証範囲</summary>
+      <div>
+        <ul>
+          <li>Ossie の公式検証器は、独立したマッピング文書の参照先と列名を検査できた。試験した変換器のパーサーは、その独立文書の読み込みを拒否した。</li>
+          <li>制約・導出・集計を実行する範囲は評価器によって異なる。Ossie の集計用の結合経路と、wiki の最短経路探索はそれぞれ別の問い合わせ。</li>
+          <li>確認した版は info-hive-wiki <code>0.35.1</code> と Ossie <code>0.3.0.dev0</code>（<code>0f458de</code>）。差し替え試験には公式の Flights 定義 <code>4d82209</code> を使った。</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <section id="approach" aria-labelledby="approach-title">
+    <div class="section-title">
+      <h2 id="approach-title">まず Ossie 形式へ出力する</h2>
+      <p>既存の使い方を保ちながら、外部ツールで扱える定義を試す。</p>
+    </div>
+    <div class="route">
+      <div class="route-source"><strong>現行の Markdown と定義</strong><small>記事・実体・根拠の正本</small></div>
+      <div class="arrows" aria-hidden="true">→</div>
+      <div class="route-output">
+        <div class="route-destination"><strong>現行のグラフ</strong><small>問い合わせ・出典の確認・閲覧</small></div>
+        <div class="route-destination export"><strong>Ossie 形式への一方向出力</strong><small>型・関係の定義。必要に応じて集計用モデルを追加。</small></div>
+      </div>
+    </div>
+    <p class="criterion"><strong>移行を判断する条件</strong>　同じ ID で関係・経路・根拠を取得できること。互換変換で元の情報を復元できるかは未検証。</p>
+  </section>
+</main>
+
+<footer class="sources">
+  <div class="page">
+    <strong>出典</strong>
+    <div class="links">
+      <a href="2026-11-19-apache-ossie-wiki-graph-replacement.md">調査レポート</a>
+      <a href="https://github.com/apache/ossie/blob/0f458dee0718b701930bf4597e1d84e427f0c8fc/ontology/ontology.md">Ossie オントロジー仕様</a>
+      <a href="https://github.com/apache/ossie/blob/0f458dee0718b701930bf4597e1d84e427f0c8fc/core-spec/spec_layers.md">Ossie の仕様レイヤー</a>
+    </div>
+  </div>
+</footer>
+<script>
+  const switcher = document.querySelector(".switch");
+  const buttons = [...switcher.querySelectorAll("button")];
+  const traces = [...document.querySelectorAll(".trace")];
+
+  function showTrace(state) {
+    for (const button of buttons) {
+      button.setAttribute("aria-pressed", String(button.dataset.show === state));
+    }
+    for (const trace of traces) {
+      trace.hidden = trace.dataset.state !== state;
+    }
+  }
+
+  for (const button of buttons) {
+    button.addEventListener("click", () => showTrace(button.dataset.show));
+  }
+  showTrace("current");
+  switcher.hidden = false;
+</script>
+</body>
+</html>

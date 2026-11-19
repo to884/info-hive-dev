@@ -37,6 +37,7 @@ on:
       - info-hive-wiki
       - tests/wiki/**
       - poc/poc_data.py
+      - poc/ossie/**
       - .github/workflows/wiki-mcp.yml
 
 permissions:
@@ -168,6 +169,19 @@ jobs:
       - name: サーバーと中継の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/wiki/test_mcp_server.py tests/wiki/test_mcp_startup_files.py -v
+      - name: 公開版と Ossie PoC の隔離試験
+        if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
+        run: >-
+          uv run --python 3.12 $DEPS --with duckdb==1.4.4 --with uvicorn==0.54.0
+          python -X utf8 -B -m unittest -v
+          tests/wiki/test_ossie_consumer.py
+          tests/wiki/test_ossie_export.py
+          tests/wiki/test_ossie_semantic_trial.py
+          tests/wiki/test_wiki_live_apply.py
+          tests/wiki/test_wiki_live_return.py
+          tests/wiki/test_wiki_public_save.py
+          tests/wiki/test_wiki_publication_acceptance.py
+          tests/wiki/test_wiki_republish.py
       - name: 本物のモデルで評価ゲートを通す
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         env:

@@ -1,0 +1,176 @@
+## レビュー結果
+
+**結論:** Critical・Major はありません。Minor が 4 件あります。製品コードは主張どおりに動いています。退役台帳の 2 段階化、カーソル無効化の順序、再登録で抽出ロックを先に取る変更、リセット時の `preserve_doc_id` はいずれも、到達できる経路で行・カーソル・OCR キャッシュを誤って失いません。
+
+### 前提として確認したこと
+
+- **パッチの忠実性:** `cache-fix.patch` を一時ディレクトリで現在の `rag_index.py` に逆適用しました。SHA-256 は `791998a3…c638` に一致し、今回の差分はこのパッチだけです。
+- **レビューした対象のハッシュ:**
+  - `rag_index.py`: `d4df397c…85c5`
+  - `test_jobs.py`: `a53d5bea…d76a`
+  - `verify_cache_retirement.py`: `3b8a453c…6fcc`
+  - `sitecustomize.py`: `87efbdf5…7a437a`
+  - `cache-fix.patch`: `0e394d3f…0c7d5`
+  - 計画書: `86599f5b…0bc4`
+- **単体試験のログ:** Windows は 81 件すべて ok、Linux は 79 件 ok と 2 件 skip（Windows のリンクと UNC の試験）です。新しい試験は両方のログに含まれます。ログの時刻は 00:29 で、`rag_index.py` の更新（00:25:23）より後です。
+- **実 MCP 試験は完了済み:** `mcp-results.json` は `status: completed`、17 項目すべて合格、`product_sha256` は d4df… です。
+  - `trace.jsonl` では、forbid を有効にした 9 接続すべての `rag_worker.py` に `hook_loaded` がありました。
+  - `ocr_called` は 2 回で、どちらも OCR を禁止していない最初のスキャンでした。
+- **前回の証跡は書き換えられていない:** `rag-full-ann-2026-11-19/` の最終更新は 00:15:57 で、今回の作業開始（`before-fix.log` の 00:24）より前です。`verify_pipeline.py` の `extra_env` の変更（23:21）も前回のもので、ハッシュは `harness-provenance.json` と一致します。
+- **旧 2 列台帳の移行の対象:** 公開済みの v0.5.3（HEAD）には `retired_documents` がありません。移行が効くのは未公開版で作った開発用の台帳だけです（欠陥ではありません）。
+- `git fetch` は `.git` に書き込むため、読み取り専用の依頼に合わせて実行していません。
+
+---
+
+### [Minor] `_prune_previous` は回収の失敗を記録せず、キャッシュが永久に残ることがある
+
+対象
+`info-hive-rag/scripts/rag_index.py` 393–411 行（`_prune_previous`）。呼び出しは 694 行です。
+
+根拠
+- 400–405 行で `previous-index.json` を先に書き換え（または削除）、その後 410 行で `_remove_extraction(doc_id)` を呼んでいます。
+- 戻り値の `False`（ロックの Timeout、または使用中）は捨てています。
+- 計画書の設計の節は「抽出ロックがあるキャッシュは消さない。保留した回収の記録を残し、後の取り込みや明示的な索引保守で再試行する」と書いています。この経路はその記述を満たしていません。
+
+問題
+次の 2 つの経路で、回収の記録がないまま抽出キャッシュが残り、以後どの処理も回収しません。
+- **ロック中の経路:**
+  1. wiki A をリセットした後、文書 Y が取り込み直しの一覧に残っている。
+  2. Y の場所が消えて `_gone` が真になる。
+  3. 同時に wiki B が Y を取り込み中で、Y の抽出ロックを持っている。
+  4. A の取り込みの最後で `_prune_previous` が Timeout になり、Y を一覧から外す。
+  5. B の取り込みが失敗すると、Y のキャッシュは孤立する。
+- **停止の経路:** 403/405 行で一覧を書いた直後にプロセスが止まっても、同じく孤立します。
+
+影響はディスクの浪費だけで、検索の正しさは損ないません。この挙動は修正前からありますが、今回の設計の記述とは食い違っています。
+
+検証方法
+1. A をリセットした後、Y が取り込み直しの一覧に残る状態を作る。
+2. Y の原本を削除する。
+3. 試験プロセスで `engine._extraction_lock(Y)` を保持したまま、A で別の PDF を取り込む。
+4. ロックを解放し、`maintain_indexes(A)` を実行する。
+5. `extraction_root/Y` が残っていること、`retired_documents` に Y がないことを確かめる。
+
+修正の方向性
+回収の意図を `retired_documents` に一本化します。`_prune_previous` は一覧を書き換える前に、外す文書を `INSERT OR IGNORE INTO retired_documents(doc_id, legacy_generations, rows_pending) VALUES (?, ?, 0)` で同じトランザクションに記録します。実際の削除は `_finish_retirements` に任せます。こうすると、ロック中・使用中・途中停止のどの場合も同じ再試行の経路に乗ります。
+
+---
+
+### [Minor] 複数の wiki があると、中断した再登録の OCR キャッシュを他の wiki の後始末が消す
+
+対象
+- `rag_index.py` 373–391 行（`_extraction_in_use`）
+- 554–555 行（再登録の後始末）
+- 計画書の「今取り込んでいる文書はロックで保護されており」の記述
+
+根拠
+- 再登録の開始時（`keep_extraction=True`）に、その文書の退役記録を消します。
+- `_extraction_in_use` は、各 wiki の `documents` と取り込み直しの一覧だけを「使用中」とみなします。埋め込みが途中の `jobs`（完了していないジョブ）は見ません。
+- 抽出ロックが文書を守るのは、プロセスが取り込みを実行している間だけです。
+
+問題
+次の手順で到達します。
+1. 文書 D を wiki A と B の両方で公開する。
+2. A で D を差し替える。B が使っているので記録を保持し、キャッシュも残る。
+3. A で D を元に戻す。再登録で記録を消し、OCR を再利用して埋め込みを始める。
+4. 1 バッチ目の後にワーカーが中断する。ロックが外れる。
+5. B で D を差し替える。B の `_finish_retirements` → `_extraction_in_use(D)` は、A で D が未公開で一覧にもないので「未使用」と判定し、キャッシュを削除する。
+6. A で再開すると、OCR がもう一度走る。
+
+依頼にある「部分埋め込み後の再開でも OCR を再利用」は、wiki が 1 つの場合にしか成り立ちません。
+
+このほか、OCR の結果が完全には再現しない場合、再開時に前半の行と後半のチャンクの抽出元が食い違うおそれがあります。これは確かめていません。初回の取り込みが中断した場合も修正前から同じ挙動です。
+
+検証方法
+`test_retired_cache_survives_other_wiki_and_is_reclaimed_after_last_reference` を元に、次の順で試験を組みます。
+1. A で再登録し、`progress` で 1 バッチ目の後に止める。
+2. B で差し替えを取り込む。
+3. `ocr_page` を `AssertionError` に差し替えて、A で再開する。
+
+失敗することが予想されます。
+
+修正の方向性
+次のどちらかにします。
+- 未完了ジョブを「使用中」とみなす。`jobs` の generation を各ワークスペースの `policy.json` の指紋から逆算して照合する。
+- 再登録の開始時に記録を消さず、`rows_pending` とは別の状態（例: `state='reactivating'`）にして、公開で消す。
+
+後者は前の指摘の「記録への一本化」とも整合します。
+
+---
+
+### [Minor] 共有中の退役記録が残り続け、取り込みと保守のたびに全 wiki を走査する
+
+対象
+`rag_index.py` 482–486 行（`continue` で記録を保持する部分）、`_remove_extraction`、`_extraction_in_use`、`_gone`
+
+根拠
+- 修正前は、1 回試したら記録を消していました。
+- 修正後は、B が使い続けている間、A の記録が残り続けます。
+- A の取り込みや `maintain_indexes` のたびに、残った記録ごとに全ワークスペースの台帳を開き、`_reingest` の中で `_gone` による `os.stat` を実行します。
+
+問題
+- **処理時間:** 共有文書の差し替えが積み重なると、取り込みと保守の時間が「記録数 × wiki 数 × 場所の数」に比例して増えます。原本がネットワークドライブや Box Drive にあると `stat` が遅く、影響が大きくなります。
+- **保留中の記録が見えない:** `status` は残った記録を表示しないため、利用者は保留中の回収に気づけません。
+- **（修正前からの挙動）削除の例外:** `shutil.rmtree` の `PermissionError` など、`FileNotFoundError` 以外の `OSError` は `_remove_extraction` を素通りします。Windows でウイルス対策ソフトや同期クライアントがファイルを開いているときに起こります。例外はループを打ち切り、後続の記録の回収と、`maintain_indexes` の索引保守そのものを止めます。依頼にある「消せない場合は False」という約束と一部食い違います。
+
+検証方法
+1. 共有文書 N 件を A で差し替える。
+2. A の `maintain_indexes` の所要時間と `_extraction_in_use` の呼び出し回数を数える。
+3. `shutil.rmtree` を `PermissionError` に差し替えて `maintain_indexes` を実行し、例外で終わることを確かめる。
+
+修正の方向性
+- `_remove_extraction` で `OSError` を捕まえて False を返す。記録を残してループを続ける。
+- 使用中の判定を、記録ごとではなく 1 回の走査でまとめて行う。
+- 必要なら `status` に保留中の回収の件数を出す。
+
+---
+
+### [Minor] 試験の判定がゆるく、`preserve_doc_id` の経路は実 MCP 試験で確かめていない
+
+対象
+- `tests/rag/verify_cache_retirement.py`: 判定 `forbid_ocr_hook_loaded_in_workers` と `product_sha256` の記録
+- `tests/rag/test_jobs.py`: `test_retirement_migrates_an_existing_two_column_ledger`
+
+根拠と問題
+1. **フック読み込みの判定:** forbid を有効にした接続は 9 回ですが、判定は `>= 8` です。ジョブごとの対応も見ていません。今回の trace では 9/9 なので証跡としては足りていますが、1 接続のフック漏れを見逃せる判定です。漏れた場合の安全網はキャッシュの印（SHA-256 と更新時刻の比較）だけになります。
+2. **ハッシュの記録時刻:** `product_sha256` は `finally` で、つまり試験の最後に計算しています。実行中に製品が差し替わっても検出できません。
+3. **`preserve_doc_id` の範囲:** 実 MCP 試験のリセットは、記録のない文書 N だけを取り込みます。`reset_keeps_current_document_cache` は修正前のコードでも合格します。設計の要点である「退役した文書を、設定変更の状態で再登録する」経路と「部分埋め込みから再開する」経路は、単体試験（`test_reset_reuses_reactivated_ocr_after_a_partial_embedding_and_another_publication`）だけが確かめています。
+4. **移行の並行性:** 2 列台帳の移行の試験は 2 スレッドの偶然の重なりに頼っています。`BEGIN IMMEDIATE` の後の再確認を、決まった順序では実行していません。`before-fix.log` にもこの試験はありません。
+
+検証方法
+`mcp-results.json` と trace（`C:\Works\info-hive-dev-data\rag-poc-data\cache-retirement-20261120\mcp-1795102255951131500\trace.jsonl`）を照合すると、上の判定条件と実際の値を確かめられます。
+
+修正の方向性
+- フックの判定を、forbid 接続数と等しく、ジョブごとに対応づけた形にする。
+- 製品のハッシュを試験の開始時と終了時の両方で記録し、一致を確かめる。
+- 実 MCP 試験に「退役した scan PDF を元に戻し、同時に設定も変えて再登録する」段を足す。
+- 移行の試験では、1 本目の `ALTER` の前にもう 1 本の接続を `BEGIN IMMEDIATE` で待たせ、順序を決めて実行する。
+
+---
+
+### 確認できた点（指摘なし）
+
+- **台帳の 2 段階化:** 行の削除が終わるまでは `rows_pending=1` のままです。カーソル（`jobs`）の削除 → 行の削除 → 索引の保守 → `rows_pending=0` のコミット、の順は停止しても再試行できます。`rows_pending=0` の記録が行やカーソルに触らないことは、`test_reset_retries_locked_cache_without_invalidating_new_rows_or_cursor` で確かめています。
+- **`rows_pending=0` の不変条件:** 新しい行は、再登録（554 行）かリセット時の `preserve` で記録を消した後にしか入りません。そのため「`rows_pending=0` なのに、その文書の行が索引に残っている」状態には到達しないことを確かめました。
+- **リセットの途中停止:** `_reset_index` がコミットした後、`drop_table` や `_write_policy` の前に止まっても、方針は古いままなので次の取り込みで再度リセットされます。その間 `maintain_indexes` と `search` は `_check_policy` で拒否されるので、ずれは表に出ません。
+- **ロックとデッドロック:** 再登録の後始末は `keep_extraction=True` なので、自分が持っている抽出ロックを取りに行きません。後始末の `_remove_extraction` は `timeout=0` なので、wiki をまたいでも待ち合いが起きません。
+- **`_prune_previous` の呼び出し順:** 一覧を更新してから `_finish_retirements` を呼ぶので、使用中の判定が最新の一覧で行われます。順序は妥当です。
+- **述語の安全性:** LanceDB の述語に入る `doc_id` は SHA-256 の 16 進文字列だけです。
+- **テスト用フック:** `sitecustomize` は製品に入っていません。
+
+### 未確認事項
+
+- OCR 結果の再現性（2 件目の指摘の「チャンクの食い違い」のおそれ）は確かめていません。
+- 実 OCR ではなくモックの OCR で確かめた経路があります。単体試験の `ocr_mode: always` の経路です。
+
+`✶ Insight ─────────────────────────────────────`
+- 「行の後始末」と「キャッシュの後始末」を 1 列（`rows_pending`）で分けたことで、リセットは「行は全部捨てた」という事実を、意図を消さずに記録できるようになりました。残る弱点は、回収の意図が `previous-index.json` と `retired_documents` の 2 か所に分かれていることです。1・2 件目の指摘は、どちらも意図を 1 つの台帳に寄せると構造的に解けます。
+- ファイルロックはプロセスが生きている間しか保護しません。中断から再開する経路を守るには、ロックではなく、台帳に残る状態（未完了ジョブ）を「使用中」の根拠にする必要があります。
+`─────────────────────────────────────────────────`
+
+このレビューに適したモデルとエフォートは Opus・high でした。次の作業（Minor の修正、特に回収の意図の台帳への一本化）は Opus・medium が適しています。
+
+使用した MCP サーバー: なし
+使用した Agent Skills: なし
+
+Final Result: APPROVED

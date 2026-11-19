@@ -276,6 +276,7 @@ class ReaderEntryTests(EntryCase):
             "browse-build": [SCRIPTS / "wiki_browse.py", "build", w, "--out", self.base / "site"],
             "browse-serve": [SCRIPTS / "wiki_browse.py", "serve", w, "--no-open", "--idle-timeout", "5"],
             "browse-stop": [SCRIPTS / "wiki_browse.py", "stop", w],
+            "apply-view": [SCRIPTS / "wiki_apply.py", "view", "--wiki", w],
             "fetch": [SCRIPTS / "wiki_fetch.py", "http://127.0.0.1:9/", "--wiki", w, "--raw-root", self.raw,
                       "--slug", "記事", "--json"],
             "rawcheck-freeze": [SCRIPTS / "wiki_rawcheck.py", "freeze", "--wiki", w, "--raw-root", self.raw,
@@ -353,7 +354,7 @@ class ReaderEntryTests(EntryCase):
     def test_initialized_wiki_is_accepted(self):
         """同じ呼び出しが、SCHEMA.md を置くと断られない（lint、stats、search は成功する）。"""
         cases = self.cases()
-        for name in ("lint", "stats", "search", "search-cache", "overview-status"):
+        for name in ("lint", "stats", "search", "search-cache", "overview-status", "apply-view"):
             with self.subTest(entry=name):
                 done = self.accepted(cases[name])
                 self.assertEqual(done.returncode, 0, done.stderr[-2000:])
@@ -364,6 +365,11 @@ class ReaderEntryTests(EntryCase):
 
 class WriterEntryTests(EntryCase):
     """wiki のために書く入口: Web ページの取得、経験の記録、アップグレード。"""
+
+    def test_apply_begin_checks_wiki_before_creating_workspace(self):
+        args = [SCRIPTS / "wiki_apply.py", "begin", "--wiki", self.wiki, "--raw-root", self.raw,
+                "--name", "uninit-check"]
+        self.assertIn(REFUSED, self.assert_refused(args).stderr)
 
     def test_fetch_checks_wiki_before_network(self):
         # 届かない URL。確かめがネットより先なら終了コード 1、取得の失敗なら 2 になる。
@@ -491,6 +497,7 @@ class EntranceInventoryTests(unittest.TestCase):
     TAKES_WIKI = {
         "init_wiki.py": "WriterEntryTests（--upgrade）",
         "setup_wiki.py": "ReaderEntryTests の setup",
+        "wiki_apply.py": "ReaderEntryTests の apply-view、WriterEntryTests の test_apply_begin_checks_wiki_before_creating_workspace",
         "wiki_browse.py": "ReaderEntryTests の browse-*、test_browse_core_answers_no_wiki、test_browse_server.py",
         "wiki_decide.py": "ReaderEntryTests の decide-*",
         "wiki_evolve.py": "ReaderEntryTests の evolve-*",

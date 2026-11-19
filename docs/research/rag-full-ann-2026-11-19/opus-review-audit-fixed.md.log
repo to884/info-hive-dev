@@ -1,0 +1,41 @@
+[ask-claude 00:06:33] claude-opus-5-5 に敵対的レビューを依頼（effort medium、analysis、cwd C:\Works\info-hive-dev）
+**判定: 前回の Critical は解消しています。修正後の監査に、新しい反例は見つかりませんでした。Critical と Major はないので APPROVED です。** ただし、再実行の結果（`integrity-audit.json`）はまだできておらず、確認していません。
+
+### 前回の Critical の解消
+- **台帳のハッシュの式が準備時と同じになった**: `finish.py:26-27` は、`prepare.py:153-154` と同じ式でハッシュを作ります。式は `json.dumps([dict(row)], sort_keys=True, ensure_ascii=False).encode('utf-8')` です。
+  - 読む表も同じです。どちらも `prepared.sqlite` の `SELECT * FROM documents ORDER BY doc_id` を `sqlite3.Row` で取っています。
+  - 前回、実 DB で計算した値 `9af238db…` と、`audit-formula-preflight.json` の値が一致しています。
+- **ファイルの集約ハッシュを台帳のハッシュと比べなくなった**: `f1dd72a7…` は `extraction_aggregate_sha256` として記録するだけになりました（`:107`）。
+- **ページを読む前に台帳を照合する**: `:28` で照合してから読みます。そのため、`:44` と `:54-57` で比べる文書ごとの基準値（`pages`、`extraction_digest`、`ocr_pages`、`ocr_empty`）は、準備時の値に固定されています。
+- **全体の件数を準備時の記録と照合する**: `:104` で、`prepared-complete.json` の `pages`、`ocr_pages`、`ocr_empty` と比べます。前回の Minor 2 件（文書ごとの件数の照合、ページ番号と `document.md` の確認）も対応済みです。
+
+### 偽陽性が出ないかの確認
+`prepared.sqlite` と `ledger.sqlite` を `immutable=1` で開き、読み取りだけで次を確かめました。
+
+- **`document.md`**: 905 文書すべてにあります。`:44` で失敗する文書はありません。
+- **再抽出した文書（2 文書）**: 準備時はページ番号を確かめていなかった文書です。
+  - ファイル名は `page-000001.json` の形で、ゼロ埋めされています。並べ替えた順とページ番号は全ページで一致しました。
+  - ファイルから数えたページ数、OCR の件数、空ページの件数は、DB の値と一致しました。
+- **OCR を終えた文書**: 準備時にページ番号を確かめています（`prepare.py:68`）。件数もファイルの内容から数えています。ファイルのハッシュが一致するなら、件数も必ず一致します。
+
+### 並列化
+前回から変わっていません。`Executor.map` は結果を入力の順に返すので、集約は doc_id 順のままです。各スレッドは局所の変数だけを使い、足し合わせは主スレッドが行います。例外は、失敗した文書の順番に来たときに主スレッドで出ます。
+
+確認できた問題なし
+
+### 未確認事項（判定には影響しない）
+- 再実行の結果はまだ見ていません。修正版が最後まで通ることは、コードと上の読み取りの確認から推定したものです。
+- `:44` は、ページ数が違うときも `document.md` がないときも、同じ「ページ数が変わっています」という文言で失敗します。原因を調べるときに少し紛らわしいだけで、判定には影響しません。
+
+`✶ Insight ─────────────────────────────────────`
+- 照合は「準備時の台帳 → 文書ごとの値 → ページのファイル」の順に、1段ずつつながっています。先頭で台帳を固定したので、後の照合はすべて準備時の値と比べることになります。
+- 確かめられなかった箇所（再抽出した文書のページ番号）は、数件のファイルを読むだけで確かめられました。ここで偽陽性がないことが、レビューの前提になっています。
+`─────────────────────────────────────────────────`
+
+このレビューに適したモデルとエフォート: Opus / low。次の作業（再実行の結果の確認）は Sonnet / low で足ります。
+
+使用した MCP サーバー: なし
+使用した Agent Skills: なし
+
+Final Result: APPROVED
+[ask-claude 00:07:25] 完了（claude-opus-5-5）。session 0a2540d9-a5ba-4023-ae65-8cf9e4b34d15  usage {"total_cost_usd": 0.7453514, "usage": {"input_tokens": 5, "cache_creation_input_tokens": 11703, "cache_read_input_tokens": 218600, "output_tokens": 3275, "output_tokens_details": {"thinking_tokens": 803}, "server_tool_use": {"web_search_requests": 0, "web_fetch_requests": 0}, "service_tier": "standard", "cache_creation": {"ephemeral_1h_input_tokens": 11703, "ephemeral_5m_input_tokens": 0}, "inference_geo": "global", "iterations": [{"input_tokens": 2, "output_tokens": 1645, "cache_read_input_tokens": 77645, "cache_creation_input_tokens": 1550, "cache_creation": {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 1550}, "type": "message"}], "speed": "standard", "fallback_credit": null}}

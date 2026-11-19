@@ -1,0 +1,250 @@
+{
+  "cutover": {
+    "explicit_b_after_live_fallback": "公開の記録がありますが、公開ポインターがありません",
+    "first": "64cb8354684f2d3615f590b051c8995c2603dfae4d9229c2a814464a2038b3a5",
+    "ordinary_live_write_blocked_after_switch": "公開版を使う wiki は公開用の計画から更新してください",
+    "pending_live_blocked": "初回公開の前に保留されたライブの承認済み差分を処理してください",
+    "published_only_excluded_after_rollback": true,
+    "recapture_preserved_both_live_pages": true,
+    "republished_previous": "c59d2cdfde58f5ecf923684afc5a1a165021162a0f9b7c1a3c3842c97b64c6ca",
+    "second": "b27a6c31f4efc2920b2804b8632104de55819e35b4398bdc302d7ca0f81b4280",
+    "snapshot_bytes": 2247565,
+    "snapshot_files": 212,
+    "stale_cutover_blocked": "初回公開の基準からライブ wiki が変わりました。候補を作り直してください",
+    "stale_pointer_and_head_blocked": "公開履歴と完了記録の一覧が一致しません",
+    "stale_pointer_blocked": "公開ポインターと先頭の完了記録、または公開状態の印が一致しません",
+    "wiki_articles": 195
+  },
+  "cutover_and_integrity_checks_passed": true,
+  "live_recovery": {
+    "after_restore_journal": {
+      "elapsed_s": 4.099719799996819,
+      "status": 0,
+      "value": {
+        "after_sha256": {
+          "concepts/concepts-001.md": "f76225f402115a1729ee468904d8493c458830fab7b07bf5c7be1c9f86065501",
+          "indexes/sources.md": "09e170003eec4014eb8fcb60d5c8173a5b720c98e8ffa5f382977a0a63ad1a44",
+          "log.md": "d62ae39fd3d9a6a2b8178bbd6b9a2a5c765f5c4b3a4b64bb4eb26e64f90074b4",
+          "sources/journal-loss.md": "20c62277461b03c097d4ae0dfb000bc0d6dbfa4c9a101913629be607b596c996"
+        },
+        "files": [
+          "concepts/concepts-001.md",
+          "sources/journal-loss.md",
+          "indexes/sources.md",
+          "log.md"
+        ],
+        "generation": 3,
+        "log_entries": [
+          {
+            "heading": "## [2026-11-19] ingest | journal-loss",
+            "nth": 1
+          }
+        ],
+        "plan_id": "414844a0a8884b44b5cad2207460952d",
+        "plan_sha256": "7afcff064309c93731e5699cab1714861690e7e8b4321124ea1a2e029e566535",
+        "state": "applied"
+      }
+    },
+    "journal_name_lost": {
+      "elapsed_s": 1.5951340000028722,
+      "status": 5,
+      "value": "ライブ書き込みの記録は残っていますが日誌がありません。日誌を復元してください"
+    },
+    "process_exit": {
+      "elapsed_s": 3.939491099998122,
+      "status": 0,
+      "value": {
+        "after_sha256": {
+          "concepts/concepts-000.md": "2515cc670517ca175f73ba8a13d886ce94e019544f72dd26e1a7b3e3e51fe6f9",
+          "indexes/sources.md": "f030b39eb0b577cf2709ddd99db8197e872c44f8ef0fc7624020402070230553",
+          "log.md": "08f9c4e0742e693f6e686566aa926f21ddb486b62e7a8001626190721e5e71de",
+          "sources/recoverable.md": "b564402060aefc7e37fb0858ce004b311979b964f577a3f8cae2b8d807860d07"
+        },
+        "files": [
+          "concepts/concepts-000.md",
+          "sources/recoverable.md",
+          "indexes/sources.md",
+          "log.md"
+        ],
+        "generation": 1,
+        "log_entries": [
+          {
+            "heading": "## [2026-11-19] ingest | recoverable",
+            "nth": 1
+          }
+        ],
+        "plan_id": "ec20fa34574241679e6e6559dda15994",
+        "plan_sha256": "9b8b8dc84cffc53d94a82a1e8eb860ffc06ddddd53732d980c6c30e7efbbc5e9",
+        "state": "applied"
+      }
+    },
+    "published_files_without_journal": {
+      "concept": true,
+      "index": false,
+      "log": false,
+      "source": false
+    },
+    "receipt_survives_index_update_loss": {
+      "recover": {
+        "elapsed_s": 4.080329799995525,
+        "status": 5,
+        "value": "適用済みの記録と成果物が一致しません: indexes/sources.md"
+      },
+      "retry_stopped_after_journal_removed": true
+    },
+    "rollback_cleanup_interruption": {
+      "elapsed_s": 3.9611732000194024,
+      "status": 0,
+      "value": {
+        "after_sha256": {
+          "concepts/concepts-004.md": "1020826ab7289cac5bda9dc91b02a80835e1f4f789dec37f7b8d284bd98b0a9b",
+          "indexes/sources.md": "64344cb30c3e0cb45f883f225d6f03fec6aa45229e842f9e46a7911008803382",
+          "log.md": "0829fd4566287183f847cba170752a5c318c69c1a4f6363b26c3b7d80cc825ab",
+          "sources/rollback-cleanup.md": "af3be22ef811745d5456baf8b881bc0dd20386be96c5f5f463a81200913359ca"
+        },
+        "files": [
+          "concepts/concepts-004.md",
+          "sources/rollback-cleanup.md",
+          "indexes/sources.md",
+          "log.md"
+        ],
+        "generation": 5,
+        "log_entries": [
+          {
+            "heading": "## [2026-11-19] ingest | rollback-cleanup",
+            "nth": 1
+          }
+        ],
+        "plan_id": "b83864d5c35f4b5389a403ac7f6eb3b7",
+        "plan_sha256": "e894362336d8bc669d0b01e1fe759812eeffbd201cce761da5e1bf72fafcaa91",
+        "reason": "戻す経路を試すための試験エラー",
+        "state": "aborted"
+      }
+    },
+    "same_page_concurrent_edit": [
+      "conflict",
+      "applied"
+    ]
+  },
+  "pages": 192,
+  "platform": "Windows-11-10.0.26300-SP0",
+  "publication_recovery": {
+    "after_pointer": {
+      "elapsed_s": 2.0784769999736454,
+      "pointer_present_at_stop": true,
+      "status": 0,
+      "value": {
+        "plan_id": "ff27b56a612847278febceec21f7f9e5",
+        "plan_sha256": "273a74acdfe83840bc085f061a9bebeeacf1d393a518dde3b1d0db31f3c4ab2d",
+        "release_id": "c641a9324530612f34a6ada31108ea0771cf37f29d8af8736c0110252ca3f07a"
+      }
+    },
+    "before_journal": {
+      "orphan_after_retry": 1,
+      "retry_published": true
+    },
+    "before_pointer": {
+      "elapsed_s": 3.0590042999829166,
+      "pointer_present_at_stop": false,
+      "status": 0,
+      "value": {
+        "plan_id": "ad66de476e4c4d32b0f19fe059ccf395",
+        "plan_sha256": "52738cf9572d4e19adbd9fb642f0534d20dccd6c02b515852b6d9221587392de",
+        "release_id": "b77ef63c0360696627f10194f9173f0c16392f9603169a60c312b648ea084d30"
+      }
+    },
+    "damaged_initial_candidate": {
+      "journal_closed": true,
+      "live_remains_available": true,
+      "quarantined": true
+    },
+    "head_missing": [
+      "公開ポインターと先頭の完了記録、または公開状態の印が一致しません",
+      "公開ポインターと先頭の完了記録、または公開状態の印が一致しません",
+      "公開ポインターと先頭の完了記録、または公開状態の印が一致しません"
+    ],
+    "live_changed_after_initial_journal": {
+      "journal_closed": true,
+      "live_remains_available": true,
+      "quarantined": true
+    },
+    "marker_missing": [
+      "公開ポインターと先頭の完了記録、または公開状態の印が一致しません",
+      "公開ポインターと先頭の完了記録、または公開状態の印が一致しません",
+      "公開ポインターと先頭の完了記録、または公開状態の印が一致しません"
+    ],
+    "payload_missing": [
+      "公開ファイルの一覧がマニフェストと一致しません",
+      "公開ファイルの一覧がマニフェストと一致しません",
+      "公開ファイルの一覧がマニフェストと一致しません"
+    ],
+    "payload_name_lost": {
+      "after_restore_release": {
+        "elapsed_s": 2.0073706999828573,
+        "status": 0,
+        "value": {
+          "plan_id": "9515451e371740f0927eca7e08e84f93",
+          "plan_sha256": "5b9abd36187bcacd06955b953040aecc2aed5d3db2c6bb0001e76dab53f46181",
+          "release_id": "76d690a9e794c4194dca4f408b7f5feafe8c58e1232f532535f2a4618863d3a0"
+        }
+      },
+      "elapsed_s": 0.2717151999822818,
+      "pointer_present_at_stop": true,
+      "read_error": "公開に必要なファイルがありません: manifest.json",
+      "status": 1,
+      "value": "完了記録に対応する公開先ディレクトリがありません"
+    },
+    "pointer_name_lost_after_ack": {
+      "live_begin_stopped": true,
+      "retry_stopped": true
+    },
+    "pointer_written": {
+      "elapsed_s": 2.3157575999794062,
+      "pointer_present_at_stop": true,
+      "status": 0,
+      "value": {
+        "plan_id": "6b2f21843e7445baae7c62f25d893a37",
+        "plan_sha256": "45fdef5e551a396dc290c9f202bc1428243f6f95ef8c1de554ae70452d2c3efb",
+        "release_id": "74e43ad0d24905c82ac131b5afb5ace0f622b43cf08881792165bd21f933db36"
+      }
+    },
+    "receipt_lost_during_commit": {
+      "after_restore_release": {
+        "elapsed_s": 2.0917370000097435,
+        "status": 0,
+        "value": {
+          "plan_id": "b4744a1f4cac4db492236ea112e0f4cd",
+          "plan_sha256": "66cd161e616320c71a3d494a9195d146892c428b3a16f1ae0f46edffd30b5314",
+          "release_id": "d02ed6aaa9fc246294359549e914ad2bc7fac9ba1f8506f8432f1e3971e31384"
+        }
+      },
+      "elapsed_s": 0.2725314000272192,
+      "pointer_present_at_stop": true,
+      "read_error": "公開版の完了記録がないか、マニフェストと一致しません: d02ed6aaa9fc246294359549e914ad2bc7fac9ba1f8506f8432f1e3971e31384",
+      "status": 1,
+      "value": "切り替え済みの公開版に完了記録または公開状態の印がありません"
+    },
+    "receipt_mismatch": "公開版の完了記録がないか、マニフェストと一致しません: 2deea928c1e4844ff381ad25079bb233debf5e84050740fe02a78775f6d4781e",
+    "receipt_missing": [
+      "公開版の完了記録がないか、マニフェストと一致しません: 2deea928c1e4844ff381ad25079bb233debf5e84050740fe02a78775f6d4781e",
+      "公開版の完了記録がないか、マニフェストと一致しません: 2deea928c1e4844ff381ad25079bb233debf5e84050740fe02a78775f6d4781e",
+      "公開版の完了記録がないか、マニフェストと一致しません: 2deea928c1e4844ff381ad25079bb233debf5e84050740fe02a78775f6d4781e"
+    ],
+    "whole_cache_missing": [
+      "公開の記録がありますが、公開ポインターがありません",
+      "公開状態の印がありますが、公開の管理領域がありません",
+      "公開状態の印がありますが、公開の管理領域がありません"
+    ]
+  },
+  "repetitions": 3,
+  "staged_payload_corruption": {
+    "elapsed_s": 0.8788665999891236,
+    "status": 0,
+    "value": {
+      "plan_id": "8975e6b42a1e4211a2d719f49063552c",
+      "release_id": null,
+      "state": "aborted"
+    }
+  },
+  "regression_tests_passed": 26
+}

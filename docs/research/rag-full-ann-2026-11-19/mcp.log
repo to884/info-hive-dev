@@ -1,0 +1,97 @@
+{"name": "bulk_input_has_no_indexes", "passed": true, "rows": 783117}
+[11/19/26 23:46:21] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+                    INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+{"name": "ann_creation_interrupt_parent_death_stops_workers", "passed": true, "descendants": 3}
+{"name": "ann_creation_interrupt_job_paused", "passed": true, "job_id": "8bdc49e3793747d7b63e781507a1ee5d", "phase": "ANN の作成"}
+{"name": "ann_creation_interrupt_stop_boundary_verified", "passed": true, "commit_state": "not_committed", "version_before": 400, "version_after": 400}
+{"name": "initial_pdf_not_published_during_ann_creation", "passed": true}
+{"name": "ann_creation_has_saved_embedding_checkpoint", "passed": true}
+{"name": "ann_creation_resumes_same_job", "passed": true, "job_id": "8bdc49e3793747d7b63e781507a1ee5d", "attempts": 2}
+{"name": "initial_extracted_pages_reused", "passed": true}
+{"name": "full_ann_created_after_reconnect", "passed": true, "rows": 783557, "expected_rows": 783557, "indexes": {"generation_idx": {"num_indexed_rows": 783557, "num_unindexed_rows": 0, "index_type": "BITMAP", "distance_type": null, "num_indices": 1}, "terms_idx": {"num_indexed_rows": 783557, "num_unindexed_rows": 0, "index_type": "FTS", "distance_type": null, "num_indices": 1}, "vector_idx": {"num_indexed_rows": 783557, "num_unindexed_rows": 0, "index_type": "IVF_SQ", "distance_type": "cosine", "num_indices": 1}}}
+{"name": "ann_creation_keeps_saved_rows", "passed": true}
+{"name": "ann_creation_history_matches_stop", "passed": true, "commit_state": "not_committed", "history": {"kind": "ANN の作成", "rows": 783557, "version_before": 400, "version_after": 401, "recovered": false, "at": 1795099922.2708962}}
+{"name": "ann_creation_vectors_reused", "passed": true, "saved_embedding_cursor": 440}
+[11/19/26 23:52:05] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+                    INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+{"name": "ann_update_interrupt_parent_death_stops_workers", "passed": true, "descendants": 3}
+{"name": "ann_update_interrupt_job_paused", "passed": true, "job_id": "79d632f9a63e4528aac8570064f02969", "phase": "索引の更新"}
+{"name": "ann_update_interrupt_stop_boundary_verified", "passed": true, "commit_state": "not_committed", "version_before": 403, "version_after": 403}
+{"name": "appended_pdf_not_published_during_update", "passed": true}
+{"name": "ann_update_has_saved_embedding_checkpoint", "passed": true}
+{"name": "ann_update_resumes_same_job", "passed": true, "job_id": "79d632f9a63e4528aac8570064f02969", "attempts": 2}
+{"name": "appended_extracted_pages_reused", "passed": true}
+{"name": "full_ann_updated_after_reconnect", "passed": true, "rows": 783601, "expected_rows": 783601, "indexes": {"generation_idx": {"num_indexed_rows": 783601, "num_unindexed_rows": 0, "index_type": "BITMAP", "distance_type": null, "num_indices": 1}, "terms_idx": {"num_indexed_rows": 783601, "num_unindexed_rows": 0, "index_type": "FTS", "distance_type": null, "num_indices": 1}, "vector_idx": {"num_indexed_rows": 783601, "num_unindexed_rows": 0, "index_type": "IVF_SQ", "distance_type": "cosine", "num_indices": 1}}}
+{"name": "ann_update_history_matches_stop", "passed": true, "commit_state": "not_committed", "history": {"kind": "索引の更新", "rows": 783601, "version_before": 403, "version_after": 407, "recovered": false, "at": 1795100056.7709808}}
+{"name": "ann_update_vectors_reused", "passed": true, "saved_embedding_cursor": 44}
+[11/19/26 23:54:21] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+                    INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+{"name": "replacement_interrupt_parent_death_stops_workers", "passed": true}
+{"name": "replacement_interrupt_after_publication", "passed": true}
+W1119 23:58:21.780000 23316 Lib\site-packages\torch\distributed\elastic\multiprocessing\redirects.py:29] NOTE: Redirects are currently not supported in Windows or MacOs.
+
+Loading weights:   0%|          | 0/116 [00:00<?, ?it/s]
+Loading weights:   9%|▉         | 11/116 [00:00<00:01, 95.26it/s]
+Loading weights:  18%|█▊        | 21/116 [00:00<00:01, 75.34it/s]
+Loading weights: 100%|██████████| 116/116 [00:00<00:00, 423.99it/s]
+[2026-11-19T14:58:26Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:58:27Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_score`.  Currently the `_score` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+{"name": "replacement_old_rows_hidden_before_cleanup", "passed": true, "physical_old_rows": 440}
+{"name": "replacement_resumes_same_job", "passed": true, "job_id": "f183590b1af642ee9616599bb6ecb138", "attempts": 2}
+{"name": "replacement_vectors_reused", "passed": true}
+{"name": "replacement_updates_full_indexes", "passed": true, "rows": 783645, "expected_rows": 783645, "indexes": {"generation_idx": {"num_indexed_rows": 783645, "num_unindexed_rows": 0, "index_type": "BITMAP", "distance_type": null, "num_indices": 1}, "terms_idx": {"num_indexed_rows": 783645, "num_unindexed_rows": 0, "index_type": "FTS", "distance_type": null, "num_indices": 1}, "vector_idx": {"num_indexed_rows": 783645, "num_unindexed_rows": 0, "index_type": "IVF_SQ", "distance_type": "cosine", "num_indices": 1}}}
+{"name": "replaced_generation_rows_removed", "passed": true}
+{"name": "replacement_marks_dependent_page", "passed": true}
+{"name": "replacement_has_no_cleanup_error", "passed": true}
+{"name": "retirement_queue_empty", "passed": true}
+{"name": "replacement_no_inactive_generations", "passed": true}
+[11/19/26 23:58:34] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+[11/19/26 23:58:46] INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+{"name": "replacement_search_excludes_old_generation", "passed": true}
+{"name": "before_unchanged_registration", "passed": true, "rows": 783645, "expected_rows": 783645, "indexes": {"generation_idx": {"num_indexed_rows": 783645, "num_unindexed_rows": 0, "index_type": "BITMAP", "distance_type": null, "num_indices": 1}, "terms_idx": {"num_indexed_rows": 783645, "num_unindexed_rows": 0, "index_type": "FTS", "distance_type": null, "num_indices": 1}, "vector_idx": {"num_indexed_rows": 783645, "num_unindexed_rows": 0, "index_type": "IVF_SQ", "distance_type": "cosine", "num_indices": 1}}}
+[11/19/26 23:58:48] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+                    INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+{"name": "after_unchanged_registration", "passed": true, "rows": 783645, "expected_rows": 783645, "indexes": {"generation_idx": {"num_indexed_rows": 783645, "num_unindexed_rows": 0, "index_type": "BITMAP", "distance_type": null, "num_indices": 1}, "terms_idx": {"num_indexed_rows": 783645, "num_unindexed_rows": 0, "index_type": "FTS", "distance_type": null, "num_indices": 1}, "vector_idx": {"num_indexed_rows": 783645, "num_unindexed_rows": 0, "index_type": "IVF_SQ", "distance_type": "cosine", "num_indices": 1}}}
+{"name": "unchanged_registration_reuses_index", "passed": true}
+[11/19/26 23:58:55] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+[11/19/26 23:59:09] INFO     Processing request of type           server.py:733
+                             ListToolsRequest                                  
+{"name": "ocr_page_searchable_d246f7a235ab", "passed": true, "page": 3, "seconds": 13.676726100000451}
+                    INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+{"name": "ocr_page_searchable_dd08168b385b", "passed": true, "page": 7, "seconds": 3.7085569000009855}
+[11/19/26 23:59:12] INFO     Processing request of type           server.py:733
+                             CallToolRequest                                   
+{"name": "ocr_page_searchable_71ef12e83c59", "passed": true, "page": 7, "seconds": 3.500448499999038}
+{"name": "ocr_search_sources_verified", "passed": true, "samples": 3}
+{"name": "stored_vectors_match_cpu_reference", "passed": true, "samples": 16, "min_cosine": 1.0, "max_cosine": 1.0000001192092896}
+[2026-11-19T14:59:42Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:42Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:43Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:43Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:44Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:44Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:45Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:45Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:46Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:46Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:47Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:47Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:47Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:47Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:48Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+[2026-11-19T14:59:48Z WARN  lance::dataset::scanner] Deprecation warning, this behavior will change in the future. This search specified output columns but did not include `_distance`.  Currently the `_distance` column will be included.  In the future it will not.  Call `disable_scoring_autoprojection` to adopt the future behavior and avoid this warning
+{"name": "ann_only_returns_known_vectors", "passed": true, "samples": 8, "min_top10_overlap": 1.0}
+{"name": "final_table_has_no_duplicate_chunk_ids", "passed": true}
+{"name": "final_catalog_matches_table", "passed": true, "documents": 907, "chunks": 783645}

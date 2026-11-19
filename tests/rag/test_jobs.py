@@ -346,6 +346,346 @@ class JobTests(unittest.TestCase):
         self.assertTrue(results)
         self.assertTrue(all(row["sha256"] == new["sha256"] for row in results))
 
+    def test_replacement_recovers_cleanup_after_catalog_publication(self):
+        class AbruptStop(BaseException):
+            pass
+
+        engine = self.engine()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        folder = self.config.workspace(str(self.wiki))
+        table = engine._table(folder)
+        delete = type(table).delete
+
+        def stop_before_delete(current, predicate):
+            if old['sha256'] in predicate:
+                with engine._catalog(folder) as catalog:
+                    self.assertEqual(catalog.execute('SELECT COUNT(*) FROM documents WHERE doc_id=?', (old['sha256'],)).fetchone()[0], 0)
+                raise AbruptStop('公開した台帳のコミット直後に停止')
+            return delete(current, predicate)
+
+        self.make_pdf(self.source, 'Replacement published before cleanup')
+        with patch.object(type(table), 'delete', stop_before_delete):
+            with self.assertRaises(AbruptStop):
+                engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.assertGreater(engine._table(folder).count_rows(f"doc_id = '{old['sha256']}'"), 0)
+        with patch.object(engine.embedder, 'encode', side_effect=AssertionError('確定済みベクトルを再計算した')):
+            result = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.assertEqual(result['status'], 'unchanged')
+        self.assertIsNone(result['cleanup_error'])
+        self.assertEqual(engine._table(folder).count_rows(f"doc_id = '{old['sha256']}'"), 0)
+        self.assertEqual(engine._table(folder).count_rows(), result['chunks'])
+
+    def test_maintenance_retries_retirement_after_cleanup_error(self):
+        engine = self.engine()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        folder = self.config.workspace(str(self.wiki))
+        table = engine._table(folder)
+        self.make_pdf(self.source, 'Replacement with deferred cleanup')
+        with patch.object(type(table), 'delete', side_effect=RuntimeError('後始末の一時的な失敗')):
+            result = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.assertIn('一時的', result['cleanup_error'])
+        engine.maintain_indexes(str(self.wiki))
+        self.assertEqual(engine._table(folder).count_rows(f"doc_id = '{old['sha256']}'"), 0)
+        with engine._catalog(folder) as catalog:
+            self.assertEqual(catalog.execute('SELECT COUNT(*) FROM retired_documents').fetchone()[0], 0)
+
+    def test_pending_retirement_keeps_reactivated_document(self):
+        engine = self.engine()
+        original = self.source.read_bytes()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        folder = self.config.workspace(str(self.wiki))
+        table = engine._table(folder)
+        self.make_pdf(self.source, 'Temporary replacement before returning to original')
+        with patch.object(type(table), 'delete', side_effect=RuntimeError('後始末を保留')):
+            replacement = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.source.write_bytes(original)
+        restored = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.assertEqual(restored['sha256'], old['sha256'])
+        self.assertIsNone(restored['cleanup_error'])
+        self.assertEqual(engine._table(folder).count_rows(), restored['chunks'])
+        self.assertEqual(engine._table(folder).count_rows(f"doc_id = '{replacement['sha256']}'"), 0)
+
+    def test_retirement_does_not_invalidate_a_resumable_embedding_cursor(self):
+        engine = self.engine()
+        original = self.source.read_bytes()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        folder = self.config.workspace(str(self.wiki))
+        table = engine._table(folder)
+        self.make_pdf(self.source, 'Replacement leaving cleanup pending')
+        with patch.object(type(table), 'delete', side_effect=RuntimeError('後始末を保留')):
+            engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.source.write_bytes(original)
+
+        def interrupt_partial_embedding(phase, completed, total):
+            if phase == '埋め込み' and completed == 1:
+                raise RuntimeError('再取り込みの最初のバッチ後に停止')
+
+        with self.assertRaisesRegex(RuntimeError, '最初のバッチ'):
+            engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md", progress=interrupt_partial_embedding)
+        other = self.refs / 'other.pdf'
+        self.make_pdf(other, 'Unrelated document triggers deferred cleanup')
+        engine.ingest_pdf(str(self.wiki), str(other), 'sources/other.md')
+        resumed = engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        self.assertEqual(resumed['sha256'], old['sha256'])
+        self.assertEqual(engine._table(folder).count_rows(f"doc_id = '{old['sha256']}'"), resumed['chunks'])
+
+    def test_index_reset_defers_only_cache_retirement(self):
+        engine = self.engine()
+        engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        folder = self.config.workspace(str(self.wiki))
+        table = engine._table(folder)
+        self.make_pdf(self.source, 'Replacement with retirement across index reset')
+        with patch.object(type(table), 'delete', side_effect=RuntimeError('後始末を保留')):
+            engine.ingest_pdf(str(self.wiki), str(self.source), "sources/資料.md")
+        changed = Config({**self.config.values, 'chunk_chars': 600})
+        reset = Engine(changed, embedder=engine.embedder)
+        with reset._catalog(folder) as catalog:
+            self.assertEqual(catalog.execute('SELECT COUNT(*) FROM retired_documents').fetchone()[0], 1)
+            reset._reset_index(folder, catalog, reset._stale_policy(folder))
+            self.assertEqual(catalog.execute('SELECT rows_pending FROM retired_documents').fetchone()[0], 0)
+        reset.maintain_indexes(str(self.wiki))
+        with reset._catalog(folder) as catalog:
+            self.assertEqual(catalog.execute('SELECT COUNT(*) FROM retired_documents').fetchone()[0], 0)
+
+    def test_reactivation_reuses_saved_ocr_pages(self):
+        cfg = Config({**self.config.values, 'ocr_mode': 'always'})
+        engine = Engine(cfg, embedder=self.engine().embedder)
+        original = self.source.read_bytes()
+        with patch('rag_pdf.ocr_page', return_value='保存した OCR 本文。再登録でもこの結果を使う。') as ocr:
+            old = engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+            self.assertEqual(ocr.call_count, 4)
+        cache = cfg.extraction_dir(old['sha256'])
+        saved = {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in cache.glob('page-*.json')}
+        table = engine._table(cfg.workspace(str(self.wiki)))
+        self.make_pdf(self.source, 'Replacement pending cleanup before OCR reuse')
+        with patch.object(type(table), 'delete', side_effect=RuntimeError('後始末を保留')), \
+                patch('rag_pdf.ocr_page', return_value='差し替えた資料の OCR 本文。'):
+            engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        self.source.write_bytes(original)
+        with patch('rag_pdf.ocr_page', side_effect=AssertionError('保存済み OCR を再実行した')):
+            restored = engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        self.assertEqual(restored['sha256'], old['sha256'])
+        self.assertEqual(saved, {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in cache.glob('page-*.json')})
+
+    def test_reset_reclaims_retired_extraction_cache(self):
+        engine = self.engine()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        cache = self.config.extraction_dir(old['sha256'])
+        table = engine._table(self.config.workspace(str(self.wiki)))
+        self.make_pdf(self.source, 'Replacement pending cleanup before model reset')
+        with patch.object(type(table), 'delete', side_effect=RuntimeError('後始末を保留')):
+            current = engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        self.assertTrue(cache.exists())
+        changed = Config({**self.config.values, 'chunk_chars': 600})
+        reset = Engine(changed, embedder=engine.embedder)
+        result = reset.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        self.assertTrue(result['index_reset'])
+        self.assertFalse(cache.exists())
+        self.assertTrue(changed.extraction_dir(current['sha256']).exists())
+
+    def test_retirement_migrates_an_existing_two_column_ledger(self):
+        import sqlite3
+        import threading
+        engine = self.engine()
+        folder = self.config.workspace(str(self.wiki))
+        folder.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(folder / 'catalog.sqlite') as catalog:
+            catalog.execute('CREATE TABLE retired_documents(doc_id TEXT PRIMARY KEY,legacy_generations TEXT NOT NULL)')
+            catalog.execute('INSERT INTO retired_documents VALUES (?,?)', ('a' * 64, '["legacy-generation"]'))
+        def read():
+            with engine._catalog(folder) as catalog:
+                return tuple(catalog.execute('SELECT * FROM retired_documents').fetchone())
+        barrier = threading.Barrier(2)
+        statements = []
+        connect = sqlite3.connect
+        def overlapping_migration(*args, **kwargs):
+            catalog = connect(*args, **kwargs)
+            def trace(sql):
+                statements.append(sql)
+                if sql == 'BEGIN IMMEDIATE':
+                    barrier.wait(timeout=10)
+            catalog.set_trace_callback(trace)
+            return catalog
+        with patch('rag_index.sqlite3.connect', overlapping_migration), concurrent.futures.ThreadPoolExecutor(2) as pool:
+            rows = list(pool.map(lambda _: read(), range(2)))
+        self.assertEqual(rows, [('a' * 64, '["legacy-generation"]', 1)] * 2)
+        self.assertEqual(statements.count('BEGIN IMMEDIATE'), 2)
+        self.assertEqual(sum(sql.startswith('ALTER TABLE retired_documents') for sql in statements), 1)
+
+    def test_retired_cache_survives_other_wiki_and_is_reclaimed_after_last_reference(self):
+        engine = self.engine()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        other = self.root / 'other-wiki'
+        other.mkdir()
+        (other / 'SCHEMA.md').write_text('# 別の wiki\n', encoding='utf-8')
+        engine.ingest_pdf(str(other), str(self.source), 'sources/資料.md')
+        cache = self.config.extraction_dir(old['sha256'])
+        saved = {p.name: p.read_bytes() for p in cache.glob('page-*.json')}
+        self.make_pdf(self.source, 'Replacement still shared by another wiki')
+        engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        changed = Config({**self.config.values, 'chunk_chars': 600})
+        reset = Engine(changed, embedder=engine.embedder)
+        reset.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        self.assertEqual(saved, {p.name: p.read_bytes() for p in cache.glob('page-*.json')})
+        folder = changed.workspace(str(self.wiki))
+        with reset._catalog(folder) as catalog:
+            self.assertEqual(catalog.execute('SELECT rows_pending FROM retired_documents WHERE doc_id=?', (old['sha256'],)).fetchone()[0], 0)
+        engine.ingest_pdf(str(other), str(self.source), 'sources/資料.md')
+        self.assertFalse(cache.parent.exists())
+        reset.maintain_indexes(str(self.wiki))
+        with reset._catalog(folder) as catalog:
+            self.assertEqual(catalog.execute('SELECT COUNT(*) FROM retired_documents').fetchone()[0], 0)
+
+    def test_reset_retries_locked_cache_without_invalidating_new_rows_or_cursor(self):
+        engine = self.engine()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        cache = self.config.extraction_dir(old['sha256'])
+        folder = self.config.workspace(str(self.wiki))
+        table = engine._table(folder)
+        row = table.search().where(f"doc_id = '{old['sha256']}'").limit(1).to_list()[0]
+        self.make_pdf(self.source, 'Replacement before a locked cache reset')
+        with patch.object(type(table), 'delete', side_effect=RuntimeError('後始末を保留')):
+            engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        with engine._catalog(folder) as catalog:
+            generations = json.loads(catalog.execute('SELECT legacy_generations FROM retired_documents').fetchone()[0])
+        legacy = folder / 'extracted' / generations[0]
+        legacy.mkdir(parents=True)
+        (legacy / 'page-000001.json').write_bytes(b'{}')
+        changed = Config({**self.config.values, 'chunk_chars': 600})
+        reset = Engine(changed, embedder=engine.embedder)
+        generation = changed.generation(old['sha256'])
+        with engine._extraction_lock(old['sha256']):
+            with reset._catalog(folder) as catalog:
+                reset._reset_index(folder, catalog, reset._stale_policy(folder))
+                catalog.execute('INSERT INTO jobs VALUES (?,1,?,NULL)', (generation, 'failed'))
+            row.update(generation=generation, chunk_id=f'{generation}:0')
+            reset._table(folder, create=True).add([row])
+            reset.maintain_indexes(str(self.wiki))
+            self.assertTrue(cache.exists())
+            with reset._catalog(folder) as catalog:
+                self.assertEqual(catalog.execute('SELECT rows_pending FROM retired_documents').fetchone()[0], 0)
+        reset.maintain_indexes(str(self.wiki))
+        # ロックがなくても、失敗したジョブが再開できる間は OCR を保持する。
+        self.assertTrue(cache.exists())
+        with reset._catalog(folder) as catalog:
+            self.assertEqual(catalog.execute('SELECT completed FROM jobs WHERE generation=?', (generation,)).fetchone()[0], 1)
+            catalog.execute("UPDATE jobs SET status='complete' WHERE generation=?", (generation,))
+        reset.maintain_indexes(str(self.wiki))
+        self.assertFalse(cache.parent.exists())
+        self.assertFalse(legacy.exists())
+        self.assertEqual(reset._table(folder).count_rows(), 1)
+        with reset._catalog(folder) as catalog:
+            self.assertEqual(catalog.execute('SELECT completed FROM jobs WHERE generation=?', (generation,)).fetchone()[0], 1)
+            self.assertEqual(catalog.execute('SELECT COUNT(*) FROM retired_documents').fetchone()[0], 0)
+
+    def test_reset_reuses_reactivated_ocr_after_a_partial_embedding_and_another_publication(self):
+        cfg = Config({**self.config.values, 'ocr_mode': 'always'})
+        engine = Engine(cfg, embedder=self.engine().embedder)
+        original = self.source.read_bytes()
+        with patch('rag_pdf.ocr_page', return_value='再登録と設定変更でも保存済みの OCR を使う。'):
+            old = engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        cache = cfg.extraction_dir(old['sha256'])
+        saved = {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in cache.glob('page-*.json')}
+        table = engine._table(cfg.workspace(str(self.wiki)))
+        self.make_pdf(self.source, 'Replacement before restoring and changing the model')
+        with patch.object(type(table), 'delete', side_effect=RuntimeError('後始末を保留')), \
+                patch('rag_pdf.ocr_page', return_value='差し替え資料の OCR 本文。'):
+            engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        self.source.write_bytes(original)
+        changed = Config({**cfg.values, 'chunk_chars': 600})
+        reset = Engine(changed, embedder=engine.embedder)
+        def interrupt(phase, completed, total):
+            if phase == '埋め込み' and completed == 1:
+                raise RuntimeError('設定変更後の最初の保存で中断')
+        with patch('rag_pdf.ocr_page', side_effect=AssertionError('保存済み OCR を再実行した')):
+            with self.assertRaisesRegex(RuntimeError, '最初の保存'):
+                reset.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md', progress=interrupt)
+        other = self.refs / 'unrelated.pdf'
+        self.make_pdf(other, 'Another publication while OCR reingest is paused')
+        with patch('rag_pdf.ocr_page', return_value='別の資料の OCR 本文。'):
+            reset.ingest_pdf(str(self.wiki), str(other), 'sources/other.md')
+        with patch('rag_pdf.ocr_page', side_effect=AssertionError('保存済み OCR を再実行した')):
+            result = reset.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        self.assertEqual(saved, {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in cache.glob('page-*.json')})
+        self.assertEqual(reset._table(changed.workspace(str(self.wiki))).count_rows(f"doc_id = '{old['sha256']}'"), result['chunks'])
+
+    def test_pruned_reingest_cache_is_retried_after_unlock(self):
+        engine = self.engine()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        cache = self.config.extraction_dir(old['sha256'])
+        other = self.refs / 'other.pdf'
+        self.make_pdf(other, 'Another document starts a new index')
+        changed = Config({**self.config.values, 'chunk_chars': 600})
+        reset = Engine(changed, embedder=engine.embedder)
+        reset.ingest_pdf(str(self.wiki), str(other), 'sources/other.md')
+        self.source.unlink()
+        with engine._extraction_lock(old['sha256']):
+            reset.ingest_pdf(str(self.wiki), str(other), 'sources/other.md')
+            self.assertTrue(cache.exists())
+        reset.maintain_indexes(str(self.wiki))
+        self.assertFalse(cache.parent.exists())
+
+    def test_other_wiki_keeps_ocr_for_an_interrupted_reactivation(self):
+        cfg = Config({**self.config.values, 'ocr_mode': 'always'})
+        engine = Engine(cfg, embedder=self.engine().embedder)
+        original = self.source.read_bytes()
+        foreign = self.root / 'other-wiki'
+        foreign.mkdir()
+        (foreign / 'SCHEMA.md').write_text('# 別の wiki\n', encoding='utf-8')
+        foreign_cfg = Config({**cfg.values, 'chunk_chars': 600})
+        other_engine = Engine(foreign_cfg, embedder=engine.embedder)
+        with patch('rag_pdf.ocr_page', return_value='複数の wiki でも保存済み OCR を再利用する。'):
+            old = engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+            other_engine.ingest_pdf(str(foreign), str(self.source), 'sources/資料.md')
+        cache = cfg.extraction_dir(old['sha256'])
+        saved = {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in cache.glob('page-*.json')}
+        self.make_pdf(self.source, 'Replacement during multi-wiki OCR reuse')
+        replacement = self.source.read_bytes()
+        with patch('rag_pdf.ocr_page', return_value='差し替えた資料の OCR 本文。'):
+            engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        self.source.write_bytes(original)
+        def interrupt(phase, completed, total):
+            if phase == '埋め込み' and completed == 1:
+                raise RuntimeError('再登録の途中で停止')
+        with self.assertRaisesRegex(RuntimeError, '途中で停止'):
+            engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md', progress=interrupt)
+        self.source.write_bytes(replacement)
+        with patch('rag_pdf.ocr_page', return_value='差し替えた資料の OCR 本文。'):
+            other_engine.ingest_pdf(str(foreign), str(self.source), 'sources/資料.md')
+        self.source.write_bytes(original)
+        with patch('rag_pdf.ocr_page', side_effect=AssertionError('中断済みジョブの OCR を消した')):
+            result = engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        self.assertEqual(saved, {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in cache.glob('page-*.json')})
+        self.assertEqual(engine._table(cfg.workspace(str(self.wiki))).count_rows(f"doc_id = '{old['sha256']}'"), result['chunks'])
+
+    def test_cache_permission_errors_remain_retryable(self):
+        engine = self.engine()
+        old = engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        folder = self.config.workspace(str(self.wiki))
+        table = engine._table(folder)
+        self.make_pdf(self.source, 'Replacement before a temporary cache access error')
+        with patch.object(type(table), 'delete', side_effect=RuntimeError('後始末を保留')):
+            engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+        with engine._catalog(folder) as catalog:
+            generation = json.loads(catalog.execute('SELECT legacy_generations FROM retired_documents').fetchone()[0])[0]
+        legacy = folder / 'extracted' / generation
+        legacy.mkdir(parents=True)
+        (legacy / 'page-000001.json').write_bytes(b'{}')
+        cache = self.config.extraction_dir(old['sha256'])
+        import shutil
+        remove = shutil.rmtree
+        def temporarily_denied(path, *args, **kwargs):
+            if Path(path) in {cache.parent, legacy}:
+                raise PermissionError('一時的なキャッシュの共有違反')
+            return remove(path, *args, **kwargs)
+        with patch('rag_index.shutil.rmtree', temporarily_denied):
+            engine.maintain_indexes(str(self.wiki))
+        self.assertTrue(cache.exists() and legacy.exists())
+        engine.maintain_indexes(str(self.wiki))
+        self.assertFalse(cache.parent.exists() or legacy.exists())
+        with engine._catalog(folder) as catalog:
+            self.assertEqual(catalog.execute('SELECT COUNT(*) FROM retired_documents').fetchone()[0], 0)
+
     def test_restoring_old_content_indexes_it_again(self):
         engine = self.engine()
         original_bytes = self.source.read_bytes()

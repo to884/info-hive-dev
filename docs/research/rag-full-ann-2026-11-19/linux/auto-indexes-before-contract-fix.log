@@ -1,0 +1,72 @@
+[11/19/26 23:01:04] INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    INFO     Processing request of type            server.py:733
+                             ListToolsRequest                                   
+{"name": "pdf_ingest_automatically_creates_ann", "passed": true, "rows": 440, "partitions": 21}
+[11/19/26 23:01:40] INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+{"name": "pdf_append_automatically_updates_all_indexes", "passed": true}
+[11/19/26 23:01:43] INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+{"name": "appended_pdf_is_searchable", "passed": true}
+                    INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+{"name": "changed_pdf_replaces_old_generation", "passed": true}
+{"name": "old_generation_rows_are_removed", "passed": true}
+{"name": "replacement_automatically_rebuilds_ann", "passed": true}
+{"name": "replacement_marks_dependent_wiki_page", "passed": true}
+{"name": "replacement_has_no_maintenance_error", "passed": true}
+[11/19/26 23:02:12] INFO     Processing request of type            server.py:733
+                             CallToolRequest                                    
+                    INFO     Processing request of type            server.py:733
+                             ListToolsRequest                                   
+{"name": "unchanged_pdf_is_not_reprocessed", "passed": false}
+  + Exception Group Traceback (most recent call last):
+  |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_auto_indexes.py", line 90, in <module>
+  |     if __name__=='__main__': asyncio.run(main())
+  |                              ^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+  |     return runner.run(main)
+  |            ^^^^^^^^^^^^^^^^
+  |   File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+  |     return self._loop.run_until_complete(task)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+  |     return future.result()
+  |            ^^^^^^^^^^^^^^^
+  |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_auto_indexes.py", line 80, in main
+  |     async with connect(config_file) as (session,_):
+  |   File "/usr/lib/python3.12/contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_pipeline.py", line 84, in connect
+  |     async with stdio_client(parameters) as (reader, writer):
+  |   File "/usr/lib/python3.12/contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "/home/ubuntu/.cache/info-hive-validation/ann-20261119-clean/venv/lib/python3.12/site-packages/mcp/client/stdio/__init__.py", line 182, in stdio_client
+  |     async with (
+  |   File "/home/ubuntu/.cache/info-hive-validation/ann-20261119-clean/venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 871, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "/home/ubuntu/.cache/info-hive-validation/ann-20261119-clean/venv/lib/python3.12/site-packages/mcp/client/stdio/__init__.py", line 189, in stdio_client
+    |     yield read_stream, write_stream
+    |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_pipeline.py", line 85, in connect
+    |     async with ClientSession(reader, writer) as session:
+    |   File "/home/ubuntu/.cache/info-hive-validation/ann-20261119-clean/venv/lib/python3.12/site-packages/mcp/shared/session.py", line 238, in __aexit__
+    |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/ubuntu/.cache/info-hive-validation/ann-20261119-clean/venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 871, in __aexit__
+    |     raise BaseExceptionGroup(
+    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_pipeline.py", line 95, in connect
+      |     yield session, server
+      |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_auto_indexes.py", line 82, in main
+      |     record('unchanged_pdf_is_not_reprocessed',duplicate['status']=='completed' and duplicate['attempts']==changed['attempts'])
+      |   File "/mnt/c/Works/info-hive-dev/tests/rag/verify_auto_indexes.py", line 20, in record
+      |     assert passed,name
+      |            ^^^^^^
+      | AssertionError: unchanged_pdf_is_not_reprocessed
+      +------------------------------------

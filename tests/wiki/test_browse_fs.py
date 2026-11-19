@@ -262,6 +262,16 @@ class LayerContractTest(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 class ClassifyTest(unittest.TestCase):
+    def test_windows_move_requests_write_through(self):
+        kernel = mock.Mock()
+        with mock.patch.object(fs, "_win", return_value=(None, None, None, kernel, None)):
+            fs.X.move_write_through("temporary", "final")
+            fs.X.move_write_through("temporary", "final", replace=True)
+        self.assertEqual(kernel.MoveFileExW.call_args_list, [
+            mock.call("temporary", "final", 0x8),
+            mock.call("temporary", "final", 0x9),
+        ])
+
     def test_absent_and_unknown(self):
         self.assertIs(fs.classify(FileNotFoundError(errno.ENOENT, "x")), fs.Absent)
         self.assertIs(fs.classify(NotADirectoryError(errno.ENOTDIR, "x")), fs.Absent)

@@ -1,0 +1,87 @@
+[ask-claude 23:46:12] claude-opus-5-5 に敵対的レビューを依頼（effort medium、analysis、cwd C:\Works\info-hive-dev）
+## レビュー結果: 再開位置と後始末の修正（3 回目）
+
+Critical と Major はなく、判定は APPROVED です。前回の Major の反例はふさがっており、新しい Major の反例は見つかりませんでした。Minor が 2 件あります。
+
+確認は現在のファイルを読み、コードを追う方法で行いました。テストの実行、プロセスの停止、ファイルの編集はしていません。
+
+**不変条件の確認**
+
+前提として、次の条件を確かめました。
+
+> jobs の `completed` が k なら、その文書の 0 から k−1 までの行が表にある。
+
+1. **公開と同じトランザクション（`rag_index.py:665-671`）:** 旧文書の jobs 行を消し、同じトランザクションで `retired_documents` に登録します。登録する世代は、今の式の世代、記録した世代、0.4.0 の世代の和です。
+2. **後始末の順序（`_finish_retirements`、`:447-470`）:** 最初に、既知の全世代の jobs 行を消してコミットします。そのあと表の行を消し、索引保守、抽出結果の削除と進み、最後に台帳の行を消してコミットします。
+   - どこで止まっても台帳の行が残るので、再試行されます。
+   - jobs 行はすでに消えているので、残った位置が「行のない前半」を飛ばさせることはありません。
+3. **前回の反例の再検討:** 前回の反例は、A を取り込み直す途中で失敗し、別の文書の公開を挟んで、A をもう一度取り込むものでした。現在は次のように動きます。
+   - 取り込み直しの冒頭（`:533-534`）で、jobs 行を作る前に A の後始末を終え、台帳から A を消します。
+   - そのため、後で別の文書が公開されても、A の行は消されません。
+   - 失敗したジョブが残した `completed=k` は、表にある行と一致します。
+   - この流れは `test_retirement_does_not_invalidate_a_resumable_embedding_cursor` が固めています。
+4. **方針が変わった場合:** 方針が古い（stale の）ときは冒頭の後始末を飛ばします。ただし `_reset_index`（`:238`）が、表を消すのと一緒に台帳も空にするので、後始末の意図は残りません。
+5. **同時実行:** 冒頭の後始末と公開後の後始末は、どちらも wiki の `write.lock` の中で動きます。同じ wiki の取り込みは直列になるので、競合は起きません。
+6. **元の内容が公開された場合:** `documents` にあれば何も消さず、台帳の行だけを消します（`:455`、`:468`）。
+
+**その他の Minor への対処（確認済み）**
+- **再計算の禁止:** 再開時の MCP では、フックが文書の `encode` を禁じ、質問の `encode` だけを通します（`fault_hook/sitecustomize.py:15-24`）。これは 3 回の再開すべてに適用されます（`verify_mcp.py:195,218,280`）。
+- **空のスタンプ:** 抽出のスタンプが空なら例外になります（`verify_mcp.py:158-163`）。
+- **79,900 ベクトルの照合:** `finish.py:61-76` が、対応表のハッシュとバイナリの先頭部分のハッシュを照合します。計算方法が保存時と違えば失敗する側に倒れます。
+- **コミット境界の報告:** `summary` に `stop_boundaries` として出ます（`finish.py:101`）。
+- **`adopt_index_fix.py`:** 許したメソッド以外のモジュール AST の変更と、取り込みの入力側の AST の変更を拒み、パッチとハッシュを保存します。現在の `rag_index.py` のハッシュ（`791998a3…`）は、作業領域の `source-policy.json` と一致しました。
+- **変更履歴:** 実際の動き（取り込み直しの前と、次の公開のあとに回収）と一致しています。
+
+---
+
+### [Minor] 取り込み直しの冒頭の後始末が、これから使う抽出結果を消し、OCR をやり直させる
+
+**対象**
+`info-hive-rag/scripts/rag_index.py:533-534` と、`_finish_retirements` 内の `:463`（`_remove_extraction`）
+
+**根拠（コードで確認）**
+- 冒頭の後始末は、抽出のロックを取る前に動きます。
+- その時点で A は `documents` にないので、`_extraction_in_use(A)` は偽になり、`data_dir/extracted/A` を消します。
+- そのあと同じ取り込みの中で、`extract_pages` が全ページを最初から抽出し直します。
+
+**問題**
+動きとしては正しく、データは失われません。ただ、スキャンの多い PDF では OCR を丸ごとやり直すことになり、数時間かかる場合があります。今回の全量試験の流れには、この経路は入りません。
+
+**修正の方向性**
+冒頭の後始末（`only_doc_id` を指定した呼び出し）では、行と jobs 行の後始末だけを行い、抽出結果は残します。
+
+---
+
+### [Minor] 索引のリセットで後始末の台帳を空にすると、退役した文書の抽出結果が残り続ける
+
+**対象**
+`info-hive-rag/scripts/rag_index.py:228-238`（`_reset_index`）
+
+**根拠（コードで確認）**
+- `previous-index.json` に移すのは `documents` にある文書だけで、退役した文書は入りません。
+- その文書の `_remove_extraction` を呼ぶ処理は、台帳が消えたあとには残っていません。
+
+**問題**
+後始末が保留のまま設定を変えると、その文書の抽出結果がディスクに残ります。容量だけの問題で、正しさには影響しません。
+
+**修正の方向性**
+台帳を消す前に退役文書の doc_id を拾い、`_remove_extraction` を試みます。この削除は `_extraction_in_use` で守られているので、ほかの wiki が使う抽出結果は消えません。
+
+---
+
+**未確認の事項**
+- 5 件の試験は、`retirement-cursor-after-fix.log` が `Ran 5 tests ... OK` を示しているのを読んだだけで、自分では実行していません。
+- 全量の実 MCP 試験の結果は、まだ出ていません。
+
+`✶ Insight ─────────────────────────────────────`
+- 「位置を先に無効にしてから行を消す」順序にしたので、どこで止まっても、残るのは「位置がなく行がある」という安全な側の状態だけです。merge によって、二重の行もできません。
+- 同じ doc_id を再び使い始める前に、保留中の後始末を片付けてしまう方式です。これで、先送りした削除と新しい再開位置が同時に存在しなくなりました。
+`─────────────────────────────────────────────────`
+
+このレビューには Opus 5.5・high が適していました。Minor 2 件の修正には Sonnet・medium で十分です。
+
+使用した MCP サーバー: なし
+使用した Agent Skills: なし
+
+Final Result: APPROVED
+[ask-claude 23:48:11] 完了（claude-opus-5-5）。session db7cd14e-af2c-4437-9607-ed2af824370c  usage {"total_cost_usd": 12.666472999999993, "usage": {"input_tokens": 13, "cache_creation_input_tokens": 26361, "cache_read_input_tokens": 2222207, "output_tokens": 7652, "output_tokens_details": {"thinking_tokens": 4080}, "server_tool_use": {"web_search_requests": 0, "web_fetch_requests": 0}, "service_tier": "standard", "cache_creation": {"ephemeral_1h_input_tokens": 26361, "ephemeral_5m_input_tokens": 0}, "inference_geo": "global", "iterations": [{"input_tokens": 2, "output_tokens": 2767, "cache_read_input_tokens": 327761, "cache_creation_input_tokens": 692, "cache_creation": {"ephemeral_5m_input_tokens": 0, "ephemeral_1h_input_tokens": 692}, "type": "message"}], "speed": "standard", "fallback_credit": null}}

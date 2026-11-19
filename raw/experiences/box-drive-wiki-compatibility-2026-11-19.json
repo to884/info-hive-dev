@@ -1,0 +1,27 @@
+{
+  "id": "box-drive-wiki-compatibility-2026-11-19",
+  "task": "Windows の Box Drive 上に置いた info-hive wiki v0.38.1 の動作と制約を確認する。",
+  "outcome": "success",
+  "actions": [
+    "Box 配下と非同期のローカル一時フォルダーに、同じ架空の日本語 Markdown 1 ページと原本を置いた。標準の初期化と検索キャッシュ構築を確認した。",
+    "Box 上で原本を保存し、既存の記事とログを置き換えた。CLI の BM25 とハイブリッド検索、wiki MCP のページ取得とハイブリッド検索、lint、グラフ生成と照会、browse を確認した。",
+    "記事と原本をオンライン専用に戻した。再取得した記事から更新後の語句を検索し、再取得した原本の SHA-256 を保存前の値と照合した。",
+    "Box とローカルの両方でグラフ DB の読み取り接続を開いたまま再生成し、接続を閉じて再試行した。"
+  ],
+  "verification": "Box とローカルの初期化は終了コード 0 で検索の準備状態は ready。browse サーバーは HTTP 200 で再編集後の文を返し、原本の SHA-256 は一致。グラフ DB の読み取り接続が開いている間は両方で WinError 5、接続を閉じると両方で連続 2 回成功した。実測の内訳は raw/box-driveでのwiki互換性-2026-11-19.json にある。",
+  "model": "調査担当は Codex。実測記録から個別のモデル ID は特定できない。",
+  "tools": "Windows 11 Enterprise build 26300、Box Drive 2.56.271.0（Cloud Files）、Python 3.14.6、info-hive wiki v0.38.1（b8596d1）、wiki MCP。",
+  "scope": "Windows 端末 1 台、架空の wiki 記事 1 ページ。オンライン専用ファイルの再取得と、オンライン中にオフライン用の固定をした後の操作を確認した。",
+  "hypothesis": "複数端末では、Box のファイル単位の同期と競合処理により、wiki の記事、索引、ログ、原本が異なる更新時点の組み合わせになる可能性がある。この試験では端末間の競合を再現していない。",
+  "counterexamples": "ディスクにファイルを保持していても、グラフ DB の読み取り接続が開いていれば再生成が失敗した。Box の旧方式、2 台目との同期と競合、通信切断中、Box Web の一覧、Web・会話の取り込み全体、rag ジョブ、大規模 wiki は未検証。",
+  "evidence": [
+    {
+      "path": "raw/box-driveでのwiki互換性-2026-11-19.json",
+      "sha256": "f7793b7841bff4883e16a6d58c42bd6ea82f0f8b9ddc6246a4e600c9ff48c547"
+    },
+    {
+      "path": "docs/deep-dive/2026-11-19-box-drive-wiki.md",
+      "sha256": "856966dc68c9a29a8a38a996c8ebfd558eb612987d9a7f8bfcd715931278c4e1"
+    }
+  ]
+}
