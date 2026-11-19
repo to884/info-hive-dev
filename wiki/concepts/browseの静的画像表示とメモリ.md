@@ -36,23 +36,34 @@ python -X utf8 -B "$run/analysis/analyze-figure-followup.py" "$run/ten-rounds/re
 python -X utf8 -B "$run/analysis/analyze-figure-followup.py" "$run/first-round/results.json"
 ```
 
-同じ端末で再測定する場合は、親リポジトリのルートから保存済み ZIP を指定し、`static-mermaid` にある測定スクリプトを使う。採取した標本は実行ごとに新しい出力先へ書く。11 月 17〜18 日の別実験の詳細資料もその worktree にある。 [再測定用 ZIP](../../docs/agent-runs/2026-11-19-wiki-static-svg-vs-png/static-image-assets-r2-20261119.zip)
+再測定は Windows の PowerShell で親リポジトリのルートから行う。前回は Node.js 24.15.0、Playwright 1.56.1 の Windows 版 WebKit 26.0（リビジョン 2215）を使った。各形式で専用ブラウザを起動し、同じ文書で明暗各50枚を10周表示する。各形式を2回測り、2回目は順序を逆にする。暗色表示後は5秒待つ。手動 GC は使わない。 [測定スクリプト](../../poc/browse-static-image/performance-experiment.mjs) · [11 月 18 日の測定レビュー](../../docs/agent-runs/2026-11-19-wiki-static-svg-vs-png/2026-11-18-repeat-tab-review.md)
+
+Playwright を準備する。WebKit の取得先はこの測定用のディレクトリにする。
 
 ```powershell
-$archive = (Resolve-Path 'docs/agent-runs/2026-11-19-wiki-static-svg-vs-png/static-image-assets-r2-20261119.zip').Path
-Set-Location '.claude/worktrees/static-mermaid/poc/browse-figures-static'
-Expand-Archive -LiteralPath $archive -DestinationPath 'out/static-image-assets-archive-20261119'
-$env:DESIGN = 'static-image'
-$env:MEASURE = 'memory'
-$env:BROWSERS = 'webkit'
+$env:PLAYWRIGHT_BROWSERS_PATH = Join-Path (Get-Location).Path 'poc/browse-static-image/out/browsers'
+npm ci --prefix tests/wiki/browse
+& './tests/wiki/browse/node_modules/.bin/playwright.cmd' install webkit
+```
+
+保存済みの画像を展開し、今回の標本を新しいディレクトリに書き出す。OS 全体のコミット余力が 4 GiB 未満になった場合や、標本が15秒以上更新されない場合は、測定専用ブラウザを止めて以後のケースを打ち切る。採取済みの標本と停止理由を確認できる。 [再測定用 ZIP](../../docs/agent-runs/2026-11-19-wiki-static-svg-vs-png/static-image-assets-r2-20261119.zip)
+
+```powershell
+$run = 'docs/agent-runs/2026-11-19-wiki-static-svg-vs-png'
+$work = Join-Path ([IO.Path]::GetTempPath()) ('wiki-static-image-' + [guid]::NewGuid().ToString('N'))
+Expand-Archive -LiteralPath "$run/static-image-assets-r2-20261119.zip" -DestinationPath (Join-Path $work 'fixture')
+$env:STATIC_IMAGE_FIXTURE = Join-Path $work 'fixture'
+$env:PERF_OUT = Join-Path $work 'results'
 $env:COUNTS = '50'
 $env:ROUNDS = '10'
 $env:REPEATS = '2'
 $env:IDLE_MS = '5000'
-$env:STATIC_IMAGE_FIXTURE = (Resolve-Path 'out/static-image-assets-archive-20261119').Path
-$env:PERF_OUT = Join-Path 'out' ('static-image-recheck-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
-node performance-experiment.mjs
+$env:MIN_COMMIT_HEADROOM_MIB = '4096'
+node poc/browse-static-image/performance-experiment.mjs
+python -X utf8 -B "$run/analysis/analyze-figure-followup.py" "$env:PERF_OUT/results.json"
 ```
+
+時間は先頭画像と全画像の `img.decode()` が解決するまでを記録する。この版の WebKit は SVG のラスタライズを待たず、PNG ではビットマップのデコードを待つ。測定では画面外の画像にも `decode()` を呼ぶため、時間とメモリはこの表示条件での値として扱う。 [測定に使った WebKit の実装](https://github.com/WebKit/WebKit/blob/db897909f7c31d9b38793374c66427b6a4cb3dd3/Source/WebCore/loader/ImageLoader.cpp#L550-L575)
 
 将来 PNG を検討する場合は、対象の図種・拡大時の画質・初回表示を確かめる。CairoSVG との実測比較は未着手。実機 Safari は依頼により検証対象から外した。Windows の領域別コミットに現れなかった 7.34〜8.20 MiB をページテーブルの課金と確定するには、カーネルのカウンターを直接読む測定が残っている。
 
