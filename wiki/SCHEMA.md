@@ -159,11 +159,15 @@ graph:
 
 ## インデックスの構成
 
-（インデックスを分割したら、このセクションを更新する。）
+トップレベルの `wiki/index.md` に、種類別の索引へのリンクと件数を置く。
 
-現在は分割していない。1つの `wiki/index.md` にすべてのページを並べている。
+- ソースは `wiki/indexes/sources.md` に並べる。
+- エンティティは `wiki/indexes/entities.md` に並べる。
+- コンセプトは `wiki/indexes/concepts.md` に並べる。
+- シンセシスは `wiki/indexes/synthesis.md` に並べる。
 
-wiki が約 150 ページを超えるか、`index.md` が 300 行を超えたら、`wiki/indexes/<type>.md` に分割し、このセクションを更新する。
+新しいページを追加したら、該当する索引に1行の要約を足し、トップレベルの件数を更新する。
+種類別の索引が 300 行を超えたら、話題などで細分化してこの節を更新する。
 
 ## Retrieval
 

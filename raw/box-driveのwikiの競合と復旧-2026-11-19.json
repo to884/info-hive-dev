@@ -1,0 +1,205 @@
+{
+  "date": "2026-11-19",
+  "environment": {
+    "windows": "Windows 11 Enterprise build 26300",
+    "box_drive": "2.56.271.0",
+    "box_architecture": "Cloud Files",
+    "wiki": "v0.39.0",
+    "physical_pcs": 1,
+    "writers": [
+      "A: Windows の Box Drive（切断中）",
+      "B: Edge の Box Web（接続中）"
+    ],
+    "box_accounts": 1
+  },
+  "fixture": {
+    "name": "info-hive-box-conflict-d18a5e3e7",
+    "synthetic": true,
+    "files": [
+      "concepts/guide.md",
+      "index.md",
+      "log.md"
+    ]
+  },
+  "method": [
+    "記事、index.md、log.md を共通版として同期した。",
+    "一時プロキシで Box Drive の Box への通信を拒否し、A が 3 ファイルを更新した。",
+    "Box Web から B の 3 ファイルを同じ名前でアップロードし、完了を画面で確認した。",
+    "一時プロキシを戻し、正規名と別名コピーを SHA-1 で識別した。Box Drive に記録された API 応答の SHA-1 と照合した。",
+    "共通版と Box から回収した両方の版を同期外で統合して検索・lint・グラフ再生成を確認した。復旧版を正規名に戻し、競合コピーを試験フォルダー内の wiki 外に移動した。"
+  ],
+  "conflicts": {
+    "isolation": {
+      "a_after_first_refusal": true,
+      "refused_connections": 39,
+      "web_completion_reported": true,
+      "restored": true,
+      "seconds_from_a_save_to_reconnect": 105.833
+    },
+    "local": {
+      "concepts/guide.md": [
+        {
+          "kind": "suffixed_copy",
+          "variant": "A",
+          "sha1": "b5a9696618296d45dc14f8e443052f4efadd7011",
+          "size": 265
+        },
+        {
+          "kind": "canonical",
+          "variant": "B",
+          "sha1": "519cebdcffe59a8e50b814e9cb698b486c4365e8",
+          "size": 262
+        }
+      ],
+      "index.md": [
+        {
+          "kind": "suffixed_copy",
+          "variant": "A",
+          "sha1": "b36314d3ec7216bd778076b1d44208703c77c03c",
+          "size": 100
+        },
+        {
+          "kind": "canonical",
+          "variant": "B",
+          "sha1": "104ea441928392ae56ecac02d3371bff12ea1386",
+          "size": 97
+        }
+      ],
+      "log.md": [
+        {
+          "kind": "suffixed_copy",
+          "variant": "A",
+          "sha1": "ddeac83b02bbff96d011b50ed71a27c298bf516b",
+          "size": 107
+        },
+        {
+          "kind": "canonical",
+          "variant": "B",
+          "sha1": "6f0fa09978784ddb700c823419e59191a4cad575",
+          "size": 107
+        }
+      ]
+    },
+    "cloud_api": {
+      "concepts/guide.md": {
+        "base-canonical-before": {
+          "sha1": "8764a7664f4e4944a04d64e76ecd8a595e7f58a4",
+          "seconds_from_reconnect": -250.176,
+          "has_version": true
+        },
+        "B-canonical-after": {
+          "sha1": "519cebdcffe59a8e50b814e9cb698b486c4365e8",
+          "seconds_from_reconnect": 16.67,
+          "has_version": true
+        },
+        "A-copy-after": {
+          "sha1": "b5a9696618296d45dc14f8e443052f4efadd7011",
+          "seconds_from_reconnect": 26.832,
+          "has_version": true
+        }
+      },
+      "index.md": {
+        "base-canonical-before": {
+          "sha1": "5ee5b52dd79e21b07635f008aa96f053e2a456ef",
+          "seconds_from_reconnect": -250.048,
+          "has_version": true
+        },
+        "B-canonical-after": {
+          "sha1": "104ea441928392ae56ecac02d3371bff12ea1386",
+          "seconds_from_reconnect": 16.124,
+          "has_version": true
+        },
+        "A-copy-after": {
+          "sha1": "b36314d3ec7216bd778076b1d44208703c77c03c",
+          "seconds_from_reconnect": 26.585,
+          "has_version": true
+        }
+      },
+      "log.md": {
+        "base-canonical-before": {
+          "sha1": "a005d4287ca78db6c7566d2d64aaaae303a2047d",
+          "seconds_from_reconnect": -250.056,
+          "has_version": true
+        },
+        "B-canonical-after": {
+          "sha1": "6f0fa09978784ddb700c823419e59191a4cad575",
+          "seconds_from_reconnect": 16.505,
+          "has_version": true
+        },
+        "A-copy-after": {
+          "sha1": "ddeac83b02bbff96d011b50ed71a27c298bf516b",
+          "seconds_from_reconnect": 26.581,
+          "has_version": true
+        }
+      }
+    },
+    "snapshot_taken_after_reconnect_seconds": 55.529
+  },
+  "recovery": {
+    "article_disjoint_merge_exit": 0,
+    "article_same_line_conflict": true,
+    "index_same_line_conflict": true,
+    "article_contains_both_edits": true,
+    "index_one_entry": true,
+    "log_each_edit_once": true,
+    "both_edits_found_via_bm25": true,
+    "lint_broken_links": 0,
+    "lint_duplicate_slugs": 0,
+    "graph_rebuilt": true,
+    "distinct_article_mixed_local_only": {
+      "article_count": 3,
+      "missing_index_link": true,
+      "missing_log_event": true,
+      "lint_broken_links": 0,
+      "lint_orphans": 0
+    },
+    "merged_sha1": {
+      "concepts/guide.md": "d5e02711ec6e47c8b59ec984bb92060ace0d75bc",
+      "index.md": "649018fdd2553f34fe98537c90046548fa302edf",
+      "log.md": "f83a92bbe03e1c6b4b7009e495ca73e998960ed7"
+    },
+    "canonical_local_after_publish_verified": true,
+    "cloud_canonical": {
+      "log.md": {
+        "sha1": "f83a92bbe03e1c6b4b7009e495ca73e998960ed7",
+        "seconds_after_action": 8.11,
+        "has_file_version": true
+      },
+      "concepts/guide.md": {
+        "sha1": "d5e02711ec6e47c8b59ec984bb92060ace0d75bc",
+        "seconds_after_action": 8.363,
+        "has_file_version": true
+      },
+      "index.md": {
+        "sha1": "649018fdd2553f34fe98537c90046548fa302edf",
+        "seconds_after_action": 8.372,
+        "has_file_version": true
+      }
+    },
+    "archived_local_copies": 3,
+    "cloud_archived_copies": {
+      "index.md": {
+        "sha1": "b36314d3ec7216bd778076b1d44208703c77c03c",
+        "seconds_after_action": 7.124
+      },
+      "log.md": {
+        "sha1": "ddeac83b02bbff96d011b50ed71a27c298bf516b",
+        "seconds_after_action": 7.421
+      },
+      "concepts/guide.md": {
+        "sha1": "b5a9696618296d45dc14f8e443052f4efadd7011",
+        "seconds_after_action": 7.451
+      }
+    },
+    "canonical_checked_after_archive": {
+      "concepts/guide.md": true,
+      "index.md": true,
+      "log.md": true
+    },
+    "suffixed_copies_remaining_in_wiki": 0
+  },
+  "limits": [
+    "実際の Box で競合したのは Box Drive 1 インスタンスと Box Web。同じ Box アカウントを使用。2 インスタンスの Box Drive、別の Box 利用者、同時再接続は未検証。",
+    "別々の記事を編集したときの索引・ログの混在はローカルコピーで再現。分割索引、大規模 wiki、ネットワーク切断と再接続の順の組み合わせは未検証。"
+  ]
+}
