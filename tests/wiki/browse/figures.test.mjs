@@ -291,7 +291,9 @@ async function mermaidScenario(browser, base, origin, mode) {
     f.id = "probe"; f.className = "fig-frame"; f.setAttribute("sandbox", "allow-scripts"); f.onload = res; f.src = u;
     document.body.appendChild(f);
   }), frameUrl);
-  const probe = page.frames().find((f) => f.url() === frameUrl);
+  // 製品の描画枠も同じ URL を使う。検査用に作った要素の枠を選ぶ。
+  const probeElement = await page.locator("#probe").elementHandle();
+  const probe = await probeElement.contentFrame();
   const tryRead = (f) => f.evaluate((u) => Promise.all([
     new Promise((res) => {
       const s = document.createElement("script");
