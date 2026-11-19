@@ -1409,6 +1409,25 @@ class ReadSiteInventoryTests(unittest.TestCase):
     URL = "ファイルではなく URL を開く"
 
     SITES = {
+        ("wiki_apply.py", "apply_plan"): WRITE,  # 公開候補の日誌と成果物を WriteGuard で検査
+        ("wiki_apply.py", "current"): NOT_ARTICLE,
+        ("wiki_apply.py", "main"): USER_FILE,  # --plan の承認済み JSON
+        ("wiki_apply.py", "read"): WRITE,  # 候補と公開版のファイルを WriteGuard で検査
+        ("wiki_apply.py", "mode_marker"): NOT_ARTICLE,
+        ("wiki_apply.py", "read_completion"): NOT_ARTICLE,
+        ("wiki_apply.py", "read_publication_journal"): NOT_ARTICLE,
+        ("wiki_apply.py", "sync_directory"): WRITE,
+        ("wiki_live_apply.py", "calculate_view"): WRITE,
+        ("wiki_live_apply.py", "finish"): WRITE,
+        ("wiki_live_apply.py", "load"): NOT_ARTICLE,
+        ("wiki_live_apply.py", "register"): WRITE,
+        ("wiki_live_apply.py", "restrict_raw"): WALKED,  # 走査したページを WriteGuard でも検査
+        ("wiki_live_apply.py", "rollback"): WRITE,
+        ("wiki_live_apply.py", "snapshot"): WORK_COPY,
+        ("wiki_live_apply.py", "verify_applied"): WRITE,
+        ("wiki_live_return.py", "check_raw"): WRITE,
+        ("wiki_live_return.py", "protect_preimages"): WRITE,
+        ("wiki_live_return.py", "write_files"): WRITE,
         ("wiki_fsguard.py", "WriteGuard.hold_lock"): WRITE,
         ("wiki_fsguard.py", "_mount_points"): NOT_ARTICLE,
         ("wiki_raw_roots.py", "_record_paths"): NOT_ARTICLE,

@@ -70,8 +70,16 @@
 - ページの削除と名前の変更を、書く段に入れると決めたとき。
 - ロックを外す操作や、待ちきれなかった差分の扱いが、日常の使い方で手間になると分かったとき（作者の判断の 2 を見直す）。
 
+## ライブ書き込みへの適用
+
+- 通常の `ingest`、`query` の回答保存、`learn` は `wiki_apply.py` にページ、索引、ログを渡す。Web raw の準備記録と、取り込み後のグラフ抽出結果のログも同じ入口から書く。raw の保存とグラフの抽出は引き続きそれぞれのスクリプトが担当する。
+- ライブと公開版の書き手は wiki ごとの `.wiki-cache/apply/apply.lock` を共用する。ライブの持ち主は `live-owner.json` に残り、プロセスが止まったら `unlock` で解放する。日誌を回復したあとで次の計画を適用する。公開版を有効にした wiki は [ADR-0036](0036-wiki-published-release-journal-and-reader-pinning.md) の入口で更新する。
+- 最初のファイルを反映する前に、日誌の計画と成果物の指紋を `live-transaction.json` に残す。処理の記録だけが残り、日誌も検証できる完了記録も見つからない場合は復旧を止める。新たな完了記録は順序と成果物の指紋を持ち、最後の完了記録を `live-head.json` と照合する。復旧や再実行では、ファイルごとに最後の計画が記録した指紋を使う。
+- `raw:` が外部の単独ファイルを指すときは、そのファイルを保護する。親のディレクトリまで原本の根にすると、たとえばプロジェクト直下の PDF を参照しただけで、同じプロジェクトの wiki に書けなくなる。原本の実体への書き込みとハードリンクを検査する。指定または記録された raw の根と、`raw:` が指すディレクトリは木全体を検査する。
+
 ## 参照
 
+- [ADR-0036 公開版を日誌で切り替え、検索から引用まで同じ版を読む](0036-wiki-published-release-journal-and-reader-pinning.md)
 - [wiki の書く段の設計](../plans/wiki-apply-2026-11-14.md)
 - [レビューの記録と経緯](../agent-runs/2026-11-14-wiki-apply/)（`summary.md`、`design-v1.md`〜`design-v16.md`、`design-review-1.md`〜`design-review-15.md`）
 - [セッションの取り込みの設計のレビュー](../agent-runs/2026-11-14-wiki-session-ingest/)（`design-review-4.md`〜`design-review-7.md`、`concurrency-check.md`）
