@@ -202,8 +202,8 @@ def instrumented(inj):
     def frontmatter(text):
         return inj.outer("i_frontmatter", None, real_fm, text)
 
-    def render_page(self_, pid, raw_mode="text", stale=None):
-        return inj.outer("i_render_page", pid, real_render, self_, pid, raw_mode, stale)
+    def render_page(self_, pid, *args, **kwargs):
+        return inj.outer("i_render_page", pid, real_render, self_, pid, *args, **kwargs)
 
     # 読み込みのときに作られた共有のパーサーと、関係表の読み取りも、解釈の入口に数える（実装の 2 回目のレビューの重大 4）
     real_shared = wiki_pages._MD.parse

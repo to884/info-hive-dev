@@ -53,11 +53,13 @@ def write(root: Path, rel: str, text: str) -> Path:
     return path
 
 
-def request(port: int, method: str, path: str, host: "str | None" = None) -> tuple:
+def request(port: int, method: str, path: str, host: "str | None" = None, *, headers: dict | None = None) -> tuple:
     conn = http.client.HTTPConnection("127.0.0.1", port, timeout=20)
     try:
         conn.putrequest(method, path, skip_host=True, skip_accept_encoding=True)
         conn.putheader("Host", host if host is not None else f"127.0.0.1:{port}")
+        for name, value in (headers or {}).items():
+            conn.putheader(name, value)
         conn.endheaders()
         res = conn.getresponse()
         return res.status, res.read().decode("utf-8", errors="replace"), dict(res.getheaders())
@@ -951,6 +953,25 @@ class FrameServeTest(InProcess):
         _code, _body, headers = self.get("concepts/a.html")
         self.assertEqual(headers["Content-Security-Policy"], core.CSP)
         self.assertIn("frame-src 'self'", headers["Content-Security-Policy"])
+
+    def test_server_figures_require_a_top_level_local_navigation(self):
+        for mode, dest, site, allowed in (
+            ("navigate", "document", "none", True),
+            ("navigate", "document", "same-origin", True),
+            ("navigate", "document", "same-site", False),
+            ("navigate", "document", "cross-site", False),
+            ("navigate", "iframe", "same-origin", False),
+            ("cors", "document", "same-origin", False),
+            (None, None, None, False),
+        ):
+            with self.subTest(mode=mode, dest=dest, site=site):
+                navigation = {"Sec-Fetch-Mode": mode, "Sec-Fetch-Dest": dest, "Sec-Fetch-Site": site}
+                code, body, headers = request(self.port, "GET", self.prefix + "concepts/a.html",
+                                              headers={name: value for name, value in navigation.items() if value})
+                self.assertEqual(code, 200)
+                self.assertEqual("assets/figures.js" in body, allowed)
+                self.assertEqual(headers["Cross-Origin-Opener-Policy"], "same-origin")
+        self.assertEqual(self.get("index.html")[2]["Cross-Origin-Opener-Policy"], "same-origin")
 
 
 class ServeScopeTest(Base):
