@@ -1,0 +1,142 @@
+[
+  {
+    "claim": "Wikilink の [[ノート名]] と Markdown の内部リンクを機械的に読み、記事をノード、参照をエッジにできる。Obsidian は別名・表示テキスト・アンカーを扱うため、表示文字列とリンク先IDを分離する必要がある。『リンクを因果や依存と断定しない』は本調査の設計上の判断である。",
+    "evidence_quote": "Wikilink: `[[Three laws of motion]]` or `[[Three laws of motion.md]]`",
+    "source_url": "https://obsidian.md/help/links",
+    "source_title": "Internal links - Obsidian Help",
+    "locator": "Supported formats for internal links; Change the link display text",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "Obsidian の仕様は info-hive の仕様そのものではない。実装時は wiki/SCHEMA.md と既存パーサーの契約を優先する。"
+  },
+  {
+    "claim": "YAML frontmatter のプロパティに構造化データと内部リンクを置ける。関係キーごとにエッジ型を決める方式は、本文から意味を推定せずに型付き関係を得るための設計案になる。",
+    "evidence_quote": "Properties contain structured data such as text, links, dates, checkboxes, and numbers.",
+    "source_url": "https://obsidian.md/help/Editing%2Band%2Bformatting/Properties",
+    "source_title": "Properties - Obsidian Help",
+    "locator": "Introduction; Text; List",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "本文中の未知の関係を自動発見する方式ではなく、執筆者・LLM が明示した構造をコンパイルする方式。"
+  },
+  {
+    "claim": "別名辞書を使い、略語・異言語の名前を同じ記事IDに対応付ける運用ができる。Obsidian の aliases は YAML のリストで表す。",
+    "evidence_quote": "Use aliases for things like acronyms, nicknames, or to refer to a note in a different language.",
+    "source_url": "https://obsidian.md/help/aliases",
+    "source_title": "Aliases - Obsidian Help",
+    "locator": "Introduction; Add an alias to a note",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "同じ別名が複数の実体を指す場合には自動統合できない。辞書正規化とエンティティの意味的同一性は別問題。"
+  },
+  {
+    "claim": "spaCy は Matcher/PhraseMatcher の規則と EntityRuler の辞書で候補を抽出でき、統計NERと組み合わせられる。EntityRuler の id により複数表記を同じIDへ結び付けられる。",
+    "evidence_quote": "Using the `id` attribute allows multiple patterns to be associated with the same entity.",
+    "source_url": "https://spacy.io/usage/rule-based-matching/",
+    "source_title": "Rule-based matching - spaCy Usage Documentation",
+    "locator": "Rule-based entity recognition; Adding IDs to patterns; Combining models and rules",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "POS・lemma 等を使う規則には、それらの属性を設定する学習済みパイプラインが必要な場合がある。EntityRuler単体は関係分類器ではない。"
+  },
+  {
+    "claim": "spaCy DependencyMatcher で依存構造上のパターンを指定できる。これは規則による照合だが、事前学習されたDependencyParserなどToken.depとToken.headを設定する処理を必要とする。",
+    "evidence_quote": "It requires a pretrained `DependencyParser` or other component that sets the `Token.dep` and `Token.head` attributes.",
+    "source_url": "https://spacy.io/api/dependencymatcher",
+    "source_title": "DependencyMatcher - spaCy API Documentation",
+    "locator": "Introduction, lines 80-82",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "『規則を使う』と『学習モデルを使わない』は同義ではない。係り受けエッジと業務上の意味関係も同義ではなく、述語ごとの対応規則が要る。"
+  },
+  {
+    "claim": "GiNZA は日本語の依存構造解析と固有表現抽出を提供し、トークン化にSudachiPyを使う。従来型ja_ginzaと事前学習Transformerを使うja_ginza_electra/ja_ginza_bert_largeを区別できる。",
+    "evidence_quote": "従来型モデルの`ja_ginza`と、Transformers事前学習モデルを用いた`ja_ginza_electra`",
+    "source_url": "https://megagonlabs.github.io/ginza/",
+    "source_title": "GiNZA - Japanese NLP Library",
+    "locator": "Transformersモデルによる解析精度の向上; セットアップ; Works Applications Enterprise / Sudachi/SudachiPy",
+    "source_type": "official_documentation",
+    "language": "ja",
+    "limitations": "モデルを明示せずGiNZA全体を『LLM不使用』と分類しない。従来型モデルも学習済みNLPモデルであり、完全な規則処理ではない。公式の解析ベンチマークは info-hive 記事の関係抽出精度を示さない。"
+  },
+  {
+    "claim": "SudachiPy はMorpheme.normalized_formで形態素の正規形を取得できる。TextNormalizerの入力文字正規化とは別APIである。表記ゆれ候補の整理に使えるが、組織や概念の同一性を直接保証しない。",
+    "evidence_quote": "This normalizes tokenizer input text, not the dictionary-normalized form returned by `Morpheme.normalized_form()`.",
+    "source_url": "https://worksapplications.github.io/sudachi.rs/python/api/sudachipy.html",
+    "source_title": "sudachipy package - SudachiPy documentation",
+    "locator": "TextNormalizer.normalize; Morpheme.normalized_form",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "正規化APIの仕様確認であり、日本語wikiの名寄せ品質の評価ではない。辞書・モデルの版により出力が変わりうる。"
+  },
+  {
+    "claim": "Stanford CoreNLP OpenIE は主語・関係・目的語のopen-domain triplesを抽出し、natural logic annotationを必要とする。汎用生成LLMを呼ばない既存NLPパイプラインとして検討できる。",
+    "evidence_quote": "The Open Information Extraction (OpenIE) annotator extracts open-domain relation triples, representing a subject, a relation, and the object of the relation.",
+    "source_url": "https://stanfordnlp.github.io/CoreNLP/openie.html",
+    "source_title": "OpenIE - CoreNLP",
+    "locator": "Description; Options; Usage",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "このページだけでは日本語対応を主張できない。open-domainの関係句を固定述語へそろえるには別の正規化が要る。速度の公式例をwikiでの実測値として転用しない。"
+  },
+  {
+    "claim": "CoreNLP公式が列挙する対応8言語に日本語は含まれないため、CoreNLP/OpenIEを日本語記事へそのまま適用できる前提は置けない。",
+    "evidence_quote": "CoreNLP currently supports 8 languages: Arabic, Chinese, English, French, German, Hungarian, Italian, and Spanish.",
+    "source_url": "https://stanfordnlp.github.io/CoreNLP/",
+    "source_title": "Overview - CoreNLP",
+    "locator": "About",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "CoreNLP全体の対応表であり、OpenIEが列挙された8言語すべてで動くことを示す表ではない。"
+  },
+  {
+    "claim": "教師ありのエンティティ・関係抽出は、エンティティ用と関係用の独立したエンコーダを使うパイプラインとして実現できる。PURE論文はその一例である。",
+    "evidence_quote": "Our approach essentially builds on two independent encoders and merely uses the entity model to construct the input for the relation model.",
+    "source_url": "https://aclanthology.org/2021.naacl-main.5/",
+    "source_title": "A Frustratingly Easy Approach for Entity and Relation Extraction",
+    "locator": "Abstract; NAACL 2021, pages 50-61, DOI 10.18653/v1/2021.naacl-main.5",
+    "source_type": "research_paper",
+    "language": "en",
+    "limitations": "事前学習言語モデルを使うので『モデル不使用』には分類できない。汎用生成LLMを推論時に呼ばない方式として区別する。論文ベンチマークの数値を日本語wikiに一般化しない。"
+  },
+  {
+    "claim": "REBELは関係トリプルをテキスト列として出力するBARTベースの自己回帰seq2seqモデルであり、規則方式や言語モデル不使用方式ではない。",
+    "evidence_quote": "REBEL, a seq2seq model based on BART that performs end-to-end relation extraction for more than 200 different relation types.",
+    "source_url": "https://aclanthology.org/2021.findings-emnlp.204/",
+    "source_title": "REBEL: Relation Extraction By End-to-end Language generation",
+    "locator": "Abstract; Findings of EMNLP 2021, pages 2370-2381, DOI 10.18653/v1/2021.findings-emnlp.204",
+    "source_type": "research_paper",
+    "language": "en",
+    "limitations": "『汎用チャットLLMを使わない』という条件なら候補にできるが、『生成言語モデルを使わない』条件なら除外される。モデル名だけでLLM不使用と決めない。"
+  },
+  {
+    "claim": "T2KGは非構造化テキストからKGを作る全体パイプラインとして、Entity Mapping・Coreference Resolution・Triple Extraction・Triple Integration・Predicate Mappingの5成分を分ける。本文からトリプルを得ることと、実体・述語をそろえることは別の作業である。",
+    "evidence_quote": "T2KG has five components: 1) Entity Mapping, 2) Coreference Resolution, 3) Triple Extraction, 4) Triple Integration, and 5) Predicate Mapping.",
+    "source_url": "https://cis.csuohio.edu/~sschung/cis612/KnowledgeGraphTextProcessing_IAAA2017.pdf",
+    "source_title": "T2KG: An End-to-End System for Creating Knowledge Graph from Unstructured Text",
+    "locator": "Knowledge Graph Creation, p.744 (PDF p.2); Triple Extraction and Triple Integration, p.745",
+    "source_type": "research_paper",
+    "language": "en",
+    "limitations": "2017年AAAIワークショップ論文。公開元PDFは403のため、大学サイトで公開されている同論文PDFを読んだ。現代の汎用生成LLMを使わない方式だが、NLPやベクトル類似度・学習済みモデルを使いうる。日本語記事での性能検証ではない。"
+  },
+  {
+    "claim": "T2KGの後続ジャーナル論文は、抽出した述語をKGの述語へ対応付けるため、ルールと類似度を組み合わせる。トリプルを保存するだけでは述語の表記ゆれを解決できないことを示す先行例になる。",
+    "evidence_quote": "a hybrid combination of a rule-based approach and a similarity-based approach is presented for mapping a predicate to its corresponding predicate in a KG.",
+    "source_url": "https://www.jstage.jst.go.jp/article/transinf/E101.D/1/E101.D_2017SWP0006/_article",
+    "source_title": "An Automatic Knowledge Graph Creation Framework from Natural Language Text",
+    "locator": "Abstract, lines 67-70; IEICE E101.D(1), 90-98 (2018), DOI 10.1587/transinf.2017SWP0006",
+    "source_type": "research_paper",
+    "language": "en",
+    "limitations": "2017年T2KGと同じ研究の系譜なので、三角測量で独立した支持に数えない。論文の約50% F1を日本語wikiへ転用しない。"
+  },
+  {
+    "claim": "日本語の述語項構造解析では項の省略を扱う必要があり、照応先と述語の統語的・意味的関係や手がかりの連鎖が問題になる。単純な隣接語・係り受け規則だけで本文の関係を完全に復元する前提は置けない。",
+    "evidence_quote": "局所的な手がかりの連鎖が全体で初めて意味を成す事例が一定数存在する",
+    "source_url": "https://www.jstage.jst.go.jp/article/jnlp/22/5/22_433/_article/-char/ja/",
+    "source_title": "日本語述語項構造解析タスクにおける項の省略を伴う事例の分析",
+    "locator": "抄録; 自然言語処理 22(5), 433-463 (2015), DOI 10.5715/jnlp.22.433",
+    "source_type": "research_paper",
+    "language": "ja",
+    "limitations": "2015年の言語現象・誤り分析であり、2026年のLLMやGiNZAの最新性能の評価ではない。"
+  }
+]

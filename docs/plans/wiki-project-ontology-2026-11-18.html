@@ -1,0 +1,580 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>info-hive のプロジェクト用オントロジー</title><style>
+:root{font-family:"Yu Gothic UI","Meiryo",sans-serif;color-scheme:light;--bg:#f1f5f6;--panel:#fff;--ink:#142c36;--muted:#516974;--line:#c9d8df;--accent:#096c73;--soft:#e8f3f3;--code:#eef3f5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.95}a{color:#08616d;text-underline-offset:3px}a:focus-visible,.table-wrap:focus-visible{outline:3px solid #ce9a21;outline-offset:3px}.layout{max-width:1500px;display:grid;grid-template-columns:230px minmax(0,1fr);gap:28px;margin:auto;padding:28px}nav{position:sticky;top:24px;max-height:90vh;overflow:auto;align-self:start;font-size:13px}nav strong{display:block;margin:8px 0 16px}nav ul{padding:0;list-style:none}nav li{margin:10px 0}nav a{text-decoration:none}main{min-width:0;background:var(--panel);border:1px solid var(--line);padding:32px 38px}header{border-bottom:4px solid var(--accent);padding-bottom:25px;margin-bottom:24px}.eyebrow{color:var(--accent);font-size:12px;font-weight:700;letter-spacing:.08em}h1{font-size:31px;line-height:1.6;margin:10px 0 16px}h2{font-size:22px;color:#075c62;border-top:1px solid var(--line);padding-top:25px;margin:44px 0 20px;scroll-margin-top:20px}p{margin:14px 0}code{font-family:Consolas,"Meiryo",monospace;font-size:.88em;background:var(--code);padding:.1em .23em;overflow-wrap:anywhere}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);padding:20px;border-left:3px solid var(--accent);font-size:13px;line-height:1.85}pre code{padding:0}.table-wrap{overflow:auto;margin:20px 0 30px;border:1px solid var(--line)}table{width:100%;min-width:780px;border-collapse:collapse;table-layout:fixed;font-size:13px;line-height:1.85}th,td{padding:13px 12px;vertical-align:top;border-bottom:1px solid var(--line);border-right:1px solid var(--line);overflow-wrap:anywhere}th{background:var(--soft);text-align:left;color:#075c62}td:last-child,th:last-child{border-right:0}tr:last-child td{border-bottom:0}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:24px 0}.stat{padding:14px 16px;background:var(--soft);border-top:3px solid var(--accent)}.stat b{display:block;font-size:28px;line-height:1.3}.stat span{font-size:12px;color:var(--muted)}.notice{padding:13px 17px;background:#fff5dc;border-left:3px solid #ac7b13;color:#674b12;font-size:14px}.model{margin:24px 0;border:1px solid var(--line);padding:18px;background:#fbfdfd}.model figcaption{font-weight:700;margin-bottom:15px}.model-scroll{overflow:auto}.model svg{display:block;width:100%;min-width:780px;height:auto}.model p{font-size:12px;color:var(--muted)}svg text{font-family:"Yu Gothic UI","Meiryo",sans-serif;fill:var(--ink);font-size:17px;text-anchor:middle}.nodes rect{fill:var(--soft);stroke:#4c8991;stroke-width:1.5;rx:5}.nodes .en,.source .en{font-size:13px;fill:var(--muted)}.source rect{fill:#f2f4f6;stroke:var(--line);rx:5}.edges path{stroke:#397a83;stroke-width:1.7;fill:none}marker path{fill:#397a83}.labels text{fill:#245d65;font-size:13px;paint-order:stroke;stroke:#fbfdfd;stroke-width:5px;stroke-linejoin:round}footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);margin-top:42px;padding-top:16px}li{margin:9px 0}
+@media(max-width:900px){.layout{grid-template-columns:1fr;padding:12px;gap:14px}nav{position:static;max-height:none;border:1px solid var(--line);padding:12px 18px}nav strong{margin:0}nav ul{columns:2;margin:8px 0;font-size:12px}nav li{break-inside:avoid;margin:6px 0}main{padding:22px 18px}h1{font-size:25px}h2{font-size:20px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.model{padding:12px}}
+@media print{body{background:white;font-size:10pt}.layout{display:block;padding:0}nav{display:none}main{border:0;padding:0}h1{font-size:22pt}h2{font-size:15pt;break-after:avoid}.table-wrap{overflow:visible}table{min-width:0;font-size:8pt}th,td{padding:6px}tr{break-inside:avoid}.model{break-inside:avoid}.model svg{min-width:0}.model-scroll{overflow:visible}pre{font-size:8pt;break-inside:avoid}.stats{gap:8px}.stat b{font-size:20pt}p{orphans:3;widows:3}@page{size:A4;margin:17mm}}
+</style></head><body><div class="layout"><nav aria-label="設計書の目次"><strong>設計書の目次</strong><div class="toc">
+<ul>
+<li><a href="#1">1. 設計の結論</a></li>
+<li><a href="#2">2. 記事から得た要件</a></li>
+<li><a href="#3">3. 答えたい問い</a></li>
+<li><a href="#4">4. ノードの種類と境界</a></li>
+<li><a href="#5">5. 関係の定義</a></li>
+<li><a href="#6">6. 識別と粒度</a></li>
+<li><a href="#7">7. 根拠、状態、時間、結果</a></li>
+<li><a href="#8">8. 実記事に基づく記述例</a></li>
+<li><a href="#9">9. 生成と保存</a></li>
+<li><a href="#10">10. 現行実装で検査できる範囲</a></li>
+<li><a href="#11">11. 移行と検証</a></li>
+</ul>
+</div>
+</nav><main><header><p class="eyebrow">INFO-HIVE / ONTOLOGY DESIGN</p><h1>記事からたどる<br>変更・判断・評価のつながり</h1><p>「何を作り、なぜ選び、どの版で直し、どこまで確かめたか」を、出典と結び付ける設計。</p><div class="stats"><div class="stat"><b>93</b><span>対象記事 / 2026-11-18</span></div><div class="stat"><b>6</b><span>追加する対象の種類</span></div><div class="stat"><b>11</b><span>追加する関係</span></div><div class="stat"><b>38</b><span>試料で検査した関係</span></div></div><p class="notice">状態: 提案。既存の wiki と本番の ontology は未変更です。候補の形式を検査済みであり、関係の真実性・評価の成功を自動で保証する設計ではありません。</p></header>
+<p>作成・更新: 2026-11-18（Asia/Tokyo）。第 2 版。状態: 提案。対象: このプロジェクトの <code>wiki/</code> のスナップショット。
+正本はこの設計書、機械用の完全な候補は <a href="wiki-project-ontology-2026-11-18.yaml">YAML</a>、検査記録は <a href="../agent-runs/2026-11-18-wiki-project-ontology/verification.json">verification.json</a> に置く。
+実 wiki のオントロジー、記事、グラフは変更していない。</p>
+<h2 id="1">1. 設計の結論</h2>
+<p>この wiki には「何を作り、なぜ選び、どの版で直し、どこまで確かめたか」を追えるオントロジーが合う。
+製品や人物の一般的な関係よりも、構成要素・変更・問題・判断・評価・出荷のつながりを優先する。
+既存の <code>product</code>、<code>concept</code>、<code>source</code>、<code>decision</code> を使い、<code>component</code>、<code>release</code>、<code>change</code>、<code>issue</code>、<code>evaluation</code>、<code>artifact</code> の 6 種類を追加する。
+11 述語を追加し、既存の <code>depends_on</code> の主語・目的語に <code>component</code> と <code>release</code> を加える。
+完全版は 18 種類・26 述語になるが、既存の 12 種類・15 述語はすべて残す。
+自前・外部の製品と版を同じ方法で区別し、文書・設定・公開文面の変更先は <code>artifact</code> で表す。</p>
+<p>記事と、記事が述べる対象を分ける。
+たとえば <a href="../../wiki/sources/pdf%E3%81%AE%E3%83%98%E3%83%83%E3%83%80%E3%83%BC%E3%81%AE%E5%88%A4%E5%AE%9A%E3%81%AE%E4%BF%AE%E6%AD%A3-rag-0.5.1.md">pdfのヘッダーの判定の修正-rag-0.5.1</a> は出典のまま残し、rag 0.5.1、PDF の拒否、受け付け条件の変更、直接抽出の評価を別々の対象として記述する。
+1 ページを複数のノードにする変更は、現行の「主語はそのページのノード」という契約を変えるため採らない（<a href="../../wiki/concepts/%E3%82%B0%E3%83%A9%E3%83%95%E3%81%AE%E6%8A%BD%E5%87%BA%E3%81%AE%E5%A5%91%E7%B4%84.md">グラフの抽出の契約</a>）。</p>
+<figure class="model" aria-labelledby="model-title"><figcaption id="model-title">中心となる関係をたどる</figcaption><div class="model-scroll">
+<svg viewBox="0 0 1000 555" role="img" aria-labelledby="graph-title graph-desc"><title id="graph-title">出荷・変更・問題・判断・評価の関係</title><desc id="graph-desc">リリースは製品に属し、変更を出荷する。変更は問題を修正し、構成要素を変更し、判断を実装する。判断は評価を理由とし、評価は変更を評価する。概念は構成要素に適用する。各関係は出典で裏づける。</desc><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z"/></marker></defs>
+<g class="edges" marker-end="url(#arrow)"><path d="M200 60 L400 60"/><path d="M780 60 L580 60"/><path d="M110 90 L110 200"/><path d="M200 230 L400 230"/><path d="M110 260 L110 370"/><path d="M200 400 L400 400"/><path d="M870 370 L870 90"/><path d="M400 400 C230 400 220 295 160 260"/><path d="M200 210 H250 V150 H825 V90"/></g><g class="labels"><text x="300.0" y="48">release_of</text><text x="680.0" y="48">part_of</text><text x="122" y="145.0" text-anchor="start">delivers</text><text x="300.0" y="218">fixes</text><text x="122" y="315.0" text-anchor="start">implements</text><text x="300.0" y="388">motivated_by</text><text x="882" y="230.0" text-anchor="start">applies_to</text><text x="270" y="315">evaluates</text><text x="600" y="137">changes</text></g><g class="nodes"><g transform="translate(20 30)"><rect width="180" height="60"/><text x="90" y="25">リリース</text><text class="en" x="90" y="45">release</text></g><g transform="translate(400 30)"><rect width="180" height="60"/><text x="90" y="25">製品</text><text class="en" x="90" y="45">product</text></g><g transform="translate(780 30)"><rect width="180" height="60"/><text x="90" y="25">構成要素</text><text class="en" x="90" y="45">component</text></g><g transform="translate(20 200)"><rect width="180" height="60"/><text x="90" y="25">変更</text><text class="en" x="90" y="45">change</text></g><g transform="translate(400 200)"><rect width="180" height="60"/><text x="90" y="25">問題</text><text class="en" x="90" y="45">issue</text></g><g transform="translate(780 370)"><rect width="180" height="60"/><text x="90" y="25">概念・手順</text><text class="en" x="90" y="45">concept</text></g><g transform="translate(20 370)"><rect width="180" height="60"/><text x="90" y="25">設計判断</text><text class="en" x="90" y="45">decision</text></g><g transform="translate(400 370)"><rect width="180" height="60"/><text x="90" y="25">評価</text><text class="en" x="90" y="45">evaluation</text></g></g><g class="source"><rect x="20" y="480" width="940" height="60"/><text x="490" y="505">出典記事 source → 原本のパス raw</text><text class="en" x="490" y="525">型付きの関係ごとに source・evidence・版と条件を持つ</text></g></svg>
+</div><p>図は主要な関係の抜粋です。文書・設定の変更先 artifact、選択 selects、版を特定した影響 affects・依存 depends_on を含む全体の定義は、5 節と YAML に記載しています。</p></figure>
+<h2 id="2">2. 記事から得た要件</h2>
+<p>最終確認時の全 93 記事のメタデータと見出しを走査した。
+内訳はソース 61、概念 31、実体 1 で、実体は myKG である。
+調査開始時は 91 記事だったが、作業中に別作業で加わった myKG の 2 記事と関連ページの更新も読み、スナップショットと互換性検査を更新した。
+本文は下表の根拠に関わる記事を重点的に読み、引用 26 件の位置と SHA-256 を <a href="../agent-runs/2026-11-18-wiki-project-ontology/evidence_and_pilot.json">根拠と試料の台帳</a> に記録した。
+全本文を精読したという集計ではない。</p>
+<div class="table-wrap" tabindex="0"><table>
+<thead>
+<tr>
+<th>記事から分かること</th>
+<th>設計への反映</th>
+<th>根拠</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1 本の修正記録に、複数の不具合、実装、レビュー、出荷がある</td>
+<td>出典を対象に型変換しない。必要な対象だけ独立させる</td>
+<td><a href="../../wiki/sources/%E3%82%B0%E3%83%A9%E3%83%95%E3%81%AE%E6%8A%BD%E5%87%BA%E3%81%AE%E4%BF%AE%E6%AD%A3-0.9.2.md">グラフの抽出の修正-0.9.2</a></td>
+</tr>
+<tr>
+<td>文書だけの変更も出荷される</td>
+<td><code>implementation</code> ではなく <code>change</code> にする</td>
+<td><a href="../../wiki/sources/pdf%E3%81%AE%E3%83%98%E3%83%83%E3%83%80%E3%83%BC%E3%81%AE%E6%9B%B8%E3%81%8D%E6%96%B9%E3%81%AE%E4%BF%AE%E6%AD%A3-rag-0.5.2-0.5.3.md">pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3</a>、E06</td>
+</tr>
+<tr>
+<td>PDF の直接抽出は確認済みでも、MCP→索引化は未確認</td>
+<td><code>evaluates</code> は成功や全経路の確認を意味しない</td>
+<td><a href="../../wiki/sources/pdf%E3%81%AE%E3%83%98%E3%83%83%E3%83%80%E3%83%BC%E3%81%AE%E5%88%A4%E5%AE%9A%E3%81%AE%E4%BF%AE%E6%AD%A3-rag-0.5.1.md">pdfのヘッダーの判定の修正-rag-0.5.1</a>、E04–E05</td>
+</tr>
+<tr>
+<td>比較の結果からモデルを選ぶが、測ったのは Web raw だけ</td>
+<td>判断と評価を分け、選択の範囲を保持する</td>
+<td><a href="../../wiki/sources/ingest%E3%81%AE%E3%83%A2%E3%83%87%E3%83%AB%E3%81%AE%E6%AF%94%E8%BC%83-2026-11-13.md">ingestのモデルの比較-2026-11-13</a>、<a href="../../wiki/concepts/ingest%E3%81%AB%E4%BD%BF%E3%81%86%E3%83%A2%E3%83%87%E3%83%AB.md">ingestに使うモデル</a>、E07–E09</td>
+</tr>
+<tr>
+<td>ADR の承認、実装、レビュー、出荷は別の事実</td>
+<td><code>implements</code>、<code>evaluates</code>、<code>delivers</code> を分ける</td>
+<td><a href="../../wiki/sources/youtube%E3%81%AE%E5%AD%97%E5%B9%95%E3%81%AE%E5%8F%96%E3%82%8A%E8%BE%BC%E3%81%BF%E3%81%AE%E5%AE%9F%E8%A3%85%E3%81%A8%E3%83%AA%E3%83%AA%E3%83%BC%E3%82%B9-wiki-0.23.0.md">youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0</a>、E12–E14</td>
+</tr>
+<tr>
+<td>公開したタグと、marketplace が導入した版が異なる</td>
+<td>リリースの存在と、その版の導入確認を分ける</td>
+<td><a href="../../wiki/sources/%E8%BF%BD%E3%81%84%E8%B6%8A%E3%81%95%E3%82%8C%E3%81%9F%E7%89%88%E3%81%AE%E3%83%AA%E3%83%AA%E3%83%BC%E3%82%B9-wiki-0.15.0.md">追い越された版のリリース-wiki-0.15.0</a>、E10–E11</td>
+</tr>
+<tr>
+<td>指標の数値やレビューの存在だけでは品質を証明できない</td>
+<td>結果・条件・反例を本文に残す</td>
+<td><a href="../../wiki/concepts/%E6%8A%BD%E5%87%BA%E3%81%AE%E5%93%81%E8%B3%AA%E3%81%AE%E6%B8%AC%E3%82%8A%E6%96%B9.md">抽出の品質の測り方</a>、<a href="../../wiki/sources/extraction-metrics-string-presence-2026-11-15.md">extraction-metrics-string-presence-2026-11-15</a></td>
+</tr>
+<tr>
+<td>原因や理由の推論、規則の採用にも判断がある</td>
+<td>同時言及から理由を作らない。候補生成と採用を分ける</td>
+<td><a href="../../wiki/concepts/%E3%82%AA%E3%83%B3%E3%83%88%E3%83%AD%E3%82%B8%E3%83%BC%E5%80%99%E8%A3%9C%E3%81%AE%E7%94%9F%E6%88%90%E3%81%A8%E6%8E%A1%E7%94%A8%E3%81%AE%E5%88%86%E9%9B%A2.md">オントロジー候補の生成と採用の分離</a>、<a href="../../wiki/sources/query%E3%81%AE%E7%A2%BA%E3%81%8B%E3%82%89%E3%81%97%E3%81%95%E3%81%AE%E8%A6%8F%E5%89%87%E3%81%AE%E7%9B%B4%E3%81%97%E3%81%A8%E3%83%AA%E3%83%AA%E3%83%BC%E3%82%B9-wiki-0.23.1.md">queryの確からしさの規則の直しとリリース-wiki-0.23.1</a></td>
+</tr>
+<tr>
+<td>共通の語彙を先に決め、別の処理で事実を抽出する実装例がある</td>
+<td>この候補の設計と、個々の記事への関係の採用を別にする。型の整合だけで事実の正しさを保証しない</td>
+<td><a href="../../wiki/concepts/%E3%82%B9%E3%82%AD%E3%83%BC%E3%83%9E%E3%81%AE%E5%B0%8E%E5%87%BA%E3%81%A8%E4%BA%8B%E5%AE%9F%E3%81%AE%E6%8A%BD%E5%87%BA%E3%81%AE%E5%88%86%E9%9B%A2.md">スキーマの導出と事実の抽出の分離</a>、<a href="../../wiki/sources/mykg%E3%81%AE%E3%82%A2%E3%83%BC%E3%82%AD%E3%83%86%E3%82%AF%E3%83%81%E3%83%A3.md">mykgのアーキテクチャ</a></td>
+</tr>
+</tbody>
+</table></div>
+<p>最終スナップショットの再抽出は 93 ノード・490 エッジで、内訳は <code>mentions</code> 344、<code>sourced_from</code> 86、<code>summarizes_raw</code> 60 である。
+型付きのエッジは 0 本である。
+この候補 YAML を指定しただけでは、その数は変わらない。
+記事に型付きの関係を書く作業が別に必要になる。</p>
+<h2 id="3">3. 答えたい問い</h2>
+<div class="table-wrap" tabindex="0"><table>
+<thead>
+<tr>
+<th>ID</th>
+<th>問い</th>
+<th>探索する関係</th>
+<th>答えを出す条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Q1</td>
+<td>rag 0.5.1 は、どの問題をどんな変更で直したか</td>
+<td><code>release → delivers → change → fixes → issue</code></td>
+<td>修正の対象条件を出典で確認する</td>
+</tr>
+<tr>
+<td>Q2</td>
+<td>その変更を、どの条件・経路まで確かめたか</td>
+<td><code>evaluation → evaluates → change</code> を逆に引く</td>
+<td>評価の本文で版・方法・限界を読む</td>
+</tr>
+<tr>
+<td>Q3</td>
+<td>比較で何を選び、後にどの段へ分担したか</td>
+<td><code>decision → selects → release/product</code> と <code>motivated_by → evaluation</code></td>
+<td>11-13 の継続と、11-14 の分担を別の判断として読む</td>
+</tr>
+<tr>
+<td>Q4</td>
+<td>ADR-0027 の判断を実装し、出した版は何か</td>
+<td><code>change → implements → decision</code> と <code>release → delivers → change</code></td>
+<td>判断は ADR 内の具体的な選択を指す</td>
+</tr>
+<tr>
+<td>Q5</td>
+<td>製品の版に関係する問題と、構成要素・文書への変更を探したい</td>
+<td><code>issue → affects → release</code>、<code>change → changes → component/artifact</code></td>
+<td>版を固定し、PR の一部の変更を全体の一覧と読まない</td>
+</tr>
+<tr>
+<td>Q6</td>
+<td>過去の教訓や手順が、どの機能に当てはまるか</td>
+<td><code>concept → applies_to → component/product</code></td>
+<td>適用条件を本文・notes に残す</td>
+</tr>
+<tr>
+<td>Q7</td>
+<td>出荷した版は、どの外部製品のどの版に依存したか</td>
+<td><code>release → depends_on → release → release_of → product</code></td>
+<td>無版の製品や構成要素に過去の固定版を結び付けない</td>
+</tr>
+<tr>
+<td>Q8</td>
+<td>どの判断は承認だけで、実装・出荷をまだ記録していないか</td>
+<td>判断から <code>implements</code> と <code>delivers</code> の逆参照を確認</td>
+<td>「記録なし」とだけ答える。未実装の断定には本文が必要</td>
+</tr>
+</tbody>
+</table></div>
+<p>上の経路は探索の形であり、現行の CLI がこの連鎖を 1 回で意味的に検索できるという約束ではない。
+起点 ID を知っていれば、現行の <code>neighbors</code>、<code>facts</code>、<code>edges --subject &lt;ID&gt; --predicate &lt;述語&gt;</code> を組み合わせ、記録した関係を段階的に引ける。
+現行の CLI/MCP に型・述語だけで一覧する機能はない。
+Q8 の全判断の列挙は、現段階ではインデックスと採用対象の台帳、または JSONL の全件走査で候補を集め、判断ページを読んで承認・保留・撤回を確認する。
+型による一覧と判断の状態の機械的な絞り込みは、追加実装が必要な能力として扱う。
+一般の <code>path</code> は暗黙のエッジや古い関係も通るため、最短経路をそのまま Q1〜Q8 の根拠にしない。</p>
+<h2 id="4">4. ノードの種類と境界</h2>
+<div class="table-wrap" tabindex="0"><table>
+<thead>
+<tr>
+<th>種類</th>
+<th>定義と配置</th>
+<th>分けるもの</th>
+<th>識別子の例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>product</code>（既存）</td>
+<td>プラグイン、外部道具、モデルの製品単位。<code>entities/</code></td>
+<td>版は外部製品でも release に分ける</td>
+<td><code>product:info-hive-wiki</code>、<code>product:yt-dlp</code></td>
+</tr>
+<tr>
+<td><code>component</code>（追加）</td>
+<td>製品内で責務を持つ構成要素。<code>entities/</code></td>
+<td><code>browse</code> や Web raw の段と、個々のファイル・画面ラベル</td>
+<td><code>component:wiki-web-raw</code></td>
+</tr>
+<tr>
+<td><code>release</code>（追加）</td>
+<td>製品の特定版。自前・外部を同じ形で扱う。<code>entities/</code></td>
+<td>公開日時・導入確認・版の報告書。存在を知っても公開日時まで確定したとはしない</td>
+<td><code>release:rag-0.5.1</code>、<code>release:yt-dlp-2026.8.19</code></td>
+</tr>
+<tr>
+<td><code>change</code>（追加）</td>
+<td>範囲を特定した変更。コード・文書・設定・プロンプトを含む。<code>entities/</code></td>
+<td>問題、判断、評価、出荷。実施と提案は本文で明記する</td>
+<td><code>change:rag-pdf-prefix-1024</code></td>
+</tr>
+<tr>
+<td><code>issue</code>（追加）</td>
+<td>条件と期待との差を観測した問題。<code>entities/</code></td>
+<td>原因の仮説や一般的な教訓。GitHub issue がなくても作れる</td>
+<td><code>issue:rag-pdf-prefix-rejected</code></td>
+</tr>
+<tr>
+<td><code>decision</code>（既存）</td>
+<td>何を選び、なぜ選んだかという具体的な判断。<code>concepts/</code></td>
+<td>ADR 文書全体、未採用の案、実装の完了</td>
+<td><code>decision:adr-0027-captions</code></td>
+</tr>
+<tr>
+<td><code>evaluation</code>（追加）</td>
+<td>対象・版・方法・結果・限界を持つ評価の実施。<code>entities/</code></td>
+<td>試験コード、予定、成功の保証。比較・レビュー・手動確認も含む</td>
+<td><code>evaluation:rag-051-pdf-direct</code></td>
+</tr>
+<tr>
+<td><code>artifact</code>（追加）</td>
+<td>変更を管理する文書・設定・ファイル・公開文面。<code>entities/</code></td>
+<td>要約する source ページ、責務としての component</td>
+<td><code>artifact:rag-readme</code>、<code>artifact:dev-adr-0013</code></td>
+</tr>
+<tr>
+<td><code>concept</code>（既存）</td>
+<td>再利用する概念・方式・手順・条件付きの教訓。<code>concepts/</code></td>
+<td>特定の版の障害そのもの</td>
+<td>既存の <code>concept:ingestに使うモデル</code> を維持</td>
+</tr>
+<tr>
+<td><code>source</code>（既存）</td>
+<td>原本を要約した根拠の記事。<code>sources/</code></td>
+<td>その記事が報告する製品・出来事・判断</td>
+<td>既存 ID を維持</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>synthesis</code> は既存の統合ページとして残す。
+<code>person</code>、<code>company</code>、<code>paper</code> なども、今後外部記事を取り込む用途のため残す。
+<code>claim</code> は原子的な主張と矛盾を管理する必要が生じた段階で使い、この段階では全文章を claim に変換しない。
+<code>raw</code> の種類も残すが、現行の <code>summarizes_raw</code> の目的語はパスの文字列であり、raw ノードに変わるわけではない。</p>
+<p>新しい 6 種類には <code>explicit_only: true</code> を記載し、<code>maps_from</code> は設けない。
+現行のスクリプトが自動の対応付けをしないのは、<code>maps_from</code> がないためである。
+<code>explicit_only</code> はエージェントへの指示であり、ランタイムで強制するフラグではない。
+既存の graph-workflow の「目的語だけでページを持たない」という説明とは使い方が異なるため、採用時はページを持つ明示型の規約に合わせて説明を更新する。
+記事タイトルやタグから型を自動で付けず、<code>graph.node_type</code> で明示する。
+トップレベルの <code>type</code> は現行の <code>entity</code> または <code>concept</code> を使い、新しい <code>type</code> や <code>kind</code> の列挙値は導入しない。
+これにより、既存の <code>concept</code> や <code>source</code> の対応付けを変えない。</p>
+<h2 id="5">5. 関係の定義</h2>
+<p>追加する関係はすべて <code>source</code> と <code>evidence</code> を必須にする。
+方向は、関係を書いたページを主語とする。
+反対向きの述語や、推移的なエッジを二重に保存しない。</p>
+<div class="table-wrap" tabindex="0"><table>
+<thead>
+<tr>
+<th>述語</th>
+<th>主語 → 目的語</th>
+<th>採用する意味</th>
+<th>採用しない読み方</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>part_of</code></td>
+<td>component/artifact → product/component</td>
+<td>構成要素・管理対象物の所属</td>
+<td>ファイル名に同じ語がある、単なる利用</td>
+</tr>
+<tr>
+<td><code>release_of</code></td>
+<td>release → product</td>
+<td>その製品の、その出荷の単位</td>
+<td>その記事が製品に言及した</td>
+</tr>
+<tr>
+<td><code>delivers</code></td>
+<td>release → change</td>
+<td>その版に含めて出荷した変更</td>
+<td>計画した、マージした、導入された別の版</td>
+</tr>
+<tr>
+<td><code>changes</code></td>
+<td>change → component/artifact</td>
+<td>直接変更した責務または文書・設定の範囲</td>
+<td>間接的に関係がありそうな機能</td>
+</tr>
+<tr>
+<td><code>affects</code></td>
+<td>issue → product/component/release</td>
+<td>指定した条件で問題を観測した対象。既知の版は release を使う</td>
+<td>すべての版・環境に問題がある</td>
+</tr>
+<tr>
+<td><code>fixes</code></td>
+<td>change → issue</td>
+<td>根拠の条件の問題を解消した実施済みの変更</td>
+<td>案、回避策、評価しただけ、全経路の安全保証</td>
+</tr>
+<tr>
+<td><code>implements</code></td>
+<td>change → decision</td>
+<td>具体的な設計判断を実装した</td>
+<td>ADR 全体の充足や評価合格</td>
+</tr>
+<tr>
+<td><code>motivated_by</code></td>
+<td>decision → issue/evaluation</td>
+<td>その判断をした理由として明記された</td>
+<td>先に起きた、同じ記事にある</td>
+</tr>
+<tr>
+<td><code>selects</code></td>
+<td>decision → product/concept/release</td>
+<td>判断が選んだ製品・方式・特定版</td>
+<td>選択したので実装・出荷も済んだ</td>
+</tr>
+<tr>
+<td><code>evaluates</code></td>
+<td>evaluation → product/component/release/change/decision/artifact</td>
+<td>その対象を評価した</td>
+<td>成功した、現在の版も同じ、すべて検証した</td>
+</tr>
+<tr>
+<td><code>applies_to</code></td>
+<td>concept → product/component</td>
+<td>明記した条件で手順・教訓が当てはまる</td>
+<td>一般知識からの連想</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>depends_on</code> は既存の product/concept 同士の組を残し、両側に component と release を追加する。
+特定版で固定した依存は <code>release:wiki-0.23.0 → depends_on → release:yt-dlp-2026.8.19 → release_of → product:yt-dlp</code> とする（E13）。
+将来版を上げても製品の ID は同じままで、旧版の依存を現行製品の無版の依存と読まない。
+ADR-0027 の「版を固定して yt-dlp を使う」という判断の <code>selects</code> は product を指し、実装で選んだ数値の版を永続的な判断の値として補わない。
+旧 <code>chose</code> は人物・組織を主語とする関係として残し、判断を主語とする <code>selects</code> と混ぜない。
+誰が決めたかを根拠なしに人物ノードへ補完しない。</p>
+<p>本文リンクの <code>mentions</code> と、ページ単位の出典 <code>sourced_from</code> は引き続き自動生成する。
+<code>related_to</code>、<code>tested_by</code>、<code>verified_by</code>、<code>causes</code>、<code>better_than</code> は追加しない。
+前者は既存の探索リンクで足り、後者は成功・因果・比較条件を省略して誤読されやすいためである。</p>
+<h2 id="6">6. 識別と粒度</h2>
+<p>ID は題名を変えても保つ。
+製品はプラグイン・道具・モデルの識別単位、構成要素は製品名を含む責務の名前、版は製品名と版の組で決める。
+release ごとに <code>release_of</code> の目的語は 1 製品に限る。
+wiki と rag の <code>0.5.1</code>、通常の <code>query</code> と別製品の query を混同しない。
+外部モデルの <code>Sonnet 5.5</code> も製品名と版に分け、公開日を出典なしに補わない。
+artifact はリポジトリとパス、文書の識別子、または管理対象の URL で区別する。
+同じ ADR 番号を別リポジトリの文書に使っていても同じノードにしない。
+変更は PR・コミット・変更範囲、評価は実施日・対象版・方法を本文に残し、再試験を同じ評価で上書きしない。
+ADR の番号が同じでも判断が複数なら、<code>decision:adr-0027-captions</code> のように選択の単位で分ける。
+ファイルパス、タグ、見出し、試験の assert ごとの自動ノード化は行わない。</p>
+<p>1 つのページが複数の役割を持っていても、ノード ID と node_type は 1 つにする。
+たとえば現行の <a href="../../wiki/concepts/ingest%E3%81%AB%E4%BD%BF%E3%81%86%E3%83%A2%E3%83%87%E3%83%AB.md">ingestに使うモデル</a> は concept のまま残し、日付と選択を持つ decision を別に作る。
+同じ対象を別の記事から言及する場合も、対象ページを増やさず同じ ID を指す。
+concept の手順・条件と、特定時点の decision は異なる対象である。
+既存の概念ページの記述を新しい判断の根拠として重複生成せず、過去の選択は source の報告から作る。
+別名は検索の補助であり、現行のグラフ CLI が別名から ID を自動で解決するとは扱わない。</p>
+<p>記事に登場しただけでは対象ページを作らない。
+Q1〜Q8 の少なくとも 1 つに必要で、定義・根拠・区別する対象が書けることを採用条件とする。
+レビュー 17 回の集合は、まず source の報告として残す。
+対象が各回で変わる集合を、出荷した最終 change の evaluation として登録しない。
+対象版・判定が特定できた各回を、必要な問いの範囲で別ノードにする。
+PR の一部を change として採録するときは、対象を狭く命名し、含めない変更を本文に書く。
+出荷版のページにも変更一覧が「抜粋」か「対象範囲の全件」かを記し、関係がないことを変更の不存在と読ませない。
+初回は対象 33 件の隔離試料にとどめ、採用時は有用な問いから必要分だけを選ぶ。
+記事が約 150 件またはインデックスが 300 行を超える見込みなら、追加前に SCHEMA のインデックス分割を計画する。</p>
+<h2 id="7">7. 根拠、状態、時間、結果</h2>
+<p>型付きの関係には <code>predicate</code>、<code>object</code>、<code>source</code>、<code>evidence</code>、<code>confidence</code>、<code>status</code> を書く。
+このプロファイルでは、対象の版・条件・限界を <code>notes</code> にも書く。
+<code>source</code> は現行の lint に合わせてソースページのスラッグ、<code>object</code> はページパスや wikilink ではなく、対象のノード ID にする。
+引用はソース本文に存在する文字列を使い、周辺の文も読んで対象と範囲を確認する。
+引用が存在しても、関係の意味が正しいとは限らない。</p>
+<p>対象の本文には、次の情報を通常の Markdown として残す。
+これらを新しい frontmatter 属性として保存・検索する機能は、この候補には含めない。</p>
+<div class="table-wrap" tabindex="0"><table>
+<thead>
+<tr>
+<th>対象</th>
+<th>本文に残す情報</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>release</td>
+<td>製品、版、タグ・コミット、公開日、導入確認の対象版と未確認の点</td>
+</tr>
+<tr>
+<td>change</td>
+<td>提案か実施済みか、変更範囲、PR・コミット、対象の版</td>
+</tr>
+<tr>
+<td>issue</td>
+<td>期待と観測の差、再現条件、影響する版、原因の仮説と確定事項の区別</td>
+</tr>
+<tr>
+<td>decision</td>
+<td>選択、理由、適用範囲、判断日、採用・保留・撤回、見直す条件</td>
+</tr>
+<tr>
+<td>evaluation</td>
+<td>対象版・コミット、方法・試料・環境、観測した結果、未実施・限界、原記録</td>
+</tr>
+<tr>
+<td>artifact</td>
+<td>リポジトリ、パスまたは文書の識別子・URL、変更対象の範囲。正確なパスが不明なら推測で埋めない</td>
+</tr>
+</tbody>
+</table></div>
+<p>関係の <code>status</code> と対象の実施状態を混ぜない。
+<code>current</code> はその主語・目的語・範囲について有効な関係であり、「最新版」「問題が未解決」「試験に合格」を表さない。
+版のノードに結び付いた事実は、その固定版について変わらなければ <code>current</code> のまま保持する。
+たとえば <code>issue → affects → release:rag-0.5.0</code> は、0.5.1 で修正されても 0.5.0 については真である。
+これを <code>issue → affects → product:info-hive-rag</code> という無版の現在の障害へ書き換えない。
+同様に、固定した依存は <code>release:wiki-0.23.0 → release:yt-dlp-2026.8.19</code> とし、現在の構成要素への依存に一般化しない。
+<code>historical</code> は、版を端点に持たない継続的な関係などで、適用が終了したことが根拠で確定した場合に使う。
+過去の記事であるという理由だけでは <code>historical</code> にしない。
+<code>proposed</code> は未採用の関係候補、<code>disputed</code> は異論のある関係、<code>superseded</code> は差し替えられた関係として使う。
+<code>proposed fixes</code> で修正案を記録せず、実施前は本文に案として置く。
+<code>confidence</code> は抽出した関係と根拠の対応への評価であり、評価対象の品質の点数ではない。</p>
+<p><code>valid_from</code> と <code>valid_to</code> を使う場合は関係の適用期間を表し、記事の created/updated、取り込み日、試験の実施日で埋めない。
+境界を確定できなければ省略し、分かる版と日付を本文・notes に残す。
+SemVer の大小だけで公開順、導入版、<code>supersedes</code> を生成しない。
+G2 の <code>status=current</code> のフィルターだけでは「現在の製品に関する問い」を答えられない。
+現在を問われたときは対象の版を先に特定して、その版に適用できる根拠を読む。
+G2 の過去の照会で期間の両端を必須とする規則は維持し、境界の不明な <code>historical</code> は時点の真偽の判定に使わない。
+期間が不明な記録を調べる場合は、全件の記録と本文を読む探索として明示し、過去の時点に有効だったという答えを生成しない。
+古い根拠を削除せず、食い違いが同じ条件についてのものかを確かめる。
+実際に <a href="../../wiki/sources/youtube%E3%81%AE%E5%AD%97%E5%B9%95%E3%81%AE%E5%8F%96%E3%82%8A%E8%BE%BC%E3%81%BF%E3%81%AE%E8%A8%AD%E8%A8%88-2026-11-15.md">youtubeの字幕の取り込みの設計-2026-11-15</a> は冒頭で出荷を追記した一方、後段に実装前の留保が残るため、記事全体を 1 つの状態として読めない。</p>
+<h2 id="8">8. 実記事に基づく記述例</h2>
+<p>次は試料の <code>change:rag-pdf-prefix-1024</code> に相当する、採用前の記述例である。
+対象の issue/component と、参照する出典を先に用意する。
+既存のリリース記録の frontmatter を change に置き換える例ではない。</p>
+<pre><code class="language-yaml">---
+type: &quot;entity&quot;
+title: &quot;PDF の前置きを 1024 バイトまで受け付ける変更&quot;
+tags:
+- &quot;グラフ&quot;
+sources:
+- &quot;pdfのヘッダーの判定の修正-rag-0.5.1&quot;
+created: 2026-11-18
+updated: 2026-11-18
+graph:
+  node_id: &quot;change:rag-pdf-prefix-1024&quot;
+  node_type: &quot;change&quot;
+  relationships:
+  - predicate: &quot;changes&quot;
+    object: &quot;component:rag-pdf-reader&quot;
+    source: &quot;pdfのヘッダーの判定の修正-rag-0.5.1&quot;
+    evidence: &quot;`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けるように直した。上限は PDFium にそろえた&quot;
+    confidence: &quot;high&quot;
+    status: &quot;current&quot;
+    notes: &quot;read_pdf のヘッダー判定。&quot;
+  - predicate: &quot;fixes&quot;
+    object: &quot;issue:rag-pdf-prefix-rejected&quot;
+    source: &quot;pdfのヘッダーの判定の修正-rag-0.5.1&quot;
+    evidence: &quot;全量の OCR（`docs/research/rag-full-ocr-v050-2026-11-09.md`）で、先頭に改行が 1 バイトあるだけの 2 文書（`L4/` の下の seL4 の論文）が、この理由で失敗した。\n- `%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けるように直した。上限は PDFium にそろえた&quot;
+    confidence: &quot;high&quot;
+    status: &quot;current&quot;
+    notes: &quot;対象は先頭 1 バイトの改行がある 2 件。任意の前置きの拒否全般を直したという意味ではない。&quot;
+---
+</code></pre>
+<p>この例なら「ヘッダーの拒否を直した」と「全経路を動作確認した」を分けて答えられる。
+ただし、CLI のテキスト表示だけから結論を作ってはいけない。
+現行の CLI は notes を表示せず、evidence も切り詰める。
+JSON の notes も <code>metadata_json</code> という文字列の中にあるため、暗黙に読み手へ届くとは扱わない。
+次の順を回答の必須手順にする。</p>
+<ol>
+<li>グラフを JSON で引き、対象 ID、関係を記述したページ、出典を特定する。</li>
+<li>主語のページの frontmatter と本文を開き、版・条件・採録範囲を確認する。</li>
+<li>入ってくる <code>evaluates</code> の評価ページを開き、対象版・方法・結果・未確認事項を読む。</li>
+<li>出典記事の該当箇所を開き、E04 の直接抽出と E05 の MCP→索引化の未確認を併記する。</li>
+</ol>
+<p>notes の内容は本文にも残すので、JSON の解析だけに限界の発見を依存しない。
+CLI/MCP の構造化された notes の表示改善は追加実装の項目であり、この候補の実装済み機能ではない。
+<a href="../../wiki/sources/youtube%E3%81%AE%E5%AD%97%E5%B9%95%E3%81%AE%E5%8F%96%E3%82%8A%E8%BE%BC%E3%81%BF%E3%81%AE%E5%AE%9F%E8%A3%85%E3%81%A8%E3%83%AA%E3%83%AA%E3%83%BC%E3%82%B9-wiki-0.23.0.md">youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0</a> の 17 回は、対象版が各回で異なるため、今回の試料では evaluation へ昇格させていない。</p>
+<h2 id="9">9. 生成と保存</h2>
+<p>保存先は Markdown の対象ページと、<code>graph/ontology.yaml</code> とする。
+型付きの関係は主語のページの <code>graph.relationships</code> に保存し、JSONL と SQLite は現行の抽出器で再生成する。
+候補の YAML はデータモデルを制約するもので、本文から対象を見つけたり、推論したりする処理ではない。
+グラフ DB を追加しなくても、この範囲を保存・照会できる。
+外部グラフ DB を導入する場合も、ここで決めた ID・型・関係・根拠を投影し、対象の識別を DB 固有の ID に置き換えない。</p>
+<p>人やホストの LLM が記事から候補を作り、既存 ID と照合してから採用する。
+LLM を使わない場合も、人が同じ候補の形を書き、同じ検査を通せる。
+抽出器には LLM 呼び出しを加えず、採用済みの記述を決定的にコンパイルする。
+この分担は <a href="../../wiki/concepts/%E3%82%AA%E3%83%B3%E3%83%88%E3%83%AD%E3%82%B8%E3%83%BC%E5%80%99%E8%A3%9C%E3%81%AE%E7%94%9F%E6%88%90%E3%81%A8%E6%8E%A1%E7%94%A8%E3%81%AE%E5%88%86%E9%9B%A2.md">オントロジー候補の生成と採用の分離</a> と <a href="wiki-graph-improvements-2026-11-17.md">既存のグラフ改善設計</a> の G3〜G4 に合わせる。
+後から加わった <a href="../../wiki/concepts/%E3%82%B9%E3%82%AD%E3%83%BC%E3%83%9E%E3%81%AE%E5%B0%8E%E5%87%BA%E3%81%A8%E4%BA%8B%E5%AE%9F%E3%81%AE%E6%8A%BD%E5%87%BA%E3%81%AE%E5%88%86%E9%9B%A2.md">スキーマの導出と事実の抽出の分離</a> も、この段階を分ける方針を裏づける実装例として参照した。
+myKG にある自動統合・孤立ノードの推論・OWL の継承を、この候補の動作へ加えるものではない。</p>
+<h2 id="10">10. 現行実装で検査できる範囲</h2>
+<div class="table-wrap" tabindex="0"><table>
+<thead>
+<tr>
+<th>検査・動作</th>
+<th>現状とこの設計での扱い</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>種類の割り当て、述語の主語型・目的語型、対象と出典の参照</td>
+<td>既存の extract/lint で候補を扱える</td>
+</tr>
+<tr>
+<td>根拠の欄、値の列挙</td>
+<td>通常 lint は空の confidence/status の必須検査を十分にしない。採用時に別途確かめる</td>
+</tr>
+<tr>
+<td>引用の実在</td>
+<td>通常 lint の合格だけでは保証しない。今回の試料は全引用を直接照合した</td>
+</tr>
+<tr>
+<td>任意の <code>lint --decide</code></td>
+<td>判定モデルを使う補助検査。引用が本文にある場合には意味の支持を判定しない経路もあるため、関係の真実性の保証や必須の本文確認の代わりにしない</td>
+</tr>
+<tr>
+<td>関係の真実性、同じ型の別対象との取り違え、範囲の妥当性</td>
+<td>本文と根拠を読んで確認する。YAML からは保証できない</td>
+</tr>
+<tr>
+<td><code>part_of</code> の循環・自己参照、release の製品一意性</td>
+<td>この設計の採用規則。現行 lint の強制検査ではない</td>
+</tr>
+<tr>
+<td>対象の実施状態・評価結果の絞り込み</td>
+<td>本文・notes を読む。専用属性や検索 API は未実装</td>
+</tr>
+<tr>
+<td>全 decision の一覧、Q8 の承認状態の絞り込み</td>
+<td>現 CLI/MCP では未対応。インデックス・台帳・JSONL と本文で確認する</td>
+</tr>
+<tr>
+<td>notes と切り詰めない evidence の構造化表示</td>
+<td>現 CLI は非表示・切り詰めあり。回答時は必ず所有ページ・評価ページ・出典を開く</td>
+</tr>
+<tr>
+<td>状態・時間での経路の絞り込み、鮮度、安定した主張 ID</td>
+<td>既存のグラフ改善設計 G1〜G3 の領域。候補 YAML で実装済みにはならない</td>
+</tr>
+<tr>
+<td>継承、逆関係、推移性、OWL 推論</td>
+<td>宣言しない。人が表を読んで得られる意味と実行機能を区別する</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="11">11. 移行と検証</h2>
+<p>適用は次の順で進める。</p>
+<ol>
+<li>この候補をレビューし、種類・関係・粒度・採用規則を確定する。</li>
+<li>候補 YAML を指定して、現行の全記事の解釈が変わらないことを確かめる。</li>
+<li>PDF ヘッダー、Web raw のモデル選択、YouTube 字幕の 3 事例から、必要な対象だけを別ページにする。</li>
+<li>出典を読んで関係を採用し、通常 lint と引用・条件・状態の確認を通す。</li>
+<li>インデックスと log を更新し、グラフを再生成する。Q1〜Q8 の回答を出典と照合する。</li>
+<li>役に立った種類・関係を browse/query/セッションの記録へ広げる。全記事を一括で構造化しない。</li>
+</ol>
+<p>既存ページを残すので、候補を取り下げても現行の記事・リンクを戻す必要はない。
+適用後に取り下げる場合は、追加した <code>graph</code> 記述と対象ページを個別に扱い、関係が残る状態で述語だけを削除しない。
+wiki 用のプロファイルであり、配布プラグインの既定オントロジーに全利用者向けの種類を加える設計ではない。
+プラグインのバージョン変更は、この設計だけでは行わない。</p>
+<p>実施済みの検証は次のとおりである。</p>
+<ul>
+<li>候補だけを指定しても、最終確認した 93 ノード・490 エッジ・グラフ lint の結果は完全に同じだった。</li>
+<li>型付きエッジが現行では 0 本なので、この一致だけで述語の互換性を保証したとは扱わない。既存 12 種類・15 述語の定義の保存も直接検査した。</li>
+<li>第 2 版の隔離試料に、対象 33 ページと実出典の写し 7 ページを用意した。既存 concept の候補更新 1 件を対象 33 に含む。</li>
+<li>型付きの関係 38 本はグラフ lint で指摘 0 件。11 個の追加述語と拡張した <code>depends_on</code> を使った。</li>
+<li>全 38 本の引用の実在、confidence/status/notes の記入、12 件の述語指定の照会を確認した。</li>
+<li>主語型違い、目的語型違い、不明な対象、出典欠落、引用欠落の 5 反例を既存 lint が検出した。</li>
+<li>本文にない非空の引用を通常 lint が拒否しないことも確認し、意味の保証に使えない制約として残した。</li>
+<li>既存 concept の H1・既存 frontmatter・本文を維持し、graph の追加だけであることをバイト相当の文字列比較で確認した。</li>
+<li>17 回のレビューを出荷版への評価として登録していないことを確認した。</li>
+</ul>
+<p>試料は型付きグラフの検査用であり、原本・全リンク・インデックスを複製した完全 wiki ではない。
+試料を本番へ丸ごとコピーする手順は提供しない。
+採用時は出典ごとに本文・sources・インデックス・log の整合を確認する。</p>
+<p>レビューの状態と対応は <a href="../agent-runs/2026-11-18-wiki-project-ontology/review-response.md">review-response.md</a> に記録する。
+初回の Opus の判定は「条件付きで採用可」で、外部の版、状態、変更先、引用と粒度を第 2 版で修正した。
+第 2 版はローカルで再検証しており、独立した再レビューは行っていない。</p><footer>最終更新: 2026-11-18（Asia/Tokyo）。<a href="wiki-project-ontology-2026-11-18.md">Markdown</a> / <a href="wiki-project-ontology-2026-11-18.yaml">完全な候補 YAML</a>。この HTML は閲覧用で、外部 JavaScript・送信機能を使用しません。</footer></main></div></body></html>

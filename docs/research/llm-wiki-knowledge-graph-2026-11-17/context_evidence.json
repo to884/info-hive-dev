@@ -1,0 +1,44 @@
+[
+  {
+    "claim": "日本語の表現統合の事例では、埋め込みだけによる近接により正反対の表現をまとめる失敗を報告している。",
+    "evidence_quote": "同一視してはいけないフレーズがひとまとまりになることがある。",
+    "source_url": "https://dss.i.u-tokyo.ac.jp/blog/practical-graph-rag-1/",
+    "source_title": "意味をつなぐ、知識を紡ぐ：LLMsによる知識グラフ精緻化の試み",
+    "locator": "§1 / §3",
+    "source_type": "first_party_experiment",
+    "language": "ja",
+    "limitations": "筆者の事例報告であり一般ベンチマークではない。本文にモデル書誌の不整合もあるため比較値を流用しない。"
+  },
+  {
+    "claim": "日本語執筆の比較研究は英語要旨で3方式を評価し、構文的・意味的妥当性と誤りを分ける。日本語抽出の性能証拠ではない。",
+    "evidence_quote": "本実験では英語テキストのみを使用した。",
+    "source_url": "https://www.jstage.jst.go.jp/article/jsaisigtwo/2025/SWO-067/2025_02/_article/-char/ja/",
+    "source_title": "大規模言語モデルに基づく学術要旨からの知識グラフ構築手法の比較評価",
+    "locator": "PDF p.2 §3; p.3 表1; p.5 限界; 抄録",
+    "source_type": "academic",
+    "language": "ja",
+    "limitations": "抄録8点と本文9要旨に食い違い。表の数値の丸めと平均の集約も注意。再現率を評価していない。",
+    "doi": "10.11517/jsaisigtwo.2025.SWO-067_02",
+    "year": 2025
+  },
+  {
+    "claim": "info-hive の現在のスキーマは Markdown を正本とし、型付き関係に出典と証拠を要求する。",
+    "evidence_quote": "正本は Markdown であり、グラフは作り直せるインデックスである。",
+    "source_url": "local:wiki/SCHEMA.md",
+    "source_title": "info-hive wiki スキーマ",
+    "locator": "L131-L157; L178-L186",
+    "source_type": "local_schema",
+    "language": "ja",
+    "limitations": "2026-11-17 の未コミット変更を含む作業ツリー。リリース版との一致は検証していない。"
+  },
+  {
+    "claim": "info-hive の現在の抽出器は nodes/aliases/edges のSQLite通常表とJSONL/GraphMLを書き出す。",
+    "evidence_quote": "DEFAULT_FORMATS = [\"jsonl\", \"sqlite\", \"graphml\"]",
+    "source_url": "local:info-hive-wiki/skills/info-hive/scripts/wiki_graph_extract.py",
+    "source_title": "info-hive グラフ抽出器",
+    "locator": "L90; L640-L679; L937-L976",
+    "source_type": "local_code",
+    "language": "ja",
+    "limitations": "読み取り調査のみ。本文の自動意味抽出やプロンプトの品質検証は本件で実装・実測していない。"
+  }
+]
