@@ -7,7 +7,7 @@ raw: "raw/claude-opus-5-5-migration.md"
 fetched_at: "2026-11-18T22:48:49+09:00"
 ingested: 2026-11-18
 created: 2026-11-18
-updated: 2026-11-18
+updated: 2026-11-19
 tags: ["モデル設定"]
 concepts: ["claude-thinking"]
 ---
@@ -37,6 +37,8 @@ Anthropic の公式ガイド。Claude Opus 5、Opus 4.8、Opus 4.7、Opus 4.6 �
 | c3 | 強制ツール選択、旧ツールの版、トークン数の変化は機能と移行元に応じて確認が必要 | 各移行元のチェックリストと互換性の説明 | `source_only` | モデルと提供先に固有の条件として、このページと日本語訳に収録した |
 
 ## 関係するページ
+
+- [[stashから保存した原文と候補メモ-2026-11-19]]: 翻訳前の英語原文の保存先と元の版の記録
 
 - [[claude-api-model-migration|モデル移行ガイド一覧]] から他の移行先モデルの手順を確認できる。
 - [[claude-thinking-troubleshooting|推論のトラブルシューティング]] に、推論設定の 400 エラー、署名エラー、空の推論ブロックを切り分ける手順がある。

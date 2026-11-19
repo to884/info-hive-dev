@@ -7,7 +7,7 @@ raw: "raw/claude-fable-5-2-migration.md"
 fetched_at: "2026-11-18T22:32:30+09:00"
 ingested: 2026-11-18
 created: 2026-11-18
-updated: 2026-11-18
+updated: 2026-11-19
 tags: ["モデル設定"]
 concepts: ["claude-thinking"]
 ---
@@ -37,6 +37,8 @@ Anthropic の公式ガイド。Claude Fable 5.1・5、Claude Mythos 5.1・5、Cl
 | c4 | ツール、データ保持、構造化出力、高速モードにはモデルやプラットフォームによる制約がある | 共通の基本設定、各移行元のチェックリスト | `source_only` | 取得時点のモデル固有の条件として、このページと日本語訳に収録した |
 
 ## 関係するページ
+
+- [[stashから保存した原文と候補メモ-2026-11-19]]: 翻訳前の英語原文の保存先と元の版の記録
 
 - [[claude-api-model-migration|モデル移行ガイド一覧]] から他の移行先モデルのガイドを確認できる。
 - [[claude-thinking-troubleshooting|推論のトラブルシューティング]] に、推論設定の 400 エラーと署名エラーを切り分ける手順がある。
