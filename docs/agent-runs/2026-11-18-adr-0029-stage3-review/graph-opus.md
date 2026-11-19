@@ -40,6 +40,10 @@ Claude Opus 5.5 に修正した3本の試験をレビューしてもらい、承
 
 Opus 5.5 は一時領域と EIO 試験の修正を承認した。依存を入れた [走査の再実行](https://github.com/to884/info-hive-dev/actions/runs/44427155008) では6ジョブすべてで EIO を含む索引の試験に成功した。WSL の Python 3.14 でも索引と raw の23件がすべて成功した。macOS の Python 3.12 で残った読み取り専用 SQLite の試験は、拡張の読み込み機能への依存を除き、実データベースの `query_only` とクローズを引き続き検査する。Windows の検索キャッシュの10件はすべて成功した。
 
+Opus 5.5 は初期化の確認順の修正を承認した。指定された根の綴りで記事を検査し、既存のリンク拒否を維持できることを確認した。Windows では、初期化済み wiki を指す実在パスに `..` が含まれる場合も、原本保存と経験記録の両方が理由を出し、ファイルを作らずに止まることを確認した。
+
+候補 `a96af79` の [プラグイン CI](https://github.com/to884/info-hive-wiki/actions/runs/44427035474) は4ジョブで成功した。親の候補 `fec4be8` の [走査 CI](https://github.com/to884/info-hive-dev/actions/runs/44427602112) は Linux・Windows・macOS の6ジョブで成功し、macOS の Python 3.12 でも読み取り専用 SQLite の回帰が通った。同じ親の候補で [PDF の契約試験](https://github.com/to884/info-hive-dev/actions/runs/44427602282) と [MCP CI](https://github.com/to884/info-hive-dev/actions/runs/44427602088) の初期化・起動・中継の試験も成功した。
+
 ## 共通部品への移行の候補
 
 グラフのほかに、セッション取り込みの決定ファイル（`.wiki-cache/session/`）、モデルの取得済みマーカー（`models/<モデル>/verified.json`）、概要ファイルの公開が、既存の検査や独自の経路で書かれている。今回のグラフ保護と分けて、根と片付けの規則を確認する対象に残した。
