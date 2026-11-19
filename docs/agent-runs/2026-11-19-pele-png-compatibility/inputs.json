@@ -1,0 +1,81 @@
+{
+  "cases": [
+    {
+      "id": "actual-0",
+      "kind": "actual",
+      "source": "wiki/concepts/初期化されたwikiの判定.md",
+      "mermaid": "flowchart LR\n  A[wiki のパスを受け取る] --> B{判定}\n  B -- 未初期化 --> C[何も書かずに止まる<br>/wiki:init を案内]\n  B -- 初期化済み --> D[同じパスを解決して使う]",
+      "rendered": true
+    },
+    {
+      "id": "actual-1",
+      "kind": "actual",
+      "source": "wiki/concepts/コマンドの引数の渡し方.md",
+      "mermaid": "flowchart TD\n  A[\"引数（$ARGUMENTS）\"] --> B{\"空か空白だけ\"}\n  B -- はい --> L[\"引数なしで実行（一覧）\"]\n  B -- いいえ --> C[\"前後の空白、先頭の / を 1 つ、続く wiki: を除く\"]\n  C --> D{\"^[A-Za-z0-9][A-Za-z0-9-]*$ に合う\"}\n  D -- はい --> R[\"引用符なしの --command=<残り> で実行\"]\n  D -- いいえ --> N[\"実行しない。読めないと伝え、一覧を示す\"]",
+      "rendered": true
+    },
+    {
+      "id": "actual-2",
+      "kind": "actual",
+      "source": "wiki/concepts/敵対的レビューで設計を直す進め方.md",
+      "mermaid": "flowchart LR\n  R[レビューの指摘] --> C{前提に分ける}\n  C -->|前提を変えられる| S[構造を変える]\n  C -->|仕組みを足す| A[仕組みを足し、失敗の形を書く]\n  S --> N[次のレビュー]\n  A --> N\n  N --> D{重大は A か}\n  D -->|A がある| R\n  D -->|C と D だけが続く| L[限界として書き、作者の判断に回す]",
+      "rendered": true
+    },
+    {
+      "id": "actual-3",
+      "kind": "actual",
+      "source": "wiki/sources/claude-thinking-tool-workflows.md",
+      "mermaid": "sequenceDiagram\n    participant App as アプリケーション\n    participant API as Messages API\n    participant Tool as ツール\n    App->>API: ユーザー入力とツール定義を送信\n    API-->>App: assistant の content（tool_use、推論ブロックなど）\n    App->>Tool: tool_use の指定で実行\n    Tool-->>App: 実行結果\n    App->>API: 元の assistant の content と user の tool_result\n    API-->>App: 最終応答（必要に応じて新しい thinking）",
+      "rendered": true
+    },
+    {
+      "id": "state",
+      "kind": "synthetic",
+      "mermaid": "stateDiagram-v2\n    [*] --> 待機\n    待機 --> 実行: 開始\n    実行 --> [*]: 完了",
+      "rendered": true
+    },
+    {
+      "id": "class",
+      "kind": "synthetic",
+      "mermaid": "classDiagram\n    class Article {\n      +String title\n      +publish()\n    }\n    class Wiki\n    Wiki --> Article : 所有",
+      "rendered": true
+    },
+    {
+      "id": "er",
+      "kind": "synthetic",
+      "mermaid": "erDiagram\n    WIKI ||--o{ ARTICLE : contains\n    ARTICLE {\n      string title\n      int revision\n    }",
+      "rendered": true
+    },
+    {
+      "id": "pie",
+      "kind": "synthetic",
+      "mermaid": "pie title 記事の内訳\n    \"公開\" : 8\n    \"下書き\" : 2",
+      "rendered": true
+    },
+    {
+      "id": "gantt",
+      "kind": "synthetic",
+      "mermaid": "gantt\n    title 作業計画\n    dateFormat YYYY-MM-DD\n    section 検証\n    原稿確認 :a, 2026-11-19, 1d\n    図の比較 :b, after a, 2d",
+      "rendered": true
+    },
+    {
+      "id": "mindmap",
+      "kind": "synthetic",
+      "mermaid": "mindmap\n  root((知識))\n    原稿\n      日本語\n    画像\n      配色",
+      "rendered": true
+    },
+    {
+      "id": "flow-style",
+      "kind": "synthetic",
+      "mermaid": "flowchart TD\n A[\"日本語の長いラベル<br/>二行目の確認\"] --> B(\"丸角の終端\")\n classDef custom fill:#edc,stroke:#369,color:#123,stroke-width:2px\n class A custom",
+      "rendered": true
+    },
+    {
+      "id": "sequence-style",
+      "kind": "synthetic",
+      "mermaid": "sequenceDiagram\n participant A as 利用者\n participant B as サーバー\n Note over A,B: 日本語の補足\n A->>B: 要求\n alt 成功\n B-->>A: 応答\n else 失敗\n B-->>A: エラー\n end",
+      "rendered": true
+    }
+  ],
+  "warnings": []
+}
