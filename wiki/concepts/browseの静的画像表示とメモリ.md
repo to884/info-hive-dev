@@ -67,6 +67,10 @@ python -X utf8 -B "$run/analysis/analyze-figure-followup.py" "$env:PERF_OUT/resu
 
 将来 PNG を検討する場合は、対象の図種・拡大時の画質・初回表示を確かめる。CairoSVG との実測比較は未着手。実機 Safari は依頼により検証対象から外した。Windows の領域別コミットに現れなかった 7.34〜8.20 MiB をページテーブルの課金と確定するには、カーネルのカウンターを直接読む測定が残っている。
 
+## 11 月 19 日の再測定
+
+Windows 版 Playwright WebKit で同じ50図を明暗各10周・2反復測り直した。描画前からのピーク私有コミット増分の中央値は SVG 62.27 MiB、PNG 35.23 MiB で、PNG の増分が 27.04 MiB 小さかった。前回の中央値はそれぞれ 63.08 MiB、33.34 MiB だった。初回の明色では速い形式が反復によって入れ替わった。 [再測定の報告](../../docs/research/wiki-browse-static-svg-vs-png-remeasurement-2026-11-19.md)
+
 ## 関係するページ
 
 - [[browseの静的描画の調査記録-2026-11-19]]
