@@ -1,0 +1,26 @@
+[
+  {
+    "id": 0,
+    "source": "wiki/concepts/初期化されたwikiの判定.md",
+    "title": "",
+    "mermaid": "flowchart LR\n  A[wiki のパスを受け取る] --> B{判定}\n  B -- 未初期化 --> C[何も書かずに止まる<br>/wiki:init を案内]\n  B -- 初期化済み --> D[同じパスを解決して使う]"
+  },
+  {
+    "id": 1,
+    "source": "wiki/concepts/コマンドの引数の渡し方.md",
+    "title": "",
+    "mermaid": "flowchart TD\n  A[\"引数（$ARGUMENTS）\"] --> B{\"空か空白だけ\"}\n  B -- はい --> L[\"引数なしで実行（一覧）\"]\n  B -- いいえ --> C[\"前後の空白、先頭の / を 1 つ、続く wiki: を除く\"]\n  C --> D{\"^[A-Za-z0-9][A-Za-z0-9-]*$ に合う\"}\n  D -- はい --> R[\"引用符なしの --command=<残り> で実行\"]\n  D -- いいえ --> N[\"実行しない。読めないと伝え、一覧を示す\"]"
+  },
+  {
+    "id": 2,
+    "source": "wiki/concepts/敵対的レビューで設計を直す進め方.md",
+    "title": "",
+    "mermaid": "flowchart LR\n  R[レビューの指摘] --> C{前提に分ける}\n  C -->|前提を変えられる| S[構造を変える]\n  C -->|仕組みを足す| A[仕組みを足し、失敗の形を書く]\n  S --> N[次のレビュー]\n  A --> N\n  N --> D{重大は A か}\n  D -->|A がある| R\n  D -->|C と D だけが続く| L[限界として書き、作者の判断に回す]"
+  },
+  {
+    "id": 3,
+    "source": "wiki/sources/claude-thinking-tool-workflows.md",
+    "title": "",
+    "mermaid": "sequenceDiagram\n    participant App as アプリケーション\n    participant API as Messages API\n    participant Tool as ツール\n    App->>API: ユーザー入力とツール定義を送信\n    API-->>App: assistant の content（tool_use、推論ブロックなど）\n    App->>Tool: tool_use の指定で実行\n    Tool-->>App: 実行結果\n    App->>API: 元の assistant の content と user の tool_result\n    API-->>App: 最終応答（必要に応じて新しい thinking）"
+  }
+]

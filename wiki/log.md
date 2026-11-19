@@ -871,3 +871,5 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-19] ingest | データプラットフォームからエージェントが機能するアーキテクチャへ: Knowledge Catalog、Ossie、GenAI
    [[knowledge-catalog-ossie-genai]] を追加し、[[オントロジーの要件とOssieへの引継ぎ]] に外部の見方を追記した。raw: `wiki:web-raw` に任せた（報告したモデル: Claude Sonnet 5.5）。訳: Claude Sonnet 5.5（トルコ語から）、補足: なし（画像 13 枚は未取得）。警告 9 件の理由は直前の prepare に記録。
+
+## [2026-11-19] update | Pele SVG と PNG の表示比較を [[browseの静的画像表示とメモリ]] と [[browseの静的描画の調査記録-2026-11-19]] に追記。
