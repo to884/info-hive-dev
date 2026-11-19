@@ -1,0 +1,16 @@
+test_replacement_recovers_cleanup_after_catalog_publication (test_jobs.JobTests.test_replacement_recovers_cleanup_after_catalog_publication) ... C:\Works\info-hive-dev\info-hive-rag\scripts\rag_index.py:141: DeprecationWarning: Dictionary.create() is deprecated, use Dictionary.tokenizer() instead
+  self._tokenizer = dictionary.Dictionary().create()
+FAIL
+
+======================================================================
+FAIL: test_replacement_recovers_cleanup_after_catalog_publication (test_jobs.JobTests.test_replacement_recovers_cleanup_after_catalog_publication)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Works\info-hive-dev\tests\rag\test_jobs.py", line 375, in test_replacement_recovers_cleanup_after_catalog_publication
+    self.assertEqual(engine._table(folder).count_rows(f"doc_id = '{old['sha256']}'"), 0)
+AssertionError: 4 != 0
+
+----------------------------------------------------------------------
+Ran 1 test in 4.423s
+
+FAILED (failures=1)

@@ -78,8 +78,8 @@ async def main():
             record('replacement_has_no_maintenance_error',changed['result']['cleanup_error'] is None)
         before=version(engine._table(folder))
         async with connect(config_file) as (session,_):
-            duplicate=await call(session,'register_pdf',wiki_root=str(wiki),source=str(a),source_page='sources/a.md')
-            record('unchanged_pdf_is_not_reprocessed',duplicate['status']=='completed' and duplicate['attempts']==changed['attempts'])
+            duplicate=await ingest(session,a,'sources/a.md')
+            record('unchanged_pdf_reuses_index',duplicate['result']['status']=='unchanged' and duplicate['job_id']!=changed['job_id'])
             await asyncio.sleep(.5)
             record('reconnect_does_not_duplicate_index_updates',version(engine._table(folder))==before)
             result=await call(session,'search',wiki_root=str(wiki),query='ANN_REPLACED_Q83',limit=10)

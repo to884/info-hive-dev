@@ -1,0 +1,38 @@
+test_reactivation_reuses_saved_ocr_pages (test_jobs.JobTests.test_reactivation_reuses_saved_ocr_pages) ... FAIL
+test_reset_reclaims_retired_extraction_cache (test_jobs.JobTests.test_reset_reclaims_retired_extraction_cache) ... FAIL
+
+======================================================================
+FAIL: test_reactivation_reuses_saved_ocr_pages (test_jobs.JobTests.test_reactivation_reuses_saved_ocr_pages)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Works\info-hive-dev\tests\rag\test_jobs.py", line 463, in test_reactivation_reuses_saved_ocr_pages
+    restored = engine.ingest_pdf(str(self.wiki), str(self.source), 'sources/資料.md')
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Works\info-hive-dev\info-hive-rag\scripts\rag_index.py", line 556, in ingest_pdf
+    pages = self.extractor(data, self.config, cache, progress)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Works\info-hive-dev\info-hive-rag\scripts\rag_pdf.py", line 65, in extract_pages
+    text = ocr_page(page, config, cache,client=ocr)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Users\toshiki\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\Lib\unittest\mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Users\toshiki\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\Lib\unittest\mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Users\toshiki\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\Lib\unittest\mock.py", line 1198, in _execute_mock_call
+    raise effect
+AssertionError: 保存済み OCR を再実行した
+
+======================================================================
+FAIL: test_reset_reclaims_retired_extraction_cache (test_jobs.JobTests.test_reset_reclaims_retired_extraction_cache)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Works\info-hive-dev\tests\rag\test_jobs.py", line 480, in test_reset_reclaims_retired_extraction_cache
+    self.assertFalse(cache.exists())
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 2 tests in 4.828s
+
+FAILED (failures=2)

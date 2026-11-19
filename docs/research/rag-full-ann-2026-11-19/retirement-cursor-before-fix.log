@@ -1,0 +1,25 @@
+test_retirement_does_not_invalidate_a_resumable_embedding_cursor (test_jobs.JobTests.test_retirement_does_not_invalidate_a_resumable_embedding_cursor) ... C:\Works\info-hive-dev\info-hive-rag\scripts\rag_index.py:141: DeprecationWarning: Dictionary.create() is deprecated, use Dictionary.tokenizer() instead
+  self._tokenizer = dictionary.Dictionary().create()
+FAIL
+test_index_reset_clears_retirement_intents (test_jobs.JobTests.test_index_reset_clears_retirement_intents) ... FAIL
+
+======================================================================
+FAIL: test_retirement_does_not_invalidate_a_resumable_embedding_cursor (test_jobs.JobTests.test_retirement_does_not_invalidate_a_resumable_embedding_cursor)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Works\info-hive-dev\tests\rag\test_jobs.py", line 430, in test_retirement_does_not_invalidate_a_resumable_embedding_cursor
+    self.assertEqual(engine._table(folder).count_rows(f"doc_id = '{old['sha256']}'"), resumed['chunks'])
+AssertionError: 3 != 4
+
+======================================================================
+FAIL: test_index_reset_clears_retirement_intents (test_jobs.JobTests.test_index_reset_clears_retirement_intents)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Works\info-hive-dev\tests\rag\test_jobs.py", line 445, in test_index_reset_clears_retirement_intents
+    self.assertEqual(catalog.execute('SELECT COUNT(*) FROM retired_documents').fetchone()[0], 0)
+AssertionError: 1 != 0
+
+----------------------------------------------------------------------
+Ran 2 tests in 12.673s
+
+FAILED (failures=2)

@@ -74,12 +74,12 @@ def fixture(path: Path):
 
 
 @asynccontextmanager
-async def connect(config: Path, via_uv: bool = False):
+async def connect(config: Path, via_uv: bool = False, *, extra_env=None):
     before = {p.pid for p in psutil.Process().children(recursive=True)}
     manifest = json.loads((ROOT / "info-hive-rag/.mcp.json").read_text(encoding="utf-8"))["mcpServers"]["rag"]
     parameters = StdioServerParameters(command=manifest["command"] if via_uv else sys.executable,
         args=[arg.replace("${CLAUDE_PLUGIN_ROOT}", str(ROOT / "info-hive-rag")) for arg in manifest["args"]] if via_uv else [str(ROOT / "info-hive-rag/scripts/rag_server.py")],
-        env={**os.environ, "INFO_HIVE_RAG_CONFIG": str(config), "PYTHONUTF8": "1",
+        env={**os.environ, **(extra_env or {}), "INFO_HIVE_RAG_CONFIG": str(config), "PYTHONUTF8": "1",
              "PYTHONIOENCODING": "utf-8", "PYTHONDONTWRITEBYTECODE": "1"})
     async with stdio_client(parameters) as (reader, writer):
         async with ClientSession(reader, writer) as session:
