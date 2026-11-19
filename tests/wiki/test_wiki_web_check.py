@@ -172,6 +172,56 @@ class HtmlFileTest(FetchCase):
 
 
 class WorkDirTest(FetchCase):
+    def test_root_record_failure_prevents_raw_and_images(self):
+        stub = FetchStub(html_page(f'<p>{LONG}</p><img src="i.png" width="300" height="200">'))
+        with mock.patch.object(wiki_fetch, "fetch", stub), \
+                mock.patch.object(wiki_fetch, "is_private_host", lambda host: False), \
+                mock.patch.object(wiki_fetch, "record_raw_root", side_effect=PermissionError("記録できない")):
+            with self.assertRaises(PermissionError):
+                wiki_fetch.build(self.args())
+        self.assertEqual(list(self.raw.iterdir()), [])
+        self.assertFalse(wiki_rawcheck.work_dir(self.wiki, "page").exists())
+
+    def test_incomplete_backup_prevents_resume_or_overwrite(self):
+        html = html_page(f"<p>{LONG}</p>")
+        self.build(html)
+        saved = (self.raw / "page.md").read_bytes()
+        neighbor = self.raw / "assets" / f".page.other.{'a' * 32}.old"
+        neighbor.mkdir(parents=True)
+        (neighbor / "page.other-01.png").write_bytes(png())
+        with mock.patch.object(wiki_fetch, "fetch", side_effect=AssertionError("再開で取得した")):
+            code, resumed = wiki_fetch.build(self.args())
+        self.assertEqual(code, 0)
+        self.assertTrue(resumed["fetch_skipped"])
+        backup = self.raw / "assets" / f".page.{'b' * 32}.old"
+        backup.mkdir(parents=True)
+        (backup / "page-01.png").write_bytes(png())
+        with mock.patch.object(wiki_fetch, "fetch", side_effect=AssertionError("取得に進んだ")):
+            for force in (False, True):
+                with self.subTest(force=force), self.assertRaisesRegex(ValueError, "画像の退避"):
+                    wiki_fetch.build(self.args(force=force))
+        self.assertEqual((self.raw / "page.md").read_bytes(), saved)
+        self.assertTrue((backup / "page-01.png").is_file())
+
+    def test_resume_fields_are_read_with_the_publication_lock(self):
+        from wiki_fsguard import Refused, WriteGuard
+
+        self.build(html_page(f"<p>{LONG}</p>"))
+        fields = wiki_rawcheck.resume_fields
+        lock = self.raw / ".wiki-fetch-locks/page.lock"
+
+        def snapshot(*args):
+            with self.assertRaisesRegex(Refused, "busy"):
+                with WriteGuard(self.raw).hold_lock(lock):
+                    self.fail("再開情報を読むあいだに保存のロックを取れた")
+            return fields(*args)
+
+        with mock.patch.object(wiki_rawcheck, "resume_fields", snapshot), \
+                mock.patch.object(wiki_fetch, "fetch", side_effect=AssertionError("再開で取得した")):
+            code, resumed = wiki_fetch.build(self.args())
+        self.assertEqual(code, 0)
+        self.assertTrue(resumed["fetch_skipped"])
+
     def test_snapshot_matches_raw_and_records_language(self):
         result, text, _ = self.build(html_page(f"<p>{LONG}</p>"))
         wd = wiki_rawcheck.work_dir(self.wiki, "page")
@@ -194,9 +244,16 @@ class WorkDirTest(FetchCase):
         """名前の変更（raw の一時のファイルから正式な名前へ）に失敗すると、raw は書かれず、写しの印（fetch.json）も
         置かれないので、写しは「そろっていない」になる。"""
         stub = FetchStub(html_page(f"<p>{LONG}</p>"))
+        replace = wiki_fetch.os.replace
+
+        def fail_raw_only(src, dst):
+            if Path(dst) == self.raw / "page.md":
+                raise OSError("書けない")
+            replace(src, dst)
+
         with mock.patch.object(wiki_fetch, "fetch", stub), \
                 mock.patch.object(wiki_fetch, "is_private_host", lambda host: False), \
-                mock.patch.object(wiki_fetch.os, "replace", side_effect=OSError("書けない")):
+                mock.patch.object(wiki_fetch.os, "replace", fail_raw_only):
             with self.assertRaises(OSError):
                 wiki_fetch.build(self.args())
         self.assertFalse((self.raw / "page.md").exists())
@@ -1471,6 +1528,55 @@ class MainAndWorkDirTest(RawCheckCase):
         self.assertEqual(run("check", *argv, "--finish"), 0)
         self.assertFalse(self.wd.exists())
 
+    def test_finish_digest_verified_read_and_lint_use_same_version(self):
+        import wiki_lint
+        from wiki_raw_roots import read_raw_roots
+
+        self.setup_fetch("# A\n\n本文。\n", needs_translation=False)
+        self.assertTrue(self.freeze()["ok"])
+        argv = ["--wiki", str(self.wiki), "--raw-root", str(self.raw), "--slug", "a", "--json"]
+        valid = self.check()["check_sha256"]
+        path = self.raw / "a.md"
+        path.write_bytes(path.read_bytes() + b"\n")
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = wiki_rawcheck.main(["check", *argv, "--finish", "--accept-warnings",
+                                       "--expect-check-sha256", valid])
+        self.assertEqual(code, 1, out.getvalue())
+        self.assertEqual(json.loads(out.getvalue())["errors"][-1]["kind"], "check_changed")
+        self.assertTrue(self.wd.is_dir())
+        updated = self.check()["check_sha256"]
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = wiki_rawcheck.main(["check", *argv, "--finish", "--expect-check-sha256", updated])
+        self.assertEqual(code, 0, out.getvalue())
+        done = json.loads(out.getvalue())
+        self.assertTrue(done["completed"])
+        self.assertFalse(self.wd.exists())
+        data = path.read_bytes()
+        self.assertEqual(done["raw_sha256"], wiki_rawcheck.snapshot_sha256(data))
+        self.assertEqual(wiki_rawcheck.read_raw_version(self.raw, "a", done["raw_sha256"]), data)
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(wiki_rawcheck.main(["read", *argv, "--expect-sha256", done["raw_sha256"]]), 0)
+        self.assertEqual(json.loads(out.getvalue())["text"].encode("utf-8"), data)
+        self.assertEqual(read_raw_roots(self.wiki), ([self.raw.resolve()], []))
+        source = self.wiki / "sources/a.md"
+        source.parent.mkdir(exist_ok=True)
+        source.write_text('---\ntype: "source"\ntitle: "A"\nraw: '
+                          + json.dumps(done["raw_ref"], ensure_ascii=False)
+                          + f'\nraw_sha256: "{done["raw_sha256"]}"\n---\n# A\n', encoding="utf-8")
+        new_root = self.base / "次の根"
+        new_root.mkdir()
+
+        def lint():
+            return wiki_lint.lint(wiki_lint.collect_pages(self.wiki), 100, 200, [], False, 5,
+                                  wiki_root=self.wiki, raw_root=new_root)
+
+        for key in ("missing_raw", "raw_paths_unchecked", "raw_version_unverified"):
+            self.assertEqual(lint()[key], [], key)
+        path.write_bytes(data + b"\n")
+        with self.assertRaisesRegex(ValueError, "バイト列が一致しない"):
+            wiki_rawcheck.read_raw_version(self.raw, "a", done["raw_sha256"])
+        self.assertTrue(lint()["missing_raw"][0]["mismatches"])
+
     def test_uninitialized_wiki_is_refused(self):
         """SCHEMA.md のない wiki では、何も読み書きせずに終了コード 1 で止まる（ADR-0019）。"""
         self.setup_fetch("# A\n\nText.\n")
@@ -1964,10 +2070,10 @@ class ResumeBeforeFetchTest(FetchCase):
         raw.write_text(raw.read_text(encoding="utf-8").replace("\n\n" + tail.strip(), ""), encoding="utf-8", newline="\n")
         real = wiki_rawcheck.write_atomic
 
-        def stop_before_cleaned(path, text):
+        def stop_before_cleaned(guard, path, text):
             if path.name == "cleaned.md":
                 raise OSError("止まった")
-            real(path, text)
+            real(guard, path, text)
 
         with mock.patch.object(wiki_rawcheck, "write_atomic", stop_before_cleaned):
             with self.assertRaises(OSError):

@@ -26,6 +26,7 @@ import sys
 import tempfile
 import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest import mock
 
@@ -36,7 +37,9 @@ sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(FIXTURES))
 
 import wiki_pages  # noqa: E402
+import wiki_fsguard  # noqa: E402
 import wiki_session as ws  # noqa: E402
+from wiki_raw_roots import RECORDS, read_raw_roots  # noqa: E402
 from gen_session import NOSHOW, SECRET_EMAIL, SECRET_KEY, Builder, generate  # noqa: E402
 
 NT = os.name == "nt"
@@ -642,7 +645,7 @@ class RawExclusiveTests(CliCase):
         return single, overwritten
 
     def test_only_one_writer_wins(self):
-        single, overwritten = self.race(ws.publish_exclusive)
+        single, overwritten = self.race(wiki_fsguard.publish_exclusive)
         self.assertEqual((single, overwritten), (200, 0))
 
     def test_control_os_replace_overwrites(self):
@@ -677,18 +680,23 @@ class RawExclusiveTests(CliCase):
     def test_access_denied_during_a_concurrent_rename_becomes_conflict(self):
         """Windows で、相手の名前の変更の最中に返るアクセスの拒否は、行き先を確かめ直して conflict にする。"""
         target = self.raw / "競争.md"
+        publish = wiki_fsguard.publish_exclusive
 
         def busy(tmp, dst):
+            if dst != target:
+                return publish(tmp, dst)
             dst.write_bytes("相手の版\n".encode("utf-8"))
             raise PermissionError(13, "アクセスが拒否されました")
-        with mock.patch.object(ws, "publish_exclusive", busy), mock.patch.object(ws, "WINDOWS", True):
+        with mock.patch.object(wiki_fsguard, "publish_exclusive", busy), mock.patch.object(ws, "WINDOWS", True):
             state, path = ws.write_raw(self.wiki, self.raw, "競争", "自分の版\n".encode("utf-8"))
         self.assertEqual((state, path), ("conflict", target))
         self.assertEqual(sorted(p.name for p in self.raw.iterdir()), ["競争.md"])
 
         def denied(tmp, dst):
+            if dst.suffix == ".json":
+                return publish(tmp, dst)
             raise PermissionError(13, "アクセスが拒否されました")
-        with mock.patch.object(ws, "publish_exclusive", denied), mock.patch.object(ws.time, "sleep"):
+        with mock.patch.object(wiki_fsguard, "publish_exclusive", denied), mock.patch.object(ws.time, "sleep"):
             with self.assertRaises(ws.Fail):
                 ws.write_raw(self.wiki, self.raw, "書けない", b"x\n")
         self.assertEqual(sorted(p.name for p in self.raw.iterdir()), ["競争.md"])
@@ -719,6 +727,28 @@ class RawExclusiveTests(CliCase):
         sha = self.meta(dec)["render_sha256"]
         self.write(dec, sha, code=1, patch="def _boom():\n    raise RuntimeError('止める')\nm.before_publish = _boom")
         self.assertEqual(list(self.raw.iterdir()), [])
+        records = list((self.wiki / RECORDS).glob("*.json"))
+        self.assertEqual(len(records), 1)
+        self.assertEqual(Path(json.loads(records[0].read_text(encoding="utf-8"))["resolved"]), self.raw)
+
+    def test_record_failure_leaves_no_raw(self):
+        dec = self.init()
+        sha = self.meta(dec)["render_sha256"]
+        done = self.write(dec, sha, code=1, patch="def refuse(*a, **k):\n    raise PermissionError('停止')\nm.record_raw_root = refuse")
+        self.assertIn("raw の根を記録できない", done.stderr.decode("utf-8"))
+        self.assertEqual(list(self.raw.iterdir()), [])
+
+    def test_link_to_record_directory_refuses_save(self):
+        dec = self.init()
+        sha = self.meta(dec)["render_sha256"]
+        records = self.wiki / RECORDS
+        if not make_junction(records, self.outside):
+            self.skipTest("記録先のリンクを作れない")
+        before = snapshot(self.outside)
+        done = self.write(dec, sha, code=1)
+        self.assertIn("raw の根を記録できない", done.stderr.decode("utf-8"))
+        self.assertEqual(list(self.raw.iterdir()), [])
+        self.assertEqual(snapshot(self.outside), before)
 
     def test_exception_after_publish_then_identical(self):
         dec = self.init()
@@ -745,6 +775,73 @@ class RawExclusiveTests(CliCase):
         dec = self.init()
         self.write(dec, "0" * 64, code=1)
         self.assertEqual(list(self.raw.iterdir()), [])
+        self.assertFalse((self.wiki / RECORDS).exists())
+
+    def test_hidden_slug_is_refused_before_show_or_save(self):
+        dec = self.init()
+        sha = self.meta(dec)["render_sha256"]
+        self.ok(["show", *self.common(), "--title", TITLE, "--decisions", dec, "--slug", ".draft",
+                 "--meta", "--json"], code=1)
+        done = self.write(dec, sha, slug=".draft", code=1)
+        self.assertIn("ピリオド", done.stderr.decode("utf-8"))
+        self.assertEqual(list(self.raw.iterdir()), [])
+        self.assertFalse((self.wiki / RECORDS).exists())
+
+    def test_guard_refuses_hardlink_at_destination_or_temporary_name(self):
+        other = self.outside / "別のファイル"
+        other.write_bytes(b"original")
+        target = self.raw / "target.md"
+        guard = wiki_fsguard.WriteGuard(self.raw)
+        try:
+            os.link(other, target)
+        except OSError:
+            self.skipTest("ハードリンクを作れない")
+        with self.assertRaisesRegex(wiki_fsguard.Refused, "hardlink"):
+            guard.write_bytes(target, b"changed", replace=True)
+        self.assertTrue(target.samefile(other))
+        tmp = self.raw / ".wiki-write-fixed.tmp"
+        target.rename(tmp)
+        with mock.patch.object(wiki_fsguard.secrets, "token_hex", return_value="fixed"):
+            with self.assertRaisesRegex(wiki_fsguard.Refused, "hardlink"):
+                guard.write_bytes(target, b"changed")
+        self.assertFalse(target.exists())
+        self.assertTrue(tmp.samefile(other))
+        self.assertEqual(other.read_bytes(), b"original")
+
+    def test_guard_refuses_mount_below_root(self):
+        directory = self.wiki / RECORDS
+        directory.mkdir(parents=True)
+        cache = RECORDS.parent
+        with mock.patch.object(wiki_fsguard, "_mount_points", return_value={cache}):
+            guard = wiki_fsguard.WriteGuard(self.wiki)
+            with self.assertRaisesRegex(wiki_fsguard.Refused, "mount"):
+                guard.write_bytes(directory / "record.json", b"{}")
+        self.assertEqual(list(directory.iterdir()), [])
+
+    def test_mount_table_preserves_path_whitespace(self):
+        mount = self.wiki / "archive\rdata"
+        # マウント表は LF で行を区切り、SP で列を区切る。パス中の CR はそのまま残る。
+        spelling = os.fsencode(mount).replace(b"\\", b"\\134").replace(b" ", b"\\040")
+        entry = b"10 3 0:1 / " + spelling + b" rw - tmpfs tmpfs rw\n"
+        with mock.patch.object(wiki_fsguard.sys, "platform", "linux"), mock.patch.object(Path, "read_bytes", return_value=entry):
+            self.assertEqual(wiki_fsguard._mount_points(self.wiki), {mount.relative_to(self.wiki)})
+
+    def test_parallel_writes_record_both_roots(self):
+        other = self.base / "別の raw"
+        other.mkdir()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            saves = [pool.submit(ws.write_raw, self.wiki, root, "会話", b"text") for root in (self.raw, other)]
+            self.assertEqual([save.result()[0] for save in saves], ["created", "created"])
+        roots, unchecked = read_raw_roots(self.wiki)
+        self.assertEqual(set(roots), {self.raw, other})
+        self.assertEqual(unchecked, [])
+        records = list((self.wiki / RECORDS).glob("*.json"))
+        self.assertEqual(len(records), 2)
+        for path in records:
+            record = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(record["given"], record["resolved"])
+            self.assertEqual(record["writer"], "wiki_session")
+            self.assertTrue(record["recorded_at"].endswith("+00:00"))
 
     def test_link_raw_root_is_refused(self):
         real = self.base / "real"
@@ -761,7 +858,7 @@ class RawExclusiveTests(CliCase):
 
     def test_link_above_an_outside_raw_root_is_refused(self):
         """raw のルートが wiki の親の外にあっても、途中の階層のリンクを拒む（設計の 9 節）。"""
-        outside = Path(tempfile.mkdtemp())
+        outside = Path(tempfile.mkdtemp()).resolve()
         self.addCleanup(force_rmtree, outside)
         (outside / "real" / "raw").mkdir(parents=True)
         if not make_junction(outside / "redirect", outside / "real"):
@@ -804,10 +901,8 @@ class RawExclusiveTests(CliCase):
 
     def test_roots_on_different_drives_are_not_overlapping(self):
         """ドライブの違うパスは commonpath が ValueError を上げる（前提: 絶対パスどうしなら比べられる）。"""
-        self.assertFalse(ws.path_within("D:\\raw", "C:\\project\\wiki") if NT else ws.path_within("/a", "/b"))
         with mock.patch("os.path.commonpath", side_effect=ValueError("Paths don't have the same drive")):
-            self.assertFalse(ws.path_within("D:\\raw", "C:\\project\\wiki"))
-            ws.check_destination(self.wiki, self.raw, self.raw / "x.md")
+            self.assertEqual(ws.check_destination(self.wiki, self.raw).root, self.raw)
 
     def test_missing_raw_root_is_not_created(self):
         dec = self.init()
@@ -831,8 +926,78 @@ class ReadOnlyVerifyTests(CliCase):
         sha, path, out = self.written()
         self.assertTrue(ws.is_read_only(path))
         self.assertEqual(out["raw_ref"], "raw/会話.md")
+        self.assertEqual(out["raw_sha256"], sha)
         self.assertEqual(self.verify(sha), {"raw_path": str(path), "sha256_matches": True, "read_only": True})
         self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), sha)
+
+    def lint_with_new_root(self, new_root=None):
+        new_root = new_root or self.base / "新しい raw"
+        new_root.mkdir(exist_ok=True)
+        done = subprocess.run([sys.executable, "-X", "utf8", "-B", str(SCRIPTS / "wiki_lint.py"),
+                               str(self.wiki), "--raw-root", str(new_root), "--json"],
+                              capture_output=True, timeout=120, check=True)
+        return json.loads(done.stdout)
+
+    def source_for(self, raw_path, raw_ref, sha256):
+        meta = ws._raw_frontmatter(raw_path)
+        fields = {"type": "source", "title": "会話", "session_id": meta["session_id"],
+                  "raw": raw_ref, "raw_sha256": sha256}
+        header = "\n".join(f"{key}: {json.dumps(value, ensure_ascii=False)}" for key, value in fields.items())
+        (self.wiki / "sources/会話.md").write_text(f"---\n{header}\n---\n# 会話\n", encoding="utf-8")
+
+    def test_lint_verifies_saved_session_using_recorded_root(self):
+        _, raw_path, out = self.written()
+        self.source_for(raw_path, out["raw_ref"], out["raw_sha256"])
+        findings = self.lint_with_new_root()
+        for key in ("raw_version_unverified", "raw_paths_unchecked", "missing_raw", "raw_unknown", "links"):
+            self.assertEqual(findings[key], [], key)
+        self.source_for(raw_path, out["raw_ref"], "0" * 64)
+        findings = self.lint_with_new_root()
+        self.assertTrue(findings["missing_raw"][0]["mismatches"])
+
+    def test_lint_checks_directory_below_recorded_root(self):
+        _, raw_path, out = self.written()
+        destination = self.outside / raw_path.name
+        destination.write_bytes(raw_path.read_bytes())
+        alias = self.raw / "途中"
+        try:
+            alias.symlink_to(self.outside, target_is_directory=True)
+        except OSError:
+            if not make_junction(alias, self.outside):
+                self.skipTest("途中のディレクトリのリンクを作れない")
+        ref = f"raw/途中/{raw_path.name}"
+        self.source_for(raw_path, ref, out["raw_sha256"])
+        findings = self.lint_with_new_root()
+        self.assertEqual(findings["missing_raw"], [])
+        found, = [item for item in findings["links"] if item["scope"] == "raw"]
+        self.assertEqual(Path(found["path"]), alias)
+        self.assertEqual(found["source"], "sources/会話.md")
+        self.assertEqual(found["raw"], ref)
+
+    def test_lint_does_not_let_nested_historical_root_hide_link(self):
+        current = self.raw
+        self.raw = current / "以前の根"
+        self.raw.mkdir()
+        _, raw_path, out = self.written()
+        self.source_for(raw_path, out["raw_ref"], out["raw_sha256"])
+        relocated = self.outside / "移動した根"
+        self.raw.rename(relocated)
+        if not make_junction(self.raw, relocated):
+            self.skipTest("過去の根のリンクを作れない")
+        findings = self.lint_with_new_root(current)
+        found, = [item for item in findings["links"] if item["scope"] == "raw"]
+        self.assertEqual(Path(found["path"]), self.raw)
+        self.assertEqual(Path(found["root"]), current)
+
+    def test_lint_reports_invalid_record_and_uses_remaining_records(self):
+        _, raw_path, out = self.written()
+        self.source_for(raw_path, out["raw_ref"], out["raw_sha256"])
+        (self.wiki / RECORDS / "broken.json").write_text("{", encoding="utf-8")
+        findings = self.lint_with_new_root()
+        self.assertEqual(findings["raw_paths_unchecked"], [])
+        found, = findings["links_unchecked"]
+        self.assertEqual(found["scope"], "raw_roots")
+        self.assertEqual(found["path"], (RECORDS / "broken.json").as_posix())
 
     def test_post_write_check_refuses_shared_raw_before_chmod(self):
         dec = self.init()
@@ -1387,6 +1552,23 @@ class LocateInspectTests(CliCase):
         self.assertFalse(result["source_page_exists"])
         self.assertEqual(len(result["human_tail"]), 2)
         self.assertNotIn("taro@example.com", done.stdout.decode())
+
+    def test_inspect_reports_link_without_reading_raw_metadata(self):
+        other = self.outside / "別のファイル.md"
+        other.write_text('---\nsession_id: "別の原本"\n---\n', encoding="utf-8")
+        try:
+            os.link(other, self.raw / "会話.md")
+        except OSError:
+            self.skipTest("ハードリンクを作れない")
+        (self.raw / ".wiki-session-deadbeef.tmp").touch()
+        patch = "def refuse(path):\n    raise AssertionError('raw のリンクを読んだ')\nm._raw_frontmatter = refuse"
+        done = self.ok(["inspect", *self.common(), "--wiki", self.wiki, "--raw-root", self.raw,
+                        "--slug", "会話", "--json"], patch=patch)
+        result = json.loads(done.stdout)
+        self.assertIsNone(result["raw"]["exists"])
+        self.assertIsNone(result["raw"]["session_id"])
+        self.assertIn("hardlink", result["raw"]["reason"])
+        self.assertEqual(result["temp_files"], [".wiki-session-deadbeef.tmp"])
 
     def test_uninitialized_wiki_is_refused_before_reading(self):
         (self.wiki / "SCHEMA.md").unlink()

@@ -17,9 +17,12 @@ from pathlib import Path
 def main() -> int:
     scripts, base, wiki, raw, who, reps, mode = sys.argv[1:8]
     sys.path.insert(0, scripts)
+    import wiki_fsguard
     import wiki_session as ws
     if mode == "replace":
         def replace(tmp, target):
+            if target.suffix == ".json":
+                return publish_exclusive(tmp, target)
             # 対照: 上書きする公開。Windows では、同時の名前の変更がアクセスの拒否になるので、通るまで試し直す。
             for _ in range(200):
                 try:
@@ -27,7 +30,8 @@ def main() -> int:
                 except PermissionError:
                     time.sleep(0.005)
             raise RuntimeError("os.replace が通らなかった")
-        ws.publish_exclusive = replace
+        publish_exclusive = wiki_fsguard.publish_exclusive
+        wiki_fsguard.publish_exclusive = replace
     base, wiki, raw = Path(base), Path(wiki), Path(raw)
     who, reps = int(who), int(reps)
     sync = base / "sync"

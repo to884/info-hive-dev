@@ -21,12 +21,13 @@ import unittest
 import urllib.error
 import urllib.request
 from pathlib import Path
+from unittest import mock
 
 import psutil
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from mcp_stdio import LAUNCH, RELAY, ROOT, StdioClient, relay_command  # noqa: E402
+from mcp_stdio import LAUNCH, RELAY, ROOT, SERVER, StdioClient, relay_command  # noqa: E402
 
 CORPUS = ROOT / "info-hive-wiki/eval/retrieval/ja/corpus/wiki"
 SCRIPTS = ROOT / "info-hive-wiki/skills/info-hive/scripts"
@@ -34,6 +35,8 @@ TEMPLATE = ROOT / "info-hive-wiki/skills/info-hive/assets/ontology.yaml.template
 TOOLS = {"query", "get_page", "list_index", "lint", "stats", "graph", "index_chunks"}
 sys.path.insert(0, str(SCRIPTS))
 import wiki_graph_common  # noqa: E402
+import wiki_mcp_common  # noqa: E402
+import wiki_mcp_relay  # noqa: E402
 
 
 def run_cli(*args, script: bool = False) -> dict:
@@ -147,7 +150,7 @@ class SecurityTests(ServerCase):
 
     def test_server_json_has_no_other_secrets(self):
         info = self.ensure()
-        self.assertEqual(set(info), {"port", "token", "pid", "version", "protocol", "started"})
+        self.assertEqual(set(info), {"port", "token", "pid", "version", "protocol", "started", "start_id"})
         if os.name != "nt":
             self.assertEqual((self.data / "server.json").stat().st_mode & 0o077, 0)
 
@@ -250,6 +253,270 @@ class RelayTests(ServerCase):
             client.call("list_index", {"wiki": str(self.wiki), "name": "../SCHEMA.md"})
         with self.assertRaises(RuntimeError):
             client.call("query", {"wiki": str(self.root / "ない"), "query": "x"})
+
+
+class StartupFileTests(ServerCase):
+    def test_relay_reuses_server_started_with_relative_script_path(self):
+        env = {**os.environ, **self.env, "PYTHONUTF8": "1"}
+        python = wiki_mcp_common.prepare_script(SERVER, output=sys.stderr, timeout=1800, log=lambda _: None)
+        process = subprocess.Popen([python, "-u", SERVER.name], cwd=SERVER.parent, env=env,
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            deadline = time.monotonic() + 300
+            while self.info() is None and process.poll() is None and time.monotonic() < deadline:
+                time.sleep(0.05)
+            original = self.info()
+            self.assertIsNotNone(original, f"直接起動で記録が公開されなかった（{process.poll()}）")
+            self.assertEqual(self.ensure()["pid"], original["pid"])
+        finally:
+            self._cleanup()
+            process.wait(timeout=10)
+
+    def test_stdio_refuses_linked_startup_files(self):
+        self.data.mkdir()
+        outside = self.root / "original"
+        outside.write_bytes(b"unchanged")
+        client = self.client()
+        client.initialize()
+        for name in ("server.lock", "server-info.lock", "server.json", "server-start.json", "logs/server.log"):
+            with self.subTest(name=name):
+                refused = self.data / name
+                refused.parent.mkdir(exist_ok=True)
+                refused.unlink(missing_ok=True)
+                os.link(outside, refused)
+                try:
+                    with self.assertRaises(RuntimeError) as caught:
+                        client.call("list_index", {"wiki": str(self.wiki)}, timeout=30)
+                    message = str(caught.exception)
+                    self.assertIn(str(refused), message)
+                    self.assertIn("hardlink", message)
+                    self.assertTrue(refused.samefile(outside))
+                    self.assertEqual(outside.read_bytes(), b"unchanged")
+                    self.assertEqual(self.server_processes(), [])
+                finally:
+                    refused.unlink()
+        self.assertTrue(client.tools())
+
+    def test_stdio_refuses_linked_log_directory(self):
+        from tests.wiki.test_wiki_links import junction
+
+        self.data.mkdir()
+        outside = self.root / "original"
+        outside.mkdir()
+        logs = self.data / "logs"
+        if not junction(logs, outside):
+            self.skipTest("ログのディレクトリのリンクを作れない")
+        client = self.client()
+        client.initialize()
+        with self.assertRaises(RuntimeError) as caught:
+            client.call("list_index", {"wiki": str(self.wiki)}, timeout=30)
+        self.assertIn(str(logs), str(caught.exception))
+        self.assertIn("junction" if os.name == "nt" else "symlink", str(caught.exception))
+        self.assertEqual(list(outside.iterdir()), [])
+        self.assertEqual(self.server_processes(), [])
+
+    def test_stop_failure_keeps_old_record_and_prevents_start(self):
+        info = {"pid": 1234, "port": 12345, "token": "old-token", "version": "old", "started": 100.0}
+        with mock.patch.dict(os.environ, self.env), mock.patch.object(wiki_mcp_relay, "alive", return_value=True):
+            files = wiki_mcp_common.ServerFiles()
+            files.write_info(info)
+            for error in (psutil.AccessDenied(info["pid"]), psutil.TimeoutExpired(30, info["pid"])):
+                with self.subTest(reason=type(error).__name__), \
+                        mock.patch.object(psutil, "Process") as lookup, \
+                        mock.patch.object(wiki_mcp_relay, "spawn_server") as spawn:
+                    process = lookup.return_value
+                    process.pid = info["pid"]
+                    process.create_time.return_value = 99.0
+                    process.cmdline.return_value = [sys.executable, "-X", "utf8", str(wiki_mcp_relay.SERVER_SCRIPT)]
+                    process.exe.return_value = sys.executable
+                    process.environ.return_value = self.env
+                    if isinstance(error, psutil.AccessDenied):
+                        process.terminate.side_effect = error
+                    else:
+                        process.wait.side_effect = error
+                    with self.assertRaisesRegex(RuntimeError, "停止を確認できなかった"):
+                        wiki_mcp_relay.ensure_server()
+                    self.assertEqual(files.read_info(), info)
+                    spawn.assert_not_called()
+
+    def test_relay_refuses_a_record_from_another_data_root(self):
+        other_data = self.root / "other-data"
+        other_data.mkdir()
+        with mock.patch.dict(os.environ, self.env), mock.patch.object(psutil, "Process") as lookup, \
+                mock.patch.object(wiki_mcp_relay, "spawn_server") as spawn:
+            files = wiki_mcp_common.ServerFiles()
+            info = {"pid": 1234, "port": 12345, "token": "other-token", "started": 100.0,
+                    "version": wiki_mcp_common.code_version()}
+            files.write_info(info)
+            process = lookup.return_value
+            process.create_time.return_value = 99.0
+            process.cmdline.return_value = [sys.executable, "-X", "utf8", str(wiki_mcp_relay.SERVER_SCRIPT)]
+            process.exe.return_value = sys.executable
+            process.environ.return_value = {wiki_mcp_common.DATA_DIR_ENV: str(other_data)}
+            for listening in (False, True):
+                with self.subTest(listening=listening), mock.patch.object(wiki_mcp_relay, "alive", return_value=listening):
+                    with self.assertRaisesRegex(RuntimeError, "別のデータの場所"):
+                        wiki_mcp_relay.ensure_server()
+            self.assertEqual(files.read_info(), info)
+            process.terminate.assert_not_called()
+            spawn.assert_not_called()
+
+    def test_relay_keeps_record_when_start_time_is_unknown(self):
+        info = {"pid": 1234, "port": 12345, "token": "old-token"}
+        with mock.patch.dict(os.environ, self.env), mock.patch.object(psutil, "Process") as lookup, \
+                mock.patch.object(wiki_mcp_relay, "alive", return_value=False), \
+                mock.patch.object(wiki_mcp_relay, "spawn_server") as spawn:
+            files = wiki_mcp_common.ServerFiles()
+            files.write_info(info)
+            process = lookup.return_value
+            process.exe.return_value = sys.executable
+            process.cmdline.return_value = [sys.executable, str(SERVER)]
+            process.environ.return_value = self.env
+            with self.assertRaisesRegex(RuntimeError, "起動時刻が記録にない"):
+                wiki_mcp_relay.ensure_server()
+            self.assertEqual(files.read_info(), info)
+            lookup.return_value.terminate.assert_not_called()
+            spawn.assert_not_called()
+
+    def test_clock_change_preserves_legacy_record_and_reuses_new_server(self):
+        info = {"pid": 1234, "port": 12345, "token": "old-token", "started": 100.0,
+                "version": wiki_mcp_common.code_version()}
+        with mock.patch.dict(os.environ, self.env), mock.patch.object(psutil, "Process") as lookup, \
+                mock.patch.object(wiki_mcp_relay, "alive", return_value=True), \
+                mock.patch.object(wiki_mcp_relay, "spawn_server") as spawn:
+            process = lookup.return_value
+            process.environ.return_value = self.env
+            process.create_time.return_value = 101.0
+            process.cmdline.return_value = [sys.executable, "-X", "utf8", str(wiki_mcp_relay.SERVER_SCRIPT)]
+            process.exe.return_value = sys.executable
+            files = wiki_mcp_common.ServerFiles()
+            files.write_info(info)
+            with self.assertRaisesRegex(RuntimeError, "生成時刻が公開時刻より後"):
+                wiki_mcp_relay.ensure_server()
+            self.assertEqual(files.read_info(), info)
+            current = {**info, "start_id": "current-start"}
+            files.remove_own_info(info["pid"], info["token"])
+            files.write_info(current)
+            with self.assertRaisesRegex(RuntimeError, "起動識別子が記録と一致しない"):
+                wiki_mcp_relay.ensure_server()
+            self.assertEqual(files.read_info(), current)
+            process.environ.return_value = {**self.env, wiki_mcp_common.START_ID_ENV: "current-start"}
+            self.assertEqual(wiki_mcp_relay.ensure_server(), (current, False))
+            files.remove_own_info(info["pid"], info["token"])
+            files.write_info(info)
+            with self.assertRaisesRegex(RuntimeError, "起動識別子を確認できない"):
+                wiki_mcp_relay.ensure_server()
+            self.assertEqual(files.read_info(), info)
+            process.terminate.assert_not_called()
+            spawn.assert_not_called()
+
+    def test_relay_does_not_stop_other_program_with_server_script_in_command_line(self):
+        info = {"pid": 1234, "port": 12345, "token": "old-token", "started": 100.0}
+        with mock.patch.dict(os.environ, self.env), mock.patch.object(psutil, "Process") as lookup, \
+                mock.patch.object(wiki_mcp_relay.socket, "create_connection", side_effect=TimeoutError), \
+                mock.patch.object(wiki_mcp_relay, "spawn_server") as spawn:
+            process = lookup.return_value
+            process.environ.return_value = self.env
+            process.create_time.return_value = 99.0
+            files = wiki_mcp_common.ServerFiles()
+            files.write_info(info)
+            other_script = self.root / wiki_mcp_relay.SERVER_SCRIPT_SUFFIX
+            for executable, script, reason in (
+                ("editor", wiki_mcp_relay.SERVER_SCRIPT, "記録のサーバーと確認できない"),
+                (sys.executable, other_script, "記録の接続先を所有していると確認できない"),
+            ):
+                with self.subTest(executable=executable):
+                    process.exe.return_value = executable
+                    process.cmdline.return_value = [executable, str(script)]
+                    process.net_connections.return_value = []
+                    with self.assertRaisesRegex(RuntimeError, reason):
+                        wiki_mcp_relay.ensure_server()
+            self.assertEqual(files.read_info(), info)
+            process.terminate.assert_not_called()
+            spawn.assert_not_called()
+
+    def test_reused_pid_with_closed_port_does_not_prevent_restart(self):
+        with socket.socket() as closed_port, subprocess.Popen(
+                [sys.executable, "-c", "import sys; sys.stdin.buffer.read()"],
+                stdin=subprocess.PIPE, creationflags=wiki_mcp_common.child_creationflags()) as process:
+            try:
+                closed_port.bind(("127.0.0.1", 0))
+                info = {"pid": process.pid, "port": closed_port.getsockname()[1], "token": "old-token",
+                        "start_id": "old-start"}
+                with mock.patch.dict(os.environ, self.env):
+                    files = wiki_mcp_common.ServerFiles()
+                    files.write_info(info)
+                current = self.ensure()
+                self.assertNotEqual(current["pid"], process.pid)
+                self.assertIsNone(process.poll())
+            finally:
+                process.stdin.close()
+                process.wait(timeout=10)
+
+    def test_unreadable_process_path_can_be_recovered_only_when_name_excludes_server(self):
+        info = {"pid": 1234, "port": 12345, "token": "old-token", "started": 100.0}
+        with mock.patch.dict(os.environ, self.env), mock.patch.object(psutil, "Process") as lookup, \
+                mock.patch.object(wiki_mcp_relay.socket, "create_connection", side_effect=ConnectionRefusedError), \
+                mock.patch.object(wiki_mcp_relay, "_start_server") as start:
+            process = lookup.return_value
+            process.exe.side_effect = psutil.AccessDenied(info["pid"])
+            process.name.return_value = "python"
+            files = wiki_mcp_common.ServerFiles()
+            files.write_info(info)
+            with self.assertRaisesRegex(RuntimeError, "記録のサーバーと確認できない") as caught:
+                wiki_mcp_relay.ensure_server()
+            self.assertIn(str(files.record), str(caught.exception))
+            self.assertEqual(files.read_info(), info)
+            start.assert_not_called()
+
+            process.name.return_value = "unrelated"
+            wiki_mcp_relay.ensure_server()
+            self.assertFalse(files.record.exists())
+            process.terminate.assert_not_called()
+            start.assert_called_once()
+
+    def test_timed_out_child_cannot_replace_new_server_record(self):
+        with mock.patch.dict(os.environ, self.env), \
+                mock.patch.object(wiki_mcp_relay, "START_TIMEOUT", 0), \
+                mock.patch.object(wiki_mcp_relay, "server_python", return_value=sys.executable), \
+                mock.patch.object(wiki_mcp_relay, "spawn_server") as spawn:
+            with self.assertRaisesRegex(RuntimeError, "以内に起動しなかった") as caught:
+                wiki_mcp_relay.ensure_server()
+            self.assertIn(str(self.data / "logs" / "server.log"), str(caught.exception))
+            expired = spawn.call_args.kwargs["start_id"]
+            files = wiki_mcp_common.ServerFiles()
+            self.assertFalse(files.pending.exists())
+            newer = {"pid": 1234, "port": 12345, "token": "new-token"}
+            with files.startup_lock(timeout=0):
+                current_id = files.reserve_start(None)
+                files.write_info(newer, start_id=current_id)
+                files.release_start(current_id)
+            with self.assertRaisesRegex(OSError, "起動の許可が失われた"):
+                files.write_info({**newer, "token": "late-token"}, start_id=expired)
+            self.assertEqual(files.read_info(), {**newer, "start_id": current_id})
+
+    def test_restart_with_invalid_record(self):
+        self.data.mkdir()
+        record = self.data / "server.json"
+        record.write_text("壊れた起動記録", encoding="utf-8")
+        self.assertIsNotNone(self.ensure())
+        self.assertTrue((self.data / "server.lock").is_file())
+
+    def test_relative_data_root_alias_is_allowed(self):
+        from tests.wiki.test_wiki_links import junction
+
+        actual = self.root / "actual"
+        actual.mkdir()
+        if not junction(self.data, actual):
+            self.skipTest("データの根のリンクを作れない")
+        env = {**os.environ, **self.env, "INFO_HIVE_DATA_DIR": self.data.name, "PYTHONUTF8": "1"}
+        for started in (True, False):
+            out = subprocess.run([*relay_command(), "--ensure"], cwd=self.root, env=env,
+                                 capture_output=True, encoding="utf-8", timeout=1800)
+            self.assertEqual(out.returncode, 0, out.stderr)
+            self.assertIn(f"'started_now': {started}", out.stdout)
+            self.assertTrue((actual / "server.json").is_file())
+            self.assertFalse((actual / self.data.name).exists())
 
 
 class RepairTests(ServerCase):
@@ -598,6 +865,78 @@ class WorkspaceConfigTests(ServerCase):
         self.assertTrue(client.call("query", {**arguments, "query": "熱中症"})["results"])
 
 
+class IndexPathTests(ServerCase):
+    def setUp(self):
+        super().setUp()
+        self.client_ = self.client()
+        self.client_.initialize()
+        self.args = {"wiki": str(self.wiki)}
+        self.index_dir = self.data / "index" / wiki_mcp_common.wiki_key(
+            wiki_mcp_common.normalize_wiki_root(self.wiki))
+
+    def assert_index_error(self, refused: Path, kind: str):
+        for name, args in (("query", {"query": "熱中症"}),
+                           ("get_page", {"page": "heatstroke"}), ("stats", {})):
+            with self.subTest(tool=name, refused=refused):
+                result = self.client_.request("tools/call", {"name": name, "arguments": {**self.args, **args}})
+                self.assertTrue(result["isError"], result)
+                message = " ".join(item.get("text", "") for item in result["content"])
+                self.assertIn("索引への書き込みを拒んだ", message)
+                self.assertIn(str(refused), message)
+                self.assertIn(kind, message)
+                self.assertIn("wiki_search.py --no-embed", message)
+
+    def test_refuses_link_on_index_directory_path(self):
+        from tests.wiki.test_wiki_links import junction
+        outside = self.root / "elsewhere"
+        outside.mkdir()
+        folder = self.data / "index"
+        self.data.mkdir(exist_ok=True)
+        if not junction(folder, outside):
+            self.skipTest("索引の途中のディレクトリのリンクを作れない")
+        self.assert_index_error(folder, "junction" if os.name == "nt" else "symlink")
+        self.assertEqual(list(outside.iterdir()), [])
+
+    def test_refuses_ledger_sidecar_and_tantivy_entry_then_retries(self):
+        outside = self.root / "untouched"
+        outside.write_text("そのまま残す", encoding="utf-8")
+        for relative in ("ledger.sqlite-wal", "lexical/segment.lock"):
+            refused = self.index_dir / relative
+            refused.parent.mkdir(parents=True, exist_ok=True)
+            os.link(outside, refused)
+            self.assert_index_error(refused, "hardlink")
+            self.assertEqual(outside.read_text(encoding="utf-8"), "そのまま残す")
+            self.assertTrue(refused.samefile(outside))
+            self.assertFalse((self.index_dir / "ledger.sqlite").exists())
+            refused.unlink()
+        self.assertGreater(self.client_.call("stats", self.args)["index"]["sections"], 0)
+        self.assertEqual(self.client_.call("get_page", {**self.args, "page": "heatstroke"})["slug"], "heatstroke")
+        self.assertTrue(self.client_.call("query", {**self.args, "query": "熱中症"})["results"])
+
+    def test_corrupt_chunk_metadata_requires_explicit_reset(self):
+        path = self.data / "index" / "collections" / "guarded-reset"
+        path.mkdir(parents=True)
+        metadata = path / "collection.json"
+        metadata.write_bytes(b"{")
+        ledger = path / "ledger.sqlite"
+        ledger.write_bytes(b"existing")
+        arguments = {"collection": path.name, "tokenizer": "bigram", "generation": 1,
+                     "chunks": [{"id": "new", "text": "熱中症", "tokens": ["熱中", "中症"]}]}
+        with self.assertRaisesRegex(RuntimeError, "索引のメタデータを読めない") as caught:
+            self.client_.call("index_chunks", arguments)
+        self.assertNotIn("wiki_search.py", str(caught.exception))
+        self.assertEqual(ledger.read_bytes(), b"existing")
+        reset = self.client_.call("index_chunks", {**arguments, "reset": True})
+        self.assertTrue(reset["reset"])
+        for invalid, reason in (({"chunks": arguments["chunks"] * 2}, "重ねられない"),
+                                ({"generation": 2**63}, "符号付き64ビット整数")):
+            with self.subTest(reason=reason), self.assertRaisesRegex(RuntimeError, reason):
+                self.client_.call("index_chunks", {**arguments, "reset": True, **invalid})
+        found = self.client_.call("query", {"collection": path.name, "query": "熱中症",
+                                            "query_tokens": ["熱中", "中症"]})
+        self.assertEqual([item["id"] for item in found["results"]], ["new"])
+
+
 class UninitializedWikiTests(ServerCase):
     """SCHEMA.md のないディレクトリには、wiki を受け取るツールのどれも答えず、索引も作らない（ADR-0019）。
     wiki を受け取らない index_chunks と collection の query は、今までどおり動く。"""
@@ -685,6 +1024,21 @@ class IdleTests(ServerCase):
         result = client.call("query", {"wiki": str(self.wiki), "query": "熱中症"})
         self.assertTrue(result["results"])
         self.assertNotEqual(self.info()["pid"], pid)
+
+    def test_idle_shutdown_preserves_linked_record_and_reports_reason(self):
+        info = self.ensure()
+        record = self.data / "server.json"
+        outside = self.root / "original"
+        os.link(record, outside)
+        original = outside.read_bytes()
+        psutil.Process(info["pid"]).wait(timeout=60)
+        self.assertEqual(outside.read_bytes(), original)
+        self.assertTrue(record.samefile(outside))
+        log = (self.data / "logs" / "server.log").read_text(encoding="utf-8")
+        self.assertIn("起動記録を消せない", log)
+        self.assertIn(str(record), log)
+        self.assertIn("hardlink", log)
+        self.assertNotIn(info["token"], log)
 
 
 if __name__ == "__main__":

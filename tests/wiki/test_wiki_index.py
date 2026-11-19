@@ -47,6 +47,56 @@ class Base(unittest.TestCase):
 
 
 class WikiIndexTests(Base):
+    def test_rejects_ledger_and_all_sidecars_before_connect(self):
+        path = wiki_mcp_common.wiki_index_dir(self.root)
+        path.mkdir(parents=True)
+        outside = self.wiki.parent / "untouched"
+        outside.write_bytes(b"untouched")
+        for suffix in ("", "-journal", "-wal", "-shm"):
+            side = path / ("ledger.sqlite" + suffix)
+            os.link(outside, side)
+            try:
+                with self.subTest(suffix=suffix), mock.patch.object(sqlite3, "connect") as connect:
+                    with self.assertRaisesRegex(wiki_index.IndexWriteError, "hardlink"):
+                        wiki_index.WikiIndex(self.root)
+                    connect.assert_not_called()
+                    self.assertTrue(side.samefile(outside))
+            finally:
+                side.unlink()
+
+    def test_refuses_a_new_lexical_link_with_an_unchanged_wiki(self):
+        index = self.open_index()
+        index.refresh()
+        outside = self.wiki.parent / "untouched"
+        outside.write_bytes(b"untouched")
+        entry = index.dir / "lexical" / ".segment"
+        os.link(outside, entry)
+        with self.assertRaisesRegex(wiki_index.IndexWriteError, "hardlink"):
+            index.refresh()
+        self.assertTrue(entry.samefile(outside))
+        entry.unlink()
+        self.assertFalse(index.refresh()["changed"])
+
+    def test_failed_tantivy_initialization_closes_sqlite_and_releases_writer(self):
+        import tantivy
+        connections = []
+        connect = sqlite3.connect
+
+        def remember(*args, **kwargs):
+            conn = connect(*args, **kwargs)
+            connections.append(conn)
+            return conn
+
+        with mock.patch.object(sqlite3, "connect", side_effect=remember), \
+             mock.patch.object(tantivy, "Index", side_effect=ValueError("索引のディレクトリに書けない")):
+            with self.assertRaisesRegex(wiki_index.IndexWriteError, "索引のディレクトリに書けない"):
+                wiki_index.WikiIndex(self.root)
+        self.assertEqual(len(connections), 1)
+        with self.assertRaises(sqlite3.ProgrammingError):
+            connections[0].execute("SELECT 1")
+        with mock.patch.object(wiki_index, "WRITER_LOCK_TIMEOUT", 0):
+            self.assertTrue(self.open_index().refresh()["changed"])
+
     def test_index_lives_outside_the_wiki(self):
         index = self.open_index()
         index.refresh()
@@ -361,6 +411,74 @@ class ChunkTests(Base):
             store.index([self.chunk("y", "y.pdf", "税")], 1, "bigram")
         result = store.index([self.chunk("y", "y.pdf", "税")], 1, "bigram", reset=True)
         self.assertEqual((result["reset"], result["rows"]), (True, 1))
+
+    def test_refused_reset_leaves_existing_metadata_and_can_reopen(self):
+        store = wiki_index.ChunkStore("guarded-reset")
+        self.addCleanup(store.close)
+        store.index([self.chunk("old", "old.pdf", "所得 税")], 1, "old")
+        outside = self.wiki.parent / "untouched"
+        outside.write_bytes(b"untouched")
+        entry = store.dir / "extra"
+        os.link(outside, entry)
+        metadata = (store.dir / "collection.json").read_bytes()
+        with self.assertRaisesRegex(wiki_index.IndexWriteError, "hardlink"):
+            store.ensure("new", reset=True)
+        self.assertEqual((store.dir / "collection.json").read_bytes(), metadata)
+        self.assertTrue(entry.samefile(outside))
+        self.assertIsNone(store.collection)
+        entry.unlink()
+        store.ensure("old")
+        self.assertEqual([row["id"] for row in store.search("税", ["税"])["results"]], ["old"])
+
+    def test_empty_batch_refuses_a_changed_index_path(self):
+        store = wiki_index.ChunkStore("guarded-empty")
+        self.addCleanup(store.close)
+        store.index([], 1, "bigram")
+        source = self.wiki.parent / "untouched"
+        source.write_bytes(b"untouched")
+        entry = store.dir / "lexical" / ".segment"
+        os.link(source, entry)
+        with self.assertRaisesRegex(wiki_index.IndexWriteError, "hardlink"):
+            store.index([], 2, "bigram", delete_docs=["none"])
+        self.assertTrue(entry.samefile(source))
+
+    def test_reset_waits_for_an_active_search_to_finish(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Event
+
+        store = wiki_index.ChunkStore("guarded-search")
+        self.addCleanup(store.close)
+        store.index([self.chunk("before", "before.pdf", "所得 税")], 1, "old")
+        old = store.collection
+        ready, resume, reset_started, closing = Event(), Event(), Event(), Event()
+        search_lexical, close = old.search_lexical, old.close
+
+        def search(*args):
+            ready.set()
+            if not resume.wait(10):
+                raise TimeoutError("検索を再開できなかった")
+            return search_lexical(*args)
+
+        def reset():
+            reset_started.set()
+            return store.ensure("new", reset=True)
+
+        def close_old():
+            closing.set()
+            close()
+
+        with mock.patch.object(old, "search_lexical", side_effect=search), \
+             mock.patch.object(old, "close", side_effect=close_old), ThreadPoolExecutor(max_workers=2) as pool:
+            query = pool.submit(store.search, "税", ["税"])
+            try:
+                self.assertTrue(ready.wait(5))
+                next_index = pool.submit(reset)
+                self.assertTrue(reset_started.wait(5))
+                self.assertFalse(closing.wait(0.2))
+            finally:
+                resume.set()
+            self.assertEqual([row["id"] for row in query.result(timeout=10)["results"]], ["before"])
+            self.assertTrue(next_index.result(timeout=10))
 
     def test_concurrent_first_index_opens_collection_once(self):
         """同じ collection に初めて 2 つ同時に書いても、両方とも成功する（PR のレビューの指摘）。"""

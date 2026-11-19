@@ -111,7 +111,13 @@ try {
             check(await page.locator(".wiki-overview").getAttribute("open") !== null, tag + ": fresh が閉じている");
             check(await page.locator("#_body > h1 + details.wiki-overview").count() === 1, tag + ": h1直後にない");
             if (mode === "server") await page.waitForFunction(settled);
-            else check(await page.locator("iframe, [data-fig=mermaid]").count() === 0, tag + ": 静的版で実行した");
+            else {
+              check(await page.locator("iframe, [data-fig=mermaid]").count() === 0, tag + ": 静的版で実行した");
+              const figure = page.locator(".wiki-overview [data-fig=pele]");
+              check(await figure.count() === 1, tag + ": 静的版の概要の図がない");
+              await figure.locator("img:visible").evaluate(img => img.decode());
+              check(await page.locator(".wiki-overview .wiki-fig-error").count() === 1, tag + ": 描けない図の警告がない");
+            }
             const sourceSvg = page.locator(".wiki-overview [data-fig=svg] img");
             await sourceSvg.evaluate(img => img.decode());
             check((await sourceSvg.boundingBox()).width > 100, tag + ": SVGの幅がない");

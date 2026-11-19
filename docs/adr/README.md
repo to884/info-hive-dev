@@ -38,5 +38,6 @@ info-hive の設計で決めたことと、その理由を残す。1 つの判�
 | [0032](0032-codex-session-history.md) | Codex の会話履歴を読み取り API で取り込み、依頼を含むターンを除いて範囲を固定し、既存の伏せ字と承認後の保存処理を共用する | 採用 | 2026年11月17日 |
 | [0033](0033-wiki-page-overview-lives-in-a-sidecar.md) | ページの概要は、図を埋め込んだ 1 つのサイドカーに置き、`wiki_overview.py` だけが書く | 承認 | 2026-11-17 |
 | [0034](0034-wiki-prompt-hook-suggests-candidate-pages.md) | wiki は、指示ごとに関係しそうなページの候補を語彙で選んで知らせ、読む段のモデルとエフォートを段の表で決める | 採用 | 2026年11月18日 |
+| [0035](0035-wiki-browse-prerenders-diagrams-with-pele.md) | 静的版 browse の Mermaid 図を Pele で明暗 2 配色の SVG に書き出す | 承認 | 2026年11月19日 |
 
 各 ADR には、状態、決定日、決定者、関連を表で書き、続けて背景、決定、理由、検討した選択肢、影響、参照を書く。判断を変えるときは元の ADR を書き換えず、新しい ADR を書いて、元の ADR の状態を「置き換え済み」にする。

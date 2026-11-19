@@ -167,7 +167,7 @@ jobs:
         run: uv run --python 3.12 python -X utf8 -m unittest tests/wiki/test_mcp_spawn_flags.py -v
       - name: サーバーと中継の試験
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
-        run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/wiki/test_mcp_server.py -v
+        run: uv run --python 3.12 $DEPS python -X utf8 -m unittest tests/wiki/test_mcp_server.py tests/wiki/test_mcp_startup_files.py -v
       - name: 本物のモデルで評価ゲートを通す
         if: ${{ !cancelled() && steps.checkout-wiki.outcome == 'success' }}
         env:
