@@ -27,7 +27,7 @@
 
 - Mermaid で SVG を生成すれば、既存原稿の構文や配色に合わせやすい。Pele の試作では幅に応じた再配置ができ、既存の横向きフローを縦に並べられた。
 - D2 の試作でも縦向きの図を作れた。既存原稿に適用するには Mermaid から D2 への変換か書き直しが必要になる。
-- PNG の試作では Windows 版 WebKit でピーク私有コミット増分と画像サイズが小さかった。今回は拡大時も文字や線が鮮明な SVG を使う。Pele の出力について同条件での比較は行っていない。
+- Windows 版 Playwright WebKit 26.0 で、同じ合成フロー図 50 図の原稿から書き出した Pele SVG、Mermaid SVG、その Mermaid SVG を resvg で変換した PNG を各 10 周・2 回ずつ比較した。Mermaid SVG と PNG は 572 × 61 px、Pele SVG は幅 319 または 334 px、高さ 68 px だった。画像形式だけを変えた比較は、同じ寸法の Mermaid SVG と、その SVG から変換した PNG の組に限る。この組では PNG のピーク私有コミット増分と画像ファイルの合計サイズが小さかった。静的版では拡大時も文字や線が鮮明な SVG を使う。 [比較の条件と測定結果](../research/wiki-browse-pele-validation-2026-11-19.md)
 
 ## 影響
 
