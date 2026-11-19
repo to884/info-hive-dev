@@ -542,17 +542,48 @@ class CodexSharedWorkflowTests(unittest.TestCase):
         write_args = ["write", *self.common(), "--title", TITLE, "--decisions", decisions,
                       "--wiki", self.wiki, "--raw-root", self.raw, "--slug", "会話",
                       "--expect-sha256", meta["render_sha256"], "--json"]
-        written = json.loads(self.run_cli(write_args).stdout)
-        self.assertEqual(written["raw_state"], "created")
+        conversation_args = [*write_args, "--expect-conversation-sha256"]
+        self.run_cli([*conversation_args, "0" * 64], code=1)
+        self.assertEqual(list(self.raw.iterdir()), [])
+        conversation_args.append(meta["conversation"]["render_sha256"])
+        occupied = self.raw / "会話-会話版.md"
+        occupied.write_text("既存の原本", encoding="utf-8")
+        inspected = json.loads(self.run_cli(["inspect", *self.common(), "--wiki", self.wiki,
+                                             "--raw-root", self.raw, "--slug", "会話", "--json"]).stdout)
+        self.assertFalse(inspected["raw"]["exists"])
+        self.assertTrue(inspected["conversation"]["raw_exists"])
+        conflict = json.loads(self.run_cli(conversation_args, code=3).stdout)
+        self.assertEqual(conflict["raw_state"], "created")
+        self.assertEqual(conflict["conversation"]["raw_state"], "conflict")
+        self.assertEqual(occupied.read_text(encoding="utf-8"), "既存の原本")
+        occupied.unlink()
+        written = json.loads(self.run_cli(conversation_args).stdout)
+        self.assertEqual(written["raw_state"], "identical")
         raw = Path(written["raw_path"])
         self.assertEqual(hashlib.sha256(raw.read_bytes()).hexdigest(), meta["render_sha256"])
         self.assertTrue(ws.is_read_only(raw))
         self.assertNotIn(PRIVATE.encode(), raw.read_bytes())
+        conversation = Path(written["conversation"]["raw_path"])
+        self.assertEqual(conversation.name, "会話-会話版.md")
+        self.assertTrue(ws.is_read_only(conversation))
+        self.assertEqual(hashlib.sha256(conversation.read_bytes()).hexdigest(),
+                         meta["conversation"]["render_sha256"])
+        conversation_text = conversation.read_text(encoding="utf-8")
+        self.assertNotIn(PRIVATE, conversation_text)
+        self.assertNotIn("この発言", conversation_text)
+        self.assertIn(ws.MARK_DROPPED, conversation_text)
+        tool_turns = extracted().tool_turns
+        self.assertTrue(tool_turns)
+        for number in tool_turns:
+            self.assertIn(f"## T{number} ", raw.read_text(encoding="utf-8"))
+            self.assertNotIn(f"## T{number} ", conversation_text)
         verified = json.loads(self.run_cli(["verify", "--raw-root", self.raw, "--slug", "会話",
                                            "--expect-sha256", meta["render_sha256"], "--json"]).stdout)
         self.assertTrue(verified["sha256_matches"])
         self.assertTrue(verified["read_only"])
-        self.assertEqual(json.loads(self.run_cli(write_args).stdout)["raw_state"], "identical")
+        repeated = json.loads(self.run_cli(conversation_args).stdout)
+        self.assertEqual(repeated["raw_state"], "identical")
+        self.assertEqual(repeated["conversation"]["raw_state"], "identical")
 
     def test_write_refuses_a_changed_source_without_creating_raw(self):
         decisions = self.init()
