@@ -79,7 +79,8 @@ def remove_links(base: Path):
 
 class Base(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp(prefix="links-"))
+        # OS が用意する一時ディレクトリの別名を除き、検査する別名は各試験で作る。
+        self.tmp = Path(tempfile.mkdtemp(prefix="links-")).resolve()
         self.wiki = self.tmp / "wiki"
         self.ext = self.tmp / "ext"
         self.wiki.mkdir()

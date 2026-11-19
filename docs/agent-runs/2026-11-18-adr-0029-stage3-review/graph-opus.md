@@ -30,7 +30,13 @@ SQLite の一時ファイルは URI の `mode=rw` で開く。Windows の UNC �
 
 修正後、Windows の Python 3.12 と 3.14 で `eval/scripts` の116件と評価ループの試験2本が成功した。WSL でも取得の27件と評価ループの試験2本が成功した。プラグインの文字コード検査は70ファイルで指摘なしだった。
 
-Claude Opus 5.5 に修正した3本の試験をレビューしてもらい、承認を得た。Opus は Windows と WSL でも該当する試験を再実行した。[再実行した CI](https://github.com/to884/info-hive-wiki/actions/runs/44425749939) では Linux と Windows の各 Python 版で、画像取得と評価ループの試験が通った。親が参照する候補 `37cc69b` では、Windows で MCP 起動とグラフの48件もすべて成功した。
+Claude Opus 5.5 に修正した3本の試験をレビューしてもらい、承認を得た。Opus は Windows と WSL でも該当する試験を再実行した。[再実行した CI](https://github.com/to884/info-hive-wiki/actions/runs/44425749939) は Linux と Windows の4ジョブで成功した。この候補 `37cc69b` では Windows で MCP 起動とグラフの48件もすべて成功した。
+
+## 親リポジトリの CI
+
+[MCP の初回 CI](https://github.com/to884/info-hive-dev/actions/runs/44426007653) では、経験の記録と原本の保存で、存在しない子ディレクトリと `..` を含む wiki の初期化診断が、書き込み経路の診断に変わっていた。ADR-0019 に従い、指定されたパスで先に初期化を確認するよう直した。WSL で該当する初期化パスと書き込み CLI の13件がすべて成功し、Windows では未初期化と経験の記録を56件実行して54件成功、2件スキップだった。
+
+[走査の初回 CI](https://github.com/to884/info-hive-dev/actions/runs/44426007578) では、macOS の一時領域の別名と Windows の8.3形式が試験で作る別名に混ざった。試験で設定する根を実体のパスから作る。索引の EIO 試験は、索引の付随ファイルを調べる走査にも障害を入れていた。wiki の記事の走査に対象を絞り、障害の伝播、台帳の保持、次の更新の成功を引き続き検査する。Windows の Python 3.14 で33件中32件が成功し、1件をスキップした。一時領域をシンボリックリンクで指定した WSL では、27件中26件が成功し、1件をスキップした。
 
 ## 共通部品への移行の候補
 
