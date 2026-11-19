@@ -30,6 +30,10 @@ Windows 版 Playwright WebKit で合成フローチャート 50 図を明暗 2 �
 
 実際のフロー図 3 件とシーケンス図 1 件を Pele で明暗の SVG にし、各 SVG から resvg で 1 倍・2 倍の PNG を作った。Chromium と Windows 版 WebKit の 16 条件で表示を確認した。直接変換では CSS 変数が反映されず、ノードが黒く塗られた。変数を試験的に展開すると図は表示されたが、代表画像では文字の太さと角丸が SVG と異なり、拡大時の 1 倍 PNG はぼやけた。8 枚の合計は SVG 40,522 B、1 倍 PNG 202,536 B、2 倍 PNG 471,625 B だった。この条件のメモリと初回表示時間は未測定である。 [比較報告と画像](../../docs/agent-runs/2026-11-19-pele-png-comparison/report.md)
 
+### resvg の変換条件とフォント
+
+代表のフロー図とシーケンス図の明暗を調べた。SVG のルート変数を試験的に展開し、矩形の `style="rx:4px"` を `rx="4"` にすると、resvg で色と角丸を表示できた。前回は PNG に Yu Gothic だけを読み込ませていた一方、Chromium は代表ラベルに Noto Sans JP Regular を使っていた。resvg にも Noto Sans JP を指定すると文字の見え方が近づいた。PNG の背景は透明で、固定したい場合は resvg の背景色を指定できる。一般的な CSS と他のフォント環境での再現性は未検証。 [調査記録](../../docs/agent-runs/2026-11-19-pele-resvg-investigation/report.md)
+
 ## 次のセッション
 
 SVG／PNG 比較の報告、原標本、集計スクリプト、再測定用画像は親リポジトリに保存した。親リポジトリのルートで次の2件を再集計できる。 [保存した原標本と画像](../../docs/agent-runs/2026-11-19-wiki-static-svg-vs-png/)
