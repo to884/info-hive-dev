@@ -30,6 +30,8 @@ SQLite の一時ファイルは URI の `mode=rw` で開く。Windows の UNC �
 
 修正後、Windows の Python 3.12 と 3.14 で `eval/scripts` の116件と評価ループの試験2本が成功した。WSL でも取得の27件と評価ループの試験2本が成功した。プラグインの文字コード検査は70ファイルで指摘なしだった。
 
+Claude Opus 5.5 に修正した3本の試験をレビューしてもらい、承認を得た。Opus は Windows と WSL でも該当する試験を再実行した。[再実行した CI](https://github.com/to884/info-hive-wiki/actions/runs/44425749939) では Linux と Windows の各 Python 版で、画像取得と評価ループの試験が通った。親が参照する候補 `37cc69b` では、Windows で MCP 起動とグラフの48件もすべて成功した。
+
 ## 共通部品への移行の候補
 
 グラフのほかに、セッション取り込みの決定ファイル（`.wiki-cache/session/`）、モデルの取得済みマーカー（`models/<モデル>/verified.json`）、概要ファイルの公開が、既存の検査や独自の経路で書かれている。今回のグラフ保護と分けて、根と片付けの規則を確認する対象に残した。
