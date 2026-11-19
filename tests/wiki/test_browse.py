@@ -33,6 +33,7 @@ sys.dont_write_bytecode = True
 import wiki_browse  # noqa: E402
 import wiki_browse_core as core  # noqa: E402
 import wiki_browse_fs as fs  # noqa: E402
+import wiki_browse_pele as pele  # noqa: E402
 import wiki_lint  # noqa: E402
 import wiki_pages  # noqa: E402
 
@@ -2209,6 +2210,15 @@ class MermaidAssetsTest(TempWiki):
         attrs = (ROOT / "info-hive-wiki" / ".gitattributes").read_text(encoding="utf-8")
         self.assertIn("skills/info-hive/scripts/browse_assets/mermaid.tiny.js -text", attrs)
 
+    def test_pele_bundle_matches_record(self):
+        data = (self.ASSET_DIR / "pele.mjs").read_bytes()
+        readme = (self.ASSET_DIR / "README.md").read_text(encoding="utf-8")
+        self.assertIn(hashlib.sha256(data).hexdigest(), readme)
+        self.assertIn(f"{len(data):,} バイト", readme)
+        self.assertTrue((self.ASSET_DIR / "licenses" / "pele.LICENSE").is_file())
+        attrs = (ROOT / "info-hive-wiki" / ".gitattributes").read_text(encoding="utf-8")
+        self.assertIn("skills/info-hive/scripts/browse_assets/pele.mjs -text", attrs)
+
     def test_frame_version_matches_figures_js(self):
         js = (self.ASSET_DIR / "figures.js").read_text(encoding="utf-8")
         self.assertIn(f'var FRAME_VERSION = "{core.FRAME_VERSION}";', js)
@@ -2239,17 +2249,84 @@ class MermaidAssetsTest(TempWiki):
         self.assertIn("frame-src 'self'", core.CSP)
         self.assertNotIn("unsafe", core.CSP)
 
-    def test_build_has_figures_js_but_not_the_frame(self):
-        write(self.wiki, "a.md", page("# A\n\n```mermaid\nflowchart LR\n  a --> b\n```\n"))
+    @unittest.skipUnless(pele._node_executable(), "Node.js が必要")
+    def test_build_prerenders_figures_and_reuses_identical_images(self):
+        diagram = '```mermaid\nflowchart LR\n  a[受け取る] --> b[止める<br>/wiki:init を案内]\n```\n'
+        write(self.wiki, "a.md", page("# A\n\n" + diagram + "\n" + diagram))
         out = Path(self.build()["out"])
-        self.assertEqual((out / "assets" / "figures.js").read_bytes(), (self.ASSET_DIR / "figures.js").read_bytes())
-        for name in core.FRAME_ASSETS:
+        for name in (*core.FRAME_ASSETS, "figures.js", "render-pele.mjs", "pele.mjs"):
             self.assertFalse(list(out.rglob(name)), name)
         html_text = (out / "a.html").read_text(encoding="utf-8")
-        self.assertIn('<script src="assets/figures.js"></script>', html_text)
-        self.assertLess(html_text.index("assets/app.js"), html_text.index("assets/figures.js"))
-        self.assertIn('<code class="language-mermaid">', html_text)     # 静的版ではコードのまま
+        self.assertNotIn("assets/figures.js", html_text)
+        self.assertEqual(html_text.count('data-fig="pele"'), 2)
+        self.assertEqual(html_text.count('<summary>図のコード</summary>'), 2)
+        self.assertEqual(html_text.count('<code class="language-mermaid">'), 2)
+        images = sorted((out / "assets" / "figures").glob("*.svg"))
+        self.assertEqual(len(images), 2)
+        for image in images:
+            self.assertEqual(image.stem, hashlib.sha256(image.read_bytes()).hexdigest())
+            self.assertIn("/wiki:init を案内", image.read_text(encoding="utf-8"))
+            self.assertEqual(html_text.count(image.name), 2)
         self.assertIn("frame-src &#x27;self&#x27;", html_text.replace("'", "&#x27;"))
+
+    def test_build_keeps_mermaid_source_when_node_is_missing(self):
+        write(self.wiki, "a.md", page("# A\n\n```mermaid\nflowchart LR\n  a --> b\n```\n"))
+        with mock.patch.object(pele, "_node_executable", return_value=None):
+            report = self.build()
+        out = Path(report["out"])
+        self.assertTrue(any("Node.js" in warning for warning in report["warnings"]))
+        html_text = (out / "a.html").read_text(encoding="utf-8")
+        self.assertIn('<code class="language-mermaid">', html_text)
+        self.assertIn("この図を描けない", html_text)
+        self.assertNotIn("assets/figures.js", html_text)
+        self.assertFalse((out / "assets" / "figures").exists())
+
+    def test_node_lookup_ignores_relative_path_entries(self):
+        directory = str(self.wiki)
+        name = "node.exe" if os.name == "nt" else "node"
+        expected = os.path.join(directory, name)
+        with (mock.patch.object(os, "get_exec_path", return_value=["", ".", "tools", directory]),
+              mock.patch.object(os.path, "isfile", return_value=True) as isfile,
+              mock.patch.object(os, "access", return_value=True)):
+            self.assertEqual(pele._node_executable(), expected)
+        isfile.assert_called_once_with(expected)
+
+    def test_failed_pele_batch_recovers_other_diagrams(self):
+        svg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"/>'
+
+        def run(command, *, input, timeout, **_):
+            sources = json.loads(input)
+            if "描けない" in sources:
+                if failure == "timeout":
+                    raise subprocess.TimeoutExpired(command, timeout)
+                if failure == "exit":
+                    return subprocess.CompletedProcess(command, 1, stdout="")
+                if failure == "wrong-length":
+                    return subprocess.CompletedProcess(command, 0, stdout="[]")
+                return subprocess.CompletedProcess(command, 0, stdout="")
+            return subprocess.CompletedProcess(command, 0, stdout=json.dumps([[svg, svg]] * len(sources)))
+
+        for failure in ("timeout", "exit", "wrong-length", "invalid-json"):
+            with (self.subTest(failure=failure),
+                  mock.patch.object(pele, "_node_executable", return_value="node"),
+                  mock.patch.object(pele.subprocess, "run", side_effect=run)):
+                images, warnings = pele.render_sources(["描ける図", "描けない", "別の図"])
+                self.assertEqual(set(images), {"描ける図", "別の図"})
+                self.assertEqual(len(warnings), 1)
+
+    def test_pele_output_must_be_passive_svg(self):
+        def svg(body):
+            return '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">' + body + '</svg>'
+
+        local = '<defs><rect id="box" width="20" height="20"/></defs><use href="#box"/>'
+        self.assertIsNotNone(pele._image(svg(local)))
+        for body in ('<script/>', '<foreignObject/>', '<animate attributeName="x"/>', '<rect onload=""/>',
+                     '<style/>', '<use href="https://example.invalid/shape.svg#box"/>',
+                     '<rect style="fill:url(https://example.invalid/paint.svg)"/>',
+                     '<rect style="fill:image-set(&quot;https://example.invalid/image.png&quot;)"/>'):
+            with self.subTest(body=body):
+                self.assertIsNone(pele._image(svg(body)))
+        self.assertIsNone(pele._image('<!DOCTYPE svg>' + svg(local)))
 
     def test_assets_are_not_scanned_for_machine_info(self):
         # 同梱物は入力の中身を含まないので、公開の前の検査で調べない（図の描画の設計の 7.2）

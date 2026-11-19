@@ -2,7 +2,7 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 状態 | 承認 |
+| 状態 | 承認（静的版の Mermaid は [ADR-0035](0035-wiki-browse-prerenders-diagrams-with-pele.md) で置き換え） |
 | 決定日 | 2026年11月17日 |
 | 決定者 | info-hive の開発者（このリポジトリの作者） |
 | 関連 | ADR-0002（必要なときだけ起動するサーバー）、ADR-0005（図は mermaid と svg で書く）、ADR-0010（閲覧の中核と届け方を分ける）、ADR-0016（第 1 段階は 2 方式で合格とする）、ADR-0021（Fluent 2 を再現した CSS）、[図の描画の設計](../plans/wiki-browse-figures-2026-11-17.md)、[PoC の記録](../research/wiki-browse-figures-poc-2026-11-17.md) |
