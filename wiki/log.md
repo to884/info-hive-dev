@@ -860,3 +860,5 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
    ページ: [[building-dynamic-workflows-a-new-agentic-system]]（新規）、[[動的ワークフロー]]（新規）、[[managed-agents-cma-dreaming-with-a-dynamic-workflow]] と [[エージェントに守らせる決まりの書き方]]（更新）。会員限定の記事を、普段のブラウザの既存タブから全文取得した。画像 19 枚は未取得。
    raw: `wiki:web-raw` に任せた（報告したモデル: Claude Sonnet 5.5）。訳: Claude Sonnet 5.5、補足: なし。受理した警告の理由は同日の prepare の記録にある。
    グラフ: ノード +2、型付きエッジ +0（全体は 136 ノード・809 エッジ。型付きの関係は追加していない）。
+
+## [2026-11-19] ingest | wiki 0.38.1 の公開とサーバー版 browse の導入確認を [[リリースごとの導入の確かめの記録]] に追記。
