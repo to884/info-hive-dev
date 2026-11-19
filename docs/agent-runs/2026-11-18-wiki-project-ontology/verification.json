@@ -1,0 +1,515 @@
+{
+  "date": "2026-11-18",
+  "candidate": "docs/plans/wiki-project-ontology-2026-11-18.yaml",
+  "live_ontology_sha256_before": "3c5139f9bb627c450a3d13e5ebdc0255bfe10961e8807cc0c3f33ba7f1927559",
+  "live_ontology_unchanged": true,
+  "corpus_snapshot_still_matches": true,
+  "current_corpus": {
+    "pages": 93,
+    "nodes": 93,
+    "edges": 490,
+    "predicates": {
+      "mentions": 344,
+      "sourced_from": 86,
+      "summarizes_raw": 60
+    },
+    "typed_edges": 0
+  },
+  "compatibility": {
+    "identical_compiled_graph": true,
+    "identical_graph_lint": true,
+    "preserved_node_types": 12,
+    "preserved_predicates": 15,
+    "depends_on_addition": "subject_types/object_types に component と release を追加。既存の組はすべて保つ。"
+  },
+  "pilot": {
+    "pages": 40,
+    "nodes": 40,
+    "typed_edges": 38,
+    "predicate_coverage": [
+      "affects",
+      "applies_to",
+      "changes",
+      "delivers",
+      "depends_on",
+      "evaluates",
+      "fixes",
+      "implements",
+      "motivated_by",
+      "part_of",
+      "release_of",
+      "selects"
+    ],
+    "graph_lint": {
+      "pages_scanned": 40,
+      "nodes": 40,
+      "duplicate_node_ids": 0,
+      "unknown_predicates": 0,
+      "broken_object_refs": 0,
+      "subject_type_mismatch": 0,
+      "object_type_mismatch": 0,
+      "missing_evidence": 0,
+      "missing_source_field": 0,
+      "broken_source_refs": 0,
+      "invalid_confidence": 0,
+      "invalid_status": 0,
+      "duplicate_canonical": 0,
+      "alias_collisions": 0,
+      "broken_contradicts": 0,
+      "broken_supersedes": 0,
+      "orphan_typed_nodes": 0,
+      "ambiguous_object_refs": 0,
+      "ambiguous_sources": 0,
+      "unresolved_sources": 0,
+      "order_dependent_edge_ids": 0,
+      "unreadable_graph": 0,
+      "unread_fields": 0
+    },
+    "all_quotes_present": true,
+    "all_required_fields_present": true,
+    "existing_concept_targeted_patch_only": true,
+    "aggregate_reviews_not_promoted_to_final_release_evaluation": true,
+    "every_release_has_exactly_one_product_in_pilot": true,
+    "published_example_matches_pilot": true,
+    "limits": "構造 lint/型付き抽出の試料。wiki 全体の構造 lint には索引/raw/全リンクの複製が必要。意味・最新版・成功は未証明。"
+  },
+  "negative_cases": [
+    {
+      "case": "評価を修正の主語にできない",
+      "detected_by": "subject_type_mismatch",
+      "findings": [
+        {
+          "page": "entities/evaluation--rag-051-pdf-direct.md",
+          "predicate": "fixes",
+          "object": "change:rag-pdf-prefix-1024",
+          "index": 0,
+          "subject": "evaluation:rag-051-pdf-direct",
+          "subject_type": "evaluation",
+          "allowed": [
+            "change"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "出荷の目的語は変更に限る",
+      "detected_by": "object_type_mismatch",
+      "findings": [
+        {
+          "page": "entities/release--rag-0.5.1.md",
+          "predicate": "delivers",
+          "object": "component:rag-pdf-reader",
+          "index": 1,
+          "object_type": "component",
+          "allowed": [
+            "change"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "存在しない対象を指さない",
+      "detected_by": "broken_object_refs",
+      "findings": [
+        {
+          "page": "entities/change--rag-pdf-prefix-1024.md",
+          "predicate": "fixes",
+          "object": "issue:missing",
+          "index": 1
+        }
+      ]
+    },
+    {
+      "case": "出典のない型付き関係を採らない",
+      "detected_by": "missing_source_field",
+      "findings": [
+        {
+          "page": "entities/change--rag-pdf-prefix-1024.md",
+          "predicate": "fixes",
+          "object": "issue:rag-pdf-prefix-rejected",
+          "index": 1
+        }
+      ]
+    },
+    {
+      "case": "引用のない型付き関係を採らない",
+      "detected_by": "missing_evidence",
+      "findings": [
+        {
+          "page": "entities/change--rag-pdf-prefix-1024.md",
+          "predicate": "fixes",
+          "object": "issue:rag-pdf-prefix-rejected",
+          "index": 1
+        }
+      ]
+    }
+  ],
+  "queries": {
+    "rag-051-delivers": {
+      "subject": "release:rag-0.5.1",
+      "predicate": "delivers",
+      "edges": [
+        {
+          "id": "13fbb7aab11754534bcb113b",
+          "subject": "release:rag-0.5.1",
+          "predicate": "delivers",
+          "object": "change:rag-pdf-prefix-1024",
+          "source": "pdfのヘッダーの判定の修正-rag-0.5.1",
+          "evidence": "版は 0.5.1（パッチ）。今まで受け付けていた入力の扱いを変えず、受け付ける範囲を広げるだけである。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/release--rag-0.5.1.md",
+          "metadata_json": "{\"notes\": \"受け付け範囲を変えた版が 0.5.1 と明記され、公開は E03 に記録。\"}"
+        }
+      ]
+    },
+    "pdf-fix": {
+      "subject": "change:rag-pdf-prefix-1024",
+      "predicate": "fixes",
+      "edges": [
+        {
+          "id": "f41d5ebc0b8e17dccc32d33e",
+          "subject": "change:rag-pdf-prefix-1024",
+          "predicate": "fixes",
+          "object": "issue:rag-pdf-prefix-rejected",
+          "source": "pdfのヘッダーの判定の修正-rag-0.5.1",
+          "evidence": "全量の OCR（`docs/research/rag-full-ocr-v050-2026-11-09.md`）で、先頭に改行が 1 バイトあるだけの 2 文書（`L4/` の下の seL4 の論文）が、この理由で失敗した。\n- `%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けるように直した。上限は PDFium にそろえた",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/change--rag-pdf-prefix-1024.md",
+          "metadata_json": "{\"notes\": \"対象は先頭 1 バイトの改行がある 2 件。任意の前置きの拒否全般を直したという意味ではない。\"}"
+        }
+      ]
+    },
+    "sonnet-choice": {
+      "subject": "decision:ingest-sonnet-20261113",
+      "predicate": "selects",
+      "edges": [
+        {
+          "id": "103e095a994e3c698f3aa65d",
+          "subject": "decision:ingest-sonnet-20261113",
+          "predicate": "selects",
+          "object": "release:claude-sonnet-5.5",
+          "source": "ingestのモデルの比較-2026-11-13",
+          "evidence": "結論として、Sonnet 5.5 を使い続けることにした",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "concepts/decision--ingest-sonnet-20261113.md",
+          "metadata_json": "{\"notes\": \"11-13 時点で継続したモデルの特定版。\"}"
+        }
+      ]
+    },
+    "sonnet-reason": {
+      "subject": "decision:ingest-sonnet-20261113",
+      "predicate": "motivated_by",
+      "edges": [
+        {
+          "id": "0eca3924cc3c6640e5c0a153",
+          "subject": "decision:ingest-sonnet-20261113",
+          "predicate": "motivated_by",
+          "object": "evaluation:ingest-models-20261113",
+          "source": "ingestのモデルの比較-2026-11-13",
+          "evidence": "Haiku 5.5、Sonnet 5.5、Opus 5.5 で同じ 4 つの Web ページを `/wiki:ingest` に取り込み、raw の違いを比べた調査である。原本は `docs/research/wiki-ingest-model-comparison-2026-11-13.md`、実行の記録とスクリプトは `docs/agent-runs/2026-11-13-wiki-ingest-model-comparison/` にある。結論として、Sonnet 5.5 を使い続けることにした",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "concepts/decision--ingest-sonnet-20261113.md",
+          "metadata_json": "{\"notes\": \"比較の紹介と結論が同じ段落に明記されている。測定は raw に限られる。\"}"
+        }
+      ]
+    },
+    "sonnet-split": {
+      "subject": "decision:web-raw-split-20261114",
+      "predicate": "selects",
+      "edges": [
+        {
+          "id": "6882b8d502ddc4003e078a3d",
+          "subject": "decision:web-raw-split-20261114",
+          "predicate": "selects",
+          "object": "release:claude-sonnet-5.5",
+          "source": "rawの段を任せるエージェントの確かめ-2026-11-14",
+          "evidence": "メインは `model` の引数を渡さずに `wiki:web-raw` を呼び、エージェントは Sonnet 5.5 で取得から `check --finish` までを行い、wiki のページには書かなかった。要約ページ、`index.md`、`log.md` はメインが書いた。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "concepts/decision--web-raw-split-20261114.md",
+          "metadata_json": "{\"notes\": \"raw だけの分担。11-13 の全工程への選択と混ぜない。\"}"
+        }
+      ]
+    },
+    "youtube-implementation": {
+      "subject": "change:wiki-youtube-v0230",
+      "predicate": "implements",
+      "edges": [
+        {
+          "id": "cf4cc7670406242613d891f6",
+          "subject": "change:wiki-youtube-v0230",
+          "predicate": "implements",
+          "object": "decision:adr-0027-captions",
+          "source": "youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0",
+          "evidence": "`wiki_youtube.py`：PEP 723 で `yt-dlp==2026.8.19` を固定する。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/change--wiki-youtube-v0230.md",
+          "metadata_json": "{\"notes\": \"字幕の取得のスクリプトで yt-dlp を固定した実装。ADR の全要件の充足やレビュー合格は意味しない。\"}"
+        }
+      ]
+    },
+    "youtube-tool-choice": {
+      "subject": "decision:adr-0027-captions",
+      "predicate": "selects",
+      "edges": [
+        {
+          "id": "5cac966c6c843554ded65e0b",
+          "subject": "decision:adr-0027-captions",
+          "predicate": "selects",
+          "object": "product:yt-dlp",
+          "source": "youtubeの字幕の取り込みの設計-2026-11-15",
+          "evidence": "`wiki_youtube.py` を `uv run --script` で動かし、PEP 723 で yt-dlp の版を 1 つに固定して、字幕だけを取る。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "concepts/decision--adr-0027-captions.md",
+          "metadata_json": "{\"notes\": \"製品の選択と版を固定する方式。実装で使った数値の版は release 間の depends_on へ記録する。\"}"
+        }
+      ]
+    },
+    "pinned-dependency": {
+      "subject": "release:wiki-0.23.0",
+      "predicate": "depends_on",
+      "edges": [
+        {
+          "id": "af5c4447e6f70828a78fec3c",
+          "subject": "release:wiki-0.23.0",
+          "predicate": "depends_on",
+          "object": "release:yt-dlp-2026.8.19",
+          "source": "youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0",
+          "evidence": "`wiki_youtube.py`：PEP 723 で `yt-dlp==2026.8.19` を固定する。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/release--wiki-0.23.0.md",
+          "metadata_json": "{\"notes\": \"wiki 0.23.0 の字幕取得で固定した版。現在の製品全体への無版の依存とはしない。\"}"
+        }
+      ]
+    },
+    "versioned-issue": {
+      "subject": "issue:rag-pdf-prefix-rejected",
+      "predicate": "affects",
+      "edges": [
+        {
+          "id": "40f87b95d9f63aa1e4bf74ba",
+          "subject": "issue:rag-pdf-prefix-rejected",
+          "predicate": "affects",
+          "object": "release:rag-0.5.0",
+          "source": "pdfのヘッダーの判定の修正-rag-0.5.1",
+          "evidence": "rag 0.5.0 の `read_pdf` は、ファイルの先頭がちょうど `%PDF-` でないと「PDF の形式ではありません」として拒んでいた。\n- 全量の OCR（`docs/research/rag-full-ocr-v050-2026-11-09.md`）で、先頭に改行が 1 バイトあるだけの 2 文書（`L4/` の下の seL4 の論文）が、この理由で失敗した。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/issue--rag-pdf-prefix-rejected.md",
+          "metadata_json": "{\"notes\": \"先頭 1 バイトの改行がある観測 2 件。read_pdf のヘッダー判定。版を固定して記録し、現在の rag への障害とは読まない。\"}"
+        }
+      ]
+    },
+    "document-change": {
+      "subject": "change:rag-header-wording-v052",
+      "predicate": "changes",
+      "edges": [
+        {
+          "id": "496868c0c6047d97382a8e0e",
+          "subject": "change:rag-header-wording-v052",
+          "predicate": "changes",
+          "object": "artifact:dev-adr-0013",
+          "source": "pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3",
+          "evidence": "rag 0.5.2（to884/info-hive-rag#9、親は to884/info-hive-dev#81）で、rag の README、CHANGELOG、`rag_index.py` のコメント、v0.5.1 の GitHub リリースの本文、親の ADR-0013 を同じ書き方にした。文書だけの修正である。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/change--rag-header-wording-v052.md",
+          "metadata_json": "{\"notes\": \"E06 に列挙された文書・コメントの直接の変更。\"}"
+        },
+        {
+          "id": "8775d8e402a62efc59ebde3e",
+          "subject": "change:rag-header-wording-v052",
+          "predicate": "changes",
+          "object": "artifact:rag-changelog",
+          "source": "pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3",
+          "evidence": "rag 0.5.2（to884/info-hive-rag#9、親は to884/info-hive-dev#81）で、rag の README、CHANGELOG、`rag_index.py` のコメント、v0.5.1 の GitHub リリースの本文、親の ADR-0013 を同じ書き方にした。文書だけの修正である。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/change--rag-header-wording-v052.md",
+          "metadata_json": "{\"notes\": \"E06 に列挙された文書・コメントの直接の変更。\"}"
+        },
+        {
+          "id": "42f5e6e7053af2fa84057165",
+          "subject": "change:rag-header-wording-v052",
+          "predicate": "changes",
+          "object": "artifact:rag-index-comments",
+          "source": "pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3",
+          "evidence": "rag 0.5.2（to884/info-hive-rag#9、親は to884/info-hive-dev#81）で、rag の README、CHANGELOG、`rag_index.py` のコメント、v0.5.1 の GitHub リリースの本文、親の ADR-0013 を同じ書き方にした。文書だけの修正である。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/change--rag-header-wording-v052.md",
+          "metadata_json": "{\"notes\": \"E06 に列挙された文書・コメントの直接の変更。\"}"
+        },
+        {
+          "id": "b539c7f7ec5603c7a370339d",
+          "subject": "change:rag-header-wording-v052",
+          "predicate": "changes",
+          "object": "artifact:rag-readme",
+          "source": "pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3",
+          "evidence": "rag 0.5.2（to884/info-hive-rag#9、親は to884/info-hive-dev#81）で、rag の README、CHANGELOG、`rag_index.py` のコメント、v0.5.1 の GitHub リリースの本文、親の ADR-0013 を同じ書き方にした。文書だけの修正である。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/change--rag-header-wording-v052.md",
+          "metadata_json": "{\"notes\": \"E06 に列挙された文書・コメントの直接の変更。\"}"
+        },
+        {
+          "id": "5cceae8fb7359f0c69c13335",
+          "subject": "change:rag-header-wording-v052",
+          "predicate": "changes",
+          "object": "artifact:rag-v051-release-notes",
+          "source": "pdfのヘッダーの書き方の修正-rag-0.5.2-0.5.3",
+          "evidence": "rag 0.5.2（to884/info-hive-rag#9、親は to884/info-hive-dev#81）で、rag の README、CHANGELOG、`rag_index.py` のコメント、v0.5.1 の GitHub リリースの本文、親の ADR-0013 を同じ書き方にした。文書だけの修正である。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/change--rag-header-wording-v052.md",
+          "metadata_json": "{\"notes\": \"E06 に列挙された文書・コメントの直接の変更。\"}"
+        }
+      ]
+    },
+    "query-document-change": {
+      "subject": "change:wiki-youtube-confidence-v0230",
+      "predicate": "changes",
+      "edges": [
+        {
+          "id": "9845e7b5bb683a3599d93071",
+          "subject": "change:wiki-youtube-confidence-v0230",
+          "predicate": "changes",
+          "object": "artifact:wiki-query-confidence",
+          "source": "youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0",
+          "evidence": "取り込みの手順に V1〜V10 を足した。確信度の上限の表（`query-confidence.md`）には、動画のソースの行を足した。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/change--wiki-youtube-confidence-v0230.md",
+          "metadata_json": "{\"notes\": \"文書の変更先を直接示す。\"}"
+        }
+      ]
+    },
+    "lesson-scope": {
+      "subject": "concept:ingestに使うモデル",
+      "predicate": "applies_to",
+      "edges": [
+        {
+          "id": "64fb257a996726a0780444d3",
+          "subject": "concept:ingestに使うモデル",
+          "predicate": "applies_to",
+          "object": "component:wiki-web-raw",
+          "source": "rawの段を任せるエージェントの確かめ-2026-11-14",
+          "evidence": "wiki プラグイン 0.15.0 で足すエージェント `wiki:web-raw`（`model: sonnet`）に、`/wiki:ingest` の raw を作る段を任せ、要約ページから後をメインのモデル（Opus 5.5）で行ったときの記録である。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "concepts/ingestに使うモデル.md",
+          "metadata_json": "{\"notes\": \"現行の概念ページが説明する分担の範囲。概念は手順と条件、decision は日付のある選択であり同一対象ではない。\"}"
+        }
+      ]
+    },
+    "yt-dlp-version-family": {
+      "node": {
+        "id": "product:yt-dlp",
+        "slug": "product--yt-dlp",
+        "title": "yt-dlp",
+        "page_type": "entity",
+        "node_type": "product",
+        "kind": "product",
+        "path": "entities/product--yt-dlp.md",
+        "created": "2026-11-18",
+        "updated": "2026-11-18",
+        "metadata_json": "{\"aliases\": [], \"canonical\": false, \"tags\": [\"グラフ\"]}"
+      },
+      "outbound": [
+        {
+          "id": "a9f6112f903d8c083b75b189",
+          "subject": "product:yt-dlp",
+          "predicate": "sourced_from",
+          "object": "source:youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0",
+          "source": "youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0",
+          "evidence": null,
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "frontmatter_sources",
+          "page": "entities/product--yt-dlp.md",
+          "metadata_json": "{}"
+        }
+      ],
+      "inbound": [
+        {
+          "id": "8f037b307a2d26eee2fb7f3f",
+          "subject": "release:yt-dlp-2026.8.19",
+          "predicate": "release_of",
+          "object": "product:yt-dlp",
+          "source": "youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0",
+          "evidence": "`wiki_youtube.py`：PEP 723 で `yt-dlp==2026.8.19` を固定する。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/release--yt-dlp-2026.8.19.md",
+          "metadata_json": "{\"notes\": \"PEP 723 の依存指定を製品と版に分けた登録。\"}"
+        },
+        {
+          "id": "5cac966c6c843554ded65e0b",
+          "subject": "decision:adr-0027-captions",
+          "predicate": "selects",
+          "object": "product:yt-dlp",
+          "source": "youtubeの字幕の取り込みの設計-2026-11-15",
+          "evidence": "`wiki_youtube.py` を `uv run --script` で動かし、PEP 723 で yt-dlp の版を 1 つに固定して、字幕だけを取る。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "concepts/decision--adr-0027-captions.md",
+          "metadata_json": "{\"notes\": \"製品の選択と版を固定する方式。実装で使った数値の版は release 間の depends_on へ記録する。\"}"
+        }
+      ]
+    }
+  },
+  "known_unchecked": {
+    "nonexistent_quote_accepted_by_ordinary_lint": true,
+    "additional_policies": [
+      "循環",
+      "関係ごとの必須欄の欠落の一部",
+      "同じ型の別の対象の誤参照",
+      "適用範囲",
+      "評価の成功",
+      "ソースの新旧・節内の矛盾"
+    ]
+  },
+  "input_versions": [
+    {
+      "path": "docs/plans/wiki-project-ontology-2026-11-18.yaml",
+      "sha256": "92afa010cad2554a02c77bc3d090d6a1d007acbaddb5740cbacbe15961e3d9b2"
+    },
+    {
+      "path": "info-hive-wiki/skills/info-hive/scripts/wiki_graph_extract.py",
+      "sha256": "dd636813196f10e3b6c9324ff2352c90b6ac1cba5ece337e6d5be7967db8be47"
+    },
+    {
+      "path": "info-hive-wiki/skills/info-hive/scripts/wiki_graph_lint.py",
+      "sha256": "a99a45776e9018691fcd2fbff0ce770eb3a9cfcbbfadd1d0e623f88cc9315ab5"
+    },
+    {
+      "path": "info-hive-wiki/skills/info-hive/scripts/wiki_graph_query.py",
+      "sha256": "211c710ee5b0933e4f204a202f32c934ad7658bc404410419ac66f3e9eae1790"
+    }
+  ]
+}

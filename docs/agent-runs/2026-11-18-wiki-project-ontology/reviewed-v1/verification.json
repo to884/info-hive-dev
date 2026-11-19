@@ -1,0 +1,306 @@
+{
+  "date": "2026-11-18",
+  "candidate": "docs/plans/wiki-project-ontology-2026-11-18.yaml",
+  "live_ontology_sha256_before": "3c5139f9bb627c450a3d13e5ebdc0255bfe10961e8807cc0c3f33ba7f1927559",
+  "live_ontology_unchanged": true,
+  "current_corpus": {
+    "pages": 91,
+    "nodes": 91,
+    "edges": 473,
+    "predicates": {
+      "mentions": 331,
+      "sourced_from": 83,
+      "summarizes_raw": 59
+    },
+    "typed_edges": 0
+  },
+  "compatibility": {
+    "identical_compiled_graph": true,
+    "identical_graph_lint": true,
+    "preserved_node_types": 12,
+    "preserved_predicates": 15,
+    "depends_on_addition": "subject_types/object_types に component を追加。既存の組はすべて保つ。"
+  },
+  "pilot": {
+    "pages": 27,
+    "nodes": 27,
+    "typed_edges": 23,
+    "predicate_coverage": [
+      "affects",
+      "applies_to",
+      "changes",
+      "delivers",
+      "depends_on",
+      "evaluates",
+      "fixes",
+      "implements",
+      "motivated_by",
+      "part_of",
+      "release_of",
+      "selects"
+    ],
+    "graph_lint": {
+      "pages_scanned": 27,
+      "nodes": 27,
+      "duplicate_node_ids": 0,
+      "unknown_predicates": 0,
+      "broken_object_refs": 0,
+      "subject_type_mismatch": 0,
+      "object_type_mismatch": 0,
+      "missing_evidence": 0,
+      "missing_source_field": 0,
+      "broken_source_refs": 0,
+      "invalid_confidence": 0,
+      "invalid_status": 0,
+      "duplicate_canonical": 0,
+      "alias_collisions": 0,
+      "broken_contradicts": 0,
+      "broken_supersedes": 0,
+      "orphan_typed_nodes": 0,
+      "ambiguous_object_refs": 0,
+      "ambiguous_sources": 0,
+      "unresolved_sources": 0,
+      "order_dependent_edge_ids": 0,
+      "unreadable_graph": 0,
+      "unread_fields": 0
+    },
+    "all_quotes_present": true,
+    "all_required_fields_present": true,
+    "limits": "構造 lint/型付き抽出の試料。wiki 全体の構造 lint には索引/raw/全リンクの複製が必要。意味・最新版・成功は未証明。"
+  },
+  "negative_cases": [
+    {
+      "case": "評価を修正の主語にできない",
+      "detected_by": "subject_type_mismatch",
+      "findings": [
+        {
+          "page": "entities/evaluation--rag-051-pdf-direct.md",
+          "predicate": "fixes",
+          "object": "change:rag-pdf-prefix-1024",
+          "index": 0,
+          "subject": "evaluation:rag-051-pdf-direct",
+          "subject_type": "evaluation",
+          "allowed": [
+            "change"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "出荷の目的語は変更に限る",
+      "detected_by": "object_type_mismatch",
+      "findings": [
+        {
+          "page": "entities/release--rag-0.5.1.md",
+          "predicate": "delivers",
+          "object": "component:rag-pdf-reader",
+          "index": 1,
+          "object_type": "component",
+          "allowed": [
+            "change"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "存在しない対象を指さない",
+      "detected_by": "broken_object_refs",
+      "findings": [
+        {
+          "page": "entities/change--rag-pdf-prefix-1024.md",
+          "predicate": "fixes",
+          "object": "issue:missing",
+          "index": 1
+        }
+      ]
+    },
+    {
+      "case": "出典のない型付き関係を採らない",
+      "detected_by": "missing_source_field",
+      "findings": [
+        {
+          "page": "entities/change--rag-pdf-prefix-1024.md",
+          "predicate": "fixes",
+          "object": "issue:rag-pdf-prefix-rejected",
+          "index": 1
+        }
+      ]
+    },
+    {
+      "case": "引用のない型付き関係を採らない",
+      "detected_by": "missing_evidence",
+      "findings": [
+        {
+          "page": "entities/change--rag-pdf-prefix-1024.md",
+          "predicate": "fixes",
+          "object": "issue:rag-pdf-prefix-rejected",
+          "index": 1
+        }
+      ]
+    }
+  ],
+  "queries": {
+    "rag-051-delivers": {
+      "subject": "release:rag-0.5.1",
+      "predicate": "delivers",
+      "edges": [
+        {
+          "id": "1fb3b9e260305c74d614eb8e",
+          "subject": "release:rag-0.5.1",
+          "predicate": "delivers",
+          "object": "change:rag-pdf-prefix-1024",
+          "source": "pdfのヘッダーの判定の修正-rag-0.5.1",
+          "evidence": "to884/info-hive-rag#7 を 2026-11-12 にマージし（b3f45e3）、CHANGELOG に日付を入れた #8（0dea049）のあと、v0.5.1 をリリースした。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/release--rag-0.5.1.md",
+          "metadata_json": "{\"notes\": \"rag PR #7 を含む v0.5.1。\"}"
+        }
+      ]
+    },
+    "pdf-fix": {
+      "subject": "change:rag-pdf-prefix-1024",
+      "predicate": "fixes",
+      "edges": [
+        {
+          "id": "32dcf4f3c07c025309f7437e",
+          "subject": "change:rag-pdf-prefix-1024",
+          "predicate": "fixes",
+          "object": "issue:rag-pdf-prefix-rejected",
+          "source": "pdfのヘッダーの判定の修正-rag-0.5.1",
+          "evidence": "`%PDF-` の前にあるバイトが 1024 バイト以下なら受け付けるように直した。上限は PDFium にそろえた",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/change--rag-pdf-prefix-1024.md",
+          "metadata_json": "{\"notes\": \"前置き 1024 バイト以下の拒否条件を解消。MCP から索引化までの成功は未確認。\"}"
+        }
+      ]
+    },
+    "sonnet-choice": {
+      "subject": "decision:web-raw-sonnet-20261113",
+      "predicate": "selects",
+      "edges": [
+        {
+          "id": "f8c04b5b20065a278d3a8428",
+          "subject": "decision:web-raw-sonnet-20261113",
+          "predicate": "selects",
+          "object": "product:claude-sonnet-5-5",
+          "source": "ingestのモデルの比較-2026-11-13",
+          "evidence": "結論として、Sonnet 5.5 を使い続けることにした",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "concepts/decision--web-raw-sonnet-20261113.md",
+          "metadata_json": "{\"notes\": \"Web raw の段に限る。記事作成全体のモデル指定ではない。\"}"
+        }
+      ]
+    },
+    "sonnet-reason": {
+      "subject": "decision:web-raw-sonnet-20261113",
+      "predicate": "motivated_by",
+      "edges": [
+        {
+          "id": "6713b1972c12daf607655bfc",
+          "subject": "decision:web-raw-sonnet-20261113",
+          "predicate": "motivated_by",
+          "object": "evaluation:ingest-models-20261113",
+          "source": "ingestのモデルの比較-2026-11-13",
+          "evidence": "結論として、Sonnet 5.5 を使い続けることにした",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "concepts/decision--web-raw-sonnet-20261113.md",
+          "metadata_json": "{\"notes\": \"同じ報告のモデル比較を受けた結論。\"}"
+        }
+      ]
+    },
+    "youtube-implementation": {
+      "subject": "change:wiki-youtube-v0230",
+      "predicate": "implements",
+      "edges": [
+        {
+          "id": "e5555664a4412860e1d36fec",
+          "subject": "change:wiki-youtube-v0230",
+          "predicate": "implements",
+          "object": "decision:adr-0027-captions",
+          "source": "youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0",
+          "evidence": "作者が ADR-0027（[[youtubeの字幕の取り込みの設計-2026-11-15]]）を承認し、実装を求めた（2026-11-16）。この記録は、その実装と、それを出した wiki 0.23.0 のものである。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/change--wiki-youtube-v0230.md",
+          "metadata_json": "{\"notes\": \"字幕の取得方法を実装した。残る限界やレビュー結果は別に読む。\"}"
+        }
+      ]
+    },
+    "failed-reviews": {
+      "subject": "evaluation:youtube-impl-reviews-17",
+      "predicate": "evaluates",
+      "edges": [
+        {
+          "id": "0cb93193aa09f6e26c3c6c32",
+          "subject": "evaluation:youtube-impl-reviews-17",
+          "predicate": "evaluates",
+          "object": "change:wiki-youtube-v0230",
+          "source": "youtubeの字幕の取り込みの実装とリリース-wiki-0.23.0",
+          "evidence": "Sol の敵対的レビューは 17 回で、どれも却下だった。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "entities/evaluation--youtube-impl-reviews-17.md",
+          "metadata_json": "{\"notes\": \"各回で対象の差分は異なる。17 回の集合を探索の入口として記録する。版ごとの比較は各回を別ノードにする必要がある。\"}"
+        }
+      ]
+    },
+    "lesson-scope": {
+      "subject": "concept:ingestに使うモデル",
+      "predicate": "applies_to",
+      "edges": [
+        {
+          "id": "b33c57852f24fc995caeb248",
+          "subject": "concept:ingestに使うモデル",
+          "predicate": "applies_to",
+          "object": "component:wiki-web-raw",
+          "source": "ingestのモデルの比較-2026-11-13",
+          "evidence": "モデルの差が raw に出るのは Web ページだけである。モデルが受け持つのは、雑音の削除、訳、画像の補足、`translated_by` の記入である。",
+          "confidence": "high",
+          "status": "current",
+          "extraction_method": "explicit_graph_frontmatter",
+          "page": "concepts/ingestに使うモデル.md",
+          "metadata_json": "{\"notes\": \"Web ページの raw の段。PDF や記事作成全体には広げない。\"}"
+        }
+      ]
+    }
+  },
+  "known_unchecked": {
+    "nonexistent_quote_accepted_by_ordinary_lint": true,
+    "additional_policies": [
+      "循環",
+      "関係ごとの必須欄の欠落の一部",
+      "同じ型の別の対象の誤参照",
+      "適用範囲",
+      "評価の成功",
+      "ソースの新旧・節内の矛盾"
+    ]
+  },
+  "input_versions": [
+    {
+      "path": "docs/plans/wiki-project-ontology-2026-11-18.yaml",
+      "sha256": "0418afe8ac56d6fb788959b9ad4ccd91048371df21f3b874813c55e3030e9fe8"
+    },
+    {
+      "path": "info-hive-wiki/skills/info-hive/scripts/wiki_graph_extract.py",
+      "sha256": "dd636813196f10e3b6c9324ff2352c90b6ac1cba5ece337e6d5be7967db8be47"
+    },
+    {
+      "path": "info-hive-wiki/skills/info-hive/scripts/wiki_graph_lint.py",
+      "sha256": "a99a45776e9018691fcd2fbff0ce770eb3a9cfcbbfadd1d0e623f88cc9315ab5"
+    },
+    {
+      "path": "info-hive-wiki/skills/info-hive/scripts/wiki_graph_query.py",
+      "sha256": "211c710ee5b0933e4f204a202f32c934ad7658bc404410419ac66f3e9eae1790"
+    }
+  ]
+}

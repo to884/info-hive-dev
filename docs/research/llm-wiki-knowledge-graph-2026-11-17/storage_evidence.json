@@ -1,0 +1,122 @@
+[
+  {
+    "claim": "Neo4j は有向・型付きの関係と、ノード・関係のプロパティを持つプロパティグラフを保存する。",
+    "evidence_quote": "Nodes and relationships can have properties (key-value pairs), which further describe them.",
+    "source_url": "https://neo4j.com/docs/getting-started/appendix/graphdb-concepts/",
+    "source_title": "Neo4j: Graph database concepts",
+    "locator": "Introduction / Relationship, lines 136-150 and 206-218",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "エッジに source_id や confidence を載せることは可能だが、どの出所がどの主張を支持するかというアプリケーションの設計は自動では決まらない。"
+  },
+  {
+    "claim": "SQLite の通常の edge テーブルと再帰 CTE でもグラフの到達可能性を照会できる。専用グラフDBは必須でない。",
+    "evidence_quote": "Suppose you have an undirected graph where each node is identified by an integer and edges are defined by a table like this:",
+    "source_url": "https://www.sqlite.org/lang_with.html",
+    "source_title": "SQLite: The WITH Clause",
+    "locator": "3.3 Queries Against A Graph, lines 203-222",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "公式例は到達可能性の例。一般に可変長経路や経路列挙が専用DBと同等に高速という証拠ではない。深さ・訪問済み集合・上限・索引を設計する必要がある。"
+  },
+  {
+    "claim": "SQLite WAL では読み取りと書き込みは並行可能だが、書き込みは同時に1つであり、共有メモリのため同一マシンを前提とする。",
+    "evidence_quote": "However, since there is only one WAL file, there can only be one writer at a time.",
+    "source_url": "https://www.sqlite.org/wal.html",
+    "source_title": "SQLite: Write-Ahead Logging",
+    "locator": "2.2 Concurrency / 1 Overview",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "WAL の設定・同期レベル・checkpoint によって性能と耐久性が変わる。ネットワークファイルシステムに置いたWAL DBの複数ホスト共有を推奨しない。"
+  },
+  {
+    "claim": "RDF は主語・述語・目的語のトリプルによるデータモデルであり、データセットは既定グラフと名前付きグラフからなる。RDF自体は特定DB製品ではない。",
+    "evidence_quote": "RDF datasets are used to organize collections of RDF graphs, and comprise a default graph and zero or more named graphs.",
+    "source_url": "https://www.w3.org/TR/rdf-concepts/",
+    "source_title": "W3C: RDF 1.1 Concepts and Abstract Syntax",
+    "locator": "Abstract / 4 RDF Datasets / 3.4 Blank Nodes",
+    "source_type": "standard",
+    "language": "en",
+    "limitations": "名前付きグラフの名前に出所を対応づけることはアプリケーションの規約。名前だけでは主張の真偽や出所意味論を自動的に保証しない。blank node ID は永続・可搬IDではない。"
+  },
+  {
+    "claim": "RDF データセットは N-Quads のプレーンテキストファイルとして、グラフDBなしでも保存・交換できる。",
+    "evidence_quote": "N-Quads is a line-based, plain text format for encoding an RDF dataset.",
+    "source_url": "https://www.w3.org/TR/n-quads/",
+    "source_title": "W3C: RDF 1.1 N-Quads",
+    "locator": "Abstract / 1 Introduction / 2.1 Simple Statements, lines 40-53",
+    "source_type": "standard",
+    "language": "en",
+    "limitations": "フォーマットであり、トランザクションや索引の機能はない。Turtle は単一グラフの記法、複数グラフの保持は N-Quads/TriG 等を選ぶ。"
+  },
+  {
+    "claim": "Apache Jena Fuseki は SPARQL の問い合わせ・更新サーバーで、TDB と組み合わせて永続的な RDF ストアを提供する。",
+    "evidence_quote": "Fuseki is integrated with TDB to provide a robust, transactional, persistent storage layer.",
+    "source_url": "https://jena.apache.org/documentation/fuseki2/index.html",
+    "source_title": "Apache Jena: Apache Jena Fuseki",
+    "locator": "Introduction, SPARQL 1.1 protocols / TDB integration",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "Fuseki と TDB2 は別の役割。単に Fuseki を起動するだけで必ず永続化になるわけではなく、永続ストアの構成が必要。"
+  },
+  {
+    "claim": "Jena TDB2 はトランザクションと MVCC を使う永続 RDF ストアで、書き込み1つと複数の読み取りが並行する。複数アプリからはDBファイルを直接共有せず Fuseki を用いる。",
+    "evidence_quote": "Transactional TDB supports one active write transaction, and multiple read transactions at the same time.",
+    "source_url": "https://jena.apache.org/documentation/tdb/tdb_transactions.html",
+    "source_title": "Apache Jena: TDB Transactions",
+    "locator": "Overview / Multi JVM / Limitations",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "専用グラフDBであっても無制限の同時writerを保証しない。bulk loaderは非トランザクショナルという例外がある。"
+  },
+  {
+    "claim": "JSON Lines はUTF-8で各行に1つのJSON値を保存する形式で、ノード・エッジ・証拠レコードの保存に利用できる。",
+    "evidence_quote": "Each Line is a Valid JSON Value",
+    "source_url": "https://jsonlines.org/",
+    "source_title": "JSON Lines documentation",
+    "locator": "Three requirements: UTF-8 Encoding / Each Line is a Valid JSON Value / Line Terminator",
+    "source_type": "format_documentation",
+    "language": "en",
+    "limitations": "形式には参照整合性やトランザクション機能は含まれない。複数ファイルを更新する際の世代切り替えや単一writerはアプリ側の設計提案。"
+  },
+  {
+    "claim": "Parquet は列指向のファイル形式で、圧縮と一括処理に向く保存・交換候補だがグラフDBではない。",
+    "evidence_quote": "Apache Parquet is an open source, column-oriented data file format designed for efficient data storage and retrieval.",
+    "source_url": "https://parquet.apache.org/docs/overview/",
+    "source_title": "Apache Parquet: Overview",
+    "locator": "Overview, lines 49-66",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "グラフの隣接索引や経路探索、行単位のトランザクションを提供する根拠ではない。実装間の対応機能にも差がある。"
+  },
+  {
+    "claim": "NetworkX は GraphML をファイルとして書き出せるため、グラフDBを使わず分析結果を保存・交換できる。",
+    "evidence_quote": "Write G in GraphML XML format to path",
+    "source_url": "https://networkx.org/documentation/stable/reference/readwrite/generated/networkx.readwrite.graphml.write_graphml.html",
+    "source_title": "NetworkX: write_graphml",
+    "locator": "Function definition / Notes",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "この実装はmixed graphs・hyperedges・nested graphs・portsをサポートしない。NetworkX は永続DBではなく、GraphMLへのネストした証拠属性のマッピングも確認が必要。"
+  },
+  {
+    "claim": "日本語のナレッジグラフ推論チャレンジは RDF をGitHubで配布し、別にSPARQLエンドポイントも提供している。ファイル配布と検索サーバーを分ける実例である。",
+    "evidence_quote": "ナレッジグラフはResource Description Framework (RDF)形式とし，GitHubで公開しています。",
+    "source_url": "https://challenge.knowledge-graph.jp/2024/rdf.html",
+    "source_title": "ナレッジグラフ推論チャレンジ: ナレッジグラフ公開",
+    "locator": "ナレッジグラフの利用方法 / GitHub / SPARQLエンドポイント",
+    "source_type": "primary_project_documentation",
+    "language": "ja",
+    "limitations": "2024年のチャレンジデータの配布方式を示すものであり、LLM Wiki との性能比較ではない。"
+  },
+  {
+    "claim": "kuzudb/kuzu の原リポジトリは2025-10-10にアーカイブされ、2026-11-17調査時点でも読み取り専用と表示される。新規採用の標準候補として無条件には推薦しない。",
+    "evidence_quote": "This repository was archived by the owner on Oct 10, 2025. It is now read-only.",
+    "source_url": "https://github.com/kuzudb/kuzu/releases",
+    "source_title": "kuzudb/kuzu: Releases",
+    "locator": "Repository archive notice",
+    "source_type": "primary_repository",
+    "language": "en",
+    "limitations": "アーカイブは既存バイナリが使用不可という意味ではない。各フォークの品質・互換性・保守は今回検証していない。"
+  }
+]

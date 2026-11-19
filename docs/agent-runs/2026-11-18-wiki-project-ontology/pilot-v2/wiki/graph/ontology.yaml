@@ -1,0 +1,289 @@
+# 提案: 2026-11-18。既存の定義を残した完全版。実 wiki には未適用。
+# 詳細な採用条件・識別規則・未実装の検査は同名の Markdown 設計書を参照。
+node_types:
+  person:
+    maps_from:
+      type: entity
+      kind: person
+  company:
+    maps_from:
+      type: entity
+      kind: company
+  product:
+    maps_from:
+      type: entity
+      kind: product
+  paper:
+    maps_from:
+      type: entity
+      kind: paper
+  place:
+    maps_from:
+      type: entity
+      kind: place
+  organization:
+    maps_from:
+      type: entity
+      kind: organization
+  concept:
+    maps_from:
+      type: concept
+  source:
+    maps_from:
+      type: source
+  synthesis:
+    maps_from:
+      type: synthesis
+  decision:
+    explicit_only: true
+  claim:
+    explicit_only: true
+  raw:
+    explicit_only: true
+  component:
+    explicit_only: true
+    description: 製品内の責務を持つ構成要素。ファイル名や UI の単語だけを理由に作らない。
+  release:
+    explicit_only: true
+    description: 製品の特定版。自前・外部のソフトウェア・モデルを同じ形で表し、release_of で製品へ結ぶ。公開日時や導入確認は別の事実。
+  change:
+    explicit_only: true
+    description: 範囲を特定した変更。コード、文書、設定、プロンプトを含む。提案と実施を本文で区別する。
+  issue:
+    explicit_only: true
+    description: 条件と期待との差を記録した問題。原因の仮説、修正案、GitHub issue の番号そのものとは区別する。
+  evaluation:
+    explicit_only: true
+    description: 対象、版、方法、結果、限界を特定した評価の実施。試験、比較、レビュー、手動確認を含む。
+  artifact:
+    explicit_only: true
+    description: 変更の対象となる管理された文書・設定・ファイル・リリース本文。repository と path または URL で識別し、要約する source ページと区別する。
+predicates:
+  mentions:
+    subject_types:
+    - '*'
+    object_types:
+    - '*'
+    requires_evidence: false
+    description: '本文の wikilink から導く、具体性の低いエッジ。目的のページを探すのに使い、
+
+      型付きの関係の証拠としては使わない。
+
+      '
+  sourced_from:
+    subject_types:
+    - '*'
+    object_types:
+    - source
+    requires_evidence: false
+    description: 'ソースページ以外の各ページの frontmatter にある `sources:` のリストから導く。
+
+      '
+  summarizes_raw:
+    subject_types:
+    - source
+    object_types:
+    - '*'
+    requires_evidence: false
+    description: 'ソースページの frontmatter の `raw:` フィールドから導く。目的語は raw ファイルの
+
+      パスの文字列で、wiki のノード ID ではない。
+
+      '
+  founded:
+    subject_types:
+    - person
+    object_types:
+    - company
+    - organization
+    requires_evidence: true
+  owns:
+    subject_types:
+    - person
+    - company
+    - organization
+    object_types:
+    - company
+    - product
+    - organization
+    requires_evidence: true
+  contains_product:
+    subject_types:
+    - company
+    - organization
+    object_types:
+    - product
+    requires_evidence: true
+  works_on:
+    subject_types:
+    - person
+    object_types:
+    - product
+    - concept
+    requires_evidence: true
+  chose:
+    subject_types:
+    - person
+    - company
+    - organization
+    object_types:
+    - product
+    - concept
+    requires_evidence: true
+  proposed:
+    subject_types:
+    - person
+    object_types:
+    - decision
+    - claim
+    requires_evidence: true
+  competes_with:
+    subject_types:
+    - product
+    - company
+    - organization
+    object_types:
+    - product
+    - company
+    - organization
+    requires_evidence: true
+  depends_on:
+    subject_types:
+    - product
+    - concept
+    - component
+    - release
+    object_types:
+    - product
+    - concept
+    - component
+    - release
+    requires_evidence: true
+  authored:
+    subject_types:
+    - person
+    - organization
+    object_types:
+    - paper
+    - source
+    requires_evidence: true
+  cites:
+    subject_types:
+    - paper
+    - source
+    - synthesis
+    object_types:
+    - paper
+    - source
+    requires_evidence: true
+  contradicts:
+    subject_types:
+    - claim
+    - source
+    - synthesis
+    object_types:
+    - claim
+    - source
+    - synthesis
+    requires_evidence: true
+  supersedes:
+    subject_types:
+    - claim
+    - source
+    - decision
+    object_types:
+    - claim
+    - source
+    - decision
+    requires_evidence: true
+  part_of:
+    subject_types:
+    - component
+    - artifact
+    object_types:
+    - product
+    - component
+    requires_evidence: true
+    description: 構成要素・管理対象物が製品または上位の構成要素に属する。自己参照と循環を採用しない。推移的なエッジは生成しない。
+  release_of:
+    subject_types:
+    - release
+    object_types:
+    - product
+    requires_evidence: true
+    description: その製品の出荷の単位である。製品名と版を根拠で特定する。
+  delivers:
+    subject_types:
+    - release
+    object_types:
+    - change
+    requires_evidence: true
+    description: その版で、その変更を出荷した。計画、main へのマージ、単なる言及だけでは書かない。
+  changes:
+    subject_types:
+    - change
+    object_types:
+    - component
+    - artifact
+    requires_evidence: true
+    description: 変更が直接手を入れた構成要素または文書・設定などの管理対象物。PR の一部なら本文で範囲を特定する。
+  affects:
+    subject_types:
+    - issue
+    object_types:
+    - product
+    - component
+    - release
+    requires_evidence: true
+    description: 指定した条件で問題が観測された対象。版が分かる障害は release を目的語にし、現行の全版への影響に一般化しない。
+  fixes:
+    subject_types:
+    - change
+    object_types:
+    - issue
+    requires_evidence: true
+    description: その問題を解消する実施済みの変更。根拠の版・条件に限る。提案、回避策、未実施の案は採用しない。
+  implements:
+    subject_types:
+    - change
+    object_types:
+    - decision
+    requires_evidence: true
+    description: 変更がその具体的な設計判断を実装した。ADR 全体の要件充足や検証成功を意味しない。
+  motivated_by:
+    subject_types:
+    - decision
+    object_types:
+    - issue
+    - evaluation
+    requires_evidence: true
+    description: その問題または評価が判断の理由になった。時系列や同時言及から理由を補わない。
+  selects:
+    subject_types:
+    - decision
+    object_types:
+    - product
+    - concept
+    - release
+    requires_evidence: true
+    description: 判断が製品・方式またはその特定版を選択した。製品の選択と、版の固定方針と、実装で固定した版を混ぜない。
+  evaluates:
+    subject_types:
+    - evaluation
+    object_types:
+    - product
+    - component
+    - release
+    - change
+    - decision
+    - artifact
+    requires_evidence: true
+    description: その対象を、その版と方法で評価した。結果と未確認事項は評価ページにも必ず残す。集合のレビューを最終出荷版の評価として書かない。
+  applies_to:
+    subject_types:
+    - concept
+    object_types:
+    - product
+    - component
+    requires_evidence: true
+    description: 手順・教訓・原則の適用範囲として明記された対象。一般的に関係がありそうという理由だけでは書かない。

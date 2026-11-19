@@ -1,0 +1,68 @@
+{
+  "query": "LLM Wiki の記事からナレッジグラフを作成する方法。日英検索、LLM有無、グラフDB有無。",
+  "mode": "standard",
+  "date_jst": "2026-11-17",
+  "timezone": "Asia/Tokyo",
+  "assumptions": [
+    "Markdown・frontmatter・wikilinkを持つLLM Wikiを対象とする。",
+    "LLM不使用を、完全なモデル不使用・従来NLP・汎用生成LLM不使用に分ける。",
+    "今回は調査と設計上の提案のみ。プラグインの実装・リリース・wikiへの取り込みは行わない。"
+  ],
+  "provider_config": {
+    "primary": "search_service.web_run",
+    "fallback_reason": "search CLI がPATHに存在しない",
+    "github_read": "GitHub MCP fetch",
+    "parallel_retrieval_agents": 3
+  },
+  "scope_changes": [
+    "リンク、実体、主張のグラフを分ける観点を追加。",
+    "削除伝播と出所の維持を保存方式の比較軸に追加。",
+    "日本語で書かれた論文と日本語データでの評価を区別。"
+  ],
+  "limitations": [
+    "性能・費用のベンチマークは未実施。",
+    "ローカル調査対象は未コミット変更を含む作業ツリー。"
+  ],
+  "queries_ja": [
+    "ナレッジグラフ 構築 LLM 使わない GiNZA 固有表現 関係抽出",
+    "ナレッジグラフ 保存 RDF プロパティグラフ 国立国会図書館",
+    "site.megagonlabs.github.io ginza 固有表現 係り受け Sudachi",
+    "site.anlp.jp ゼロ照応解析 日本語 省略 項構造解析",
+    "site.github.com WorksApplications SudachiPy normalized form 辞書",
+    "site.neo4j.com LLM Graph Builder schema extraction 日本語",
+    "site.neo4j.com/developer \"日本語\" \"グラフ\" \"LLM\"",
+    "site.microsoft.com/ja-jp \"GraphRAG\" \"ナレッジ\""
+  ],
+  "queries_en": [
+    "Karpathy LLM Wiki markdown knowledge graph links gist",
+    "site.w3.org RDF 1.1 Concepts named graphs provenance PROV SHACL",
+    "site.sqlite.org lang_with recursive graph queries WAL one writer",
+    "site.w3.org RDF 1.1 concepts dataset named graphs Turtle N Quads",
+    "site.jena.apache.org documentation fuseki2 transaction database TDB2",
+    "site.spacy.io usage rule based matching entityruler dependency matcher",
+    "site.aclanthology.org A Frustratingly Easy Approach for Entity and Relation Extraction",
+    "\"T2KG\" \"An End-to-End System\" knowledge graph",
+    "site.microsoft.github.io/graphrag indexing default dataflow entity relationship extraction provenance",
+    "site.github.com HKUDS LightRAG document deletion provenance graph extraction",
+    "Text2KGBench benchmark ontology knowledge graph generation large language models hallucination precision recall paper"
+  ],
+  "source_count": 41,
+  "documents_output": "D:\\Users\\toshiki\\OneDrive - Mokumoku.Net\\Documents\\LLM_Wiki_Knowledge_Graph_Research_20261117",
+  "repository_output": "C:\\Works\\info-hive-dev\\docs\\research\\llm-wiki-knowledge-graph-2026-11-17",
+  "skill_validation_note": "付属バリデーターは英語見出し・空白単語数を前提とするため、検証用コピーの見出しだけを変換。日本語の長さは別途文字数を記録する。",
+  "citation_verification_note": "URL到達性と意味的支持は別。後者は手動で原典と留保を照合した。",
+  "independent_review": {
+    "model": "Claude Opus 5.5",
+    "status": "not_completed",
+    "reason": "5-hour usage limit before generation",
+    "attempts": 1
+  },
+  "finished_at_jst": "2026-11-17T22:57:08.443395+09:00",
+  "quality_checks": {
+    "report_structure": "passed",
+    "html": "passed with documented Japanese adapter",
+    "citation_script": "passed; 5 heuristic/transport flags manually reviewed",
+    "pdf": "12 pages, all pages visually reviewed, 190 links, no replacement characters",
+    "opus_review": "not completed due usage limit"
+  }
+}
