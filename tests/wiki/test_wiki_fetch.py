@@ -85,15 +85,19 @@ class FetchTestCase(unittest.TestCase):
         stub = FetchStub(page(body))
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        raw, wiki = root / "raw", root / "wiki"
+        raw.mkdir()
+        wiki.mkdir()
         args = argparse.Namespace(
-            url=PAGE_URL, raw_root=Path(tmp.name), slug="article-1", json=True, no_images=False,
+            url=PAGE_URL, raw_root=raw, wiki=wiki, slug="article-1", json=True, no_images=False,
             timeout=5, max_bytes=wiki_fetch.DEFAULT_MAX_BYTES, max_images=50, force=False)
         # 内部のアドレスかを調べるときの名前の解決（DNS）も止める。
         with mock.patch.object(wiki_fetch, "fetch", stub), \
                 mock.patch.object(wiki_fetch, "is_private_host", lambda host: False):
             code, result = wiki_fetch.build(args)
         self.assertEqual(code, 0, result)
-        text = (Path(tmp.name) / "article-1.md").read_text(encoding="utf-8")
+        text = (raw / "article-1.md").read_text(encoding="utf-8")
         return result, text, stub
 
 

@@ -16,6 +16,7 @@ json3 の形をまねて、ここで作る。実際の動画の -J の出力と 
 """
 from __future__ import annotations
 
+import hashlib
 import http.server
 import io
 import json
@@ -40,6 +41,7 @@ import wiki_fetch  # noqa: E402
 import wiki_lint  # noqa: E402
 import wiki_youtube as wy  # noqa: E402
 import wiki_youtube_url as wu  # noqa: E402
+from wiki_raw_roots import RECORDS, read_raw_roots, record_raw_root  # noqa: E402
 
 VID = "AbCdEfGhIj0"
 
@@ -261,12 +263,19 @@ class FetchGuardTests(Workspace):
 
     def test_resume_with_youtube_final_url_is_refused(self):
         """前の版で、短縮 URL から YouTube へ転送されたページを途中まで取り込んだ（実装のレビューの 1 回目の 3）。"""
-        (self.raw / "記事.md").write_text("---\nurl: \"https://example.com/s\"\n---\n本文\n", encoding="utf-8")
-        saved = {"url": "https://example.com/s", "final_url": f"https://www.youtube.com/watch?v={VID}",
-                 "source_sha256": "0" * 64}
+        meta = {"url": "https://example.com/s", "final_url": f"https://www.youtube.com/watch?v={VID}",
+                "source_sha256": "0" * 64}
+        text = "---\n" + "".join(f"{key}: {json.dumps(value)}\n" for key, value in meta.items()) + "---\n本文\n"
+        data = text.encode("utf-8")
+        (self.raw / "記事.md").write_bytes(data)
+        wd = wiki_fetch.wiki_rawcheck.work_dir(self.wiki, "記事")
+        wd.mkdir(parents=True)
+        (wd / "fetched.md").write_bytes(data)
+        saved = {**meta, "source_sha256_of": "html", "fetched_sha256": hashlib.sha256(data).hexdigest(),
+                 "needs_translation": False, "images": [], "removed_by_rule": [], "warnings": []}
+        (wd / "fetch.json").write_text(json.dumps(saved), encoding="utf-8")
         out = io.StringIO()
-        with mock.patch.object(wiki_fetch.wiki_rawcheck, "resumable_fetch", return_value=saved), \
-                mock.patch.object(wiki_fetch, "fetch", side_effect=AssertionError("取得した")), \
+        with mock.patch.object(wiki_fetch, "fetch", side_effect=AssertionError("取得した")), \
                 redirect_stdout(out), mock.patch.object(sys, "stderr", io.StringIO()):
             code = wiki_fetch.main(self.fetch_args("https://example.com/s"))
         self.assertEqual(code, 4)
@@ -503,6 +512,9 @@ class InspectWriteTests(Workspace):
         self.assertTrue(out["read_only"])
         self.assertFalse(os.stat(path).st_mode & 0o222)
         self.assertEqual(out["raw_ref"], "raw/動画.md")
+        self.assertEqual(out["raw_sha256"], hashlib.sha256(path.read_bytes()).hexdigest())
+        self.assertNotEqual(out["raw_sha256"], sha)
+        self.assertEqual(read_raw_roots(self.wiki), ([self.raw], []))
         text = path.read_text(encoding="utf-8")
         for bad in ("timedtext", "signature", "ip=", "expire"):
             self.assertNotIn(bad, text)
@@ -526,6 +538,86 @@ class InspectWriteTests(Workspace):
         self.assertEqual((code, out["status"]), (0, "created"))
         code, out = self.inspect("--slug", "動画", session=self.session(data=changed))
         self.assertEqual(sorted(x["state"] for x in out["existing"]), ["different", "same"])
+
+    def test_same_returns_digest_of_existing_version_and_unambiguous_reference(self):
+        sha = self.inspect()[1]["source_sha256"]
+        self.assertEqual(self.write("動画", sha)[1]["status"], "created")
+        path = self.raw / "動画.md"
+        original = b"\xef\xbb\xbf" + path.read_bytes().replace(b"\n", b"\r\n")
+        os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+        path.write_bytes(original)
+        other = self.wiki / "raw" / path.name
+        other.parent.mkdir()
+        other.write_bytes(original)
+        code, out = self.write("別名", sha)
+        self.assertEqual((code, out["status"]), (0, "same"), out)
+        self.assertEqual(out["raw_ref"], path.as_posix())
+        self.assertEqual(out["raw_sha256"], hashlib.sha256(original).hexdigest())
+        self.assertEqual(path.read_bytes(), original)
+        page = VerifyTests.page("動画", "本文", raw=out["raw_ref"])
+        self.write_page("sources/動画.md", page.replace("\n---\n", f'\nraw_sha256: "{out["raw_sha256"]}"\n---\n', 1))
+        code, verified = self.run_main("verify", "--wiki", str(self.wiki), "--raw-root", str(self.raw),
+                                       "--raw-path", out["raw_path"], "--json")
+        self.assertEqual((code, verified["findings"]), (0, []), verified)
+        self.assertFalse(verified["raw_warnings"])
+
+    def test_record_failure_prevents_new_write_and_reuse_chmod(self):
+        sha = self.inspect()[1]["source_sha256"]
+        with mock.patch.object(wy, "record_raw_root", side_effect=PermissionError("記録不可")):
+            code, out = self.write("動画", sha)
+        self.assertEqual((code, out["status"]), (1, "error"))
+        self.assertIn("raw の根を記録できない", out["message"])
+        self.assertEqual(list(self.raw.iterdir()), [])
+        self.assertFalse((self.wiki / RECORDS).exists())
+        self.assertEqual(self.write("動画", sha)[1]["status"], "created")
+        path = self.raw / "動画.md"
+        os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+        with mock.patch.object(wy, "record_raw_root", side_effect=PermissionError("記録不可")):
+            code, out = self.write("別名", sha)
+        self.assertEqual((code, out["status"]), (1, "error"))
+        self.assertTrue(path.stat().st_mode & 0o222)
+
+    def test_inspect_skips_linked_existing_raw_before_reading(self):
+        other = self.tmp / "外の原本.md"
+        other.write_text("本文", encoding="utf-8")
+        linked = self.raw / "動画.md"
+        try:
+            os.link(other, linked)
+        except OSError:
+            self.skipTest("ハードリンクを作れない")
+        read = Path.read_bytes
+
+        def checked(path):
+            if path == linked:
+                raise AssertionError("リンクの raw を読んだ")
+            return read(path)
+
+        with mock.patch.object(Path, "read_bytes", checked):
+            code, out = self.inspect("--slug", "動画")
+        self.assertEqual((code, out["slug_state"]), (0, "slug_taken"), out)
+        self.assertIn(linked.name, out["unreadable"])
+        self.assertEqual(out["raw_link_warnings"][0]["kind"], "hardlink")
+
+    def test_lint_verifies_saved_version_from_historical_root(self):
+        sha = self.inspect()[1]["source_sha256"]
+        code, out = self.write("動画", sha)
+        self.assertEqual((code, out["status"]), (0, "created"), out)
+        page = VerifyTests.page("動画", "本文", raw=out["raw_ref"])
+        self.write_page("sources/動画.md", page.replace("\n---\n", f'\nraw_sha256: "{out["raw_sha256"]}"\n---\n', 1))
+        new_root = self.tmp / "現在の根"
+        new_root.mkdir()
+
+        def lint():
+            return wiki_lint.lint(wiki_lint.collect_pages(self.wiki), 100, 200, [], False, 5,
+                                  wiki_root=self.wiki, raw_root=new_root)
+
+        found = lint()
+        for key in ("missing_raw", "raw_version_unverified", "raw_paths_unchecked", "caption_corrections"):
+            self.assertEqual(found[key], [], key)
+        raw = Path(out["raw_path"])
+        os.chmod(raw, stat.S_IWRITE | stat.S_IREAD)
+        raw.write_bytes(raw.read_bytes() + b"\n")
+        self.assertTrue(lint()["missing_raw"][0]["mismatches"])
 
     def test_upper_case_extension_is_found(self):
         """拡張子が .MD の raw も、同じ資料として見つける（レビューの 6 回目）。"""
@@ -1191,6 +1283,31 @@ class VerifyTests(Workspace):
                                   "--slug", "動画", "--json")
         self.assertEqual((code, out["findings"]), (0, []))
         self.assertTrue(any(w["state"] == "ambiguous" for w in out["raw_warnings"]))
+
+    def test_verify_uses_explicit_file_and_recorded_roots_for_other_pages(self):
+        path = self.raw / "動画.MD"
+        original = self.raw / "動画.md"
+        data = original.read_bytes()
+        original.unlink()
+        path.write_bytes(data)
+        historical = self.tmp / "過去の根"
+        historical.mkdir()
+        other = historical / path.name
+        other.write_bytes(wc.render_raw(fields(title="別の版"), wc.caption_events(json3((0, "別の字幕"))),
+                                        [], 1).encode("utf-8"))
+        article = historical / "記事.md"
+        article.write_text("過去の原本", encoding="utf-8")
+        record_raw_root(self.wiki, historical, writer="wiki_youtube")
+        self.write_page("sources/動画.md", self.page("動画", "本文", raw=path.as_posix()))
+        self.write_page("sources/記事.md", self.page("記事", "本文", raw=article.as_posix(), kind=None, confidence=None))
+        code, out = self.run_main("verify", "--wiki", str(self.wiki), "--raw-root", str(self.raw),
+                                  "--raw-path", str(path), "--json")
+        self.assertEqual((code, out["findings"]), (0, []), out)
+        self.assertEqual(out["lines"], 4)
+        self.assertEqual(out["result"]["summaries"], ["sources/動画.md"])
+        self.assertFalse(any(w["state"] == "parents_unchecked" for w in out["raw_warnings"]))
+        self.assertTrue(any(w["source"] == "sources/記事.md" and w["state"] == "version_unverified"
+                            for w in out["raw_warnings"]))
 
     def test_verify_cli_and_lint(self):
         summary = self.page("動画", "講義では 50〔訂正 L2-1〕 人", confidence="medium",

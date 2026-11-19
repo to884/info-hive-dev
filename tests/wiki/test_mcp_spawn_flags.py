@@ -132,9 +132,10 @@ class SpawnFlagsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as data, \
                 mock.patch.dict(os.environ, {common.DATA_DIR_ENV: data}), \
                 mock.patch.object(relay.subprocess, "Popen", fake_popen):
-            relay.spawn_server(sys.executable, subprocess.DEVNULL)
+            relay.spawn_server(sys.executable, subprocess.DEVNULL, start_id="test-start")
         self.assertEqual(captured["creationflags"], common.server_creationflags())
         self.assertEqual(captured["start_new_session"], os.name != "nt")
+        self.assertEqual(captured["env"][common.START_ID_ENV], "test-start")
 
 
 if __name__ == "__main__":
