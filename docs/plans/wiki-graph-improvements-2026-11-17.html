@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>wiki のグラフ機能の現状と改善設計</title><style>
+:root{--bg:#f4f6f8;--panel:#fff;--ink:#172b39;--muted:#526571;--line:#c6d0d8;--accent:#174b68;--soft:#e8eff4;--warn:#785919;--warn-bg:#fff5dd;--code:#edf1f4;font-family:"Yu Gothic UI","Meiryo",sans-serif;color-scheme:light dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.85}a{color:var(--accent);text-underline-offset:3px}a:focus-visible{outline:3px solid #c48119;outline-offset:3px}.layout{display:grid;grid-template-columns:255px minmax(0,1fr);max-width:1460px;margin:auto;padding:28px 32px;gap:36px}nav{position:sticky;top:22px;align-self:start;max-height:calc(100vh - 44px);overflow:auto;padding-right:12px;font-size:13px}nav strong{display:block;font-size:14px;margin-bottom:12px}nav ul{list-style:none;padding:0;margin:0}nav li{margin:7px 0}nav ul ul{padding-left:14px;border-left:1px solid var(--line);font-size:12px}nav a{text-decoration:none}main{min-width:0;background:var(--panel);border:1px solid var(--line);padding:36px 40px}header{border-bottom:3px solid var(--accent);padding-bottom:24px;margin-bottom:32px}.eyebrow{font-size:12px;color:var(--muted);letter-spacing:.06em;margin:0 0 12px}h1{font-size:30px;line-height:1.5;margin:0 0 16px}h2{font-size:22px;margin:46px 0 18px;color:var(--accent);border-top:1px solid var(--line);padding-top:22px;scroll-margin-top:25px}h3{font-size:18px;margin:32px 0 14px;scroll-margin-top:25px}p{margin:12px 0 16px}strong{font-weight:700}code{font-family:Consolas,"Meiryo",monospace;font-size:.9em;background:var(--code);padding:.08em .2em;overflow-wrap:anywhere}pre{background:var(--code);border-left:3px solid var(--accent);padding:18px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.7}pre code{padding:0;background:transparent}.table-wrap{overflow-x:auto;margin:22px 0 30px;border:1px solid var(--line)}table{border-collapse:collapse;table-layout:fixed;width:100%;min-width:690px;font-size:13px;line-height:1.75}th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:10px 12px;vertical-align:top;overflow-wrap:anywhere}th{background:var(--soft);text-align:left;color:var(--accent)}tr:last-child td{border-bottom:0}td:last-child,th:last-child{border-right:0}.notice{padding:12px 16px;background:var(--warn-bg);border-left:3px solid var(--warn);font-size:14px;color:var(--warn)}.meta{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}.flow{margin:24px 0;border:1px solid var(--line);padding:18px}figcaption{font-size:14px;font-weight:700;margin-bottom:16px}.flow-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.flow-node{border-top:4px solid var(--accent);background:var(--soft);padding:12px}.flow-node span{display:block;font-size:11px;color:var(--muted)}.flow-node strong{font-size:14px;display:block;margin:4px 0}.flow-node p{font-size:12px;margin:6px 0}.secondary{border-top:2px dashed var(--muted);background:var(--bg)}footer{border-top:1px solid var(--line);margin-top:42px;padding-top:16px;color:var(--muted);font-size:12px}
+@media(prefers-color-scheme:dark){:root{--bg:#111a21;--panel:#17232c;--ink:#e3ebf0;--muted:#adbfcb;--line:#405564;--accent:#99cbe6;--soft:#233744;--warn:#f2d391;--warn-bg:#392e1a;--code:#24323d}}
+@media(max-width:850px){.layout{grid-template-columns:1fr;padding:14px;gap:18px}nav{position:static;max-height:none;padding:12px 16px;border:1px solid var(--line)}nav ul ul{display:none}main{padding:24px 20px}h1{font-size:25px}.flow-grid{grid-template-columns:1fr}.table-wrap{margin-left:-4px;margin-right:-4px}}
+@media print{body{background:white;color:#172b39;font-size:10pt}.layout{display:block;padding:0}nav{display:none}main{border:0;padding:0}header{margin-bottom:20px}h1{font-size:22pt}h2{break-after:avoid;font-size:16pt}h3{break-after:avoid;font-size:12pt}.table-wrap{overflow:visible;break-inside:auto}table{min-width:0;font-size:8pt}tr{break-inside:avoid}th,td{padding:6px}pre,.flow{break-inside:avoid}a{color:#174b68}.flow-grid{display:table}.flow-node{display:table-cell;width:16.66%;border:1px solid #c6d0d8}.notice{color:#785919;background:#fff5dd}p{orphans:3;widows:3}@page{size:A4;margin:18mm}}
+</style></head><body><div class="layout"><nav aria-label="設計書の目次"><strong>設計書の目次</strong><div class="toc">
+<ul>
+<li><a href="#1">1. 対象と根拠</a></li>
+<li><a href="#2">2. 現状では、グラフの保存より関係の整備が遅れている</a></li>
+<li><a href="#3">3. 改善の優先順位</a></li>
+<li><a href="#4">4. 全体構成</a></li>
+<li><a href="#5-g1">5. G1：入力の完全性と鮮度を確認する</a><ul>
+<li><a href="#51">5.1 入力を読み飛ばして成功にしない</a></li>
+<li><a href="#52-db">5.2 DB に、入力との対応を記録する</a></li>
+<li><a href="#53-sqlite">5.3 SQLite の公開と、複数形式の書き出しを分ける</a></li>
+</ul>
+</li>
+<li><a href="#6-g2">6. G2：検索の目的と辺の採否を明示する</a><ul>
+<li><a href="#61">6.1 互換のナビゲーションと、型付き関係の照会</a></li>
+<li><a href="#62-api">6.2 API と探索の上限</a></li>
+</ul>
+</li>
+<li><a href="#7-g3">7. G3：主張の識別と根拠の版を残す</a><ul>
+<li><a href="#71-idid">7.1 生成されたエッジIDと、保存する主張IDを分ける</a></li>
+<li><a href="#72">7.2 根拠の参照を一意に解き、引用を照合する</a></li>
+<li><a href="#73">7.3 否定・条件・複数の支持を失わない</a></li>
+</ul>
+</li>
+<li><a href="#8-g4llm">8. G4：LLM が生成した候補を、直接の正本にしない</a><ul>
+<li><a href="#81">8.1 候補を生成する範囲</a></li>
+<li><a href="#82">8.2 検証、採否、反映を分ける</a></li>
+</ul>
+</li>
+<li><a href="#9-sqlite">9. 保存先は、SQLite を継続して評価する</a></li>
+<li><a href="#10">10. 実装の分割と変更するファイル</a></li>
+<li><a href="#11">11. 受け入れ試験</a></li>
+<li><a href="#12">12. 移行と残る判断</a></li>
+<li><a href="#13">13. 設計の確認記録</a></li>
+</ul>
+</div>
+</nav><main><header><p class="eyebrow">info-hive-wiki / 改善設計</p><h1>wiki のグラフ機能の現状と改善設計</h1><div class="meta"><span>状態: 提案</span><span>更新: 2026年11月17日</span><span>対象: 0.30.0 を名乗る作業ツリー</span></div><p class="notice">現在の実装・隔離した試料での観測と、これから実装する設計を区別して記載しています。</p></header>
+<p><strong>Markdown を正本とする現在の構成を維持し、グラフの鮮度と検索条件を機械で確かめた上で、根拠を持つ型付き関係を増やす。</strong>
+グラフDBへの移行を先行させず、SQLite の索引、既存の抽出器、browse の関係表を改善する。
+本書は提案であり、プラグインの実装や版は変更していない。</p>
+<h2 id="1">1. 対象と根拠</h2>
+<p>対象は <code>info-hive-wiki</code> のグラフの生成、検証、問い合わせ、browse、取り込み手順である。
+2026年11月17日の作業ツリーは <code>0.30.0</code> を名乗り、HEAD は <code>69f614dfd08abc6c9a1a54e7a82526b6f196fa27</code> だった。
+未コミットの変更を含むため、公開版 <code>0.30.0</code> 全体の検証結果とは区別する。
+確認した主要ファイルの SHA-256 は <a href="../agent-runs/2026-11-17-wiki-graph-design/observations.json">観測記録</a> に残した。</p>
+<p>前提は <a href="../research/llm-wiki-knowledge-graph-2026-11-17/research_report_20261117_llm_wiki_knowledge_graph.md">調査レポート</a>、<a href="../porting-plan.html">移植計画</a>、<a href="../adr/0009-graph-layer-stays-in-wiki.md">ADR-0009</a> に従う。
+グラフは wiki プラグイン内の任意の索引とし、検索や lint のために常駐する新しいサービスを追加しない。
+以前の ADR に書かれた不具合は、現行コードと照合してから不足に数えた。
+個別ファイルの一時書き込み、出力先ごとの排他、オントロジーがない場合の共通の扱いは、既に実装されている。</p>
+<p>既存知識として [[グラフの抽出の契約]]、[[エッジの識別子]]、[[既存リンクからのグラフ検索]]、[[オントロジー候補の生成と採用の分離]] を参照した。
+これらの記録と現行コードが異なる場合、現状の記述には現行コードと再現結果を採用した。</p>
+<h2 id="2">2. 現状では、グラフの保存より関係の整備が遅れている</h2>
+<p>実 wiki の記事をメモリ内で読み、索引を書き換えずに再集計した。
+結果は84ページ、84ノード、439エッジだった。
+内訳は <code>mentions</code> が307、<code>sourced_from</code> が77、<code>summarizes_raw</code> が55で、型付き関係と別名は0件だった。
+通常のグラフ lint による検出も0件だった。
+これは当該プロジェクトの一時点の状態であり、プラグインの利用者全体を代表しない。
+記録は <a href="../agent-runs/2026-11-17-wiki-graph-design/project_snapshot.json">project_snapshot.json</a> にある。</p>
+<p>機能が存在することと、問い合わせに使える関係が登録されていることを分けて測る必要がある。
+現在は、記事と出典をたどるグラフとして機能する一方、型付き関係の抽出品質や検索への寄与を実データから評価できない。
+辺の本数を増やすことを目標にせず、代表的な関係の問いに答えるために不足する主張を整備する。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>観点</th>
+<th>実装済みのこと</th>
+<th>不足・限界</th>
+<th>根拠</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>正本と保存</td>
+<td>Markdown と <code>ontology.yaml</code> が正本。JSONL、SQLite、GraphML を再生成</td>
+<td>作った入力の版と生成物の対応を照会できない</td>
+<td><code>graph-workflow.md</code>、<code>build_sqlite()</code></td>
+</tr>
+<tr>
+<td>明示構造の抽出</td>
+<td>型付き関係、wikilink、<code>sources</code>、<code>raw</code> を抽出。コード内のリンクを除外</td>
+<td>自由文から新しい意味関係を発見する処理はない</td>
+<td><code>build_edges()</code></td>
+</tr>
+<tr>
+<td>LLM の利用</td>
+<td>取り込みを行うホストの LLM が関係を書く。任意の D2 判定がある</td>
+<td>候補の生成と採用の記録、入力の版への拘束がない</td>
+<td><code>commands/ingest.md</code>、<code>decide_evidence()</code></td>
+</tr>
+<tr>
+<td>型と必須値</td>
+<td>述語、参照先、主語・目的語の型、出典・証拠の欠落などを検査</td>
+<td><code>confidence</code> と <code>status</code> の空・未記入、期間の形式と順序を検査しない</td>
+<td><code>lint()</code>、隔離試料</td>
+</tr>
+<tr>
+<td>根拠</td>
+<td><code>source</code>、<code>evidence</code>、<code>raw_ref</code> などを保持</td>
+<td>通常の lint は引用の所在を照合しない。D2 は任意で、引用が本文にあれば意味を判定しない</td>
+<td><code>lint()</code>、<code>decide_evidence()</code></td>
+</tr>
+<tr>
+<td>名前</td>
+<td>NFC、明示 ID、別名の保存、衝突の lint</td>
+<td>問い合わせ入口に別名の解決 API がない。既定 ID は改名で変わる</td>
+<td><code>build_nodes()</code>、<code>run_query()</code></td>
+</tr>
+<tr>
+<td>関係の識別</td>
+<td>記述ページと関係属性ごとに別のエッジを保持</td>
+<td>状態や引用の編集でエッジIDが変わる。長期参照には不向き</td>
+<td><code>edge_id()</code>、隔離試料</td>
+</tr>
+<tr>
+<td>問い合わせ</td>
+<td><code>neighbors</code>、<code>edges</code>、<code>facts</code>、有向 BFS の <code>path</code></td>
+<td>状態・期間・暗黙辺・確信度による共通の絞り込みがない</td>
+<td><code>wiki_graph_query.py</code></td>
+</tr>
+<tr>
+<td>鮮度</td>
+<td>手順書がログの ingest 日時と DB の時刻を比べるよう指示</td>
+<td>手編集・改名・削除・語彙変更を入力から検出しない</td>
+<td><code>graph-workflow.md</code>、隔離試料</td>
+</tr>
+<tr>
+<td>公開の中断</td>
+<td>全形式を一時ファイルに作成。各ファイルを置き換え、extract を排他</td>
+<td>複数ファイル全体の公開は不可分でない。2件目の置換失敗で世代が混在する</td>
+<td><code>publish_outputs()</code>、障害注入</td>
+</tr>
+<tr>
+<td>入力の欠落</td>
+<td>読めない <code>graph:</code> などの診断がある</td>
+<td>走査の知らせと UTF-8 読み取り失敗を捨てる経路がある</td>
+<td><code>iter_page_files()</code>、<code>collect_pages()</code></td>
+</tr>
+<tr>
+<td>browse</td>
+<td>保存 DB を使わず、閲覧スナップショットから関係を再構築</td>
+<td>CLI と入力時点が異なりうる。状態・期間の採否を共通化していない</td>
+<td><code>WikiView._relations()</code></td>
+</tr>
+<tr>
+<td>品質の評価</td>
+<td>構造、日本語、参照解決、排他、中断などの回帰試験</td>
+<td>関係抽出の正解集合、採用の精度、検索への寄与の評価がない</td>
+<td><code>tests/graph/</code>、<code>tests/wiki/test_graph_*.py</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>既存の <code>tests/graph/</code> は28件とも成功した。
+今回の試料が示したのは、その試験の対象外の条件であり、既存の性質がすべて失われているという意味ではない。</p>
+<h2 id="3">3. 改善の優先順位</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>段階</th>
+<th>到達する状態</th>
+<th>優先する理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G1</td>
+<td>入力の完全性と索引の鮮度が分かる。検証した SQLite を公開できる</td>
+<td>古い索引や欠けた入力を、新しい完全な結果として使わない</td>
+</tr>
+<tr>
+<td>G2</td>
+<td>ナビゲーションと型付き関係の照会を区別し、状態・期間を条件にする</td>
+<td>提案中の辺や期限切れの辺を経路の根拠に混ぜない</td>
+</tr>
+<tr>
+<td>G3</td>
+<td>安定した主張IDと根拠の版を保持する</td>
+<td>編集・名寄せ・根拠の変更を追えるようにする</td>
+</tr>
+<tr>
+<td>G4</td>
+<td>LLM が関係候補を生成し、検証と採用を経て Markdown へ反映する</td>
+<td>実データに不足する関係を、根拠付きで増やす</td>
+</tr>
+<tr>
+<td>G5</td>
+<td>日英の評価集合で寄与を測り、必要なら保存先を拡張する</td>
+<td>性能や保存製品の変更を、確認した課題に結び付ける</td>
+</tr>
+</tbody>
+</table></div>
+<p>G1 と G2 を最初の実装単位とする。
+G3 と G4 は、データ形式と採用手順を伴う次の単位とする。
+G5 の評価集合は G1 と並行して準備できるが、LLM 比較の本実行は G4 の契約が決まってから行う。</p>
+<h2 id="4">4. 全体構成</h2>
+<p>処理を、入力の読み取り、関係候補の生成、主張の採用、決定的なコンパイル、照会に分ける。
+<code>extract</code> は、採用済みの Markdown をコンパイルする現在の役割を保つ。
+LLM や GiNZA の呼び出しを <code>extract</code> 内へ混ぜない。</p>
+<figure class="flow" aria-labelledby="flow-title"><figcaption id="flow-title">入力と採用を分け、同じ関係の構築と検索条件を共有する</figcaption>
+<div class="flow-grid">
+<div class="flow-node"><span>正本</span><strong>Markdown・ontology</strong><p>記事、明示した主張、根拠の版</p></div>
+<div class="flow-node"><span>決定的な構築</span><strong>Snapshot・strict 検証</strong><p>入力の完全性と内容のダイジェスト</p></div>
+<div class="flow-node"><span>読み取り</span><strong>SQLite・CLI・MCP</strong><p>鮮度を照合し、辺を絞って探索</p></div>
+<div class="flow-node secondary"><span>候補の発見</span><strong>ホスト LLM・任意の NLP</strong><p>根拠付きの候補。採用済みとは区別</p></div>
+<div class="flow-node secondary"><span>既存の編集手順</span><strong>検証・選択・patch</strong><p>Markdown へ反映後に accepted</p></div>
+<div class="flow-node secondary"><span>同じ条件を使う</span><strong>browse・export bundle</strong><p>閲覧スナップショット、版を固定した書き出し</p></div>
+</div></figure>
+<p>保存用の <code>GraphSnapshot</code> は、不変のノード、エッジ、別名、診断、入力ダイジェストを持つ。
+browse も既に読み取ったバイト列から同じ構築関数へ渡す。
+照会ポリシーは SQLite 専用の条件文に閉じ込めず、メモリ上の辺にも適用できる共通定義にする。
+これにより、CLI と browse が同じ内容・同じ条件を使った場合に、同じ採否を得られる。</p>
+<p>入力バイト列の収集と鮮度の確認は標準ライブラリと既存の <code>wiki_pages</code> の範囲に置き、PyYAML を使う解析・コンパイルと分離する。
+query は、DB 内の検証済みの定義と入力ファイルのハッシュを使い、PyYAML を import しない。
+現在の、問い合わせだけなら <code>python</code> と標準ライブラリで動く契約を保つ。</p>
+<h2 id="5-g1">5. G1：入力の完全性と鮮度を確認する</h2>
+<h3 id="51">5.1 入力を読み飛ばして成功にしない</h3>
+<p>新しい <code>collect_snapshot()</code> は、既存の <code>wiki_pages.walk_pages()</code> を使い、<code>unlistable</code> と <code>unknown</code> を保持する。
+ファイルごとの UTF-8 読み取り失敗も、相対パスと理由のコードを持つ診断にする。
+独自のディレクトリ走査を作らず、既存の除外・リンク・正規化の契約を維持する。</p>
+<p><code>extract --strict</code> では、走査・読み取りの不完全さ、読めない graph、IDの衝突、曖昧な参照、必須値の欠落、未知の述語、型不一致、壊れた参照、期間の誤りを公開前に止める。
+孤立したノードなどは警告にとどめる。
+既存の <code>extract</code> の引数なしの挙動は移行期間中は保ち、生成メタデータの <code>validation_state</code> を <code>issues</code> にする。
+取り込みと通常の更新手順は <code>--strict</code> を使うよう変更する。
+既存の permissive な DB は、後述する型付き照会には使わず、ナビゲーションとして表示する。</p>
+<p>lint は既存の検出名を維持し、<code>missing_confidence</code>、<code>missing_status</code>、<code>invalid_valid_from</code>、<code>invalid_valid_to</code>、<code>invalid_valid_range</code> を追加する。
+期間は実在する <code>YYYY-MM-DD</code> の日付に限り、両端がある場合は <code>valid_from &lt; valid_to</code> とする。
+明示型の関係の必須欄と、暗黙に生成する辺の欄を同じ規則で誤検出しない。</p>
+<h3 id="52-db">5.2 DB に、入力との対応を記録する</h3>
+<p>SQLite に <code>graph_build</code> と <code>graph_inputs</code> の表を加える。
+<code>graph_build</code> は <code>build_id</code>、<code>schema_version</code>、<code>compiler_digest</code>、<code>input_digest</code>、<code>wiki_root</code>、<code>built_at</code>、<code>validation_state</code>、件数を持つ。
+<code>graph_inputs</code> は記事と ontology ごとのディスク上の相対パス、内容の SHA-256、入力種別を持つ。
+ダイジェストは文字列の単純連結ではなく、型と長さが区別できる正規化した JSON を UTF-8 でハッシュする。
+ディスク上のパスを識別用に残し、表示用の NFC パスと混同しない。</p>
+<p><code>compiler_digest</code> の対象はグラフの読み取り・構築・正規化に使うモジュールと同梱 Markdown パーサーである。
+対象の一覧を実装内に定義し、その一覧の変更も試験する。
+実行開始時に記録した実装のダイジェストと、公開・照会時のファイルのダイジェストが変わった場合は、同じ実装として処理を続けない。
+常駐する MCP でコードの変更を検出した場合は、プロセスを再起動する必要がある状態として返す。
+クエリの日時や画面の配色はコンパイルの入力に含めない。
+raw の内容は、グラフの形の鮮度とは分けて G3 の根拠の検証で扱う。</p>
+<p>新しい <code>status</code> は、入力の追加・変更・削除、ontology と compiler の変更を内容で比較する。
+最初の実装では、確認を省くために mtime とサイズだけを信用しない。
+読み取り開始・終了時の走査と内容の対応を照らし、不一致は <code>unstable</code> にする。
+ファイル群全体に対するトランザクションではないため、同時編集下での完全な一点のスナップショットとは呼ばない。
+同じ内容に戻った変更を含む、確認の間に観測できない履歴までは保証しない。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>状態</th>
+<th>意味</th>
+<th>型付き照会の扱い</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>disabled</code></td>
+<td>ontology がない</td>
+<td>グラフを使わない</td>
+</tr>
+<tr>
+<td><code>missing</code></td>
+<td>DB がない</td>
+<td>明示的な作り直しを案内</td>
+</tr>
+<tr>
+<td><code>legacy</code></td>
+<td>版・入力メタデータのない DB</td>
+<td>ナビゲーションのみ。作り直しで移行</td>
+</tr>
+<tr>
+<td><code>fresh</code></td>
+<td>比較した記事・ontology・compiler が一致</td>
+<td>検証状態と検索条件をさらに確認</td>
+</tr>
+<tr>
+<td><code>stale</code></td>
+<td>入力の追加・変更・削除などを検出</td>
+<td>型付き照会を停止。古い結果の本文確認で代用しない</td>
+</tr>
+<tr>
+<td><code>unreadable</code></td>
+<td>入力を完全に調べられない</td>
+<td>型付き照会を停止</td>
+</tr>
+<tr>
+<td><code>unstable</code></td>
+<td>確認中の変更を観測</td>
+<td>有限回の再試行後、書かずに返す</td>
+</tr>
+</tbody>
+</table></div>
+<p>CLI と MCP の <code>status</code> は、索引を書き換えない。
+読むたびに自動で <code>extract</code> を呼ぶ機能は加えない。
+関係の問いでは <code>status</code> を確認し、使えなければ本文検索へ戻り、グラフを使えなかった理由を回答に残す。
+<code>fresh</code> は、元資料の内容が真実であることや、根拠を意味的に検証したことを表さない。</p>
+<p>別の <code>status</code> 呼び出しが fresh だったことだけを、後の照会の許可にしない。
+型付き照会は、自分が開いた SQLite 接続で読み取りトランザクションを開始し、その接続から得た <code>graph_build</code> に対して入力を照合する。
+その後に読む辺と応答メタデータも同じ接続・トランザクションから取得する。
+照会後にも入力を照らし、変更を観測した場合は結果を通常の成功として返さず <code>unstable</code> にする。
+応答は確認時点の入力ダイジェストを示し、回答時に根拠本文を開いた際も、その版を照合する。</p>
+<p><code>wiki_root</code> は既存の wiki の根を検証する処理から得た正規の絶対パスで記録し、入力の相対パスだけで別の wiki の DB と同一視しない。
+明示した <code>--db</code> でも根と入力の照合を必要とする。
+wiki の移動・複製後は strict な作り直しで新しい根に結び付ける。
+2つの wiki の物理的な分離は既存の根の検査で行い、グラフのパス文字列比較だけで代替しない。</p>
+<h3 id="53-sqlite">5.3 SQLite の公開と、複数形式の書き出しを分ける</h3>
+<p>問い合わせ用の SQLite を、公開の単位にする。
+一時 DB に全表・メタデータを書き、整合を確認し、接続を閉じてから既存の置き換え関数で公開する。
+ここまでに失敗した場合は、前の問い合わせ用 DB を残す。
+現在の出力先の OS ロックを継続して使う。</p>
+<p>JSONL・GraphML は、公開 DB の一つの読み取りトランザクションから書き出す。
+新しい一貫した書き出し先は <code>graph/exports/&lt;bundle_id&gt;/</code> とし、ノード・エッジ・GraphML・<code>manifest.json</code> をまとめる。
+<code>bundle_id</code> は書き出すたびに作る UUID とし、同じ DB を異なる形式で書き出しても公開済みの bundle を上書きしない。
+manifest は形式ごとのハッシュ、件数、元の <code>build_id</code>、入力ダイジェスト、書き出し器の版を持つ。
+全ファイルを完成させた後、<code>graph/exports/current.json</code> を一回の置き換えで公開する。
+読み手はポインターを一度だけ読み、その bundle の manifest とファイルを照合する。
+ポインターが指す bundle を書き換えない。</p>
+<p>索引と書き出しの成功は、<code>index_state</code> と <code>export_state</code> に分けて報告する。
+書き出しだけが失敗した場合、新しい DB と前の完全な書き出し bundle を残し、異なる <code>build_id</code> を表示する。
+「どの形式も前のまま」と報告しない。
+書き出しの読み手が使用中の bundle を自動で削除する GC は初期実装に含めず、ディスク使用量を表示する。</p>
+<p>既存の <code>nodes.jsonl</code>、<code>edges.jsonl</code>、<code>graph.graphml</code> は移行期間中の互換出力として残す。
+複数の互換ファイルを一緒に読む用途の不可分性は保証せず、bundle へ移行するよう明記する。
+<code>--formats</code> と <code>--out</code> を即時に廃止しない。
+SQLite を永続化しない <code>--formats jsonl,graphml</code> は、同じ <code>GraphSnapshot</code> から bundle を生成できるようにする。
+この場合も、manifest とポインターを公開の単位にし、存在しない DB があると装わない。</p>
+<h2 id="6-g2">6. G2：検索の目的と辺の採否を明示する</h2>
+<h3 id="61">6.1 互換のナビゲーションと、型付き関係の照会</h3>
+<p>既存の4コマンドに <code>view=navigation|typed</code> を加える。
+既定の <code>navigation</code> は既存の辺を一覧・探索する動作を保つ。
+テキストの <code>facts</code> は「記録された関係」と表示し、現在の確定事実という見出しにしない。
+機械用のコマンド名 <code>facts</code> は維持する。</p>
+<p><code>typed</code> は意味を持つ主張の候補を探すモードであり、本文を読まずに回答する機能ではない。
+<code>fresh</code> かつ完全な入力を strict に検証した DB を必要とする。
+共通のフィルターを適用してから、近傍・辺・逆向きの辺・BFS を計算する。
+経路を計算してから不適切な辺を取り除く実装にはしない。
+そうすると、採用可能な別経路を訪問済みとして捨てるおそれがあるためである。</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>条件</th>
+<th><code>navigation</code> の既定</th>
+<th><code>typed</code> の既定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>辺の生成元</td>
+<td>すべて</td>
+<td><code>explicit_graph_frontmatter</code></td>
+</tr>
+<tr>
+<td>述語</td>
+<td>すべて</td>
+<td>暗黙の3述語を除き、ontology で定義されたもの</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>すべて</td>
+<td><code>current</code></td>
+</tr>
+<tr>
+<td>期間</td>
+<td>絞らない</td>
+<td>問い合わせ日が <code>[valid_from, valid_to)</code> に入る</td>
+</tr>
+<tr>
+<td>確信度</td>
+<td>絞らない</td>
+<td>有効な3値を返す。任意の下限を追加指定できる</td>
+</tr>
+<tr>
+<td>目的語</td>
+<td>raw の文字列なども返す</td>
+<td>一意のノードに解決できるもの</td>
+</tr>
+<tr>
+<td>否定・条件</td>
+<td>記録と検証状態を表示</td>
+<td>G3 の否定は除外。条件があるものは既定では経路に使わない</td>
+</tr>
+<tr>
+<td>根拠</td>
+<td>生の欄と検証状態を返す</td>
+<td>必須値・参照を満たす。G3 以降は根拠の版・引用の照合も条件にする</td>
+</tr>
+</tbody>
+</table></div>
+<p>期間の片端が未記入の場合、その端では範囲を制限しない。
+これは保存された主張のフィルターの規則であり、関係が無期限に正しいとの判断ではない。
+<code>valid_to</code> の排他的な解釈は新しい検索ポリシーとして明記し、既存の無条件ナビゲーションを変更しない。
+日付はホストの地域設定に依存させず、API に渡した <code>as_of</code> または設定した wiki の日付を使い、応答に採用した日を返す。</p>
+<p>過去の問いでは <code>as_of</code> と対象の <code>statuses</code> を明示する。
+<code>historical</code>・<code>superseded</code> を型付き照会へ加える場合は、有効な開始日と終了日を必要とする。
+期間不明の過去の記述は、ナビゲーションで発見し、本文で確かめる。
+<code>proposed</code>・<code>disputed</code> は型付きの回答用の経路へ入れず、ナビゲーションで確認する。
+<code>supersedes</code> の辺を見つけたことだけで、相手のすべての関係を自動で失効させない。</p>
+<p>G2 の <code>query_policy_version=1</code> は、構造と期間を検証した候補を返す。
+G3 の根拠の版を持たない既存関係には <code>evidence_state=legacy_unverified</code> を明示する。
+G3 では、根拠の版・引用の所在まで条件にする <code>query_policy_version=2</code> を追加し、この状態を除外する。
+既存の版1の条件を変更せず、呼び出し側が <code>policy_version=2</code> を指定する。
+G3 の <code>/wiki:query</code> の手順は版2を明示し、使えない場合は本文検索へ戻し、版1へ黙って緩和しない。
+既存の低水準の呼び出しは版1を既定として継続でき、どちらの版も本文の確認を省けない。</p>
+<h3 id="62-api">6.2 API と探索の上限</h3>
+<p>CLI の例は次のとおりである。
+いずれも新しい引数・コマンドの設計例で、現行では未実装である。</p>
+<pre><code class="language-text">/wiki:graph status
+/wiki:graph resolve --name &quot;略語&quot;
+/wiki:graph neighbors --node concept:例 --view typed
+/wiki:graph path --from concept:a --to concept:b --view typed --max-depth 4
+/wiki:graph edges --subject concept:a --view typed --predicate depends_on --as-of 2026-11-17
+</code></pre>
+<p>MCP の <code>graph</code> に <code>status</code> と <code>resolve</code> を追加する。
+<code>resolve</code> には <code>name</code> を渡し、既存コマンドには <code>view</code>、<code>policy_version</code>、<code>statuses</code>、<code>as_of</code>、<code>min_confidence</code>、<code>max_edges</code>、<code>max_nodes</code> を追加する。
+互換の結果の欄を保ち、<code>meta</code> に <code>build_id</code>、<code>input_state</code>、<code>query_policy_version</code>、<code>applied_filters</code>、<code>truncated</code>、<code>truncation_reason</code> を加える。
+<code>predicate</code> は近傍・facts・path にも同じ意味で適用する。
+CLI と MCP の引数検証を共通関数へ寄せ、深さ・件数の0以下や過大な値を同じように扱う。</p>
+<p>初期値は <code>max_depth=6</code>、<code>max_nodes=1000</code>、<code>max_edges=10000</code> を設計上の上限候補とする。
+性能の実測値から導いた値ではないため、G5 で調整する。
+探索を途中で止めた場合、「経路が存在しない」とは返さず、上限内で探索が完了しなかったことを返す。
+経路が見つかっても、各辺の関係型が異なる経路を一つの意味の関係に読み替えない。</p>
+<p><code>resolve</code> は ID 完全一致、ページのパス、title・slug・aliases の候補を返す。
+候補が複数なら <code>ambiguous</code> とし、<code>canonical: true</code> を曖昧性を消す理由にしない。
+埋め込みや LLM による自動統合は加えない。
+<code>/wiki:query</code> は、IDを推測して呼び直す手順から <code>resolve → status → typed neighbors → 本文確認</code> へ変更する。
+2つの wiki を使う問い合わせでも、IDは wiki ごとに解決し、結果に根の識別子を付け、ノードIDだけで統合しない。</p>
+<p><code>--db</code> で明示した旧 DB は、読み取り専用のナビゲーションとして扱える。
+型付き照会では、その DB の入力台帳を指定 wiki と照合できることを必要とし、オントロジーの確認を省く抜け道にしない。
+browse は同じ検索ポリシーを用い、どのスナップショットを表示しているか、関係が除外された理由を示す。
+ブラウザでの表示は既存 CSP を維持し、インラインスクリプトや style 属性を追加しない。</p>
+<h2 id="7-g3">7. G3：主張の識別と根拠の版を残す</h2>
+<h3 id="71-idid">7.1 生成されたエッジIDと、保存する主張IDを分ける</h3>
+<p>既存の <code>id</code> の計算を維持し、新しい関係に <code>assertion_id: assertion:&lt;UUID&gt;</code> を任意で付ける。
+採用した関係を最初に記述するときに UUID を作り、その後の引用や状態の編集では同じ値を保持する。
+コピーして別の主張として記述する場合は新しい UUID にする。
+wiki 内の重複は lint のエラーにし、<code>canonical</code> で重複を許可しない。</p>
+<p><code>contradicts</code> と <code>supersedes</code> は、新しい主張IDでも参照できるようにする。
+既存のノードID、ソースのスラッグ、24桁のエッジIDの参照は引き続き読める。
+既存の関係を一斉に書き換えず、長期参照が必要な関係から移行する。
+UUID の追加を、既存のエッジIDを変えるための値には含めない。
+変更前後の意味が別の主張になった場合は、新しい主張IDを付け、必要なら古い主張を参照する。</p>
+<h3 id="72">7.2 根拠の参照を一意に解き、引用を照合する</h3>
+<p><code>source</code> は既存の文字列を保持したまま、一意に解決した <code>source_page</code> を生成結果へ加える。
+読み方は <code>wiki_pages</code> の既存の参照解決へそろえ、同じスラッグのソースが複数ある場合は曖昧とする。
+新規に書くときは <code>sources/ページ名</code> の相対パスを推奨する。</p>
+<p>新しい型付き関係には、次のメタデータを加える。
+値は形式を示す例で、架空の関係を表す。</p>
+<pre><code class="language-yaml">graph:
+  relationships:
+    - assertion_id: &quot;assertion:00000000-0000-4000-8000-000000000001&quot;
+      predicate: depends_on
+      object: &quot;concept:例B&quot;
+      source: &quot;sources/例の仕様&quot;
+      evidence: &quot;例Aの実行には例Bが必要である。&quot;
+      evidence_ref:
+        representation: source_body_v1
+        sha256: &quot;&lt;参照したソース本文の SHA-256&gt;&quot;
+        locator: &quot;要件/段落3&quot;
+      polarity: positive
+      qualifiers: []
+      confidence: high
+      status: current
+</code></pre>
+<p><code>source_body_v1</code> は、UTF-8 の BOM を除き、改行を LF にそろえ、既存パーサーが返す frontmatter を除いた本文を UTF-8 でハッシュする表現とする。
+空白の圧縮や Unicode の NFC 化はしない。
+証拠を含む source ページ自身に関係を書いても、frontmatter の SHA-256 が自分自身を含む循環を作らないために、ファイル全体のハッシュと区別する。
+引用はこの本文の連続する文字列として照合し、位置は補助情報として扱う。
+複数箇所に一致した場合、位置で一意に決められなければ <code>ambiguous_quote</code> とする。</p>
+<p>根拠の状態は <code>verified_quote</code>、<code>source_changed</code>、<code>missing_source</code>、<code>quote_not_found</code>、<code>ambiguous_quote</code>、<code>legacy_unverified</code> に分ける。
+<code>verified_quote</code> が意味するのは、採用時に記録した本文の版と引用の所在が一致することまでである。
+引用が関係を意味的に支持するかは、採否の判断として別に記録する。
+入力を作り直しただけで、現在のハッシュを採用時のハッシュとして書き戻さない。
+版2の既定の型付き照会へ入る根拠の状態は <code>verified_quote</code> に限る。
+source 本文を再照合する処理は、DB の <code>input_state=fresh</code> と別に行い、両方の状態を応答に残す。</p>
+<p>現行の <code>raw_ref</code> は保持する。
+元資料の本文からしか取れない引用は、source 本文の照合を通ったことにはしない。
+raw の照合は、取り込み時に確定した <code>RAW_ROOT</code> と原本の版への参照がある場合に限って後続の拡張で扱う。
+既存の raw パスを、wiki の親ディレクトリや任意の外部ファイルへ推測で解決しない。</p>
+<h3 id="73">7.3 否定・条件・複数の支持を失わない</h3>
+<p><code>polarity</code> は <code>positive|negative</code>、<code>qualifiers</code> は条件の文字列の配列とする。
+既存の関係は、旧形式で記述された肯定の宣言として読めるが、根拠の未検証状態は残す。
+条件がある辺は、通常の肯定の経路探索へ無条件に入れない。
+初期実装では条件の論理的な充足を判定せず、条件付きの記述として本文確認へ渡す。</p>
+<p>記述ごとのエッジを保持する現在の契約を維持し、同じ三つ組を保存時に一つへ潰さない。
+閲覧用にまとめる場合だけ、主語・述語・目的語・極性・条件をキーとし、主張IDの集合を付ける。
+有効期間は各主張に残し、採用日について支持する主張があるかを評価する。
+同じ raw から作った複数の wiki 記事を、独立した複数ソースによる支持として数えない。</p>
+<p>記事の削除後は、完全な入力から全体をコンパイルし直すことで、その記事の主張だけを除く。
+別の記事の支持が残る関係を、集約キーだけで削除しない。
+根拠の source ページを削除した場合は、残る関係を lint エラーとし、新しい strict DB を公開しない。
+古い DB は <code>stale</code> として型付き照会を止めるため、削除された主張が現在の回答に戻る経路を塞ぐ。</p>
+<h2 id="8-g4llm">8. G4：LLM が生成した候補を、直接の正本にしない</h2>
+<h3 id="81">8.1 候補を生成する範囲</h3>
+<p>最初の対象は、既存ページを主語・目的語にでき、既存 ontology の述語を使える関係に限る。
+新しい実体や述語の候補は <code>unresolved</code> として分離し、自動でページや語彙を増やさない。
+既存の取り込みがページを作った後、改めて候補を検証する。
+patch を書く対象ページのノードIDと候補の主語IDを照らし、異なる主語の関係をそのページへ記述しない。
+候補を合わせるために、既存ページの <code>graph.node_id</code> を変更しない。</p>
+<p>候補生成には、Claude Code または Codex の実行中のホスト LLM を使う。
+新しいモデルサーバーや API キーを必須にしない。
+<code>wiki_graph_candidates.py prepare</code> が、許可する述語・型、既存ID、ソース本文の版、対象の段落、<code>request_id</code> を機械的に組み立てる。
+モデルが返した JSON の自己申告で、入力の版や実行モデルの情報を確定しない。
+信頼できる実行側が持つ request の記録へ結び付ける。</p>
+<p>モデルは候補の主語ID、述語、目的語ID、引用、条件、極性、時間を返す。
+根拠がなければ空の配列を返せるようにする。
+共起や埋め込みの近さを、因果・依存の証拠として使わない。
+非LLMの比較対象として、明示構造のみと GiNZA＋規則を評価できるが、GiNZA を標準依存へは加えない。</p>
+<h3 id="82">8.2 検証、採否、反映を分ける</h3>
+<p>候補は <code>wiki/.wiki-cache/graph-candidates/</code> に保存し、通常のページ走査とグラフの生成から除外する。
+この台帳は一時的な作業記録であり、採用済み知識の正本にしない。
+未採用・棄却候補を <code>graph.sqlite</code> の通常の辺へ混ぜない。</p>
+<p>状態は <code>proposed → validated → selected → accepted</code> を基本とし、<code>rejected</code>、<code>unresolved</code>、<code>stale</code> を別に持つ。
+<code>validated</code> は型、参照、引用の所在、入力の版を通った状態であり、意味的な支持の採用を表さない。
+<code>selected</code> は、既存の取り込みで与えられた編集権限の範囲内で、ホストのエージェントまたは利用者が内容を確認して選んだ状態とする。
+候補一件ごとに新しいユーザー承認を必須にする設計にはしない。</p>
+<p>最初の実装では、候補用 CLI に Markdown を自動で上書きする <code>apply</code> を追加しない。
+<code>render-patch</code> が対象ページ、前提の内容ハッシュ、追加する関係だけを出し、ホストが既存の編集手順で反映する。
+その後の <code>verify-applied</code> は、主張ID、関係の内容、根拠の版を読み直し、実際に反映された場合だけ <code>accepted</code> を記録する。
+書く前に accepted と記録しない。
+同時編集の強いトランザクション保証を、この工程が追加すると主張しない。</p>
+<p>入力が変わった候補は <code>stale</code> とし、そのまま反映しない。
+引用元と ontology が同じで、参照先も現在一意と確認できる場合は、決定的な再検証で新しい検証記録を作れる。
+引用元や語彙が変わった場合は、元の candidate を変更せず、新しい request から生成・判断し直す。
+候補 JSON に指示文が混じっても、データとして扱い、コマンドやファイルの行き先として実行しない。</p>
+<p>採用された関係と根拠のメタデータは Markdown に残るため、候補キャッシュを削除してもグラフを再構築できる。
+意味的な採否の記録は、採用の理由と生成 request の識別子を関係の <code>notes</code> または専用の由来欄に残す。
+同じ LLM に検証をさせた場合は、独立した人のレビューと区別して記録する。</p>
+<p>既存の D2 判定は任意の補助として残す。
+バックエンドが使えず処理を通した <code>failed_open</code> を、候補が支持されたという判定へ変換しない。
+引用が本文に見つかったことも、意味的な支持の採否に代用しない。</p>
+<h2 id="9-sqlite">9. 保存先は、SQLite を継続して評価する</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>案</th>
+<th>評価</th>
+<th>今回の扱い</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Markdown＋JSONL＋SQLite</td>
+<td>現在の正本・配布・標準ライブラリの照会を保てる</td>
+<td>採用する基礎構成</td>
+</tr>
+<tr>
+<td>GiNZA・規則を標準抽出へ追加</td>
+<td>日本語の関係候補を増やせる可能性。辞書・モデル・述語別の規則の保守が増える</td>
+<td>G5 の比較対象。未測定のため標準化しない</td>
+</tr>
+<tr>
+<td>ホスト LLM の候補生成</td>
+<td>既存の取り込みの実行環境を使い、対象の関係を絞って試せる</td>
+<td>G4 の任意機能</td>
+</tr>
+<tr>
+<td>Neo4j を既定にする</td>
+<td>共有の経路照会などを別途評価できるが、現在の検証・鮮度の不足は残る</td>
+<td>今回は導入しない</td>
+</tr>
+<tr>
+<td>RDF／SPARQL を正本にする</td>
+<td>外部の語彙との交換を扱えるが、正本と編集の契約を変更する</td>
+<td>要件が具体化した段階で別設計</td>
+</tr>
+</tbody>
+</table></div>
+<p>グラフDBなしでもグラフの保存は成立するという調査結果を、現在の SQLite に適用する。
+専用DBを使わないことを、処理や永続化の品質を省く理由にはしない。
+将来の Neo4j・RDF 向けの書き出しも、検証済み <code>GraphSnapshot</code> または固定した DB の読み取りから行う。
+DB へ移しても、主張ID、記述ページ、複数の根拠、期間、否定・条件を保持することを受け入れ条件にする。</p>
+<p>保存先の見直しは、代表的な問い合わせでの時間、探索した辺数、同時利用数、運用負担を測ってから行う。
+「何万ノードから」という未検証の境目は設けない。
+グラフDBの導入や、他プラグイン・他 wiki を横断する基盤への変更は ADR-0009 の見直しとして扱う。</p>
+<h2 id="10">10. 実装の分割と変更するファイル</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>単位</th>
+<th>主な変更候補</th>
+<th>受け入れ条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>G1a：入力と検証</td>
+<td><code>wiki_graph_extract.py</code>、<code>wiki_graph_lint.py</code>、新しい <code>wiki_graph_snapshot.py</code></td>
+<td>読めないファイル・未記入の必須欄・不正期間で strict 公開を停止</td>
+</tr>
+<tr>
+<td>G1b：鮮度と公開</td>
+<td><code>wiki_graph_common.py</code>、extract・query、<code>wiki_mcp_server.py</code></td>
+<td>編集・改名・削除・ontology 変更を検出。失敗時の公開状態を正確に返す</td>
+</tr>
+<tr>
+<td>G1c：bundle</td>
+<td>新しい <code>wiki_graph_export.py</code>、extract の互換出力</td>
+<td>manifest と一つの版で読める書き出し。途中失敗で前の bundle を維持</td>
+</tr>
+<tr>
+<td>G2：共通ポリシー</td>
+<td>新しい <code>wiki_graph_policy.py</code>、query・MCP・<code>wiki_browse_core.py</code></td>
+<td>絞り込み後の BFS。CLI・MCP・メモリの採否が一致</td>
+</tr>
+<tr>
+<td>G3：主張と根拠</td>
+<td>snapshot・extract・lint・policy、schema・ontology のひな形</td>
+<td>主張IDの重複を検出。根拠の版・引用の所在を再確認</td>
+</tr>
+<tr>
+<td>G4：候補</td>
+<td>新しい <code>wiki_graph_candidates.py</code>、<code>commands/graph.md</code>、<code>commands/ingest.md</code></td>
+<td>未採用候補が検索に出ない。反映後の読み直しで accepted を記録</td>
+</tr>
+<tr>
+<td>横断する文書</td>
+<td><code>graph-workflow.md</code>、<code>query-confidence.md</code>、<code>commands/query.md</code>、<code>SKILL.md</code>、<code>docs/graph.md</code></td>
+<td>手順の正本を維持し、重複した別の規約を作らない</td>
+</tr>
+</tbody>
+</table></div>
+<p>新しいファイル名は設計上の候補であり、実装時に既存の責務へ収まるなら統合できる。
+利用者向け文書は plugin 内、設計・新規テストは親リポジトリに置く。
+本件だけのために既存の <code>eval/</code> を拡大しない。
+既存の golden を意図して変更する場合は [[グラフのlintの期待値]] の手順を守る。</p>
+<h2 id="11">11. 受け入れ試験</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>試験群</th>
+<th>反例・条件</th>
+<th>期待する結果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>既存互換</td>
+<td>日本語、NFC/NFD、同名スラッグ、ソース解決、相互参照のエッジID</td>
+<td>現在守っている区別と診断を維持</td>
+</tr>
+<tr>
+<td>完全な入力</td>
+<td>UTF-8 不正、読めないディレクトリ、走査中の追加・削除</td>
+<td>欠けた索引を strict 成功として公開しない</td>
+</tr>
+<tr>
+<td>必須値・期間</td>
+<td>status/confidence の未記入、空値、実在しない日付、逆転・同日の範囲</td>
+<td>欄ごとの診断。前の DB を維持</td>
+</tr>
+<tr>
+<td>鮮度</td>
+<td>本文だけ変更、mtime/サイズを維持した変更、改名、削除、ontology・parser 変更</td>
+<td>status が stale または unstable。型付き照会を停止</td>
+</tr>
+<tr>
+<td>公開</td>
+<td>DB の構築中断、置換の拒否、2件目の互換出力失敗、export 中断</td>
+<td>index と export の版・状態を正確に報告。前の完全な bundle を維持</td>
+</tr>
+<tr>
+<td>同時利用</td>
+<td>読み取り中のDB更新、複数extract、bundle ポインターの切り替え</td>
+<td>同一照会で版を混ぜない。上限内で再試行し、無限に待たない</td>
+</tr>
+<tr>
+<td>経路の採否</td>
+<td>直接辺が proposed、別に current の2ホップ経路がある</td>
+<td>不適切な辺を除いてから BFS し、使える別経路を返す</td>
+</tr>
+<tr>
+<td>時間</td>
+<td>valid_from 当日、valid_to 当日、過去の superseded、期間不明</td>
+<td>定義した半開区間と、明示した過去の条件に従う</td>
+</tr>
+<tr>
+<td>上限</td>
+<td>ハブ、循環、上限0・負数、探索途中の打ち切り</td>
+<td>CLI と MCP が同じ検証。探索未完了を不存在としない</td>
+</tr>
+<tr>
+<td>名前</td>
+<td>別名が一意、同じ別名が複数、明示ID、2つの wiki の同名ID</td>
+<td>一意の候補だけ解決し、スコープを越えて統合しない</td>
+</tr>
+<tr>
+<td>主張ID</td>
+<td>status・引用・順序・ファイル名の変更</td>
+<td>明示した主張IDを維持。別の主張は別ID</td>
+</tr>
+<tr>
+<td>根拠</td>
+<td>改行差、引用の重複、引用の改変、元資料だけの引用、source 自身の宣言</td>
+<td>版と所在を区別。未検証を verified_quote としない</td>
+</tr>
+<tr>
+<td>複数の支持</td>
+<td>2記事が支持、1記事削除、同じ raw の複数要約</td>
+<td>残る支持を保持し、独立ソース数を水増ししない</td>
+</tr>
+<tr>
+<td>候補</td>
+<td>空配列、未知ID、未知述語、根拠なし、入力変更、モデルの偽 request</td>
+<td>棄却・未解決・stale を区別し、検索へ混ぜない</td>
+</tr>
+<tr>
+<td>反映</td>
+<td>patch 生成のみ、反映失敗、別の内容が記述済み、反映後に再実行</td>
+<td>実体の一致を確認するまで accepted にせず、重複を増やさない</td>
+</tr>
+<tr>
+<td>判定の縮退</td>
+<td>D2 が実行不能、引用だけが一致、意味は否定</td>
+<td>形式の成功を支持の採用にしない</td>
+</tr>
+<tr>
+<td>ホストと表示</td>
+<td>CLI・MCP・browse、Claude Code・Codex の手順</td>
+<td>条件と検証状態を共有し、ソース本文の確認と引用を維持</td>
+</tr>
+</tbody>
+</table></div>
+<p>テストは <code>tests/graph/</code> と <code>tests/wiki/</code> に置く。
+最初に現行の回帰試験を通し、その後に各実装単位に必要な試験を追加する。
+設計段階で未実装の API に対する「成功した試験」を作らない。
+今回実行したのは現行の28件と、独立した隔離試料の観測だけである。</p>
+<p>G5 では、同じ日英の記事集合で、明示構造のみ、GiNZA＋規則、ホスト LLM の候補生成を比べる。
+正解の関係、対象外の関係、根拠、別名の対応、否定・条件・時点を先に注釈する。
+記事単位で調整用と評価用を分け、適合率・再現率、誤統合・分割、根拠の追跡、削除後の残存を測る。
+未知の関係を出さない例も含め、辺数や LLM 自身の採点だけを品質の指標にしない。
+採用するモデル・版・プロンプト・費用は実行時に記録する。</p>
+<h2 id="12">12. 移行と残る判断</h2>
+<p>古い DB は <code>legacy</code> としてナビゲーションに使え、Markdown からの strict な作り直しで新しい内部表へ移行できる。
+新しい前方互換の欄を持たない既存の主張は、未検証の状態を表示したまま保持する。
+主張IDや根拠の版を勝手に書き足して、過去に確認済みだったようには扱わない。
+元の Markdown と ontology を保つため、問題があれば以前の版で索引を作り直せる。</p>
+<p>互換出力をいつ廃止するかは、利用する読み手の移行率を測った上でリリース単位に決める。
+G3 を提供するリリースでは、通常の関係問い合わせの手順を版2へそろえ、既存データで使えない関係は本文検索で扱う。
+条件の異なる結果を同じポリシーの成功として返すことは許さない。
+SemVer の版は実装・マージ前に <code>origin/main</code> と最新タグを確認して決め、両方の plugin.json と CHANGELOG をそろえる。</p>
+<p>本設計では、他 wiki 間の関係統合、全文書を対象にする自由なオントロジー生成、専用グラフDBの常駐、GraphRAG のコミュニティ要約、一般的なグラフ可視化画面は追加しない。
+これらは G5 の測定や具体的な利用要件が得られた場合に、独立した設計として扱う。</p>
+<h2 id="13">13. 設計の確認記録</h2>
+<p>現状の不足は、ソースを読んだ推定だけでなく、<a href="../agent-runs/2026-11-17-wiki-graph-design/probe_current.py">再現スクリプト</a> と観測 JSON に結び付けた。
+元の wiki・raw・索引・プラグインは変更していない。
+Opus 5.5 に敵対的レビューを依頼したが、5時間の利用上限により生成前に停止した。
+独立した Opus レビューは未実施であり、再試行していない。
+実行結果は <a href="../agent-runs/2026-11-17-wiki-graph-design/opus-review.md.status.json">status 記録</a> に保存した。
+自己点検では、照会と鮮度を同じ DB 接続へ結び付けること、書き出しの単位と DB の版を分けること、根拠の条件をポリシーの版で区別することを補った。</p><footer>最終更新: 2026年11月17日（Asia/Tokyo）。正本: <a href="wiki-graph-improvements-2026-11-17.md">Markdown の設計書</a>。HTML は閲覧専用で、入力や送信の機能を持ちません。</footer></main></div></body></html>

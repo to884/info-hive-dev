@@ -1,0 +1,102 @@
+[
+  {
+    "claim": "Microsoft GraphRAG の標準抽出は TextUnit ごとに LLM で entity・relationship を抽出し、タイトルと型（関係は端点）を使って統合し、説明を LLM で要約する。TextUnit との対応は原文への provenance を持たせる。",
+    "evidence_quote": "TextUnits are also referenced by extracted knowledge items, providing provenance back to the original source text.",
+    "source_url": "https://microsoft.github.io/graphrag/index/default_dataflow/",
+    "source_title": "Microsoft GraphRAG — Dataflow",
+    "locator": "Phase 1, Phase 3; lines 149–195 (retrieved 2026-11-17)",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "LLM が抽出・統合した説明を原文の真理と同一視できない。FastGraphRAG は抽出に NLP を使うが、後段の要約等まで LLM 不使用とはいえない。"
+  },
+  {
+    "claim": "GraphRAG の研究は、entity graph 生成と community summary の事前生成を組み合わせ、コーパス全体についての質問を対象にする。記事間リンクだけを可視化する要件とは目的と処理量が異なる。",
+    "evidence_quote": "first to derive an entity knowledge graph from the source documents, then to pregenerate community summaries",
+    "source_url": "https://arxiv.org/abs/2404.16130",
+    "source_title": "From Local to Global: A Graph RAG Approach to Query-Focused Summarization",
+    "locator": "Abstract; submitted 2024-04-24, revised 2025-02-19",
+    "source_type": "research_paper",
+    "language": "en",
+    "limitations": "報告されたタスク上の優位性を日本語 Wiki や単純な事実検索へ一般化しない。"
+  },
+  {
+    "claim": "LightRAG は graph と vector retrieval の組み合わせ。標準ローカル保存は NetworkXStorage などで、Neo4j が必須ではない。KV・vector・graph・doc status の四つのストアを使う。",
+    "evidence_quote": "GRAPH_STORAGE: Used to save the knowledge graph.",
+    "source_url": "https://github.com/HKUDS/LightRAG",
+    "source_title": "HKUDS/LightRAG README",
+    "locator": "Selecting Backend Storage; lines 478–497 (main retrieved 2026-11-17)",
+    "source_type": "official_repository",
+    "language": "en",
+    "limitations": "現行 README は全データがメモリ上にあり RAM に制約される標準ストアを、小規模試験向けとする。graph だけのバックアップでは全文・キャッシュ・ベクトル索引を復旧できない。"
+  },
+  {
+    "claim": "LightRAG には文書 ID 単位の非同期削除 API があり、当該文書だけに属する要素の削除、他文書にも属する entity/relationship の再構築、vector index 等の更新を行う。",
+    "evidence_quote": "Rebuild entities/relationships that still exist in other documents",
+    "source_url": "https://github.com/HKUDS/LightRAG/blob/main/docs/ProgramingWithCore.md",
+    "source_title": "LightRAG — Programming with Core",
+    "locator": "Delete by Document ID; lines 1462–1478 (main retrieved 2026-11-17)",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "公開ドキュメントの設計上の機能であり、今回障害時の原子性や全バックエンドを実測していない。README は索引時 LLM cache による再構築を説明しているが、削除が必ず無償・無 LLM 呼び出しと断定しない。"
+  },
+  {
+    "claim": "Neo4j LLM Graph Builder は predefined/manual/existing database/text-derived schema を選べる。Document・Chunk の lexical graph と entity graph を区別して表示する。",
+    "evidence_quote": "Lexical Graph - the document and chunk nodes and their relationships",
+    "source_url": "https://neo4j.com/developer/genai-ecosystem/llm-graph-builder-features/",
+    "source_title": "Neo4j — LLM Knowledge Graph Builder Features documentation",
+    "locator": "Graph Schema; Visualization; lines 173–203",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "Schema の制約を与えるだけでは事実の正確さを保証しない。UI 製品と Python の抽出ライブラリを区別する。"
+  },
+  {
+    "claim": "Neo4j GraphRAG Python の SimpleKGPipeline は手動 schema と、LLM で guiding schema を一度抽出する EXTRACTED、スキーマを使わない FREE を提供する。既定の entity resolution は label と name が同じノードの統合。構造化出力は対応 LLM で使える。",
+    "evidence_quote": "This feature is still experimental. API changes and bug fixes are expected.",
+    "source_url": "https://neo4j.com/docs/neo4j-graphrag-python/current/user_guide_kg_builder.html",
+    "source_title": "Neo4j GraphRAG Python — User Guide: Knowledge Graph Builder",
+    "locator": "Warning; Schema Parameter Behavior; Skip Entity Resolution; Structured Output; Lexical Graph",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "2026-11-17 現行資料でも experimental。既定の同名統合を曖昧性解消と同一視しない。抽出失敗 chunk の既定扱いは無視して残りを保存するため、欠落を検知する要件なら on_error=RAISE 等を要検討。"
+  },
+  {
+    "claim": "LangChain LLMGraphTransformer は allowed_nodes/allowed_relationships と strict_mode により出力型を制約でき、ノード・関係のプロパティを抽出できる。文章からの GraphDocument を得る段であり、抽出方法と保存バックエンドは分けて設計できる。",
+    "evidence_quote": "It allows specifying constraints on the types of nodes and relationships to include in the output graph.",
+    "source_url": "https://reference.langchain.com/python/langchain-neo4j/graph_transformers/llm/LLMGraphTransformer",
+    "source_title": "LangChain Reference — LLMGraphTransformer",
+    "locator": "Class description; Parameters; strict_mode",
+    "source_type": "official_documentation",
+    "language": "en",
+    "limitations": "strict_mode は許可型のフィルタリングであり、意味的に正しい関係かどうかの証明ではない。"
+  },
+  {
+    "claim": "GraphRAG 公式 repo の Issue #2590 は graphrag update が入力から削除した文書を索引に残すと報告している。2026-11-13 のコメントは、削除を反映せず警告する案と full re-index を示す。2026-11-17 の閲覧時点で Open。",
+    "evidence_quote": "graphrag update does not delete documents",
+    "source_url": "https://github.com/microsoft/graphrag/issues/2590",
+    "source_title": "Incremental update (graphrag update) silently ignores removed documents; they stay indexed and retrievable — Issue #2590",
+    "locator": "Issue opened 2026-10-05; comment 2026-11-13, lines 208–214; Open status lines 118–120",
+    "source_type": "primary_issue_report",
+    "language": "en",
+    "limitations": "ユーザーによる一次不具合報告と修正提案。今回自分で再現しておらず、全バージョン共通の確定仕様とはしない。導入版で削除・変更の挙動を契約試験する根拠とする。"
+  },
+  {
+    "claim": "Text2KGBench は正解トリプルに対する Precision/Recall/F1、Ontology Conformance、主語/述語/目的語の hallucination を分けて測る。スキーマ適合と意味的正確さの評価を分ける根拠になる。",
+    "evidence_quote": "We define seven evaluation metrics to measure fact extraction performance, ontology conformance, and hallucinations by LLMs.",
+    "source_url": "https://arxiv.org/abs/2308.02357",
+    "source_title": "Text2KGBench: A Benchmark for Ontology-Driven Knowledge Graph Generation from Text",
+    "locator": "Abstract; full text Section 4 Evaluation Metrics and Section 5.4 Error Analysis at https://arxiv.org/html/2308.02357v1",
+    "source_type": "research_paper",
+    "language": "en",
+    "limitations": "2023年の特定ベースライン評価を現行モデルへ流用しない。論文自身が acronym 展開の false positives を記す。日本語・日英別名では文字列一致だけの幻覚評価が偏る可能性があり人手監査を併用する（後半は本調査の提案）。"
+  },
+  {
+    "claim": "NTT DATA の日本語一次実験は、同一のレシピ Markdown で FREE/EXTRACTED/SCHEMA を比較し、スキーマを与えると必要な構造を表現しやすいが、同じ入力とスキーマでも名称等の揺れが残ったと報告する。",
+    "evidence_quote": "同じスキーマ・同じ形式の入力で複数回実行したところ、ノードの表記名などに揺れが見られました。",
+    "source_url": "https://zenn.dev/nttdata_tech/articles/266a6692f85fee",
+    "source_title": "Neo4jでLLMベースのナレッジグラフ構築を試してみた",
+    "locator": "2026-10-14公開 / 2026-10-25更新; Section 3.3 and 3.4, lines 384–410",
+    "source_type": "firsthand_experiment",
+    "language": "ja",
+    "limitations": "自作の2レシピの小規模事例。統計的な精度順位や wiki 全般への保証には使えない。"
+  }
+]
