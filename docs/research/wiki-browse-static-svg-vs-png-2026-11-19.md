@@ -17,6 +17,8 @@ Windows 版 Playwright WebKit 26.0 を使い、同じローカル HTML（`file:/
 
 先頭図の時間は、ページ内の配色切り替え処理を始めてから、0 番の画像の `decode()` が完了するまでとした。
 この時間には 50 枚の画像要素の作成とファイル読み込みの待ちが含まれる。
+この版の WebKit では、PNG の `img.decode()` はビットマップのデコード後に解決する。SVG ではラスタライズが完了する前にも解決し得る。
+画面外の画像にも `decode()` を呼ぶため、時間とメモリはこの条件での観測値である。 [測定に使った WebKit の実装](https://github.com/WebKit/WebKit/blob/db897909f7c31d9b38793374c66427b6a4cb3dd3/Source/WebCore/loader/ImageLoader.cpp#L550-L575)
 測定前に画像の照合のために全ファイルを読み、OS のファイルキャッシュを消去せずにブラウザを起動した。
 メモリは専用ブラウザとその子プロセスの合計を測った。
 ピークには、表示を始めてから 10 周目の待機が終わるまでに得た標本の最大値を使った。
@@ -105,4 +107,4 @@ python -X utf8 -B "$run/analysis/analyze-figure-followup.py" "$run/ten-rounds/re
 python -X utf8 -B "$run/analysis/analyze-figure-followup.py" "$run/first-round/results.json"
 ```
 
-再測定用 ZIP には明暗の SVG と PNG 計 200 枚、元の入力と表示用ファイル、代表図の画像、マニフェストを保存した。ZIP を展開したディレクトリを `STATIC_IMAGE_FIXTURE` に指定する。測定の実行手順は wiki にある。 [再測定用 ZIP](../agent-runs/2026-11-19-wiki-static-svg-vs-png/static-image-assets-r2-20261119.zip) · [wiki の手順](../../wiki/concepts/browseの静的画像表示とメモリ.md) · [報告書の原本](../agent-runs/2026-11-19-wiki-static-svg-vs-png/original-report.md)
+再測定用 ZIP には明暗の SVG と PNG 計 200 枚、元の入力と表示用ファイル、代表図の画像、マニフェストを保存した。ZIP を展開したディレクトリを `STATIC_IMAGE_FIXTURE` に指定する。画像のデコードと標本の採取には、当時の測定スクリプトから静的画像の処理を切り出したものを使う。測定の実行手順は wiki にある。 [再測定スクリプト](../../poc/browse-static-image/performance-experiment.mjs) · [11 月 18 日の測定レビュー](../agent-runs/2026-11-19-wiki-static-svg-vs-png/2026-11-18-repeat-tab-review.md) · [再測定用 ZIP](../agent-runs/2026-11-19-wiki-static-svg-vs-png/static-image-assets-r2-20261119.zip) · [wiki の手順](../../wiki/concepts/browseの静的画像表示とメモリ.md) · [報告書の原本](../agent-runs/2026-11-19-wiki-static-svg-vs-png/original-report.md)
