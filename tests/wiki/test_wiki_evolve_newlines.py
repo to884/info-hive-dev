@@ -38,6 +38,9 @@ SCRIPTS = ROOT / "info-hive-wiki" / "skills" / "info-hive" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import wiki_evolve as e  # noqa: E402
+import wiki_evolve_loop as loop  # noqa: E402
+from wiki_text import format_frontmatter  # noqa: E402
+from wiki_raw_roots import read_raw_roots  # noqa: E402
 
 ENV = {**os.environ, "PYTHONUTF8": "1", "PYTHONDONTWRITEBYTECODE": "1"}
 RECORD = {"id": "crlf-check", "task": "経験の記録", "outcome": "success", "verification": "ファイルのハッシュを比べた",
@@ -87,6 +90,9 @@ class CaptureTests(unittest.TestCase):
         self.root = Path(self._tmp.name).resolve()
         self.raw = self.root / "raw"
         self.raw.mkdir()
+        self.wiki = self.root / "wiki"
+        self.wiki.mkdir()
+        (self.wiki / "SCHEMA.md").write_text("", encoding="utf-8")
         self.record = self.root / "experience.json"
         self.record.write_bytes(e.encode(RECORD).encode("utf-8"))
         self.stored = self.raw / "experiences" / "crlf-check.json"
@@ -97,7 +103,7 @@ class CaptureTests(unittest.TestCase):
 
     def capture(self):
         with windows_text_mode():
-            return e.capture(SimpleNamespace(raw=self.raw, record=self.record))
+            return e.capture(SimpleNamespace(wiki=self.wiki, raw=self.raw, record=self.record))
 
     def test_new_record_is_lf_and_hash_matches_file(self):
         result = self.capture()
@@ -106,6 +112,44 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(data, self.lf)
         self.assertEqual(result["sha256"], sha256(data))
         self.assertEqual(result["raw"], str(self.stored))
+        self.assertEqual(result["raw_ref"], self.stored.as_posix())
+        self.assertEqual(result["raw_sha256"], sha256(data))
+        self.assertEqual(read_raw_roots(self.wiki), ([self.raw], []))
+
+    def test_capture_does_not_write_before_root_record(self):
+        with mock.patch.object(e, "record_raw_root", side_effect=OSError("記録できない")):
+            with self.assertRaisesRegex(OSError, "記録できない"):
+                self.capture()
+        self.assertFalse(self.stored.parent.exists())
+
+    def test_capture_refuses_hardlinked_record(self):
+        self.capture()
+        alias = self.root / "old.json"
+        os.link(self.stored, alias)
+        with self.assertRaisesRegex(OSError, "hardlink"):
+            self.capture()
+        self.assertEqual(alias.read_bytes(), self.lf)
+
+    def test_loop_adds_hash_to_previous_days_source_and_preserves_crlf(self):
+        args = SimpleNamespace(wiki=self.wiki, raw=self.raw, id="test")
+        row = {"task": "exercise", "question": "観察する", "passed": True, "output": {"events": []},
+               "judge": {"reason": "結果を確認した"}, "checks": [], "model": "test", "runner": {}}
+        name = "evolution-" + sha256(b"test:1:exercise")[:20]
+        target = self.wiki / "sources" / f"{name}.md"
+        target.parent.mkdir()
+        old_raw = self.raw / "experiences" / f"{name}.json"
+        legacy = (format_frontmatter({
+            "title": f"学習時の観察 {name}", "type": "source", "tags": ["skill-evolution"],
+            "created": "2025-01-01", "updated": "2025-01-02", "authors": ["評価ループ"],
+            "raw": str(old_raw), "ingested": "2025-01-01",
+        }) + "\n課題: 観察する\n\n結果: success\n\n結果を確認した\n").encode("utf-8").replace(b"\n", b"\r\n")
+        target.write_bytes(legacy)
+        loop.publish_learning(args, [row], {}, 1)
+        sha_line = f'raw_sha256: "{sha256(old_raw.read_bytes())}"\r\n'.encode("utf-8")
+        self.assertEqual(target.read_bytes(), legacy.replace(b"\r\n---\r\n", b"\r\n" + sha_line + b"---\r\n", 1))
+        updated = target.read_bytes()
+        loop.publish_learning(args, [row], {}, 1)
+        self.assertEqual(target.read_bytes(), updated)
 
     def test_identical_retry_returns_same_hash_and_keeps_file(self):
         first = self.capture()

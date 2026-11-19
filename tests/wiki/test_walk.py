@@ -1109,10 +1109,15 @@ class UseTests(TreeCase):
                 self.assertTrue(before)
                 (wiki / "a.md").write_text("---\ntype: concept\n---\n# a changed\n", encoding="utf-8")
 
+                scandir = os.scandir
+
                 def broken(path):
-                    raise OSError(errno.EIO, "入れた失敗")
+                    if path in (wiki, os.fspath(wiki)):
+                        raise OSError(errno.EIO, "入れた失敗")
+                    return scandir(path)
+
                 with swapped(os, "scandir", broken):
-                    with self.assertRaises(OSError):
+                    with self.assertRaisesRegex(OSError, "入れた失敗"):
                         index.refresh()
                 self.assertEqual(dict(index.collection.hashes()), before)
                 index.refresh()  # 障害がなくなると、今までどおり動く
