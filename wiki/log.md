@@ -915,6 +915,31 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 ## [2026-11-19] ingest | wiki 承認済み公開保存の強制停止からの再試験
    [[wiki承認済み公開保存の突然停止復旧-2026-11-19]] に保留記録の回収を追加した後の再試験を記録
 
+## [2026-11-19] ingest | info-hive-wiki v0.38.1 のアーキテクチャ
+   [[info-hive-wiki]] と [[info-hive-wikiのアーキテクチャ-v0.38.1]] を追加。Git コミット b8596d1 の抜粋を raw に保存し、[[グラフの抽出の契約]] を更新した。
+
+## [2026-11-19] ingest | info-hive-rag のアーキテクチャ（4fabe32）
+   [[info-hive-rag]] に PDF 索引化と wiki 連携の図を追加し、[[info-hive-wiki]] から相互参照を張った。出典は [[info-hive-ragのアーキテクチャ-4fabe32]]。
+   グラフ: ノード +2、型付きエッジ +1
+
+## [2026-11-19] ingest | info-hive-marketplace の配布構成（c709eb3）
+   [[info-hive-marketplace]] に公開・開発用カタログの図を追加し、[[info-hive-wiki]] と [[info-hive-rag]] から相互参照を張った。出典は [[info-hive-marketplaceの配布構成-c709eb3]]。索引を種類別の4ファイルに分割した。
+
+## [2026-11-19] ingest | Box Drive 上での wiki の互換性
+   [[box-driveでのwiki互換性-2026-11-19]] に Windows の実測結果と複数端末で共有する際の制約を記録した。
+
+## [2026-11-19] learn | Box Drive 上の wiki の運用
+   [[box-drive-wiki-compatibility-2026-11-19]] を記録し、[[box-drive上のwikiの運用]] に実測で動いた操作、同期の制約、共有方法をまとめた。
+
+## [2026-11-19] query | info-hive の配布と実行の全体図
+   3リポジトリの役割、ホスト別の公開配布、rag の導入時依存と PDF 取り込み時の連携を [[info-hiveの配布と実行の全体図]] にまとめた。
+
+## [2026-11-19] ingest | wiki と rag のコマンド一覧
+   固定版の定義とヘルプを取り込み、[[wikiのコマンド一覧-v0.38.1]] に12操作、[[ragのコマンド一覧-4fabe32]] に3コマンドの用途・引数・結果を記録した。
+
+## [2026-11-19] ingest | Box Drive のオフライン編集と再同期の実機検証
+   [[box-driveのオフライン編集と再同期-2026-11-19]] を取り込み、[[box-drive上のwikiの運用]] に切断中の操作と再接続後の 5 ファイルの照合結果を追記した。
+
 ## [2026-11-19] ingest | Ossie の試作と ADR-0036 の検証を収録
    [wiki #101](https://github.com/to884/info-hive-wiki/pull/101) を 0.39.0 の実装として main に統合し、[親 #208](https://github.com/to884/info-hive-dev/pull/208) に試作と検証を収録した。
    合成 wiki の期待値を 0.38.1 で採取し、版を固定した読み取りと照合する。[[wiki本番有効化のストレージ検証-2026-11-19]] の本番有効化は保留する。
@@ -924,3 +949,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 
 ## [2026-11-19] ingest | info-hive-wiki v0.39.0 の MCP サーバー仕様
    [[wikiのmcpサーバーの仕様-v0.39.0]] に同梱文書と v0.39.0 の版指定を要約し、[[リリースごとの導入の確かめの記録]] から参照した。
+
+## [2026-11-19] ingest | Box Drive と Box Web による wiki の競合・復旧試験
+   [[box-driveのwikiの競合と復旧-2026-11-19]] を取り込み、[[box-drive上のwikiの運用]] に記事・索引・ログの復旧手順を追記した。
