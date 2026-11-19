@@ -256,7 +256,7 @@ async function mermaidScenario(browser, base, origin, mode) {
   }));
   // 撮る前に、コンソールのエラーを数えた（外の画像の図は、枠の中で img-src の違反を出す）
   r.errors = errors.filter((e) => !e.includes("example.invalid"));
-  // 配色を変えると、すべての図を描き直す。描画の途中で 2 回変えても、生きている枠は 2 つを超えない
+  // 配色を変えると、すべての図を描き直す。描画の途中で 2 回変えても、生きている枠は 1 つを超えない
   const before = await page.$eval('#_body figure.wiki-fig[data-fig="mermaid"] img', (i) => i.getAttribute("src"));
   await page.evaluate(() => {
     document.documentElement.setAttribute("data-theme", "dark");
@@ -516,7 +516,7 @@ try {
           check(m.violations.length === 0, `${tag}: Mermaid のページに CSP の違反がある: ${m.violations}`);
           check(m.errors.length === 0, `${tag}: Mermaid のページのコンソールのエラー: ${m.errors.slice(0, 3)}`);
           check(m.external.length === 0, `${tag}: Mermaid のページが外へ要求した: ${m.external}`);
-          check(m.maxFrames <= 2 && m.afterTheme.maxFrames <= 2, `${tag}: 同時に生きている枠が 2 つを超えた: ${m.afterTheme.maxFrames}`);
+          check(m.maxFrames === 1 && m.afterTheme.maxFrames === 1, `${tag}: 同時に生きている枠の上限が 1 でない: ${m.afterTheme.maxFrames}`);
           // 対照との差は、端数の位置の違いで Chromium 系が 1.2% ほど。<style> を抜いた版との差は 40% を超える
           check(m.compare && m.compare.same < 0.03 && m.compare.stripped > 0.2,
             `${tag}: Mermaid の画像の中のスタイルが効いていない: ${JSON.stringify(m.compare)}`);

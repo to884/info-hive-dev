@@ -6,7 +6,8 @@ name: Wiki browse
 # - tests/wiki/test_browse_server.py: サーバーの要求の扱い、作り直し、起動、使い回し、停止
 # - tests/wiki/browse/browse.test.mjs: 静的版とサーバーを Chromium で開いて比べる（ADR-0016 の合格の条件）
 # - tests/wiki/browse/figures.test.mjs: 図（svg）を静的版とサーバーで開き、画像の中のスタイルと CSP を確かめる（ADR-0030）
-# Firefox、WebKit、Edge、Chrome での確認は、手で流す試験に残す（BROWSERS 環境変数）。
+# - tests/wiki/browse/peer-isolation.test.mjs: タブをまたぐ描画枠の隔離を Chromium と Windows 版 WebKit で確かめる。
+# Firefox、Edge、Chrome の確認は手で流す（BROWSERS 環境変数）。
 #
 # info-hive-wiki は、シークレット WIKI_READ_TOKEN の読み取り専用のトークンで取得する（wiki-mcp.yml と同じ）。
 
@@ -92,7 +93,11 @@ jobs:
         working-directory: tests/wiki/browse
         run: |
           npm ci --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          browsers=(chromium)
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            browsers+=(webkit)
+          fi
+          npx playwright install --with-deps "${browsers[@]}"
       - name: ブラウザの試験（静的版とサーバー、Chromium）
         if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
         working-directory: tests/wiki/browse
@@ -111,6 +116,13 @@ jobs:
         env:
           OUT: ${{ runner.temp }}/figures-results.json
         run: node figures.test.mjs
+      - name: サーバー版の描画枠の隔離（Chromium、Windows 版 WebKit）
+        if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
+        working-directory: tests/wiki/browse
+        env:
+          BROWSERS: ${{ runner.os == 'Windows' && 'chromium,webkit' || 'chromium' }}
+          OUT: ${{ runner.temp }}/peer-isolation-results.json
+        run: node peer-isolation.test.mjs
       - name: 起動の速さ（1,000 ページの合成 Wiki）
         if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
         working-directory: tests/wiki/browse
@@ -130,5 +142,6 @@ jobs:
             ${{ runner.temp }}/browse-results.json
             ${{ runner.temp }}/findability-results.json
             ${{ runner.temp }}/figures-results.json
+            ${{ runner.temp }}/peer-isolation-results.json
             ${{ runner.temp }}/overview-results.json
           if-no-files-found: ignore

@@ -19,9 +19,11 @@ browse のページは、`style-src 'self'` と `script-src 'self'` の CSP の�
 | --- | --- |
 | svg | `wiki/assets/` の直下の svg を入力に加え、`![説明](../assets/<名前>.svg)` を `<img>` で見せる。2 方式で表示する。サーバーは svg を `image/svg+xml` と CSP の `sandbox` を付けて返す。svg へのリンクは作らない |
 | Mermaid の描き方 | ページの中では描かない。図 1 つにつき、同梱の枠の文書を見えない `<iframe sandbox="allow-scripts">` で読み、その図のソースと配色だけを送り、Mermaid を `securityLevel: 'strict'`、`htmlLabels: false` で描く。描き終えたら枠を消す。親は SVG の文字列を受け取り、DOM に入れず、`data:` の `<img>` にして見せる |
+| サーバー版の入口 | ページの応答に `Cross-Origin-Opener-Policy: same-origin` を付ける。記事へ図のスクリプトを入れるのは、Fetch Metadata がブラウザからの直接の表示か、同一オリジンの最上位への移動を示す場合に限る。スクリプトも埋め込みと `opener` のあるタブを除外する。描画しない場合は原稿が読める |
+| 枠の同時実行 | Web Locks の排他ロックを図ごとに取得し、枠を破棄してから解放する。同じオリジンのタブ間で枠が重ならないようにする。API が使えない場合は原稿を表示する |
 | 枠が知ってよいもの | 枠の中で任意のスクリプトが動くことを前提にし、外への口を数えて塞ぐことはしない。枠が知りうるものを、自分の図のソース、配色、トークンのない自分の URL、同梱の固定のファイルに限る |
 | 枠の配り方 | サーバーは、枠の 3 つのファイルを、トークンのない `/_frame/<版>/` から配り、キャッシュを許す。ADR-0001 の「起動ごとのトークン」の例外である。返すのは同梱の固定のファイルだけで、wiki の中身と状態を返さない。Host の確かめと、GET と HEAD だけ、は今と同じに当てる |
-| 描く方式 | サーバーの方式でだけ描く。静的の書き出し（`file://`）では、ブラウザが sandbox の枠に隣のファイルのスクリプトを読ませないので、今と同じコードを出す |
+| 描く方式 | サーバー版は閲覧時に描く。静的版は [ADR-0035](0035-wiki-browse-prerenders-diagrams-with-pele.md) に従い、書き出し時に描く |
 | CSP | 応答の種類ごとに決める。ページは今の値に `frame-src 'self'` だけを足す。枠の文書だけが `style-src 'unsafe-inline'` を許し、`script-src` を `http://127.0.0.1:<ポート>/_frame/<版>/` に限り、`sandbox allow-scripts` を付ける（ヘッダーだけ。`<meta>` を置かない）。svg は `default-src 'none'; style-src 'unsafe-inline'; sandbox` |
 | svg の読み方 | `wiki/assets/` の直下の、UTF-8 の、2 MiB 以下の、リンクでない svg だけを読む。上限は読む口が強制する |
 | 画面の契約 | `figures.js` が iframe を 1 つ作り、`postMessage` でやり取りすることを足す。どちらも classic な `<script src>` で読む。要素の `style` に触らない約束は保つ |
@@ -33,7 +35,7 @@ browse のページは、`style-src 'self'` と `script-src 'self'` の CSP の�
 - 枠に閉じ込めると、ページの CSP を緩めずに済む。Mermaid に欠陥があっても、不透明なオリジンと、`/_frame/<版>/` に限った `script-src` のために、枠は親の文書、トークン、ほかの図、wiki のデータに届かない。CSP は WebRTC のような口をすべて閉じる保証がないので（設計の 1 回目のレビュー）、外へ送れても漏れるのが攻撃者自身の図だけになる形を選んだ。
 - 画像として見せると、SVG の中の `<style>` が効き、中のスクリプトは動かない。PoC で、5 つのブラウザについて、厳格な CSP のページの画像と CSP のないページの画像が同じに描かれることを確かめた。
 - 枠の CSP をヘッダーだけで付け、配信元を書くのは、WebKit が sandbox で不透明になった文書の `'self'` を配信元に一致させないからである（PoC）。
-- 静的版で描かないのは、5 つのブラウザすべてで枠がスクリプトを読めず、`allow-same-origin` を足して枠を不透明でなくすと、枠の中の欠陥が親に届く道を開くからである。
+- 別オリジンの閲覧ページとは COOP で参照を分ける。同一オリジンのタブでは `opener` の有無だけで参照を判定できないため、タブをまたぐ排他ロックも使う。[HTML Standard の COOP](https://html.spec.whatwg.org/multipage/browsers.html#cross-origin-opener-policies) · [Web Locks API](https://w3c.github.io/web-locks/)
 
 ## 検討した選択肢
 
