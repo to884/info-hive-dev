@@ -1,5 +1,5 @@
 'use strict';
-// 公式拡張へ接続せず、既存タブの選別と切断だけを検査する。
+// 公式拡張の接続を模して、対象タブの移動・選別と切断を検査する。
 const assert = require('node:assert/strict');
 const { spawnSync } = require('node:child_process');
 const session = require('../../info-hive-wiki/skills/info-hive/scripts/wiki_browser_session.cjs');
@@ -38,6 +38,38 @@ function browser(pages) {
   await assert.rejects(session.readPage(browser([page(), page()]), request), /1 つだけ/);
   await assert.rejects(session.readPage(browser([page(request.url, true)]), request), /URL が変わった/);
   await assert.rejects(session.readPage(browser([page()]), { ...request, max_bytes: 1 }), /上限/);
+  let destination = 'about:blank';
+  const blank = page('about:blank');
+  let reads = 0;
+  blank.content = async () => ++reads === 1 ? '<main>読み込み中</main>' : '<main>認証済みの本文</main>';
+  blank.url = () => destination;
+  blank.goto = async (url, options) => {
+    assert.equal(url, request.url);
+    assert.deepEqual(options, { waitUntil: 'domcontentloaded', timeout: 2000 });
+    destination = url;
+    return { status: () => 200 };
+  };
+  const opened = await session.readPage(browser([blank]), request, async (_, html) => ({
+    short: html.includes('読み込み中'), body_sha256: html, images: [],
+  }));
+  assert.equal(opened.matched_url, request.url);
+  assert.match(opened.html, /認証済み/);
+  assert(reads > 1);
+  destination = 'about:blank';
+  await assert.rejects(session.readPage(browser([blank, other]), request), /1 つだけ/);
+  assert.equal(destination, 'about:blank');
+  blank.goto = async () => { destination = 'https://other.example/login'; };
+  const beforeRedirect = evaluated;
+  await assert.rejects(session.readPage(browser([blank]), request), /URL が変わった/);
+  assert.equal(evaluated, beforeRedirect);
+  destination = 'about:blank';
+  blank.goto = async () => { throw Error('内部診断'); };
+  await assert.rejects(session.readPage(browser([blank]), request), /取り込み URL をブラウザで開けなかった/);
+  blank.goto = async url => {
+    destination = url;
+    return { status: () => 403 };
+  };
+  await assert.rejects(session.readPage(browser([blank]), request), /HTTP 403/);
   const attached = browser([page()]);
   const tools = { async createBrowserWithInfo(config, info, options) {
     assert.equal(config.extension, true);
@@ -57,5 +89,5 @@ function browser(pages) {
   const large = spawnSync(process.execPath, ['-e', script], { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 });
   assert.equal(large.status, 0);
   assert.equal(JSON.parse(large.stdout).html.length, 2 * 1024 * 1024);
-  console.log('既存タブの読み取り・切断・大きい出力の 10 ケースに成功した');
+  console.log('空の接続タブの移動、既存タブの読み取り、切断、大きい出力の検査に成功した');
 })().catch(error => { console.error(error); process.exit(1); });
