@@ -4,7 +4,7 @@ kind: "product"
 title: "info-hive-rag"
 aliases: ["rag@info-hive", "info-hive rag"]
 tags: ["rag", "取り込み", "検索", "wiki設計"]
-sources: ["info-hive-ragのアーキテクチャ-4fabe32", "info-hive-marketplaceの配布構成-c709eb3", "rag全量ocr後のann保守と中断再開-2026-11-19", "ragのocrキャッシュの再利用と回収-2026-11-20", "rag-0.5.4の公開と導入確認-2026-11-20"]
+sources: ["info-hive-ragのアーキテクチャ-4fabe32", "info-hive-marketplaceの配布構成-c709eb3", "rag全量ocr後のann保守と中断再開-2026-11-19", "ragのocrキャッシュの再利用と回収-2026-11-20", "rag-0.5.4の公開と導入確認-2026-11-20", "ragのpoc検証の到達点と残課題-2026-11-20"]
 created: 2026-11-19
 updated: 2026-11-20
 graph:
@@ -80,3 +80,5 @@ sequenceDiagram
 ## 0.5.4 の公開
 
 キャッシュの修正を 0.5.4 として main にマージし、タグ、GitHub リリース、公開マーケットプレイスからの新規導入を確認した。[[rag-0.5.4の公開と導入確認-2026-11-20]]
+
+2026年11月20日時点の全量 OCR・ANN・キャッシュ管理の到達点と、未検証・残課題は [[ragのpoc検証の到達点と残課題-2026-11-20]] を参照。
