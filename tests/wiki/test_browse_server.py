@@ -1212,6 +1212,7 @@ class ProcessTest(Base):
             available.append(str(raw)[0].swapcase() + str(raw)[1:])
             other_drive = "D:" if raw.drive.upper() == "C:" else "C:"
             excluded.append(other_drive + raw.as_posix()[2:])
+            excluded.append(raw.as_posix()[2:])  # ドライブ名を持たないパスは照合しない。
         all_refs = json.dumps(available + excluded, ensure_ascii=False)
         matching_hashes = json.dumps([digest] * (len(available) + len(excluded)))
         summary = write(self.wiki, "sources/summary.md",
