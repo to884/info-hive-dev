@@ -9,6 +9,8 @@
 """
 from __future__ import annotations
 
+import hashlib
+import html
 import http.client
 import io
 import json
@@ -22,6 +24,7 @@ import unittest
 from contextlib import redirect_stderr
 from pathlib import Path
 from unittest import mock
+from urllib.parse import urljoin, urlsplit
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = ROOT / "info-hive-wiki/skills/info-hive/scripts"
@@ -1151,14 +1154,18 @@ class ProcessTest(Base):
         self.assertEqual(code, 200)
         return body
 
-    def test_raw_category_uses_second_tag_and_reloads(self):
+    def test_raw_category_uses_first_tag_other_than_raw_and_reloads(self):
         raw = self.base / "raw"
-        write(raw, "own.md", '---\ntags: ["最初", "二番目", "三番目"]\n---\n# 原本\n\n原本の本文。\n')
-        write(raw, "nested/inherited.md", "# ソースのタグを使う原本\n")
-        write(raw, "single.md", '---\ntags: ["一つだけ"]\n---\n# タグが足りない原本\n')
+        write(raw, "own.md", '---\ntags: ["最初", "raw", "次"]\n---\n# 原本\n\n原本の本文。\n')
+        inherited = write(raw, "nested/inherited.md", "# ソースのタグを使う原本\n")
+        write(raw, "single.md", '---\ntags: ["一つだけ"]\n---\n# タグが一つの原本\n')
+        write(raw, "prefixed.md", '---\ntags: ["raw", "具体的", "補助"]\n---\n# 分類用のタグがある原本\n')
+        write(raw, "raw-only.md", '---\ntags: ["RAW", "ｒａｗ"]\n---\n# 分類用のタグがない原本\n')
+        marker = write(raw, "source-tag-only.md", '---\ntags: ["raw"]\n---\n# ソースから分類する原本\n')
         write(raw, "assets/caption.md", "# アセット\n")
         write(self.wiki, "sources/summary.md",
-              '---\ntype: "source"\nraw: "raw/nested/inherited.md"\ntags: ["分類", "継承"]\n---\n# 要約\n')
+              '---\ntype: "source"\n'
+              f'raw: ["{inherited.as_posix()}", "{marker.as_posix()}"]\ntags: ["分類", "継承"]\n---\n# 要約\n')
         r = self.first_line(self.serve("--raw-root", str(raw)))
         port = r["port"]
         base = r["url"].split(str(port), 1)[1].removesuffix("index.html")
@@ -1172,20 +1179,76 @@ class ProcessTest(Base):
             return next(g for g in groups() if g["title"] == "raw")
 
         self.assertEqual({g["title"]: [it["id"] for it in g["items"]] for g in raw_group()["children"]},
-                         {"二番目": ["raw/own"], "継承": ["raw/nested/inherited"], "タグなし": ["raw/single"]})
+                         {"最初": ["raw/own"], "分類": ["raw/nested/inherited", "raw/source-tag-only"], "一つだけ": ["raw/single"],
+                          "具体的": ["raw/prefixed"], "タグなし": ["raw/raw-only"]})
         rest = next(g for g in groups() if g["title"] == "Index にないページ")
         source = next(g for g in rest["children"] if g["title"] == "ソース")
         self.assertEqual([g["title"] for g in source["children"]], ["分類"])
         self.assertIn('data-type="raw"', self.screen(r))
+        status, summary, _ = request(port, "GET", base + "sources/summary.html")
+        self.assertEqual(status, 200)
+        self.assertIn(f'href="../raw/nested/inherited.html"><code>{html.escape(inherited.as_posix())}', summary)
         status, body, _ = request(port, "GET", base + "raw/own.html")
         self.assertEqual(status, 200)
         self.assertIn("原本の本文。", body)
 
-        write(raw, "own.md", '---\ntags: ["最初", "更新したグループ"]\n---\n# 更新\n')
+        write(raw, "own.md", '---\ntags: ["raw", "更新したグループ"]\n---\n# 更新\n')
         self.assertIn("更新したグループ", [g["title"] for g in raw_group()["children"]])
         other = self.serve("--raw-root", str(self.base / "other"))
         self.assertNotEqual(other.wait(30), 0)
         self.assertIn("raw の設定が異なる", other.stderr.read())
+
+    def test_source_opens_raw_markdown_in_viewer(self):
+        raw_root = self.base / "raw"
+        raw = write(raw_root, "nested/日本語 raw.md", "# 原本\n\n日本語で保存した記事の本文。\n")
+        outside = write(self.base, "other/nested/日本語 raw.md", "# 範囲外の本文\n")
+        digest = hashlib.sha256(raw.read_bytes()).hexdigest()
+        home = "USERPROFILE" if os.name == "nt" else "HOME"
+        self.env[home] = str(self.base)
+        available = [raw.as_posix(), raw.as_uri(), "~/raw/nested/日本語 raw.md", "../raw/nested/日本語 raw.md"]
+        excluded = [outside.as_posix(), f"{raw_root.as_posix()}/alt/../nested/日本語 raw.md",
+                    "../raw/alt/../nested/日本語 raw.md"]
+        if os.name == "nt":
+            available.append(str(raw)[0].swapcase() + str(raw)[1:])
+            other_drive = "D:" if raw.drive.upper() == "C:" else "C:"
+            excluded.append(other_drive + raw.as_posix()[2:])
+            excluded.append(raw.as_posix()[2:])  # ドライブ名を持たないパスは照合しない。
+        all_refs = json.dumps(available + excluded, ensure_ascii=False)
+        matching_hashes = json.dumps([digest] * (len(available) + len(excluded)))
+        summary = write(self.wiki, "sources/summary.md",
+                        "---\ntype: \"source\"\n"
+                        f"raw: {all_refs}\nraw_sha256: {matching_hashes}\n---\n# 要約\n")
+        opened = self.first_line(self.serve("--raw-root", str(raw_root), "--page", "summary"))
+        route = "../raw/nested/%E6%97%A5%E6%9C%AC%E8%AA%9E%20raw.html"
+        page = self.screen(opened)
+        self.assertIn(f'<a href="{route}"><code>{html.escape(raw.as_posix())}</code></a>', page)
+        self.assertIn(f'<td class="fui-TableCell"><a href="{route}">', page)
+        self.assertEqual(page.count(f'<a href="{route}"><code>'), len(available))
+        for ref in excluded:
+            self.assertIn(f'<br><code>{html.escape(ref)}</code>', page)
+        target = urlsplit(urljoin(opened["url"], route)).path
+        status, body, _ = request(opened["port"], "GET", target)
+        self.assertEqual(status, 200)
+        self.assertIn("日本語で保存した記事の本文。", body)
+        self.assertNotIn("範囲外の本文", body)
+
+        original = summary.read_text(encoding="utf-8")
+        for hashes in (matching_hashes.replace(digest, "0" * 64), json.dumps([digest]), '"不正な SHA-256"'):
+            with self.subTest(hashes=hashes):
+                summary.write_text(original.replace(matching_hashes, hashes), encoding="utf-8")
+                changed = self.screen(opened)
+                self.assertNotIn(f'<a href="{route}"><code>', changed)
+                self.assertIn(f'<code>{html.escape(raw.as_posix())}</code>', changed)
+
+    def test_session_source_resolves_raw_relative_to_wiki_parent(self):
+        raw_root = self.wiki / "raw"
+        write(raw_root, "session.md", "# 会話の本文\n")
+        write(self.wiki, "sources/session.md",
+              '---\ntype: "source"\nsession_id: "test"\nraw: ["wiki/raw/session.md", "raw/session.md"]\n---\n# 要約\n')
+        opened = self.first_line(self.serve("--raw-root", str(raw_root), "--page", "session"))
+        page = self.screen(opened)
+        self.assertIn('<a href="../raw/session.html"><code>wiki/raw/session.md</code></a>', page)
+        self.assertIn('<br><code>raw/session.md</code>', page)
 
     def test_serve_reports_the_scope_the_server_draws(self):
         a = self.serve("--scope", "project")
