@@ -488,6 +488,27 @@ class SecondReviewTest(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertTrue(any("知らせを出せなかった" in w for w in fs.WARNINGS), fs.WARNINGS)
 
+    def test_browse_filter_secret_is_stable_and_recovers_from_corruption(self):
+        root = self.base / "data" / "browse"
+        state = root / "KEY.server"
+        outcome, server = fs.serve_start(str(self.wiki), str(root), str(state), self.owner,
+                                         lambda: {"instance": "x"})
+        self.assertEqual(outcome, "started")
+        self.addCleanup(fs.serve_finish, server)
+        path = state / fs.FILTER_KEY_FILE
+        first = fs.browse_filter_secret(str(state))
+        self.assertEqual(len(first), 32)
+        self.assertEqual(fs.browse_filter_secret(str(state)), first)
+        path.write_bytes(b"corrupted")
+        recovered = fs.browse_filter_secret(str(state))
+        self.assertEqual(len(recovered), 32)
+        self.assertNotEqual(recovered, first)
+        self.assertEqual(path.read_bytes(), recovered)
+        path.unlink()
+        path.mkdir()
+        self.assertIsNone(fs.browse_filter_secret(str(state)))
+        self.assertTrue(path.is_dir())
+
     def test_finish_rechecks_the_state_dir(self):
         # サーバーが動いているあいだに、状態のディレクトリの名前が利用者のディレクトリへのリンクに置き換わっても、
         # 終了は、その先の利用者のファイルを消さない（設計の 7.1）

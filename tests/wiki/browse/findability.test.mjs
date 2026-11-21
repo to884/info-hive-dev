@@ -7,6 +7,7 @@
 // 環境変数は browse.test.mjs と同じ（BROWSE_PYTHON、MODES、BROWSERS、OUT）。
 import { chromium, firefox, webkit } from "playwright";
 import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -874,6 +875,91 @@ async function colorChecks(browser, base, tag) {
   await context.close();
 }
 
+async function filterPreferenceChecks(browser, base, tag, restart) {
+  const context = await browser.newContext();
+  try {
+    const page = await context.newPage();
+    const second = await context.newPage();
+    const index = () => url(base, "index.html");
+    const tagSelect = ".tag-select select";
+    const typeButton = (type) => `.chips .fui-ToggleButton:text-is('${type}')`;
+    async function read(p) {
+      return p.evaluate(() => ({
+        type: document.querySelector('.chips [aria-pressed="true"]').textContent,
+        tag: document.querySelector(".tag-select select").selectedOptions[0].textContent,
+        visible: Array.from(document.querySelectorAll(".fx-row:not([hidden])"), (row) => row.dataset.id),
+      }));
+    }
+    const expectedTag = "検索（1）";
+    const onlyBM25 = (state) => state.visible.join() === "concepts/bm25";
+    await page.goto(index());
+    await second.goto(index());
+    await page.click(typeButton("コンセプト"));
+    await second.selectOption(tagSelect, { label: expectedTag });
+    await second.close();
+    await page.reload();
+    let state = await read(page);
+    check(state.type === "コンセプト" && state.tag === expectedTag && onlyBM25(state),
+      `${tag}: 別々のタブで選んだ種類とタグを復元できない: ${JSON.stringify(state)}`);
+    if (restart) {
+      const cookies = (await context.cookies(index())).filter(({ name }) => name.startsWith("info-hive-browse-filter-"));
+      const unkeyedTag = createHash("sha256").update("browse-filter\0tag\0検索").digest("hex").slice(0, 32);
+      check(cookies.length === 2 && cookies.every(({ name, value }) =>
+        /^info-hive-browse-filter-[0-9a-f]{32}-(tag|type)$/.test(name) && /^[0-9a-f]{32}$/.test(value) && value !== unkeyedTag),
+      `${tag}: 絞り込みの cookie に鍵付きの識別子がない`);
+      base = await restart();
+      await page.goto(index());
+      state = await read(page);
+      check(state.type === "コンセプト" && state.tag === expectedTag && onlyBM25(state),
+        `${tag}: 再起動後に種類とタグを復元できない: ${JSON.stringify(state)}`);
+    }
+    const group = await page.evaluate(() => {
+      const queue = [...window.WIKI_NAV.groups];
+      for (const candidate of queue) {
+        if (candidate.title === "第一") return candidate.id;
+        queue.push(...candidate.children);
+      }
+      return null;
+    });
+    if (!check(group, `${tag}: グループ「第一」の ID がない`)) return;
+    await page.goto(index() + "#group=" + group);
+    await page.reload();
+    state = await read(page);
+    check(state.type === "すべて" && state.tag === expectedTag && state.visible.length === 0,
+      `${tag}: グループを開いたときの絞り込みが違う: ${JSON.stringify(state)}`);
+    // 左の木で種類が一時的に解除されても、タグ変更で以前の種類まで消さない。
+    await page.selectOption(tagSelect, { index: 0 });
+    await page.selectOption(tagSelect, { label: expectedTag });
+    await page.goto(index());
+    await page.reload();
+    state = await read(page);
+    check(state.type === "コンセプト" && state.tag === expectedTag && onlyBM25(state),
+      `${tag}: グループを開いたあとに選んでいた種類を復元できない: ${JSON.stringify(state)}`);
+    await page.click(typeButton("すべて"));
+    await page.reload();
+    state = await read(page);
+    check(state.type === "すべて" && state.tag === expectedTag && onlyBM25(state),
+      `${tag}: 種類の「すべて」を保存できない: ${JSON.stringify(state)}`);
+    await page.selectOption(tagSelect, { index: 0 });
+    await page.reload();
+    state = await read(page);
+    check(state.type === "すべて" && state.tag === "タグ: すべて" && state.visible.length === PAGES,
+      `${tag}: タグの「すべて」を保存できない: ${JSON.stringify(state)}`);
+    await context.addInitScript(() => {
+      Object.defineProperty(window, "localStorage", { get() { throw new Error("blocked"); } });
+      Object.defineProperty(Document.prototype, "cookie", { get() { throw new Error("blocked"); }, set() { throw new Error("blocked"); } });
+    });
+    await page.reload();
+    await page.selectOption(tagSelect, { label: expectedTag });
+    await page.click(typeButton("コンセプト"));
+    state = await read(page);
+    check(state.type === "コンセプト" && state.tag === expectedTag && onlyBM25(state),
+      `${tag}: 保存を拒否したブラウザーで索引を絞れない: ${JSON.stringify(state)}`);
+  } finally {
+    await context.close();
+  }
+}
+
 async function themeChecks(browser, base, tag, restart) {
   const context = await browser.newContext({ colorScheme: "light" });
   await context.addInitScript(INIT);
@@ -982,7 +1068,8 @@ try {
           check(server.port !== undefined, "起動し直したサーバーのポートがない");
           return server.url.replace(/[^/]*$/, "");
         } : null;
-        await themeChecks(browser, base, tag, restart);
+        await filterPreferenceChecks(browser, base, tag, restart);
+        await themeChecks(browser, restart ? server.url.replace(/[^/]*$/, "") : base, tag, restart);
         if (restart) { bases.server = server.url.replace(/[^/]*$/, ""); }
       } catch (e) {
         check(false, `${tag}: ${String(e).slice(0, 400)}`);
