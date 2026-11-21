@@ -49,8 +49,8 @@ info-hive のプラグインの使い方を、まったく知らない人に説�
 | 範囲 | 共通と wiki の文書。rag の文書は今回は作らない（構成案は末尾に残す） |
 | 置き場所 | `info-hive-wiki/docs/`（共通のページも置く） |
 | 既存の文書 | `info-hive-wiki/docs/` をその場で作り直す。上級の機能の 4 本（`search.md`、`graph.md`、`decisions.md`、`evolution.md`）は今回は Markdown のまま残す |
-| 原稿の形式 | HTML を直接書く。見た目は Fluent 2 の Web 版（`fluent2-html-replica` スキル）に寄せる。`commands.md` だけは `/wiki:help` のために Markdown の正本として残す |
-| PDF | Vivliostyle を候補にして、試作で決める |
+| 原稿の形式 | 読者向けの手順とリファレンスは HTML で書く。見た目は Fluent 2 の Web 版（`fluent2-html-replica` スキル）に寄せる。読者向け HTML には GitHub 上の Markdown への参照を置かず、必要な内容は既存の `docs/` と重複しても HTML に含める。`commands.md` は `/wiki:help` が読む正本として残す |
+| PDF | 本文は先に HTML で作り、ブラウザーで確認する。PDF はそのあとに回し、出力の道具は試作を見て決める |
 | 公開先 | 試作のあとで決める |
 | 図 | 要る所だけ、埋め込みの SVG にする。Fluent 2 の Web 版のデザイン言語に従い、`diagram-design` と `plannotator-effective-html` のスキルで作る |
 | Claude Code 以外 | 対象にしない。`agents.md` は手を入れずに残す |
@@ -233,12 +233,12 @@ Cowork は `CLAUDE.md` を同じようには扱わない。代わりに、Settin
 
 ## 構成
 
-読む順番は P0 → C1 → W1 → W2 の一本道にする。チュートリアルは Code タブで進め、Cowork での違いは C6 に分ける。すべて `info-hive-wiki/docs/` に、です・ます体の HTML で置く。各ページは、`docs/assets/` の `fluent2.css` と、新しく作る文書の配置と印刷の CSS を読む。`fluent2.js` は使わない（ADR-0021 と同じ理由で、要素の `style` に書き込むため。文書のページに要るふるまいはない）。
+読む順番は P0 → C1 → W1 → W2 の一本道にする。チュートリアルは Code タブで進め、Cowork での違いは C6 に分ける。下表の HTML はすべて `info-hive-wiki/docs/html/` に、です・ます体で置く。各ページは、`docs/html/assets/` の `fluent2.css` と、文書の配置と印刷の CSS を読む。`fluent2.js` は使わない（ADR-0021 と同じ理由で、要素の `style` に書き込むため。文書のページに要るふるまいはない）。
 
 | # | ファイル（仮） | 種類 | 目的 | 主な材料 | 図 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | `index.html` | 入口（4 種類の外） | wiki とは何か、何ができるか、rag とは何か、読む順番 | 既存の `index.md` の前半、`marketplace.json` の `description`、rag の README の冒頭 | ソース → wiki のページ → 出典つきの答え |
-| C1 | `tutorial-install.html` | チュートリアル | Git for Windows と uv を入れ、プラグインを入れ、`/wiki:help` で 12 本のコマンドを見る | マーケットプレイスの README、既存の `getting-started.md` の Claude Code の節、`wiki_help.py` の出力、段階 2 の写し | なし |
+| P0 | `index.html` | 入口（4 種類の外） | 左に目次、右の先頭に図解、図の下に wiki プラグインの `README.md` の HTML を置く。図の下とインストールの節から、段階 2 の VM で確認した C1 に進める。狭い画面では目次を本文の上に置く | wiki プラグインの `README.md`、段階 2 の記録 | 資料 → wiki → 出典つきの答え |
+| C1 | `tutorial-install.html` | チュートリアル | Claude を MSIX、uv を Astral のインストーラーで導入する。Git、Python 3.12、Visual C++ ランタイムを用意する。Code タブでプラグインを導入し、`/wiki:help` で 12 本のコマンドを見る | 段階 2 の記録、`wiki_help.py` の出力 | なし |
 | C2 | `howto-prepare.html` | ハウツー | 必要なソフトウェアの環境ごとの違い、`UV_SYSTEM_CERTS`、2-2 の結果しだいで `CLAUDE_CODE_PLUGIN_PREFER_HTTPS` | 2-1、2-2、CHANGELOG 0.11.0、uv の公式の手順 | なし |
 | C3 | `howto-troubleshoot.html` | ハウツー | MCP サーバーが起動しない、15 分の記録、再接続、ログ、`--ensure` | wiki の README のトラブルシューティング、2-4 | なし |
 | C4 | `howto-update.html` | ハウツー | プラグインの更新と、続く `/wiki:upgrade` | マーケットプレイスの README、2-11 | なし |
@@ -249,15 +249,16 @@ Cowork は `CLAUDE.md` を同じようには扱わない。代わりに、Settin
 | W3 | `howto-user-wiki.html` | ハウツー | ユーザースコープの wiki を作り、グローバルな指示に場所を書く | 既存の `getting-started.md` の置き場所の節、`references/agent-memory-integration.md` | なし |
 | W4 | `howto-web-page.html` | ハウツー | Web ページの取り込み（0.15.0 の流れで書く） | `commands/ingest.md`、既存の `commands.md` | なし |
 | W5 | `howto-upgrade-wiki.html` | ハウツー | `/wiki:upgrade` と `SCHEMA.md` のマージ | `commands/upgrade.md`、既存の `upgrade.md` の手順の部分 | なし |
-| W6 | `commands.md`（＋ `commands.html` を作るかは試作で決める） | リファレンス | `/wiki:*` の 12 本 | 既存の `commands.md`、`commands/*.md` の frontmatter | なし |
+| W6 | `commands.html` | リファレンス | `/wiki:*` の 12 本 | 既存の `commands.md`、`commands/*.md` の frontmatter | なし |
 | W7 | `explanation-how-wiki-works.html` | 解説 | 取り込み、問い合わせ、lint で起きること、正本が Markdown である理由、メモリとの連携（2-8）、rag との違い | 既存の `workflows.md`、`index.md` の「仕組み」と FAQ | 取り込みの流れ |
 
 既存のファイルの扱い:
 
-- `index.md`、`getting-started.md`、`workflows.md`、`upgrade.md` は、上のページに中身を移して消す。README、`SKILL.md`、`references/query-workflow.md` からのリンクを、新しいページに張り替える。
+- `index.md`、`getting-started.md`、`workflows.md`、`upgrade.md` にある操作に必要な情報を読者向け HTML に載せる。既存の Markdown は参照元として残せる。公開版の読者向けリンクには HTML を使う。
+- 入口の本文と README から参照する補助資料は、開発リポジトリで `python tools/docs/render_readme.py <wiki プラグインの作業ツリー>` を実行して作る。
 - `upstream-changelog.md` は開発の記録なので、info-hive-dev の `docs/upstream/` に移す。`UPSTREAM.md` のリンクと表を直す。移植元から訳して取り込んだ文書を作り直したことを、`UPSTREAM.md` の表に 1 行足す。`docs/upstream/translation-hashes.txt` は取り込みの時点の記録なので、変えない。
-- `agents.md` と、上級の機能の 4 本（`search.md`、`graph.md`、`decisions.md`、`evolution.md`）は、Markdown のまま残す。P0 と W6 から「上級の機能」としてリンクする。HTML にしてです・ます体にそろえるのは、別の作業にする。
-- `docs/assets/` には、`fluent2-html-replica` の `assets/fluent2.css` を書き換えずに写す。browse（ADR-0021）と同じ版にし、出どころ、基準の版、SHA-256、写し直す手順を `docs/assets/README.md` に書き、ライセンスの文書を `docs/assets/licenses/` に置く。browse の `browse_assets/fluent2.css` を直接読まないのは、公開先（GitHub Pages の `/docs` など）では `docs/` の外を読めないためである。同じ 626KB を 2 か所に持つことになるので、SHA-256 が一致することを試験で確かめる。
+- `agents.md` と、上級の機能の 4 本（`search.md`、`graph.md`、`decisions.md`、`evolution.md`）は、Markdown のまま残す。読者向けの案内に必要な引数や操作は HTML のリファレンス・解説に含める。
+- `docs/html/assets/` には、`fluent2-html-replica` の `assets/fluent2.css` を書き換えずに写す。browse（ADR-0021）と同じ版にし、出どころ、基準の版、SHA-256、写し直す手順を `docs/html/assets/README.md` に書き、ライセンスの文書を `docs/html/assets/licenses/` に置く。HTML とアセットを同じディレクトリツリーで配布する。同梱する 2 つの CSS の SHA-256 が一致することを試験で確かめる。
 
 プラグインが増えたら、そのプラグインのリポジトリの `docs/` に、チュートリアルを 1〜2 本、要るハウツー、コマンドのリファレンスを 1 本、要れば解説を 1 本置く。P0 に 1 節を足し、読む順番では依存先の後ろに置く。用語は C5 に足す。
 
@@ -300,7 +301,7 @@ Cowork は `CLAUDE.md` を同じようには扱わない。代わりに、Settin
 3. **試作**
    - W1 を 1 ページだけ書く。部品は `fluent2-html-replica` の `references/` のマークアップを使い、独自の装飾もトークンの CSS 変数で書く。
    - `fluent2.css` には印刷の指定がないので、印刷用の CSS を足す。
-   - P0 の図を 1 つ、`diagram-design` と `plannotator-effective-html:html-diagram` で、Fluent 2 のトークンの色と書体を使った SVG にし、HTML に埋め込む。
+   - P0 の左に目次を置き、右に図解と `README.md` の HTML を置く。旧 `docs/index.md` は HTML 版への案内にする。README の変更後に再生成し、文書リンクとコマンド例を検証する。
    - Vivliostyle で PDF を出す。確かめる点は、目次と前後のページへの移動、改ページ、コードブロック、リンク、日本語の書体の埋め込み、明るい表示と暗い表示、スマートフォンの幅である。
    - 作者が試作を見て、次の 3 つを決める。
      - PDF の道具
@@ -308,10 +309,13 @@ Cowork は `CLAUDE.md` を同じようには扱わない。代わりに、Settin
        - 版の対応: 古い版のプラグインの `/wiki:help` のリンクを開いたとき、その版の文書が出るか。最新の版だけを配る公開先なら、ADR-0022 の「版がそろう」は、リポジトリの中の文書についてだけ言えることになる。そう決めるなら、ADR に書く
        - `wiki_help.py` の書き換えの規則: 今の規則は、`./tutorial-first-wiki.html#first-source` を `https://github.com/to884/info-hive-wiki/blob/v0.16.0/docs/tutorial-first-wiki.html#first-source` に書き換える（GitHub ではソースのまま表示される）。規則を変えるなら、`tests/wiki/test_help_command.py`（441〜480 行が GitHub のタグの URL を期待する）も一緒に直す
        - 公開の手順: リリースの手順のどこで公開し、何を確かめるか
-     - `commands.html` の作り方: `commands.md` から変換するか、作らずに `commands.md` へリンクするか
+     - `commands.html` の作り方: `commands.md` とコマンド定義を照合し、HTML に 12 本の使い方を載せる。読者向けの導線には HTML を使う。
    - 試作を Sol のレビューにかける。
 4. **共通と wiki のページ**
-   - P0、C1〜C6、W1〜W7 を書く。
+   - P0、C1〜C6、W1〜W7 の原稿を HTML で書く。導入、練習、障害対処、コマンド参照は HTML のリンクで行き来できるようにする。`commands.md` は `/wiki:help` が読む正本として残す。HTML の閲覧と確認を先に行う。
+   - 公開用の文書には HTML と表示に必要なアセットを含める。入口から全ページに到達でき、各リンクと見出しが有効で、GitHub 上の Markdown を開かずに操作を進められることを確かめる。
+   - 執筆を複数のモデルに分けるときも、各モデルにこの共通ルールと W1 の確定稿を渡す。今回作成・改稿する本文とヘルプの説明は、です・ます体とし、用語、表記、UI のラベルをそろえる。番号付きの手順は 1 項目につき 1 操作にする。コマンド、出力、練習用の原文は実際の文字列を保つ。
+   - 初稿がそろったら、最終編集を 1 つのモデルにまとめる。チュートリアルは実践の手順と確認の目印、リファレンスは引数、既定値、出力などの正確な記述を保ち、全ページを通して文体と用語をそろえる。
    - `commands.md` と `commands/*.md` の frontmatter をです・ます体に書き直す。`commands.md` は、`` ## `/wiki:<名前> ...` `` の見出しとインラインのリンクの規則（`docs/commands.md:177`、`tests/wiki/test_help_command.py`）を守る。
    - 消すファイルと移すファイルへのリンクを、すべて張り替える。参照するファイルを並べて探すと漏れる（1 版で挙げなかった `CHANGELOG.md:467` が `docs/upstream-changelog.md` を指している）ので、消す・移すファイルの名前ごとに、`info-hive-wiki` の全体を Grep して、見つかったものをすべて直す。たとえば `search.md:7` は `./workflows.md#wiki-にクエリする` を指している。`CHANGELOG.md` の過去の版の項は書き換えず、リンク先だけを移した先に直す。
    - P0 を除く各ページを `diataxis` の classify にかけて 1 つの種類に収まるか確かめ、`natural-japanese` で推敲する。P0 は、作者が決めたとおり 4 種類の外の入口であり、分類の対象にしない。
@@ -326,7 +330,7 @@ Cowork は `CLAUDE.md` を同じようには扱わない。代わりに、Settin
 
 - `/wiki:help`: 変更した `info-hive-wiki` で、`python skills/info-hive/scripts/wiki_help.py --command=<名前>` を 12 本すべてで実行し、警告が出ないこと。`tests/wiki/test_help_command.py` は、試験のファイルの置き場所から `info-hive-wiki` を決める（31〜34 行）。そのため、変更したサブモジュールを checkout した、同じ作業ツリー（ワークツリー）の中の試験を走らせる。ほかの作業ツリー（main の checkout など）の試験を走らせると、変更していないプラグインを試験して合格してしまう。走らせる前に、`git -C info-hive-wiki rev-parse HEAD` が変更したコミットであることを確かめる。
 - リンク: HTML と Markdown のすべての相対リンクが、実在するファイルを指すこと。アンカー（`#...`）が付くリンクは、リンク先のページにその `id` があること。消した・移したファイルの名前で `info-hive-wiki` の全体を Grep して、古い場所を指すリンクが 1 つも残っていないこと。
-- `fluent2.css`: `docs/assets/fluent2.css` と `skills/info-hive/scripts/browse_assets/fluent2.css` の SHA-256 が一致すること（ADR-0021 が入ったあと）。
+- `fluent2.css`: `docs/html/assets/fluent2.css` と `skills/info-hive/scripts/browse_assets/fluent2.css` の SHA-256 が一致すること（ADR-0021 が入ったあと）。
 - 公開: 公開した URL で各ページが表示され、`/wiki:help` の詳細のリンクがそのページを開くこと。
 - 見た目: ブラウザのペインで各ページを開き、明るい表示、暗い表示、スマートフォンの幅で崩れないこと。PDF を開き、改ページとコードブロックを確かめること。
 - 手順: 新しい環境で、チュートリアルを書いてあるとおりに通し、2-5 の目印が出ること。ハウツーのコマンドを実行したこと（実行していないものは、文書に未確認と書いてあること）。
