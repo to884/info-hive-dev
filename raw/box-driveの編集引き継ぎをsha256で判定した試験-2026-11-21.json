@@ -1,0 +1,131 @@
+{
+  "date": "2026-11-21",
+  "timezone": "Asia/Tokyo",
+  "fixture": "Box Drive 上の既存の検証用 wiki、Windows 11 ホストと Hyper-V の Windows 11 VM",
+  "checker": "poc/box-drive-wiki-handoff/check_handoff.py",
+  "checker_sha256": "5f962e000a9a7771705b3746f1bfeefb3cda5fc0d1d8f4ffcfe1f517064a6cce",
+  "method": "新版予定の3ファイルから照合用JSONを採取して先に渡し、VMで旧版3本を判定する。ホストが記事だけを先行保存し、VMで記事だけ新版を見てからホストが索引とログを保存する。VMの判定は実ファイルを開いたSHA-256に基づく。",
+  "vm": {
+    "all-old-final-code": {
+      "observed": "2026-11-21T18:02:26.0226884+09:00",
+      "elapsed_ms": 106,
+      "exit_code": 1,
+      "decision": "wait",
+      "files": [
+        {
+          "path": "concepts/guide.md",
+          "sha256": "b1d807e752298eb131cd3cbbbbd56c3a5c1fe082d766194c6d4a54f126bf398c",
+          "status": "mismatch",
+          "conflict_copies": [],
+          "expected_sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        {
+          "path": "index.md",
+          "sha256": "534803e9a8edd7a7b2686ee20fd63173c2ef718014373ce50d60497c22d6277c",
+          "status": "mismatch",
+          "conflict_copies": [],
+          "expected_sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        {
+          "path": "log.md",
+          "sha256": "df8d50e4099a103b44d87c784731ddf641345f5ac15f52c528a8e2a02485cd5f",
+          "status": "mismatch",
+          "conflict_copies": [],
+          "expected_sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      ]
+    }
+  },
+  "actual_host_manifest_matched_staged_bytes": false,
+  "local_files_without_box": [
+    {
+      "exit_code": 1,
+      "decision": "wait",
+      "files": [
+        {
+          "path": "concepts/guide.md",
+          "sha256": "b1d807e752298eb131cd3cbbbbd56c3a5c1fe082d766194c6d4a54f126bf398c",
+          "status": "mismatch",
+          "conflict_copies": [],
+          "expected_sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        {
+          "path": "index.md",
+          "sha256": "534803e9a8edd7a7b2686ee20fd63173c2ef718014373ce50d60497c22d6277c",
+          "status": "mismatch",
+          "conflict_copies": [],
+          "expected_sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        {
+          "path": "log.md",
+          "sha256": "df8d50e4099a103b44d87c784731ddf641345f5ac15f52c528a8e2a02485cd5f",
+          "status": "mismatch",
+          "conflict_copies": [],
+          "expected_sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      ]
+    },
+    {
+      "exit_code": 1,
+      "decision": "wait",
+      "files": [
+        {
+          "path": "concepts/guide.md",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741",
+          "status": "match",
+          "conflict_copies": [],
+          "expected_sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        {
+          "path": "index.md",
+          "sha256": "534803e9a8edd7a7b2686ee20fd63173c2ef718014373ce50d60497c22d6277c",
+          "status": "mismatch",
+          "conflict_copies": [],
+          "expected_sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        {
+          "path": "log.md",
+          "sha256": "df8d50e4099a103b44d87c784731ddf641345f5ac15f52c528a8e2a02485cd5f",
+          "status": "mismatch",
+          "conflict_copies": [],
+          "expected_sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      ]
+    },
+    {
+      "exit_code": 0,
+      "decision": "ready",
+      "files": [
+        {
+          "path": "concepts/guide.md",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741",
+          "status": "match",
+          "conflict_copies": [],
+          "expected_sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        {
+          "path": "index.md",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5",
+          "status": "match",
+          "conflict_copies": [],
+          "expected_sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        {
+          "path": "log.md",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3",
+          "status": "match",
+          "conflict_copies": [],
+          "expected_sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      ]
+    }
+  ],
+  "supplementary_checks": [
+    "CRLF のみの変更も不一致",
+    "欠落",
+    "NFD で表現された競合コピー候補",
+    "2 回目の走査による競合コピー候補の検知",
+    "不正なマニフェスト"
+  ],
+  "pending": "VM の Windows ユーザーがサインインしておらず Box Drive が同期を継続できないため、途中と同期完了の状態は未測定。"
+}

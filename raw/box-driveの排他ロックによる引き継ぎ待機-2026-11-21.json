@@ -1,0 +1,113 @@
+{
+  "date": "2026-11-21",
+  "timezone": "Asia/Tokyo",
+  "environment": "同じ Box Drive 上の検証用 wiki、Windows 11 ホストと Hyper-V 上の Windows 11 VM。",
+  "method": "VM の log.md を FileMode.Open、FileAccess.Read、FileShare.None で開いたまま、別プロセスで check_handoff.py を実行。二度目の OpenRead でエラー 32 を確認。finally でハンドルを閉じてから再実行。",
+  "checker_sha256": "5f962e000a9a7771705b3746f1bfeefb3cda5fc0d1d8f4ffcfe1f517064a6cce",
+  "canonical_sha256": {
+    "concepts/guide.md": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741",
+    "index.md": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5",
+    "log.md": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+  },
+  "observations": {
+    "host_before": {
+      "at": "2026-11-21T18:51:38.0255819+09:00",
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    },
+    "vm_before": {
+      "at": "2026-11-21T18:51:38.5778818+09:00",
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    },
+    "vm_locked": {
+      "at": "2026-11-21T18:51:38.7975413+09:00",
+      "exit_code": 1,
+      "decision": "wait",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "unreadable",
+          "sha256": null
+        }
+      }
+    },
+    "vm_released": {
+      "at": "2026-11-21T18:51:38.9241479+09:00",
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    },
+    "host_after": {
+      "at": "2026-11-21T18:51:39.1542439+09:00",
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    }
+  },
+  "win32_read_error": 32,
+  "log_sha256_before_lock": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3",
+  "log_sha256_after_release": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3",
+  "scope": "VM の log.md を読み取り専用の排他ハンドルで開いた 1 回の実測。"
+}

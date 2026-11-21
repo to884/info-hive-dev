@@ -1,0 +1,81 @@
+{
+  "id": "info-hive-architecture-refresh-20261120",
+  "task": "公開済み info-hive の構成図、myKG 比較、導入候補を実装に合わせて更新する",
+  "verification": "固定コミットのコードを読み、docs/agent-runs/2026-11-20-info-hive-mykg-architecture/verification.json の5条件で画面・操作・横幅・JavaScript例外・外部依存を検査した。Opus の指摘と反証・修正は同じディレクトリに保存。抽出精度や性能は測定していない。",
+  "model": "Codex（基盤モデルIDは取得していない）。wiki-reader は Sonnet 5.5 / medium、レビューは Claude Opus 5.5 / high。",
+  "tools": "git show / fetch / ls-remote、wiki:wiki-reader、Playwright (Edge headless)、ask-claude、wiki_evolve.py capture、wiki_apply.py",
+  "scope": "info-hive-dev の実装比較と図解の更新。個人用 wiki へは保存しない。",
+  "outcome": "success",
+  "actions": [
+    "wiki origin/main と HEAD が84d149f（v0.39.0）、rag が9af30c3（v0.5.4）で一致することを確認した。",
+    "未コミットの wiki_apply/live_apply/live_return/write-workflow と新しい wiki_restore を、公開済み機能の根拠から除外した。",
+    "git show で固定した実装から、共通の承認計画・日誌・再試行、公開候補のグラフ再生成、公開版の lexical 検索と release_id を確認した。",
+    "myKG の main を ls-remote で確認し、afb0a9c9 と一致した。",
+    "書き込み日誌の新規導入案を撤回し、残る候補を意味抽出の二段階・中間結果の再開・原文による孤立点検に絞った。",
+    "新しい HTML を作り、旧図の内容を保持して最新版へのリンクを付けた。5条件の表示・操作を確認した。"
+  ],
+  "hypothesis": "既存の書き込み経路に、意味抽出の候補と細粒度の再開を接続する設計が適すると考える。効果は未測定。",
+  "counterexamples": "書き込みの再試行があっても、LLMの抽出中間結果の再開を保証しない。公開版は任意で検索は語彙経路。raw・PDFは公開版IDによる同梱ではない。",
+  "evidence": {
+    "artifact": {
+      "artifact": "docs/research/info-hive-mykg-architecture-visual-2026-11-20.html",
+      "sha256": "6f8acb6ba0c41a576feab258ea64e43994f889938db4d79d7a1bfe51be92bf67",
+      "checked_on": "2026-11-20",
+      "verification": "docs/agent-runs/2026-11-20-info-hive-mykg-architecture/verification.json"
+    },
+    "sources": "docs/research/info-hive-mykg-architecture-sources-2026-11-20.json",
+    "review": "docs/agent-runs/2026-11-20-info-hive-mykg-architecture/review.md",
+    "review_disposition": "docs/agent-runs/2026-11-20-info-hive-mykg-architecture/review-disposition.md",
+    "reviewer_initial_verdict": "REJECTED",
+    "final_validation": "主担当が指摘を確認・修正し、画面と操作を再検証。修正後のOpus再レビューは実施していない。"
+  },
+  "observations": {
+    "wiki_version": "0.39.0",
+    "wiki_commit": "84d149ffc642f5820adf3dd2d583d4350e19a17f",
+    "rag_version": "0.5.4",
+    "rag_commit": "9af30c3d46fd1699638ea87c908c8d1bb313bae8",
+    "mykg_commit": "afb0a9c9bafdc49751563b9aa7f59bcf4bb787fb",
+    "viewport_checks": [
+      {
+        "width": 1440,
+        "scheme": "light",
+        "overflow": false,
+        "controls": "pass",
+        "consoleErrors": [],
+        "externalRequests": []
+      },
+      {
+        "width": 375,
+        "scheme": "light",
+        "overflow": false,
+        "controls": "pass",
+        "consoleErrors": [],
+        "externalRequests": []
+      },
+      {
+        "width": 360,
+        "scheme": "light",
+        "overflow": false,
+        "controls": "pass",
+        "consoleErrors": [],
+        "externalRequests": []
+      },
+      {
+        "width": 1024,
+        "scheme": "light",
+        "overflow": false,
+        "controls": "pass",
+        "consoleErrors": [],
+        "externalRequests": []
+      },
+      {
+        "width": 1440,
+        "scheme": "dark",
+        "overflow": false,
+        "controls": "pass",
+        "consoleErrors": [],
+        "externalRequests": []
+      }
+    ]
+  }
+}
