@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0",
+  "skill": "diataxis-documentation",
+  "notes": "Activation eval. The description field is the primary activation signal. Near-misses are more useful than obviously unrelated prompts, so most should_trigger:false cases here are documentation-adjacent on purpose.",
+  "queries": [
+    { "query": "Write the documentation for this new CLI subcommand based on the parser and tests.", "should_trigger": true, "why": "Docs authored from source of truth." },
+    { "query": "Our getting-started page mixes a toy example, production deployment, and every config option. Clean it up.", "should_trigger": true, "why": "Classic mixed-mode repair." },
+    { "query": "Review the docs changed by this PR and make sure users can actually follow them.", "should_trigger": true, "why": "Docs PR review." },
+    { "query": "Document this feature.", "should_trigger": true, "why": "Bare authoring request; must trigger without naming the framework." },
+    { "query": "Fix our getting-started guide.", "should_trigger": true, "why": "Repair request without naming the framework." },
+    { "query": "Write docs for this API.", "should_trigger": true, "why": "Reference authoring." },
+    { "query": "Turn this ADR into an architecture explanation page.", "should_trigger": true, "why": "Design record to explanation." },
+    { "query": "Our docs folder is a mess. Propose a structure.", "should_trigger": true, "why": "Information architecture." },
+    { "query": "Audit docs/ and tell me the first five things to fix.", "should_trigger": true, "why": "Documentation audit." },
+    { "query": "Generate reference pages for every environment variable this service reads.", "should_trigger": true, "why": "Configuration reference from source." },
+    { "query": "New users can't get the SDK working. Can you write something to walk them through it?", "should_trigger": true, "why": "Tutorial need, described by symptom." },
+    { "query": "Split this page — half of it is a tutorial and half is a runbook.", "should_trigger": true, "why": "Mode split." },
+    { "query": "Move our docs from Sphinx to MkDocs and reorganize them while we're at it.", "should_trigger": true, "why": "Migration with restructuring." },
+    { "query": "The README is 900 lines. Help.", "should_trigger": true, "why": "Composite document repair." },
+    { "query": "Add a troubleshooting section for the errors this endpoint returns.", "should_trigger": true, "why": "Error reference plus symptom-first how-to." },
+    { "query": "Rewrite this internal email so it sounds less formal.", "should_trigger": false, "why": "Non-technical copyediting." },
+    { "query": "Add docstrings to these three private helper methods.", "should_trigger": false, "why": "Inline code comments for maintainers, not user-facing docs." },
+    { "query": "Fix the typo in line 4 of the changelog.", "should_trigger": false, "why": "Trivial edit; no documentation design decision." },
+    { "query": "Write a blog post announcing the 3.0 release.", "should_trigger": false, "why": "Marketing content, not documentation." },
+    { "query": "Summarize what this pull request changes so I can paste it into Slack.", "should_trigger": false, "why": "Summarization, not documentation authoring." },
+    { "query": "Translate our privacy policy into German.", "should_trigger": false, "why": "Legal text translation." },
+    { "query": "Make this Python function faster.", "should_trigger": false, "why": "Unrelated engineering task." },
+    { "query": "Convert this Markdown table to CSV.", "should_trigger": false, "why": "Format conversion with no documentation judgement." }
+  ]
+}

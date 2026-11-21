@@ -1,0 +1,20 @@
+$ demo queue create --help
+Usage: demo queue create [OPTIONS] NAME
+
+  Create a queue.
+
+Options:
+  --region TEXT         Storage region.  [env: DEMO_REGION; default: us-east-1]
+  --retention DURATION  How long undelivered messages are kept.  [default: 24h]
+  --max-size INTEGER    Maximum message size in bytes.  [default: 262144]
+  --dead-letter TEXT    Queue that receives exhausted messages.
+  --dry-run             Print the plan without creating anything.
+  -o, --output [table|json]
+                        Output format.  [default: table]
+  -h, --help            Show this message and exit.
+
+Exit codes:
+  0  Queue created.
+  2  Invalid arguments.
+  4  Queue already exists.
+  5  Region unavailable.

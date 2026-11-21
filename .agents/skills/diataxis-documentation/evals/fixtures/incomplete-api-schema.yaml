@@ -1,0 +1,42 @@
+# Deliberately incomplete and partly inconsistent with the implementation.
+# The eval checks that the agent reports the conflicts rather than guessing.
+openapi: 3.0.3
+info:
+  title: Demo Queue API
+  version: "1.2.0"
+paths:
+  /queues:
+    post:
+      summary: Create a queue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                region:
+                  type: string
+                  default: us-east-1
+                retention:
+                  type: string
+                  # NOTE: no default here; the implementation defaults to 24h
+                max_size:
+                  type: integer
+                  default: 131072
+                  # NOTE: the implementation default is 262144
+      responses:
+        "201":
+          description: Created
+        "409":
+          description: Queue exists
+        # The implementation also returns 429; it is missing from this schema.
+  /queues/{name}:
+    get:
+      summary: Describe a queue
+      responses:
+        "200":
+          description: OK
