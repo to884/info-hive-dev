@@ -3,11 +3,11 @@ type: "synthesis"
 title: "ドリーミングを info-hive-wiki に適用できるか"
 question: "Dreaming 関連の記事を読み、info-hive-wiki に適用できるか検討して"
 asked: 2026-11-19
-sources: ["components-of-agent-memory", "managed-agents-cma-dreaming-with-a-dynamic-workflow", "claude-quickstarts-managed-agents-knowledge-wiki", "wikiの書く段の設計-2026-11-15", "codexのプラグインと会話の取り込みのリリース-wiki-0.29.0"]
+sources: ["components-of-agent-memory", "managed-agents-cma-dreaming-with-a-dynamic-workflow", "claude-quickstarts-managed-agents-knowledge-wiki", "wikiの書く段の設計-2026-11-15", "codexのプラグインと会話の取り込みのリリース-wiki-0.29.0", "browseの静的mermaidの隔離と性能の検証-2026-11-18-会話版", "Codexセッションの会話版とwiki-0.38.0の公開-2026-11-19"]
 sources_consulted: ["components-of-agent-memory", "managed-agents-cma-dreaming-with-a-dynamic-workflow", "claude-quickstarts-managed-agents-knowledge-wiki", "エージェントのメモリの階層", "editとwriteの書き込みの競合", "wikiの書く段の設計-2026-11-15", "セッションの取り込みの設計-2026-11-14", "codexのプラグインと会話の取り込みのリリース-wiki-0.29.0"]
 tags: ["wiki設計", "取り込み"]
 created: 2026-11-19
-updated: 2026-11-19
+updated: 2026-11-22
 ---
 
 # ドリーミングを info-hive-wiki に適用できるか
@@ -53,12 +53,34 @@ flowchart LR
 
 Managed Agents に固有の部分（メモリストアのマウント、500 ファイルの上限、マウントの `instructions` の 4,096 文字、cron で動かすこと）と費用の数値は、そのままは当てはまらない。
 
+## 2026-11-21 の実装試行
+
+プロジェクトの [`/wiki-dream`](../../.claude/workflows/wiki-dream.js) を [Python の起動スクリプト](../../poc/wiki-dream/run.py) から呼び出した。
+Python は、取り込み時の SHA-256 が記録された会話を選び、原本と関連記事の写しを Claude Code に渡す。
+Haiku 5.5 が会話ごとに根拠を抽出し、Sonnet 5.5 が原本を読み直して修正案をまとめる。
+Python は両段が返した引用と編集対象の版を照合し、レビュー用の差分を作る。
+
+Claude Code 2.1.325 で会話 2 件と関連記事 5 件を使い、Haiku 2 件と Sonnet 1 件の完了を実行記録で確認した。
+[[図ごとの描画の隔離]] にサーバー版の検証結果を補う差分が 1 件でき、wikilink から始まる行への提案 1 件は、この試行の編集対象から外して保留した。
+差分は `git apply --check` を通った。
+今回の試行は、差分の提示までを対象とした。[[browseの静的mermaidの隔離と性能の検証-2026-11-18-会話版]]、[[Codexセッションの会話版とwiki-0.38.0の公開-2026-11-19]]
+
+## 2026-11-21 の定期ジョブの実装と試行
+
+Codex のローカル定期ジョブ「Wiki Dreaming の差分提案」は、現在、毎日正午（日本時間）に起動する設定である。2026-11-21 の登録時は毎日午前 3 時で、2026-11-22 に正午へ変更した。ジョブは Python の起動スクリプトを `--scheduled --limit 2` で呼び、レビュー用の差分を保存する。
+
+- **処理済みの判定。** Python は SQLite の台帳でセッション ID と原本の SHA-256 の組を照合する。差分の保存を確認した会話を処理済みにし、同じ組を次の回から除く。原本のハッシュが変われば再び対象にする。
+- **失敗からの再開。** 抽出や原本の照合に失敗した会話は台帳に残し、以後の回で 1 件ずつ別のワークフローに渡す。同じ台帳を使う処理は同時に 1 回だけ実行する。差分の保存と台帳の確定の間に強制終了すると、同じ会話から再提案することがある。
+- **モデルの分担。** Haiku 5.5 が会話ごとに根拠を抽出し、Sonnet 5.5 が原本と記事を照合して修正案をまとめる。Python は長い原本を分割して各ファイルの末尾の確認コードを照合し、全ファイルの読み込みを確認する。そのうえで引用と記事の版を検査し、差分を作る。
+
+Claude Code 2.1.325 を使い、定期ジョブと同じ `--scheduled` の経路を手動で試した。会話 2 件と関連記事 5 件を対象に、Haiku が 2 回、Sonnet が 1 回完了した。[[図ごとの描画の隔離]] の「同時実行と入口」の段落に出典を補う差分を 1 件作成し、`git apply --check` を通した。同じ会話を指定して再実行すると 2 件とも台帳で除外された。失敗した会話の再試行、初回の会話との振り分け、読み込み不足の検出を含む自動テスト 17 件が通った。
+
+試行の実行 ID は `4257b00369b045d2aa4680e3e5ec1de5` である。定刻での初回起動は、この試行時点では未確認だった。
+
 ## wiki が扱っていないこと
 
-- info-hive のプラグインで、会話の見直しを定期に動かす方法。
-- 手元の会話で見直したときの費用。
-
-Claude Code か Codex で cron のように定期にエージェントを動かす手順の公式の文書を取り込むと補える。
+- info-hive プラグインとして定期実行を配布する方法。
+- 手元の会話を定期的に見直す費用と、整理前後の回答品質。
 
 ## 回答のときの確信度
 
