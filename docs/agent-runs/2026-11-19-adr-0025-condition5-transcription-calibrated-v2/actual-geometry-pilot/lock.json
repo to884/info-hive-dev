@@ -1,0 +1,494 @@
+{
+  "source_sha256": {
+    "start": "49ab82f49943c0fe09cdde1adfeb5a429fcebfd1bee06fa6e1c4da027507ac17",
+    "final": "ee3ef4cd531b2e8d418748f6c987e03857b7bff80c39f754c76266a5558cd9e2"
+  },
+  "script_sha256": "34136a203f17eec21a69f536f8b2a783aa641f44256c2baf1ee018cf54e4ccd6",
+  "protocol_sha256": "d23fca50cbbfb2c693ea7b92a02c408c169f75e17dfe93b2b6f8bea41b097f37",
+  "dependency_sha256": {
+    "run.py": "bae64cdab28ffdc343c6ccd05bfa6e4824c0ba03acf70c9b7fd01748e362f7b2",
+    "pilot.py": "7191e3248d8a021a0fc6bc9979225c90c30948afc5f8c7a23a030bfce8e53366",
+    "meiryo.ttc": "457b306f719a002f1d037b2a3942f2abfa8a55d7bb109bf8950341a3129adb46"
+  },
+  "selection": "adr0025-condition5-actual-geometry-pilot-v1-20261119",
+  "models": {
+    "sol": "gpt-6.2-sol",
+    "opus": "claude-opus-5-5"
+  },
+  "effort": "medium",
+  "packs": {
+    "control": {
+      "images": [
+        "G01.png",
+        "G02.png",
+        "G03.png",
+        "G04.png",
+        "G05.png",
+        "G06.png",
+        "G07.png",
+        "G08.png",
+        "G09.png",
+        "G10.png",
+        "G11.png",
+        "G12.png",
+        "G13.png",
+        "G14.png",
+        "G15.png",
+        "G16.png",
+        "G17.png",
+        "G18.png"
+      ],
+      "image_sha256": [
+        "b9e8981dd77d6d2bf8dbe804b8d308770698e7f723646b04e5607651f8378732",
+        "b9d7f21249fd760f3f4f3ab6faca5cef75651f9e4aed1705de0de62b5f709c22",
+        "09caca666409b293850b499b5b0ea59d31fe14ab8c67e422ddcbff7fe3fbbaca",
+        "fbd2b4124ffbc9566e1cc02022d18fd318219a99942dcfa052a3e422cde0c76f",
+        "0916d5852907143040147c7e36936f6bbb85a372902958505ab2b59d852d45ae",
+        "7106efca7f2639c010406e52ca61f14eb55ac749ec50bc18ca0d2a3ff15957e7",
+        "15337302ac2487a6341f207d5226a0b1384aa52117ed2c1b1f31ffb1fdabe507",
+        "1da1cf523189d40cf9d7a51cba746d082e5eff139f088381e57008505acb2957",
+        "24349bd2a32f3547abbe48da050fda581b72bd6dc82485916e03b04bc759ca25",
+        "cc714700ac71af5f4c601de3a055a701694e683faa76d401f9d7d2a29ec2f8fb",
+        "28988aa76051e4979967a33952d711c14f53780c0cd823f9b3f0fab91bb4d4c4",
+        "3a6d8ed5476a3e93f3f31c07c21e9a0f2d01e69a2fe7630531c1049f96419836",
+        "32811e6d2f028408fdec50ec9d50632f295adeba6492b8eb720cb600d349ae29",
+        "f64d29b21f964bbc6dfd26b23556b4aaf268a7d79e76e6673b062da470f0a7e4",
+        "ee7f7bac0e6f844a547a8c65156a9a71e794c875e70c8e9f46b11f02c7902925",
+        "44a7cd2817a377aed49332d910cc384813666003d7a573f1ff75cab4f2412b90",
+        "81a3df0df879276c949bba1340e5ab5428915367c178c27fd572eb6e9d18a417",
+        "0fac79a2310f35cbce7273e6166eae2e9a7aac4cbbdc1519dab1ac235ad99dbf"
+      ],
+      "ids": [
+        "G01",
+        "G02",
+        "G03",
+        "G04",
+        "G05",
+        "G06",
+        "G07",
+        "G08",
+        "G09",
+        "G10",
+        "G11",
+        "G12",
+        "G13",
+        "G14",
+        "G15",
+        "G16",
+        "G17",
+        "G18"
+      ],
+      "prompt": "各カードの上段は固定150 DPI（3倍表示）、下段は450 DPI、左は枠なし、右は枠ありです。カードに対象のIDと所属軸xまたはyを示します。枠の中または周りに見える字のうち、指定軸方向の字全体の長さの半分以上が枠と重なり、直交方向の字全体のインクの中心が枠内にある字だけを自然な読む順に書いてください。同じ字の枠外部分は見てよいですが、別の字や図形を加えないでください。150 DPIで所属を、450 DPIで字形を確認してください。OCRや既存本文は示しません。文字がなければempty、字種または所属が決められなければunreadableとしてください。\n回答はJSONオブジェクトのみです。形式は {\"answers\":[{\"id\":\"画像のID\",\"status\":\"readable\",\"text\":\"行の本文\"}]} です。各指定IDに1件ずつ回答してください。\n対象ID: G01、G02、G03、G04、G05、G06、G07、G08、G09、G10、G11、G12、G13、G14、G15、G16、G17、G18\n"
+    },
+    "geometry": {
+      "images": [
+        "G01.png",
+        "G02.png",
+        "G03.png",
+        "G04.png",
+        "G05.png",
+        "G06.png",
+        "G07.png",
+        "G08.png",
+        "G09.png",
+        "G10.png",
+        "G11.png",
+        "G12.png",
+        "G13.png",
+        "G14.png",
+        "G15.png",
+        "G16.png",
+        "G17.png",
+        "G18.png"
+      ],
+      "image_sha256": [
+        "b9e8981dd77d6d2bf8dbe804b8d308770698e7f723646b04e5607651f8378732",
+        "b9d7f21249fd760f3f4f3ab6faca5cef75651f9e4aed1705de0de62b5f709c22",
+        "09caca666409b293850b499b5b0ea59d31fe14ab8c67e422ddcbff7fe3fbbaca",
+        "fbd2b4124ffbc9566e1cc02022d18fd318219a99942dcfa052a3e422cde0c76f",
+        "0916d5852907143040147c7e36936f6bbb85a372902958505ab2b59d852d45ae",
+        "7106efca7f2639c010406e52ca61f14eb55ac749ec50bc18ca0d2a3ff15957e7",
+        "15337302ac2487a6341f207d5226a0b1384aa52117ed2c1b1f31ffb1fdabe507",
+        "1da1cf523189d40cf9d7a51cba746d082e5eff139f088381e57008505acb2957",
+        "24349bd2a32f3547abbe48da050fda581b72bd6dc82485916e03b04bc759ca25",
+        "cc714700ac71af5f4c601de3a055a701694e683faa76d401f9d7d2a29ec2f8fb",
+        "28988aa76051e4979967a33952d711c14f53780c0cd823f9b3f0fab91bb4d4c4",
+        "3a6d8ed5476a3e93f3f31c07c21e9a0f2d01e69a2fe7630531c1049f96419836",
+        "32811e6d2f028408fdec50ec9d50632f295adeba6492b8eb720cb600d349ae29",
+        "f64d29b21f964bbc6dfd26b23556b4aaf268a7d79e76e6673b062da470f0a7e4",
+        "ee7f7bac0e6f844a547a8c65156a9a71e794c875e70c8e9f46b11f02c7902925",
+        "44a7cd2817a377aed49332d910cc384813666003d7a573f1ff75cab4f2412b90",
+        "81a3df0df879276c949bba1340e5ab5428915367c178c27fd572eb6e9d18a417",
+        "0fac79a2310f35cbce7273e6166eae2e9a7aac4cbbdc1519dab1ac235ad99dbf"
+      ],
+      "ids": [
+        "G01",
+        "G02",
+        "G03",
+        "G04",
+        "G05",
+        "G06",
+        "G07",
+        "G08",
+        "G09",
+        "G10",
+        "G11",
+        "G12",
+        "G13",
+        "G14",
+        "G15",
+        "G16",
+        "G17",
+        "G18"
+      ],
+      "prompt": "各カードの上段は固定150 DPI（3倍表示）、下段は450 DPI、左は枠なし、右は枠ありです。カードに対象のIDと所属軸xまたはyを示します。枠の中または周りに見える字のうち、指定軸方向の字全体の長さの半分以上が枠と重なり、直交方向の字全体のインクの中心が枠内にある字だけを自然な読む順に書いてください。同じ字の枠外部分は見てよいですが、別の字や図形を加えないでください。150 DPIで所属を、450 DPIで字形を確認してください。OCRや既存本文は示しません。文字がなければempty、字種または所属が決められなければunreadableとしてください。\nまず450 DPIの枠なしで、隣の字の断片を分け、離れた点や線がどの字の一部かを確認してください。次に150 DPIの枠あり・枠なしを対照して、字形ごとに指定軸の重なりと直交方向の中心を確認してください。所属する字を選んでから、縦書きの複数列は右の列から、各列は上から下へ転記してください。所属する各字が確かなら、周囲の文脈が途中で切れていても、確認できた字だけを記してください。\n回答はJSONオブジェクトのみです。形式は {\"answers\":[{\"id\":\"画像のID\",\"status\":\"readable\",\"text\":\"行の本文\"}]} です。各指定IDに1件ずつ回答してください。\n対象ID: G01、G02、G03、G04、G05、G06、G07、G08、G09、G10、G11、G12、G13、G14、G15、G16、G17、G18\n"
+    }
+  },
+  "source_images": {
+    "G01": {
+      "689828351fe6-150-plain.png": "495f6cc812899be8ddf21522ef61bd9a9f28f9837551bff53ce8a2c5f0ece828",
+      "689828351fe6-150-framed.png": "6edf67a3660996a363dff262dfb49f78b6c7758a4557fd12bd8a50e6c38acdae",
+      "689828351fe6-450-plain.png": "3c7ee0264774df5260665d2ee58ae65f4f3b5e22f9c1b5862b8dac4af7f3a0ac",
+      "689828351fe6-450-framed.png": "c67b99adce6fb9aa5de4400137d75ce5e5cca626358664a358a15c876410ad4e"
+    },
+    "G02": {
+      "5eb2a99bca39-150-plain.png": "2638609c20be72b219efd00e5877c0d64a43ca7c81373001101e7d12196ed20a",
+      "5eb2a99bca39-150-framed.png": "4355d18056cb1e039f7a1e27b29bbe8c651444d9d6661facdf2f0218d9dd02b4",
+      "5eb2a99bca39-450-plain.png": "a85a00ca4b83a646cf6127f72606b3616290d4e1c5680e06ea5c0baee26c8dfa",
+      "5eb2a99bca39-450-framed.png": "48a77101eb725a376c8d824950fb6f7c6f81973845afd2fa4359f50059a35dbd"
+    },
+    "G03": {
+      "4b5461b5683c-150-plain.png": "a75036d15710fc6fac0a644b944b179c4564f1611ee84d2071668f07f994a9ad",
+      "4b5461b5683c-150-framed.png": "e1160f45a4e968835728707ac456d178fe93618c011f14fbb6b2167f1fdd294f",
+      "4b5461b5683c-450-plain.png": "3b1b9b055ef3e7ddf979677a2a52e9d04cf51b30a7bd17471c8589f97b3662ab",
+      "4b5461b5683c-450-framed.png": "bb0fadfc60ed5d2653437db0c0e34f97dcc31addd57466481c282d30da2bf114"
+    },
+    "G04": {
+      "f452c57f8009-150-plain.png": "98fc7e4bafaed59bc3ffabf1272f47fb3fe3ae993935ef2cfc9383dc0ed209d8",
+      "f452c57f8009-150-framed.png": "92eb91036b1b923a909681f52ba7068e46d5875a7241e3b88afbf8aeec2a8c86",
+      "f452c57f8009-450-plain.png": "36c751818e5ddc7c58bf394bcc499a2fea96eb36086ceb2c9249f9673d5b0156",
+      "f452c57f8009-450-framed.png": "fef551bcbd274cf8581096732f614ef6613b3693224fb586071f72de826cfa69"
+    },
+    "G05": {
+      "c0d4f72b962b-150-plain.png": "a67fdd8b5f7c9b2187ad412d09d0f89181e7f0a0cad2f669e65c18f5326bd7d2",
+      "c0d4f72b962b-150-framed.png": "dd025f56183068e8b0e4fdcf09cbfe26f112bd5f7d06880af4c61f9fca3e6185",
+      "c0d4f72b962b-450-plain.png": "dc4785dea71c4839b3ab5b74509d4f161667bef23d373afba57ed5f12ac4d5f6",
+      "c0d4f72b962b-450-framed.png": "66adc3316b6f7d29bfc03a6eafebe5ea71a0d24cb61d85b84e1b03f7a733f90a"
+    },
+    "G06": {
+      "18e83e7a5df5-150-plain.png": "1bb42afaa510b1b420540153626c67ad36e55cac39318e6b8c0fae263259aeb3",
+      "18e83e7a5df5-150-framed.png": "ab143c672f24ec05df317d7c78ce8afc189e21280ea490dae2d45865b2bb9d9e",
+      "18e83e7a5df5-450-plain.png": "00a877b324416808bd1fc44f20d8b4af3772569fc5cedb816e1eab3df91da468",
+      "18e83e7a5df5-450-framed.png": "4f4a3020f67b064d679ee80a6bab268ce2074c7e97af761b5a3568b094e5b05d"
+    },
+    "G07": {
+      "3ce4cf08d179-150-plain.png": "a768fbd0d03edbc0d7c1015f5d18802bc80cf3dc8733aea2ad4124db4fd6975f",
+      "3ce4cf08d179-150-framed.png": "78cdf6bf172acc47a0efb2318693da17867b603b2d3b5cbf50fb5523c306c248",
+      "3ce4cf08d179-450-plain.png": "9488514bfeadd4008ea4c388bf059267f699685e5b489d1ddf30ef5aa61c036f",
+      "3ce4cf08d179-450-framed.png": "3bf33f9cd97358e78efa3a0cc6d2289e455b71fa7ec117b560bf66ee690c5d0d"
+    },
+    "G08": {
+      "a2028dd74043-150-plain.png": "168d5008ba8a7579494ab3e45ddb1a8e86444504f5d9a0c2c7138a01a13eb75b",
+      "a2028dd74043-150-framed.png": "67d45e6badc5c29f35278a3de7735e863d1ea00a0be6d191a9d2592a178b5a54",
+      "a2028dd74043-450-plain.png": "5c69df08245c8c5d5a176eb43de84d0a6d33213e620f37b363a39ccc0116e70c",
+      "a2028dd74043-450-framed.png": "45827318104119f066e199b2b32bfac82296ec1c368a0185ba8e7ae2547d7be4"
+    },
+    "G09": {
+      "b8b330923d21-150-plain.png": "9a9c747bc326b1e2cce83ba046a44f2483cec406b4a6ee1d709011fd5deed7ae",
+      "b8b330923d21-150-framed.png": "15a6f5e6ea27cdc617c75961c4d9ac940e45483b37ec43b500a04ff37e9547e2",
+      "b8b330923d21-450-plain.png": "ebaf6218fad8225fede6956d859e62abece0f257986a18eae0d3ff9572abaa9b",
+      "b8b330923d21-450-framed.png": "aa6e9f6bbe832640dcc1c7fafb812202a75b032440ff917707e8319589b253b6"
+    },
+    "G10": {
+      "9daac4b7170f-150-plain.png": "3766fc6c95ee42cc887f7bc32b07e4058ae6a316b41c9581ddd6d8b3e12500f8",
+      "9daac4b7170f-150-framed.png": "4295f863ed9ab05c71f8b48867a3fbc756258ddcfca26f55599c800fe56f01cf",
+      "9daac4b7170f-450-plain.png": "834750025354ec170ddc1b0519b889f9bc695e080f0437cfefd177d5917a02fe",
+      "9daac4b7170f-450-framed.png": "05192a3f1fdc4e8f75cce5178ad831ea77b30f50b68ce773079c45c88819da53"
+    },
+    "G11": {
+      "c0155c72812a-150-plain.png": "82d46c763b1c7ad1c65d7331ce67f0a27fd444fe6e83f40be85a2c19d548e3df",
+      "c0155c72812a-150-framed.png": "f72bce360a2ee87a5003e1776fe325c232abff608a7a14f09596e74a71ee1092",
+      "c0155c72812a-450-plain.png": "8a4bbd0db2b457d73add51e53b869da87c236495f1aabeca265cd5ae10236492",
+      "c0155c72812a-450-framed.png": "e8ec8a500310a1fc04ff0d9729aeda685ddedb823110cf2ee1f9f3c9a70048b2"
+    },
+    "G12": {
+      "e58b9b25c6f4-150-plain.png": "3c840ab26ddc43afed40d43cb926f1d0d94a6bbf6c81d99a4d79059ef6c49b8e",
+      "e58b9b25c6f4-150-framed.png": "715aece4c78f2a1157884bb048da93a301588f848a2a210f873d99701cc8f9fe",
+      "e58b9b25c6f4-450-plain.png": "4e032aa35e1317818cd20e5553bb23674be9fb4f6937ec201311cada425caa16",
+      "e58b9b25c6f4-450-framed.png": "7eb8433a89870c841a9d1cd21ff2fb60c46af01129d2d1e06e944c643a0b5251"
+    },
+    "G13": {
+      "64a8b17b644f-150-plain.png": "7eb532222126fd971d2bf98d875387b557a71a1756913cc66335c84a0cca9ca3",
+      "64a8b17b644f-150-framed.png": "240fe5d0238eb9c05403c1feed1fa1e746dc10c0a0d88c1ce9bf0a6ecd41243a",
+      "64a8b17b644f-450-plain.png": "ae8bb3a5a0c3cdf86efd10337c22d4369b27057d7c696591ce5c11a97eee6a05",
+      "64a8b17b644f-450-framed.png": "1ac1ecdba01e3399a021eaf4830f99a950ae03a7542a855d1c05f1efdc579b76"
+    },
+    "G14": {
+      "d13db9fca042-150-plain.png": "ce7b49b3a5bbee4b4be3f00353915215719fb5870c8fb1f04c7cc61d47409752",
+      "d13db9fca042-150-framed.png": "58f5503b1f672416048b1e4517a0496915c24fcea0f80ee12ed862ac2cebde1c",
+      "d13db9fca042-450-plain.png": "d6289efd27304ad223cc59b8bcdba49730dbb66229c4eacd933d121b681e757c",
+      "d13db9fca042-450-framed.png": "d21a9ae7ca52f58fa79b2962bd9210dd6f6cfacbc922d28e171005447fcf7e4d"
+    },
+    "G15": {
+      "458a52dd5c3d-150-plain.png": "db27ccbeb5db3415fed030305ddf294a4114e8b124787cd4594984aacae942cd",
+      "458a52dd5c3d-150-framed.png": "b2765e84efb1becd2c017c0f2bb93e4c40babea0e6e626a3f7cee0a453dffb6f",
+      "458a52dd5c3d-450-plain.png": "b12c68cd66d004bc18827176d7e885296732c309aad3ff176649786f1cef7e17",
+      "458a52dd5c3d-450-framed.png": "05c57d3c1df29bd52839075d0a4c2961d4d9e1cee2d20b55cd495588803c40f2"
+    },
+    "G16": {
+      "0dd4157ff2ce-150-plain.png": "ba77a0916e132809a9c041a90c242f2b562e63bcd75cf97397f7dd30659955f8",
+      "0dd4157ff2ce-150-framed.png": "27d322492c0472b68454a69adf1bd0dd7037209111bd38ed66de3ef35bb86888",
+      "0dd4157ff2ce-450-plain.png": "884efd60106071fadb0dc096b405982bbebabb32256ee84a4741c9bd952d7c21",
+      "0dd4157ff2ce-450-framed.png": "714f9ff465e79e9ecd00caf7b647bafa2d8c18e172a00fb273f84ce4fae5e510"
+    },
+    "G17": {
+      "cd537d7d51e2-150-plain.png": "f87cb62308c96d7937d008ea55204ecebb5bbbe61277d804e3efba415d9773ff",
+      "cd537d7d51e2-150-framed.png": "a377f2dc832c6b7217c7691a7db67a0f4e813c935fed685052b0d69c6870c4f9",
+      "cd537d7d51e2-450-plain.png": "f0bf05876c6a0fbedea86074657d14facdb2a66bcebf97902a84c7df3fa54225",
+      "cd537d7d51e2-450-framed.png": "04a242e45124c88d2a981bc335928d793753dba1941f38404ef8a1b669edbf5f"
+    },
+    "G18": {
+      "b3b000ce20f6-150-plain.png": "d893da342fdeab78ac0a7114755f234a5c74575164f84d524dd57e0ae386d0e5",
+      "b3b000ce20f6-150-framed.png": "3913c163cd1b1d55ded83a5b5436403eb6a7e5723c48814daad2a0109c96dae2",
+      "b3b000ce20f6-450-plain.png": "d0f05a569eef68c0b26e5535ac3b3c9a6e40ceec6d4f74833f383dca12645c4e",
+      "b3b000ce20f6-450-framed.png": "7ff54c1aa450e7cc511b1edf06d46bffa10262a5859280db54d75530f930e1f2"
+    }
+  },
+  "targets": {
+    "G01": {
+      "key": "defense-p0383",
+      "line_index": 19,
+      "side": "evaluation",
+      "allocation_axis": "x",
+      "box": [
+        107,
+        604,
+        496,
+        19
+      ],
+      "status": "readable"
+    },
+    "G02": {
+      "key": "wp-summary-p0010",
+      "line_index": 33,
+      "side": "tuning",
+      "allocation_axis": "x",
+      "box": [
+        950,
+        1132,
+        375,
+        15
+      ],
+      "status": "unreadable"
+    },
+    "G03": {
+      "key": "kanpo1826-p5-p0001",
+      "line_index": 74,
+      "side": "evaluation3",
+      "allocation_axis": "y",
+      "box": [
+        716,
+        147,
+        425,
+        732
+      ],
+      "status": "unreadable"
+    },
+    "G04": {
+      "key": "kanpo1827-p2-p0001",
+      "line_index": 128,
+      "side": "evaluation",
+      "allocation_axis": "x",
+      "box": [
+        255,
+        927,
+        24,
+        17
+      ],
+      "status": "readable"
+    },
+    "G05": {
+      "key": "defense-p0006",
+      "line_index": 18,
+      "side": "evaluation",
+      "allocation_axis": "x",
+      "box": [
+        680,
+        366,
+        471,
+        14
+      ],
+      "status": "unreadable"
+    },
+    "G06": {
+      "key": "kanpo1828-p3-p0001",
+      "line_index": 227,
+      "side": "tuning",
+      "allocation_axis": "y",
+      "box": [
+        201,
+        678,
+        43,
+        177
+      ],
+      "status": "unreadable"
+    },
+    "G07": {
+      "key": "wp-summary-p0004",
+      "line_index": 41,
+      "side": "tuning",
+      "allocation_axis": "x",
+      "box": [
+        1535,
+        1036,
+        49,
+        25
+      ],
+      "status": "readable"
+    },
+    "G08": {
+      "key": "kanpo1826-p5-p0001",
+      "line_index": 19,
+      "side": "evaluation3",
+      "allocation_axis": "x",
+      "box": [
+        116,
+        233,
+        29,
+        16
+      ],
+      "status": "readable"
+    },
+    "G09": {
+      "key": "disaster-p0079",
+      "line_index": 55,
+      "side": "evaluation3",
+      "allocation_axis": "y",
+      "box": [
+        442,
+        1268,
+        17,
+        26
+      ],
+      "status": "readable"
+    },
+    "G10": {
+      "key": "kanpo1827-p2-p0001",
+      "line_index": 166,
+      "side": "evaluation",
+      "allocation_axis": "y",
+      "box": [
+        954,
+        895,
+        18,
+        74
+      ],
+      "status": "unreadable"
+    },
+    "G11": {
+      "key": "disaster-p0186",
+      "line_index": 29,
+      "side": "evaluation3",
+      "allocation_axis": "x",
+      "box": [
+        136,
+        1262,
+        220,
+        27
+      ],
+      "status": "readable"
+    },
+    "G12": {
+      "key": "wp-summary-p0010",
+      "line_index": 7,
+      "side": "tuning",
+      "allocation_axis": "x",
+      "box": [
+        41,
+        327,
+        1596,
+        24
+      ],
+      "status": "unreadable"
+    },
+    "G13": {
+      "key": "kanpo1826-p6-p0001",
+      "line_index": 128,
+      "side": "evaluation3",
+      "allocation_axis": "x",
+      "box": [
+        1075,
+        211,
+        61,
+        29
+      ],
+      "status": "unreadable"
+    },
+    "G14": {
+      "key": "defense-p0006",
+      "line_index": 31,
+      "side": "evaluation",
+      "allocation_axis": "x",
+      "box": [
+        90,
+        813,
+        508,
+        15
+      ],
+      "status": "unreadable"
+    },
+    "G15": {
+      "key": "kanpo1828-p3-p0001",
+      "line_index": 123,
+      "side": "tuning",
+      "allocation_axis": "y",
+      "box": [
+        242,
+        1312,
+        16,
+        30
+      ],
+      "status": "readable"
+    },
+    "G16": {
+      "key": "disaster-p0008",
+      "line_index": 7,
+      "side": "evaluation3",
+      "allocation_axis": "x",
+      "box": [
+        306,
+        520,
+        727,
+        20
+      ],
+      "status": "unreadable"
+    },
+    "G17": {
+      "key": "wp-summary-p0005",
+      "line_index": 6,
+      "side": "tuning",
+      "allocation_axis": "x",
+      "box": [
+        114,
+        345,
+        1025,
+        29
+      ],
+      "status": "readable"
+    },
+    "G18": {
+      "key": "defense-p0219",
+      "line_index": 10,
+      "side": "evaluation",
+      "allocation_axis": "y",
+      "box": [
+        31,
+        551,
+        18,
+        382
+      ],
+      "status": "readable"
+    }
+  },
+  "fixed_at": "2026-11-19T09:06:41+00:00"
+}
