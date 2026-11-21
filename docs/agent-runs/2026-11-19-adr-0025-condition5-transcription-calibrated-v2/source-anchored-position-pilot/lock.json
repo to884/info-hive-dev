@@ -1,0 +1,1098 @@
+{
+  "previous_lock_sha256": "71ab2e704b20efa7aa72d1b13f399e0b0eff8065df6f6757a63f6b96ddae0041",
+  "script_sha256": "086dd21b2b832a848e2aaef8cc023c7a8f68ca155e3b24aba9ff70c9ea1e0115",
+  "protocol_sha256": "209bd246f5efd2158b1e4dc751bb0621014859279102fdfb9badfad5e82d10da",
+  "projection_sha256": "6cff70cceeec6cc07ed5fbd2c37bbba60d2ec028a5a0e437469f3b41f2eada6d",
+  "expected_sha256": "b87acce2c1bcc79b5d252bf0a316a354883d34804f1cea9dd0236e0cf6be3d91",
+  "targets": {
+    "defense": {
+      "V01": {
+        "key": "defense-p0371",
+        "line_index": 3,
+        "kind": "known-control"
+      },
+      "V02": {
+        "key": "defense-p0006",
+        "line_index": 4,
+        "kind": "source-backed"
+      },
+      "V03": {
+        "key": "defense-p0007",
+        "line_index": 50,
+        "kind": "source-backed"
+      }
+    },
+    "disaster": {
+      "V01": {
+        "key": "disaster-p0243",
+        "line_index": 81,
+        "kind": "known-control"
+      },
+      "V02": {
+        "key": "disaster-p0015",
+        "line_index": 7,
+        "kind": "source-backed"
+      },
+      "V03": {
+        "key": "disaster-p0008",
+        "line_index": 26,
+        "kind": "source-backed"
+      }
+    }
+  },
+  "models": {
+    "sol": "gpt-6.2-sol",
+    "opus": "claude-opus-5-5"
+  },
+  "packs": {
+    "defense": {
+      "images": [
+        "V01-01.png",
+        "V01-02.png",
+        "V01-03.png",
+        "V01-04.png",
+        "V02-01.png",
+        "V02-02.png",
+        "V02-03.png",
+        "V02-04.png",
+        "V03-01.png",
+        "V03-02.png",
+        "V03-03.png",
+        "V03-04.png",
+        "V02-position-aux.png",
+        "V03-position-aux.png"
+      ],
+      "ids": [
+        "V01",
+        "V02",
+        "V03"
+      ],
+      "image_sha256": [
+        "4aa8a6175237bd5f5bc0a855777b71d4fb1c04e51f2906bf382b4fa2427f91f4",
+        "0fe06dab1ec8d87d9b23b5c7e046fe2eea7b77be15aef582c3b00bd61dc1cc7a",
+        "908fb37273d8ef4dc0a45e95c630d23f1fea444fa07a3793723b99b7b6ed3795",
+        "b12ad7782efd424f2c6449cad4e647d6a7f165a3953d24ad7e162561a5604d14",
+        "a3b33e28e806d2b5a5fd741a9e89077dbe89ad4a7800e138de5a035cc44680ea",
+        "b245f20c1868589f7979a9eb91bbb41e7aefcc01ea90460b53822aeb1e09901c",
+        "c377ea086b5fbacfaec5c6a642120c4edc830d57c47c8c3961f844e810169633",
+        "c8d0f1b3318b006dddd2d95d39d37f62445f69bed4838dc23d3086c1fb0c6acd",
+        "0e566a9ceaa49f02a755d6193e44204504e66b0895907fd2ca43f573a4d1ec6a",
+        "4a891b0ff261dd54f4ea11eb5c585846bd0810ea574a529bc49f4affdde10ee7",
+        "ddc1f7c558b5c0721eba7a8e334910ddfc384ac7ea6743a1963bbaffb0506f40",
+        "312be1efbdb0ba97f4550b7ef0205e46fabd0eb9868701d2a9f91fca23fb68be",
+        "bcbe060cd1452833f81b830567313364c980095013b0dbc90515be4bef53f8b9",
+        "a989241b518058537405f0fecdc76b70b050a4f6baa7160badbc278ab6403e2a"
+      ],
+      "prompt": "各カードの上段は固定150 DPI（3倍表示）、下段は450 DPI、左は枠なし、右は枠ありです。カードに対象のIDと所属軸xまたはyを示します。枠の中または周りに見える字のうち、指定軸方向の字全体の長さの半分以上が枠と重なり、直交方向の字全体のインクの中心が枠内にある字だけを自然な読む順に書いてください。同じ字の枠外部分は見てよいですが、別の字や図形を加えないでください。150 DPIで所属を、450 DPIで字形を確認してください。OCRや既存本文は示しません。文字がなければempty、字種または所属が決められなければunreadableとしてください。\n同じIDに複数のカードがあれば、上部の番号順に位置を確認してください。隣のカードには一部が重複します。同じ字を二度転記しないでください。一部だけ与えられている場合は全カードを照合してから、行全体を一つの回答にしてください。\n枠に所属する文字が確実に一字もないときだけ、statusはempty、textは空文字にしてください。所属する字の判読や所属自体を一字でも決められないときは部分転記せず、行全体をstatusはunreadable、textは半角の?一字としてください。行全体を転記できた場合だけstatusをreadableとし、textに改行を入れないでください。\n点線がある場合は、元の枠と字の所属を確認します。点線の字種や符号を画素で区別できず、同じ行に属する点線の位置を確認できた場合だけ、点線部分を ⟦dotspan:P-Q⟧ に換えてください。Pは点線が少しでも見える元カードの最初の番号、Qは最後の番号です。両方が同じなら同じ番号を2度書いてください。『位置の補助』と書いた切り出しはカード番号に含めません。確認できた位置以外に点を足さないでください。点線の周りの全文をそのまま転記し、所属か他の字を確かめられないときは行全体を未決定にしてください。\n回答はJSONオブジェクトのみです。形式は {\"answers\":[{\"id\":\"画像のID\",\"status\":\"readable\",\"text\":\"行の本文\"}]} です。各指定IDに1件ずつ回答してください。\n対象ID: V01、V02、V03\n",
+      "source_tiles": {
+        "V01-01.png": [
+          {
+            "source": "9e5052beda52-150-plain.png",
+            "sha256": "8173f6aae2e0c20ecb12c5e843b02c350ddf4506fd435b0fdcb6c881752d00e1",
+            "rectangle": [
+              178,
+              178,
+              754,
+              347
+            ]
+          },
+          {
+            "source": "9e5052beda52-150-framed.png",
+            "sha256": "f7ec200f5d8e056e5d7ae113ba4138a8c536c80e0da4304cf4cd6ad024210b32",
+            "rectangle": [
+              178,
+              178,
+              754,
+              347
+            ]
+          },
+          {
+            "source": "9e5052beda52-450-plain.png",
+            "sha256": "c44e5ff1df99ed3717f486d977d629db254ba4b6fc23bce4ab489720085c8a60",
+            "rectangle": [
+              178,
+              178,
+              755,
+              348
+            ]
+          },
+          {
+            "source": "9e5052beda52-450-framed.png",
+            "sha256": "efc9bdf88915bb7a666c5456c08cc01485867c27f8b4ea3843d501c518e4924a",
+            "rectangle": [
+              178,
+              178,
+              755,
+              348
+            ]
+          }
+        ],
+        "V01-02.png": [
+          {
+            "source": "9e5052beda52-150-plain.png",
+            "sha256": "8173f6aae2e0c20ecb12c5e843b02c350ddf4506fd435b0fdcb6c881752d00e1",
+            "rectangle": [
+              626,
+              178,
+              1202,
+              347
+            ]
+          },
+          {
+            "source": "9e5052beda52-150-framed.png",
+            "sha256": "f7ec200f5d8e056e5d7ae113ba4138a8c536c80e0da4304cf4cd6ad024210b32",
+            "rectangle": [
+              626,
+              178,
+              1202,
+              347
+            ]
+          },
+          {
+            "source": "9e5052beda52-450-plain.png",
+            "sha256": "c44e5ff1df99ed3717f486d977d629db254ba4b6fc23bce4ab489720085c8a60",
+            "rectangle": [
+              626,
+              178,
+              1203,
+              348
+            ]
+          },
+          {
+            "source": "9e5052beda52-450-framed.png",
+            "sha256": "efc9bdf88915bb7a666c5456c08cc01485867c27f8b4ea3843d501c518e4924a",
+            "rectangle": [
+              626,
+              178,
+              1203,
+              348
+            ]
+          }
+        ],
+        "V01-03.png": [
+          {
+            "source": "9e5052beda52-150-plain.png",
+            "sha256": "8173f6aae2e0c20ecb12c5e843b02c350ddf4506fd435b0fdcb6c881752d00e1",
+            "rectangle": [
+              1074,
+              178,
+              1650,
+              347
+            ]
+          },
+          {
+            "source": "9e5052beda52-150-framed.png",
+            "sha256": "f7ec200f5d8e056e5d7ae113ba4138a8c536c80e0da4304cf4cd6ad024210b32",
+            "rectangle": [
+              1074,
+              178,
+              1650,
+              347
+            ]
+          },
+          {
+            "source": "9e5052beda52-450-plain.png",
+            "sha256": "c44e5ff1df99ed3717f486d977d629db254ba4b6fc23bce4ab489720085c8a60",
+            "rectangle": [
+              1074,
+              178,
+              1651,
+              348
+            ]
+          },
+          {
+            "source": "9e5052beda52-450-framed.png",
+            "sha256": "efc9bdf88915bb7a666c5456c08cc01485867c27f8b4ea3843d501c518e4924a",
+            "rectangle": [
+              1074,
+              178,
+              1651,
+              348
+            ]
+          }
+        ],
+        "V01-04.png": [
+          {
+            "source": "9e5052beda52-150-plain.png",
+            "sha256": "8173f6aae2e0c20ecb12c5e843b02c350ddf4506fd435b0fdcb6c881752d00e1",
+            "rectangle": [
+              1118,
+              178,
+              1694,
+              347
+            ]
+          },
+          {
+            "source": "9e5052beda52-150-framed.png",
+            "sha256": "f7ec200f5d8e056e5d7ae113ba4138a8c536c80e0da4304cf4cd6ad024210b32",
+            "rectangle": [
+              1118,
+              178,
+              1694,
+              347
+            ]
+          },
+          {
+            "source": "9e5052beda52-450-plain.png",
+            "sha256": "c44e5ff1df99ed3717f486d977d629db254ba4b6fc23bce4ab489720085c8a60",
+            "rectangle": [
+              1118,
+              178,
+              1695,
+              348
+            ]
+          },
+          {
+            "source": "9e5052beda52-450-framed.png",
+            "sha256": "efc9bdf88915bb7a666c5456c08cc01485867c27f8b4ea3843d501c518e4924a",
+            "rectangle": [
+              1118,
+              178,
+              1695,
+              348
+            ]
+          }
+        ],
+        "V02-01.png": [
+          {
+            "source": "23729593992e-150-plain.png",
+            "sha256": "053d3aff2a80db05a4f472f288eff2416ea91a4179b2b6f3596158bd509cb33d",
+            "rectangle": [
+              160,
+              160,
+              736,
+              266
+            ]
+          },
+          {
+            "source": "23729593992e-150-framed.png",
+            "sha256": "8ff2d401bff31b5c766bd824549def21b36b3f51c2c78b048dec01febbd71a24",
+            "rectangle": [
+              160,
+              160,
+              736,
+              266
+            ]
+          },
+          {
+            "source": "23729593992e-450-plain.png",
+            "sha256": "8250134ff6714d0065deda737bfdf9c28f16dce131a9384d15604ce020befa27",
+            "rectangle": [
+              160,
+              160,
+              737,
+              267
+            ]
+          },
+          {
+            "source": "23729593992e-450-framed.png",
+            "sha256": "b373d45afc568491f0584584d0c4c1f9a5313eb34f2ed476312d66d1275e4c6f",
+            "rectangle": [
+              160,
+              160,
+              737,
+              267
+            ]
+          }
+        ],
+        "V02-02.png": [
+          {
+            "source": "23729593992e-150-plain.png",
+            "sha256": "053d3aff2a80db05a4f472f288eff2416ea91a4179b2b6f3596158bd509cb33d",
+            "rectangle": [
+              608,
+              160,
+              1184,
+              266
+            ]
+          },
+          {
+            "source": "23729593992e-150-framed.png",
+            "sha256": "8ff2d401bff31b5c766bd824549def21b36b3f51c2c78b048dec01febbd71a24",
+            "rectangle": [
+              608,
+              160,
+              1184,
+              266
+            ]
+          },
+          {
+            "source": "23729593992e-450-plain.png",
+            "sha256": "8250134ff6714d0065deda737bfdf9c28f16dce131a9384d15604ce020befa27",
+            "rectangle": [
+              608,
+              160,
+              1185,
+              267
+            ]
+          },
+          {
+            "source": "23729593992e-450-framed.png",
+            "sha256": "b373d45afc568491f0584584d0c4c1f9a5313eb34f2ed476312d66d1275e4c6f",
+            "rectangle": [
+              608,
+              160,
+              1185,
+              267
+            ]
+          }
+        ],
+        "V02-03.png": [
+          {
+            "source": "23729593992e-150-plain.png",
+            "sha256": "053d3aff2a80db05a4f472f288eff2416ea91a4179b2b6f3596158bd509cb33d",
+            "rectangle": [
+              1056,
+              160,
+              1632,
+              266
+            ]
+          },
+          {
+            "source": "23729593992e-150-framed.png",
+            "sha256": "8ff2d401bff31b5c766bd824549def21b36b3f51c2c78b048dec01febbd71a24",
+            "rectangle": [
+              1056,
+              160,
+              1632,
+              266
+            ]
+          },
+          {
+            "source": "23729593992e-450-plain.png",
+            "sha256": "8250134ff6714d0065deda737bfdf9c28f16dce131a9384d15604ce020befa27",
+            "rectangle": [
+              1056,
+              160,
+              1633,
+              267
+            ]
+          },
+          {
+            "source": "23729593992e-450-framed.png",
+            "sha256": "b373d45afc568491f0584584d0c4c1f9a5313eb34f2ed476312d66d1275e4c6f",
+            "rectangle": [
+              1056,
+              160,
+              1633,
+              267
+            ]
+          }
+        ],
+        "V02-04.png": [
+          {
+            "source": "23729593992e-150-plain.png",
+            "sha256": "053d3aff2a80db05a4f472f288eff2416ea91a4179b2b6f3596158bd509cb33d",
+            "rectangle": [
+              1064,
+              160,
+              1640,
+              266
+            ]
+          },
+          {
+            "source": "23729593992e-150-framed.png",
+            "sha256": "8ff2d401bff31b5c766bd824549def21b36b3f51c2c78b048dec01febbd71a24",
+            "rectangle": [
+              1064,
+              160,
+              1640,
+              266
+            ]
+          },
+          {
+            "source": "23729593992e-450-plain.png",
+            "sha256": "8250134ff6714d0065deda737bfdf9c28f16dce131a9384d15604ce020befa27",
+            "rectangle": [
+              1064,
+              160,
+              1641,
+              267
+            ]
+          },
+          {
+            "source": "23729593992e-450-framed.png",
+            "sha256": "b373d45afc568491f0584584d0c4c1f9a5313eb34f2ed476312d66d1275e4c6f",
+            "rectangle": [
+              1064,
+              160,
+              1641,
+              267
+            ]
+          }
+        ],
+        "V03-01.png": [
+          {
+            "source": "75fb10f59b3a-150-plain.png",
+            "sha256": "e33de5008dc4c87ac81ca237c44eb0cfe6940de576145f5e95756ec095d5d287",
+            "rectangle": [
+              160,
+              160,
+              736,
+              269
+            ]
+          },
+          {
+            "source": "75fb10f59b3a-150-framed.png",
+            "sha256": "ca74804634ebbf861c020eea9b0d1f532dbff245bb0c54d246d4a6c5b12db2f9",
+            "rectangle": [
+              160,
+              160,
+              736,
+              269
+            ]
+          },
+          {
+            "source": "75fb10f59b3a-450-plain.png",
+            "sha256": "b54c62b021281f0ea8db7fbc766357d4ab45ff97bd4ecb215c13db632b62f6ec",
+            "rectangle": [
+              159,
+              160,
+              736,
+              270
+            ]
+          },
+          {
+            "source": "75fb10f59b3a-450-framed.png",
+            "sha256": "c86732a6e5379f2be0f6b0ee97463ab1fa8ff9cdfc839bbe586a30ff078ed742",
+            "rectangle": [
+              159,
+              160,
+              736,
+              270
+            ]
+          }
+        ],
+        "V03-02.png": [
+          {
+            "source": "75fb10f59b3a-150-plain.png",
+            "sha256": "e33de5008dc4c87ac81ca237c44eb0cfe6940de576145f5e95756ec095d5d287",
+            "rectangle": [
+              608,
+              160,
+              1184,
+              269
+            ]
+          },
+          {
+            "source": "75fb10f59b3a-150-framed.png",
+            "sha256": "ca74804634ebbf861c020eea9b0d1f532dbff245bb0c54d246d4a6c5b12db2f9",
+            "rectangle": [
+              608,
+              160,
+              1184,
+              269
+            ]
+          },
+          {
+            "source": "75fb10f59b3a-450-plain.png",
+            "sha256": "b54c62b021281f0ea8db7fbc766357d4ab45ff97bd4ecb215c13db632b62f6ec",
+            "rectangle": [
+              607,
+              160,
+              1184,
+              270
+            ]
+          },
+          {
+            "source": "75fb10f59b3a-450-framed.png",
+            "sha256": "c86732a6e5379f2be0f6b0ee97463ab1fa8ff9cdfc839bbe586a30ff078ed742",
+            "rectangle": [
+              607,
+              160,
+              1184,
+              270
+            ]
+          }
+        ],
+        "V03-03.png": [
+          {
+            "source": "75fb10f59b3a-150-plain.png",
+            "sha256": "e33de5008dc4c87ac81ca237c44eb0cfe6940de576145f5e95756ec095d5d287",
+            "rectangle": [
+              1056,
+              160,
+              1632,
+              269
+            ]
+          },
+          {
+            "source": "75fb10f59b3a-150-framed.png",
+            "sha256": "ca74804634ebbf861c020eea9b0d1f532dbff245bb0c54d246d4a6c5b12db2f9",
+            "rectangle": [
+              1056,
+              160,
+              1632,
+              269
+            ]
+          },
+          {
+            "source": "75fb10f59b3a-450-plain.png",
+            "sha256": "b54c62b021281f0ea8db7fbc766357d4ab45ff97bd4ecb215c13db632b62f6ec",
+            "rectangle": [
+              1055,
+              160,
+              1632,
+              270
+            ]
+          },
+          {
+            "source": "75fb10f59b3a-450-framed.png",
+            "sha256": "c86732a6e5379f2be0f6b0ee97463ab1fa8ff9cdfc839bbe586a30ff078ed742",
+            "rectangle": [
+              1055,
+              160,
+              1632,
+              270
+            ]
+          }
+        ],
+        "V03-04.png": [
+          {
+            "source": "75fb10f59b3a-150-plain.png",
+            "sha256": "e33de5008dc4c87ac81ca237c44eb0cfe6940de576145f5e95756ec095d5d287",
+            "rectangle": [
+              1064,
+              160,
+              1640,
+              269
+            ]
+          },
+          {
+            "source": "75fb10f59b3a-150-framed.png",
+            "sha256": "ca74804634ebbf861c020eea9b0d1f532dbff245bb0c54d246d4a6c5b12db2f9",
+            "rectangle": [
+              1064,
+              160,
+              1640,
+              269
+            ]
+          },
+          {
+            "source": "75fb10f59b3a-450-plain.png",
+            "sha256": "b54c62b021281f0ea8db7fbc766357d4ab45ff97bd4ecb215c13db632b62f6ec",
+            "rectangle": [
+              1063,
+              160,
+              1640,
+              270
+            ]
+          },
+          {
+            "source": "75fb10f59b3a-450-framed.png",
+            "sha256": "c86732a6e5379f2be0f6b0ee97463ab1fa8ff9cdfc839bbe586a30ff078ed742",
+            "rectangle": [
+              1063,
+              160,
+              1640,
+              270
+            ]
+          }
+        ]
+      }
+    },
+    "disaster": {
+      "images": [
+        "V01-01.png",
+        "V02-01.png",
+        "V02-02.png",
+        "V02-03.png",
+        "V02-04.png",
+        "V02-05.png",
+        "V03-01.png",
+        "V03-02.png",
+        "V03-03.png",
+        "V03-04.png",
+        "V03-05.png",
+        "V02-position-aux.png",
+        "V03-position-aux.png"
+      ],
+      "ids": [
+        "V01",
+        "V02",
+        "V03"
+      ],
+      "image_sha256": [
+        "e9702c55f5b8d4c8d1d80d831bcd21636a8891854acb1c8089e9954c2c8aae93",
+        "39f110d173e8fac27c0b41c788131ec377a43cbfbb9bd804c74fb734d68663bf",
+        "1e3322a8321bae5466857cceb6cba5adde24f3b7bd204dec8b81ba926a569cfb",
+        "1c6377bef12932060e35054429c78d742d6a03f82c71f106d7defaa426dcee97",
+        "2ad57b4148f0ca7713b3caa1a97636ce99ff1f715e4636b1ac12094e667c0561",
+        "fb8df6e8fe46ad64b45fc6eeb08b410e3c3203d594ebf0999ea572b9b4e3a41b",
+        "649dfdb50c6a63d9d3dc4ff3a1448f2b9c0cb3e764fa533dcbbf03d3dd7f2f07",
+        "424bf4684b2fc14b68d805ead02039e12ab3be4400aff954787a45adfac196a3",
+        "1a2fc0af798c4c34c3c3f017d19839b73bb05dd223658f768df37b8d20253d7b",
+        "938f24b09447dfabfe025c3b44f51e0e8e7ba8d225651bee90f81f5a02bc8dc5",
+        "1b2441e6d657f4815fb09657fbc75587e3be5a11fc42f43b2e77e0590946bdf7",
+        "6fc80cd54477b38af2721cd9fb61f78ed1d56d8f3d25fe84582c7d02781b68af",
+        "974ae5bbf70e607c21fb2ea0533ddba30d50074471576e51cc9aa8f3efdddf70"
+      ],
+      "prompt": "各カードの上段は固定150 DPI（3倍表示）、下段は450 DPI、左は枠なし、右は枠ありです。カードに対象のIDと所属軸xまたはyを示します。枠の中または周りに見える字のうち、指定軸方向の字全体の長さの半分以上が枠と重なり、直交方向の字全体のインクの中心が枠内にある字だけを自然な読む順に書いてください。同じ字の枠外部分は見てよいですが、別の字や図形を加えないでください。150 DPIで所属を、450 DPIで字形を確認してください。OCRや既存本文は示しません。文字がなければempty、字種または所属が決められなければunreadableとしてください。\n同じIDに複数のカードがあれば、上部の番号順に位置を確認してください。隣のカードには一部が重複します。同じ字を二度転記しないでください。一部だけ与えられている場合は全カードを照合してから、行全体を一つの回答にしてください。\n枠に所属する文字が確実に一字もないときだけ、statusはempty、textは空文字にしてください。所属する字の判読や所属自体を一字でも決められないときは部分転記せず、行全体をstatusはunreadable、textは半角の?一字としてください。行全体を転記できた場合だけstatusをreadableとし、textに改行を入れないでください。\n点線がある場合は、元の枠と字の所属を確認します。点線の字種や符号を画素で区別できず、同じ行に属する点線の位置を確認できた場合だけ、点線部分を ⟦dotspan:P-Q⟧ に換えてください。Pは点線が少しでも見える元カードの最初の番号、Qは最後の番号です。両方が同じなら同じ番号を2度書いてください。『位置の補助』と書いた切り出しはカード番号に含めません。確認できた位置以外に点を足さないでください。点線の周りの全文をそのまま転記し、所属か他の字を確かめられないときは行全体を未決定にしてください。\n回答はJSONオブジェクトのみです。形式は {\"answers\":[{\"id\":\"画像のID\",\"status\":\"readable\",\"text\":\"行の本文\"}]} です。各指定IDに1件ずつ回答してください。\n対象ID: V01、V02、V03\n",
+      "source_tiles": {
+        "V02-01.png": [
+          {
+            "source": "98c22609a86c-150-plain.png",
+            "sha256": "86aae177d90b11155db61389f87d79bf4b1a4df17549be6b8e7ac45d863561ae",
+            "rectangle": [
+              160,
+              160,
+              736,
+              290
+            ]
+          },
+          {
+            "source": "98c22609a86c-150-framed.png",
+            "sha256": "7d4de842cef224d015e51aaf32e3c4aea059f349c3dcd178834cb2d0c6e5ec37",
+            "rectangle": [
+              160,
+              160,
+              736,
+              290
+            ]
+          },
+          {
+            "source": "98c22609a86c-450-plain.png",
+            "sha256": "f307a84c5995d9ae388d5b0e50177c3bcbdd45f005efbcc492c9bc925287ac11",
+            "rectangle": [
+              160,
+              160,
+              737,
+              291
+            ]
+          },
+          {
+            "source": "98c22609a86c-450-framed.png",
+            "sha256": "938732adbb8111dd98246b39c52a317d09327e61e585708b459a4a631d7dc3c2",
+            "rectangle": [
+              160,
+              160,
+              737,
+              291
+            ]
+          }
+        ],
+        "V02-02.png": [
+          {
+            "source": "98c22609a86c-150-plain.png",
+            "sha256": "86aae177d90b11155db61389f87d79bf4b1a4df17549be6b8e7ac45d863561ae",
+            "rectangle": [
+              608,
+              160,
+              1184,
+              290
+            ]
+          },
+          {
+            "source": "98c22609a86c-150-framed.png",
+            "sha256": "7d4de842cef224d015e51aaf32e3c4aea059f349c3dcd178834cb2d0c6e5ec37",
+            "rectangle": [
+              608,
+              160,
+              1184,
+              290
+            ]
+          },
+          {
+            "source": "98c22609a86c-450-plain.png",
+            "sha256": "f307a84c5995d9ae388d5b0e50177c3bcbdd45f005efbcc492c9bc925287ac11",
+            "rectangle": [
+              608,
+              160,
+              1184,
+              291
+            ]
+          },
+          {
+            "source": "98c22609a86c-450-framed.png",
+            "sha256": "938732adbb8111dd98246b39c52a317d09327e61e585708b459a4a631d7dc3c2",
+            "rectangle": [
+              608,
+              160,
+              1184,
+              291
+            ]
+          }
+        ],
+        "V02-03.png": [
+          {
+            "source": "98c22609a86c-150-plain.png",
+            "sha256": "86aae177d90b11155db61389f87d79bf4b1a4df17549be6b8e7ac45d863561ae",
+            "rectangle": [
+              1056,
+              160,
+              1632,
+              290
+            ]
+          },
+          {
+            "source": "98c22609a86c-150-framed.png",
+            "sha256": "7d4de842cef224d015e51aaf32e3c4aea059f349c3dcd178834cb2d0c6e5ec37",
+            "rectangle": [
+              1056,
+              160,
+              1632,
+              290
+            ]
+          },
+          {
+            "source": "98c22609a86c-450-plain.png",
+            "sha256": "f307a84c5995d9ae388d5b0e50177c3bcbdd45f005efbcc492c9bc925287ac11",
+            "rectangle": [
+              1055,
+              160,
+              1632,
+              291
+            ]
+          },
+          {
+            "source": "98c22609a86c-450-framed.png",
+            "sha256": "938732adbb8111dd98246b39c52a317d09327e61e585708b459a4a631d7dc3c2",
+            "rectangle": [
+              1055,
+              160,
+              1632,
+              291
+            ]
+          }
+        ],
+        "V02-04.png": [
+          {
+            "source": "98c22609a86c-150-plain.png",
+            "sha256": "86aae177d90b11155db61389f87d79bf4b1a4df17549be6b8e7ac45d863561ae",
+            "rectangle": [
+              1504,
+              160,
+              2080,
+              290
+            ]
+          },
+          {
+            "source": "98c22609a86c-150-framed.png",
+            "sha256": "7d4de842cef224d015e51aaf32e3c4aea059f349c3dcd178834cb2d0c6e5ec37",
+            "rectangle": [
+              1504,
+              160,
+              2080,
+              290
+            ]
+          },
+          {
+            "source": "98c22609a86c-450-plain.png",
+            "sha256": "f307a84c5995d9ae388d5b0e50177c3bcbdd45f005efbcc492c9bc925287ac11",
+            "rectangle": [
+              1503,
+              160,
+              2080,
+              291
+            ]
+          },
+          {
+            "source": "98c22609a86c-450-framed.png",
+            "sha256": "938732adbb8111dd98246b39c52a317d09327e61e585708b459a4a631d7dc3c2",
+            "rectangle": [
+              1503,
+              160,
+              2080,
+              291
+            ]
+          }
+        ],
+        "V02-05.png": [
+          {
+            "source": "98c22609a86c-150-plain.png",
+            "sha256": "86aae177d90b11155db61389f87d79bf4b1a4df17549be6b8e7ac45d863561ae",
+            "rectangle": [
+              1688,
+              160,
+              2264,
+              290
+            ]
+          },
+          {
+            "source": "98c22609a86c-150-framed.png",
+            "sha256": "7d4de842cef224d015e51aaf32e3c4aea059f349c3dcd178834cb2d0c6e5ec37",
+            "rectangle": [
+              1688,
+              160,
+              2264,
+              290
+            ]
+          },
+          {
+            "source": "98c22609a86c-450-plain.png",
+            "sha256": "f307a84c5995d9ae388d5b0e50177c3bcbdd45f005efbcc492c9bc925287ac11",
+            "rectangle": [
+              1687,
+              160,
+              2264,
+              291
+            ]
+          },
+          {
+            "source": "98c22609a86c-450-framed.png",
+            "sha256": "938732adbb8111dd98246b39c52a317d09327e61e585708b459a4a631d7dc3c2",
+            "rectangle": [
+              1687,
+              160,
+              2264,
+              291
+            ]
+          }
+        ],
+        "V03-01.png": [
+          {
+            "source": "565613ace533-150-plain.png",
+            "sha256": "bd5ab923d1736775f42dd87c81ba52069d52222d2e2742d17690874dc82c1c73",
+            "rectangle": [
+              160,
+              160,
+              736,
+              290
+            ]
+          },
+          {
+            "source": "565613ace533-150-framed.png",
+            "sha256": "ee036c63e5a569c58ae9cfc75a4307fd3cd5bc7f4adbdc29b094bb01976f017e",
+            "rectangle": [
+              160,
+              160,
+              736,
+              290
+            ]
+          },
+          {
+            "source": "565613ace533-450-plain.png",
+            "sha256": "94fca6129a9949885e86a95ab578b806a6f8753204997b2688bd57ca91ca0bf4",
+            "rectangle": [
+              160,
+              160,
+              737,
+              291
+            ]
+          },
+          {
+            "source": "565613ace533-450-framed.png",
+            "sha256": "244a96852bce20151b5e7140994d5b7aa1ebf901dc12c603c286dfc57c3ffbb4",
+            "rectangle": [
+              160,
+              160,
+              737,
+              291
+            ]
+          }
+        ],
+        "V03-02.png": [
+          {
+            "source": "565613ace533-150-plain.png",
+            "sha256": "bd5ab923d1736775f42dd87c81ba52069d52222d2e2742d17690874dc82c1c73",
+            "rectangle": [
+              608,
+              160,
+              1184,
+              290
+            ]
+          },
+          {
+            "source": "565613ace533-150-framed.png",
+            "sha256": "ee036c63e5a569c58ae9cfc75a4307fd3cd5bc7f4adbdc29b094bb01976f017e",
+            "rectangle": [
+              608,
+              160,
+              1184,
+              290
+            ]
+          },
+          {
+            "source": "565613ace533-450-plain.png",
+            "sha256": "94fca6129a9949885e86a95ab578b806a6f8753204997b2688bd57ca91ca0bf4",
+            "rectangle": [
+              608,
+              160,
+              1184,
+              291
+            ]
+          },
+          {
+            "source": "565613ace533-450-framed.png",
+            "sha256": "244a96852bce20151b5e7140994d5b7aa1ebf901dc12c603c286dfc57c3ffbb4",
+            "rectangle": [
+              608,
+              160,
+              1184,
+              291
+            ]
+          }
+        ],
+        "V03-03.png": [
+          {
+            "source": "565613ace533-150-plain.png",
+            "sha256": "bd5ab923d1736775f42dd87c81ba52069d52222d2e2742d17690874dc82c1c73",
+            "rectangle": [
+              1056,
+              160,
+              1632,
+              290
+            ]
+          },
+          {
+            "source": "565613ace533-150-framed.png",
+            "sha256": "ee036c63e5a569c58ae9cfc75a4307fd3cd5bc7f4adbdc29b094bb01976f017e",
+            "rectangle": [
+              1056,
+              160,
+              1632,
+              290
+            ]
+          },
+          {
+            "source": "565613ace533-450-plain.png",
+            "sha256": "94fca6129a9949885e86a95ab578b806a6f8753204997b2688bd57ca91ca0bf4",
+            "rectangle": [
+              1056,
+              160,
+              1632,
+              291
+            ]
+          },
+          {
+            "source": "565613ace533-450-framed.png",
+            "sha256": "244a96852bce20151b5e7140994d5b7aa1ebf901dc12c603c286dfc57c3ffbb4",
+            "rectangle": [
+              1056,
+              160,
+              1632,
+              291
+            ]
+          }
+        ],
+        "V03-04.png": [
+          {
+            "source": "565613ace533-150-plain.png",
+            "sha256": "bd5ab923d1736775f42dd87c81ba52069d52222d2e2742d17690874dc82c1c73",
+            "rectangle": [
+              1504,
+              160,
+              2080,
+              290
+            ]
+          },
+          {
+            "source": "565613ace533-150-framed.png",
+            "sha256": "ee036c63e5a569c58ae9cfc75a4307fd3cd5bc7f4adbdc29b094bb01976f017e",
+            "rectangle": [
+              1504,
+              160,
+              2080,
+              290
+            ]
+          },
+          {
+            "source": "565613ace533-450-plain.png",
+            "sha256": "94fca6129a9949885e86a95ab578b806a6f8753204997b2688bd57ca91ca0bf4",
+            "rectangle": [
+              1503,
+              160,
+              2080,
+              291
+            ]
+          },
+          {
+            "source": "565613ace533-450-framed.png",
+            "sha256": "244a96852bce20151b5e7140994d5b7aa1ebf901dc12c603c286dfc57c3ffbb4",
+            "rectangle": [
+              1503,
+              160,
+              2080,
+              291
+            ]
+          }
+        ],
+        "V03-05.png": [
+          {
+            "source": "565613ace533-150-plain.png",
+            "sha256": "bd5ab923d1736775f42dd87c81ba52069d52222d2e2742d17690874dc82c1c73",
+            "rectangle": [
+              1831,
+              160,
+              2408,
+              290
+            ]
+          },
+          {
+            "source": "565613ace533-150-framed.png",
+            "sha256": "ee036c63e5a569c58ae9cfc75a4307fd3cd5bc7f4adbdc29b094bb01976f017e",
+            "rectangle": [
+              1831,
+              160,
+              2408,
+              290
+            ]
+          },
+          {
+            "source": "565613ace533-450-plain.png",
+            "sha256": "94fca6129a9949885e86a95ab578b806a6f8753204997b2688bd57ca91ca0bf4",
+            "rectangle": [
+              1831,
+              160,
+              2408,
+              291
+            ]
+          },
+          {
+            "source": "565613ace533-450-framed.png",
+            "sha256": "244a96852bce20151b5e7140994d5b7aa1ebf901dc12c603c286dfc57c3ffbb4",
+            "rectangle": [
+              1831,
+              160,
+              2408,
+              291
+            ]
+          }
+        ],
+        "V01-01.png": [
+          {
+            "source": "b622a2a6c08c-150-plain.png",
+            "sha256": "76babb886f6e01a86721565c9a2f2e99ac5202befbb88158ebad42d4f2319489",
+            "rectangle": [
+              160,
+              160,
+              680,
+              287
+            ]
+          },
+          {
+            "source": "b622a2a6c08c-150-framed.png",
+            "sha256": "e57737040df929263e6a15c4527f50c84d772853fc16c1468687dfb17a32003d",
+            "rectangle": [
+              160,
+              160,
+              680,
+              287
+            ]
+          },
+          {
+            "source": "b622a2a6c08c-450-plain.png",
+            "sha256": "7a40da42a01137fca32849193dc187db5762f677eb1f2057272884116c153f6b",
+            "rectangle": [
+              160,
+              160,
+              681,
+              288
+            ]
+          },
+          {
+            "source": "b622a2a6c08c-450-framed.png",
+            "sha256": "cfe027daade95bd24eee325508860886c170b5aaa0a134df7486a80c41139f4a",
+            "rectangle": [
+              160,
+              160,
+              681,
+              288
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "fixed_at": "2026-11-19T10:23:06+00:00"
+}
