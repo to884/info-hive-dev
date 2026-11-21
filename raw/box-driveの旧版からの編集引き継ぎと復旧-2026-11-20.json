@@ -1,0 +1,126 @@
+{
+  "date": "2026-11-20",
+  "timezone": "Asia/Tokyo",
+  "environment": "同じアカウントの Windows 11 ホストと Hyper-V 上の Windows 11 VM、Box Drive 2.56.271 の Cloud Files 方式。双方オンラインの同じ検証用 wiki。",
+  "handoff_condition": {
+    "host_to_box_ack_observed_seconds": 8.349,
+    "all_host_sha1_acknowledged_before_vm_command": true,
+    "all_three_reads_from_vm_matched_base_at_save": true,
+    "all_three_vm_local_writes_matched_its_intended_branch": true,
+    "host_writes_ended_before_vm_command": true
+  },
+  "after_handoff": {
+    "first_equal_both_ends_observed_seconds_after_vm_write": 23.473,
+    "rechecked_both_ends_observed_seconds_after_vm_write": 65.468,
+    "canonical_omitted_all_vm_edits_before_recovery": true,
+    "all_vm_edits_recoverable_from_conflict_copies": true
+  },
+  "files": {
+    "concepts/guide.md": {
+      "base": {
+        "sha1": "8f6c8a385fa9b9cf48740667bb0ef6425aacb986",
+        "sha256": "85e396fe07100dae1b7f492caebf3949b58eb66ab89f0a3741bb67387f93f2ad"
+      },
+      "host_version": {
+        "sha1": "92bb15a37deedc148df004814311757f69bb352e",
+        "sha256": "30cbccc7949652a4c00f91612f70093caa192ee593ca33f118394d44dc082bc0"
+      },
+      "vm_version": {
+        "sha1": "074db8fd9ad94c582728ffa0bd6c55f143441dd0",
+        "sha256": "a702582fb6ce6a44a1c089ba11859c30e622549d955b4bf2b21621b81ca85cd5"
+      },
+      "canonical_after_early_switch": {
+        "host": "host",
+        "vm": "host"
+      },
+      "conflict_copy_after_early_switch": {
+        "host": [
+          "vm"
+        ],
+        "vm": [
+          "vm"
+        ]
+      },
+      "merge_conflict_groups": 1,
+      "merged": {
+        "sha1": "014c49a3907f35495f1ca45d7195dad564f0087c",
+        "sha256": "b1d807e752298eb131cd3cbbbbd56c3a5c1fe082d766194c6d4a54f126bf398c"
+      }
+    },
+    "index.md": {
+      "base": {
+        "sha1": "52cec619503ec3466842b63edb3e15578ff8f0df",
+        "sha256": "c77a4f306bddcca6c0d1178eca3956d4eaa8ea4f588c2f92e89616593d9bbf14"
+      },
+      "host_version": {
+        "sha1": "ee5a134b3ad88dc2f1c64139213ae59f6406f02f",
+        "sha256": "9b2cffacf5f7696838359537696fd2037abd2bc5a825432ce9cbae10387578d4"
+      },
+      "vm_version": {
+        "sha1": "4b45f786c2162a28ed3b0d3ea58e58def7756757",
+        "sha256": "d60530ec288d8747bfd52e7120746000ba3801d348364fbbb6c2a8c77e055875"
+      },
+      "canonical_after_early_switch": {
+        "host": "host",
+        "vm": "host"
+      },
+      "conflict_copy_after_early_switch": {
+        "host": [
+          "vm"
+        ],
+        "vm": [
+          "vm"
+        ]
+      },
+      "merge_conflict_groups": 1,
+      "merged": {
+        "sha1": "cd88898b0a16320da3b49a9afd12127bc8edfdc0",
+        "sha256": "534803e9a8edd7a7b2686ee20fd63173c2ef718014373ce50d60497c22d6277c"
+      }
+    },
+    "log.md": {
+      "base": {
+        "sha1": "4bc9434e4c45b57f7fac8fae4a769440fcaadde6",
+        "sha256": "e5f0011377d48312d38e6364defda70e644400dd3f357c79999fd93e7df1e314"
+      },
+      "host_version": {
+        "sha1": "68d9316ad0e6f4185dbb492405adf8c4ac4547f6",
+        "sha256": "c1b73e8e694286f29f1ff41b2b0cac696638f0568be666d51bc4cf61689b4d73"
+      },
+      "vm_version": {
+        "sha1": "3a6a9148c8acba9c3553cb676130aeced57dd5e6",
+        "sha256": "266c96072af57f07c7296b8f935f32f8f623b3d5c2b4be0b02ca294e4b4ed151"
+      },
+      "canonical_after_early_switch": {
+        "host": "host",
+        "vm": "host"
+      },
+      "conflict_copy_after_early_switch": {
+        "host": [
+          "vm"
+        ],
+        "vm": [
+          "vm"
+        ]
+      },
+      "merge_conflict_groups": 1,
+      "merged": {
+        "sha1": "9a8ce8628c44542aa20cc753dc45dbf0d0cbd42d",
+        "sha256": "df8d50e4099a103b44d87c784731ddf641345f5ac15f52c528a8e2a02485cd5f"
+      }
+    }
+  },
+  "recovery": {
+    "actual_received_versions_and_common_base_preserved_outside_box": true,
+    "article": "ホストとVMの文を同じ節に残した",
+    "index": "確定した記事の両変更を要約1件に反映した",
+    "log": "両方の操作を各1件残した",
+    "first_full_agreement_observed_seconds_after_recovery_write": 24.638,
+    "merged_both_ends_sha1_and_sha256_match": true,
+    "merged_box_api_sha1_matches": true,
+    "archived_conflict_copy_count": 3,
+    "archive_matches_on_both_ends": true,
+    "remaining_conflict_copies_under_wiki": 0
+  },
+  "times": "秒数は比較した時点までの観測値。同一アカウント、同一の試験構成で1回。VM 書き込み起点の秒数には端末間の時計差が含まれる。"
+}

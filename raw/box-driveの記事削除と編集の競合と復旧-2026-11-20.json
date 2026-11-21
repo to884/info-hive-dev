@@ -1,0 +1,1609 @@
+{
+  "measurement": "ホストで記事を削除し、VM で同じ記事をオフライン編集して、ほぼ同時に再接続",
+  "conditions": {
+    "same_box_account": true,
+    "clients": {
+      "guest": {
+        "os": "Microsoft Windows 11 Enterprise LTSC Evaluation",
+        "build": "26100",
+        "box_version": "2.56.271.0",
+        "cloud_files": 1,
+        "timezone": "Tokyo Standard Time"
+      },
+      "host": {
+        "os": "Microsoft Windows 11 Enterprise",
+        "build": "26300",
+        "box_version": "2.56.271.0",
+        "cloud_files": 1,
+        "timezone": "Tokyo Standard Time"
+      }
+    },
+    "wiki_init": "0.39.0"
+  },
+  "reconnect": {
+    "trigger_jst": "2026-11-20T08:32:30.531+09:00",
+    "host_restore_started_unix": 1795131150.5312555,
+    "host_proxy_restored": true,
+    "vm": {
+      "vm_reconnect_return_ms": 1795131150874,
+      "scheduled_reconnect_ms": 1795131150531,
+      "vm_reconnect_attempt_ms": 1795131150534,
+      "vm_disconnect_attempt_ms": 1795131143731
+    }
+  },
+  "baseline": {
+    "pinned_and_hashes_match": {
+      "guest": {
+        "base": {
+          "concepts/guide.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "index.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "log.md": {
+            "matches": true,
+            "pinned": true
+          }
+        },
+        "cold_attrs": "0x500020"
+      },
+      "host": {
+        "base": {
+          "concepts/guide.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "index.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "log.md": {
+            "matches": true,
+            "pinned": true
+          }
+        },
+        "cold_attrs": "0x500020"
+      }
+    },
+    "box_sha1": {
+      "concepts/guide.md": true,
+      "index.md": true,
+      "log.md": true
+    }
+  },
+  "offline": {
+    "edits": {
+      "host": {
+        "label": "A",
+        "started": 1795131145.5205407,
+        "finished": 1795131145.5791996,
+        "edited": [
+          "index.md",
+          "log.md"
+        ],
+        "deleted": [
+          "concepts/guide.md"
+        ],
+        "backup_of_actual_vm_save": false,
+        "common_base": {
+          "concepts/guide.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "index.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "log.md": {
+            "matches": true,
+            "pinned": true
+          }
+        }
+      },
+      "vm": {
+        "label": "B",
+        "started": 1795131145.5550542,
+        "finished": 1795131145.573675,
+        "edited": [
+          "concepts/guide.md",
+          "index.md",
+          "log.md"
+        ],
+        "deleted": [],
+        "backup_of_actual_vm_save": true,
+        "common_base": {
+          "concepts/guide.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "index.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "log.md": {
+            "matches": true,
+            "pinned": true
+          }
+        }
+      }
+    },
+    "vm_adapters": [
+      {
+        "Name": "Ethernet",
+        "Status": "Disconnected"
+      }
+    ],
+    "host_box_connect_rejections": 17
+  },
+  "conflict": {
+    "expected_hashes": {
+      "base": {
+        "concepts/guide.md": {
+          "sha1": "f54fab045387722f16963d1d31266bedd79649a0",
+          "sha256": "526ee0107dc8388b9f6dd82e1e05a7a083ae2e82bf4f1c18787f1b0541bc0a46"
+        },
+        "index.md": {
+          "sha1": "2a4568d7e5757349cba31ebd242f01841bdadbc4",
+          "sha256": "4fd2e4cedeeb33d3d2d34c31de1b75bfbbf66d011114727b1bac33c17034386f"
+        },
+        "log.md": {
+          "sha1": "438df8825d5bbfcce992219c3ecd9bd0b7b1bfe9",
+          "sha256": "771b9046328aef3fecb75bfc18b0afeb4c1c3e5fdb2f2b5dc7f7dd17988e359f"
+        }
+      },
+      "A": {
+        "index.md": {
+          "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab",
+          "sha256": "745971cbcf87d848521dfa02319135295f2cebb6bc41e07b9c721447597e2efe"
+        },
+        "log.md": {
+          "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da",
+          "sha256": "8a7d352772d637b83c13e1eb8e797c26baf27a875384920ea5f07aa1e0fdf9a4"
+        }
+      },
+      "B": {
+        "concepts/guide.md": {
+          "sha1": "a6a6ed2b5e063198f9a23b570764f9a86fca5132",
+          "sha256": "c6ebbb946143e40effdba1b3083b9b67b98714bb2cf84ce2823addb9cf613f00"
+        },
+        "index.md": {
+          "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9",
+          "sha256": "ebcb2ddd7fc1dbb2bae0ca3015732980f255210fd0d82768ec99d89f98c6becc"
+        },
+        "log.md": {
+          "sha1": "7912178b4050ff65677b4372abf33aacc8d47066",
+          "sha256": "226acd93ff076b096629e6fb6793562fe3a01aa23694c1d54511d37672d15460"
+        }
+      }
+    },
+    "observations": [
+      {
+        "sequence": 1,
+        "observed_utc": "2026-11-19T23:32:32.7818407+00:00",
+        "observed_unix_ms": 1795131152781,
+        "same_files_on_both": false,
+        "both_index_and_log_versions": false,
+        "host": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "canonical",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "canonical",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              }
+            ]
+          },
+          "box_responses": {}
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a6a6ed2b5e063198f9a23b570764f9a86fca5132"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.432
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 2,
+        "observed_utc": "2026-11-19T23:32:37.9797881+00:00",
+        "observed_unix_ms": 1795131157979,
+        "same_files_on_both": false,
+        "both_index_and_log_versions": false,
+        "host": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "canonical",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "canonical",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              }
+            ]
+          },
+          "box_responses": {}
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a6a6ed2b5e063198f9a23b570764f9a86fca5132"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.432
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.81
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.826
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 3,
+        "observed_utc": "2026-11-19T23:32:43.5863359+00:00",
+        "observed_unix_ms": 1795131163586,
+        "same_files_on_both": false,
+        "both_index_and_log_versions": true,
+        "host": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.497
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.522
+                }
+              }
+            }
+          }
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.432
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.81
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.826
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 4,
+        "observed_utc": "2026-11-19T23:32:48.7336140+00:00",
+        "observed_unix_ms": 1795131168733,
+        "same_files_on_both": false,
+        "both_index_and_log_versions": true,
+        "host": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.497
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.59
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.522
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.623
+                }
+              }
+            }
+          }
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.432
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.81
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.826
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 5,
+        "observed_utc": "2026-11-19T23:32:53.8775546+00:00",
+        "observed_unix_ms": 1795131173877,
+        "same_files_on_both": false,
+        "both_index_and_log_versions": true,
+        "host": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.497
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.59
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.522
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.623
+                }
+              }
+            }
+          }
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.432
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.81
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.826
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 6,
+        "observed_utc": "2026-11-19T23:32:59.0571660+00:00",
+        "observed_unix_ms": 1795131179057,
+        "same_files_on_both": false,
+        "both_index_and_log_versions": true,
+        "host": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.497
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.59
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.522
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.623
+                }
+              }
+            }
+          }
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.432
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.81
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.826
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 7,
+        "observed_utc": "2026-11-19T23:33:04.2018397+00:00",
+        "observed_unix_ms": 1795131184201,
+        "same_files_on_both": true,
+        "both_index_and_log_versions": true,
+        "host": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.497
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.59
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.522
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.623
+                }
+              }
+            }
+          }
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.432
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.81
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.826
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 8,
+        "observed_utc": "2026-11-19T23:33:09.3428906+00:00",
+        "observed_unix_ms": 1795131189342,
+        "same_files_on_both": true,
+        "both_index_and_log_versions": true,
+        "host": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.497
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.59
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.522
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.623
+                }
+              }
+            }
+          }
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.432
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.81
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.826
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 9,
+        "observed_utc": "2026-11-19T23:33:14.4671639+00:00",
+        "observed_unix_ms": 1795131194467,
+        "same_files_on_both": true,
+        "both_index_and_log_versions": true,
+        "host": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.497
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.59
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.522
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.623
+                }
+              }
+            }
+          }
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.432
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.81
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.826
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 10,
+        "observed_utc": "2026-11-19T23:33:19.6124742+00:00",
+        "observed_unix_ms": 1795131199612,
+        "same_files_on_both": true,
+        "both_index_and_log_versions": true,
+        "host": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.497
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.59
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 8.522
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 14.623
+                }
+              }
+            }
+          }
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "7912178b4050ff65677b4372abf33aacc8d47066"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.432
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.81
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.826
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "article_trash_api": {
+      "original_and_vm_box_id_match": true,
+      "events": [
+        {
+          "seconds_after_reconnect": 9.675,
+          "state": "active",
+          "sha1_matches": "VM",
+          "trashed_timestamp_present": false
+        },
+        {
+          "seconds_after_reconnect": 14.506,
+          "state": "trashed",
+          "sha1_matches": "VM",
+          "trashed_timestamp_present": true
+        },
+        {
+          "seconds_after_reconnect": 27.643,
+          "state": "trashed",
+          "sha1_matches": "VM",
+          "trashed_timestamp_present": true
+        }
+      ]
+    },
+    "index_and_log_split": {
+      "index.md": {
+        "canonical": "B",
+        "conflict_copy": "A"
+      },
+      "log.md": {
+        "canonical": "B",
+        "conflict_copy": "A"
+      }
+    }
+  },
+  "recovery": {
+    "source": "VM で実際にオフライン保存したファイルを再接続前に同期外へ保全",
+    "original_file_id_preserved": false,
+    "new_file_id_verified": true,
+    "plan": {
+      "base": {
+        "concepts/guide.md": {
+          "sha1": "f54fab045387722f16963d1d31266bedd79649a0",
+          "sha256": "526ee0107dc8388b9f6dd82e1e05a7a083ae2e82bf4f1c18787f1b0541bc0a46"
+        },
+        "index.md": {
+          "sha1": "2a4568d7e5757349cba31ebd242f01841bdadbc4",
+          "sha256": "4fd2e4cedeeb33d3d2d34c31de1b75bfbbf66d011114727b1bac33c17034386f"
+        },
+        "log.md": {
+          "sha1": "438df8825d5bbfcce992219c3ecd9bd0b7b1bfe9",
+          "sha256": "771b9046328aef3fecb75bfc18b0afeb4c1c3e5fdb2f2b5dc7f7dd17988e359f"
+        }
+      },
+      "canonical_before": {
+        "index.md": {
+          "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9",
+          "sha256": "ebcb2ddd7fc1dbb2bae0ca3015732980f255210fd0d82768ec99d89f98c6becc"
+        },
+        "log.md": {
+          "sha1": "7912178b4050ff65677b4372abf33aacc8d47066",
+          "sha256": "226acd93ff076b096629e6fb6793562fe3a01aa23694c1d54511d37672d15460"
+        },
+        "concepts/guide.md": null
+      },
+      "conflict_copies": {
+        "index.md": {
+          "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab",
+          "sha256": "745971cbcf87d848521dfa02319135295f2cebb6bc41e07b9c721447597e2efe"
+        },
+        "log.md": {
+          "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da",
+          "sha256": "8a7d352772d637b83c13e1eb8e797c26baf27a875384920ea5f07aa1e0fdf9a4"
+        }
+      },
+      "split": {
+        "index.md": {
+          "canonical": "B",
+          "conflict_copy": "A"
+        },
+        "log.md": {
+          "canonical": "B",
+          "conflict_copy": "A"
+        }
+      },
+      "article_source": "VM で実際にオフライン保存したファイルを再接続前に同期外へ保全",
+      "article_backup_hashes": {
+        "sha1": "a6a6ed2b5e063198f9a23b570764f9a86fca5132",
+        "sha256": "c6ebbb946143e40effdba1b3083b9b67b98714bb2cf84ce2823addb9cf613f00"
+      },
+      "article_missing_before_recovery": true,
+      "merged": {
+        "concepts/guide.md": {
+          "sha1": "a6a6ed2b5e063198f9a23b570764f9a86fca5132",
+          "sha256": "c6ebbb946143e40effdba1b3083b9b67b98714bb2cf84ce2823addb9cf613f00"
+        },
+        "index.md": {
+          "sha1": "37e3351cd2a3bd18a5fbed7cb684f87dab003796",
+          "sha256": "4b0b9aceee621b431347978dee043b33f778b48100f9b172d64cbcc8bdfc9cc1"
+        },
+        "log.md": {
+          "sha1": "a2115ad2437427efd8252a788086b2fd2fbcba0e",
+          "sha256": "db224a46b2998678abf73610eaf28334b2c6ec050cdc838eae9a9cc696d47e5b"
+        }
+      },
+      "articles": {},
+      "index_entry": "- [[guide]]: 潮が引いたあと、赤い目印の岩の手前から潮だまりを観察する。",
+      "log_entries": [
+        "## [2026-11-20] init | オフライン削除と編集の試験用 wiki",
+        "## [2026-11-20] delete | A が潮だまり観察ガイドを削除",
+        "## [2026-11-20] edit | B が観察場所を赤い目印の岩の手前と明記",
+        "## [2026-11-20] restore | VM のオフライン保存を保全したコピーから記事を復旧"
+      ]
+    },
+    "before": {
+      "host": {
+        "canonical": {
+          "concepts/guide.md": null,
+          "index.md": {
+            "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9",
+            "sha256": "ebcb2ddd7fc1dbb2bae0ca3015732980f255210fd0d82768ec99d89f98c6becc"
+          },
+          "log.md": {
+            "sha1": "7912178b4050ff65677b4372abf33aacc8d47066",
+            "sha256": "226acd93ff076b096629e6fb6793562fe3a01aa23694c1d54511d37672d15460"
+          }
+        },
+        "articles": {},
+        "conflict_count": {
+          "concepts/guide.md": 0,
+          "index.md": 1,
+          "log.md": 1
+        },
+        "archive": {}
+      },
+      "vm": {
+        "canonical": {
+          "concepts/guide.md": null,
+          "index.md": {
+            "sha1": "a29f019e2c5911437a8ee1caeb7994c6498e3da9",
+            "sha256": "ebcb2ddd7fc1dbb2bae0ca3015732980f255210fd0d82768ec99d89f98c6becc"
+          },
+          "log.md": {
+            "sha1": "7912178b4050ff65677b4372abf33aacc8d47066",
+            "sha256": "226acd93ff076b096629e6fb6793562fe3a01aa23694c1d54511d37672d15460"
+          }
+        },
+        "articles": {},
+        "conflict_count": {
+          "concepts/guide.md": 0,
+          "index.md": 1,
+          "log.md": 1
+        },
+        "archive": {}
+      }
+    },
+    "write_back": {
+      "started_unix": 1795131446.2415175,
+      "finished_unix": 1795131446.2499478
+    },
+    "merged_verified": {
+      "observed_unix_ms": 1795131472182,
+      "host": {
+        "canonical": {
+          "concepts/guide.md": {
+            "sha1": "a6a6ed2b5e063198f9a23b570764f9a86fca5132",
+            "sha256": "c6ebbb946143e40effdba1b3083b9b67b98714bb2cf84ce2823addb9cf613f00"
+          },
+          "index.md": {
+            "sha1": "37e3351cd2a3bd18a5fbed7cb684f87dab003796",
+            "sha256": "4b0b9aceee621b431347978dee043b33f778b48100f9b172d64cbcc8bdfc9cc1"
+          },
+          "log.md": {
+            "sha1": "a2115ad2437427efd8252a788086b2fd2fbcba0e",
+            "sha256": "db224a46b2998678abf73610eaf28334b2c6ec050cdc838eae9a9cc696d47e5b"
+          }
+        },
+        "articles": {},
+        "conflict_count": {
+          "concepts/guide.md": 0,
+          "index.md": 1,
+          "log.md": 1
+        },
+        "archive": {}
+      },
+      "vm": {
+        "canonical": {
+          "concepts/guide.md": {
+            "sha1": "a6a6ed2b5e063198f9a23b570764f9a86fca5132",
+            "sha256": "c6ebbb946143e40effdba1b3083b9b67b98714bb2cf84ce2823addb9cf613f00"
+          },
+          "index.md": {
+            "sha1": "37e3351cd2a3bd18a5fbed7cb684f87dab003796",
+            "sha256": "4b0b9aceee621b431347978dee043b33f778b48100f9b172d64cbcc8bdfc9cc1"
+          },
+          "log.md": {
+            "sha1": "a2115ad2437427efd8252a788086b2fd2fbcba0e",
+            "sha256": "db224a46b2998678abf73610eaf28334b2c6ec050cdc838eae9a9cc696d47e5b"
+          }
+        },
+        "articles": {},
+        "conflict_count": {
+          "concepts/guide.md": 0,
+          "index.md": 1,
+          "log.md": 1
+        },
+        "archive": {}
+      },
+      "box_api": {
+        "canonical": {
+          "log.md": {
+            "unix": 1795131452.622,
+            "sha1": "a2115ad2437427efd8252a788086b2fd2fbcba0e"
+          },
+          "index.md": {
+            "unix": 1795131452.799,
+            "sha1": "37e3351cd2a3bd18a5fbed7cb684f87dab003796"
+          },
+          "concepts/guide.md": {
+            "unix": 1795131452.87,
+            "sha1": "a6a6ed2b5e063198f9a23b570764f9a86fca5132"
+          }
+        }
+      }
+    },
+    "archive_path_relative_to_fixture": "recovery-archive",
+    "archive_move": {
+      "started_unix": 1795131472.4513993,
+      "finished_unix": 1795131472.4592886
+    },
+    "archived_verified": {
+      "observed_unix_ms": 1795131498327,
+      "host": {
+        "canonical": {
+          "concepts/guide.md": {
+            "sha1": "a6a6ed2b5e063198f9a23b570764f9a86fca5132",
+            "sha256": "c6ebbb946143e40effdba1b3083b9b67b98714bb2cf84ce2823addb9cf613f00"
+          },
+          "index.md": {
+            "sha1": "37e3351cd2a3bd18a5fbed7cb684f87dab003796",
+            "sha256": "4b0b9aceee621b431347978dee043b33f778b48100f9b172d64cbcc8bdfc9cc1"
+          },
+          "log.md": {
+            "sha1": "a2115ad2437427efd8252a788086b2fd2fbcba0e",
+            "sha256": "db224a46b2998678abf73610eaf28334b2c6ec050cdc838eae9a9cc696d47e5b"
+          }
+        },
+        "articles": {},
+        "conflict_count": {
+          "concepts/guide.md": 0,
+          "index.md": 0,
+          "log.md": 0
+        },
+        "archive": {
+          "index.md": {
+            "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab",
+            "sha256": "745971cbcf87d848521dfa02319135295f2cebb6bc41e07b9c721447597e2efe"
+          },
+          "log.md": {
+            "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da",
+            "sha256": "8a7d352772d637b83c13e1eb8e797c26baf27a875384920ea5f07aa1e0fdf9a4"
+          }
+        }
+      },
+      "vm": {
+        "canonical": {
+          "concepts/guide.md": {
+            "sha1": "a6a6ed2b5e063198f9a23b570764f9a86fca5132",
+            "sha256": "c6ebbb946143e40effdba1b3083b9b67b98714bb2cf84ce2823addb9cf613f00"
+          },
+          "index.md": {
+            "sha1": "37e3351cd2a3bd18a5fbed7cb684f87dab003796",
+            "sha256": "4b0b9aceee621b431347978dee043b33f778b48100f9b172d64cbcc8bdfc9cc1"
+          },
+          "log.md": {
+            "sha1": "a2115ad2437427efd8252a788086b2fd2fbcba0e",
+            "sha256": "db224a46b2998678abf73610eaf28334b2c6ec050cdc838eae9a9cc696d47e5b"
+          }
+        },
+        "articles": {},
+        "conflict_count": {
+          "concepts/guide.md": 0,
+          "index.md": 0,
+          "log.md": 0
+        },
+        "archive": {
+          "index.md": {
+            "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab",
+            "sha256": "745971cbcf87d848521dfa02319135295f2cebb6bc41e07b9c721447597e2efe"
+          },
+          "log.md": {
+            "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da",
+            "sha256": "8a7d352772d637b83c13e1eb8e797c26baf27a875384920ea5f07aa1e0fdf9a4"
+          }
+        }
+      },
+      "box_api": {
+        "canonical": {
+          "log.md": {
+            "unix": 1795131452.622,
+            "sha1": "a2115ad2437427efd8252a788086b2fd2fbcba0e"
+          },
+          "index.md": {
+            "unix": 1795131452.799,
+            "sha1": "37e3351cd2a3bd18a5fbed7cb684f87dab003796"
+          },
+          "concepts/guide.md": {
+            "unix": 1795131452.87,
+            "sha1": "a6a6ed2b5e063198f9a23b570764f9a86fca5132"
+          }
+        },
+        "archived": {
+          "log.md": {
+            "unix": 1795131484.463,
+            "sha1": "31c6e2fdb17dbf1287e3c8bc6220561ba63d99da"
+          },
+          "index.md": {
+            "unix": 1795131484.601,
+            "sha1": "5c4f1a0802583d20a339f2d3e9d2852f7f0b14ab"
+          }
+        }
+      }
+    },
+    "lint_and_search": {
+      "before_write_back": {
+        "search": {
+          "赤い目印": "concepts/guide.md"
+        },
+        "lint": {
+          "total_pages": 1,
+          "orphans": 1,
+          "broken_links": 0,
+          "oversized_hard": 0,
+          "oversized_soft": 0,
+          "missing_frontmatter": 0,
+          "malformed_frontmatter": 0,
+          "duplicate_slugs": 0,
+          "case_only_duplicates": 0,
+          "stale_pages": 0,
+          "read_errors": 0,
+          "frontmatter_alias_conflicts": 0,
+          "fullwidth_colon_keys": 0,
+          "ideographic_comma_lists": 0,
+          "fullwidth_link_syntax": 0,
+          "non_iso_dates": 0,
+          "unquoted_strings": 0,
+          "missing_assets": 0,
+          "index_type_mismatch": 0,
+          "unresolved_sources": 0,
+          "missing_raw": 0,
+          "unknown_tags": null,
+          "caption_corrections": 0,
+          "overview_stale": 0,
+          "overview_problems": 0,
+          "links": 0,
+          "links_wiki": 0,
+          "links_unchecked": 0,
+          "links_unchecked_wiki": 0,
+          "links_unchecked_raw": 0,
+          "links_raw": 0,
+          "raw_ambiguous": 0,
+          "raw_unknown": 0,
+          "raw_version_unverified": 0,
+          "raw_paths_unchecked": 0,
+          "raw_outside": 0,
+          "suggested_pages": 0
+        }
+      },
+      "after_archive_on_host": {
+        "search": {
+          "赤い目印": "concepts/guide.md"
+        },
+        "lint": {
+          "total_pages": 1,
+          "orphans": 1,
+          "broken_links": 0,
+          "oversized_hard": 0,
+          "oversized_soft": 0,
+          "missing_frontmatter": 0,
+          "malformed_frontmatter": 0,
+          "duplicate_slugs": 0,
+          "case_only_duplicates": 0,
+          "stale_pages": 0,
+          "read_errors": 0,
+          "frontmatter_alias_conflicts": 0,
+          "fullwidth_colon_keys": 0,
+          "ideographic_comma_lists": 0,
+          "fullwidth_link_syntax": 0,
+          "non_iso_dates": 0,
+          "unquoted_strings": 0,
+          "missing_assets": 0,
+          "index_type_mismatch": 0,
+          "unresolved_sources": 0,
+          "missing_raw": 0,
+          "unknown_tags": null,
+          "caption_corrections": 0,
+          "overview_stale": 0,
+          "overview_problems": 0,
+          "links": 0,
+          "links_wiki": 0,
+          "links_unchecked": 0,
+          "links_unchecked_wiki": 0,
+          "links_unchecked_raw": 0,
+          "links_raw": 0,
+          "raw_ambiguous": 0,
+          "raw_unknown": 0,
+          "raw_version_unverified": 0,
+          "raw_paths_unchecked": 0,
+          "raw_outside": 0,
+          "suggested_pages": 0
+        }
+      }
+    }
+  },
+  "timings": {
+    "reconnect_action_gap_ms": 2.745,
+    "vm_edit_sha1_first_seen_seconds_from_reconnect": 1.432,
+    "first_both_clients_article_absent_seconds_from_reconnect": 13.055,
+    "first_trashed_response_seconds_from_reconnect": 14.506,
+    "first_observation_all_conflict_files_match_seconds_from_reconnect": 33.67,
+    "recovery_confirmed_seconds_from_write_start": 25.94,
+    "archive_confirmed_seconds_from_move_start": 25.876
+  }
+}

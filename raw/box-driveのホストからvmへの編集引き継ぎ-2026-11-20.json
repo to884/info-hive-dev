@@ -1,0 +1,85 @@
+{
+  "date": "2026-11-20",
+  "timezone": "Asia/Tokyo",
+  "environment": "Windows 11 ホストと Hyper-V の Windows 11 VM、両方で Box Drive 2.56.271 の Cloud Files 方式。同一 Box アカウント、両端末ともオンライン。",
+  "fixture": "前のごみ箱復元で元の記事を戻した同じ検証用 wiki",
+  "target_paths": [
+    "concepts/guide.md",
+    "index.md",
+    "log.md"
+  ],
+  "baseline_sha_agreement": true,
+  "observable_paths_excluded": "ドットから始まるファイルやフォルダーは対象外。両端末で可視 Markdown のパス一覧を試験前と照合。",
+  "writer_switch": "ホストで3ファイルを閉じてから、両端末の期待ハッシュ、Box Drive が受け取った Box API 応答の SHA-1、Cloud Files API の InSyncState をポーリング。条件が続いた再確認後に PowerShell Direct で VM に編集を指示。VM でも編集直前にホスト版を確認。以降、ホストは読み取りのみ。",
+  "clock": "経過は約2秒間隔の照合で、待機や API 応答を含む。VM の書き始めの時刻とホストの照合確定時刻には端末間の時計差が含まれるため、秒数は概数。",
+  "stages": {
+    "host": {
+      "saved_at_writer_jst": "2026-11-20T09:57:16+09:00",
+      "first_all_cloud_files_insync_seconds": 7.934,
+      "first_all_box_api_sha1_observed_seconds": 7.934,
+      "first_full_agreement_observed_seconds": 33.58,
+      "follow_up_full_agreement_observed_seconds": 38.708,
+      "all_writer_files_were_not_in_sync_on_the_first_post_save_sample": true,
+      "both_clients_match_the_expected_sha1_and_sha256": true,
+      "both_clients_cloud_files_insync_at_agreement": true,
+      "box_api_sha1_matches": true,
+      "new_visible_markdown_paths": {
+        "host": [],
+        "vm": []
+      },
+      "expected_hashes": {
+        "concepts/guide.md": {
+          "sha1": "181503c745cbb987e20c865b64a70276feec92f4",
+          "sha256": "5fd216c4cb4779e7ace2d693b24e8b0b41aa2b467c5db9e139a0d3830bb9bf54"
+        },
+        "index.md": {
+          "sha1": "e222a0b51acde72cb9ef7e1ddb10aa8260e2d186",
+          "sha256": "7d51b1b41209825cae1dbefadbcb79408817f1e8d84eef1c17647e7d8534606d"
+        },
+        "log.md": {
+          "sha1": "30452893da432b2859e9e82f0c039fe578e04736",
+          "sha256": "2373c1d9c3d0fd07fdeb379761c7676703a28242567bed63e48a26d9fef497ea"
+        }
+      }
+    },
+    "vm": {
+      "saved_at_writer_jst": "2026-11-20T09:57:55+09:00",
+      "first_all_cloud_files_insync_seconds": 7.849,
+      "first_all_box_api_sha1_observed_seconds": 7.849,
+      "first_full_agreement_observed_seconds": 24.663,
+      "follow_up_full_agreement_observed_seconds": 31.361,
+      "all_writer_files_were_not_in_sync_on_the_first_post_save_sample": true,
+      "both_clients_match_the_expected_sha1_and_sha256": true,
+      "both_clients_cloud_files_insync_at_agreement": true,
+      "box_api_sha1_matches": true,
+      "new_visible_markdown_paths": {
+        "host": [],
+        "vm": []
+      },
+      "expected_hashes": {
+        "concepts/guide.md": {
+          "sha1": "8f6c8a385fa9b9cf48740667bb0ef6425aacb986",
+          "sha256": "85e396fe07100dae1b7f492caebf3949b58eb66ab89f0a3741bb67387f93f2ad"
+        },
+        "index.md": {
+          "sha1": "52cec619503ec3466842b63edb3e15578ff8f0df",
+          "sha256": "c77a4f306bddcca6c0d1178eca3956d4eaa8ea4f588c2f92e89616593d9bbf14"
+        },
+        "log.md": {
+          "sha1": "4bc9434e4c45b57f7fac8fae4a769440fcaadde6",
+          "sha256": "e5f0011377d48312d38e6364defda70e644400dd3f357c79999fd93e7df1e314"
+        }
+      }
+    }
+  },
+  "content_checks": {
+    "article": "ホストと VM の追記を各1回",
+    "index": "同じ記事の要約1件に両方の追記",
+    "log": "引き継ぎ試験の操作をホストとVMで各1件",
+    "broken_links": 0
+  },
+  "sources": {
+    "explorer_status": "https://support.box.com/hc/en-us/articles/43854492838419-New-Box-Drive-for-Windows-Built-on-a-New-Architecture",
+    "placeholder_info": "https://learn.microsoft.com/en-us/windows/win32/api/cfapi/nf-cfapi-cfgetplaceholderinfo"
+  }
+}

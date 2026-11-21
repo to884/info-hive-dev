@@ -1,0 +1,479 @@
+{
+  "packs": {
+    "pack-00": {
+      "request": {
+        "images": [
+          "Z01-01.png",
+          "Z01-02.png",
+          "Z01-03.png",
+          "Z02-01.png",
+          "Z02-02.png",
+          "Z02-03.png",
+          "Z03-01.png",
+          "Z03-02.png",
+          "Z03-03.png",
+          "Z04-01.png",
+          "Z04-02.png",
+          "Z04-03.png",
+          "Z01-focus-01.png",
+          "Z01-focus-02.png",
+          "Z01-focus-03.png",
+          "Z02-focus-01.png",
+          "Z02-focus-02.png",
+          "Z02-focus-03.png",
+          "Z03-focus-01.png",
+          "Z03-focus-02.png",
+          "Z03-focus-03.png",
+          "Z04-focus-01.png",
+          "Z04-focus-02.png",
+          "Z04-focus-03.png"
+        ],
+        "ids": [
+          "Z01",
+          "Z02",
+          "Z03",
+          "Z04"
+        ],
+        "image_sha256": [
+          "090b68d599f3f777366fe0f07696f4299438bec889255cb291506f62e93f64fb",
+          "0d5ef2b3bed83bca694e15890b6f1de296bbc9f6c7c9bea3365fc920f43df7a9",
+          "31cfbb2bf08b5f0e2f1393ad3e6eb40d92aabb7148e10977743267c52ef12f91",
+          "6f34e0302aa4fa0d0dccfccd890aeb8765eb6225195b835585f37fa2e83b7079",
+          "4531dd9b5027b39f9f4349cd17e62eb3753325fbe131765438b5165002110235",
+          "62ed8f8b55fdf0dee8f38dc4bce3127136a5247dfdf4a92724adee55e1f3ebab",
+          "65a4f4c3630845b571081d4271576558d2af80afd72b63b4cbee847de3e396a5",
+          "47bbfc29e27a9fbc2fffc9c7df05cab12ecd3e596eefc61c90886cedeab7c4aa",
+          "aa5aab4c64092ae09fcbbc79bd6a913ea1977f0c0094a7853332b02cab97e8b4",
+          "f2e149832cc258acac9a5b47a0fe45b9705be9a432dcc778e810532cea2038ce",
+          "308ee12cd1e77c9392914626d1b2517b7884daaea646d5bbeb7699606e2184b1",
+          "a37b261869efbbc5c3a05827b7e5d00790fc64f4a2fef600f1f08d5cbc84510f",
+          "27716d4f58964c7732a1b983afa08f111ef3d37e24e66fe9c467059d32ac9efe",
+          "379a3335370c32d8aeac462096e485f904fa4110a0bb509528218853a78e4e9c",
+          "19688377aa60cd69e057e0f588752cbb02ff1f6740d9fc9db4e069a21903ed56",
+          "1d3f609c9822577c071eb5feb3441c4b386892771b5bd82dcfa0c0759ceffd8d",
+          "2979bf71c3b0729eda7ab08fbbfc20fe4fb2cbb311acdac901034841a91ff3a9",
+          "9196b439ba2fb7eec1e5290eaf4f3eab0937b63f18027c578ff8b54fc369ea95",
+          "9624e3eb6314c044200b24ad897f4653c4eb01de3c3e8cb4b2363f41bb811cd9",
+          "08368a6d13a1571c402fca4ef74cbced1ce72f548637364ac60e8fd3c85d2e44",
+          "41aae408d63769284ed3cefde1bb4d232d0f2e0554400fc73efd905cc32addf5",
+          "c6322b2414027e1932c2208078a6d41c8af98fdb4290bd82d4548b982abaf7ac",
+          "fa563634c28e7ca486b00a1c8fcfcf3b12e09f395d36554d4b6125bb3d027227",
+          "da8fc5027eb1d4e4b8ccdd24efa0de8b07b565d00c360d0a8da29d65cc5ba65c"
+        ],
+        "prompt": "各カードの上段は固定150 DPI（3倍表示）、下段は450 DPI、左は枠なし、右は枠ありです。カードに対象のIDと所属軸xまたはyを示します。枠の中または周りに見える字のうち、指定軸方向の字全体の長さの半分以上が枠と重なり、直交方向の字全体のインクの中心が枠内にある字だけを自然な読む順に書いてください。同じ字の枠外部分は見てよいですが、別の字や図形を加えないでください。150 DPIで所属を、450 DPIで字形を確認してください。OCRや既存本文は示しません。文字がなければempty、字種または所属が決められなければunreadableとしてください。\n同じIDに複数のカードがあれば、上部の番号順に位置を確認してください。隣のカードには一部が重複します。同じ字を二度転記しないでください。一部だけ与えられている場合は全カードを照合してから、行全体を一つの回答にしてください。\n枠に所属する文字が確実に一字もないときだけ、statusはempty、textは空文字にしてください。所属する字の判読や所属自体を一字でも決められないときは部分転記せず、行全体をstatusはunreadable、textは半角の?一字としてください。行全体を転記できた場合だけstatusをreadableとし、textに改行を入れないでください。\n後半の『細部』は同じ450 DPI画像を最近傍で拡大した補助です。番号をつないで左右の重複を1回だけ転記してください。赤い枠のすぐ外も字形を判断するために見てください。形式や意味から見えない字や点を補わないでください。色の付いた見本や図表の線を文字に置き換えません。補助の横方向の数字は座標であり、本文ではありません。\n回答はJSONオブジェクトのみです。形式は {\"answers\":[{\"id\":\"画像のID\",\"status\":\"readable\",\"text\":\"行の本文\"}]} です。各指定IDに1件ずつ回答してください。\n対象ID: Z01、Z02、Z03、Z04\n"
+      },
+      "targets": {
+        "Z01": 7,
+        "Z02": 9,
+        "Z03": 10,
+        "Z04": 12
+      }
+    },
+    "pack-01": {
+      "request": {
+        "images": [
+          "Z01-01.png",
+          "Z01-02.png",
+          "Z01-03.png",
+          "Z02-01.png",
+          "Z02-02.png",
+          "Z02-03.png",
+          "Z03-01.png",
+          "Z03-02.png",
+          "Z04-01.png",
+          "Z04-02.png",
+          "Z04-03.png",
+          "Z01-focus-01.png",
+          "Z01-focus-02.png",
+          "Z01-focus-03.png",
+          "Z02-focus-01.png",
+          "Z02-focus-02.png",
+          "Z02-focus-03.png",
+          "Z03-focus-01.png",
+          "Z03-focus-02.png",
+          "Z04-focus-01.png",
+          "Z04-focus-02.png",
+          "Z04-focus-03.png"
+        ],
+        "ids": [
+          "Z01",
+          "Z02",
+          "Z03",
+          "Z04"
+        ],
+        "image_sha256": [
+          "62ae1dbc31e8895734539f3ea5c67f764d0f6bbd374922692064bf49b542d311",
+          "f40b8f26ee16bc00e3a7ee98c77170aec18e07020189929a7ee4a297ef02fa94",
+          "9cc542bbfa7cea0778b12f24c6fdb9932df62434dda1e972e8f140c76c4b10d7",
+          "dd8cca07e1529aafcd246baf324f19672514dea40e8cd6daad7c55577ac05ff1",
+          "6aa16a260d56f9409196b8b7b60c368d176f5b7bc6f2800a5668b020cc3ed721",
+          "b1e5643a794053c1b945eac39bf9798e6b81fdef9f99501a4758f1c5774387c2",
+          "fbc0c033e81081f4f5c0ec776133c92264d5e4e4741118e48d2137ab94d267b1",
+          "40046df67ea64a4becca2a9c8a07c50ec7d2b5bfaf6e02b0a39996f40b96ba4f",
+          "d21451ec5745a1a0882f4c2aa85777ac536457f2cdb62f04a6a0f0d17f0317cc",
+          "d7406dbcf393a20ebf74d511b61af6f5fd5f06b3c9ca7c3b70e6f4d6718a189f",
+          "255b540732988c65e8a304525d895a71068f49d9eb3ead89aa7f494a65763749",
+          "3343bc20a35bc4f0c2ac243b622f08878661bce033aa46b038dff50aba3bd9d8",
+          "db5b3e999979105f0d4be326ca9933c1b2d331e0d48b25399089c74de8ca885b",
+          "04038de9f88752f05af75ffc147def5a5896b1b859fac1366104f8b2388890fe",
+          "da1c1a9b43cf32da706339905f80bf52ddf00564af289a0bdb1e806b52b4abc2",
+          "b1f2115f943ed9a5562ce9e5f787e35131be822d8c456e4f09fe9be68abb64af",
+          "f7057665ef3b2e76f79346abe165405d007aee5549a4739d0aaa29a214e5adf4",
+          "e857eb35f7dd825a8c80e293d79424e640425446bf47e8c8fda08ed071cfc518",
+          "38ba9f264bb96756a501c3df73af1b0985fc9a4799f2e9585d730b18cf5f6739",
+          "43643d902ed654e2a5e7bed99f517bd57f889dae8889462d86815155b539555b",
+          "e266e4ad386e40a3803472818c7a9b4ba6597242865efc0936e8215dac037c60",
+          "a66dc0734255e62ad01e791923060f96e97a43dbec70505cef7bf4e05e4836ef"
+        ],
+        "prompt": "各カードの上段は固定150 DPI（3倍表示）、下段は450 DPI、左は枠なし、右は枠ありです。カードに対象のIDと所属軸xまたはyを示します。枠の中または周りに見える字のうち、指定軸方向の字全体の長さの半分以上が枠と重なり、直交方向の字全体のインクの中心が枠内にある字だけを自然な読む順に書いてください。同じ字の枠外部分は見てよいですが、別の字や図形を加えないでください。150 DPIで所属を、450 DPIで字形を確認してください。OCRや既存本文は示しません。文字がなければempty、字種または所属が決められなければunreadableとしてください。\n同じIDに複数のカードがあれば、上部の番号順に位置を確認してください。隣のカードには一部が重複します。同じ字を二度転記しないでください。一部だけ与えられている場合は全カードを照合してから、行全体を一つの回答にしてください。\n枠に所属する文字が確実に一字もないときだけ、statusはempty、textは空文字にしてください。所属する字の判読や所属自体を一字でも決められないときは部分転記せず、行全体をstatusはunreadable、textは半角の?一字としてください。行全体を転記できた場合だけstatusをreadableとし、textに改行を入れないでください。\n後半の『細部』は同じ450 DPI画像を最近傍で拡大した補助です。番号をつないで左右の重複を1回だけ転記してください。赤い枠のすぐ外も字形を判断するために見てください。形式や意味から見えない字や点を補わないでください。色の付いた見本や図表の線を文字に置き換えません。補助の横方向の数字は座標であり、本文ではありません。\n回答はJSONオブジェクトのみです。形式は {\"answers\":[{\"id\":\"画像のID\",\"status\":\"readable\",\"text\":\"行の本文\"}]} です。各指定IDに1件ずつ回答してください。\n対象ID: Z01、Z02、Z03、Z04\n"
+      },
+      "targets": {
+        "Z01": 17,
+        "Z02": 18,
+        "Z03": 20,
+        "Z04": 22
+      }
+    },
+    "pack-02": {
+      "request": {
+        "images": [
+          "Z01-01.png",
+          "Z01-02.png",
+          "Z01-03.png",
+          "Z02-01.png",
+          "Z02-02.png",
+          "Z02-03.png",
+          "Z03-01.png",
+          "Z03-02.png",
+          "Z03-03.png",
+          "Z04-01.png",
+          "Z01-focus-01.png",
+          "Z01-focus-02.png",
+          "Z01-focus-03.png",
+          "Z02-focus-01.png",
+          "Z02-focus-02.png",
+          "Z02-focus-03.png",
+          "Z03-focus-01.png",
+          "Z03-focus-02.png",
+          "Z03-focus-03.png",
+          "Z04-focus-01.png"
+        ],
+        "ids": [
+          "Z01",
+          "Z02",
+          "Z03",
+          "Z04"
+        ],
+        "image_sha256": [
+          "723ad598d007a35483c4ba50d1c61b12eaaed63e943f60b9358d652b6be8a831",
+          "756c9a757a8e967416ac04dc355a8f32ad30e4a1b45dad7d0ae940cbdd3d1e46",
+          "54c0f81432a06502b3ee4fa40166269c4f7ddbe4526c2e65edc1e3584f14a874",
+          "714cb63b4a3f2231eab51c2f696c08dc6864dcc13a588124d2db8ee1013b771c",
+          "0c10a0a2fa1384f7508f9a0893ac1e9feeed3feeb11cf6bac51e4c56aeadf919",
+          "ff29b9e013d931df8c417d3a89a915b37fac6c5935ea38610c18e2c38e0d16d0",
+          "e2cf943ea08d2586b8441ffde2c67a1f1bdae4ad95d527e6ca0dd6f54cdbd7ff",
+          "81f565e2ebc318fb63543133d5c7b048767ecebcde298d66affeab96117c39b0",
+          "023d2297f8502ee1d524b726a86ce344d2c6c34fc019b37cf1d9dc629d2d37a8",
+          "1ff06953197fb7d6d941a075eb595658c4a760f5d58f86b996dc157515c12bcd",
+          "a94099b6424a069560491be1a3710a9a24f6bdfb7d33662236ba22d1f22de228",
+          "be69c2412a442861120bcd8d0963c0ca065eca21693eff57a59f3751d5d49978",
+          "07b56405e3a60a7cc155cf2a3843240ca03bc0b43783990a78302a8ce1f9f22f",
+          "611e0179020a08e1d585230508b70958761f81a6214b4d541c119298e410e114",
+          "f5917b74ca81551579b6da22cd8349875c868ada37bf7358a47e0d7b89f59072",
+          "de5db496ff745a27fc57da5c01c2bb7e004aed5d6ee0f518551f3f94ac2ffafd",
+          "24e69270f056ba8ade77889c614ca36c12ed68edbb0195a5314d4dff69169b5a",
+          "3ef5866d0c42ff59b5a64c73f680a7f9d096209862d03b22ffc1f66aad81e50d",
+          "fed0bdd91a654d0f26ebb9b1e87fa45acf43c22b5a824ed6f0729ef8c8e4e490",
+          "cbaf3daefc353ed9434b98a4cda5ffacc9849bd8876ba64857ea29c10592cfce"
+        ],
+        "prompt": "各カードの上段は固定150 DPI（3倍表示）、下段は450 DPI、左は枠なし、右は枠ありです。カードに対象のIDと所属軸xまたはyを示します。枠の中または周りに見える字のうち、指定軸方向の字全体の長さの半分以上が枠と重なり、直交方向の字全体のインクの中心が枠内にある字だけを自然な読む順に書いてください。同じ字の枠外部分は見てよいですが、別の字や図形を加えないでください。150 DPIで所属を、450 DPIで字形を確認してください。OCRや既存本文は示しません。文字がなければempty、字種または所属が決められなければunreadableとしてください。\n同じIDに複数のカードがあれば、上部の番号順に位置を確認してください。隣のカードには一部が重複します。同じ字を二度転記しないでください。一部だけ与えられている場合は全カードを照合してから、行全体を一つの回答にしてください。\n枠に所属する文字が確実に一字もないときだけ、statusはempty、textは空文字にしてください。所属する字の判読や所属自体を一字でも決められないときは部分転記せず、行全体をstatusはunreadable、textは半角の?一字としてください。行全体を転記できた場合だけstatusをreadableとし、textに改行を入れないでください。\n後半の『細部』は同じ450 DPI画像を最近傍で拡大した補助です。番号をつないで左右の重複を1回だけ転記してください。赤い枠のすぐ外も字形を判断するために見てください。形式や意味から見えない字や点を補わないでください。色の付いた見本や図表の線を文字に置き換えません。補助の横方向の数字は座標であり、本文ではありません。\n回答はJSONオブジェクトのみです。形式は {\"answers\":[{\"id\":\"画像のID\",\"status\":\"readable\",\"text\":\"行の本文\"}]} です。各指定IDに1件ずつ回答してください。\n対象ID: Z01、Z02、Z03、Z04\n"
+      },
+      "targets": {
+        "Z01": 27,
+        "Z02": 28,
+        "Z03": 29,
+        "Z04": 30
+      }
+    },
+    "pack-03": {
+      "request": {
+        "images": [
+          "Z01-01.png",
+          "Z01-02.png",
+          "Z01-03.png",
+          "Z02-01.png",
+          "Z03-01.png",
+          "Z03-02.png",
+          "Z03-03.png",
+          "Z04-01.png",
+          "Z04-02.png",
+          "Z04-03.png",
+          "Z01-focus-01.png",
+          "Z01-focus-02.png",
+          "Z01-focus-03.png",
+          "Z02-focus-01.png",
+          "Z03-focus-01.png",
+          "Z03-focus-02.png",
+          "Z03-focus-03.png",
+          "Z04-focus-01.png",
+          "Z04-focus-02.png",
+          "Z04-focus-03.png"
+        ],
+        "ids": [
+          "Z01",
+          "Z02",
+          "Z03",
+          "Z04"
+        ],
+        "image_sha256": [
+          "bc17566aad24a0120e8fbe6a413ee572b598a5a34f42afe227ee70ccba55ec41",
+          "8e5e1e5d5f57715dad00e5a9a558f93a28017258fc5b1ead4736387a7cd00c9e",
+          "659b5748b020fce361062b706cfa47a7996790ec1cc9ed9d93fc7e9a347ebd25",
+          "5c2099b4401d0a852f708810efc7e14895c6bc1f18274f90218e58b3527b1a70",
+          "215919d45e8b136f1e114921a2c1b54e12790b475c52e839a61564f1ab5a186e",
+          "3e667177a96bb84eb20f499c975a50f90da3a691ae06eb37c6c808f0e56d832e",
+          "9619ae392c9c44693d624e58567b6567462c6dd8fd6aa6f0df8c169f25e98eea",
+          "324810de805b2e659461ed9a98d90d69744dca70f86489be4a9f50d1ffe0cc62",
+          "e8a894e97fe7a75f24c21199a4d0aff698d45c3a43c8de3c81328982841ee52f",
+          "37d6d33633a91be65af23f9003618f0c25fd1eb8b1ba99e6176da554a03c41c6",
+          "2b9ba435bf198f620c919867abdf4f0e5f5ee77e2fe04b99927dfae5fa4271ba",
+          "9944f6bcf09830dc43bc8f984cec2e296d333bc3fee21adf5b491f174da478bd",
+          "8489a0ce05b6827960b2f219ec8f3aaf59f6cb26eb28ea9ffeb032ab40f7cc50",
+          "6e27303d1989911f0c83a0e51e6f082f3c2f22b29142a0f27124fdc47d5ffed3",
+          "5e72d275c41de1714dc887019e8cfce5791a585c8db532410638b0cf98dee258",
+          "b8b631c8a0ea0e67d271fee53d1815d59181167640882c0332ee391b1529bc32",
+          "562ec9d120bb96789ae5f00c3c2ff1c152dcb1fd42b6cb642bc9540de9c9a436",
+          "009dcb74c2b09e2c03104eb51fe782354edf1d9a4ee9229023b69c0d8bc07927",
+          "dd54aa057b4f52a1c46b7bcc06f85000184cb16232bd70f5c05eec127d7eb488",
+          "345e24b698c591fa8883f8e442e919dff3fcca4f80d4527a57675b4a24f380a8"
+        ],
+        "prompt": "各カードの上段は固定150 DPI（3倍表示）、下段は450 DPI、左は枠なし、右は枠ありです。カードに対象のIDと所属軸xまたはyを示します。枠の中または周りに見える字のうち、指定軸方向の字全体の長さの半分以上が枠と重なり、直交方向の字全体のインクの中心が枠内にある字だけを自然な読む順に書いてください。同じ字の枠外部分は見てよいですが、別の字や図形を加えないでください。150 DPIで所属を、450 DPIで字形を確認してください。OCRや既存本文は示しません。文字がなければempty、字種または所属が決められなければunreadableとしてください。\n同じIDに複数のカードがあれば、上部の番号順に位置を確認してください。隣のカードには一部が重複します。同じ字を二度転記しないでください。一部だけ与えられている場合は全カードを照合してから、行全体を一つの回答にしてください。\n枠に所属する文字が確実に一字もないときだけ、statusはempty、textは空文字にしてください。所属する字の判読や所属自体を一字でも決められないときは部分転記せず、行全体をstatusはunreadable、textは半角の?一字としてください。行全体を転記できた場合だけstatusをreadableとし、textに改行を入れないでください。\n後半の『細部』は同じ450 DPI画像を最近傍で拡大した補助です。番号をつないで左右の重複を1回だけ転記してください。赤い枠のすぐ外も字形を判断するために見てください。形式や意味から見えない字や点を補わないでください。色の付いた見本や図表の線を文字に置き換えません。補助の横方向の数字は座標であり、本文ではありません。\n回答はJSONオブジェクトのみです。形式は {\"answers\":[{\"id\":\"画像のID\",\"status\":\"readable\",\"text\":\"行の本文\"}]} です。各指定IDに1件ずつ回答してください。\n対象ID: Z01、Z02、Z03、Z04\n"
+      },
+      "targets": {
+        "Z01": 31,
+        "Z02": 32,
+        "Z03": 34,
+        "Z04": 35
+      }
+    },
+    "pack-04": {
+      "request": {
+        "images": [
+          "Z01-01.png",
+          "Z01-02.png",
+          "Z02-01.png",
+          "Z02-02.png",
+          "Z03-01.png",
+          "Z04-01.png",
+          "Z04-02.png",
+          "Z04-03.png",
+          "Z01-focus-01.png",
+          "Z01-focus-02.png",
+          "Z02-focus-01.png",
+          "Z02-focus-02.png",
+          "Z03-focus-01.png",
+          "Z04-focus-01.png",
+          "Z04-focus-02.png",
+          "Z04-focus-03.png"
+        ],
+        "ids": [
+          "Z01",
+          "Z02",
+          "Z03",
+          "Z04"
+        ],
+        "image_sha256": [
+          "c2977a49ccde8b8219e5d79d97e10a36d764c71fe6099fdea58312967bb34e38",
+          "4642362a6069c704e48820de64b7066ec18f12a3e4ba9b34d8750cb571b511f4",
+          "122498204a6fdaab1072d1edf74205de60d0d076b808bbeeb400892d7b07b02d",
+          "d04ce148f0a0df7c70aaf2184150b723dfcfc05085dc0e186202d28a1f9be83d",
+          "a85b71917c054ba1c8d2f28683b2622584d70516f93cd251ca52b46189ff302b",
+          "d9a0a298c70b0607de88c18528249aef8b02b89a353f702a643b7689194b8cf2",
+          "82397e283338520c1258c89d5d8bc3c2b04e013e3673c3f86bc014c66789884a",
+          "8b2e6928b862acff063d7c56da338572d4784c02ff976b3da30d2af19683414e",
+          "e11476e4762cb57747464e6c7c8a024fc5a7d1e30aa9c44af5413da19c381ec6",
+          "d69e2efa06614a5d067a126dc0da4eb735c9b73401e97c35b7bfa61a5dd417e6",
+          "8790d1bdea491211a387f6f71133595426dc13376fb37ac284c542bf12c24b51",
+          "865438c25f06e2bc0b72fae784316f96020a4ced5399e198e9c2d482032fb03e",
+          "9883748608ec96099620877ccb2326569225cbd9eb10e6afb37c6bd2d8aecd3b",
+          "f665ec757b8aea6b5fe92cfacd1322ebe6ae870dc6f9205b3b955a90c49f164f",
+          "42c417ffe20715bea836add8950adcebae6afa7546df83679a16a86616d82eac",
+          "0b0e80191d8f6589ca2f46d4ee9fbb3948b73e9ba40c29e69e8a3e8a12101fb1"
+        ],
+        "prompt": "各カードの上段は固定150 DPI（3倍表示）、下段は450 DPI、左は枠なし、右は枠ありです。カードに対象のIDと所属軸xまたはyを示します。枠の中または周りに見える字のうち、指定軸方向の字全体の長さの半分以上が枠と重なり、直交方向の字全体のインクの中心が枠内にある字だけを自然な読む順に書いてください。同じ字の枠外部分は見てよいですが、別の字や図形を加えないでください。150 DPIで所属を、450 DPIで字形を確認してください。OCRや既存本文は示しません。文字がなければempty、字種または所属が決められなければunreadableとしてください。\n同じIDに複数のカードがあれば、上部の番号順に位置を確認してください。隣のカードには一部が重複します。同じ字を二度転記しないでください。一部だけ与えられている場合は全カードを照合してから、行全体を一つの回答にしてください。\n枠に所属する文字が確実に一字もないときだけ、statusはempty、textは空文字にしてください。所属する字の判読や所属自体を一字でも決められないときは部分転記せず、行全体をstatusはunreadable、textは半角の?一字としてください。行全体を転記できた場合だけstatusをreadableとし、textに改行を入れないでください。\n後半の『細部』は同じ450 DPI画像を最近傍で拡大した補助です。番号をつないで左右の重複を1回だけ転記してください。赤い枠のすぐ外も字形を判断するために見てください。形式や意味から見えない字や点を補わないでください。色の付いた見本や図表の線を文字に置き換えません。補助の横方向の数字は座標であり、本文ではありません。\n回答はJSONオブジェクトのみです。形式は {\"answers\":[{\"id\":\"画像のID\",\"status\":\"readable\",\"text\":\"行の本文\"}]} です。各指定IDに1件ずつ回答してください。\n対象ID: Z01、Z02、Z03、Z04\n"
+      },
+      "targets": {
+        "Z01": 36,
+        "Z02": 37,
+        "Z03": 39,
+        "Z04": 40
+      }
+    },
+    "pack-05": {
+      "request": {
+        "images": [
+          "Z01-01.png",
+          "Z01-02.png",
+          "Z01-03.png",
+          "Z01-04.png",
+          "Z02-01.png",
+          "Z02-02.png",
+          "Z03-01.png",
+          "Z03-02.png",
+          "Z03-03.png",
+          "Z04-01.png",
+          "Z04-02.png",
+          "Z04-03.png",
+          "Z01-focus-01.png",
+          "Z01-focus-02.png",
+          "Z01-focus-03.png",
+          "Z01-focus-04.png",
+          "Z02-focus-01.png",
+          "Z02-focus-02.png",
+          "Z03-focus-01.png",
+          "Z03-focus-02.png",
+          "Z03-focus-03.png",
+          "Z04-focus-01.png",
+          "Z04-focus-02.png",
+          "Z04-focus-03.png"
+        ],
+        "ids": [
+          "Z01",
+          "Z02",
+          "Z03",
+          "Z04"
+        ],
+        "image_sha256": [
+          "f3c0ec09f7bd66d1a75f8357c9cdb02247a22488a32c8ac1a48e9deaf0a56595",
+          "405daa4d9ce2c02efba32bf045d389ddcdb27fc05fb8eb232e756faaf0b902c4",
+          "3bd819c237b6af4e3bae2b91aba30a2e4ef9742cbd1c22ab146aa366d5b49691",
+          "83ebf946df62a643f550d0b106758d5aee5fef9ac391dfba8c4f35dec0b7ac9a",
+          "e6914bafa17d18eb373067d8d6de282772489bd044aa4bf992a0f32299bc114a",
+          "0e8b3bcf14d00bfdae953bcf3ac2d8dc51dc164220c59b8ee23bbdb9328dbe7d",
+          "4b8810c262c87d4d0dd4f697f73acb275b3800d3e9285fd1c177e54a27f5158d",
+          "ebca0514e207228f16490a97ef249a453be6c814941162d2f7ac628161fc3a43",
+          "f5fbcf7a898d18e9da232f8929e4d97a06fe7146fe6212c2fc71b8346c835704",
+          "ad12da6b6f0e04d7ce0c5a5ef4e4c23e234a75c811a23f85a2e733ca756cb2f7",
+          "1fd6c84f512560a68be747aa8e300cb3c0a14bc726bc7ed02ce1f720e5c5b3bc",
+          "5b74b1ce4476b3aab973e0eaafa04bdb42b88ecccebeaffbd5bec3cfcc4246e2",
+          "9b8e58ff87ea61e40e56ee7a5feb5e56f28c7656584a2b6e7c4f23763983bf80",
+          "0fd45c38850d734d4800c5eb7912c126c8c4c767d262ff68f9ce4b381eb1a29c",
+          "707c0dd4022a9bb26560cb373494b767992f77301548d094705611c3207afe59",
+          "2ba5746a9b969cfccf6d7ee2305adc3e8e1fc97e4cb64128cc2164bb78060c57",
+          "3e7a450949b7d8878a4da44d7030de468027b89eb216a4b22b76873a5868ad20",
+          "8095584879c93e843fecf696e590bfddb106d52ee5a30c0d1406a432ebad52c8",
+          "947bc22bf0fb170b4f867fc0c8a84037e4199d53ca9657fba927f24b5cf28cf8",
+          "078db8aa7b2ca343c787cc83af1b6bc9bf3a748796bead332cabc2a7ce41c4d7",
+          "3253bb5a6ec6c2103d58e6578a335af124c03ca7f1c8263b8bc1375d8e379846",
+          "1f6b9f959e7f34e12d976ff8116efd1d7d99531d95fe4389c02a08394e45da36",
+          "d9c512b33732737013b301d27716a47d8c88acb486bca200a6486c1cb3d47fc6",
+          "19e5f040ef5db7fcdedc90256b746997a6360f54d1f161cede16d0a0c47f2792"
+        ],
+        "prompt": "各カードの上段は固定150 DPI（3倍表示）、下段は450 DPI、左は枠なし、右は枠ありです。カードに対象のIDと所属軸xまたはyを示します。枠の中または周りに見える字のうち、指定軸方向の字全体の長さの半分以上が枠と重なり、直交方向の字全体のインクの中心が枠内にある字だけを自然な読む順に書いてください。同じ字の枠外部分は見てよいですが、別の字や図形を加えないでください。150 DPIで所属を、450 DPIで字形を確認してください。OCRや既存本文は示しません。文字がなければempty、字種または所属が決められなければunreadableとしてください。\n同じIDに複数のカードがあれば、上部の番号順に位置を確認してください。隣のカードには一部が重複します。同じ字を二度転記しないでください。一部だけ与えられている場合は全カードを照合してから、行全体を一つの回答にしてください。\n枠に所属する文字が確実に一字もないときだけ、statusはempty、textは空文字にしてください。所属する字の判読や所属自体を一字でも決められないときは部分転記せず、行全体をstatusはunreadable、textは半角の?一字としてください。行全体を転記できた場合だけstatusをreadableとし、textに改行を入れないでください。\n後半の『細部』は同じ450 DPI画像を最近傍で拡大した補助です。番号をつないで左右の重複を1回だけ転記してください。赤い枠のすぐ外も字形を判断するために見てください。形式や意味から見えない字や点を補わないでください。色の付いた見本や図表の線を文字に置き換えません。補助の横方向の数字は座標であり、本文ではありません。\n回答はJSONオブジェクトのみです。形式は {\"answers\":[{\"id\":\"画像のID\",\"status\":\"readable\",\"text\":\"行の本文\"}]} です。各指定IDに1件ずつ回答してください。\n対象ID: Z01、Z02、Z03、Z04\n"
+      },
+      "targets": {
+        "Z01": 41,
+        "Z02": 42,
+        "Z03": 43,
+        "Z04": 45
+      }
+    },
+    "pack-06": {
+      "request": {
+        "images": [
+          "Z01-01.png",
+          "Z01-02.png",
+          "Z01-03.png",
+          "Z02-01.png",
+          "Z02-02.png",
+          "Z03-01.png",
+          "Z03-02.png",
+          "Z04-01.png",
+          "Z04-02.png",
+          "Z01-focus-01.png",
+          "Z01-focus-02.png",
+          "Z01-focus-03.png",
+          "Z02-focus-01.png",
+          "Z02-focus-02.png",
+          "Z03-focus-01.png",
+          "Z03-focus-02.png",
+          "Z04-focus-01.png",
+          "Z04-focus-02.png"
+        ],
+        "ids": [
+          "Z01",
+          "Z02",
+          "Z03",
+          "Z04"
+        ],
+        "image_sha256": [
+          "cbe945a5131d6c304f7fd758ec661297cb9711aee770333b9e72254e9dc0ee19",
+          "39e7077a0939f446ad20e8328093c2cd85a3b76c2d5d8022ccdfb398cb228695",
+          "682c0672aa37143eda32620cd9420eab332f957193b54a75f8556a598e5b77bd",
+          "210eeb09a58ae0681d4ba4e5b527071633a55ef83b6a67b1dc038eb10e0255b0",
+          "2faf4f50c7bec4d95fece0aeb1f0fb5997634b1619fd0596ca03ef2ca97250a4",
+          "b7fd1b1c090f56fb7d70ad703457f2072d98a2eedbadd6b42cb8504925c6c30c",
+          "b0e6a528128fdba44e8c39f20c2aaf45bb213f1dc9d21f09df8c9e750e137b94",
+          "7f62acaff92d1f596e057588f2321d677804c4d65619c706e58b4d83df3649ee",
+          "718d65046e62161bd113dbd070091c76f70a3a227442cb80e8cd917ddab323ef",
+          "fbb804c9ab258468baa8a3445cf302bc75397afc2a6f4a36a380d717d334e3a2",
+          "17b3522af26048bb85fc2edcfce849d088a27ca7b1d26a90bd989faedbe73392",
+          "ced9fc2d07c0ce429513b26256c78a7f83f9acbc5616b9bafad1924c98c2234c",
+          "a0cfb2ad8d5862c49a02c3992f5142a68507d092a8d86004045b5ffe472a5caf",
+          "aa8d1ae7dc1a9b3baaa00dabeb4de5818099239708aeabbffe75fc162ab30284",
+          "2db566414aa30e6593c3b623297543877add6a6bf710e5a6c5c76a55469d34c3",
+          "cb14d16be261cb6bdfb21aa13f02a0001c236420d2dcc74e47acc67a5593152f",
+          "6d620c572fc7b6caae3da2bb32153761e0d697ff3cb8c834a1cb2a61e72892c8",
+          "a43f6848daf61feb1d0b08585f16759f6aebc1dc284e67608a4e1a7d4b566ebe"
+        ],
+        "prompt": "各カードの上段は固定150 DPI（3倍表示）、下段は450 DPI、左は枠なし、右は枠ありです。カードに対象のIDと所属軸xまたはyを示します。枠の中または周りに見える字のうち、指定軸方向の字全体の長さの半分以上が枠と重なり、直交方向の字全体のインクの中心が枠内にある字だけを自然な読む順に書いてください。同じ字の枠外部分は見てよいですが、別の字や図形を加えないでください。150 DPIで所属を、450 DPIで字形を確認してください。OCRや既存本文は示しません。文字がなければempty、字種または所属が決められなければunreadableとしてください。\n同じIDに複数のカードがあれば、上部の番号順に位置を確認してください。隣のカードには一部が重複します。同じ字を二度転記しないでください。一部だけ与えられている場合は全カードを照合してから、行全体を一つの回答にしてください。\n枠に所属する文字が確実に一字もないときだけ、statusはempty、textは空文字にしてください。所属する字の判読や所属自体を一字でも決められないときは部分転記せず、行全体をstatusはunreadable、textは半角の?一字としてください。行全体を転記できた場合だけstatusをreadableとし、textに改行を入れないでください。\n後半の『細部』は同じ450 DPI画像を最近傍で拡大した補助です。番号をつないで左右の重複を1回だけ転記してください。赤い枠のすぐ外も字形を判断するために見てください。形式や意味から見えない字や点を補わないでください。色の付いた見本や図表の線を文字に置き換えません。補助の横方向の数字は座標であり、本文ではありません。\n回答はJSONオブジェクトのみです。形式は {\"answers\":[{\"id\":\"画像のID\",\"status\":\"readable\",\"text\":\"行の本文\"}]} です。各指定IDに1件ずつ回答してください。\n対象ID: Z01、Z02、Z03、Z04\n"
+      },
+      "targets": {
+        "Z01": 49,
+        "Z02": 53,
+        "Z03": 55,
+        "Z04": 56
+      }
+    },
+    "pack-07": {
+      "request": {
+        "images": [
+          "Z01-01.png",
+          "Z01-02.png",
+          "Z01-focus-01.png",
+          "Z01-focus-02.png"
+        ],
+        "ids": [
+          "Z01"
+        ],
+        "image_sha256": [
+          "ed835fe6854f9ec48d9d85ef3ccbd569357e473cce1f769ab7b1bedf00b0a8db",
+          "9ac7db7ea3aedf5d0757e4bcc0860958fe0e60c85d7aef798a324f2b66359bfd",
+          "3a41a8a50b705367c07ad669829edd235df7f8afe9c45c70ad0153eb65c57d74",
+          "ce18e568f657c916a320e1b681b5c20b89d42b1c5d93199626feb9eb0040b21b"
+        ],
+        "prompt": "各カードの上段は固定150 DPI（3倍表示）、下段は450 DPI、左は枠なし、右は枠ありです。カードに対象のIDと所属軸xまたはyを示します。枠の中または周りに見える字のうち、指定軸方向の字全体の長さの半分以上が枠と重なり、直交方向の字全体のインクの中心が枠内にある字だけを自然な読む順に書いてください。同じ字の枠外部分は見てよいですが、別の字や図形を加えないでください。150 DPIで所属を、450 DPIで字形を確認してください。OCRや既存本文は示しません。文字がなければempty、字種または所属が決められなければunreadableとしてください。\n同じIDに複数のカードがあれば、上部の番号順に位置を確認してください。隣のカードには一部が重複します。同じ字を二度転記しないでください。一部だけ与えられている場合は全カードを照合してから、行全体を一つの回答にしてください。\n枠に所属する文字が確実に一字もないときだけ、statusはempty、textは空文字にしてください。所属する字の判読や所属自体を一字でも決められないときは部分転記せず、行全体をstatusはunreadable、textは半角の?一字としてください。行全体を転記できた場合だけstatusをreadableとし、textに改行を入れないでください。\n後半の『細部』は同じ450 DPI画像を最近傍で拡大した補助です。番号をつないで左右の重複を1回だけ転記してください。赤い枠のすぐ外も字形を判断するために見てください。形式や意味から見えない字や点を補わないでください。色の付いた見本や図表の線を文字に置き換えません。補助の横方向の数字は座標であり、本文ではありません。\n回答はJSONオブジェクトのみです。形式は {\"answers\":[{\"id\":\"画像のID\",\"status\":\"readable\",\"text\":\"行の本文\"}]} です。各指定IDに1件ずつ回答してください。\n対象ID: Z01\n"
+      },
+      "targets": {
+        "Z01": 57
+      }
+    }
+  },
+  "models": {
+    "sol": "gpt-6.2-sol",
+    "opus": "claude-opus-5-5"
+  },
+  "inputs": {
+    "raster-figure-expansion/run.py": "9786c60d130deb567b72c2c86357b7b27bc8e5faa3b1c08654a90dd1c00e6e2a",
+    "raster-figure-expansion/protocol.md": "7993d22c8a4fbf6c6ae5aa04c1bf186c93152cb14960c83c67ef0d9e18b21552",
+    "raster-figure-pilot/run.py": "11487a96f8abfdcf4aa12dc66eac159506fd094b17eb824a47ae80a260e6e352",
+    "raster-figure-pilot/lock.json": "adced8bddcb15e6a64d8724bd7b0bf02e3d5559befdc308516083ea676e2cc85",
+    "raster-figure-pilot/result.json": "2b2f30a303c4b4247d79b8b8f6e365a207b1626ef42f4c478c82645b4d257e9d",
+    "region-visual-v9/start.json": "49ab82f49943c0fe09cdde1adfeb5a429fcebfd1bee06fa6e1c4da027507ac17",
+    "region-visual-v9/final.json": "ee3ef4cd531b2e8d418748f6c987e03857b7bff80c39f754c76266a5558cd9e2",
+    "actual-geometry-pilot-v2/run.py": "f636cb5207a5e7d617ca9a7e316b167b2129f872a2b024a2985be35730741d6c",
+    "2026-11-19-adr-0025-condition5-transcription-pilot/pilot.py": "7191e3248d8a021a0fc6bc9979225c90c30948afc5f8c7a23a030bfce8e53366",
+    "opus-third/run.py": "bae64cdab28ffdc343c6ccd05bfa6e4824c0ba03acf70c9b7fd01748e362f7b2",
+    "Fonts/meiryo.ttc": "457b306f719a002f1d037b2a3942f2abfa8a55d7bb109bf8950341a3129adb46"
+  }
+}

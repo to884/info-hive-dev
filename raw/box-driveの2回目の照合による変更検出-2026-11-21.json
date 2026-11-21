@@ -1,0 +1,159 @@
+{
+  "date": "2026-11-21",
+  "timezone": "Asia/Tokyo",
+  "environment": "同じ Box Drive 上の検証用 wiki、Windows 11 ホストと Hyper-V 上の Windows 11 VM。",
+  "method": "VM で通常の check と同じコードを呼ぶ。計測用ラッパーが compare_files の2回目を呼ぶ直前に別プロセスを起動し、Box Drive 上の log.md の内容を変更。スクリプトのファイル、照合と判定ロジックは変更せず、元の内容に戻した後は通常のコマンドを実行。",
+  "checker_sha256": "5f962e000a9a7771705b3746f1bfeefb3cda5fc0d1d8f4ffcfe1f517064a6cce",
+  "canonical_sha256": {
+    "concepts/guide.md": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741",
+    "index.md": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5",
+    "log.md": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+  },
+  "timing_ns_on_vm": {
+    "first_finished": 6850746366500,
+    "write_started": 6850896074700,
+    "write_finished": 6850902073000,
+    "second_started": 6850925401000
+  },
+  "writer_was_separate_process": true,
+  "checks": {
+    "vm_initial_uninstrumented": {
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    },
+    "host_initial": {
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    },
+    "first_scan": {
+      "concepts/guide.md": {
+        "status": "match",
+        "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+      },
+      "index.md": {
+        "status": "match",
+        "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+      },
+      "log.md": {
+        "status": "match",
+        "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+      }
+    },
+    "second_scan": {
+      "concepts/guide.md": {
+        "status": "match",
+        "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+      },
+      "index.md": {
+        "status": "match",
+        "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+      },
+      "log.md": {
+        "status": "mismatch",
+        "sha256": "546ab47017d2d6f2a58f5d0e91c28c06dba049d1fd859f9d83a0a9f956b9a4bd"
+      }
+    },
+    "actual_checker_output": {
+      "exit_code": 1,
+      "decision": "wait",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "mismatch",
+          "sha256": "546ab47017d2d6f2a58f5d0e91c28c06dba049d1fd859f9d83a0a9f956b9a4bd"
+        }
+      }
+    },
+    "vm_normal_rerun": {
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    },
+    "host_final": {
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    },
+    "vm_final": {
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    }
+  },
+  "restored_log_sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3",
+  "scope": "この試験で変更したのは1回目の照合が終わってから2回目の照合を始める前。"
+}

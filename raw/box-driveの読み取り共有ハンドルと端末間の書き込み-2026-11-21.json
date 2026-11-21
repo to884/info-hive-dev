@@ -1,0 +1,195 @@
+{
+  "date": "2026-11-21",
+  "timezone": "Asia/Tokyo",
+  "environment": "同じ Box Drive 上の検証用 wiki、Windows 11 ホストと Hyper-V 上の Windows 11 VM。",
+  "method": "VM で記事・索引・ログの3ファイルを FileAccess.Read と FileShare.Read で開いて保持。ラッパーで2回目の照合終了後かつ判定前と、判定直後の2段階を作り、VM の別プロセスで Win32 の書き込み用オープンを試行。各段階でホストから別のログ版を保存し、Box API 応答に同じ SHA-1 が現れるまでハンドルを保持した。",
+  "checker_sha256": "5f962e000a9a7771705b3746f1bfeefb3cda5fc0d1d8f4ffcfe1f517064a6cce",
+  "canonical_sha256": {
+    "concepts/guide.md": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741",
+    "index.md": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5",
+    "log.md": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+  },
+  "vm_local_write_win32": {
+    "before": 32,
+    "after": 32
+  },
+  "windows_file_share_docs": "https://learn.microsoft.com/en-us/dotnet/api/system.io.fileshare",
+  "host_saves": {
+    "before": {
+      "started": 1795266409.092,
+      "sha256": "98948df1a6de3a3a02cb56ab518d51349e63c44d60144ff3da69115f17fc5ac6",
+      "box": {
+        "unix": 1795266415.522,
+        "sha1": "6447bd3d131dad926ca05c4ba6a913f7e9129905",
+        "observing_client": "host"
+      }
+    },
+    "baseline": {
+      "started": 1795266500.607,
+      "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3",
+      "box": {
+        "unix": 1795266506.655,
+        "sha1": "9cd6e6e72fa197212e0be579ab1fc38a8d4d3080",
+        "observing_client": "host"
+      }
+    },
+    "after": {
+      "started": 1795266417.531,
+      "sha256": "f318b8feb2c6183734b93ef640b3d3e63a7c934629e704160a1f346bae0fedad",
+      "box": {
+        "unix": 1795266423.508,
+        "sha1": "ccf4b4a400a1cbf47a561cb2fdf2cbf9173b48b0",
+        "observing_client": "host"
+      }
+    }
+  },
+  "vm_log_while_held": {
+    "vm_log_at_report": "baseline",
+    "vm_log_after_host_second_write": "baseline",
+    "vm_log_before_release": "baseline"
+  },
+  "checks": {
+    "baseline_host": {
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    },
+    "baseline_vm": {
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    },
+    "first_scan": {
+      "concepts/guide.md": {
+        "status": "match",
+        "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+      },
+      "index.md": {
+        "status": "match",
+        "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+      },
+      "log.md": {
+        "status": "match",
+        "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+      }
+    },
+    "second_scan": {
+      "concepts/guide.md": {
+        "status": "match",
+        "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+      },
+      "index.md": {
+        "status": "match",
+        "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+      },
+      "log.md": {
+        "status": "match",
+        "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+      }
+    },
+    "locked_result": {
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    },
+    "vm_after_release": {
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      },
+      "observed_log_variant": "baseline"
+    },
+    "host_restored": {
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    },
+    "vm_restored": {
+      "exit_code": 0,
+      "decision": "ready",
+      "files": {
+        "concepts/guide.md": {
+          "status": "match",
+          "sha256": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741"
+        },
+        "index.md": {
+          "status": "match",
+          "sha256": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5"
+        },
+        "log.md": {
+          "status": "match",
+          "sha256": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+        }
+      }
+    }
+  },
+  "after_release": {
+    "observed_host_later_revision": false,
+    "seconds_from_first_post_release_check": 68.042
+  },
+  "scope": "ロック保持中と解除後のローカル読み取り、両端末の実ファイル、ホストの Box API 応答をこの構成で1回観測。"
+}

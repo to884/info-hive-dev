@@ -1,0 +1,560 @@
+{
+  "scope": "hypothetical-performance-with-provisional-ground-truth",
+  "inputs": {
+    "sensitivity.py": "de0c6f6734a6d0209583a6956c5f5f5357b95c1b3d1b44eb106a581e78ade4df",
+    "result.json": "f5dd091b0782056e9ceed0ed7c5300efcc949ac779eb5a39c131110b7fc115d3",
+    "full-lines.json": "41e62870e133e4312767019f1ed2a45d4850fd949493631eb62cccad3203c768",
+    "v9-fixed-revalidation.json": "d773f9c7706ec916cfd8fbe21c1b4145f5904a14073cc83de0cfeb8db5ac88f1",
+    "v9-revalidation-plan.json": "fb43935fd79d471607384010e986494e8c42c307ddc3326ebf7d9ed90442699c",
+    "scoring-data.json": "ef5d4a15093982dd53b08a9931a4cd97fce864ee06c124bb4e6eb969b686326b",
+    "predictions.npz": "8a6ba8c92a6386c7613eac30e69dbdd2eac0605b0f45a764b434117e69eb8c64",
+    "row-identities.json": "ff7ea0076b6a2fbad0d27143655c767c48ff0a5b4afdad14eef4b974d624bef6",
+    "score_v4.py": "ffcd6a8bd98886a8f221d6c469753da0e8b600630640542e7287afa114c473ff"
+  },
+  "flag_rule": "v6-mineru-hgb@0.15",
+  "updates": {
+    "evaluation-public": {
+      "rows": 129,
+      "errors_if_provisional": 89,
+      "detected_errors_if_provisional": 89
+    },
+    "evaluation3-public": {
+      "rows": 55,
+      "errors_if_provisional": 55,
+      "detected_errors_if_provisional": 49
+    }
+  },
+  "points": {
+    "candidate": "v6-mineru-hgb@0.15",
+    "pass_count_at_reference": 3,
+    "public_bmean_min": 0.8794014921276601,
+    "public_margin_min": 0.8794014921276601,
+    "false_total_at_reference": 880,
+    "groups": {
+      "tuning-synthetic": {
+        "row": {
+          "flagged": 757,
+          "errors": 746,
+          "correct": 1534,
+          "caught": 727,
+          "false": 30,
+          "pessimistic": 0,
+          "eye": 0,
+          "missed": 0,
+          "units": 12,
+          "missed_share": 0.0,
+          "a": 0.9603698811096433,
+          "b": 0.9745308310991957,
+          "c": 0.01955671447196871,
+          "a_lower": 0.9407,
+          "b_lower": 0.9631,
+          "c_upper": 0.0291,
+          "units_a": 12,
+          "units_b": 12,
+          "units_c": 12,
+          "a_mean": 0.9589,
+          "a_mean_lower": 0.9374,
+          "b_mean": 0.9728,
+          "b_mean_lower": 0.9571,
+          "c_mean": 0.0198,
+          "c_mean_upper": 0.0293,
+          "b_mean_raw": 0.9727677716327734
+        },
+        "reference_verdict": {
+          "points": true,
+          "bounds": true,
+          "unit_bounds": true,
+          "units": true,
+          "enough": true,
+          "pass": true
+        }
+      },
+      "tuning-public": {
+        "row": {
+          "flagged": 334,
+          "errors": 281,
+          "correct": 650,
+          "caught": 260,
+          "false": 74,
+          "pessimistic": 0,
+          "eye": 468,
+          "missed": 0,
+          "units": 15,
+          "missed_share": null,
+          "a": 0.7784431137724551,
+          "b": 0.9252669039145908,
+          "c": 0.11384615384615385,
+          "a_lower": 0.661,
+          "b_lower": 0.8547,
+          "c_upper": 0.1679,
+          "units_a": 15,
+          "units_b": 15,
+          "units_c": 15,
+          "a_mean": 0.784,
+          "a_mean_lower": 0.6994,
+          "b_mean": 0.883,
+          "b_mean_lower": 0.7882,
+          "c_mean": 0.0843,
+          "c_mean_upper": 0.1229,
+          "b_mean_raw": 0.8830170427173886
+        },
+        "reference_verdict": {
+          "points": true,
+          "bounds": false,
+          "unit_bounds": false,
+          "units": true,
+          "enough": true,
+          "pass": false
+        }
+      },
+      "evaluation-synthetic": {
+        "row": {
+          "flagged": 829,
+          "errors": 785,
+          "correct": 1493,
+          "caught": 764,
+          "false": 65,
+          "pessimistic": 0,
+          "eye": 0,
+          "missed": 2,
+          "units": 12,
+          "missed_share": 0.0008771929824561404,
+          "a": 0.9215922798552473,
+          "b": 0.9732484076433121,
+          "c": 0.043536503683858,
+          "a_lower": 0.8918,
+          "b_lower": 0.9546,
+          "c_upper": 0.0612,
+          "units_a": 12,
+          "units_b": 12,
+          "units_c": 12,
+          "a_mean": 0.9224,
+          "a_mean_lower": 0.8954,
+          "b_mean": 0.9675,
+          "b_mean_lower": 0.9443,
+          "c_mean": 0.0438,
+          "c_mean_upper": 0.062,
+          "b_mean_raw": 0.9675078591990465
+        },
+        "reference_verdict": {
+          "points": true,
+          "bounds": true,
+          "unit_bounds": true,
+          "units": true,
+          "enough": true,
+          "pass": true
+        }
+      },
+      "evaluation-public": {
+        "row": {
+          "flagged": 994,
+          "errors": 661,
+          "correct": 3133,
+          "caught": 605,
+          "false": 389,
+          "pessimistic": 0,
+          "eye": 1139,
+          "missed": 0,
+          "units": 51,
+          "missed_share": null,
+          "a": 0.6086519114688129,
+          "b": 0.9152798789712556,
+          "c": 0.12416214490903288,
+          "a_lower": 0.5241,
+          "b_lower": 0.8469,
+          "c_upper": 0.1707,
+          "units_a": 50,
+          "units_b": 50,
+          "units_c": 51,
+          "a_mean": 0.7253,
+          "a_mean_lower": 0.6754,
+          "b_mean": 0.9745,
+          "b_mean_lower": 0.9602,
+          "c_mean": 0.1035,
+          "c_mean_upper": 0.1407,
+          "b_mean_raw": 0.9744741985144302
+        },
+        "reference_verdict": {
+          "points": true,
+          "bounds": false,
+          "unit_bounds": true,
+          "units": true,
+          "enough": true,
+          "pass": false
+        }
+      },
+      "evaluation3-synthetic": {
+        "row": {
+          "flagged": 619,
+          "errors": 605,
+          "correct": 1673,
+          "caught": 575,
+          "false": 44,
+          "pessimistic": 0,
+          "eye": 0,
+          "missed": 2,
+          "units": 12,
+          "missed_share": 0.0008771929824561404,
+          "a": 0.9289176090468497,
+          "b": 0.9504132231404959,
+          "c": 0.02630005977286312,
+          "a_lower": 0.8948,
+          "b_lower": 0.9273,
+          "c_upper": 0.0404,
+          "units_a": 12,
+          "units_b": 12,
+          "units_c": 12,
+          "a_mean": 0.934,
+          "a_mean_lower": 0.9022,
+          "b_mean": 0.9497,
+          "b_mean_lower": 0.9264,
+          "c_mean": 0.0267,
+          "c_mean_upper": 0.0412,
+          "b_mean_raw": 0.9496946714050837
+        },
+        "reference_verdict": {
+          "points": true,
+          "bounds": true,
+          "unit_bounds": true,
+          "units": true,
+          "enough": true,
+          "pass": true
+        }
+      },
+      "evaluation3-public": {
+        "row": {
+          "flagged": 1156,
+          "errors": 966,
+          "correct": 3131,
+          "caught": 878,
+          "false": 278,
+          "pessimistic": 0,
+          "eye": 1403,
+          "missed": 0,
+          "units": 54,
+          "missed_share": null,
+          "a": 0.759515570934256,
+          "b": 0.9089026915113871,
+          "c": 0.0887895241137017,
+          "a_lower": 0.6051,
+          "b_lower": 0.8816,
+          "c_upper": 0.1298,
+          "units_a": 53,
+          "units_b": 46,
+          "units_c": 53,
+          "a_mean": 0.5313,
+          "a_mean_lower": 0.4488,
+          "b_mean": 0.8794,
+          "b_mean_lower": 0.8133,
+          "c_mean": 0.0738,
+          "c_mean_upper": 0.1005,
+          "b_mean_raw": 0.8794014921276601
+        },
+        "reference_verdict": {
+          "points": true,
+          "bounds": true,
+          "unit_bounds": false,
+          "units": true,
+          "enough": true,
+          "pass": false
+        }
+      }
+    }
+  },
+  "robust": {
+    "evaluation-public": {
+      "unresolved": 34,
+      "assignments": 97920,
+      "checked": 1,
+      "pass": false,
+      "gate": false,
+      "measurable": true,
+      "counterexample": {
+        "errors": [
+          {
+            "unit": "defense-p0006",
+            "flagged": true,
+            "count": 0,
+            "total": 5
+          },
+          {
+            "unit": "defense-p0007",
+            "flagged": false,
+            "count": 0,
+            "total": 1
+          },
+          {
+            "unit": "defense-p0007",
+            "flagged": true,
+            "count": 0,
+            "total": 2
+          },
+          {
+            "unit": "defense-p0018",
+            "flagged": false,
+            "count": 0,
+            "total": 1
+          },
+          {
+            "unit": "defense-p0089",
+            "flagged": true,
+            "count": 0,
+            "total": 3
+          },
+          {
+            "unit": "defense-p0335",
+            "flagged": true,
+            "count": 0,
+            "total": 1
+          },
+          {
+            "unit": "defense-p0523",
+            "flagged": true,
+            "count": 0,
+            "total": 1
+          },
+          {
+            "unit": "kanpo1827-p2-p0001",
+            "flagged": false,
+            "count": 0,
+            "total": 4
+          },
+          {
+            "unit": "kanpo1827-p2-p0001",
+            "flagged": true,
+            "count": 0,
+            "total": 16
+          }
+        ],
+        "row": {
+          "flagged": 994,
+          "errors": 655,
+          "correct": 3139,
+          "caught": 605,
+          "false": 389,
+          "pessimistic": 0,
+          "eye": 1139,
+          "missed": 0,
+          "units": 51,
+          "missed_share": null,
+          "a": 0.6086519114688129,
+          "b": 0.9236641221374046,
+          "c": 0.12392481682064352,
+          "a_lower": 0.5241,
+          "b_lower": 0.8599,
+          "c_upper": 0.1703,
+          "units_a": 50,
+          "units_b": 50,
+          "units_c": 51,
+          "a_mean": 0.7253,
+          "a_mean_lower": 0.6754,
+          "b_mean": 0.9771,
+          "b_mean_lower": 0.9632,
+          "c_mean": 0.103,
+          "c_mean_upper": 0.1399,
+          "b_mean_raw": 0.97706799236211
+        },
+        "verdict": {
+          "points": true,
+          "bounds": false,
+          "unit_bounds": true,
+          "units": true,
+          "enough": true,
+          "pass": false
+        }
+      }
+    },
+    "evaluation-synthetic": {
+      "assignments": 1,
+      "checked": 1,
+      "gate": true,
+      "measurable": true,
+      "pass": true,
+      "unresolved": 0
+    },
+    "evaluation3-public": {
+      "unresolved": 71,
+      "assignments": 606144,
+      "checked": 1,
+      "pass": false,
+      "gate": false,
+      "measurable": true,
+      "counterexample": {
+        "errors": [
+          {
+            "unit": "disaster-p0015",
+            "flagged": true,
+            "count": 0,
+            "total": 1
+          },
+          {
+            "unit": "disaster-p0092",
+            "flagged": true,
+            "count": 0,
+            "total": 6
+          },
+          {
+            "unit": "disaster-p0107",
+            "flagged": false,
+            "count": 0,
+            "total": 1
+          },
+          {
+            "unit": "disaster-p0107",
+            "flagged": true,
+            "count": 0,
+            "total": 40
+          },
+          {
+            "unit": "disaster-p0181",
+            "flagged": false,
+            "count": 0,
+            "total": 1
+          },
+          {
+            "unit": "kanpo1826-p3-p0001",
+            "flagged": true,
+            "count": 0,
+            "total": 1
+          },
+          {
+            "unit": "kanpo1826-p5-p0001",
+            "flagged": true,
+            "count": 0,
+            "total": 10
+          },
+          {
+            "unit": "kanpo1826-p6-p0001",
+            "flagged": true,
+            "count": 0,
+            "total": 11
+          }
+        ],
+        "row": {
+          "flagged": 1156,
+          "errors": 964,
+          "correct": 3133,
+          "caught": 878,
+          "false": 278,
+          "pessimistic": 0,
+          "eye": 1403,
+          "missed": 0,
+          "units": 54,
+          "missed_share": null,
+          "a": 0.759515570934256,
+          "b": 0.9107883817427386,
+          "c": 0.08873284391956592,
+          "a_lower": 0.6051,
+          "b_lower": 0.8833,
+          "c_upper": 0.1297,
+          "units_a": 53,
+          "units_b": 45,
+          "units_c": 53,
+          "a_mean": 0.5313,
+          "a_mean_lower": 0.4488,
+          "b_mean": 0.9026,
+          "b_mean_lower": 0.8439,
+          "c_mean": 0.0736,
+          "c_mean_upper": 0.1002,
+          "b_mean_raw": 0.9026474512119784
+        },
+        "verdict": {
+          "points": true,
+          "bounds": true,
+          "unit_bounds": false,
+          "units": true,
+          "enough": true,
+          "pass": false
+        }
+      }
+    },
+    "evaluation3-synthetic": {
+      "assignments": 1,
+      "checked": 1,
+      "gate": true,
+      "measurable": true,
+      "pass": true,
+      "unresolved": 0
+    },
+    "tuning-public": {
+      "assignments": 200,
+      "checked": 1,
+      "counterexample": {
+        "errors": [
+          {
+            "count": 0,
+            "flagged": false,
+            "total": 3,
+            "unit": "kanpo1828-p3-p0001"
+          },
+          {
+            "count": 0,
+            "flagged": true,
+            "total": 4,
+            "unit": "kanpo1828-p3-p0001"
+          },
+          {
+            "count": 0,
+            "flagged": false,
+            "total": 1,
+            "unit": "wp-summary-p0004"
+          },
+          {
+            "count": 0,
+            "flagged": true,
+            "total": 4,
+            "unit": "wp-summary-p0010"
+          }
+        ],
+        "row": {
+          "a": 0.7784431137724551,
+          "a_lower": 0.661,
+          "a_mean": 0.784,
+          "a_mean_lower": 0.6994,
+          "b": 0.9386281588447654,
+          "b_lower": 0.884,
+          "b_mean": 0.8902,
+          "b_mean_lower": 0.7969,
+          "b_mean_raw": 0.8901726652731552,
+          "c": 0.11314984709480122,
+          "c_mean": 0.0837,
+          "c_mean_upper": 0.1218,
+          "c_upper": 0.1663,
+          "caught": 260,
+          "correct": 654,
+          "errors": 277,
+          "eye": 468,
+          "false": 74,
+          "flagged": 334,
+          "missed": 0,
+          "missed_share": null,
+          "pessimistic": 0,
+          "units": 15,
+          "units_a": 15,
+          "units_b": 15,
+          "units_c": 15
+        },
+        "verdict": {
+          "bounds": false,
+          "enough": true,
+          "pass": false,
+          "points": true,
+          "unit_bounds": false,
+          "units": true
+        }
+      },
+      "gate": false,
+      "measurable": true,
+      "pass": false,
+      "unresolved": 12
+    },
+    "tuning-synthetic": {
+      "assignments": 1,
+      "checked": 1,
+      "gate": true,
+      "measurable": true,
+      "pass": true,
+      "unresolved": 0
+    }
+  }
+}
