@@ -53,3 +53,9 @@ Windows の導入手順は、段階 2 の記録に合わせて Claude の公式 
 ## HTML の配置
 
 利用者向け HTML と表示用アセットは `info-hive-wiki/docs/html/` にまとめた。入口は `docs/html/index.html`。このフォルダーのコピーでも Chromium から 25 ページを表示し、文書リンク 221 件をたどれることを確認した。README、旧 `docs/index.md`、開発側の生成器は新しい配置を使う。[ADR-0022](../adr/0022-usage-docs-are-html-in-plugin-docs.md)
+
+## 概要図とコード例
+
+HTML の「できること」の直下と、指定の 17 ページのタイトル直下に概要図を追加した。旧 `docs/index.md` にも「できること」の図を置いた。利用者向けの目次と本文から開発参加の案内を外し、「経験の記録とスキルの改善」はリンク名とページタイトルをそろえた。
+
+Chromium で 86 件のコードブロックの表示文字列とコピーボタンを確認した。HTTP とローカルの HTML でキーボードから実際にコピーした。Windows のクリップボードの改行を正規化して内容を比較した。Clipboard API が使えない場合の経路と、印刷でボタンを表示しない指定も確認した。結果は `C:\stage2-records\autotest\html-presentation-check.txt` にある。

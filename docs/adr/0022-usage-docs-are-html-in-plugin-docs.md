@@ -27,7 +27,7 @@
 | 置き場所 | プラグインごとのリポジトリの `docs/html/`。プラグインをまたぐページ（概要、導入、用語集、トラブルシューティング）は、利用者が必ず入れる `info-hive-wiki/docs/html/` に置く。ほかのプラグインの文書は共通のページにリンクする |
 | 形式 | 利用者向けのページは、HTML を直接書く。`docs/commands.md` は、`/wiki:help` のために Markdown の正本として残す |
 | 見た目 | スキル `fluent2-html-replica` の `fluent2.css` を書き換えずに `docs/html/assets/` に写す。版は `/wiki:browse` の同梱（ADR-0021）とそろえ、出どころ、基準の版、SHA-256、写し直す手順を `docs/html/assets/README.md` に、ライセンスの文書を `docs/html/assets/licenses/` に置く。独自の装飾は、トークンの CSS 変数だけで書く |
-| スクリプト | `fluent2.js` は使わない |
+| スクリプト | コード例の色分けとコピーには同梱の `docs/html/assets/manual-code.js` を使う。Fluent 2 の部品は CSS で表示する |
 | 図 | 要る所だけ、HTML に埋め込んだ SVG で描く。色と書体は Fluent 2 のトークンに合わせる |
 | 文体 | です・ます体。`docs/commands.md` と、`/wiki:help` が説明を読む `commands/*.md` の frontmatter も、です・ます体に書き直す |
 | 道具 | HTML から PDF を作る道具とリンクの検査は、開発用のリポジトリ（info-hive-dev）に置く。道具（PDF の作り方）と公開先は、1 ページの試作のあとで決める |

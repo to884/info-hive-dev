@@ -8,6 +8,8 @@ import re
 import sys
 from urllib.parse import unquote, urlsplit
 
+from manual_presentation import decorate
+
 
 PAGES = {
     "README.md": "index.html",
@@ -20,7 +22,6 @@ PAGES = {
     "docs/upgrade.md": "upgrade.html",
     "skills/info-hive/references/mcp-server.md": "mcp-server.html",
     "UPSTREAM.md": "upstream.html",
-    "CONTRIBUTING.md": "contributing.html",
 }
 RUNTIME = "skills/info-hive/scripts"
 VENDOR = f"{RUNTIME}/_vendor"
@@ -58,14 +59,14 @@ def heading_id(source, slug):
     return f"readme-{slug}" if source == "README.md" else slug
 
 
-def installation_bounds(tokens):
+def section_bounds(tokens, title):
     heading_indexes = [index for index, token in enumerate(tokens) if token.type == "heading_open" and token.tag == "h2"]
     headings = [tokens[index + 1].content for index in heading_indexes]
-    if headings.count("インストール") != 1:
-        raise ValueError("README.md の「インストール」見出しは 1 件必要です。")
-    section = headings.index("インストール")
+    if title not in headings:
+        return None
+    section = headings.index(title)
     end = heading_indexes[section + 1] if section + 1 < len(heading_indexes) else len(tokens)
-    return heading_indexes[section] + 3, end
+    return heading_indexes[section], end
 
 
 def markdown_tokens(parser, path, source):
@@ -74,8 +75,15 @@ def markdown_tokens(parser, path, source):
     markdown = re.sub(r"\A<!-- Adapted from:[^\n]*-->\n", "", markdown, count=1)
     tokens = parser.parse(markdown)
     if source == "README.md":
-        start, end = installation_bounds(tokens)
-        tokens[start:end] = []
+        development = section_bounds(tokens, "開発への参加")
+        if development:
+            start, end = development
+            del tokens[start:end]
+        installation = section_bounds(tokens, "インストール")
+        if not installation:
+            raise ValueError("README.md に「インストール」見出しがありません。")
+        start, end = installation
+        del tokens[start + 3:end]
     headings = {}
     for index, token in enumerate(tokens):
         if token.type != "heading_open":
@@ -237,7 +245,8 @@ def main():
         try:
             tokens = documents[source][0]
             if source == "README.md":
-                start, _ = installation_bounds(tokens)
+                start, _ = section_bounds(tokens, "インストール")
+                start += 3
                 body = render(parser, tokens[:start], source, headings) + INSTALLATION_GUIDE
                 body += render(parser, tokens[start:], source, headings)
             else:
@@ -258,8 +267,13 @@ def main():
             html = related_page(title, body)
         generated[path] = html
     generated[output_dir / "licenses.html"] = render_licenses(parser, repo, headings)
+    for path in output_dir.glob("*.html"):
+        if path not in generated:
+            generated[path] = path.read_text(encoding="utf-8")
     for path, html in generated.items():
-        path.write_text(html, encoding="utf-8", newline="")
+        output = decorate(path.name, html)
+        if not path.exists() or output != path.read_text(encoding="utf-8"):
+            path.write_text(output, encoding="utf-8", newline="")
 
 
 if __name__ == "__main__":

@@ -40,3 +40,5 @@ ingested: 2026-11-21
 旧 `docs/index.md` の概要は `docs/html/index.html` の右側の先頭に移した。図で資料、wiki、出典つきの答えの関係を示し、図の下から Windows と Codex などの導入へ進める。左の目次と図の下の README から詳細を参照する。
 
 利用者向け HTML と表示用の CSS・ライセンスは `info-hive-wiki/docs/html/` にまとめる。フォルダーだけをコピーして `index.html` をブラウザーで開けることを確認した。公開 URL は別途決める場合に扱う。
+
+入口の「できること」と主要ページのタイトル直下には、資料や操作の関係を示す短い図を置く。HTML の図は開発側の `tools/docs/manual_presentation.py` が生成する。表示用の `manual-code.js` はコード例を色分けし、色分け前の文字列をコピーする。ローカルの HTML をブラウザーで直接開いてコピーできることを確認した。
