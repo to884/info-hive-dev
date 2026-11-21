@@ -7,6 +7,8 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import io
+from contextlib import redirect_stdout
 import json
 import sys
 import tempfile
@@ -147,15 +149,23 @@ class FallbackTest(unittest.TestCase):
         self.args.browser_session = "existing"
         self.args.no_images = False
         self.args.browser_only = True
-        image_url = "https://example.com/posts/figure.png"
+        final_url = "https://publisher.example/posts/article"
+        image_url = "https://publisher.example/posts/figure.png"
+
         def captured(*args, capture_images, **kwargs):
             capture_images[image_url] = png(120, 80)
-            return DOM, FINAL, "text/html"
+            return DOM, final_url, "text/html"
         self.browser.side_effect = captured
         _, result = wiki_fetch.build(self.args)
         self.http.assert_not_called()
         self.assertTrue((self.raw / result["images"][0]["path"]).is_file())
         self.assertEqual(result["browser_session"], "existing")
+        self.assertEqual(result["url"], URL)
+        self.assertEqual(result["final_url"], final_url)
+        raw = (self.raw / "article.md").read_text(encoding="utf-8")
+        self.assertIn(f'url: "{URL}"', raw)
+        self.assertIn(f'final_url: "{final_url}"', raw)
+        self.assertIn("https://publisher.example/reference", raw)
 
     def test_uncaptured_session_image_is_not_retrieved_without_authentication(self):
         self.args.browser_session = "existing"
@@ -342,6 +352,28 @@ class BrowserProtocolTest(unittest.TestCase):
                     stdout=output, stderr="", returncode=2)):
             with self.assertRaises(wiki_fetch.YouTubeRefused):
                 wiki_fetch.fetch_browser(URL, 5, 200000, False)
+
+    def test_redirect_validator_refuses_private_and_youtube_before_dom_read(self):
+        for destination, expected in (("http://127.0.0.1/article", "invalid_redirect"),
+                                      ("https://youtu.be/abcdefghijk", "youtube")):
+            with self.subTest(destination=destination):
+                request = io.StringIO(json.dumps({"url": destination, "block_private": True}))
+                output = io.StringIO()
+                with mock.patch.object(sys, "stdin", request), redirect_stdout(output):
+                    self.assertEqual(wiki_fetch_browser.main(["--validate-browser-url"]), 0)
+                result = json.loads(output.getvalue())
+                self.assertEqual(result["kind"], expected)
+                if expected == "youtube":
+                    self.assertEqual(result["url"], destination)
+
+    def test_redirect_validator_refuses_unresolved_host_in_public_mode(self):
+        destination = "https://publisher.example/posts/article"
+        request = io.StringIO(json.dumps({"url": destination, "block_private": True}))
+        output = io.StringIO()
+        with mock.patch.object(sys, "stdin", request), redirect_stdout(output), \
+                mock.patch.object(wiki_fetch.socket, "getaddrinfo", side_effect=wiki_fetch.socket.gaierror):
+            self.assertEqual(wiki_fetch_browser.main(["--validate-browser-url"]), 0)
+        self.assertEqual(json.loads(output.getvalue())["kind"], "invalid_redirect")
 
     def test_private_and_youtube_destinations_are_rejected(self):
         with mock.patch.object(wiki_fetch, "is_private_host", return_value=True):
