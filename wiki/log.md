@@ -1031,3 +1031,6 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 ## [2026-11-21] ingest | 利用者向け HTML マニュアルを wiki 0.40.2 で公開
    導入や最初の wiki の作成を案内する HTML 24 ページを同梱した。変更は [wiki PR #105](https://github.com/to884/info-hive-wiki/pull/105)、配布は [GitHub リリース v0.40.2](https://github.com/to884/info-hive-wiki/releases/tag/v0.40.2)。
    公開マーケットプレイスから Claude Code と Codex CLI で wiki@info-hive 0.40.2 を導入した。Claude Code の配布ファイル 46 件がタグと一致し、Codex CLI では MCP の検索と統計を確認した。
+
+## [2026-11-22] learn | info-hive と myKG の構成図と導入案を更新
+   [[info-hiveとmykgの比較更新-2026-11-20]] に固定版、実装済みの訂正、5条件の画面検証とレビューの記録を保存した。PR 用に索引と検証記録を整理した。
