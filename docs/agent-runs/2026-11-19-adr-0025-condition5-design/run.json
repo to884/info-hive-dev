@@ -1,0 +1,243 @@
+{
+  "run_id": "2026-11-19-adr-0025-condition5-design",
+  "slug": "adr-0025-condition5-design",
+  "created": "2026-11-19T09:41:29",
+  "mode": "analysis",
+  "base_commit": "aff8c58514f21d1e370b784bc2615c7a57c24c81",
+  "timeout_s": 3600,
+  "effort": {
+    "run": "high",
+    "review": "high",
+    "synthesis": "medium"
+  },
+  "agents": {
+    "A": {
+      "vendor": "claude",
+      "model": "claude-opus-5-5",
+      "label": "Claude Opus 5.5",
+      "status": {
+        "run": "failed"
+      },
+      "session_id": "55342a6f-1521-423c-aaa0-5889a62af0b2",
+      "errors": {
+        "run": "claude が失敗しました: You've hit your 5-hour limit · resets 12pm (Asia/Tokyo)"
+      },
+      "resumed": {
+        "run": false
+      }
+    },
+    "B": {
+      "vendor": "claude",
+      "model": "claude-fable-5-2",
+      "label": "Claude Fable 5.2",
+      "status": {
+        "run": "failed"
+      },
+      "session_id": "882e0410-ae7d-4144-a0db-dc6a099932f8",
+      "errors": {
+        "run": "claude が失敗しました: You've hit your 5-hour limit · resets 12pm (Asia/Tokyo)"
+      },
+      "resumed": {
+        "run": false
+      }
+    },
+    "C": {
+      "vendor": "codex",
+      "model": "gpt-6.2-sol",
+      "label": "GPT-6.2 Sol",
+      "status": {
+        "run": "ok",
+        "review": "ok"
+      },
+      "session_id": "01a1f140-75bf-7772-910b-34f14f6f036e",
+      "errors": {
+        "run": "",
+        "review": ""
+      },
+      "resumed": {
+        "run": false,
+        "review": true
+      }
+    },
+    "D": {
+      "vendor": "codex",
+      "model": "gpt-6.2-astra",
+      "label": "GPT-6.2 Astra",
+      "status": {
+        "run": "ok",
+        "review": "ok"
+      },
+      "session_id": "01a1f140-756b-7562-ad5e-38805d6534a2",
+      "errors": {
+        "run": "",
+        "review": ""
+      },
+      "resumed": {
+        "run": false,
+        "review": true
+      }
+    }
+  },
+  "synthesis": {
+    "vendor": "claude",
+    "model": "claude-fable-5-2",
+    "label": "Claude Fable 5.2"
+  },
+  "claude": {
+    "permission_mode": {
+      "analysis": "auto",
+      "implement": "auto"
+    },
+    "allowed_tools": {
+      "analysis": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebFetch",
+        "WebSearch",
+        "Bash(git log:*)",
+        "Bash(git show:*)",
+        "Bash(git diff:*)",
+        "Bash(git blame:*)",
+        "Bash(git status:*)",
+        "Bash(git ls-files:*)"
+      ],
+      "implement": [
+        "Read",
+        "Glob",
+        "Grep",
+        "WebFetch",
+        "WebSearch",
+        "Bash(git log:*)",
+        "Bash(git show:*)",
+        "Bash(git diff:*)",
+        "Bash(git blame:*)",
+        "Bash(git status:*)",
+        "Bash(git ls-files:*)",
+        "Edit",
+        "Write",
+        "MultiEdit",
+        "NotebookEdit",
+        "Bash(git:*)"
+      ]
+    }
+  },
+  "codex": {
+    "sandbox": {
+      "analysis": "read-only",
+      "implement": "workspace-write"
+    }
+  },
+  "usage": {
+    "A": {
+      "run": {
+        "total_cost_usd": 0.7019852,
+        "usage": {
+          "input_tokens": 12,
+          "cache_creation_input_tokens": 74324,
+          "cache_read_input_tokens": 365126,
+          "output_tokens": 1716,
+          "output_tokens_details": {
+            "thinking_tokens": 453
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 74324,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 312,
+              "cache_read_input_tokens": 85257,
+              "cache_creation_input_tokens": 7657,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 7657
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    },
+    "B": {
+      "run": {
+        "total_cost_usd": 2.0475958000000003,
+        "usage": {
+          "input_tokens": 14,
+          "cache_creation_input_tokens": 112739,
+          "cache_read_input_tokens": 505699,
+          "output_tokens": 3563,
+          "output_tokens_details": {
+            "thinking_tokens": 1114
+          },
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 112739,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "global",
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 888,
+              "cache_read_input_tokens": 107379,
+              "cache_creation_input_tokens": 25433,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 0,
+                "ephemeral_1h_input_tokens": 25433
+              },
+              "type": "message"
+            }
+          ],
+          "speed": "standard",
+          "fallback_credit": null
+        }
+      }
+    },
+    "D": {
+      "run": {
+        "input_tokens": 1412146,
+        "cached_input_tokens": 1322624,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 9185,
+        "reasoning_output_tokens": 483
+      },
+      "review": {
+        "input_tokens": 2750376,
+        "cached_input_tokens": 2611584,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 18293,
+        "reasoning_output_tokens": 2764
+      }
+    },
+    "C": {
+      "run": {
+        "input_tokens": 2646974,
+        "cached_input_tokens": 2521216,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 13512,
+        "reasoning_output_tokens": 2121
+      },
+      "review": {
+        "input_tokens": 3775719,
+        "cached_input_tokens": 3613696,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 22787,
+        "reasoning_output_tokens": 5749
+      }
+    }
+  }
+}
