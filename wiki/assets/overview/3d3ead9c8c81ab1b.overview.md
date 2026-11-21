@@ -1,105 +1,81 @@
 ---
 format: 2
 page: "concepts/動的ワークフロー"
-page_sha256: "c37b6f267e5380069fcc3e790686cdcea109742819a5ac788f3fa0e02971b420"
-figures: ["audit-results"]
-generated: 2026-11-19
-generator: "GPT-6"
+page_sha256: "80b9eb593ed7797f87428144096627fb5082dea7fd9733c65da7364628944b81"
+figures: ["runtime-comparison"]
+generated: 2026-11-22
+generator: "Codex"
 ---
 
-リードが仕事ごとに短いプログラムで計画を書き、通常のコードがその計画に沿ってワーカーを並列に動かします。リードには、仕事の規模、料金、上限、予算を約 500 トークンにまとめて渡します。記事の例では、約 135 万トークンの仕事に対し、計画を作る呼び出しが読んだのは 1,780 トークンでした。
+動的ワークフローでは、複数のエージェントへの仕事の割り当てや、結果を集めて確かめる順序をスクリプトに記します。対象に合わせてスクリプトを作る方法と、確認済みのスクリプトを繰り返し使う方法があります。
 
-### 実行までの流れ
+![Claude Code と Managed Agents の起動方法と進捗の確認方法](#fig-runtime-comparison)
 
-記事では、計画に使える命令を許可リストで制限し、80 行・6,000 文字を上限としています。リハーサルでは費用のかからない代役で計画を 1 回動かします。自動実行は見積もりが 40 クレジット以下、かつ予算の 3 分の 1 以下の場合です。
+Managed Agents の **Dreams** は、過去の会話と既存のメモリを読み、新しいメモリストアを返します。Dreaming の Cookbook では、動的ワークフローを使って既存のストアを更新します。
+
+### info-hive-wiki の /wiki-dream
+
+Codex のローカル定期ジョブは現在、毎日正午（日本時間）に起動する設定です。登録時は毎日午前 3 時で、2026 年 11 月 22 日に正午へ変更しました。1 回につき最大 2 件の会話を対象に、Python から保存済みの Claude Code ワークフローを呼び出します。
 
 ```mermaid
 flowchart TD
-  A[通常のコードが仕事の規模と予算を調べる] --> B[リードが短いプログラムで計画を書く]
-  B --> C{命令と長さの検査に合格したか}
-  C -->|修正が必要| B
-  C -->|合格| D[リハーサルでワーカー数と費用を見積もる]
-  D --> E{自動実行の範囲内か}
-  E -->|範囲内| G[共通の予算内でワーカーを並列実行]
-  E -->|上限超過| F[保留して人の判断を待つ]
-  F -->|承認| G
+  A["台帳で対象を選ぶ"] --> H["Haiku が根拠を抽出"]
+  H --> S["Sonnet が修正案を統合"]
+  S --> V["Python が検査して差分を保存"]
+  V --> L["台帳に処理済みを記録"]
+
+  classDef code fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+  classDef model fill:#f3e8ff,stroke:#7e22ce,color:#581c87
+  class A,V,L code
+  class H,S model
 ```
 
-### 2 つの実装例で見る役割と制限
+Python は台帳で会話の ID と原本のハッシュを照合し、処理済みの組を除きます。失敗した会話は以後の回で 1 件ずつ再試行します。ジョブの出力はレビュー用の差分までです。利用者が承認した差分は `wiki_apply.py` で反映します。
 
-- **実装と測定を扱う記事**では、質問ごとに回答を台帳へ記録し、再実行に備えます。消費量を測って予算の上限も管理します。計画の検査は、自分のリードが作った計画の暴走や費用の見積もり違いを実行前に止めるために使います。
-- **Claude Managed Agents の cookbook** では、リードが仕事を振り分け、アナライザーが会話記録を 1 件ずつ調べ、最後にオーガナイザーが 1 回だけ結果をまとめます。段を分け、書き込み後に読み戻して競合を防ぎます。外から来る会話記録はデータとして読み、道具を 5 つに制限し、ネットワークの許可リストを空にして、必要なセッションに読み取り専用で渡します。
+### 手動試行で確認したこと
 
-### 監査実験で何が変わったか
+2026 年 11 月 21 日に、ジョブと同じ起動経路を手動で試しました。会話 2 件と関連記事 5 件から出典を補う差分を 1 件作り、`git apply --check` を通しました。同じ会話を指定した再実行では台帳で 2 件とも除外され、自動テスト 17 件も通りました。**試行時点では、スケジューラーによる定刻での初回起動は未確認でした。**
 
-![849 ファイルに埋め込んだ 72 個のバグを対象に、3 つの設計の再現率・適合率・費用の平均を比較](#fig-audit-results)
+### 比較実験から分かる範囲
 
-固定計画と比べると、動的ワークフローは再現率が 0.06〜0.25 高く（95% 区間）、費用は約 3.5 倍でした。報告した箇所に実際にバグがあった割合は下がりました。各設計の試行は 3 回以下で、対象は 1 つのライブラリ、モデルは Qwen 系です。事前の 11 個の予測のうち、実験結果が支持したのは 3 個でした。同じ回数だけスキャンさせた固定計画との比較がないため、見つかったバグが増えた理由を読み取り量と計画の質に分けて判断できません。
-
-リハーサルには本番と同じ予算を渡します。記事では、同じ計画でも予算を 150 から 45 に変えると、見積もりは 23.9 から 8.3 クレジットに変わりました。固定計画でも、見積もりの 10.1 クレジットは実測の 13.8 を 27% 下回りました。info-hive のどの作業に採用するかや、取り込みにいくらかかるかを判断するには、その作業での測定が必要です。
+本文で紹介した Qwen 系モデルの監査実験では、固定計画に比べ、動的ワークフローが見つけた不具合の割合は **30% から 45%** に上がりました。指摘のうち正しかった割合は **82% から 71%** に下がり、費用は約 **3.5 倍**でした。より多く調べたことと、計画の違いがどれだけ効いたかは、実験からは分けられません。
 
 
-```svg-figure audit-results
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 310" width="720" height="310" role="img" aria-labelledby="chart-title chart-desc">
-  <title id="chart-title">監査実験の結果を設計別に比較</title>
-  <desc id="chart-desc">単独エージェントの再現率は0.02、適合率は1.00、費用は23.7クレジット。人が書いた固定計画は0.30、0.82、13.8。動的ワークフローは0.45、0.71、48.4。いずれも平均値。</desc>
-  <rect width="720" height="310" rx="14" fill="#f6f8fb"/>
-  <g font-family="system-ui, 'Yu Gothic UI', 'Meiryo', sans-serif" fill="#162740">
-    <text x="24" y="34" font-size="21" font-weight="700">監査実験の結果を設計別に比較</text>
-    <text x="24" y="62" font-size="14" fill="#3d4e68">849 ファイルに埋め込んだ 72 個のバグを探索。値は試行の平均。</text>
-    <g font-size="15" font-weight="700">
-      <text x="212" y="98">再現率</text>
-      <text x="378" y="98">適合率</text>
-      <text x="544" y="98">費用</text>
+```svg-figure runtime-comparison
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="316" viewBox="0 0 720 316">
+  <title>Claude Code と Managed Agents のワークフロー</title>
+  <desc>Claude Code は保存済みの JavaScript をコマンドで起動し、ワークフロー一覧で進捗を確認する。Managed Agents ではセッション内のエージェントが書いた計画を管理環境で起動し、実行イベントで進捗を確認する。</desc>
+  <style>
+    text { font-family: "Yu Gothic UI", "Hiragino Sans", "Noto Sans CJK JP", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif; }
+  </style>
+  <rect width="720" height="316" rx="16" fill="#f1f5f9"/>
+  <text x="360" y="45" text-anchor="middle" font-size="25" font-weight="700" fill="#1e293b">動的ワークフローの実行環境</text>
+
+  <!-- 左カード x=24..346、右カード x=374..696。間隔は28。 -->
+  <rect x="24" y="72" width="322" height="220" rx="14" fill="#ffffff" stroke="#bfdbfe"/>
+  <rect x="374" y="72" width="322" height="220" rx="14" fill="#ffffff" stroke="#e9d5ff"/>
+  <rect x="44" y="90" width="282" height="45" rx="8" fill="#dbeafe"/>
+  <rect x="394" y="90" width="282" height="45" rx="8" fill="#f3e8ff"/>
+
+  <g text-anchor="middle">
+    <text x="185" y="120" font-size="22" font-weight="700" fill="#1e40af">Claude Code</text>
+    <text x="535" y="120" font-size="22" font-weight="700" fill="#6b21a8">Claude Managed Agents</text>
+
+    <g fill="#475569" font-size="15" font-weight="600">
+      <text x="185" y="162">起動</text>
+      <text x="535" y="162">起動</text>
+      <text x="185" y="233">進捗の確認</text>
+      <text x="535" y="233">進捗の確認</text>
     </g>
-    <g font-size="13" fill="#3d4e68">
-      <text x="212" y="119">バグを見つけた割合</text>
-      <text x="378" y="119">報告が当たった割合</text>
-      <text x="544" y="119">単位はクレジット</text>
+
+    <path d="M60 211 H310 M410 211 H660" fill="none" stroke="#e2e8f0"/>
+
+    <g fill="#1e293b" font-size="18">
+      <text x="185" y="188">保存済みのスクリプトを呼ぶ</text>
+      <text x="535" y="188">エージェントが計画を書いて起動</text>
+      <text x="185" y="260">/workflows で見る</text>
+      <text x="535" y="260">セッションの実行イベントを見る</text>
     </g>
-    <rect x="15" y="132" width="690" height="51" rx="7" fill="#fff"/>
-    <rect x="15" y="186" width="690" height="51" rx="7" fill="#fff"/>
-    <rect x="15" y="240" width="690" height="51" rx="7" fill="#e0f1ed"/>
-    <g font-size="15" font-weight="600">
-      <text x="24" y="163">単独エージェント</text>
-      <text x="24" y="217">人が書いた固定計画</text>
-      <text x="24" y="271">動的ワークフロー</text>
-    </g>
-    <g font-size="14" font-weight="650">
-      <text x="212" y="154">0.02</text>
-      <text x="378" y="154">1.00</text>
-      <text x="544" y="154">23.7</text>
-      <text x="212" y="208">0.30</text>
-      <text x="378" y="208">0.82</text>
-      <text x="544" y="208">13.8</text>
-      <text x="212" y="262">0.45</text>
-      <text x="378" y="262">0.71</text>
-      <text x="544" y="262">48.4</text>
-    </g>
-  </g>
-  <g fill="#d6e0ea">
-    <rect x="212" y="162" width="126" height="7" rx="3.5"/>
-    <rect x="378" y="162" width="126" height="7" rx="3.5"/>
-    <rect x="544" y="162" width="126" height="7" rx="3.5"/>
-    <rect x="212" y="216" width="126" height="7" rx="3.5"/>
-    <rect x="378" y="216" width="126" height="7" rx="3.5"/>
-    <rect x="544" y="216" width="126" height="7" rx="3.5"/>
-    <rect x="212" y="270" width="126" height="7" rx="3.5"/>
-    <rect x="378" y="270" width="126" height="7" rx="3.5"/>
-    <rect x="544" y="270" width="126" height="7" rx="3.5"/>
-  </g>
-  <g fill="#49658b">
-    <rect x="212" y="162" width="2.52" height="7" rx="1.26"/>
-    <rect x="378" y="162" width="126" height="7" rx="3.5"/>
-    <rect x="544" y="162" width="59.72" height="7" rx="3.5"/>
-    <rect x="212" y="216" width="37.8" height="7" rx="3.5"/>
-    <rect x="378" y="216" width="103.32" height="7" rx="3.5"/>
-    <rect x="544" y="216" width="34.78" height="7" rx="3.5"/>
-  </g>
-  <g fill="#087666">
-    <rect x="212" y="270" width="56.7" height="7" rx="3.5"/>
-    <rect x="378" y="270" width="89.46" height="7" rx="3.5"/>
-    <rect x="544" y="270" width="121.97" height="7" rx="3.5"/>
   </g>
 </svg>
 
