@@ -138,3 +138,4 @@
 - [[claude-codeのwiki-mcp再接続-2026-11-21]]: Code の /mcp での wiki 接続表示、個別再接続、全体再接続の結果
 - [[claude-coworkへのwiki導入-2026-11-21]]: Claude Desktop の統合画面で Wiki 0.39.1 の追加とフォルダー権限の表示を確認
 - [[claude-codeのwikiハウツー検証-2026-11-21]]: Code でユーザー wiki、Web 取り込み、アップグレード、マーケットプレイス更新を確認
+- [[wiki-query-latency-2026-11-21]]: MCP と CLI、候補フック、公開版の根拠取得の実測値と計測区間、回答全体の未確認範囲
