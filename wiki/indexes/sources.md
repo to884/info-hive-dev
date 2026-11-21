@@ -138,3 +138,4 @@
 - [[claude-codeのwiki-mcp再接続-2026-11-21]]: Code の /mcp での wiki 接続表示、個別再接続、全体再接続の結果
 - [[claude-coworkへのwiki導入-2026-11-21]]: Claude Desktop の統合画面で Wiki 0.39.1 の追加とフォルダー権限の表示を確認
 - [[claude-codeのwikiハウツー検証-2026-11-21]]: Code でユーザー wiki、Web 取り込み、アップグレード、マーケットプレイス更新を確認
+- [[info-hiveとmykgの比較更新-2026-11-20]]: wiki v0.39.0 と rag v0.5.4 の実装を踏まえ、myKG との構成図と導入案を更新した検証記録

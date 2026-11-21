@@ -4,7 +4,7 @@ kind: "product"
 title: "info-hive-wiki"
 aliases: ["wiki@info-hive", "info-hive wiki"]
 tags: ["wiki設計", "取り込み", "検索", "グラフ", "browse"]
-sources: ["info-hive-wikiのアーキテクチャ-v0.38.1", "info-hive-ragのアーキテクチャ-4fabe32", "info-hive-marketplaceの配布構成-c709eb3", "box-driveでのwiki互換性-2026-11-19", "wikiのmcpサーバーの仕様-v0.39.0", "claude-desktopへのwiki-0.39.1の導入-2026-11-21"]
+sources: ["info-hive-wikiのアーキテクチャ-v0.38.1", "info-hive-ragのアーキテクチャ-4fabe32", "info-hive-marketplaceの配布構成-c709eb3", "box-driveでのwiki互換性-2026-11-19", "wikiのmcpサーバーの仕様-v0.39.0", "claude-desktopへのwiki-0.39.1の導入-2026-11-21", "info-hiveとmykgの比較更新-2026-11-20"]
 created: 2026-11-19
 updated: 2026-11-21
 ---
@@ -46,3 +46,7 @@ flowchart TD
 - **閲覧**。browse は共通の描画中核の出力を、静的 HTML とローカル HTTP の二つの方法で提供する。Mermaid は静的版で SVG に書き出し、サーバー版では専用の枠で描画する。
 - **Box Drive 上の wiki**。Windows 版の Cloud Files 方式では、1 台の PC で初期化から再編集までを確認した。複数端末で共有するときは、確定版のアーカイブや静的 HTML を配布する。[[box-drive上のwikiの運用]]
 - **rag との連携**。PDF のパスを `register_pdf` に渡すと、[[info-hive-rag]] が抽出して自身の PDF 索引を更新する。エージェントは `job_status` で完了を確認し、抽出本文から原本への参照付きの要約ページを作る。wiki の MCP には、外部からチャンクを受け取り collection 別に保持する `index_chunks` もある。
+
+## v0.39.0 の保存と読む版
+
+2026-11-20 に公開済み v0.39.0 のコードを確認した。記事・目次・ログは共通の承認計画と日誌で保存する。任意の公開版は必須の定義・Ossie 成果物を PoC で準備して使い、記事変更時の候補でグラフを再生成し、同じ `release_id` で記事とグラフを読む。ライブのハイブリッド検索と、公開版の語彙検索は別の経路である。作業中の復元処理は公開済み機能に数えない。確認した版と図解、残る導入案は [[info-hiveとmykgの比較更新-2026-11-20]] にある。
