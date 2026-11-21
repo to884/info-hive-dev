@@ -20,7 +20,6 @@ PAGES = {
     "docs/decisions.md": "decisions.html",
     "docs/workflows.md": "workflows.html",
     "docs/upgrade.md": "upgrade.html",
-    "skills/info-hive/references/mcp-server.md": "mcp-server.html",
     "UPSTREAM.md": "upstream.html",
 }
 RUNTIME = "skills/info-hive/scripts"
@@ -34,8 +33,11 @@ RELATED = {
     f"{BROWSE}/licenses/": "licenses.html#browse-licenses",
     "docs/index.md": "index.html#toc",
     "docs/html/index.html": "index.html#toc",
+    "docs/html/howto-upgrade-wiki.html": "howto-upgrade-wiki.html",
     "docs/commands.md": "commands.html",
     "docs/getting-started.md": "tutorial-first-wiki.html",
+    # 利用者向けの MCP サーバーは HTML で編集し、配布するスキルの文体は別に保つ。
+    "skills/info-hive/references/mcp-server.md": "mcp-server.html",
     "docs/commands.md#wikigraph-action": "commands.html#wikigraph",
     "docs/commands.md#wikiinit": "commands.html#wikiinit",
     "docs/commands.md#wikistats": "commands.html#wikistats",
