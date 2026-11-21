@@ -523,6 +523,13 @@ class ToolsTest(unittest.TestCase):
         return wiki_lint.lint(wiki_lint.collect_pages(self.wiki), 100, 200, list(wiki_lint.DEFAULT_REQUIRED_FM), False, 5,
                               index_entries=wiki_lint.collect_index_entries(self.wiki))
 
+    def test_confidence_aliases(self):
+        for spelling in ("confidence", "信頼度", "確信度", "確かさ"):
+            with self.subTest(spelling=spelling):
+                meta, conflicts = wiki_text.canonical_meta(parse(f'{spelling}: "medium"'))
+                self.assertEqual(meta, {"confidence": "medium"})
+                self.assertFalse(conflicts)
+
     def test_lint(self):
         meta = {p["rel_path"]: p["meta"] for p in wiki_lint.collect_pages(self.wiki)}["concepts/a.md"]
         self.assertEqual((meta["type"], meta["title"], meta["tags"], meta["sources"], meta["aliases"]),
