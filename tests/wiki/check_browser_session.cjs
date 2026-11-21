@@ -47,7 +47,7 @@ function browser(pages) {
     assert.equal(url, request.url);
     assert.deepEqual(options, { waitUntil: 'domcontentloaded', timeout: 2000 });
     destination = url;
-    return { status: () => 200 };
+    return { status: () => 200, url: () => destination };
   };
   const opened = await session.readPage(browser([blank]), request, async (_, html) => ({
     short: html.includes('読み込み中'), body_sha256: html, images: [],
@@ -58,10 +58,45 @@ function browser(pages) {
   destination = 'about:blank';
   await assert.rejects(session.readPage(browser([blank, other]), request), /1 つだけ/);
   assert.equal(destination, 'about:blank');
-  blank.goto = async () => { destination = 'https://other.example/login'; };
-  const beforeRedirect = evaluated;
+  const redirected = 'https://publisher.example/posts/article';
+  blank.goto = async () => {
+    destination = redirected + '#body';
+    return { status: () => 200, url: () => redirected };
+  };
+  const readRedirect = await session.readPage(browser([blank]), request, async (_, html, url) => {
+    assert.equal(url, redirected + '#body');
+    return { short: false, body_sha256: html, images: [] };
+  }, async (_, url) => {
+    assert.equal(url, redirected + '#body');
+    return {};
+  });
+  assert.equal(readRedirect.request_url, request.url);
+  assert.equal(readRedirect.final_url, redirected + '#body');
+  assert.equal(readRedirect.matched_url, redirected + '#body');
+
+  destination = 'about:blank';
+  const beforeRedirect = reads;
+  await assert.rejects(session.readPage(browser([blank]), request, undefined,
+    async () => ({ kind: 'invalid_redirect', error: '内部のアドレスは取得しない' })), /内部のアドレス/);
+  assert.equal(reads, beforeRedirect);
+
+  destination = 'about:blank';
+  blank.goto = async () => {
+    destination = 'https://other.example/login';
+    return { status: () => 200, url: () => redirected };
+  };
   await assert.rejects(session.readPage(browser([blank]), request), /URL が変わった/);
-  assert.equal(evaluated, beforeRedirect);
+  assert.equal(reads, beforeRedirect);
+
+  destination = 'about:blank';
+  blank.goto = async () => {
+    destination = redirected;
+    return { status: () => 200, url: () => redirected };
+  };
+  await assert.rejects(session.readPage(browser([blank]), request, async () => {
+    destination = 'https://other.example/login';
+    return { short: false, body_sha256: 'changed', images: [] };
+  }, async () => ({})), /URL が変わった/);
   destination = 'about:blank';
   blank.goto = async () => { throw Error('内部診断'); };
   await assert.rejects(session.readPage(browser([blank]), request), /取り込み URL をブラウザで開けなかった/);
