@@ -300,13 +300,39 @@ class BrowserProtocolTest(unittest.TestCase):
             _, actual, _ = wiki_fetch.fetch_browser(requested, 5, 200000, False)
         self.assertEqual(actual, final)
 
-    def test_protocol_debugging_environment_is_not_passed_to_browser_child(self):
+    def test_only_extension_processes_inherit_token_and_neither_inherits_debugging(self):
         env = {"DEBUG": "pw:protocol", "DEBUG_FILE": "fixture.log", "PW_PROFILE_DIR": "fixture-profiles",
                "PWTEST_EXTENSION_USER_DATA_DIR": "fixture-profile", "PLAYWRIGHT_MCP_EXTENSION_TOKEN": "fixture-token"}
-        with mock.patch.dict(wiki_fetch.os.environ, env):
-            actual = wiki_fetch.browser_environment()
-        self.assertFalse(set(actual) & {"DEBUG", "DEBUG_FILE", "PW_PROFILE_DIR", "PWTEST_EXTENSION_USER_DATA_DIR"})
-        self.assertEqual(actual["PLAYWRIGHT_MCP_EXTENSION_TOKEN"], "fixture-token")
+        result = {"html": "<main>本文</main>", "final_url": URL, "request_url": URL, "matched_url": URL}
+        with mock.patch.dict(wiki_fetch.os.environ, env), \
+                mock.patch.object(wiki_fetch.shutil, "which", side_effect=lambda name: name), \
+                mock.patch.object(wiki_fetch.subprocess, "run", return_value=argparse.Namespace(
+                    stdout=json.dumps(result), stderr="", returncode=0)) as run:
+            wiki_fetch.fetch_browser(URL, 5, 200000, False)
+            wiki_fetch_browser.capture_existing(URL, 5, 200000, False, "msedge", 0)
+            wiki_fetch.fetch_browser(URL, 5, 200000, False, browser_session="isolated")
+        for call in run.call_args_list:
+            child_env = call.kwargs["env"]
+            self.assertFalse(set(child_env) & {"DEBUG", "DEBUG_FILE", "PW_PROFILE_DIR", "PWTEST_EXTENSION_USER_DATA_DIR"})
+            self.assertNotIn("fixture-token", str(call.args))
+            self.assertNotIn("fixture-token", call.kwargs.get("input", ""))
+        token = "PLAYWRIGHT_MCP_EXTENSION_TOKEN"
+        self.assertEqual(run.call_args_list[0].kwargs["env"][token], "fixture-token")
+        self.assertEqual(run.call_args_list[1].kwargs["env"][token], "fixture-token")
+        self.assertNotIn(token, run.call_args_list[2].kwargs["env"])
+
+    def test_windows_user_environment_is_read_only_when_process_token_is_absent(self):
+        token = "PLAYWRIGHT_MCP_EXTENSION_TOKEN"
+        with mock.patch.dict(wiki_fetch.os.environ, {}, clear=True), \
+                mock.patch.object(wiki_fetch.sys, "platform", "win32"), \
+                mock.patch.object(wiki_fetch, "windows_user_extension_token", return_value="user-token") as lookup:
+            self.assertNotIn(token, wiki_fetch.browser_environment())
+            lookup.assert_not_called()
+            self.assertEqual(wiki_fetch.browser_environment(extension=True)[token], "user-token")
+            lookup.assert_called_once()
+            with mock.patch.dict(wiki_fetch.os.environ, {token: "process-token"}):
+                self.assertEqual(wiki_fetch.browser_environment(extension=True)[token], "process-token")
+            lookup.assert_called_once()
 
     def test_youtube_redirect_from_child_keeps_the_youtube_exit_path(self):
         output = json.dumps({"error": "動画は別の経路で取る", "kind": "youtube",
@@ -331,8 +357,12 @@ class SystemBrowserTest(unittest.TestCase):
                 '<article><h1>題名</h1><p>' + '本文。' * 200
                 + '</p><img src="/figure.png" width="120" height="80">'
                 '<img src="/figure.png" width="120" height="80"></article></body></html>')
-        self.assertEqual(wiki_fetch_browser.select_image_urls(html, URL, 1), ['https://example.com/figure.png'])
-        self.assertEqual(wiki_fetch_browser.select_image_urls(html, URL, 2), ['https://example.com/figure.png'])
+        first = wiki_fetch_browser.inspect_dom(html, URL, 1)
+        both = wiki_fetch_browser.inspect_dom(html, URL, 2)
+        self.assertEqual(first["images"], ['https://example.com/figure.png'])
+        self.assertEqual(both["images"], ['https://example.com/figure.png'])
+        self.assertFalse(first["short"])
+        self.assertEqual(first["body_sha256"], both["body_sha256"])
     def test_actual_default_executable_is_used_even_outside_standard_channel_directory(self):
         for executable, channel in ((r"C:\Custom Browser\chrome.exe", "chrome"),
                                     (r"C:\Program Files (x86)\Microsoft\Edge Beta\Application\msedge.exe", "msedge")):
