@@ -4,9 +4,9 @@ kind: "product"
 title: "info-hive-wiki"
 aliases: ["wiki@info-hive", "info-hive wiki"]
 tags: ["wiki設計", "取り込み", "検索", "グラフ", "browse"]
-sources: ["info-hive-wikiのアーキテクチャ-v0.38.1", "info-hive-ragのアーキテクチャ-4fabe32", "info-hive-marketplaceの配布構成-c709eb3", "box-driveでのwiki互換性-2026-11-19", "wikiのmcpサーバーの仕様-v0.39.0"]
+sources: ["info-hive-wikiのアーキテクチャ-v0.38.1", "info-hive-ragのアーキテクチャ-4fabe32", "info-hive-marketplaceの配布構成-c709eb3", "box-driveでのwiki互換性-2026-11-19", "wikiのmcpサーバーの仕様-v0.39.0", "claude-desktopへのwiki-0.39.1の導入-2026-11-21"]
 created: 2026-11-19
-updated: 2026-11-19
+updated: 2026-11-21
 ---
 
 # info-hive-wiki
@@ -39,6 +39,9 @@ flowchart TD
 - **入口と正本**。Claude Code の `/wiki:*` と Codex の `$wiki:info-hive` は `commands/*.md` の操作手順を共用する。利用者が選んだ原本を raw に置き、編集した記事を `wiki/` に置く。ルートの `SCHEMA.md` が記事の種類や運用規約を定める。[[初期化されたwikiの判定]]
 - **検索**。複数のセッションから接続するローカル MCP サーバーが、語彙索引とベクトル索引をまとめて管理する。MCP を利用できない場合は、別のローカル索引を使う CLI で検索できる。
 - **v0.39.0 の MCP**。検索、記事の取得、点検、統計、グラフ照会と外部チャンクの索引化を提供する。ツールごとの入出力と版の指定は [[wikiのmcpサーバーの仕様-v0.39.0]] を参照。
+- **Windows での起動診断**。v0.39.1 は Visual C++ ランタイムがない Windows で、DLL の読み込み失敗と導入コマンドを知らせる。新規 VM での `--ensure` の観測は [[wikiのwindows初期環境とmcp起動診断-2026-11-20]] を参照。
+- **Claude Desktop の Code への導入**。新規 Windows VM でのマーケットプレイス同期、ローカル MCP の確認、`/wiki:help` の結果は [[claude-desktopへのwiki-0.39.1の導入-2026-11-21]] を参照。
+- **Claude Cowork への導入**。チャットと Cowork の統合画面でのプラグインの追加とフォルダーの権限確認は [[claude-coworkへのwiki導入-2026-11-21]] を参照。
 - **グラフ**。Markdown の関係とリンクを、オントロジーに沿って再生成可能なグラフにする。MCP の `graph` は生成済みの SQLite を使う。browse の関係表は同じ抽出関数を記事の写しに適用する。[[グラフの抽出の契約]]
 - **閲覧**。browse は共通の描画中核の出力を、静的 HTML とローカル HTTP の二つの方法で提供する。Mermaid は静的版で SVG に書き出し、サーバー版では専用の枠で描画する。
 - **Box Drive 上の wiki**。Windows 版の Cloud Files 方式では、1 台の PC で初期化から再編集までを確認した。複数端末で共有するときは、確定版のアーカイブや静的 HTML を配布する。[[box-drive上のwikiの運用]]
