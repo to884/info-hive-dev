@@ -1031,3 +1031,18 @@ wiki に対する操作を時系列で記録する、追記専用のログであ
 ## [2026-11-21] ingest | 利用者向け HTML マニュアルを wiki 0.40.2 で公開
    導入や最初の wiki の作成を案内する HTML 24 ページを同梱した。変更は [wiki PR #105](https://github.com/to884/info-hive-wiki/pull/105)、配布は [GitHub リリース v0.40.2](https://github.com/to884/info-hive-wiki/releases/tag/v0.40.2)。
    公開マーケットプレイスから Claude Code と Codex CLI で wiki@info-hive 0.40.2 を導入した。Claude Code の配布ファイル 46 件がタグと一致し、Codex CLI では MCP の検索と統計を確認した。
+
+## [2026-11-21] query | Dynamic Workflows の実行環境と Dreaming への適用
+   [[動的ワークフロー]] に Claude Code と Managed Agents の違い、Haiku と Sonnet の分担、Python に置く処理を追記。
+
+## [2026-11-21] query | Claude Code の wiki-dream の実装試行
+   会話2件で Haiku と Sonnet を実行し、[[図ごとの描画の隔離]] のサーバー版の検証結果を補う差分1件を作成した。
+
+## [2026-11-21] learn | /wiki-dream の定期ジョブの試行と提案の反映
+   [[ドリーミングのinfo-hive-wikiへの適用]] に台帳による除外と再試行、登録時は午前3時のローカルジョブ、会話2件・関連記事5件での試行を記録。[[図ごとの描画の隔離]] に出典を補う差分を反映。
+
+## [2026-11-22] learn | 動的ワークフローに wiki-dream の定期ジョブと手動試行を追記
+   [[動的ワークフロー]] に台帳での除外と再試行、会話2件から差分1件を得た手動試行、試行時点での定刻起動の確認状況を記録。
+
+## [2026-11-22] learn | wiki-dream の定期ジョブを毎日正午に変更
+   [[動的ワークフロー]] と [[ドリーミングのinfo-hive-wikiへの適用]] に、当初の毎日午前3時から毎日正午（日本時間）への設定変更を記録。
