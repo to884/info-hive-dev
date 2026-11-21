@@ -1,0 +1,129 @@
+{
+  "date": "2026-11-21",
+  "timezone": "Asia/Tokyo",
+  "environment": "同じ検証用 wiki を Windows 11 のホストと Hyper-V の Windows 11 VM に Box Drive で同期",
+  "method": "以前の競合で Box Drive が生成した別名コピー3本を、退避先から検証用 wiki の元の相対パスに複製。複製後、記事と索引のコピーを先に退避し、最後に操作ログのコピーを退避した。",
+  "checker_sha256": "5f962e000a9a7771705b3746f1bfeefb3cda5fc0d1d8f4ffcfe1f517064a6cce",
+  "canonical_sha256": {
+    "concepts/guide.md": "6423b435612b5f940960f108f8e7760b2e4541f0efd22752ade8de1c18547741",
+    "index.md": "f353c53228b09101f0e78c7cce7ea942d773928afa9c91712eb902d6b35f0ba5",
+    "log.md": "59781e01c9f1e35f385505962b2af0f2b33e5531d49642de4b7c8ab07cdc8bb3"
+  },
+  "observations": {
+    "baseline": {
+      "observed_at": "2026-11-21T18:37:11.1776816+09:00",
+      "seconds_from_step_to_observation": 1.237,
+      "host": {
+        "exit_code": 0,
+        "decision": "ready",
+        "all_three_sha256_match": true,
+        "copy_count_by_target": {
+          "concepts/guide.md": 0,
+          "index.md": 0,
+          "log.md": 0
+        }
+      },
+      "vm": {
+        "exit_code": 0,
+        "decision": "ready",
+        "all_three_sha256_match": true,
+        "copy_count_by_target": {
+          "concepts/guide.md": 0,
+          "index.md": 0,
+          "log.md": 0
+        }
+      }
+    },
+    "three": {
+      "observed_at": "2026-11-21T18:37:30.7616447+09:00",
+      "seconds_from_step_to_observation": 19.483,
+      "host": {
+        "exit_code": 1,
+        "decision": "wait",
+        "all_three_sha256_match": true,
+        "copy_count_by_target": {
+          "concepts/guide.md": 1,
+          "index.md": 1,
+          "log.md": 1
+        }
+      },
+      "vm": {
+        "exit_code": 1,
+        "decision": "wait",
+        "all_three_sha256_match": true,
+        "copy_count_by_target": {
+          "concepts/guide.md": 1,
+          "index.md": 1,
+          "log.md": 1
+        }
+      }
+    },
+    "one": {
+      "observed_at": "2026-11-21T18:37:50.2324977+09:00",
+      "seconds_from_step_to_observation": 19.448,
+      "host": {
+        "exit_code": 1,
+        "decision": "wait",
+        "all_three_sha256_match": true,
+        "copy_count_by_target": {
+          "concepts/guide.md": 0,
+          "index.md": 0,
+          "log.md": 1
+        }
+      },
+      "vm": {
+        "exit_code": 1,
+        "decision": "wait",
+        "all_three_sha256_match": true,
+        "copy_count_by_target": {
+          "concepts/guide.md": 0,
+          "index.md": 0,
+          "log.md": 1
+        }
+      }
+    },
+    "zero": {
+      "observed_at": "2026-11-21T18:38:10.5626588+09:00",
+      "seconds_from_step_to_observation": 20.322,
+      "host": {
+        "exit_code": 0,
+        "decision": "ready",
+        "all_three_sha256_match": true,
+        "copy_count_by_target": {
+          "concepts/guide.md": 0,
+          "index.md": 0,
+          "log.md": 0
+        }
+      },
+      "vm": {
+        "exit_code": 0,
+        "decision": "ready",
+        "all_three_sha256_match": true,
+        "copy_count_by_target": {
+          "concepts/guide.md": 0,
+          "index.md": 0,
+          "log.md": 0
+        }
+      }
+    }
+  },
+  "archive": {
+    "archive": "recovery-archive/handoff-check-conflicts-2026-11-21",
+    "verified_both": true,
+    "originals_unchanged": true,
+    "copies": [
+      {
+        "canonical": "index.md",
+        "sha256": "d60530ec288d8747bfd52e7120746000ba3801d348364fbbb6c2a8c77e055875"
+      },
+      {
+        "canonical": "log.md",
+        "sha256": "266c96072af57f07c7296b8f935f32f8f623b3d5c2b4be0b02ca294e4b4ed151"
+      },
+      {
+        "canonical": "concepts/guide.md",
+        "sha256": "a702582fb6ce6a44a1c089ba11859c30e622549d955b4bf2b21621b81ca85cd5"
+      }
+    ]
+  }
+}

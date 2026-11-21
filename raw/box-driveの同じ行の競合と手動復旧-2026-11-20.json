@@ -1,0 +1,1512 @@
+{
+  "experiment": "同じ記事の同じ行を Box Drive 2 台でオフライン編集し、ほぼ同時に再接続して手動で復旧",
+  "conditions": {
+    "client_versions": {
+      "guest": {
+        "os": "Microsoft Windows 11 Enterprise LTSC Evaluation",
+        "build": "26100",
+        "box_version": "2.56.271.0",
+        "cloud_files": 1,
+        "timezone": "Tokyo Standard Time"
+      },
+      "host": {
+        "os": "Microsoft Windows 11 Enterprise",
+        "build": "26300",
+        "box_version": "2.56.271.0",
+        "cloud_files": 1,
+        "timezone": "Tokyo Standard Time"
+      }
+    },
+    "same_box_account": true,
+    "wiki_init": "0.39.0",
+    "write_method": "既存 Markdown の直接上書き"
+  },
+  "baseline": {
+    "pinned_and_hash_matches": {
+      "guest": {
+        "base": {
+          "concepts/guide.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "index.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "log.md": {
+            "matches": true,
+            "pinned": true
+          }
+        },
+        "cold_attrs": "0x500020"
+      },
+      "host": {
+        "base": {
+          "concepts/guide.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "index.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "log.md": {
+            "matches": true,
+            "pinned": true
+          }
+        },
+        "cold_attrs": "0x500020"
+      }
+    },
+    "box_sha1_matches": {
+      "concepts/guide.md": true,
+      "index.md": true,
+      "log.md": true
+    }
+  },
+  "offline": {
+    "network": {
+      "nics": [
+        {
+          "Name": "Ethernet",
+          "Status": "Disconnected"
+        }
+      ],
+      "api_rejection": 1795130574.6462603
+    },
+    "host_proxy_connect_rejections": 14,
+    "edits": {
+      "host": {
+        "label": "A",
+        "started": 1795130577.2245898,
+        "finished": 1795130577.2722676,
+        "edited": [
+          "concepts/guide.md",
+          "index.md",
+          "log.md"
+        ],
+        "common_base": {
+          "concepts/guide.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "index.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "log.md": {
+            "matches": true,
+            "pinned": true
+          }
+        }
+      },
+      "vm": {
+        "label": "B",
+        "started": 1795130577.3574202,
+        "finished": 1795130577.4093673,
+        "edited": [
+          "concepts/guide.md",
+          "index.md",
+          "log.md"
+        ],
+        "common_base": {
+          "concepts/guide.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "index.md": {
+            "matches": true,
+            "pinned": true
+          },
+          "log.md": {
+            "matches": true,
+            "pinned": true
+          }
+        }
+      }
+    }
+  },
+  "reconnect": {
+    "scheduled_jst": "2026-11-20T08:23:02.412+09:00",
+    "host_restore_start_ms_from_target": 0.211,
+    "host_restore_done_ms_from_target": 12.934,
+    "vm_connect_start_ms_from_target": 4,
+    "vm_connect_done_ms_from_target": 308,
+    "start_gap_ms": 3.789,
+    "host_proxy_restored": true
+  },
+  "conflict": {
+    "expected_hashes": {
+      "base": {
+        "concepts/guide.md": {
+          "sha1": "eecc7a423ebb0a80490d0820868a283670f03063",
+          "sha256": "536f866e319bd7a3274bf1ffc8886f2d888eb7cdf2e05c8753514ef46d172f3e"
+        },
+        "index.md": {
+          "sha1": "e225a9c2d9f5a25b84cd5ee94696a40c47e18f5a",
+          "sha256": "4bda28ca7ec3024be5abd9e98be8ec9c88092ba910fff979d603364adfb5d435"
+        },
+        "log.md": {
+          "sha1": "43bc044771cdc0fec848d92b86f89a95f3f5882f",
+          "sha256": "32b8541b4933f99bf7f6a49ab65a6484d1d884c70c1c9da4ab8c67a556d42c5a"
+        }
+      },
+      "A": {
+        "concepts/guide.md": {
+          "sha1": "93a80e149e7d5705bb874561973379ff28a5ff56",
+          "sha256": "e5a78d3b5e68db2f30fde1e885efcadca8d0d71360d1eb0ccc63c4ae3866cf07"
+        },
+        "index.md": {
+          "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133",
+          "sha256": "fdc73a59457fce0624c2a967c06900256956a1da39b0a962adb8714ce0b7d9c0"
+        },
+        "log.md": {
+          "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6",
+          "sha256": "bfd56bf01b5ead6ac895d430f36157d866d646a1895429a9eda48f92d0b4c6a8"
+        }
+      },
+      "B": {
+        "concepts/guide.md": {
+          "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4",
+          "sha256": "3bc78a449af0f77b5a01aa7fc910566a7316ff52905f5ba3cde4bbdec81a255e"
+        },
+        "index.md": {
+          "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09",
+          "sha256": "c43d1fca56ec599b7461164c77078b48ef836ea1d47aebdf797a09c7bc624784"
+        },
+        "log.md": {
+          "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e",
+          "sha256": "8d43de312b9b46f0583830f3c20959d8ac6bbba074f343b6a0d63ca66ffe5ab9"
+        }
+      }
+    },
+    "observations": [
+      {
+        "sequence": 1,
+        "observed_utc": "2026-11-19T23:23:04.5735027+00:00",
+        "observed_unix_ms": 1795130584573,
+        "checks": {
+          "concepts/guide.md": {
+            "both_clients_equal": false,
+            "two_versions": false,
+            "box_hashes_observed": false
+          },
+          "index.md": {
+            "both_clients_equal": false,
+            "two_versions": false,
+            "box_hashes_observed": false
+          },
+          "log.md": {
+            "both_clients_equal": false,
+            "two_versions": false,
+            "box_hashes_observed": false
+          }
+        },
+        "host": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "canonical",
+                "label": "A",
+                "sha1": "93a80e149e7d5705bb874561973379ff28a5ff56"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "canonical",
+                "label": "A",
+                "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "canonical",
+                "label": "A",
+                "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6"
+              }
+            ]
+          },
+          "box_responses": {}
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.532
+                }
+              }
+            },
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.545
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.669
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 2,
+        "observed_utc": "2026-11-19T23:23:09.8566758+00:00",
+        "observed_unix_ms": 1795130589856,
+        "checks": {
+          "concepts/guide.md": {
+            "both_clients_equal": false,
+            "two_versions": false,
+            "box_hashes_observed": false
+          },
+          "index.md": {
+            "both_clients_equal": false,
+            "two_versions": false,
+            "box_hashes_observed": false
+          },
+          "log.md": {
+            "both_clients_equal": false,
+            "two_versions": false,
+            "box_hashes_observed": false
+          }
+        },
+        "host": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "93a80e149e7d5705bb874561973379ff28a5ff56"
+              },
+              {
+                "kind": "canonical",
+                "label": "A",
+                "sha1": "93a80e149e7d5705bb874561973379ff28a5ff56"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133"
+              },
+              {
+                "kind": "canonical",
+                "label": "A",
+                "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6"
+              },
+              {
+                "kind": "canonical",
+                "label": "A",
+                "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.319
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.445
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.452
+                }
+              }
+            }
+          }
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.532
+                }
+              }
+            },
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.545
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.669
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 3,
+        "observed_utc": "2026-11-19T23:23:15.0780851+00:00",
+        "observed_unix_ms": 1795130595078,
+        "checks": {
+          "concepts/guide.md": {
+            "both_clients_equal": false,
+            "two_versions": true,
+            "box_hashes_observed": true
+          },
+          "index.md": {
+            "both_clients_equal": false,
+            "two_versions": true,
+            "box_hashes_observed": true
+          },
+          "log.md": {
+            "both_clients_equal": false,
+            "two_versions": true,
+            "box_hashes_observed": true
+          }
+        },
+        "host": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "93a80e149e7d5705bb874561973379ff28a5ff56"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.319
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 11.598
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.445
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 11.549
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.452
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 11.598
+                }
+              }
+            }
+          }
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.532
+                }
+              }
+            },
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.545
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.669
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 4,
+        "observed_utc": "2026-11-19T23:23:20.3020123+00:00",
+        "observed_unix_ms": 1795130600302,
+        "checks": {
+          "concepts/guide.md": {
+            "both_clients_equal": false,
+            "two_versions": true,
+            "box_hashes_observed": true
+          },
+          "index.md": {
+            "both_clients_equal": true,
+            "two_versions": true,
+            "box_hashes_observed": true
+          },
+          "log.md": {
+            "both_clients_equal": true,
+            "two_versions": true,
+            "box_hashes_observed": true
+          }
+        },
+        "host": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "93a80e149e7d5705bb874561973379ff28a5ff56"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.319
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 11.598
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.445
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 11.549
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.452
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 11.598
+                }
+              }
+            }
+          }
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.532
+                }
+              }
+            },
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.545
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.669
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 5,
+        "observed_utc": "2026-11-19T23:23:25.5128689+00:00",
+        "observed_unix_ms": 1795130605512,
+        "checks": {
+          "concepts/guide.md": {
+            "both_clients_equal": false,
+            "two_versions": true,
+            "box_hashes_observed": true
+          },
+          "index.md": {
+            "both_clients_equal": true,
+            "two_versions": true,
+            "box_hashes_observed": true
+          },
+          "log.md": {
+            "both_clients_equal": true,
+            "two_versions": true,
+            "box_hashes_observed": true
+          }
+        },
+        "host": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "93a80e149e7d5705bb874561973379ff28a5ff56"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.319
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 11.598
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.445
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 11.549
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.452
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 11.598
+                }
+              }
+            }
+          }
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.532
+                }
+              }
+            },
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.545
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.669
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "sequence": 6,
+        "observed_utc": "2026-11-19T23:23:30.7399023+00:00",
+        "observed_unix_ms": 1795130610739,
+        "checks": {
+          "concepts/guide.md": {
+            "both_clients_equal": true,
+            "two_versions": true,
+            "box_hashes_observed": true
+          },
+          "index.md": {
+            "both_clients_equal": true,
+            "two_versions": true,
+            "box_hashes_observed": true
+          },
+          "log.md": {
+            "both_clients_equal": true,
+            "two_versions": true,
+            "box_hashes_observed": true
+          }
+        },
+        "host": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "93a80e149e7d5705bb874561973379ff28a5ff56"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e"
+              }
+            ]
+          },
+          "box_responses": {
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.319
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 11.598
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.445
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 11.549
+                }
+              }
+            },
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 5.452
+                }
+              },
+              "A": {
+                "suffixed_copy": {
+                  "after_trigger": 11.598
+                }
+              }
+            }
+          }
+        },
+        "vm": {
+          "files": {
+            "concepts/guide.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "93a80e149e7d5705bb874561973379ff28a5ff56"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4"
+              }
+            ],
+            "index.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09"
+              }
+            ],
+            "log.md": [
+              {
+                "kind": "suffixed_copy",
+                "label": "A",
+                "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6"
+              },
+              {
+                "kind": "canonical",
+                "label": "B",
+                "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e"
+              }
+            ]
+          },
+          "box_responses": {
+            "index.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.532
+                }
+              }
+            },
+            "concepts/guide.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.545
+                }
+              }
+            },
+            "log.md": {
+              "B": {
+                "canonical": {
+                  "after_trigger": 1.669
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "split": {
+      "concepts/guide.md": {
+        "canonical": "B",
+        "conflict_copy": "A"
+      },
+      "index.md": {
+        "canonical": "B",
+        "conflict_copy": "A"
+      },
+      "log.md": {
+        "canonical": "B",
+        "conflict_copy": "A"
+      }
+    }
+  },
+  "recovery": {
+    "plan": {
+      "base": {
+        "concepts/guide.md": {
+          "sha1": "eecc7a423ebb0a80490d0820868a283670f03063",
+          "sha256": "536f866e319bd7a3274bf1ffc8886f2d888eb7cdf2e05c8753514ef46d172f3e"
+        },
+        "index.md": {
+          "sha1": "e225a9c2d9f5a25b84cd5ee94696a40c47e18f5a",
+          "sha256": "4bda28ca7ec3024be5abd9e98be8ec9c88092ba910fff979d603364adfb5d435"
+        },
+        "log.md": {
+          "sha1": "43bc044771cdc0fec848d92b86f89a95f3f5882f",
+          "sha256": "32b8541b4933f99bf7f6a49ab65a6484d1d884c70c1c9da4ab8c67a556d42c5a"
+        }
+      },
+      "conflict_copies": {
+        "concepts/guide.md": {
+          "sha1": "93a80e149e7d5705bb874561973379ff28a5ff56",
+          "sha256": "e5a78d3b5e68db2f30fde1e885efcadca8d0d71360d1eb0ccc63c4ae3866cf07"
+        },
+        "index.md": {
+          "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133",
+          "sha256": "fdc73a59457fce0624c2a967c06900256956a1da39b0a962adb8714ce0b7d9c0"
+        },
+        "log.md": {
+          "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6",
+          "sha256": "bfd56bf01b5ead6ac895d430f36157d866d646a1895429a9eda48f92d0b4c6a8"
+        }
+      },
+      "canonical_before": {
+        "concepts/guide.md": {
+          "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4",
+          "sha256": "3bc78a449af0f77b5a01aa7fc910566a7316ff52905f5ba3cde4bbdec81a255e"
+        },
+        "index.md": {
+          "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09",
+          "sha256": "c43d1fca56ec599b7461164c77078b48ef836ea1d47aebdf797a09c7bc624784"
+        },
+        "log.md": {
+          "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e",
+          "sha256": "8d43de312b9b46f0583830f3c20959d8ac6bbba074f343b6a0d63ca66ffe5ab9"
+        }
+      },
+      "split": {
+        "concepts/guide.md": {
+          "canonical": "B",
+          "conflict_copy": "A"
+        },
+        "index.md": {
+          "canonical": "B",
+          "conflict_copy": "A"
+        },
+        "log.md": {
+          "canonical": "B",
+          "conflict_copy": "A"
+        }
+      },
+      "merged": {
+        "concepts/guide.md": {
+          "sha1": "a2a3036d067061782697e3cad4450e8f58d3fe2d",
+          "sha256": "7d5688bb3e70b3e429d74755816b6572ac093384a1dfa5ace2bb35481b115205"
+        },
+        "index.md": {
+          "sha1": "d64e64a12796744fc2008a188c4557fdf263079d",
+          "sha256": "d3fb4ff0ff9c27ec6765d71015f8578c0f424e9be32584192082ff0bd94e4944"
+        },
+        "log.md": {
+          "sha1": "8eb95f0c9653123a4d4ad0bcf851b9b033ee2f03",
+          "sha256": "155f6c830a61c5119e56e5f539c111f298cab74af6afb548309488ac1a5dacc2"
+        }
+      },
+      "articles": {},
+      "merger": "git merge-file -p --diff3",
+      "shared_line_number": 16,
+      "manual_resolution": {
+        "concepts/guide.md": {
+          "hunk": "<<<<<<< host-A\n水鳥は木道から観察する。\n||||||| base\n水鳥は指定の場所から観察する。\n=======\n水鳥の観察には双眼鏡を使う。\n>>>>>>> vm-B\n",
+          "manually_written": "水鳥は木道から、双眼鏡を使って観察する。\n"
+        },
+        "index.md": {
+          "hunk": "<<<<<<< host-A\n- [[guide]]: 水鳥は木道から観察する。\n||||||| base\n- [[guide]]: 水鳥は指定の場所から観察する。\n=======\n- [[guide]]: 水鳥の観察には双眼鏡を使う。\n>>>>>>> vm-B\n",
+          "manually_written": "- [[guide]]: 水鳥は木道から双眼鏡で観察する。\n"
+        },
+        "log.md": {
+          "hunk": "<<<<<<< host-A\n\n## [2026-11-20] edit | A が観察場所を木道と明記\n||||||| base\n=======\n\n## [2026-11-20] edit | B が双眼鏡を使う手順を追加\n>>>>>>> vm-B\n",
+          "manually_written": "\n## [2026-11-20] edit | A が観察場所を木道と明記\n\n## [2026-11-20] edit | B が双眼鏡を使う手順を追加\n"
+        }
+      },
+      "article_changes": [
+        "観察場所を木道と明記",
+        "観察に双眼鏡を使う手順を追加"
+      ],
+      "index_entries": [
+        "- [[guide]]: 水鳥は木道から双眼鏡で観察する。"
+      ],
+      "log_entries": [
+        "## [2026-11-20] init | 同じ記事の同じ行を編集する試験用 wiki",
+        "## [2026-11-20] edit | A が観察場所を木道と明記",
+        "## [2026-11-20] edit | B が双眼鏡を使う手順を追加"
+      ]
+    },
+    "three_way_conflicts": {
+      "concepts/guide.md": {
+        "returncode": 1,
+        "count": 1,
+        "draft_hashes": {
+          "sha1": "640769a43e97bda6361dfc5379f3801ad1fb01da",
+          "sha256": "39d92fdfa7ef837f9447f21e35595e468b2df8642524b18abfd2a587e49b4e4d"
+        },
+        "diff3": "---\ntype: \"concept\"\ntitle: \"試験用の水辺観察ガイド\"\ntags: [\"試験\"]\nsources: []\ncreated: 2026-11-20\nupdated: 2026-11-20\n---\n\n# 試験用の水辺観察ガイド\n\n## 観察方法\n\nはじめに入口の案内板を確認する。\n\n<<<<<<< host-A\n水鳥は木道から観察する。\n||||||| base\n水鳥は指定の場所から観察する。\n=======\n水鳥の観察には双眼鏡を使う。\n>>>>>>> vm-B\n\n観察後は案内板の横の出口から戻る。\n"
+      },
+      "index.md": {
+        "returncode": 1,
+        "count": 1,
+        "draft_hashes": {
+          "sha1": "492fd55f6748cf142ddb90fccb4dd211d18cb9ee",
+          "sha256": "e724463cecb6f24a3ce6c0d69052b9cd74340ad4bf2b507260077041130fdb6d"
+        },
+        "diff3": "# Wiki のインデックス\n\n## コンセプト\n\n<<<<<<< host-A\n- [[guide]]: 水鳥は木道から観察する。\n||||||| base\n- [[guide]]: 水鳥は指定の場所から観察する。\n=======\n- [[guide]]: 水鳥の観察には双眼鏡を使う。\n>>>>>>> vm-B\n"
+      },
+      "log.md": {
+        "returncode": 1,
+        "count": 1,
+        "draft_hashes": {
+          "sha1": "f02923a7f13943c87af947d3f7c3803a9f85fa2a",
+          "sha256": "fa93b806895213c8c0b8639d6faab5aa128f3d34f1d79cf851e9bfbb74b7f29b"
+        },
+        "diff3": "# Wiki の運用ログ\n\n## [2026-11-20] init | 同じ記事の同じ行を編集する試験用 wiki\n<<<<<<< host-A\n\n## [2026-11-20] edit | A が観察場所を木道と明記\n||||||| base\n=======\n\n## [2026-11-20] edit | B が双眼鏡を使う手順を追加\n>>>>>>> vm-B\n"
+      }
+    },
+    "verified_before": {
+      "host": {
+        "canonical": {
+          "concepts/guide.md": {
+            "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4",
+            "sha256": "3bc78a449af0f77b5a01aa7fc910566a7316ff52905f5ba3cde4bbdec81a255e"
+          },
+          "index.md": {
+            "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09",
+            "sha256": "c43d1fca56ec599b7461164c77078b48ef836ea1d47aebdf797a09c7bc624784"
+          },
+          "log.md": {
+            "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e",
+            "sha256": "8d43de312b9b46f0583830f3c20959d8ac6bbba074f343b6a0d63ca66ffe5ab9"
+          }
+        },
+        "articles": {},
+        "conflict_count": {
+          "concepts/guide.md": 1,
+          "index.md": 1,
+          "log.md": 1
+        },
+        "archive": {}
+      },
+      "vm": {
+        "canonical": {
+          "concepts/guide.md": {
+            "sha1": "2ffe948f9b7807c4904e8cd15165c2590d0990f4",
+            "sha256": "3bc78a449af0f77b5a01aa7fc910566a7316ff52905f5ba3cde4bbdec81a255e"
+          },
+          "index.md": {
+            "sha1": "251f0415d2cd9a186682b6dc93e834e768e33b09",
+            "sha256": "c43d1fca56ec599b7461164c77078b48ef836ea1d47aebdf797a09c7bc624784"
+          },
+          "log.md": {
+            "sha1": "2c9a8af921a982e1ccacf16b9cabb231da3b060e",
+            "sha256": "8d43de312b9b46f0583830f3c20959d8ac6bbba074f343b6a0d63ca66ffe5ab9"
+          }
+        },
+        "articles": {},
+        "conflict_count": {
+          "concepts/guide.md": 1,
+          "index.md": 1,
+          "log.md": 1
+        },
+        "archive": {}
+      }
+    },
+    "write_back": {
+      "started_unix": 1795130652.42573,
+      "finished_unix": 1795130652.4348323
+    },
+    "verified_merged": {
+      "observed_unix_ms": 1795130675352,
+      "host": {
+        "canonical": {
+          "concepts/guide.md": {
+            "sha1": "a2a3036d067061782697e3cad4450e8f58d3fe2d",
+            "sha256": "7d5688bb3e70b3e429d74755816b6572ac093384a1dfa5ace2bb35481b115205"
+          },
+          "index.md": {
+            "sha1": "d64e64a12796744fc2008a188c4557fdf263079d",
+            "sha256": "d3fb4ff0ff9c27ec6765d71015f8578c0f424e9be32584192082ff0bd94e4944"
+          },
+          "log.md": {
+            "sha1": "8eb95f0c9653123a4d4ad0bcf851b9b033ee2f03",
+            "sha256": "155f6c830a61c5119e56e5f539c111f298cab74af6afb548309488ac1a5dacc2"
+          }
+        },
+        "articles": {},
+        "conflict_count": {
+          "concepts/guide.md": 1,
+          "index.md": 1,
+          "log.md": 1
+        },
+        "archive": {}
+      },
+      "vm": {
+        "canonical": {
+          "concepts/guide.md": {
+            "sha1": "a2a3036d067061782697e3cad4450e8f58d3fe2d",
+            "sha256": "7d5688bb3e70b3e429d74755816b6572ac093384a1dfa5ace2bb35481b115205"
+          },
+          "index.md": {
+            "sha1": "d64e64a12796744fc2008a188c4557fdf263079d",
+            "sha256": "d3fb4ff0ff9c27ec6765d71015f8578c0f424e9be32584192082ff0bd94e4944"
+          },
+          "log.md": {
+            "sha1": "8eb95f0c9653123a4d4ad0bcf851b9b033ee2f03",
+            "sha256": "155f6c830a61c5119e56e5f539c111f298cab74af6afb548309488ac1a5dacc2"
+          }
+        },
+        "articles": {},
+        "conflict_count": {
+          "concepts/guide.md": 1,
+          "index.md": 1,
+          "log.md": 1
+        },
+        "archive": {}
+      },
+      "box_api": {
+        "canonical": {
+          "log.md": {
+            "unix": 1795130658.45,
+            "sha1": "8eb95f0c9653123a4d4ad0bcf851b9b033ee2f03"
+          },
+          "concepts/guide.md": {
+            "unix": 1795130658.577,
+            "sha1": "a2a3036d067061782697e3cad4450e8f58d3fe2d"
+          },
+          "index.md": {
+            "unix": 1795130658.64,
+            "sha1": "d64e64a12796744fc2008a188c4557fdf263079d"
+          }
+        }
+      }
+    },
+    "archive": {
+      "started_unix": 1795130675.739358,
+      "finished_unix": 1795130675.7548926
+    },
+    "archive_path_relative_to_test_folder": "recovery-archive",
+    "verified_final": {
+      "observed_unix_ms": 1795130694473,
+      "host": {
+        "canonical": {
+          "concepts/guide.md": {
+            "sha1": "a2a3036d067061782697e3cad4450e8f58d3fe2d",
+            "sha256": "7d5688bb3e70b3e429d74755816b6572ac093384a1dfa5ace2bb35481b115205"
+          },
+          "index.md": {
+            "sha1": "d64e64a12796744fc2008a188c4557fdf263079d",
+            "sha256": "d3fb4ff0ff9c27ec6765d71015f8578c0f424e9be32584192082ff0bd94e4944"
+          },
+          "log.md": {
+            "sha1": "8eb95f0c9653123a4d4ad0bcf851b9b033ee2f03",
+            "sha256": "155f6c830a61c5119e56e5f539c111f298cab74af6afb548309488ac1a5dacc2"
+          }
+        },
+        "articles": {},
+        "conflict_count": {
+          "concepts/guide.md": 0,
+          "index.md": 0,
+          "log.md": 0
+        },
+        "archive": {
+          "concepts/guide.md": {
+            "sha1": "93a80e149e7d5705bb874561973379ff28a5ff56",
+            "sha256": "e5a78d3b5e68db2f30fde1e885efcadca8d0d71360d1eb0ccc63c4ae3866cf07"
+          },
+          "index.md": {
+            "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133",
+            "sha256": "fdc73a59457fce0624c2a967c06900256956a1da39b0a962adb8714ce0b7d9c0"
+          },
+          "log.md": {
+            "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6",
+            "sha256": "bfd56bf01b5ead6ac895d430f36157d866d646a1895429a9eda48f92d0b4c6a8"
+          }
+        }
+      },
+      "vm": {
+        "canonical": {
+          "concepts/guide.md": {
+            "sha1": "a2a3036d067061782697e3cad4450e8f58d3fe2d",
+            "sha256": "7d5688bb3e70b3e429d74755816b6572ac093384a1dfa5ace2bb35481b115205"
+          },
+          "index.md": {
+            "sha1": "d64e64a12796744fc2008a188c4557fdf263079d",
+            "sha256": "d3fb4ff0ff9c27ec6765d71015f8578c0f424e9be32584192082ff0bd94e4944"
+          },
+          "log.md": {
+            "sha1": "8eb95f0c9653123a4d4ad0bcf851b9b033ee2f03",
+            "sha256": "155f6c830a61c5119e56e5f539c111f298cab74af6afb548309488ac1a5dacc2"
+          }
+        },
+        "articles": {},
+        "conflict_count": {
+          "concepts/guide.md": 0,
+          "index.md": 0,
+          "log.md": 0
+        },
+        "archive": {
+          "concepts/guide.md": {
+            "sha1": "93a80e149e7d5705bb874561973379ff28a5ff56",
+            "sha256": "e5a78d3b5e68db2f30fde1e885efcadca8d0d71360d1eb0ccc63c4ae3866cf07"
+          },
+          "index.md": {
+            "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133",
+            "sha256": "fdc73a59457fce0624c2a967c06900256956a1da39b0a962adb8714ce0b7d9c0"
+          },
+          "log.md": {
+            "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6",
+            "sha256": "bfd56bf01b5ead6ac895d430f36157d866d646a1895429a9eda48f92d0b4c6a8"
+          }
+        }
+      },
+      "box_api": {
+        "canonical": {
+          "log.md": {
+            "unix": 1795130658.45,
+            "sha1": "8eb95f0c9653123a4d4ad0bcf851b9b033ee2f03"
+          },
+          "concepts/guide.md": {
+            "unix": 1795130658.577,
+            "sha1": "a2a3036d067061782697e3cad4450e8f58d3fe2d"
+          },
+          "index.md": {
+            "unix": 1795130658.64,
+            "sha1": "d64e64a12796744fc2008a188c4557fdf263079d"
+          }
+        },
+        "archived": {
+          "log.md": {
+            "unix": 1795130682.92,
+            "sha1": "f51a425cf991e8e7b2539a14c492d2a93e1f00c6"
+          },
+          "concepts/guide.md": {
+            "unix": 1795130682.931,
+            "sha1": "93a80e149e7d5705bb874561973379ff28a5ff56"
+          },
+          "index.md": {
+            "unix": 1795130683.085,
+            "sha1": "dca865de4ac760c0b7efd01e826d9a84be45f133"
+          }
+        }
+      }
+    },
+    "lint_and_search": {
+      "before_write_back": {
+        "lint": {
+          "total_pages": 1,
+          "orphans": 1,
+          "broken_links": 0,
+          "oversized_hard": 0,
+          "oversized_soft": 0,
+          "missing_frontmatter": 0,
+          "malformed_frontmatter": 0,
+          "duplicate_slugs": 0,
+          "case_only_duplicates": 0,
+          "stale_pages": 0,
+          "read_errors": 0,
+          "frontmatter_alias_conflicts": 0,
+          "fullwidth_colon_keys": 0,
+          "ideographic_comma_lists": 0,
+          "fullwidth_link_syntax": 0,
+          "non_iso_dates": 0,
+          "unquoted_strings": 0,
+          "missing_assets": 0,
+          "index_type_mismatch": 0,
+          "unresolved_sources": 0,
+          "missing_raw": 0,
+          "unknown_tags": null,
+          "caption_corrections": 0,
+          "overview_stale": 0,
+          "overview_problems": 0,
+          "links": 0,
+          "links_wiki": 0,
+          "links_unchecked": 0,
+          "links_unchecked_wiki": 0,
+          "links_unchecked_raw": 0,
+          "links_raw": 0,
+          "raw_ambiguous": 0,
+          "raw_unknown": 0,
+          "raw_version_unverified": 0,
+          "raw_paths_unchecked": 0,
+          "raw_outside": 0,
+          "suggested_pages": 0
+        },
+        "search": {
+          "木道": "concepts/guide.md",
+          "双眼鏡": "concepts/guide.md"
+        }
+      },
+      "after_archive_on_host": {
+        "search": {
+          "木道": "concepts/guide.md",
+          "双眼鏡": "concepts/guide.md"
+        },
+        "lint": {
+          "total_pages": 1,
+          "orphans": 1,
+          "broken_links": 0,
+          "oversized_hard": 0,
+          "oversized_soft": 0,
+          "missing_frontmatter": 0,
+          "malformed_frontmatter": 0,
+          "duplicate_slugs": 0,
+          "case_only_duplicates": 0,
+          "stale_pages": 0,
+          "read_errors": 0,
+          "frontmatter_alias_conflicts": 0,
+          "fullwidth_colon_keys": 0,
+          "ideographic_comma_lists": 0,
+          "fullwidth_link_syntax": 0,
+          "non_iso_dates": 0,
+          "unquoted_strings": 0,
+          "missing_assets": 0,
+          "index_type_mismatch": 0,
+          "unresolved_sources": 0,
+          "missing_raw": 0,
+          "unknown_tags": null,
+          "caption_corrections": 0,
+          "overview_stale": 0,
+          "overview_problems": 0,
+          "links": 0,
+          "links_wiki": 0,
+          "links_unchecked": 0,
+          "links_unchecked_wiki": 0,
+          "links_unchecked_raw": 0,
+          "links_raw": 0,
+          "raw_ambiguous": 0,
+          "raw_unknown": 0,
+          "raw_version_unverified": 0,
+          "raw_paths_unchecked": 0,
+          "raw_outside": 0,
+          "suggested_pages": 0
+        }
+      }
+    }
+  },
+  "timings": {
+    "conflict_verified_after_reconnect_seconds": 28.327,
+    "recovery_verified_after_write_start_seconds": 22.926,
+    "archive_verified_after_move_start_seconds": 18.734
+  }
+}
